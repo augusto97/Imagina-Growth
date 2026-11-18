@@ -81,7 +81,7 @@ abstract class TestCase extends BaseTestCase
      * @param  array<string, mixed>  $overrides  se fusionan sobre el sobre
      * @return array<string, mixed>
      */
-    protected function envelope(Site $site, string $event, array $properties, array $overrides = []): array
+    public function envelope(Site $site, string $event, array $properties, array $overrides = []): array
     {
         $base = [
             'schema_version' => 1,
@@ -105,7 +105,7 @@ abstract class TestCase extends BaseTestCase
     }
 
     /** @return array<string, mixed> pedido de ejemplo del contrato (eventos.md §5) */
-    protected function orderSnapshot(array $overrides = []): array
+    public function orderSnapshot(array $overrides = []): array
     {
         $order = [
             'order_id' => '1234', 'number' => '1234', 'status' => 'processing',

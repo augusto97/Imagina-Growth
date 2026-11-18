@@ -9,6 +9,7 @@ use App\Domain\Commerce\Projectors\OrderProjector;
 use App\Domain\Contacts\Jobs\RecalculateContactStats;
 use App\Domain\Identity\IdentityInput;
 use App\Domain\Identity\IdentityResolver;
+use App\Domain\Identity\SiteToken;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Sites\Projectors\SiteHealthProjector;
 use App\Domain\Workspaces\Models\Workspace;
@@ -162,9 +163,7 @@ final class IngestProcessor
 
             $seenInBatch[$dedupeKey] = true;
             $out->eventRows[] = $result['row'];
-            if ($result['identity_row'] !== null) {
-                $out->identityRows[] = $result['identity_row'];
-            }
+            array_push($out->identityRows, ...$result['identity_rows']);
             $out->dedupeKeys[] = $dedupeKey;
             $out->ackIds[] = $entry->streamId;
             $out->processed++;
@@ -182,7 +181,7 @@ final class IngestProcessor
 
     /**
      * @param  array<string, mixed>  $envelope
-     * @return array{row: array<string, mixed>, identity_row: array<string, mixed>|null, recalculate: string|null, domain_event: EventIngested|null}
+     * @return array{row: array<string, mixed>, identity_rows: list<array<string, mixed>>, recalculate: string|null, domain_event: EventIngested|null}
      */
     private function handle(Workspace $workspace, Site $site, IngestEntry $entry, array $envelope): array
     {
@@ -192,20 +191,31 @@ final class IngestProcessor
 
         // 7. Identidad (solo con identificadores; los eventos de catálogo y sitio no tienen persona).
         $contactId = null;
-        $identityRow = null;
+        $identityRows = [];
+        $merged = false;
         if (! str_starts_with($event, 'catalog.') && ! str_starts_with($event, 'site.')) {
             $input = IdentityInput::fromEnvelope($envelope);
+            if (($envelope['source']['type'] ?? '') === 'browser') {
+                // eventos.md §8: el navegador no puede atribuirse un cliente sin un token firmado por el sitio.
+                $input->customerRef = null;
+                if ($event === 'identify') {
+                    $token = SiteToken::verify($site, isset($envelope['properties']['token']) ? (string) $envelope['properties']['token'] : null);
+                    $ref = $token['ref'] ?? null;
+                    $input->customerRef = is_string($ref) && preg_match('/^[a-z]+:[A-Za-z0-9_-]{1,64}$/', $ref) ? $ref : null;
+                }
+            }
             if ($input->hasStrongIdentifier() || $input->anonymousId !== null) {
                 $resolved = $this->identity->resolve($workspace, $site, $input, $occurredAt);
-                $contactId = $resolved['contact']?->id;
-                if ($resolved['linked_anonymous'] && $contactId !== null && $input->anonymousId !== null) {
-                    $identityRow = [
+                $contactId = $resolved['contact_id'];
+                foreach ($resolved['identity_map'] as $anonymousId) {
+                    $identityRows[] = [
                         'workspace_id' => $entry->workspaceChId,
-                        'anonymous_id' => $input->anonymousId,
-                        'contact_id' => $contactId,
+                        'anonymous_id' => $anonymousId,
+                        'contact_id' => (string) $contactId,
                         'linked_at' => $occurredAt->format('Y-m-d H:i:s.v'),
                     ];
                 }
+                $merged = $resolved['merged'];
             }
         }
 
@@ -241,8 +251,8 @@ final class IngestProcessor
 
         return [
             'row' => $row,
-            'identity_row' => $identityRow,
-            'recalculate' => $contactId !== null && str_starts_with($event, 'order.') ? $contactId : null,
+            'identity_rows' => $identityRows,
+            'recalculate' => $contactId !== null && ($merged || str_starts_with($event, 'order.')) ? $contactId : null,
             'domain_event' => $domainEvent,
         ];
     }

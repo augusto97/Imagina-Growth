@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Identity;
 
+use App\Domain\Contacts\Actions\MergeContacts;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Contacts\Models\ContactIdentity;
 use App\Domain\Sites\Models\Site;
@@ -11,17 +12,21 @@ use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Phone\Phone;
 use App\Support\Pii\BlindIndex;
 use App\Support\Pii\Pii;
+use App\Support\Tenancy\RedisKey;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Resolución de identidad determinista (eventos.md §6.2). Nunca une perfiles
  * por probabilidad. Orden de fuerza: customer_ref > email > teléfono > anonymous_id.
  *
- * Fase 0: crea o encuentra el contacto y agrega los identificadores que le
- * faltan. Si dos contactos distintos comparten identificadores fuertes, gana
- * el más fuerte y el conflicto queda en el log; la fusión auditada y
- * reversible llega en la Fase 1 (M03).
+ * Crea o encuentra el contacto y agrega los identificadores que le faltan.
+ * Si dos contactos comparten identificadores fuertes, se fusionan en el del
+ * identificador más fuerte (auditado y reversible, MergeContacts), salvo que
+ * sean dos cuentas distintas del mismo sitio. Un anonymous_id que aparece con
+ * un identificador fuerte pasa a ese contacto sin fusionar (dispositivo
+ * compartido).
  *
  * Debe ejecutarse con el espacio de trabajo activo (CurrentWorkspace).
  */
@@ -29,13 +34,24 @@ final class IdentityResolver
 {
     private const RANK = ['customer_ref' => 1, 'email_hash' => 2, 'phone_hash' => 3, 'anonymous_id' => 6];
 
-    /** @return array{contact: Contact|null, created: bool, linked_anonymous: bool} */
+    public function __construct(private readonly MergeContacts $merge) {}
+
+    /**
+     * @return array{contact_id: string|null, created: bool, merged: bool, identity_map: list<string>}
+     *                                                                                                 identity_map: anonymous_id que quedaron apuntando a contact_id (para la tabla identity_map de ClickHouse)
+     */
     public function resolve(Workspace $workspace, Site $site, IdentityInput $in, CarbonInterface $seenAt): array
     {
+        $none = ['contact_id' => null, 'created' => false, 'merged' => false, 'identity_map' => []];
         $identifiers = $this->identifiers($workspace, $site, $in);
-        $strong = array_filter($identifiers, fn ($i) => $i['type'] !== 'anonymous_id');
+        $strong = array_values(array_filter($identifiers, fn ($i) => $i['type'] !== 'anonymous_id'));
         if ($strong === [] && $in->anonymousId === null) {
-            return ['contact' => null, 'created' => false, 'linked_anonymous' => false];
+            return $none;
+        }
+
+        // Solo anónimo (lo más común: vistas del tracker): caché Redis del mapa anónimo → contacto.
+        if ($strong === []) {
+            return ['contact_id' => $this->contactForAnonymous($workspace, (string) $identifiers[0]['value']), 'created' => false, 'merged' => false, 'identity_map' => []];
         }
 
         $existing = ContactIdentity::query()
@@ -47,32 +63,25 @@ final class IdentityResolver
             ->get()
             ->keyBy(fn (ContactIdentity $i) => $i->type.'|'.$i->value);
 
-        // El contacto del identificador más fuerte que ya existe.
-        $contactId = null;
-        $byContact = [];
-        foreach ($identifiers as $i) {
+        // Contactos de los identificadores fuertes, del más fuerte al más débil.
+        $strongContacts = [];
+        foreach ($strong as $i) {
             $found = $existing->get($i['type'].'|'.$i['value']);
-            if ($found !== null) {
-                $byContact[$found->contact_id][] = $i['type'];
-                if ($i['type'] !== 'anonymous_id' || $strong === []) {
-                    $contactId ??= $found->contact_id;
-                }
+            if ($found !== null && ! in_array($found->contact_id, $strongContacts, true)) {
+                $strongContacts[] = $found->contact_id;
             }
         }
-        if (count(array_diff(array_keys($byContact), $contactId ? [$contactId] : [])) > 0 && $strong !== []) {
-            Log::info('igr.identity.conflict', [
-                'workspace' => $workspace->id,
-                'winner' => $contactId,
-                'others' => array_values(array_diff(array_keys($byContact), [$contactId])),
-            ]);
+
+        // Una cuenta nueva del sitio no se pega al contacto de otra cuenta del mismo sitio
+        // (p. ej. dos cuentas que comparten el teléfono de la casa).
+        if ($in->customerRef !== null && ! $existing->has('customer_ref|'.$site->id.':'.$in->customerRef)) {
+            $strongContacts = array_values(array_filter($strongContacts, fn (string $id) => ! $this->hasOtherAccount($id, $site, $in->customerRef)));
         }
 
         $created = false;
-        if ($contactId === null) {
-            if ($strong === []) {
-                // Solo anónimo y desconocido: no se crea contacto (es un visitante sin identificar).
-                return ['contact' => null, 'created' => false, 'linked_anonymous' => false];
-            }
+        $merged = false;
+        $identityMap = [];
+        if ($strongContacts === []) {
             // Se guarda una sola vez, con el perfil completo, al final de updateProfile().
             $contact = new Contact([
                 'workspace_id' => $workspace->id,
@@ -83,18 +92,40 @@ final class IdentityResolver
             $contact->setAttribute('id', $contact->newUniqueId());
             $created = true;
         } else {
-            $contact = Contact::query()->find($contactId);
+            $contact = $this->live(Contact::query()->find($strongContacts[0]));
             if ($contact === null) {
-                return ['contact' => null, 'created' => false, 'linked_anonymous' => false];
+                return $none;
+            }
+            // Dos contactos con un identificador fuerte en común se fusionan (eventos.md §6.2).
+            foreach (array_slice($strongContacts, 1) as $otherId) {
+                $other = $this->live(Contact::query()->find($otherId));
+                if ($other === null || $other->id === $contact->id) {
+                    continue;
+                }
+                if ($this->distinctAccounts($contact, $other)) {
+                    Log::info('igr.identity.conflict', ['workspace' => $workspace->id, 'contact' => $contact->id, 'other' => $other->id, 'reason' => 'cuentas distintas del mismo sitio']);
+
+                    continue;
+                }
+                $result = $this->merge->handle($contact, $other, 'identity:'.implode(',', array_column($strong, 'type')));
+                array_push($identityMap, ...$result['anonymous_ids']);
+                $merged = true;
+            }
+            if ($merged) {
+                $contact->refresh();
+                $existing = ContactIdentity::query()
+                    ->whereIn('value', array_column($identifiers, 'value'))
+                    ->get()
+                    ->keyBy(fn (ContactIdentity $i) => $i->type.'|'.$i->value);
             }
         }
 
-        $linkedAnonymous = false;
         /** @var array<string, string> $owners tipo|valor => contacto dueño */
         $owners = [];
         foreach ($identifiers as $i) {
-            $found = $existing->get($i['type'].'|'.$i['value']);
-            $owners[$i['type'].'|'.$i['value']] = $found !== null ? $found->contact_id : $contact->id;
+            $key = $i['type'].'|'.$i['value'];
+            $found = $existing->get($key);
+            $owners[$key] = $found !== null ? $found->contact_id : $contact->id;
             if ($found === null) {
                 ContactIdentity::query()->create([
                     'workspace_id' => $workspace->id,
@@ -105,7 +136,15 @@ final class IdentityResolver
                     'first_seen_at' => $seenAt,
                     'last_seen_at' => $seenAt,
                 ]);
-                $linkedAnonymous = $linkedAnonymous || $i['type'] === 'anonymous_id';
+                $owners[$key] = $contact->id;
+                if ($i['type'] === 'anonymous_id') {
+                    $identityMap[] = $i['value'];
+                }
+            } elseif ($i['type'] === 'anonymous_id' && $found->contact_id !== $contact->id) {
+                // Un dispositivo compartido: el anónimo pasa al contacto del identificador fuerte (último visto gana).
+                $found->forceFill(['contact_id' => $contact->id, 'last_seen_at' => $seenAt])->save();
+                $owners[$key] = $contact->id;
+                $identityMap[] = $i['value'];
             } elseif ($found->contact_id === $contact->id && ($found->last_seen_at === null || $found->last_seen_at->lt($seenAt->subHour()))) {
                 // Con resolución de una hora basta; así no se escribe en cada evento.
                 $found->forceFill(['last_seen_at' => $seenAt])->save();
@@ -113,8 +152,69 @@ final class IdentityResolver
         }
 
         $this->updateProfile($contact, $workspace, $in, $seenAt, $owners);
+        foreach (array_unique($identityMap) as $anon) {
+            Cache::put(RedisKey::for($workspace->id, 'anon:'.$anon), $contact->id, now()->addDay());
+        }
 
-        return ['contact' => $contact, 'created' => $created, 'linked_anonymous' => $linkedAnonymous];
+        return ['contact_id' => $contact->id, 'created' => $created, 'merged' => $merged, 'identity_map' => array_values(array_unique($identityMap))];
+    }
+
+    /** Contacto de un anónimo, con caché de un día (5 minutos si no se conoce). */
+    private function contactForAnonymous(Workspace $workspace, string $anonymousId): ?string
+    {
+        $key = RedisKey::for($workspace->id, 'anon:'.$anonymousId);
+        $cached = Cache::get($key);
+        if (is_string($cached)) {
+            return $cached === '-' ? null : $cached;
+        }
+        $contactId = ContactIdentity::query()->where('type', 'anonymous_id')->where('value', $anonymousId)->value('contact_id');
+        $contactId = is_string($contactId) ? $this->followMerges($contactId) : null;
+        Cache::put($key, $contactId ?? '-', $contactId === null ? now()->addMinutes(5) : now()->addDay());
+
+        return $contactId;
+    }
+
+    /** Si el contacto fue fusionado, devuelve el ganador vigente. */
+    private function live(?Contact $contact): ?Contact
+    {
+        for ($i = 0; $contact !== null && $contact->getAttribute('merged_into_id') !== null && $i < 5; $i++) {
+            $contact = Contact::query()->whereKey((string) $contact->getAttribute('merged_into_id'))->first();
+        }
+
+        return $contact;
+    }
+
+    private function followMerges(string $contactId): ?string
+    {
+        return $this->live(Contact::query()->find($contactId))?->id;
+    }
+
+    private function hasOtherAccount(string $contactId, Site $site, string $customerRef): bool
+    {
+        return ContactIdentity::query()
+            ->where('contact_id', $contactId)
+            ->where('type', 'customer_ref')
+            ->where('value', 'like', $site->id.':%')
+            ->where('value', '!=', $site->id.':'.$customerRef)
+            ->exists();
+    }
+
+    /** Dos cuentas distintas del mismo sitio (dos customer_ref) nunca se fusionan solas. */
+    private function distinctAccounts(Contact $a, Contact $b): bool
+    {
+        $refs = ContactIdentity::query()->where('type', 'customer_ref')->whereIn('contact_id', [$a->id, $b->id])->get(['contact_id', 'value']);
+        $bySite = [];
+        foreach ($refs as $ref) {
+            $site = explode(':', $ref->value, 2)[0];
+            $bySite[$site][$ref->contact_id] = true;
+        }
+        foreach ($bySite as $contacts) {
+            if (count($contacts) > 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return list<array{type: string, value: string}> */
