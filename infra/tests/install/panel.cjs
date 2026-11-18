@@ -58,7 +58,10 @@ async function openUpdates(page) {
 }
 
 (async () => {
-    const browser = await chromium.launch({ args: [`--host-resolver-rules=MAP ${host} ${env.MAP_IP}, MAP in.${host} ${env.MAP_IP}`] });
+    // Directo al servidor de prueba: sin el proxy del entorno, con su IP para el dominio de prueba.
+    const browser = await chromium.launch({
+        args: ['--no-proxy-server', `--host-resolver-rules=MAP ${host} ${env.MAP_IP}, MAP in.${host} ${env.MAP_IP}`],
+    });
     const context = await browser.newContext({ ignoreHTTPSErrors: true, locale: 'es-CO', viewport: { width: 1440, height: 1000 } });
     const page = await context.newPage();
     const errors = [];
