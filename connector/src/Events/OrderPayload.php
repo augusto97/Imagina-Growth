@@ -51,8 +51,9 @@ final class OrderPayload {
 			}
 		}
 		$user_id = (int) $order->get_customer_id();
+		$cart    = (string) $order->get_meta( OrderEvents::CART_META, true );
 
-		return array(
+		$out = array(
 			'order_id'        => (string) $order->get_id(),
 			'number'          => mb_substr( (string) $order->get_order_number(), 0, 64 ),
 			'status'          => (string) $order->get_status(),
@@ -93,6 +94,10 @@ final class OrderPayload {
 			'consents'        => self::consents( $order ),
 			'meta'            => new \stdClass(),
 		);
+		if ( 1 === preg_match( '/^[A-Za-z0-9_-]{8,64}$/', $cart ) ) {
+			$out['cart_token'] = $cart; // v3 (eventos.md §8).
+		}
+		return $out;
 	}
 
 	/**

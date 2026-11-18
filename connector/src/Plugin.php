@@ -14,6 +14,7 @@ use ImaginaGrowth\Connector\Backfill\Runner;
 use ImaginaGrowth\Connector\Catalog\CatalogCollector;
 use ImaginaGrowth\Connector\Catalog\CatalogSync;
 use ImaginaGrowth\Connector\Collectors\CartCollector;
+use ImaginaGrowth\Connector\Onsite\CartRestore;
 use ImaginaGrowth\Connector\Collectors\CustomerCollector;
 use ImaginaGrowth\Connector\Collectors\OrderCollector;
 use ImaginaGrowth\Connector\Collectors\ReviewCollector;
@@ -120,6 +121,7 @@ final class Plugin {
 			CartCollector::register();
 			CatalogCollector::register();
 			CheckoutConsent::register();
+			CartRestore::register();
 			add_action( 'woocommerce_thankyou', array( CartCollector::class, 'reset_token' ), 5, 0 );
 		};
 		// WooCommerce suele cargar después (orden alfabético), pero no siempre.

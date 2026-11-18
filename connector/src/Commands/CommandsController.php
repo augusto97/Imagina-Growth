@@ -32,6 +32,12 @@ final class CommandsController {
 		'catalog.resync'   => Handlers\CatalogResync::class,
 		'backfill.start'   => Handlers\BackfillStart::class,
 		'secret.rotate'    => Handlers\SecretRotate::class,
+		// Fase 2.
+		'coupon.create'    => Handlers\CouponCreate::class,
+		'coupon.disable'   => Handlers\CouponDisable::class,
+		'order.add_note'   => Handlers\OrderAddNote::class,
+		'product.lookup'   => Handlers\ProductLookup::class,
+		'order.status'     => Handlers\OrderStatus::class,
 	);
 
 	/**

@@ -20,6 +20,7 @@ use ImaginaGrowth\Connector\Support\Phone;
 final class OrderEvents {
 
 	public const CTX_META  = '_igr_ctx';
+	public const CART_META = '_igr_cart_token';
 	public const PAID_META = '_igr_paid_sent';
 
 	/**

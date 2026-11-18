@@ -55,6 +55,11 @@ final class OrderCollector {
 		if ( array() !== $ctx['identity'] || array() !== $ctx['context'] ) {
 			$order->update_meta_data( OrderEvents::CTX_META, $ctx );
 		}
+		// v3: el carrito del que sale el pedido, para que el hub lo marque convertido o recuperado.
+		$token = CartCollector::current_token();
+		if ( null !== $token ) {
+			$order->update_meta_data( OrderEvents::CART_META, $token );
+		}
 	}
 
 	/**

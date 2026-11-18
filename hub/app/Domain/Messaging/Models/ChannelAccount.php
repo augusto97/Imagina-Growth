@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $display_name
  * @property array<string, mixed>|null $config
  * @property string|null $identity
+ * @property string|null $external_id
+ * @property CarbonInterface|null $warmup_started_at
  * @property string|null $quality_rating
  * @property string|null $messaging_limit_tier
  * @property bool $is_default
@@ -38,7 +40,7 @@ class ChannelAccount extends Model
 
     public const ZENDER = 'zender';
 
-    protected $fillable = ['workspace_id', 'channel', 'provider', 'display_name', 'config', 'identity', 'quality_rating', 'messaging_limit_tier', 'is_default', 'status', 'last_error', 'risk_accepted_at', 'risk_accepted_by'];
+    protected $fillable = ['workspace_id', 'channel', 'provider', 'display_name', 'config', 'identity', 'external_id', 'quality_rating', 'messaging_limit_tier', 'warmup_started_at', 'is_default', 'status', 'last_error', 'risk_accepted_at', 'risk_accepted_by'];
 
     protected $hidden = ['config'];
 
@@ -49,7 +51,22 @@ class ChannelAccount extends Model
             'config' => 'encrypted:array',
             'is_default' => 'boolean',
             'risk_accepted_at' => 'datetime',
+            'warmup_started_at' => 'datetime',
         ];
+    }
+
+    /** Un dato de la configuración cifrada (token, waba_id, dominio…). */
+    public function credential(string $key): ?string
+    {
+        $value = $this->config[$key] ?? null;
+
+        return is_scalar($value) && (string) $value !== '' ? (string) $value : null;
+    }
+
+    /** @param array<string, mixed> $values */
+    public function mergeConfig(array $values): void
+    {
+        $this->config = array_replace($this->config ?? [], $values);
     }
 
     public function isActive(): bool

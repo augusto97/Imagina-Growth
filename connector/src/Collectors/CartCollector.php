@@ -11,6 +11,7 @@ namespace ImaginaGrowth\Connector\Collectors;
 
 use ImaginaGrowth\Connector\Events\EventFactory;
 use ImaginaGrowth\Connector\Events\Recorder;
+use ImaginaGrowth\Connector\Onsite\CartRestore;
 use ImaginaGrowth\Connector\Support\Logger;
 use ImaginaGrowth\Connector\Support\Money;
 use ImaginaGrowth\Connector\Tracking\RequestContext;
@@ -127,16 +128,19 @@ final class CartCollector {
 				'at'   => time(),
 			)
 		);
-		self::record(
-			'cart.updated',
-			array(
-				'cart_token' => self::token(),
-				'items'      => $items,
-				'subtotal'   => Money::format( WC()->cart->get_subtotal() ),
-				'coupons'    => $coupons,
-				'currency'   => get_woocommerce_currency(),
-			)
+		$props    = array(
+			'cart_token' => self::token(),
+			'items'      => $items,
+			'subtotal'   => Money::format( WC()->cart->get_subtotal() ),
+			'coupons'    => $coupons,
+			'currency'   => get_woocommerce_currency(),
 		);
+		$restored = WC()->session->get( CartRestore::SESSION_RESTORE );
+		if ( is_string( $restored ) && '' !== $restored ) {
+			// v3: el carrito salió de un enlace de un mensaje (api-connector.md §6.1).
+			$props['restored_from'] = $restored;
+		}
+		self::record( 'cart.updated', $props );
 	}
 
 	/**
@@ -197,6 +201,27 @@ final class CartCollector {
 	}
 
 	/**
+	 * Registra ya el `cart.updated`, sin esperar el límite de 30 s (carrito restaurado desde un enlace).
+	 */
+	public static function record_now(): void {
+		if ( function_exists( 'WC' ) && WC()->session ) {
+			WC()->session->set( self::SESSION_HASH, null );
+		}
+		self::on_cart_updated();
+	}
+
+	/**
+	 * Token del carrito de la sesión actual, sin crear uno nuevo (para guardarlo en el pedido).
+	 */
+	public static function current_token(): ?string {
+		if ( ! function_exists( 'WC' ) || null === WC()->session ) {
+			return null;
+		}
+		$token = WC()->session->get( self::SESSION_TOKEN );
+		return is_string( $token ) && 1 === preg_match( '/^[a-f0-9]{16,64}$/', $token ) ? $token : null;
+	}
+
+	/**
 	 * Al convertirse el carrito en pedido se empieza uno nuevo.
 	 */
 	public static function reset_token(): void {
@@ -204,6 +229,7 @@ final class CartCollector {
 			WC()->session->set( self::SESSION_TOKEN, null );
 			WC()->session->set( self::SESSION_HASH, null );
 			WC()->session->set( self::SESSION_CHECKOUT, null );
+			WC()->session->set( CartRestore::SESSION_RESTORE, null );
 		}
 	}
 
