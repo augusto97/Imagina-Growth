@@ -91,3 +91,13 @@ it('avisa del correo o el teléfono inválido de una fila que sí se importa', f
         ->and($show->json('errors.1.message'))->toContain('Teléfono inválido')
         ->and((string) json_encode($show->json('errors')))->not->toContain('julian');
 });
+
+it('importa la fecha de renovación para el flujo 20', function () {
+    $csv = "Correo;Renovación\nana@ejemplo.com;2027-03-15\nluis@ejemplo.com;no es fecha\n";
+    $this->actingAs($this->owner)->post($this->url, ['file' => csvFile($csv), 'mapping' => json_encode(['Correo' => 'email', 'Renovación' => 'renewal_at'])], ['Accept' => 'application/json'])->assertStatus(202);
+    app(CurrentWorkspace::class)->run($this->ws, function () {
+        $byEmail = Contact::query()->get()->keyBy(fn ($c) => $c->email);
+        expect($byEmail['ana@ejemplo.com']->getAttribute('renewal_at')?->toDateString())->toBe('2027-03-15')
+            ->and($byEmail['luis@ejemplo.com']->getAttribute('renewal_at'))->toBeNull();
+    });
+});

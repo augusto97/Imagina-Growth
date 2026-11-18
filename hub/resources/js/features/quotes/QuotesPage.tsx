@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { EmptyState, ErrorState, PageHeader } from '@/components/ui/misc';
+import { OnsiteTabs } from '@/features/onsite/OnsitePage';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { useWorkspace } from '@/hooks/useWorkspace';
@@ -67,6 +68,7 @@ export function QuotesPage() {
                     ) : null
                 }
             />
+            <OnsiteTabs />
             {list.isError ? (
                 <ErrorState error={list.error} onRetry={() => void list.refetch()} />
             ) : list.isPending ? (

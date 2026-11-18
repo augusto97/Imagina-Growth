@@ -9,7 +9,7 @@ import { isGroup } from '../types';
 import { ConditionEditor, TYPE_ICONS } from './ConditionEditor';
 import { errorsFor, useBuilder } from './context';
 
-const TYPES: ConditionType[] = ['attribute', 'purchase', 'event', 'cart', 'messaging', 'loyalty', 'lead', 'prediction', 'consent', 'segment'];
+const TYPES: ConditionType[] = ['attribute', 'purchase', 'event', 'cart', 'messaging', 'loyalty', 'lead', 'service', 'prediction', 'consent', 'segment'];
 
 /** Condiciones que llegan en fases siguientes (se muestran, pero no se pueden usar todavía). */
 const LATER: { key: string; phase: number }[] = [];

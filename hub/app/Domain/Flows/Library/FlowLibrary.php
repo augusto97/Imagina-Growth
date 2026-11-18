@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Domain\Flows\Library;
 
 /**
- * Los 20 flujos listos de modulos.md M09, en español. Los de la Fase 3 que
- * hace su propio módulo (pedir reseña, NPS, avisos de stock) llevan a la
- * configuración de ese módulo; los de la Fase 5 (citas, leads, renovaciones) se
- * listan con su fase y todavía no se crean.
+ * Los 20 flujos listos de modulos.md M09, en español. Los que hace su propio
+ * módulo (pedir reseña, NPS y avisos de stock de la Fase 3; recordatorio de cita
+ * de la Fase 5, que envía la agenda) llevan a la configuración de ese módulo,
+ * para no escribirle dos veces a nadie por lo mismo.
  *
  * Las plantillas se nombran por `template_key` = `library_key`: las de correo
  * son las de la biblioteca de M08 (EMAIL_KEYS, se instalan al crear el flujo) y
@@ -27,6 +27,8 @@ final class FlowLibrary
         'wa_welcome_coupon', 'wa_abandoned_cart_1', 'wa_abandoned_cart_coupon', 'wa_abandoned_checkout',
         'wa_payment_pending_1', 'wa_payment_pending_2', 'wa_cod_confirm', 'wa_second_purchase',
         'wa_replenishment', 'wa_winback_coupon', 'wa_birthday', 'wa_vip_welcome', 'wa_points_expiring', 'wa_referral_invite',
+        // Fase 5
+        'wa_lead_reply', 'wa_renewal_reminder',
     ];
 
     /** Plantillas de correo de la biblioteca de M08 (TemplateLibrary) que usan los flujos listos. */
@@ -35,6 +37,8 @@ final class FlowLibrary
         'browse_abandonment', 'payment_pending_1', 'payment_pending_2', 'cod_confirm_email', 'post_purchase',
         'second_purchase', 'replenishment', 'winback_1', 'winback_2', 'birthday', 'team_alert',
         'vip_welcome', 'points_expiring', 'referral_invite',
+        // Fase 5
+        'lead_followup_1', 'lead_followup_2', 'lead_followup_3', 'renewal_reminder',
     ];
 
     /** Todas las claves de plantilla que usan los flujos listos. */
@@ -61,9 +65,9 @@ final class FlowLibrary
             self::pointsExpiring(),
             self::referralInvite(),
             self::module(17, 'nps', 'NPS y detractores', '14 días después de la entrega: encuesta; con nota de 6 o menos, alerta al dueño y una tarea.', 'resenas?tab=nps'),
-            self::later(18, 'service_lead', 'Lead de servicios', 'Formulario o WhatsApp entrante: respuesta inmediata, aviso al vendedor y seguimiento de 3 toques.', 5),
-            self::later(19, 'appointment_reminder', 'Recordatorio de cita', '24 h y 2 h antes de la cita, con reprogramación por botón.', 5),
-            self::later(20, 'renewal', 'Renovación', '15 días antes de la renovación: recordatorio, oferta y aviso al equipo si no renueva.', 5),
+            self::serviceLead(),
+            self::module(19, 'appointment_reminder', 'Recordatorio de cita', '24 h y 2 h antes de la cita, con «Confirmo» y «Reprogramar» por WhatsApp. Lo envía la agenda: se configura en la página de reservas.', 'agenda?tab=pagina', 5),
+            self::renewal(),
         ];
     }
 
@@ -332,6 +336,63 @@ final class FlowLibrary
             ['event' => 'referral.shared'], ['mode' => 'every_days', 'days' => 90], $g, 3);
     }
 
+    /**
+     * M18: un lead nuevo de un formulario o de WhatsApp (los de reservas, cotizador, API
+     * o manuales ya tienen su propio camino). Respuesta al instante por WhatsApp o correo
+     * y dos toques más por correo; sale cuando un vendedor lo mueve de «Nuevo». El aviso
+     * al vendedor no va aquí: lo envía el módulo de leads (AlertSeller), una vez por lead.
+     * Los tres mensajes son de marketing: el seguimiento comercial es ambiguo y por
+     * defecto se trata como marketing (cumplimiento.md §4.1), con consentimiento y ventana legal.
+     *
+     * @return array<string, mixed>
+     */
+    private static function serviceLead(): array
+    {
+        $g = (new LibraryGraph)
+            ->node('split', 'channel_split', ['channels' => ['whatsapp', 'email']])
+            ->node('wa', 'send_whatsapp', self::send('wa_lead_reply'))
+            ->node('em1', 'send_email', self::send('lead_followup_1'))
+            ->node('w1', 'wait', self::wait(1, 'days'))
+            ->node('em2', 'send_email', self::send('lead_followup_2'))
+            ->node('w2', 'wait', self::wait(2, 'days'))
+            ->node('em3', 'send_email', self::send('lead_followup_3'))
+            ->chain('trigger', 'split')
+            ->edge('split', 'wa', 'whatsapp')->edge('split', 'em1', 'email')
+            ->edge('wa', 'w1')->edge('wa', 'em1', 'failed')->edge('em1', 'w1')
+            ->chain('w1', 'em2', 'w2', 'em3');
+
+        return self::flow(18, 'service_lead', 'Lead de servicios', 'Formulario o WhatsApp entrante: respuesta al instante y seguimiento de 3 toques (día 1 y día 3). Sale cuando un vendedor lo mueve de «Nuevo»; el aviso al vendedor lo envía el módulo de leads.',
+            ['type' => 'event', 'event' => 'lead.created', 'filters' => [['prop' => 'origin', 'operator' => 'in', 'value' => ['form', 'whatsapp']]]],
+            ['event' => 'lead.stage_changed', 'filters' => [['prop' => 'from', 'operator' => 'eq', 'value' => 'new']]],
+            ['mode' => 'every_days', 'days' => 30], $g, 5);
+    }
+
+    /**
+     * Renovación: 15 días antes de `contacts.renewal_at` (llega por importación, por la API
+     * o desde el perfil), recordatorio con la oferta y, si un día antes de la fecha todavía
+     * no renovó, aviso al equipo. Renovar se registra como un lead ganado (`lead.won`); una
+     * tienda con WooCommerce Subscriptions puede cambiar el objetivo a `subscription.renewed`.
+     *
+     * @return array<string, mixed>
+     */
+    private static function renewal(): array
+    {
+        $g = (new LibraryGraph)
+            ->node('split', 'channel_split', ['channels' => ['whatsapp', 'email']])
+            ->node('wa', 'send_whatsapp', self::send('wa_renewal_reminder'))
+            ->node('em', 'send_email', self::send('renewal_reminder'))
+            ->node('w1', 'wait', self::wait(14, 'days'))
+            ->node('team', 'notify_team', ['channel' => 'email', 'to_owners' => true, 'message' => 'Un cliente no ha renovado; la renovación es mañana. Llámalo antes de que venza.', 'template_key' => 'team_alert'])
+            ->chain('trigger', 'split')
+            ->edge('split', 'wa', 'whatsapp')->edge('split', 'em', 'email')
+            ->edge('wa', 'em', 'failed')->edge('wa', 'w1')->edge('em', 'w1')
+            ->chain('w1', 'team');
+
+        return self::flow(20, 'renewal', 'Renovación', '15 días antes de la fecha de renovación: recordatorio con la oferta y, si un día antes no ha renovado, aviso al equipo. Sale cuando renueva (lead ganado).',
+            ['type' => 'date', 'attribute' => 'renewal_at', 'offset_days' => -15, 'hour' => 10],
+            ['event' => 'lead.won'], ['mode' => 'every_days', 'days' => 300], $g, 5);
+    }
+
     // ── Ayudas ──────────────────────────────────────────────────────────
 
     /** @return array<string, mixed> */
@@ -360,22 +421,16 @@ final class FlowLibrary
         ];
     }
 
-    /** @return array<string, mixed> */
-    private static function later(int $number, string $key, string $name, string $description, int $phase): array
-    {
-        return ['number' => $number, 'key' => $key, 'name' => $name, 'description' => $description, 'phase' => $phase, 'trigger' => null, 'goal' => null, 'reentry_policy' => null, 'graph' => null, 'module' => null];
-    }
-
     /**
-     * Automatización que hace su propio módulo (Fase 3): pedir reseñas y NPS (M15)
-     * y los avisos de stock y precio (M16) tienen programador, plantilla y tope
-     * propios. La tarjeta lleva a su configuración para no escribirle dos veces a
-     * nadie por lo mismo.
+     * Automatización que hace su propio módulo: pedir reseñas y NPS (M15), los avisos de
+     * stock y precio (M16) y los recordatorios de cita (M18, `igr:bookings:tick`) tienen
+     * programador, plantilla y tope propios. La tarjeta lleva a su configuración para no
+     * escribirle dos veces a nadie por lo mismo.
      *
      * @return array<string, mixed>
      */
-    private static function module(int $number, string $key, string $name, string $description, string $route): array
+    private static function module(int $number, string $key, string $name, string $description, string $route, int $phase = 3): array
     {
-        return ['number' => $number, 'key' => $key, 'name' => $name, 'description' => $description, 'phase' => 3, 'trigger' => null, 'goal' => null, 'reentry_policy' => null, 'graph' => null, 'module' => $route];
+        return ['number' => $number, 'key' => $key, 'name' => $name, 'description' => $description, 'phase' => $phase, 'trigger' => null, 'goal' => null, 'reentry_policy' => null, 'graph' => null, 'module' => $route];
     }
 }

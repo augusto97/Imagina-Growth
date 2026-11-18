@@ -87,3 +87,12 @@ it('sin un sitio conectado explica que falta conectar uno', function () {
     [$token] = apiToken($ws, ['contacts:write']);
     $this->postJson('/api/v1/contacts', ['email' => 'ana@ejemplo.com'], apiHeaders($token))->assertUnprocessable()->assertJsonPath('error.code', 'no_site');
 });
+
+it('guarda la fecha de renovación (flujo 20) y la borra con null', function () {
+    $res = $this->postJson('/api/v1/contacts', ['email' => 'ana@ejemplo.com', 'renewal_at' => '2027-03-15'], apiHeaders($this->token))
+        ->assertCreated()->assertJsonPath('data.renewal_at', '2027-03-15');
+    $this->postJson('/api/v1/contacts', ['email' => 'ana@ejemplo.com', 'renewal_at' => '15/03/2027'], apiHeaders($this->token))->assertUnprocessable();
+    $this->postJson('/api/v1/contacts', ['email' => 'ana@ejemplo.com'], apiHeaders($this->token))->assertOk()->assertJsonPath('data.renewal_at', '2027-03-15');
+    $this->postJson('/api/v1/contacts', ['email' => 'ana@ejemplo.com', 'renewal_at' => null], apiHeaders($this->token))->assertOk()->assertJsonPath('data.renewal_at', null);
+    expect($res->json('data.id'))->toStartWith('ct_');
+});

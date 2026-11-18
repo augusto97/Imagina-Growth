@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Billing\Http\RequirePlanModule;
 use App\Domain\Quotes\Http\QuoteController;
 use Illuminate\Support\Facades\Route;
 
@@ -8,7 +9,7 @@ use Illuminate\Support\Facades\Route;
  */
 
 Route::get('quotes/calculators', [QuoteController::class, 'index']);
-Route::post('quotes/calculators', [QuoteController::class, 'save']);
+Route::post('quotes/calculators', [QuoteController::class, 'save'])->middleware(RequirePlanModule::class.':quotes');
 Route::get('quotes/calculators/{calculator}', [QuoteController::class, 'show']);
 Route::patch('quotes/calculators/{calculator}', [QuoteController::class, 'save']);
 Route::delete('quotes/calculators/{calculator}', [QuoteController::class, 'destroy']);

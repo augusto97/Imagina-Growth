@@ -112,6 +112,7 @@ final class ProfileController
             'city' => ['sometimes', 'nullable', 'string', 'max:120'],
             'region_code' => ['sometimes', 'nullable', 'string', 'max:16'],
             'birthday' => ['sometimes', 'nullable', 'date', 'before:today'],
+            'renewal_at' => ['sometimes', 'nullable', 'date'],
             'tags' => ['sometimes', 'array', 'max:50'],
             'tags.*' => ['string', 'max:40'],
             'custom_attributes' => ['sometimes', 'array', 'max:100'],

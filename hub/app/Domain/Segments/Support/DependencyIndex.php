@@ -80,6 +80,9 @@ final class DependencyIndex
             if (str_starts_with($event, 'lead.') && in_array('lead', $kinds, true)) {
                 return true;
             }
+            if (str_starts_with($event, 'appointment.') && in_array('service', $kinds, true)) {
+                return true;
+            }
             if (self::isLoyaltyEvent($event) && in_array('loyalty', $kinds, true)) {
                 return true;
             }

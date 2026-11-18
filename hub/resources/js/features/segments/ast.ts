@@ -36,6 +36,8 @@ export function defaultCondition(type: ConditionType): Condition {
             return { type: 'loyalty', field: 'points_balance', operator: 'gte', value: 500 };
         case 'lead':
             return { type: 'lead', field: 'has_open_lead', operator: 'is_true' };
+        case 'service':
+            return { type: 'service', field: 'has_upcoming', operator: 'is_true' };
     }
 }
 
@@ -120,6 +122,7 @@ export function isComplete(c: Condition): boolean {
             return c.action === 'engagement' ? hasValue(c.operator, c.value) : true;
         case 'loyalty':
         case 'lead':
+        case 'service':
             return hasValue(c.operator, c.value);
         default:
             return true;

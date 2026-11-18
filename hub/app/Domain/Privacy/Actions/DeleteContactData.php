@@ -14,6 +14,7 @@ use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Tenancy\RedisKey;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Ramsey\Uuid\Uuid;
 
 /**
  * Supresión de punta a punta (cumplimiento.md §9): bloquea envíos, borra en
@@ -22,6 +23,9 @@ use Illuminate\Support\Facades\DB;
  * correo y el teléfono en suppressions, para no volver a escribirle si sus
  * datos regresan en una importación [validar con abogado]. Los pedidos se
  * conservan sin el vínculo a la persona (registro contable del negocio).
+ * Fase 5: leads con su historia, citas y cotizaciones se borran (son de la persona,
+ * no un registro contable), y también los registros de webhooks salientes de sus
+ * eventos, que guardan el cuerpo enviado (cifrado) durante 30 días.
  */
 final class DeleteContactData
 {
@@ -48,7 +52,11 @@ final class DeleteContactData
             $audiences += app(RemoveContactFromAudiences::class)->handle($id);
         }
 
-        $counts = DB::transaction(function () use ($workspace, $ids, $bidx): array {
+        // Webhooks salientes (M19): el registro guarda 30 días el cuerpo enviado. Se borran las
+        // entregas de sus eventos (antes de borrar los eventos de ClickHouse) y la de `contact.created`.
+        $webhookEventIds = $this->webhookEventIds($workspace, $ids, $anonymous);
+
+        $counts = DB::transaction(function () use ($workspace, $ids, $bidx, $anonymous, $webhookEventIds): array {
             $counts = [];
             foreach ($bidx as $row) {
                 foreach (['email' => $row->getAttribute('email_bidx'), 'whatsapp' => $row->getAttribute('phone_bidx'), 'sms' => $row->getAttribute('phone_bidx')] as $channel => $value) {
@@ -90,6 +98,24 @@ final class DeleteContactData
             $counts['survey_requests'] = $ws('survey_requests')->whereIn('contact_id', $ids)->delete();
             $counts['product_watches'] = $ws('product_watches')->whereIn('contact_id', $ids)->delete();
             $counts['widget_captures'] = $ws('widget_captures')->whereIn('contact_id', $ids)->delete();
+            $ws('tracked_links')->whereIn('contact_id', $ids)->delete();
+            // Fase 5: leads (con su historia y notas), citas y cotizaciones; entregas de webhooks.
+            $leads = $ws('leads')->whereIn('contact_id', $ids)->pluck('id')->all();
+            foreach (array_chunk($leads, 500) as $chunk) {
+                $ws('lead_activities')->whereIn('lead_id', $chunk)->delete();
+            }
+            $counts['leads'] = $ws('leads')->whereIn('contact_id', $ids)->delete();
+            $counts['appointments'] = $ws('appointments')->whereIn('contact_id', $ids)->delete();
+            $counts['quotes'] = $ws('quotes')->where(function ($q) use ($ids, $anonymous): void {
+                $q->whereIn('contact_id', $ids);
+                if ($anonymous !== []) {
+                    $q->orWhereIn('anonymous_id', $anonymous);
+                }
+            })->delete();
+            $counts['webhook_deliveries'] = 0;
+            foreach (array_chunk($webhookEventIds, 500) as $chunk) {
+                $counts['webhook_deliveries'] += $ws('webhook_deliveries')->whereIn('event_id', $chunk)->delete();
+            }
             $counts['contacts'] = Contact::query()->withTrashed()->whereIn('id', $ids)->forceDelete();
 
             return $counts;
@@ -112,5 +138,31 @@ final class DeleteContactData
         $this->audit->handle('contact.deleted', null, ['contact' => 'ct_'.$ids[0], 'counts' => $counts], $workspace->id, null, $userId);
 
         return $counts;
+    }
+
+    /**
+     * IDs de los eventos de la persona que pudieron salir por un webhook: los de ClickHouse de
+     * los últimos 35 días (las entregas se guardan 30) y el `contact.created` de cada contacto.
+     *
+     * @param  list<string>  $ids
+     * @param  list<string>  $anonymous
+     * @return list<string>
+     */
+    private function webhookEventIds(Workspace $workspace, array $ids, array $anonymous): array
+    {
+        if (! DB::table('webhook_deliveries')->where('workspace_id', $workspace->id)->exists()) {
+            return [];
+        }
+        $out = array_map(fn (string $id) => Uuid::uuid5(Uuid::NAMESPACE_URL, 'igr:contact.created:'.$id)->toString(), $ids);
+        $rows = Ch::forWorkspace($workspace)->select(
+            'SELECT toString(event_id) AS id FROM events WHERE workspace_id = {workspace_id:UInt32} AND occurred_at >= now() - INTERVAL 35 DAY
+             AND (has({ids:Array(String)}, contact_id) OR has({anon:Array(String)}, anonymous_id)) LIMIT 200000',
+            ['ids' => ExportContactData::chArray($ids), 'anon' => ExportContactData::chArray($anonymous)],
+        );
+        foreach ($rows as $row) {
+            $out[] = (string) $row['id'];
+        }
+
+        return array_values(array_unique($out));
     }
 }

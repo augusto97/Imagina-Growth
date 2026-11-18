@@ -99,6 +99,7 @@ final class ContactsController
             'last_name' => ['nullable', 'string', 'max:80'],
             'city' => ['nullable', 'string', 'max:120'],
             'country' => ['nullable', 'string', 'size:2'],
+            'renewal_at' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             'overwrite' => ['sometimes', 'boolean'],
             'tags' => ['sometimes', 'array', 'max:20'],
             'tags.*' => ['string', 'max:40'],
@@ -123,6 +124,11 @@ final class ContactsController
                 [$contact, $created] = $resolver->handle($workspace, $site, $data);
                 if (isset($data['tags'])) {
                     $contact->setAttribute('tags', array_values(array_unique([...((array) ($contact->getAttribute('tags') ?? [])), ...$data['tags']])));
+                    $contact->save();
+                }
+                // Fecha de renovación (flujo 20): se escribe cuando viene, también para borrarla con null.
+                if (array_key_exists('renewal_at', $data)) {
+                    $contact->setAttribute('renewal_at', $data['renewal_at']);
                     $contact->save();
                 }
                 foreach ($data['consents'] ?? [] as $consent) {

@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Billing\Http\RequirePlanModule;
 use App\Domain\Services\Leads\Http\LeadController;
 use App\Domain\Services\Leads\Http\LeadKpiController;
 use App\Domain\Services\Leads\Http\LeadSettingsController;
@@ -10,7 +11,7 @@ use Illuminate\Support\Facades\Route;
  */
 
 Route::get('leads', [LeadController::class, 'index']);
-Route::post('leads', [LeadController::class, 'store'])->middleware('throttle:60,1');
+Route::post('leads', [LeadController::class, 'store'])->middleware(['throttle:60,1', RequirePlanModule::class.':services']);
 Route::get('leads/board', [LeadController::class, 'board']);
 Route::get('leads/kpis', LeadKpiController::class);
 Route::get('leads/team', [LeadController::class, 'team']);

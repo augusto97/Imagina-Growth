@@ -116,6 +116,14 @@ export interface LeadCondition {
     value?: Scalar | Scalar[] | null;
 }
 
+/** Citas (Fase 5): tiene una cita próxima, alguna vez agendó o alguna de sus citas cumple la condición. */
+export interface ServiceCondition {
+    type: 'service';
+    field: string;
+    operator: string;
+    value?: Scalar | Scalar[] | null;
+}
+
 export interface SegmentRefCondition {
     type: 'segment';
     segment_id: string;
@@ -134,7 +142,8 @@ export type Condition =
     | MessagingCondition
     | EngagementCondition
     | LoyaltyCondition
-    | LeadCondition;
+    | LeadCondition
+    | ServiceCondition;
 
 export interface Group {
     op: 'and' | 'or';
@@ -232,6 +241,7 @@ export interface SegmentOptions {
     flows: { id: string; name: string }[];
     campaigns: { id: string; name: string }[];
     lead_fields: FieldOption[];
+    service_fields: FieldOption[];
     loyalty_fields: FieldOption[];
     loyalty_tiers: { id: string; name: string; rank: number }[];
 }

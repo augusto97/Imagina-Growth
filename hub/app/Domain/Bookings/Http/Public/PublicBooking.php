@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Bookings\Http\Public;
 
+use App\Domain\Billing\Contracts\Entitlements;
 use App\Domain\Bookings\Support\BookingSettings;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Templates\Support\BusinessProfile;
@@ -24,6 +25,16 @@ use Symfony\Component\HttpFoundation\Response;
 final class PublicBooking
 {
     public function __construct(private readonly SiteResolver $sites, private readonly Branding $branding) {}
+
+    /**
+     * ¿El plan del negocio incluye la agenda (M21)? Sin ella no se ofrecen horarios ni se
+     * reciben reservas nuevas; las citas que ya existen se pueden seguir viendo y cambiando.
+     */
+    public function bookable(Workspace $workspace): bool
+    {
+        // Se resuelve en cada llamada: el controlador queda en caché en la ruta.
+        return app(Entitlements::class)->allows($workspace, 'bookings');
+    }
 
     /** @return array{0: Workspace, 1: Site|null}|null */
     public function resolve(string $key): ?array

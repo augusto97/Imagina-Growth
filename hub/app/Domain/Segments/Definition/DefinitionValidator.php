@@ -130,7 +130,7 @@ final class DefinitionValidator
             'messaging' => $this->messaging($c, $path),
             'loyalty' => $this->loyalty($c, $path),
             'lead' => $this->lead($c, $path),
-            'service' => $this->later($path, __('La segmentación por citas llega en la Fase 5 con la agenda.')),
+            'service' => $this->service($c, $path),
             default => $this->later($this->join($path, 'type'), __('Tipo de condición desconocido.')),
         };
     }
@@ -484,6 +484,32 @@ final class DefinitionValidator
         }
 
         return ['type' => 'lead', 'field' => $field] + $this->operatorValue($c, $path, $def['type'], $def['values'] ?? null);
+    }
+
+    /**
+     * Citas (Fase 5, M18): tiene una cita próxima, alguna vez agendó o alguna de sus citas
+     * cumple la condición.
+     *
+     * @param  array<mixed>  $c
+     * @return array<string, mixed>
+     */
+    private function service(array $c, string $path): array
+    {
+        $field = is_string($c['field'] ?? null) ? $c['field'] : '';
+        $def = Fields::SERVICE_FIELDS[$field] ?? null;
+        if ($def === null) {
+            $this->fail($this->join($path, 'field'), __('Dato de citas desconocido.'));
+
+            return ['type' => 'service'];
+        }
+        $op = $c['operator'] ?? null;
+        if (! is_string($op) || ! in_array($op, $def['operators'], true)) {
+            $this->fail($this->join($path, 'operator'), __('Operador inválido para este campo.'));
+
+            return ['type' => 'service', 'field' => $field, 'operator' => $def['operators'][0]];
+        }
+
+        return ['type' => 'service', 'field' => $field] + $this->operatorValue($c, $path, $def['type'], $def['values'] ?? null);
     }
 
     /** @return array{operator: string, value?: string|list<string>} */

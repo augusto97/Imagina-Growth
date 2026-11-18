@@ -171,6 +171,9 @@ final class ImportContacts implements ShouldQueue, WorkspaceAware
                 if (! empty($data['birthday']) && strtotime($data['birthday']) !== false) {
                     $fill('birthday', date('Y-m-d', (int) strtotime($data['birthday'])));
                 }
+                if (! empty($data['renewal_at']) && strtotime($data['renewal_at']) !== false) {
+                    $fill('renewal_at', date('Y-m-d', (int) strtotime($data['renewal_at'])));
+                }
                 $tags = array_values(array_filter(array_map('trim', explode(',', (string) ($data['tags'] ?? '')))));
                 if ($tags !== []) {
                     $contact->setAttribute('tags', array_values(array_unique(array_merge((array) ($contact->getAttribute('tags') ?? []), $tags))));

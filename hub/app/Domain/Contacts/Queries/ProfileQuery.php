@@ -81,6 +81,7 @@ final class ProfileQuery
             'region_code' => $contact->getAttribute('region_code'),
             'country' => $contact->getAttribute('country'),
             'birthday' => $contact->getAttribute('birthday')?->toDateString(),
+            'renewal_at' => $contact->getAttribute('renewal_at')?->toDateString(),
             'lifecycle_stage' => $contact->getAttribute('lifecycle_stage'),
             'tags' => $contact->getAttribute('tags') ?? [],
             'custom_attributes' => $contact->getAttribute('custom_attributes') ?? (object) [],

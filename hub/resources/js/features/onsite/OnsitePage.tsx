@@ -21,7 +21,7 @@ import type { WidgetKind, WidgetSummary } from './types';
 
 const KINDS: WidgetKind[] = ['popup', 'embedded_form', 'bar', 'spin_wheel', 'teaser', 'two_step', 'quiz', 'wa_widget', 'referral_welcome'];
 
-/** Pestañas de «En el sitio»: widgets (M12) y, de M16, recomendaciones y avisos. */
+/** Pestañas de «En el sitio»: widgets (M12); de M16, recomendaciones, avisos y banners; de M18, el cotizador. */
 export function OnsiteTabs() {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
@@ -31,6 +31,7 @@ export function OnsiteTabs() {
         { to: `${base}/recomendaciones`, label: t('onsite.tabs.recommendations'), end: false },
         { to: `${base}/avisos`, label: t('onsite.tabs.alerts'), end: false },
         { to: `${base}/banners`, label: t('onsite.tabs.banners'), end: false },
+        { to: `${base}/cotizador`, label: t('onsite.tabs.quotes'), end: false },
     ];
     return (
         <nav aria-label={t('onsite.tabs.label')} className="igr:mb-4 igr:inline-flex igr:h-9 igr:items-center igr:rounded-lg igr:bg-muted igr:p-1 igr:text-muted-foreground">

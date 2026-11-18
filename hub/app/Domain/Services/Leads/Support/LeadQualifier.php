@@ -19,8 +19,8 @@ use Throwable;
  */
 final class LeadQualifier
 {
-    /** Clave de la función de IA (config/igr-ai.php). [pendiente] `lead_qualifier` propia; mientras, la del clasificador de entrantes. */
-    public const FEATURE = 'inbound_classifier';
+    /** Clave de la función de IA (config/igr-ai.php). */
+    public const FEATURE = 'lead_qualifier';
 
     public function __construct(private readonly AiGateway $ai) {}
 

@@ -31,7 +31,9 @@
             "inbound_classifier": "Clasificar mensajes",
             "review_moderator": "Moderar reseñas",
             "profile_summary": "Resúmenes de perfil",
-            "review_summary": "Resúmenes de reseñas"
+            "review_summary": "Resúmenes de reseñas",
+            "monthly_report": "Reporte mensual",
+            "lead_qualifier": "Calificar leads"
         },
         "usage": {
             "title": "Uso de IA este mes",

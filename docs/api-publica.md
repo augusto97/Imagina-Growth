@@ -83,7 +83,7 @@ Los eventos además son idempotentes por `event_id`.
 | `GET me` | — | Espacio de trabajo, alcances del token y límite por minuto |
 | `GET contacts` | `contacts:read` | Lista o busca: `email`, `phone` (exactos, con índice ciego), `updated_since` |
 | `GET contacts/{ct_…}` | `contacts:read` | Contacto con sus consentimientos |
-| `POST contacts` | `contacts:write` | Crea o une por correo/teléfono (`email`, `phone`, `first_name`, `last_name`, `city`, `country`, `tags`, `overwrite`, `site_id`, `consents`) |
+| `POST contacts` | `contacts:write` | Crea o une por correo/teléfono (`email`, `phone`, `first_name`, `last_name`, `city`, `country`, `renewal_at` (AAAA-MM-DD, flujo 20 de renovación; `null` la borra), `tags`, `overwrite`, `site_id`, `consents`) |
 | `POST events` | `events:write` | Hasta 100 eventos: `custom.*`, `form.submitted`, `identify` |
 | `POST vitals` | `events:write` | Métricas web de Imagina Turbo (501 hasta que exista `page.vitals`) |
 | `GET orders` · `GET orders/{ord_…}` | `orders:read` | Pedidos; filtros `contact_id`, `status`, `paid`, `created_since`, `updated_since`; el detalle trae las líneas |

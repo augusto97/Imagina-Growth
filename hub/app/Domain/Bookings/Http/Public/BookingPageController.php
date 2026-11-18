@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Bookings\Http\Public;
 
+use App\Domain\Agency\Domains\CustomDomains;
 use App\Domain\Bookings\Actions\BookAppointment;
 use App\Domain\Bookings\Actions\ChangeAppointment;
 use App\Domain\Bookings\Models\Appointment;
@@ -50,6 +51,9 @@ final class BookingPageController
             return $this->public->missing(null, $ctx === null ? 404 : 429);
         }
         [$workspace] = $ctx;
+        if (! $this->public->bookable($workspace)) {
+            return $this->public->missing($workspace);
+        }
 
         return $this->current->run($workspace, function () use ($workspace, $key, $request): Response {
             $settings = BookingSettings::for($workspace);
@@ -81,6 +85,9 @@ final class BookingPageController
             return $this->public->missing(null, $ctx === null ? 404 : 429);
         }
         [$workspace] = $ctx;
+        if (! $this->public->bookable($workspace)) {
+            return $this->public->missing($workspace);
+        }
 
         return $this->current->run($workspace, function () use ($workspace, $key, $slug, $request): Response {
             $service = BookingService::query()->where('slug', $slug)->where('active', true)->first();
@@ -100,6 +107,9 @@ final class BookingPageController
             return $this->public->missing(null, $ctx === null ? 404 : 429);
         }
         [$workspace, $site] = $ctx;
+        if (! $this->public->bookable($workspace)) {
+            return $this->public->missing($workspace);
+        }
 
         return $this->current->run($workspace, function () use ($workspace, $site, $key, $slug, $request, $capture, $book, $widgets): Response {
             $settings = BookingSettings::for($workspace);
@@ -392,9 +402,16 @@ final class BookingPageController
         return $appointment === null ? $this->public->missing($ctx[0]) : [$ctx[0], $appointment];
     }
 
+    /**
+     * Base de los enlaces de la página. Si la persona entró por un dominio propio verificado
+     * de la agencia (M22), los enlaces y formularios se quedan en ese dominio.
+     */
     public static function base(string $key): string
     {
-        return rtrim((string) config('app.url'), '/').'/p/'.$key;
+        $host = request()->getHost();
+        $origin = $host !== '' && CustomDomains::servable($host) ? 'https://'.$host : rtrim((string) config('app.url'), '/');
+
+        return $origin.'/p/'.$key;
     }
 
     /** @throws InvalidArgumentException */

@@ -86,6 +86,14 @@ export function describeCondition(t: TFunction, c: Condition, names: Record<stri
             const values = Array.isArray(c.value) ? c.value.map((v) => t(`segments.enum.${c.field}.${String(v)}`, { defaultValue: String(v) })) : c.value;
             return t('segments.describe.leadWith', { condition: t(`segments.op.${c.operator}`, { field, value: list(values, c.operator === 'between' ? t('segments.join.between') : ', ') }) });
         }
+        case 'service': {
+            if (c.field === 'has_upcoming' || c.field === 'has_appointment') {
+                return t(`segments.describe.${c.field}_${c.operator}`);
+            }
+            const field = t(`segments.serviceFields.${c.field}`, { defaultValue: c.field });
+            const values = Array.isArray(c.value) ? c.value.map((v) => t(`segments.enum.${c.field}.${String(v)}`, { defaultValue: String(v) })) : c.value;
+            return t('segments.describe.serviceWith', { condition: t(`segments.op.${c.operator}`, { field, value: list(values, c.operator === 'between' ? t('segments.join.between') : ', ') }) });
+        }
     }
 }
 

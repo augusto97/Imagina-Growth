@@ -219,7 +219,8 @@
             "segment": "Segmento",
             "messaging": "Mensajes",
             "loyalty": "Fidelización",
-            "lead": "Leads"
+            "lead": "Leads",
+            "service": "Citas"
         },
         "typeHelp": {
             "attribute": "Ciudad, departamento, etapa, etiquetas, cumpleaños…",
@@ -231,7 +232,8 @@
             "segment": "Está (o no) en otro segmento",
             "messaging": "Recibió, abrió, leyó, hizo clic o respondió; interacción",
             "loyalty": "Nivel VIP, puntos, saldo y referidos",
-            "lead": "Tiene un lead abierto, etapa, temperatura, puntaje, servicio o fuente"
+            "lead": "Tiene un lead abierto, etapa, temperatura, puntaje, servicio o fuente",
+            "service": "Citas de la agenda: próximas, cumplidas, canceladas o sin asistencia, por servicio o fecha."
         },
         "fields": {
             "city": "Ciudad",
@@ -418,7 +420,12 @@
             "has_open_lead_is_false": "No tiene un lead abierto",
             "has_lead_is_true": "Ha sido lead",
             "has_lead_is_false": "Nunca ha sido lead",
-            "leadWith": "Tiene un lead: {{condition}}"
+            "leadWith": "Tiene un lead: {{condition}}",
+            "has_upcoming_is_true": "Tiene una cita próxima",
+            "has_upcoming_is_false": "No tiene citas próximas",
+            "has_appointment_is_true": "Ha agendado alguna cita",
+            "has_appointment_is_false": "Nunca ha agendado una cita",
+            "serviceWith": "Tiene una cita: {{condition}}"
         },
         "consent": {
             "granted": "Aceptó",
@@ -468,6 +475,21 @@
                 "whatsapp": "WhatsApp",
                 "quote": "Cotizador",
                 "booking": "Agenda",
+                "manual": "Manual",
+                "api": "API"
+            },
+            "appointment_status": {
+                "booked": "Agendada",
+                "confirmed": "Confirmada",
+                "rescheduled": "Reprogramada",
+                "cancelled": "Cancelada",
+                "completed": "Cumplida",
+                "no_show": "No asistió"
+            },
+            "booking_channel": {
+                "page": "Página de reservas",
+                "inbox": "Bandeja",
+                "agent": "Agente con IA",
                 "manual": "Manual",
                 "api": "API"
             }
@@ -570,6 +592,14 @@
             "created_at": "Fecha del lead",
             "won_at": "Fecha en que se ganó",
             "lost_at": "Fecha en que se perdió"
+        },
+        "serviceFields": {
+            "has_upcoming": "Tiene una cita próxima",
+            "has_appointment": "Ha agendado alguna vez",
+            "appointment_status": "Estado de la cita",
+            "service": "Servicio de la cita",
+            "booking_channel": "Cómo se agendó",
+            "starts_at": "Fecha de la cita"
         }
     }
 }

@@ -6,9 +6,11 @@ use App\Domain\Contacts\Models\Contact;
 use App\Domain\Segments\Models\Segment;
 use App\Domain\Services\Contracts\LeadIntake;
 use App\Domain\Services\Data\LeadIntakeInput;
+use App\Domain\Services\Leads\Jobs\SendLeadConversion;
 use App\Domain\Services\Leads\Models\Lead;
 use App\Domain\Services\Support\NullLeadIntake;
 use App\Support\Tenancy\CurrentWorkspace;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 
 require_once __DIR__.'/ApiHelpers.php';
@@ -90,10 +92,14 @@ it('crea leads con LeadIntake y mueve la etapa con su historia y eventos', funct
     $id = $res->json('data.id');
     $this->postJson('/api/v1/leads', ['email' => 'ana@ejemplo.com', 'external_id' => 'crm-77'], apiHeaders($token))->assertOk()->assertJsonPath('data.id', $id);
 
-    $this->patchJson('/api/v1/leads/'.$id, ['stage' => 'inventada'], apiHeaders($token))->assertUnprocessable();
+    $this->patchJson('/api/v1/leads/'.$id, ['stage' => 'inventada'], apiHeaders($token))->assertUnprocessable()
+        ->assertJsonPath('error.code', 'validation_failed')->assertJsonPath('error.fields.stage.0', 'Esa etapa no existe en el pipeline.');
+    // La misma acción del panel (M18): al ganar por la API también sale la conversión offline.
+    Bus::fake([SendLeadConversion::class]);
     $this->patchJson('/api/v1/leads/'.$id, ['stage' => 'won'], apiHeaders($token))->assertOk()->assertJsonPath('data.stage', 'won');
     expect($this->getJson('/api/v1/leads/'.$id, apiHeaders($token))->json('data.won_at'))->not->toBeNull();
     expect(DB::table('lead_activities')->where('kind', 'stage')->value('actor'))->toBe('api');
+    Bus::assertDispatched(SendLeadConversion::class);
     expect($this->getJson('/api/v1/leads?stage=won', apiHeaders($token))->json('data'))->toHaveCount(1);
 });
 

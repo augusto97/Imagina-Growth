@@ -80,6 +80,7 @@ it('con include_pii manda el bloque de contacto y los datos completos', function
 });
 
 it('reintenta con espera creciente y vuelve a activa al responder bien', function () {
+    $this->freezeSecond(); // next_attempt_at se guarda en segundos: sin fracción, la espera mide 60 exactos
     Http::fakeSequence('hooks.ejemplo.test/*')->push('caído', 500)->push('ok', 200);
     [$id] = ($this->subscribe)();
     event(($this->orderPaid)());

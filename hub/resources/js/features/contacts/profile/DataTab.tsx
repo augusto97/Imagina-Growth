@@ -63,6 +63,7 @@ export function DataTab({ profile }: { profile: ContactProfile }) {
         city: profile.city ?? '',
         region_code: profile.region_code ?? '',
         birthday: profile.birthday ?? '',
+        renewal_at: profile.renewal_at ?? '',
     };
     const [fields, setFields] = useState(initial);
     const [rows, setRows] = useState<AttributeRow[]>(() => Object.entries(profile.custom_attributes).map(([key, value]) => ({ key, value: display(value), original: value })));
@@ -83,6 +84,7 @@ export function DataTab({ profile }: { profile: ContactProfile }) {
             city: fields.city.trim() || null,
             region_code: fields.region_code.trim() || null,
             birthday: fields.birthday || null,
+            renewal_at: fields.renewal_at || null,
             custom_attributes: attributes,
         };
         update.mutate(data, {
@@ -137,6 +139,7 @@ export function DataTab({ profile }: { profile: ContactProfile }) {
                         <Input id="contact-country" value={profile.country ? t(`countries.${profile.country}`, { defaultValue: profile.country }) : '—'} readOnly disabled />
                     </div>
                     {text('birthday', t('contacts.data.birthday'), 'date')}
+                    {text('renewal_at', t('contacts.data.renewalAt'), 'date')}
                     <p className="igr:text-xs igr:text-muted-foreground igr:sm:col-span-2">{t('contacts.data.identifiersHelp')}</p>
                 </CardContent>
             </Card>

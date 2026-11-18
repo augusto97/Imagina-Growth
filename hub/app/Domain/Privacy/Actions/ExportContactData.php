@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Derecho de acceso (cumplimiento.md §9): todo lo que el hub guarda de una
  * persona — perfil, identificadores, pedidos, consentimientos con su
- * evidencia, encuestas, notas y eventos — en un JSON.
+ * evidencia, encuestas, notas, leads, citas, cotizaciones y eventos — en un JSON.
  */
 final class ExportContactData
 {
@@ -42,6 +42,7 @@ final class ExportContactData
                 'email' => $contact->email, 'phone' => $contact->phone,
                 'city' => $contact->getAttribute('city'), 'region_code' => $contact->getAttribute('region_code'), 'country' => $contact->getAttribute('country'),
                 'birthday' => $contact->getAttribute('birthday')?->toDateString(),
+                'renewal_at' => $contact->getAttribute('renewal_at')?->toDateString(),
                 'lifecycle_stage' => $contact->getAttribute('lifecycle_stage'),
                 'orders_count' => $contact->getAttribute('orders_count'), 'revenue_total_ws' => (string) $contact->getAttribute('revenue_total_ws'),
                 'rfm_segment' => $contact->getAttribute('rfm_segment'), 'hdyhau' => $contact->getAttribute('hdyhau'),
@@ -79,12 +80,51 @@ final class ExportContactData
                 ->get(['code', 'source_type', 'kind', 'amount', 'status', 'expires_at', 'created_at'])->map(fn ($r) => (array) $r)->all(),
             'product_alerts' => DB::table('product_watches')->where('workspace_id', $workspace->id)->whereIn('contact_id', $ids)
                 ->get(['external_product_id', 'kind', 'channel', 'status', 'created_at'])->map(fn ($r) => (array) $r)->all(),
+            // Fase 5 (M18): leads con su historia (las notas internas del negocio no se exportan),
+            // citas y cotizaciones con lo que la persona respondió.
+            'leads' => self::leads($workspace, $ids),
+            'appointments' => DB::table('appointments as a')->leftJoin('booking_services as s', 's.id', '=', 'a.service_id')
+                ->where('a.workspace_id', $workspace->id)->whereIn('a.contact_id', $ids)->orderBy('a.starts_at')
+                ->get(['s.name as service', 'a.starts_at', 'a.ends_at', 'a.status', 'a.channel', 'a.created_at'])->map(fn ($r) => (array) $r)->all(),
+            'quotes' => DB::table('quotes as q')->leftJoin('quote_calculators as c', 'c.id', '=', 'q.calculator_id')
+                ->where('q.workspace_id', $workspace->id)->where(function ($w) use ($ids, $anonymous): void {
+                    $w->whereIn('q.contact_id', $ids);
+                    if ($anonymous !== []) {
+                        $w->orWhereIn('q.anonymous_id', $anonymous);
+                    }
+                })->orderBy('q.created_at')
+                ->get(['c.name as calculator', 'q.answers', 'q.estimate_min', 'q.estimate_max', 'q.currency', 'q.created_at'])
+                ->map(fn ($r) => ['answers' => json_decode((string) $r->answers, true)] + array_diff_key((array) $r, ['answers' => true]))->all(),
             'events' => array_map(function (array $e): array {
                 $e['properties'] = json_decode((string) $e['properties'], true);
 
                 return $e;
             }, $events),
         ];
+    }
+
+    /**
+     * @param  list<string>  $ids
+     * @return list<array<string, mixed>>
+     */
+    private static function leads(Workspace $workspace, array $ids): array
+    {
+        $leads = DB::table('leads')->where('workspace_id', $workspace->id)->whereIn('contact_id', $ids)->orderBy('created_at')
+            ->get(['id', 'stage', 'service', 'value_ws', 'origin', 'source', 'score', 'temperature', 'created_at', 'first_response_at', 'won_at', 'lost_at', 'lost_reason']);
+        $activities = DB::table('lead_activities')->where('workspace_id', $workspace->id)->whereIn('lead_id', $leads->pluck('id')->all())->orderBy('created_at')
+            ->get(['lead_id', 'kind', 'created_at'])->groupBy('lead_id');
+
+        return array_values($leads->map(function ($l) use ($activities): array {
+            $source = (array) (json_decode((string) $l->source, true) ?: []);
+
+            return [
+                'stage' => $l->stage, 'service' => $l->service, 'value' => $l->value_ws, 'origin' => $l->origin,
+                'source' => array_intersect_key($source, array_flip(['channel', 'utm_source', 'utm_medium', 'utm_campaign', 'page', 'form_name', 'referrer_host'])),
+                'score' => (int) $l->score, 'temperature' => $l->temperature,
+                'created_at' => $l->created_at, 'first_response_at' => $l->first_response_at, 'won_at' => $l->won_at, 'lost_at' => $l->lost_at, 'lost_reason' => $l->lost_reason,
+                'history' => ($activities->get($l->id) ?? collect())->map(fn ($a) => ['kind' => $a->kind, 'at' => $a->created_at, 'detail' => $a->kind === 'note' ? '(nota interna del negocio)' : null])->values()->all(),
+            ];
+        })->all());
     }
 
     /**

@@ -70,6 +70,7 @@ export interface ContactProfile {
     region_code: string | null;
     country: string | null;
     birthday: string | null;
+    renewal_at: string | null;
     lifecycle_stage: string | null;
     tags: string[];
     custom_attributes: Record<string, unknown>;
@@ -218,6 +219,7 @@ export interface ContactUpdate {
     city?: string | null;
     region_code?: string | null;
     birthday?: string | null;
+    renewal_at?: string | null;
     tags?: string[];
     custom_attributes?: Record<string, unknown>;
 }
@@ -385,7 +387,7 @@ export function useRecordConsent(ws: string, id: string) {
 
 /* Importación CSV ------------------------------------------------------- */
 
-export type ImportField = 'email' | 'phone' | 'first_name' | 'last_name' | 'city' | 'region_code' | 'country' | 'birthday' | 'tags' | 'ignore' | `custom:${string}`;
+export type ImportField = 'email' | 'phone' | 'first_name' | 'last_name' | 'city' | 'region_code' | 'country' | 'birthday' | 'renewal_at' | 'tags' | 'ignore' | `custom:${string}`;
 
 export interface ImportPreview {
     headers: string[];

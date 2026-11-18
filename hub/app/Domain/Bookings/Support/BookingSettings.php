@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Bookings\Support;
 
+use App\Domain\Agency\Models\CustomDomain;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Models\Workspace;
 
@@ -59,11 +60,27 @@ final class BookingSettings
 
     public static function pageUrl(Workspace $workspace, ?string $slug = null): string
     {
-        return rtrim((string) config('app.url'), '/').'/p/'.self::publicKey($workspace).'/reservar'.($slug !== null ? '/'.$slug : '');
+        return self::origin($workspace).'/p/'.self::publicKey($workspace).'/reservar'.($slug !== null ? '/'.$slug : '');
     }
 
     public static function manageUrl(Workspace $workspace, string $token): string
     {
-        return rtrim((string) config('app.url'), '/').'/p/'.self::publicKey($workspace).'/cita/'.$token;
+        return self::origin($workspace).'/p/'.self::publicKey($workspace).'/cita/'.$token;
+    }
+
+    /**
+     * Dónde viven las páginas públicas de la agenda: el dominio propio verificado para
+     * reservas (M22, `custom_domains.purpose = booking`; el del espacio de trabajo antes
+     * que el de toda la cuenta) o, si no hay, el del hub. Caddy emite su certificado
+     * porque está verificado (CaddyAskController) y lleva `/p/*` al mismo hub.
+     */
+    public static function origin(Workspace $workspace): string
+    {
+        $host = CustomDomain::query()->where('purpose', 'booking')->where('status', 'verified')
+            ->where('account_id', (string) $workspace->account_id)
+            ->where(fn ($q) => $q->where('workspace_id', $workspace->id)->orWhereNull('workspace_id'))
+            ->orderByRaw('workspace_id IS NULL')->orderBy('verified_at')->value('host');
+
+        return is_string($host) && $host !== '' ? 'https://'.$host : rtrim((string) config('app.url'), '/');
     }
 }

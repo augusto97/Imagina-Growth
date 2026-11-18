@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace App\Domain\Api\Http\V1;
 
-use App\Domain\Api\Actions\ChangeLeadStage;
 use App\Domain\Api\Actions\ResolveApiContact;
 use App\Domain\Api\Support\ApiError;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Services\Contracts\LeadIntake;
 use App\Domain\Services\Data\LeadIntakeInput;
+use App\Domain\Services\Leads\Actions\ChangeLeadStage;
 use App\Domain\Services\Leads\Models\Lead;
 use App\Support\Ids\PrefixedId;
 use App\Support\Tenancy\CurrentWorkspace;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 /**
@@ -176,10 +177,12 @@ final class LeadsController
             $model->forceFill($fields + ['last_activity_at' => now()])->save();
         }
         if (isset($data['stage'])) {
+            // La misma acción del panel (M18): historia, eventos con `by = api` y, al ganar,
+            // la conversión offline a Meta y Google.
             try {
-                $model = $change->handle($this->current->get(), $model, (string) $data['stage'], $data['lost_reason'] ?? null, 'api');
-            } catch (InvalidArgumentException $e) {
-                return ApiError::make(422, 'validation_failed', ApiError::defaultMessage(422), ['stage' => [$e->getMessage()]]);
+                $model = $change->handle($this->current->get(), $model, (string) $data['stage'], 'api', 'api', null, $data['lost_reason'] ?? null);
+            } catch (ValidationException $e) {
+                return ApiError::make(422, 'validation_failed', ApiError::defaultMessage(422), ['stage' => array_values(array_map('strval', (array) ($e->errors()['stage'] ?? [$e->getMessage()])))]);
             }
         }
 

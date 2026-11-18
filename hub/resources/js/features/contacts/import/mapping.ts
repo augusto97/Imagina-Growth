@@ -2,7 +2,7 @@ import type { ConsentChannel, ImportConsent, ImportField } from '../api';
 
 /* Reglas del asistente de importación (ImportController::store las vuelve a validar en el servidor). */
 
-export const STANDARD_FIELDS = ['email', 'phone', 'first_name', 'last_name', 'city', 'region_code', 'country', 'birthday', 'tags'] as const;
+export const STANDARD_FIELDS = ['email', 'phone', 'first_name', 'last_name', 'city', 'region_code', 'country', 'birthday', 'renewal_at', 'tags'] as const;
 
 const CUSTOM_KEY = /^[a-z0-9_]{1,40}$/;
 

@@ -13,6 +13,7 @@ use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Ramsey\Uuid\Uuid;
 
 beforeEach(function () {
     $this->useIngestInfrastructure();
@@ -120,4 +121,54 @@ it('WordPress crea solicitudes sin revelar si la persona existe y con plazo en d
             ->and($rows[0]->getRawOriginal('requester'))->not->toContain('nadie@')
             ->and($rows[0]->due_at->isWeekend())->toBeFalse();
     });
+});
+
+it('Fase 5: exporta y borra leads con su historia, citas, cotizaciones y las entregas de webhooks de sus eventos', function () {
+    $cid = $this->contact->id;
+    $ws = $this->ws->id;
+    $now = now();
+    $lead = (string) Str::ulid();
+    DB::table('leads')->insert(['id' => $lead, 'workspace_id' => $ws, 'contact_id' => $cid, 'stage' => 'won', 'service' => 'Ortodoncia', 'value_ws' => '2500000.00', 'origin' => 'form',
+        'source' => json_encode(['channel' => 'paid_search', 'utm_campaign' => 'sonrisa', 'gclid' => 'Cj0-secreto']), 'score' => 70, 'temperature' => 'hot', 'won_at' => $now, 'created_at' => $now, 'updated_at' => $now]);
+    DB::table('lead_activities')->insert([
+        ['workspace_id' => $ws, 'lead_id' => $lead, 'kind' => 'created', 'actor' => 'system', 'data' => null, 'created_at' => $now],
+        ['workspace_id' => $ws, 'lead_id' => $lead, 'kind' => 'note', 'actor' => 'usuario', 'data' => json_encode(['body' => 'cifrada']), 'created_at' => $now],
+    ]);
+    $service = (string) Str::ulid();
+    DB::table('booking_services')->insert(['id' => $service, 'workspace_id' => $ws, 'name' => 'Valoración', 'slug' => 'valoracion', 'created_at' => $now, 'updated_at' => $now]);
+    DB::table('appointments')->insert(['id' => (string) Str::ulid(), 'workspace_id' => $ws, 'contact_id' => $cid, 'service_id' => $service, 'lead_id' => $lead,
+        'starts_at' => $now->copy()->addDays(2), 'ends_at' => $now->copy()->addDays(2)->addMinutes(30), 'status' => 'booked', 'channel' => 'page', 'manage_token' => 'tok', 'created_at' => $now, 'updated_at' => $now]);
+    $calc = (string) Str::ulid();
+    DB::table('quote_calculators')->insert(['id' => $calc, 'workspace_id' => $ws, 'name' => 'Diseño de sonrisa', 'definition' => '{}', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
+    foreach ([[$cid, null], [null, 'anon-ana']] as [$contactId, $anon]) {
+        DB::table('quotes')->insert(['id' => (string) Str::ulid(), 'workspace_id' => $ws, 'calculator_id' => $calc, 'contact_id' => $contactId, 'anonymous_id' => $anon,
+            'answers' => json_encode(['dientes' => 8]), 'estimate_min' => '1800000.00', 'estimate_max' => '2400000.00', 'currency' => 'COP', 'created_at' => $now, 'updated_at' => $now]);
+    }
+    // Webhooks: la entrega de su order.paid y la de contact.created se borran; la de otra persona queda.
+    $sub = (string) Str::ulid();
+    DB::table('webhook_subscriptions')->insert(['id' => $sub, 'workspace_id' => $ws, 'url' => 'https://crm.example.co/hook', 'events' => '["order.paid"]', 'secret' => 'x', 'created_at' => $now, 'updated_at' => $now]);
+    $paid = $this->chRows($this->ws, "SELECT toString(event_id) AS id FROM events WHERE workspace_id = {workspace_id:UInt32} AND event = 'order.paid'")[0]['id'];
+    $created = Uuid::uuid5(Uuid::NAMESPACE_URL, 'igr:contact.created:'.$cid)->toString();
+    foreach ([$paid, $created, '0193a7b2-6c1e-7f3a-9a51-2f6d1c0e4b70'] as $eventId) {
+        DB::table('webhook_deliveries')->insert(['workspace_id' => $ws, 'subscription_id' => $sub, 'event' => 'order.paid', 'event_id' => $eventId, 'payload' => 'cifrado', 'attempt' => 1, 'created_at' => $now]);
+    }
+
+    $req = $this->actingAs($this->owner)->postJson("{$this->api}/contacts/{$this->contact->publicId()}/data-requests", ['kind' => 'access'])->assertCreated();
+    $this->actingAs($this->owner)->postJson("{$this->api}/data-requests/{$req->json('id')}/execute")->assertOk();
+    $data = json_decode($this->actingAs($this->owner)->get("{$this->api}/data-requests/{$req->json('id')}/download")->getContent(), true);
+    expect($data['leads'])->toHaveCount(1)
+        ->and($data['leads'][0])->toMatchArray(['stage' => 'won', 'service' => 'Ortodoncia', 'value' => '2500000.00', 'origin' => 'form'])
+        ->and($data['leads'][0]['source'])->toBe(['channel' => 'paid_search', 'utm_campaign' => 'sonrisa'])
+        ->and(collect($data['leads'][0]['history'])->firstWhere('kind', 'note')['detail'])->toBe('(nota interna del negocio)')
+        ->and($data['appointments'])->toHaveCount(1)->and($data['appointments'][0]['service'])->toBe('Valoración')
+        ->and($data['quotes'])->toHaveCount(2)->and($data['quotes'][0]['calculator'])->toBe('Diseño de sonrisa')->and($data['quotes'][0]['answers'])->toBe(['dientes' => 8]);
+
+    $del = $this->actingAs($this->owner)->postJson("{$this->api}/contacts/{$this->contact->publicId()}/data-requests", ['kind' => 'delete'])->assertCreated();
+    $this->actingAs($this->owner)->postJson("{$this->api}/data-requests/{$del->json('id')}/execute", ['confirm' => 'BORRAR'])->assertOk()
+        ->assertJsonPath('result.deleted.leads', 1)->assertJsonPath('result.deleted.appointments', 1)
+        ->assertJsonPath('result.deleted.quotes', 2)->assertJsonPath('result.deleted.webhook_deliveries', 2);
+    expect(DB::table('leads')->count())->toBe(0)->and(DB::table('lead_activities')->count())->toBe(0)
+        ->and(DB::table('appointments')->count())->toBe(0)->and(DB::table('quotes')->count())->toBe(0)
+        ->and(DB::table('webhook_deliveries')->pluck('event_id')->all())->toBe(['0193a7b2-6c1e-7f3a-9a51-2f6d1c0e4b70'])
+        ->and(DB::table('booking_services')->count())->toBe(1);
 });

@@ -204,7 +204,8 @@
             "first_order_anniversary": "Aniversario de la primera compra",
             "expected_next_order_at": "Fecha esperada de próxima compra",
             "second_purchase_due": "Tiempo mediano hasta la segunda compra",
-            "points_expiring_at": "Próximo vencimiento de puntos"
+            "points_expiring_at": "Próximo vencimiento de puntos",
+            "renewal_at": "Fecha de renovación"
         },
         "metrics": {
             "orders_count": "Pedidos",

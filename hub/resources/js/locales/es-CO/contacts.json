@@ -344,6 +344,7 @@
             "region": "Departamento o estado",
             "country": "País",
             "birthday": "Cumpleaños",
+            "renewalAt": "Fecha de renovación",
             "identifiersHelp": "El correo y el teléfono vienen de la tienda o de los formularios y no se editan aquí: así no se rompe la identidad del contacto.",
             "custom": "Atributos personalizados",
             "customHelp": "Datos propios de tu negocio, como «talla» o «tipo_de_piel». Sirven para segmentar.",
@@ -484,6 +485,7 @@
                 "region_code": "Departamento o estado",
                 "country": "País",
                 "birthday": "Cumpleaños",
+                "renewal_at": "Fecha de renovación",
                 "tags": "Etiquetas",
                 "custom": "Atributo personalizado…",
                 "customNamed": "Atributo «{{key}}»"

@@ -20,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 /** Importación CSV de contactos (modulos.md M03). */
 final class ImportController
 {
-    private const FIELDS = ['email', 'phone', 'first_name', 'last_name', 'city', 'region_code', 'country', 'birthday', 'tags', 'ignore'];
+    private const FIELDS = ['email', 'phone', 'first_name', 'last_name', 'city', 'region_code', 'country', 'birthday', 'renewal_at', 'tags', 'ignore'];
 
     public function __construct(private readonly CurrentWorkspace $current) {}
 

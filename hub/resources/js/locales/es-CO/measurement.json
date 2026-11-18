@@ -117,6 +117,7 @@
             "ads_login_customer_id": "ID de la cuenta administradora (MCC)",
             "conversion_action_purchase": "Acción de conversión: compra",
             "conversion_action_lead": "Acción de conversión: lead",
+            "conversion_action_lead_won": "Acción de conversión: lead ganado",
             "oauth_client_id": "ID de cliente OAuth",
             "oauth_client_secret": "Secreto de cliente OAuth",
             "oauth_refresh_token": "Token de actualización OAuth",

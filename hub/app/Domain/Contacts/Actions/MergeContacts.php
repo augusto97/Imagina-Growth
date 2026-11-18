@@ -24,7 +24,7 @@ use InvalidArgumentException;
  */
 final class MergeContacts
 {
-    private const PROFILE_FIELDS = ['email', 'email_bidx', 'phone', 'phone_bidx', 'first_name', 'last_name', 'name_prefix_bidx', 'city', 'region_code', 'country', 'locale', 'timezone', 'birthday', 'hdyhau'];
+    private const PROFILE_FIELDS = ['email', 'email_bidx', 'phone', 'phone_bidx', 'first_name', 'last_name', 'name_prefix_bidx', 'city', 'region_code', 'country', 'locale', 'timezone', 'birthday', 'renewal_at', 'hdyhau'];
 
     public function __construct(private readonly RecordAuditLog $audit) {}
 

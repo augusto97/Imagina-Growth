@@ -8,7 +8,8 @@
             "widgets": "Widgets",
             "recommendations": "Recomendaciones",
             "alerts": "Avisos de stock y precio",
-            "banners": "Banners personalizados"
+            "banners": "Banners personalizados",
+            "quotes": "Cotizador"
         },
         "empty": {
             "title": "Aún no tienes widgets",

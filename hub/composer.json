@@ -9,6 +9,7 @@
         "php": "^8.3",
         "anthropic-ai/sdk": "^1.10",
         "aws/aws-sdk-php": "^3.404",
+        "bacon/bacon-qr-code": "^3.1",
         "brick/math": "^1.0",
         "dedoc/scramble": "^0.13.55",
         "dompdf/dompdf": "^3.0",

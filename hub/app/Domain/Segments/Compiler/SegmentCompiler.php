@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Segments\Compiler;
 
 use App\Analytics\Ch;
+use App\Domain\Bookings\Models\Appointment;
 use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Flows\Models\Flow;
 use App\Domain\Loyalty\Models\LoyaltyTier;
@@ -116,6 +117,7 @@ final class SegmentCompiler
             'messaging' => ($c['action'] ?? '') === 'engagement' ? $this->engagement($q, $c) : $this->messaging($q, $c, $ctx),
             'loyalty' => $this->loyalty($q, $c, $ctx),
             'lead' => $this->lead($q, $c, $ctx),
+            'service' => $this->service($q, $c, $ctx),
             default => $q->whereRaw('1 = 0'),
         };
     }
@@ -514,6 +516,41 @@ final class SegmentCompiler
         $q->whereExists(function (Builder $s) use ($base, $def, $c, $ctx): void {
             $base($s);
             $this->column($s, 'l.'.$def['column'], $def['type'], $c, $ctx);
+        });
+    }
+
+    /**
+     * Citas (M18): «tiene una cita próxima» (agendada, confirmada o reprogramada, aún por
+     * venir), «alguna vez agendó» o «alguna de sus citas cumple la condición».
+     *
+     * @param  array<string, mixed>  $c
+     */
+    private function service(Builder $q, array $c, CompileContext $ctx): void
+    {
+        $field = (string) $c['field'];
+        $base = fn (Builder $s): Builder => $s->from('appointments as ap')->selectRaw('1')
+            ->whereColumn('ap.workspace_id', 'c.workspace_id')
+            ->whereColumn('ap.contact_id', 'c.id');
+        if ($field === 'has_upcoming' || $field === 'has_appointment') {
+            $sub = fn (Builder $s) => $field === 'has_upcoming'
+                ? $base($s)->whereIn('ap.status', Appointment::ACTIVE)->where('ap.starts_at', '>', now()->utc())
+                : $base($s);
+            ($c['operator'] ?? 'is_true') === 'is_true' ? $q->whereExists($sub) : $q->whereNotExists($sub);
+
+            return;
+        }
+        $def = Fields::SERVICE_FIELDS[$field] ?? null;
+        if ($def === null || ! isset($def['column'])) {
+            $q->whereRaw('1 = 0');
+
+            return;
+        }
+        $q->whereExists(function (Builder $s) use ($base, $def, $c, $ctx, $field): void {
+            $base($s);
+            if ($field === 'service') {
+                $s->join('booking_services as bs', fn ($j) => $j->on('bs.id', '=', 'ap.service_id')->on('bs.workspace_id', '=', 'ap.workspace_id'));
+            }
+            $this->column($s, $def['column'], $def['type'], $c, $ctx);
         });
     }
 

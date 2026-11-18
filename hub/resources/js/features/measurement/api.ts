@@ -206,6 +206,7 @@ export const CREDENTIAL_FIELDS: Record<Platform, { key: string; secret: boolean;
         { key: 'ads_login_customer_id', secret: false, group: 'google_ads' },
         { key: 'conversion_action_purchase', secret: false, group: 'google_ads' },
         { key: 'conversion_action_lead', secret: false, group: 'google_ads' },
+        { key: 'conversion_action_lead_won', secret: false, group: 'google_ads' },
         { key: 'oauth_client_id', secret: false, group: 'google_ads' },
         { key: 'oauth_client_secret', secret: true, group: 'google_ads' },
         { key: 'oauth_refresh_token', secret: true, group: 'google_ads' },

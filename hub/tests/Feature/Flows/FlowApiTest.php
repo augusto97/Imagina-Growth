@@ -51,8 +51,8 @@ it('valida el grafo: disparador único, todo conectado, ciclos con espera, ramas
 it('todos los flujos listos de la biblioteca son válidos con las plantillas de M08', function () {
     $available = array_filter(FlowLibrary::all(), fn ($f) => $f['graph'] !== null);
     $modules = array_column(array_filter(FlowLibrary::all(), fn ($f) => $f['module'] !== null), 'module', 'key');
-    expect($available)->toHaveCount(14)->and(FlowLibrary::all())->toHaveCount(20)
-        ->and($modules)->toBe(['review_request' => 'resenas?tab=ajustes', 'back_in_stock' => 'en-el-sitio/avisos', 'nps' => 'resenas?tab=nps']);
+    expect($available)->toHaveCount(16)->and(FlowLibrary::all())->toHaveCount(20)
+        ->and($modules)->toBe(['review_request' => 'resenas?tab=ajustes', 'back_in_stock' => 'en-el-sitio/avisos', 'nps' => 'resenas?tab=nps', 'appointment_reminder' => 'agenda?tab=pagina']);
     foreach ($available as $flow) {
         expect(flowGraphErrors($this, $flow['graph']))->toBe([], $flow['key']);
     }

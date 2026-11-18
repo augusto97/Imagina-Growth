@@ -153,6 +153,21 @@ final class Fields
         'lost_at' => ['type' => 'date', 'operators' => ['before', 'after', 'between', 'within_last_days', 'more_than_days_ago'], 'column' => 'lost_at'],
     ];
 
+    /**
+     * Citas (Fase 5, M18, `type: service`): «tiene una cita próxima», «alguna vez agendó»
+     * o «alguna de sus citas cumple la condición» (estado, servicio, canal o fecha).
+     *
+     * @var array<string, array{type: string, operators: list<string>, column?: string, values?: list<string>}>
+     */
+    public const SERVICE_FIELDS = [
+        'has_upcoming' => ['type' => 'bool', 'operators' => ['is_true', 'is_false']],
+        'has_appointment' => ['type' => 'bool', 'operators' => ['is_true', 'is_false']],
+        'appointment_status' => ['type' => 'enum', 'operators' => ['eq', 'in', 'not_in'], 'column' => 'ap.status', 'values' => ['booked', 'confirmed', 'rescheduled', 'cancelled', 'completed', 'no_show']],
+        'service' => ['type' => 'string', 'operators' => ['eq', 'contains', 'starts_with', 'in'], 'column' => 'bs.name'],
+        'booking_channel' => ['type' => 'enum', 'operators' => ['eq', 'in', 'not_in'], 'column' => 'ap.channel', 'values' => ['page', 'inbox', 'agent', 'manual', 'api']],
+        'starts_at' => ['type' => 'date', 'operators' => ['before', 'after', 'between', 'within_last_days', 'more_than_days_ago'], 'column' => 'ap.starts_at'],
+    ];
+
     /** Estados de un referido que ya cuentan como conversión (compra calificada). */
     public const REFERRAL_CONVERTED = ['qualified', 'rewarded'];
 

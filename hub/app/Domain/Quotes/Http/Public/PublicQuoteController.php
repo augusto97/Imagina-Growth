@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Quotes\Http\Public;
 
+use App\Domain\Billing\Contracts\Entitlements;
 use App\Domain\Contacts\Actions\CaptureContact;
 use App\Domain\Contacts\Data\CaptureInput;
 use App\Domain\Loyalty\Http\Public\PublicSite;
@@ -39,6 +40,10 @@ final class PublicQuoteController
         [$site, $workspace] = $ctx;
         if ($this->public->limited($request, 'quote-show', 120)) {
             return $this->public->error($request, $site, 429, 'rate_limited');
+        }
+        // Sin el cotizador en el plan (M21) responde como si no existiera: el espacio del sitio se oculta.
+        if (! app(Entitlements::class)->allows($workspace, 'quotes')) {
+            return $this->public->error($request, $site, 404, 'unknown_calculator', __('Este cotizador no está disponible.'));
         }
 
         return $this->current->run($workspace, function () use ($request, $site, $workspace, $calculator, $widgets): JsonResponse {
@@ -78,6 +83,9 @@ final class PublicQuoteController
         $aid = is_string($body['anonymous_id'] ?? null) && preg_match('/^[0-9a-zA-Z-]{8,64}$/', $body['anonymous_id']) ? (string) $body['anonymous_id'] : null;
         if ($this->public->limited($request, 'quote-estimate', 20) || ($aid !== null && $this->limitedAid($aid))) {
             return $this->public->error($request, $site, 429, 'rate_limited', __('Espera un momento antes de volver a intentarlo.'));
+        }
+        if (! app(Entitlements::class)->allows($workspace, 'quotes')) {
+            return $this->public->error($request, $site, 404, 'unknown_calculator', __('Este cotizador no está disponible.'));
         }
 
         return $this->current->run($workspace, function () use ($request, $site, $workspace, $calculator, $body, $aid, $capture, $requestQuote, $widgets): JsonResponse {

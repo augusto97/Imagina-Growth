@@ -38,6 +38,7 @@ final class Presenters
             'locale' => $c->getAttribute('locale'),
             'lifecycle_stage' => $c->getAttribute('lifecycle_stage'),
             'tags' => array_values((array) ($c->getAttribute('tags') ?? [])),
+            'renewal_at' => $c->getAttribute('renewal_at')?->toDateString(),
             'orders_count' => (int) $c->getAttribute('orders_count'),
             'revenue_total' => self::money($c->getAttribute('revenue_total_ws')),
             'last_order_at' => self::date($c->getAttribute('last_order_at')),

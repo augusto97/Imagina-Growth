@@ -50,6 +50,7 @@ class Contact extends Model
             'custom_attributes' => 'array',
             'tags' => 'array',
             'birthday' => 'date',
+            'renewal_at' => 'date',
             'first_seen_at' => 'datetime',
             'last_seen_at' => 'datetime',
             'first_order_at' => 'datetime',

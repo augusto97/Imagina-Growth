@@ -33,7 +33,7 @@ it('segmenta por leads: abierto, etapa, temperatura, puntaje, servicio, fuente, 
     expect($hot->contact_id)->not->toBe($won->contact_id);
 });
 
-it('valida los campos y operadores de leads y la agenda sigue bloqueada', function () {
+it('valida los campos y operadores de leads y de citas', function () {
     leadsPreview($this, ['type' => 'lead', 'field' => 'inventado', 'operator' => 'eq', 'value' => 1])->assertUnprocessable();
     leadsPreview($this, ['type' => 'lead', 'field' => 'temperature', 'operator' => 'in', 'value' => ['tibiecito']])->assertUnprocessable();
     leadsPreview($this, ['type' => 'lead', 'field' => 'score', 'operator' => 'contains', 'value' => 'x'])->assertUnprocessable();
