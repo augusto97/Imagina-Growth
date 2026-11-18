@@ -5,6 +5,7 @@ require_once __DIR__.'/LeadsHelpers.php';
 use App\Analytics\Ch;
 use App\Domain\Intelligence\Ai\Testing\FakeAiGateway;
 use App\Domain\Messaging\Testing\FakeMessageDispatcher;
+use App\Domain\Services\Leads\Jobs\RescoreLeadHistory;
 use App\Domain\Services\Leads\Listeners\LeadSignalsListener;
 use App\Domain\Services\Leads\Support\LeadDefaults;
 use App\Domain\Services\Leads\Support\LeadQualifier;
@@ -135,6 +136,22 @@ it('cuenta la navegación anónima previa aunque identity_map de ClickHouse toda
         'type' => 'anonymous_id', 'value' => $aid, 'first_seen_at' => now(), 'last_seen_at' => now()]);
 
     expect(app(LeadScorer::class)->browsing($this->ws, $contact->id, LeadDefaults::SCORING['pricing_paths'])['pricing_views'])->toBe(1);
+});
+
+it('una segunda pasada suma la visita a precios que llegó a ClickHouse después de crear el lead', function () {
+    $this->ai->enabled = false;
+    $contact = leadsContact($this);
+    leadsForm($this, $contact);
+    $lead = leadsOne($this);
+    expect(collect($lead->score_reasons)->pluck('signal')->all())->not->toContain('pricing_page');
+
+    leadsChVisit($this, $contact, 'page.viewed', '/precios/', now()->subMinute()->toIso8601String());
+    leadsRun($this, fn () => app()->call([new RescoreLeadHistory($this->ws->id, $lead->id), 'handle']));
+    leadsRun($this, fn () => app()->call([new RescoreLeadHistory($this->ws->id, $lead->id), 'handle'])); // repetirla no infla el puntaje
+
+    $after = leadsOne($this);
+    expect(collect($after->score_reasons)->where('signal', 'pricing_page'))->toHaveCount(1)
+        ->and($after->score)->toBe($lead->score + LeadDefaults::SCORING['points']['pricing_page']);
 });
 
 it('distingue correos corporativos y ciudades del área de servicio', function () {

@@ -9,6 +9,7 @@ use App\Domain\Contacts\Models\Contact;
 use App\Domain\Services\Contracts\LeadIntake;
 use App\Domain\Services\Data\LeadIntakeInput;
 use App\Domain\Services\Leads\Jobs\QualifyLeadWithAi;
+use App\Domain\Services\Leads\Jobs\RescoreLeadHistory;
 use App\Domain\Services\Leads\Models\Lead;
 use App\Domain\Services\Leads\Models\LeadActivity;
 use App\Domain\Services\Leads\Models\LeadSettings;
@@ -134,6 +135,8 @@ final class CaptureLead implements LeadIntake
             $this->alerts->handle($workspace, $lead, $settings, 'new');
         }
         $this->qualify($workspace, $lead, $settings, $input);
+        // La navegación de los últimos segundos puede no estar todavía en ClickHouse.
+        RescoreLeadHistory::dispatch($workspace->id, $lead->id)->delay(now()->addSeconds(RescoreLeadHistory::DELAY_SECONDS));
 
         return $lead;
     }
