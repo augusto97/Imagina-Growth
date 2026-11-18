@@ -2,6 +2,7 @@
 
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
+use App\Ingest\HubEvents;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Support\Facades\DB;
 
@@ -115,4 +116,20 @@ it('marca qué solicitudes de acceso se pueden descargar', function () {
     expect($this->actingAs($this->owner)->getJson("{$this->url}/privacy")->json('requests.0.downloadable'))->toBeFalse();
     $this->actingAs($this->owner)->postJson("{$api}/data-requests/{$req->json('id')}/execute")->assertOk();
     expect($this->actingAs($this->owner)->getJson("{$this->url}/privacy")->json('requests.0.downloadable'))->toBeTrue();
+});
+
+it('muestra en la línea de tiempo la fidelización, los mensajes, las reseñas y lo que dejó en el sitio', function () {
+    $events = app(HubEvents::class);
+    $events->emit($this->ws, 'points.earned', ['ledger_id' => 'le_1', 'points' => 120, 'balance_after' => 120, 'status' => 'pending', 'reason' => 'order'], $this->contact->id);
+    $events->emit($this->ws, 'tier.changed', ['from' => null, 'to' => 'tr_1', 'from_name' => null, 'to_name' => 'Plata', 'direction' => 'up'], $this->contact->id);
+    $events->emit($this->ws, 'review.collected', ['review_id' => 'rv_1', 'product_id' => '88', 'rating' => 5, 'has_media' => true, 'media_count' => 2, 'source' => 'request', 'status' => 'pending'], $this->contact->id);
+    $events->emit($this->ws, 'product_watch.created', ['watch_id' => 'pw_1', 'product_id' => '88', 'kind' => 'back_in_stock', 'price' => '150000.00'], $this->contact->id);
+
+    $res = $this->actingAs($this->owner)->getJson("{$this->url}/timeline?groups[]=fidelizacion&groups[]=resenas&groups[]=sitio")->assertOk();
+    $byEvent = collect($res->json('data'))->keyBy('event');
+    expect($byEvent->keys()->sort()->values()->all())->toBe(['points.earned', 'product_watch.created', 'review.collected', 'tier.changed'])
+        ->and($byEvent['points.earned']['summary']['points'])->toBe(120)
+        ->and($byEvent['tier.changed']['summary'])->toMatchArray(['tier' => 'Plata', 'direction' => 'up'])
+        ->and($byEvent['review.collected']['summary'])->toMatchArray(['rating' => 5, 'media' => 2])
+        ->and($byEvent['product_watch.created']['summary']['watch_kind'])->toBe('back_in_stock');
 });

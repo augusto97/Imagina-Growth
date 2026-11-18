@@ -98,6 +98,9 @@ final class DateTriggersCommand extends Command
                 ->whereRaw("DATE_FORMAT(first_order_at, '%m-%d') = ?", [$md]),
             'expected_next_order_at' => $base->whereNotNull('expected_next_order_at')
                 ->whereRaw('DATE(expected_next_order_at) = ?', [$local->subDays($offset)->toDateString()]),
+            // M13: próximo vencimiento de puntos (solo si de verdad vencen puntos ese día).
+            'points_expiring_at' => $base->where('points_expiring', '>', 0)->whereNotNull('points_expiring_at')
+                ->whereRaw('DATE(points_expiring_at) = ?', [$local->subDays($offset)->toDateString()]),
             'second_purchase_due' => $base->where('orders_count', 1)->whereNotNull('first_order_at')
                 ->whereRaw('DATE(first_order_at) = ?', [$local->subDays($this->medianDaysToSecond($workspace->id) - $offset)->toDateString()]),
             default => null,

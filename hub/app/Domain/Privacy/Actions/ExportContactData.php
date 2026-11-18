@@ -60,6 +60,25 @@ final class ExportContactData
             'consent_evidence' => ConsentEvent::query()->whereIn('contact_id', $ids)->orderBy('occurred_at')->get(['channel', 'purpose', 'action', 'source', 'legal_text_version', 'evidence', 'occurred_at'])->toArray(),
             'surveys' => DB::table('survey_responses')->where('workspace_id', $workspace->id)->whereIn('contact_id', $ids)->get(['answers', 'created_at'])->map(fn ($r) => ['answers' => json_decode((string) $r->answers, true), 'created_at' => $r->created_at])->all(),
             'notes' => DB::table('contact_notes')->where('workspace_id', $workspace->id)->whereIn('contact_id', $ids)->pluck('created_at')->map(fn ($d) => ['created_at' => $d, 'body' => '(nota interna del negocio)'])->all(),
+            'messages' => DB::table('messages')->where('workspace_id', $workspace->id)->whereIn('contact_id', $ids)->orderBy('created_at')
+                ->get(['channel', 'direction', 'kind', 'status', 'sent_at', 'delivered_at', 'opened_at', 'clicked_at', 'created_at'])->map(fn ($r) => (array) $r)->all(),
+            'loyalty' => [
+                'points_balance' => (int) $contact->getAttribute('points_balance'),
+                'wallet_balance' => (string) $contact->getAttribute('wallet_balance_ws'),
+                'ledger' => DB::table('loyalty_ledger')->where('workspace_id', $workspace->id)->whereIn('contact_id', $ids)->orderBy('created_at')
+                    ->get(['kind', 'delta', 'currency', 'status', 'reason', 'expires_at', 'created_at'])->map(fn ($r) => (array) $r)->all(),
+            ],
+            'referrals' => [
+                'code' => $contact->getAttribute('referral_code'),
+                'referred_friends' => DB::table('referrals')->where('workspace_id', $workspace->id)->whereIn('referrer_contact_id', $ids)->count(),
+                'referred_by_code' => DB::table('referrals')->where('workspace_id', $workspace->id)->whereIn('friend_contact_id', $ids)->value('code'),
+            ],
+            'reviews' => DB::table('reviews')->where('workspace_id', $workspace->id)->whereIn('contact_id', $ids)->orderBy('created_at')
+                ->get(['external_product_id', 'rating', 'title', 'body', 'status', 'created_at'])->map(fn ($r) => (array) $r)->all(),
+            'coupons' => DB::table('coupons_issued')->where('workspace_id', $workspace->id)->whereIn('contact_id', $ids)->orderBy('created_at')
+                ->get(['code', 'source_type', 'kind', 'amount', 'status', 'expires_at', 'created_at'])->map(fn ($r) => (array) $r)->all(),
+            'product_alerts' => DB::table('product_watches')->where('workspace_id', $workspace->id)->whereIn('contact_id', $ids)
+                ->get(['external_product_id', 'kind', 'channel', 'status', 'created_at'])->map(fn ($r) => (array) $r)->all(),
             'events' => array_map(function (array $e): array {
                 $e['properties'] = json_decode((string) $e['properties'], true);
 

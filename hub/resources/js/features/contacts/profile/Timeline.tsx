@@ -1,8 +1,10 @@
 import {
     Activity,
     Eye,
+    Gift,
     type LucideIcon,
     MessageSquare,
+    MousePointerClick,
     Package,
     ShieldCheck,
     ShoppingCart,
@@ -27,7 +29,9 @@ const ICONS: Record<TimelineGroup, LucideIcon> = {
     navegacion: Eye,
     carrito: ShoppingCart,
     pedidos: Package,
+    fidelizacion: Gift,
     cuenta: UserRound,
+    sitio: MousePointerClick,
     mensajes: MessageSquare,
     resenas: Star,
     encuestas: ClipboardList,
@@ -105,7 +109,7 @@ export function Timeline({ contactId }: { contactId: string }) {
                 ) : events.length === 0 ? (
                     <div className="igr:flex igr:flex-col igr:items-center igr:gap-1.5 igr:py-8 igr:text-center">
                         <Activity className="igr:size-5 igr:text-muted-foreground" />
-                        <p className="igr:text-[13px] igr:font-medium">{groups.includes('mensajes') && groups.length === 1 ? t('contacts.timeline.messagesSoon') : t('contacts.timeline.empty')}</p>
+                        <p className="igr:text-[13px] igr:font-medium">{t('contacts.timeline.empty')}</p>
                         <p className="igr:max-w-xs igr:text-xs igr:text-muted-foreground">{t('contacts.timeline.emptyHelp')}</p>
                     </div>
                 ) : (
@@ -221,6 +225,40 @@ function EventDetail({ event }: { event: TimelineEvent }) {
     }
     if (s.segment !== undefined) {
         parts.push(String(s.segment));
+    }
+    if (s.points !== undefined) {
+        parts.push(t('contacts.timeline.points', { count: Math.abs(Number(s.points)) }));
+    }
+    if (s.wallet !== undefined) {
+        parts.push(t('contacts.timeline.wallet', { amount: money(s.wallet) }));
+    }
+    if (s.tier !== undefined) {
+        const key = s.direction === 'up' ? 'tierUp' : s.direction === 'down' ? 'tierDown' : 'tier';
+        parts.push(t(`contacts.timeline.${key}`, { tier: str(s.tier) }));
+    }
+    if (s.referral_code !== undefined) {
+        parts.push(t('contacts.timeline.referral', { code: str(s.referral_code) }));
+    }
+    if (s.score !== undefined) {
+        parts.push(t('contacts.timeline.nps', { score: str(s.score) }));
+        if (s.nps_category !== undefined) {
+            parts.push(t(`contacts.timeline.npsCategory.${String(s.nps_category)}`, { defaultValue: String(s.nps_category) }));
+        }
+    }
+    if (s.media !== undefined) {
+        parts.push(t('contacts.timeline.media', { count: Number(s.media) }));
+    }
+    if (s.widget_kind !== undefined) {
+        parts.push(t(`contacts.timeline.widgetKind.${String(s.widget_kind)}`, { defaultValue: String(s.widget_kind) }));
+    }
+    if (s.watch_kind !== undefined) {
+        parts.push(t(`contacts.timeline.watchKind.${String(s.watch_kind)}`, { defaultValue: String(s.watch_kind) }));
+    }
+    if (s.message_channel !== undefined) {
+        parts.push(t(`contacts.consentChannels.${String(s.message_channel)}`, { defaultValue: String(s.message_channel) }));
+    }
+    if (s.flow !== undefined) {
+        parts.push(t('contacts.timeline.flow', { name: str(s.flow) }));
     }
     if (parts.length === 0 && event.path) {
         parts.push(event.path);

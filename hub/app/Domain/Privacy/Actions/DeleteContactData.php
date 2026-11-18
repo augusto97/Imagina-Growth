@@ -8,6 +8,7 @@ use App\Analytics\Ch;
 use App\Domain\Commerce\Models\Order;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Contacts\Models\ContactIdentity;
+use App\Domain\Measurement\Audiences\RemoveContactFromAudiences;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Tenancy\RedisKey;
@@ -39,6 +40,14 @@ final class DeleteContactData
         }
         $bidx = Contact::query()->whereIn('id', $ids)->get(['email_bidx', 'phone_bidx']);
 
+        // Paso 4 de la supresión (cumplimiento.md §9): fuera de las audiencias de anuncios
+        // con los identificadores que se enviaron. Si una plataforma falla, la fila queda y la
+        // próxima sincronización lo saca (las audiencias guardan esos hashes cifrados).
+        $audiences = 0;
+        foreach ($ids as $id) {
+            $audiences += app(RemoveContactFromAudiences::class)->handle($id);
+        }
+
         $counts = DB::transaction(function () use ($workspace, $ids, $bidx): array {
             $counts = [];
             foreach ($bidx as $row) {
@@ -57,10 +66,36 @@ final class DeleteContactData
             $counts['segment_memberships'] = DB::table('segment_memberships')->where('workspace_id', $workspace->id)->whereIn('contact_id', $ids)->delete();
             DB::table('contact_merges')->where('workspace_id', $workspace->id)->where(fn ($q) => $q->whereIn('winner_id', $ids)->orWhereIn('loser_id', $ids))->delete();
             DB::table('data_requests')->where('workspace_id', $workspace->id)->whereIn('contact_id', $ids)->update(['contact_id' => null]);
+            // Fases 2 y 3: mensajes, conversaciones, flujos, preferencias, fidelización,
+            // referidos, solicitudes, avisos y capturas se borran; lo que sirve a las cifras del
+            // negocio (carritos, cupones, reseñas publicadas, afiliados) se desvincula.
+            $ws = fn (string $table) => DB::table($table)->where('workspace_id', $workspace->id);
+            $counts['messages'] = $ws('messages')->whereIn('contact_id', $ids)->delete();
+            $counts['conversations'] = $ws('conversations')->whereIn('contact_id', $ids)->delete();
+            $runs = $ws('flow_runs')->whereIn('contact_id', $ids)->pluck('id')->all();
+            foreach (array_chunk($runs, 500) as $chunk) {
+                DB::table('flow_run_steps')->whereIn('run_id', $chunk)->delete();
+            }
+            $counts['flow_runs'] = $ws('flow_runs')->whereIn('contact_id', $ids)->delete();
+            $counts['campaign_recipients'] = $ws('campaign_recipients')->whereIn('contact_id', $ids)->delete();
+            $ws('contact_preferences')->whereIn('contact_id', $ids)->delete();
+            $counts['carts_unlinked'] = $ws('carts')->whereIn('contact_id', $ids)->update(['contact_id' => null, 'anonymous_id' => null]);
+            $counts['coupons_unlinked'] = $ws('coupons_issued')->whereIn('contact_id', $ids)->update(['contact_id' => null]);
+            $counts['loyalty_ledger'] = $ws('loyalty_ledger')->whereIn('contact_id', $ids)->delete();
+            $counts['referrals'] = $ws('referrals')->where(fn ($q) => $q->whereIn('referrer_contact_id', $ids)->orWhereIn('friend_contact_id', $ids))->delete();
+            $ws('referral_fingerprints')->whereIn('contact_id', $ids)->delete();
+            $ws('affiliates')->whereIn('contact_id', $ids)->update(['contact_id' => null]);
+            $counts['reviews_anonymized'] = $ws('reviews')->whereIn('contact_id', $ids)->update(['contact_id' => null, 'author_name' => null]);
+            $counts['review_requests'] = $ws('review_requests')->whereIn('contact_id', $ids)->delete();
+            $counts['survey_requests'] = $ws('survey_requests')->whereIn('contact_id', $ids)->delete();
+            $counts['product_watches'] = $ws('product_watches')->whereIn('contact_id', $ids)->delete();
+            $counts['widget_captures'] = $ws('widget_captures')->whereIn('contact_id', $ids)->delete();
             $counts['contacts'] = Contact::query()->withTrashed()->whereIn('id', $ids)->forceDelete();
 
             return $counts;
         });
+
+        $counts['audiences'] = $audiences;
 
         // ClickHouse: borrado liviano (modelo-de-datos.md §10).
         $ch = Ch::forWorkspace($workspace);

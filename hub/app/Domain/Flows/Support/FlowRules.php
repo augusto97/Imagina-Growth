@@ -16,7 +16,7 @@ use App\Ingest\Schema\SchemaRegistry;
  */
 final class FlowRules
 {
-    public const DATE_ATTRIBUTES = ['birthday', 'first_order_anniversary', 'expected_next_order_at', 'second_purchase_due'];
+    public const DATE_ATTRIBUTES = ['birthday', 'first_order_anniversary', 'expected_next_order_at', 'second_purchase_due', 'points_expiring_at'];
 
     public function __construct(private readonly SchemaRegistry $schemas) {}
 

@@ -2,10 +2,17 @@
 
 use App\Domain\Commerce\Models\Order;
 use App\Domain\Contacts\Models\Contact;
+use App\Domain\Measurement\Audiences\Models\AudienceMember;
+use App\Domain\Measurement\Audiences\Models\AudienceSync;
+use App\Domain\Measurement\Enums\DestinationMode;
+use App\Domain\Measurement\Enums\Platform;
+use App\Domain\Measurement\Models\AdDestination;
 use App\Domain\Privacy\Models\DataRequest;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     $this->useIngestInfrastructure();
@@ -53,6 +60,46 @@ it('borra de punta a punta: MariaDB, ClickHouse y caché, conservando pedidos y 
     $left = $this->chRows($this->ws, "SELECT count() AS c FROM events WHERE workspace_id = {workspace_id:UInt32} AND (contact_id != '' OR anonymous_id = 'anon-ana')");
     expect((int) $left[0]['c'])->toBe(0)
         ->and(DB::table('audit_logs')->where('action', 'contact.deleted')->exists())->toBeTrue();
+});
+
+it('la supresión llega a mensajes, fidelización, referidos, reseñas, avisos, capturas y audiencias', function () {
+    $cid = $this->contact->id;
+    $ws = $this->ws->id;
+    $now = now();
+    $destination = app(CurrentWorkspace::class)->run($this->ws, fn () => AdDestination::query()->create([
+        'workspace_id' => $ws, 'platform' => Platform::Meta, 'name' => 'Meta',
+        'config' => ['ad_account_id' => '1234567', 'ads_access_token' => 'EAAB-token'], 'mode' => DestinationMode::ServerOnly, 'status' => 'active',
+    ]));
+    $sync = app(CurrentWorkspace::class)->run($this->ws, fn () => AudienceSync::query()->create([
+        'workspace_id' => $ws, 'segment_id' => '01JD3QG7Y2V8K6N4M5P9R0S1T2', 'destination_id' => $destination->id, 'name' => 'Clientes', 'platform_audience_id' => '777', 'status' => 'active', 'members_count' => 1,
+    ]));
+    AudienceMember::query()->create(['audience_sync_id' => $sync->id, 'contact_id' => $cid, 'identifiers' => ['email' => hash('sha256', 'ana@ejemplo.com')], 'synced_at' => $now]);
+    Http::fake(['graph.facebook.com/*' => Http::response(['num_received' => 1])]);
+
+    DB::table('messages')->insert(['id' => (string) Str::ulid(), 'workspace_id' => $ws, 'contact_id' => $cid, 'channel' => 'email', 'direction' => 'out', 'kind' => 'marketing', 'source_type' => 'manual', 'status' => 'sent', 'idempotency_key' => 'k1', 'created_at' => $now, 'updated_at' => $now]);
+    DB::table('loyalty_ledger')->insert(['id' => (string) Str::ulid(), 'workspace_id' => $ws, 'contact_id' => $cid, 'kind' => 'points', 'delta' => 100, 'balance_after' => 100, 'currency' => null, 'status' => 'confirmed', 'reason' => 'order', 'idempotency_key' => 'order:1', 'created_at' => $now]);
+    DB::table('reviews')->insert(['id' => (string) Str::ulid(), 'workspace_id' => $ws, 'site_id' => $this->site->id, 'contact_id' => $cid, 'rating' => 5, 'body' => 'Muy buena', 'author_name' => 'Ana R.', 'status' => 'published', 'source' => 'hub', 'created_at' => $now, 'updated_at' => $now]);
+    DB::table('product_watches')->insert(['id' => (string) Str::ulid(), 'workspace_id' => $ws, 'site_id' => $this->site->id, 'contact_id' => $cid, 'external_product_id' => '88', 'kind' => 'back_in_stock', 'channel' => 'email', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
+
+    $req = $this->actingAs($this->owner)->postJson("{$this->api}/contacts/{$this->contact->publicId()}/data-requests", ['kind' => 'access'])->assertCreated();
+    $this->actingAs($this->owner)->postJson("{$this->api}/data-requests/{$req->json('id')}/execute")->assertOk();
+    $data = json_decode($this->actingAs($this->owner)->get("{$this->api}/data-requests/{$req->json('id')}/download")->getContent(), true);
+    expect($data['messages'])->toHaveCount(1)->and($data['loyalty']['ledger'])->toHaveCount(1)
+        ->and($data['reviews'][0]['body'])->toBe('Muy buena')->and($data['product_alerts'])->toHaveCount(1);
+
+    $del = $this->actingAs($this->owner)->postJson("{$this->api}/contacts/{$this->contact->publicId()}/data-requests", ['kind' => 'delete'])->assertCreated();
+    $this->actingAs($this->owner)->postJson("{$this->api}/data-requests/{$del->json('id')}/execute", ['confirm' => 'BORRAR'])->assertOk()
+        ->assertJsonPath('result.deleted.audiences', 1);
+
+    expect(DB::table('messages')->where('contact_id', $cid)->count())->toBe(0)
+        ->and(DB::table('loyalty_ledger')->where('contact_id', $cid)->count())->toBe(0)
+        ->and(DB::table('product_watches')->where('contact_id', $cid)->count())->toBe(0)
+        ->and(DB::table('reviews')->count())->toBe(1)
+        ->and(DB::table('reviews')->value('contact_id'))->toBeNull()
+        ->and(DB::table('reviews')->value('author_name'))->toBeNull()
+        ->and(DB::table('audience_members')->count())->toBe(0);
+    $removed = Http::recorded(fn ($r) => str_ends_with($r->url(), '/users') && $r->method() === 'DELETE');
+    expect($removed)->toHaveCount(1);
 });
 
 it('solo owner y admin borran; marketing no exporta', function () {

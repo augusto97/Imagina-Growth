@@ -258,6 +258,7 @@ final class FlowController
             return [
                 'key' => $f['key'], 'number' => $f['number'], 'name' => $f['name'], 'description' => $f['description'], 'phase' => $f['phase'],
                 'available' => $f['graph'] !== null,
+                'module' => $f['module'] ?? null,
                 'trigger' => $f['trigger'],
                 'templates' => $keys,
                 // Las de la biblioteca de M08 se instalan al crear el flujo; faltan las demás (las aprobadas de WhatsApp).

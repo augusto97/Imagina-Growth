@@ -181,8 +181,8 @@ function LibraryGallery() {
             },
         );
     };
-    const available = library.data.flows.filter((f) => f.available);
-    const later = library.data.flows.filter((f) => !f.available);
+    const available = library.data.flows.filter((f) => f.available || f.module);
+    const later = library.data.flows.filter((f) => !f.available && !f.module);
 
     return (
         <div className="igr:space-y-6">
@@ -199,9 +199,10 @@ function LibraryGallery() {
                                         <span className="igr:mr-1.5 igr:tabular-nums igr:text-muted-foreground">{f.number}.</span>
                                         {f.name}
                                     </h3>
-                                    <Badge variant="outline">{t('flows.library.steps', { count: f.steps - 1 })}</Badge>
+                                    {f.module ? null : <Badge variant="outline">{t('flows.library.steps', { count: f.steps - 1 })}</Badge>}
                                 </div>
                                 <p className="igr:text-xs igr:text-muted-foreground">{f.description}</p>
+                                {f.module ? <p className="igr:text-xs igr:text-muted-foreground">{t('flows.library.moduleHelp')}</p> : null}
                                 {f.missing_templates.length > 0 ? (
                                     <p className="igr:flex igr:items-start igr:gap-1.5 igr:text-xs igr:text-warning" title={t('flows.library.missingHelp')}>
                                         <CircleAlert className="igr:mt-0.5 igr:size-3.5 igr:shrink-0" aria-hidden />
@@ -209,7 +210,11 @@ function LibraryGallery() {
                                     </p>
                                 ) : null}
                                 <div className="igr:mt-auto igr:flex igr:flex-wrap igr:gap-2 igr:pt-2">
-                                    {f.created_flow_id ? (
+                                    {f.module ? (
+                                        <Button asChild size="sm" variant="outline">
+                                            <Link to={`/w/${workspace.id}/${f.module}`}>{t('flows.library.configure')}</Link>
+                                        </Button>
+                                    ) : f.created_flow_id ? (
                                         <Button asChild size="sm" variant="outline">
                                             <Link to={`/w/${workspace.id}/flujos/${f.created_flow_id}`}>{t('flows.library.open')}</Link>
                                         </Button>

@@ -1,6 +1,9 @@
 <?php
 
 use App\Domain\Contacts\Models\Contact;
+use App\Domain\Loyalty\Models\LoyaltyProgram;
+use App\Domain\Loyalty\Models\LoyaltyTier;
+use App\Domain\Referrals\Models\ReferralProgram;
 use App\Domain\Templates\Contracts\TemplateRenderer;
 use App\Domain\Templates\Data\RenderContext;
 use App\Domain\Templates\Exceptions\TemplateRenderException;
@@ -172,4 +175,21 @@ it('renderiza SMS y cuenta sus partes (GSM-7 o UCS-2)', function () {
 it('convierte HTML a texto plano legible', function () {
     $html = '<html><head><style>p{color:red}</style><title>t</title></head><body><div style="display:none">oculto</div><h1>Hola&nbsp;Ana</h1><p>Primera<br>línea</p><table><tr><td>Total</td><td>$ 10</td></tr></table><a href="https://x.co/a?b=1&amp;c=2">Ver</a> <a href="https://x.co">https://x.co</a><ul><li>Uno</li></ul></body></html>';
     expect(HtmlToText::convert($html))->toBe("Hola Ana\nPrimera\nlínea\nTotal $ 10\n\nVer (https://x.co/a?b=1&c=2) https://x.co\n• Uno");
+});
+
+it('llena la URL de la tienda, el nivel VIP y el enlace de referido con el programa activo', function () {
+    [$site] = $this->connectedSite($this->ws);
+    $t = templatesTpl($this, ['subject' => 'Hola', 'body_html' => '<p>{{ tienda.url }}|{{ contacto.nivel }}|{{ enlaces.referido }}</p>']);
+    expect(templatesRender($this, $t)->html)->toContain('<p>https://tienda.co||</p>');
+
+    ($this->in)(function () {
+        $program = LoyaltyProgram::query()->create(['workspace_id' => $this->ws->id, 'status' => 'active', 'currency_name' => 'Puntos', 'earn_rules' => [], 'redeem_rules' => [], 'expiry_policy' => [], 'wallet_rules' => []]);
+        $tier = LoyaltyTier::query()->create(['workspace_id' => $this->ws->id, 'program_id' => $program->id, 'name' => 'Oro', 'rank' => 1, 'threshold_type' => 'spend_12m', 'threshold' => 0]);
+        $this->contact->forceFill(['tier_id' => $tier->id])->save();
+        ReferralProgram::query()->create(['workspace_id' => $this->ws->id, 'status' => 'active', 'referrer_reward' => [], 'friend_reward' => [], 'rules' => []]);
+    });
+    $html = templatesRender($this, $t)->html;
+    $code = (string) $this->contact->fresh()->referral_code;
+    expect($code)->not->toBe('')
+        ->and($html)->toContain('<p>https://tienda.co|Oro|https://tienda.co/?ref='.$code.'</p>');
 });

@@ -4,7 +4,7 @@ import type { Touch } from './api';
 /* Valores dinámicos del perfil 360: grupos de la línea de tiempo, segmentos RFM y canales. */
 
 /** Grupos de la línea de tiempo, en el orden de hub/app/Domain/Contacts/Queries/ProfileQuery::TIMELINE_GROUPS. */
-export const TIMELINE_GROUPS = ['navegacion', 'carrito', 'pedidos', 'cuenta', 'mensajes', 'resenas', 'encuestas', 'consentimiento', 'segmentos'] as const;
+export const TIMELINE_GROUPS = ['navegacion', 'carrito', 'pedidos', 'fidelizacion', 'cuenta', 'sitio', 'mensajes', 'resenas', 'encuestas', 'consentimiento', 'segmentos'] as const;
 export type TimelineGroup = (typeof TIMELINE_GROUPS)[number];
 
 const GROUP_BY_PREFIX: [string, TimelineGroup][] = [
@@ -20,9 +20,18 @@ const GROUP_BY_PREFIX: [string, TimelineGroup][] = [
     ['order.', 'pedidos'],
     ['customer.', 'cuenta'],
     ['form.', 'cuenta'],
+    ['points.', 'fidelizacion'],
+    ['tier.', 'fidelizacion'],
+    ['wallet.', 'fidelizacion'],
+    ['referral.', 'fidelizacion'],
+    ['widget.', 'sitio'],
+    ['product_watch.', 'sitio'],
     ['message.', 'mensajes'],
+    ['whatsapp.', 'mensajes'],
+    ['flow.', 'mensajes'],
     ['review.', 'resenas'],
     ['survey.', 'encuestas'],
+    ['nps.', 'encuestas'],
     ['consent.', 'consentimiento'],
     ['segment.', 'segmentos'],
 ];

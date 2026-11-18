@@ -11,6 +11,14 @@ describe('etiquetas del perfil 360', () => {
         expect(eventGroup('review.submitted')).toBe('resenas');
         expect(eventGroup('consent.revoked')).toBe('consentimiento');
         expect(eventGroup('segment.entered')).toBe('segmentos');
+        expect(eventGroup('points.earned')).toBe('fidelizacion');
+        expect(eventGroup('referral.converted')).toBe('fidelizacion');
+        expect(eventGroup('widget.submitted')).toBe('sitio');
+        expect(eventGroup('product_watch.notified')).toBe('sitio');
+        expect(eventGroup('message.clicked')).toBe('mensajes');
+        expect(eventGroup('flow.entered')).toBe('mensajes');
+        expect(eventGroup('review.collected')).toBe('resenas');
+        expect(eventGroup('nps.answered')).toBe('encuestas');
     });
 
     it('convierte el nombre del evento en una clave plana de i18n', () => {

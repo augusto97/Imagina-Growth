@@ -50,7 +50,9 @@ it('valida el grafo: disparador único, todo conectado, ciclos con espera, ramas
 
 it('todos los flujos listos de la biblioteca son válidos con las plantillas de M08', function () {
     $available = array_filter(FlowLibrary::all(), fn ($f) => $f['graph'] !== null);
-    expect($available)->toHaveCount(11)->and(FlowLibrary::all())->toHaveCount(20);
+    $modules = array_column(array_filter(FlowLibrary::all(), fn ($f) => $f['module'] !== null), 'module', 'key');
+    expect($available)->toHaveCount(14)->and(FlowLibrary::all())->toHaveCount(20)
+        ->and($modules)->toBe(['review_request' => 'resenas?tab=ajustes', 'back_in_stock' => 'en-el-sitio/avisos', 'nps' => 'resenas?tab=nps']);
     foreach ($available as $flow) {
         expect(flowGraphErrors($this, $flow['graph']))->toBe([], $flow['key']);
     }
@@ -110,6 +112,13 @@ it('la biblioteca muestra los 20 flujos, avisa las plantillas que faltan y activ
     $draft = $this->actingAs($this->owner)->postJson($this->api('/library/second_purchase'), ['activate' => true])->assertCreated();
     expect($draft->json('activated'))->toBeFalse()->and($draft->json('status'))->toBe('draft')->and($draft->json('issues'))->not->toBeEmpty();
     $this->actingAs($this->owner)->postJson($this->api('/library/nps'))->assertUnprocessable();
+    expect(collect($this->actingAs($this->owner)->getJson($this->api('/library'))->json('data'))->firstWhere('key', 'nps')['module'])->toBe('resenas?tab=nps');
+
+    // Los de la Fase 3 que son flujos (VIP, puntos por vencer, invitar a referir) se activan con sus disparadores.
+    foreach (['vip_welcome' => 'tier.changed', 'points_expiring' => null, 'referral_invite' => 'nps.answered'] as $key => $event) {
+        $flow = $this->actingAs($this->owner)->postJson($this->api("/library/{$key}"), ['activate' => true])->assertCreated();
+        expect($flow->json('activated'))->toBeTrue($key)->and($flow->json('trigger.event'))->toBe($event);
+    }
 });
 
 it('sin WhatsApp conectado, la biblioteca quita sus pasos e instala las plantillas de correo de M08', function () {
@@ -168,6 +177,22 @@ it('disparadores por fecha: cumpleaños a la hora configurada, una sola vez por 
     }
     $runs = FlowRun::withoutWorkspaceScope()->get();
     expect($runs)->toHaveCount(1)->and($runs[0]->trigger_key)->toBe('date:'.$this->contact->id.':2026-11-17')->and($id)->toStartWith('fl_');
+});
+
+it('puntos por vencer: entra 15 días antes del vencimiento, solo si de verdad vencen puntos', function () {
+    FakeMessageDispatcher::install();
+    app(CurrentWorkspace::class)->run($this->ws, fn () => $this->contact->forceFill(['points_expiring' => 120, 'points_expiring_at' => '2026-12-02 05:00:00'])->save());
+    $this->actingAs($this->owner)->postJson($this->api('/library/points_expiring'), ['activate' => true])->assertCreated();
+
+    $this->artisan('igr:flows:date-triggers', ['--now' => CarbonImmutable::parse('2026-11-16 10:05', 'America/Bogota')->toIso8601String()])->assertSuccessful();
+    expect(FlowRun::withoutWorkspaceScope()->count())->toBe(0); // 16 días antes
+    $this->artisan('igr:flows:date-triggers', ['--now' => CarbonImmutable::parse('2026-11-17 10:05', 'America/Bogota')->toIso8601String()])->assertSuccessful();
+    expect(FlowRun::withoutWorkspaceScope()->count())->toBe(1);
+
+    app(CurrentWorkspace::class)->run($this->ws, fn () => $this->contact->forceFill(['points_expiring' => 0])->save());
+    FlowRun::withoutWorkspaceScope()->delete();
+    $this->artisan('igr:flows:date-triggers', ['--now' => CarbonImmutable::parse('2026-11-17 11:05', 'America/Bogota')->toIso8601String()])->assertSuccessful();
+    expect(FlowRun::withoutWorkspaceScope()->count())->toBe(0);
 });
 
 it('webhook de entrada: con el token del flujo hace entrar a un contacto existente', function () {

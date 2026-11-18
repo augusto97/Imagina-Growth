@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Domain\Flows\Library;
 
 /**
- * Los 20 flujos listos de modulos.md M09, en español. Los que dependen de
- * módulos de otras fases (puntos, niveles VIP, avisos de stock, NPS, referidos,
- * citas, leads, renovaciones) se listan con su fase y todavía no se crean.
+ * Los 20 flujos listos de modulos.md M09, en español. Los de la Fase 3 que
+ * hace su propio módulo (pedir reseña, NPS, avisos de stock) llevan a la
+ * configuración de ese módulo; los de la Fase 5 (citas, leads, renovaciones) se
+ * listan con su fase y todavía no se crean.
  *
  * Las plantillas se nombran por `template_key` = `library_key`: las de correo
  * son las de la biblioteca de M08 (EMAIL_KEYS, se instalan al crear el flujo) y
@@ -25,7 +26,7 @@ final class FlowLibrary
     public const WHATSAPP_KEYS = [
         'wa_welcome_coupon', 'wa_abandoned_cart_1', 'wa_abandoned_cart_coupon', 'wa_abandoned_checkout',
         'wa_payment_pending_1', 'wa_payment_pending_2', 'wa_cod_confirm', 'wa_second_purchase',
-        'wa_replenishment', 'wa_winback_coupon', 'wa_birthday',
+        'wa_replenishment', 'wa_winback_coupon', 'wa_birthday', 'wa_vip_welcome', 'wa_points_expiring', 'wa_referral_invite',
     ];
 
     /** Plantillas de correo de la biblioteca de M08 (TemplateLibrary) que usan los flujos listos. */
@@ -33,6 +34,7 @@ final class FlowLibrary
         'welcome_1', 'welcome_2', 'welcome_3', 'abandoned_cart_1', 'abandoned_cart_2', 'abandoned_checkout',
         'browse_abandonment', 'payment_pending_1', 'payment_pending_2', 'cod_confirm_email', 'post_purchase',
         'second_purchase', 'replenishment', 'winback_1', 'winback_2', 'birthday', 'team_alert',
+        'vip_welcome', 'points_expiring', 'referral_invite',
     ];
 
     /** Todas las claves de plantilla que usan los flujos listos. */
@@ -49,16 +51,16 @@ final class FlowLibrary
             self::paymentPending(),
             self::codConfirm(),
             self::postPurchase(),
-            self::later(8, 'review_request', 'Pedir reseña', 'Entrega + N días según la categoría: WhatsApp o correo con estrellas en 1 toque y recompensa por foto.', 3),
+            self::module(8, 'review_request', 'Pedir reseña', 'Entrega + N días según la categoría: WhatsApp o correo con estrellas en 1 toque y recompensa por foto.', 'resenas?tab=ajustes'),
             self::secondPurchase(),
             self::replenishment(),
             self::winback(),
-            self::later(12, 'vip_welcome', 'VIP', 'Sube de nivel: bienvenida al nivel, beneficios y acceso anticipado.', 3),
+            self::vipWelcome(),
             self::birthday(),
-            self::later(14, 'back_in_stock', 'Volvió el stock / bajó de precio', 'Aviso inmediato a quien lo pidió, con tope de frecuencia.', 3),
-            self::later(15, 'points_expiring', 'Puntos por vencer', 'Recordatorio 15 días antes con el saldo y sugerencias de canje.', 3),
-            self::later(16, 'referral_invite', 'Invitar a referir', 'NPS de 9 o más, o segunda compra: enlace de referido para compartir por WhatsApp.', 3),
-            self::later(17, 'nps', 'NPS y detractores', '14 días después de la entrega: encuesta; con nota de 6 o menos, alerta al dueño y una tarea.', 3),
+            self::module(14, 'back_in_stock', 'Volvió el stock / bajó de precio', 'Aviso inmediato a quien lo pidió, con tope de frecuencia.', 'en-el-sitio/avisos'),
+            self::pointsExpiring(),
+            self::referralInvite(),
+            self::module(17, 'nps', 'NPS y detractores', '14 días después de la entrega: encuesta; con nota de 6 o menos, alerta al dueño y una tarea.', 'resenas?tab=nps'),
             self::later(18, 'service_lead', 'Lead de servicios', 'Formulario o WhatsApp entrante: respuesta inmediata, aviso al vendedor y seguimiento de 3 toques.', 5),
             self::later(19, 'appointment_reminder', 'Recordatorio de cita', '24 h y 2 h antes de la cita, con reprogramación por botón.', 5),
             self::later(20, 'renewal', 'Renovación', '15 días antes de la renovación: recordatorio, oferta y aviso al equipo si no renueva.', 5),
@@ -276,6 +278,60 @@ final class FlowLibrary
             ['event' => 'order.paid'], ['mode' => 'every_days', 'days' => 300], $g);
     }
 
+    /** @return array<string, mixed> */
+    private static function vipWelcome(): array
+    {
+        $g = (new LibraryGraph)
+            ->node('split', 'channel_split', ['channels' => ['whatsapp', 'email']])
+            ->node('wa', 'send_whatsapp', self::send('wa_vip_welcome'))
+            ->node('em', 'send_email', self::send('vip_welcome'))
+            ->chain('trigger', 'split')->edge('split', 'wa', 'whatsapp')->edge('split', 'em', 'email');
+
+        return self::flow(12, 'vip_welcome', 'VIP', 'Sube de nivel: bienvenida al nivel, beneficios y acceso anticipado.',
+            ['type' => 'event', 'event' => 'tier.changed', 'filters' => [['prop' => 'direction', 'operator' => 'eq', 'value' => 'up']]],
+            null, ['mode' => 'always'], $g, 3);
+    }
+
+    /**
+     * M13 deja en el contacto la fecha del próximo vencimiento de puntos
+     * (`points_expiring_at`) y cuántos vencen ese día; el disparador por fecha avisa
+     * 15 días antes. Canjear sale del flujo.
+     *
+     * @return array<string, mixed>
+     */
+    private static function pointsExpiring(): array
+    {
+        $g = (new LibraryGraph)
+            ->node('split', 'channel_split', ['channels' => ['whatsapp', 'email']])
+            ->node('wa', 'send_whatsapp', self::send('wa_points_expiring'))
+            ->node('em', 'send_email', self::send('points_expiring'))
+            ->chain('trigger', 'split')->edge('split', 'wa', 'whatsapp')->edge('split', 'em', 'email');
+
+        return self::flow(15, 'points_expiring', 'Puntos por vencer', 'Recordatorio 15 días antes con el saldo y sugerencias de canje.',
+            ['type' => 'date', 'attribute' => 'points_expiring_at', 'offset_days' => -15, 'hour' => 10],
+            ['event' => 'points.redeemed'], ['mode' => 'every_days', 'days' => 20], $g, 3);
+    }
+
+    /**
+     * Promotores del NPS (M15): enlace de referido (M14) para compartir. El correo
+     * lleva `enlaces.referido`, que solo existe con el programa de referidos activo.
+     *
+     * @return array<string, mixed>
+     */
+    private static function referralInvite(): array
+    {
+        $g = (new LibraryGraph)
+            ->node('w1', 'wait', self::wait(1, 'hours'))
+            ->node('split', 'channel_split', ['channels' => ['whatsapp', 'email']])
+            ->node('wa', 'send_whatsapp', self::send('wa_referral_invite'))
+            ->node('em', 'send_email', self::send('referral_invite'))
+            ->chain('trigger', 'w1', 'split')->edge('split', 'wa', 'whatsapp')->edge('split', 'em', 'email');
+
+        return self::flow(16, 'referral_invite', 'Invitar a referir', 'NPS de 9 o 10: una hora después, el enlace de referido para compartir por WhatsApp.',
+            ['type' => 'event', 'event' => 'nps.answered', 'filters' => [['prop' => 'category', 'operator' => 'eq', 'value' => 'promoter']]],
+            ['event' => 'referral.shared'], ['mode' => 'every_days', 'days' => 90], $g, 3);
+    }
+
     // ── Ayudas ──────────────────────────────────────────────────────────
 
     /** @return array<string, mixed> */
@@ -296,17 +352,30 @@ final class FlowLibrary
      * @param  array<string, mixed>  $reentry
      * @return array<string, mixed>
      */
-    private static function flow(int $number, string $key, string $name, string $description, array $trigger, ?array $goal, array $reentry, LibraryGraph $graph): array
+    private static function flow(int $number, string $key, string $name, string $description, array $trigger, ?array $goal, array $reentry, LibraryGraph $graph, int $phase = 2): array
     {
         return [
-            'number' => $number, 'key' => $key, 'name' => $name, 'description' => $description, 'phase' => 2,
-            'trigger' => $trigger, 'goal' => $goal, 'reentry_policy' => $reentry, 'graph' => $graph->toArray(),
+            'number' => $number, 'key' => $key, 'name' => $name, 'description' => $description, 'phase' => $phase,
+            'trigger' => $trigger, 'goal' => $goal, 'reentry_policy' => $reentry, 'graph' => $graph->toArray(), 'module' => null,
         ];
     }
 
     /** @return array<string, mixed> */
     private static function later(int $number, string $key, string $name, string $description, int $phase): array
     {
-        return ['number' => $number, 'key' => $key, 'name' => $name, 'description' => $description, 'phase' => $phase, 'trigger' => null, 'goal' => null, 'reentry_policy' => null, 'graph' => null];
+        return ['number' => $number, 'key' => $key, 'name' => $name, 'description' => $description, 'phase' => $phase, 'trigger' => null, 'goal' => null, 'reentry_policy' => null, 'graph' => null, 'module' => null];
+    }
+
+    /**
+     * Automatización que hace su propio módulo (Fase 3): pedir reseñas y NPS (M15)
+     * y los avisos de stock y precio (M16) tienen programador, plantilla y tope
+     * propios. La tarjeta lleva a su configuración para no escribirle dos veces a
+     * nadie por lo mismo.
+     *
+     * @return array<string, mixed>
+     */
+    private static function module(int $number, string $key, string $name, string $description, string $route): array
+    {
+        return ['number' => $number, 'key' => $key, 'name' => $name, 'description' => $description, 'phase' => 3, 'trigger' => null, 'goal' => null, 'reentry_policy' => null, 'graph' => null, 'module' => $route];
     }
 }

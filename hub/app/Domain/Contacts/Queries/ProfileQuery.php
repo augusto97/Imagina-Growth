@@ -26,10 +26,12 @@ final class ProfileQuery
         'navegacion' => ['page.viewed', 'page.engaged', 'product.viewed', 'category.viewed', 'search.performed', 'cta.clicked', 'identify'],
         'carrito' => ['cart.item_added', 'cart.item_removed', 'cart.updated', 'checkout.started', 'coupon.applied', 'cart.abandoned'],
         'pedidos' => ['order.created', 'order.paid', 'order.status_changed', 'order.completed', 'order.cancelled', 'order.failed', 'order.refunded', 'order.payment_pending'],
+        'fidelizacion' => ['points.earned', 'points.redeemed', 'points.expired', 'tier.changed', 'wallet.credited', 'wallet.debited', 'referral.shared', 'referral.converted'],
         'cuenta' => ['customer.registered', 'customer.updated', 'customer.logged_in', 'form.submitted'],
-        'mensajes' => [],
-        'resenas' => ['review.submitted'],
-        'encuestas' => ['survey.answered'],
+        'sitio' => ['widget.submitted', 'product_watch.created', 'product_watch.notified'],
+        'mensajes' => ['message.sent', 'message.delivered', 'message.opened', 'message.read', 'message.clicked', 'message.replied', 'message.failed', 'message.bounced', 'message.complained', 'message.unsubscribed', 'whatsapp.inbound', 'flow.entered', 'flow.exited'],
+        'resenas' => ['review.submitted', 'review.requested', 'review.collected'],
+        'encuestas' => ['survey.answered', 'nps.answered'],
         'consentimiento' => ['consent.granted', 'consent.revoked'],
         'segmentos' => ['segment.entered', 'segment.exited'],
     ];
@@ -188,6 +190,20 @@ final class ProfileQuery
             'channel' => str_starts_with($event, 'consent.') ? ($p['channel'] ?? null) : null,
             'segment' => $p['segment_name'] ?? null,
             'cart_total' => $p['subtotal'] ?? ($p['cart_total'] ?? null),
+            // Fases 2 y 3: mensajes, flujos, fidelización, referidos, reseñas, NPS y elementos del sitio.
+            'points' => str_starts_with($event, 'points.') ? ($p['points'] ?? null) : null,
+            'wallet' => str_starts_with($event, 'wallet.') ? ($p['amount'] ?? null) : null,
+            'reason' => str_starts_with($event, 'points.') || str_starts_with($event, 'wallet.') ? ($p['reason'] ?? null) : null,
+            'tier' => $event === 'tier.changed' ? ($p['to_name'] ?? ($p['to'] ?? null)) : null,
+            'direction' => $event === 'tier.changed' ? ($p['direction'] ?? null) : null,
+            'referral_code' => str_starts_with($event, 'referral.') ? ($p['referral_code'] ?? null) : null,
+            'score' => $event === 'nps.answered' ? ($p['score'] ?? null) : null,
+            'nps_category' => $event === 'nps.answered' ? ($p['category'] ?? null) : null,
+            'media' => $event === 'review.collected' && ($p['has_media'] ?? false) ? ($p['media_count'] ?? 1) : null,
+            'widget_kind' => $event === 'widget.submitted' ? ($p['kind'] ?? null) : null,
+            'watch_kind' => str_starts_with($event, 'product_watch.') ? ($p['kind'] ?? null) : null,
+            'message_channel' => str_starts_with($event, 'message.') ? ($p['channel'] ?? null) : null,
+            'flow' => str_starts_with($event, 'flow.') ? ($p['flow_name'] ?? null) : null,
         ], fn ($v) => $v !== null && $v !== '');
     }
 

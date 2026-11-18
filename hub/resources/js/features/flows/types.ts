@@ -120,6 +120,8 @@ export interface LibraryFlow {
     description: string;
     phase: number;
     available: boolean;
+    /** Ruta del módulo que hace esta automatización (Fase 3: reseñas, NPS, avisos). */
+    module: string | null;
     trigger: Trigger | null;
     templates: string[];
     missing_templates: string[];

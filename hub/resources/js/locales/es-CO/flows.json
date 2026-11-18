@@ -48,7 +48,9 @@
             "createdDraft": "«{{name}}» quedó en borrador: completa lo pendiente para activarlo",
             "available": "Listos para usar",
             "later": "Llegan con otros módulos",
-            "noWhatsapp": "No tienes WhatsApp conectado: los flujos se crean solo con correo. Cuando conectes WhatsApp, crea el flujo otra vez para sumar sus pasos."
+            "noWhatsapp": "No tienes WhatsApp conectado: los flujos se crean solo con correo. Cuando conectes WhatsApp, crea el flujo otra vez para sumar sus pasos.",
+            "configure": "Configurar en el módulo",
+            "moduleHelp": "Esta automatización la hace su módulo, con su propio horario y tope."
         },
         "builder": {
             "back": "Flujos",
@@ -201,7 +203,8 @@
             "birthday": "Cumpleaños",
             "first_order_anniversary": "Aniversario de la primera compra",
             "expected_next_order_at": "Fecha esperada de próxima compra",
-            "second_purchase_due": "Tiempo mediano hasta la segunda compra"
+            "second_purchase_due": "Tiempo mediano hasta la segunda compra",
+            "points_expiring_at": "Próximo vencimiento de puntos"
         },
         "metrics": {
             "orders_count": "Pedidos",
@@ -444,7 +447,10 @@
             "wa_second_purchase": "segunda compra",
             "wa_replenishment": "reposición",
             "wa_winback_coupon": "recuperación con cupón",
-            "wa_birthday": "cumpleaños"
+            "wa_birthday": "cumpleaños",
+            "wa_vip_welcome": "bienvenida al nivel VIP",
+            "wa_points_expiring": "puntos por vencer",
+            "wa_referral_invite": "invitación a referir"
         }
     }
 }

@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Domain\Templates\Rendering;
 
 use App\Domain\Contacts\Models\Contact;
+use App\Domain\Loyalty\Models\LoyaltyTier;
+use App\Domain\Referrals\Models\ReferralProgram;
+use App\Domain\Referrals\Support\ReferralCodes;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Templates\Data\RenderContext;
 use App\Domain\Templates\Support\BusinessProfile;
@@ -32,6 +35,14 @@ final class TemplateVariables
             'contacto' => array_replace(self::contact($context->contact), array_intersect_key($sampleContact, self::contact(null))),
             'tienda' => self::store($context->workspace),
         ] + $vars + ['enlaces' => []];
+        // Enlace de referido del contacto (M14), solo con el programa activo: el código se crea
+        // la primera vez que se pide, así que no se generan códigos para mensajes que no lo usan.
+        if ($context->contact !== null && ! isset($data['enlaces']['referido'])) {
+            $link = self::referralLink($context->workspace, $context->contact);
+            if ($link !== null) {
+                $data['enlaces'] = (array) $data['enlaces'] + ['referido' => $link];
+            }
+        }
         if ($escapeHtml) {
             $data = self::escape($data);
         }
@@ -66,17 +77,39 @@ final class TemplateVariables
             'ciudad' => (string) $contact->getAttribute('city'),
             'pais' => (string) $contact->getAttribute('country'),
             'puntos' => (int) $contact->getAttribute('points_balance'),
-            'nivel' => '',
+            'nivel' => self::tierName($contact),
             'pedidos' => (int) $contact->getAttribute('orders_count'),
             'cliente_desde' => $contact->getAttribute('first_order_at')?->toIso8601String() ?? '',
         ];
+    }
+
+    /** Nombre del nivel VIP del contacto (M13), vacío si no tiene. */
+    private static function tierName(Contact $contact): string
+    {
+        $tierId = $contact->getAttribute('tier_id');
+
+        return is_string($tierId) && $tierId !== '' ? (string) LoyaltyTier::query()->whereKey($tierId)->value('name') : '';
+    }
+
+    private static function referralLink(Workspace $workspace, Contact $contact): ?string
+    {
+        $program = ReferralProgram::query()->where('workspace_id', $workspace->id)->first();
+        if ($program === null || ! $program->isActive()) {
+            return null;
+        }
+        $site = Site::query()->where('workspace_id', $workspace->id)->whereIn('status', [Site::STATUS_CONNECTED, Site::STATUS_DEGRADED])->orderBy('created_at')->first();
+        if ($site === null) {
+            return null;
+        }
+
+        return ReferralCodes::link($site, app(ReferralCodes::class)->forContact($contact));
     }
 
     /** @return array<string, mixed> */
     public static function store(Workspace $workspace): array
     {
         $profile = BusinessProfile::for($workspace);
-        $site = Site::query()->where('workspace_id', $workspace->id)->where('status', 'active')->orderBy('created_at')->first(['url']);
+        $site = Site::query()->where('workspace_id', $workspace->id)->whereIn('status', [Site::STATUS_CONNECTED, Site::STATUS_DEGRADED])->orderBy('created_at')->first(['url']);
         $whatsapp = preg_replace('/\D+/', '', (string) ($profile['whatsapp'] ?? '')) ?? '';
 
         return [
