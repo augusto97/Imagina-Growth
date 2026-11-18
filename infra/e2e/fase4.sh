@@ -140,7 +140,7 @@ php artisan igr:report:weekly --workspace="$WS_DEMO" --force -q
 REPORT_FB=$(hubphp report "$WS_DEMO" | tail -1)
 echo "$REPORT_FB" | json 'd["source"], d["validation"].get("fallback_reason"), [a.get("unknown") for a in d["validation"].get("attempts", [])]'
 [ "$(echo "$REPORT_FB" | json 'd["source"]')" = "fallback" ] || fail "Una cifra inventada no llevó a la plantilla sin IA"
-echo "$REPORT_FB" | grep -q '987.654.321' && fail "La cifra inventada quedó en el informe"
+echo "$REPORT_FB" | json 'd["body"]' | grep -q '987.654.321' && fail "La cifra inventada quedó en el informe"
 ok "Informe con IA validado; con la cifra inventada (\$987.654.321) se regeneró una vez y quedó la plantilla"
 scenario normal
 ASK=$(hubphp ask "$WS_DEMO" "¿Cuánto vendí en los últimos 30 días?" | tail -1)

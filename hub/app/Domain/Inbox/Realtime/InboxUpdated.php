@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Inbox\Realtime;
 
+use App\Domain\Workspaces\Models\Workspace;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -12,9 +13,9 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 /**
  * Algo cambió en una conversación (entrante, envío, asignación, estado). Va por
- * el canal privado `workspace.{id}.inbox` (hub/CLAUDE.md §13) solo con IDs: la
+ * el canal privado `workspace.{ws_…}.inbox` (hub/CLAUDE.md §13) solo con IDs: la
  * bandeja vuelve a pedir lo que necesita. Sin Reverb configurado, la SPA consulta
- * cada 5 s.
+ * cada 5 s (con Reverb conectado, cada 30 s).
  */
 final class InboxUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
 {
@@ -32,7 +33,8 @@ final class InboxUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
     /** @return list<PrivateChannel> */
     public function broadcastOn(): array
     {
-        return [new PrivateChannel('workspace.'.$this->workspaceId.'.inbox')];
+        // El id público del espacio de trabajo (ws_…), el mismo que usa la SPA.
+        return [new PrivateChannel('workspace.'.Workspace::ID_PREFIX.'_'.$this->workspaceId.'.inbox')];
     }
 
     public function broadcastAs(): string

@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { wsPath } from '@/api/queries';
 import { api } from '@/lib/api';
+import { pollInterval } from '@/lib/realtime';
 import type {
     ContactPanelData,
     ConversationDetail,
@@ -18,7 +19,7 @@ import type {
     SendResult,
 } from './types';
 
-/* Bandeja (M11). Sin Reverb configurado, la lista y el chat abiertos se actualizan cada 5 s. */
+/* Bandeja (M11). La lista y el chat abiertos se consultan cada 5 s; con Reverb conectado, cada 30 s (los cambios llegan por el canal). */
 
 export const POLL_MS = 5000;
 
@@ -58,7 +59,7 @@ export function useConversations(ws: string, f: ListFilters) {
         queryKey: inboxKeys.list(ws, f),
         queryFn: ({ signal }) => api.get<ConversationList>(`${wsPath(ws)}/inbox/conversations${listQuery(f)}`, signal),
         placeholderData: keepPreviousData,
-        refetchInterval: POLL_MS,
+        refetchInterval: () => pollInterval(POLL_MS),
     });
 }
 
@@ -67,7 +68,7 @@ export function useConversation(ws: string, id: string | undefined) {
         queryKey: inboxKeys.detail(ws, id ?? ''),
         queryFn: ({ signal }) => api.get<ConversationDetail>(`${wsPath(ws)}/inbox/conversations/${id ?? ''}`, signal),
         enabled: id !== undefined,
-        refetchInterval: POLL_MS,
+        refetchInterval: () => pollInterval(POLL_MS),
     });
 }
 

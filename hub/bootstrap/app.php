@@ -22,6 +22,9 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         },
     )
+    // Tiempo real (Reverb, hub/CLAUDE.md §13): la SPA autoriza los canales privados con su
+    // sesión de Sanctum en /api/broadcasting/auth (statefulApi pone sesión y CSRF).
+    ->withBroadcasting(__DIR__.'/../routes/channels.php', ['prefix' => 'api', 'middleware' => ['api', 'auth:sanctum']])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
         $middleware->alias(['workspace' => ResolveWorkspace::class]);

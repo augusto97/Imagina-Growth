@@ -1,5 +1,6 @@
 import { Bot, Inbox as InboxIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,8 @@ import { PageHeader } from '@/components/ui/misc';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { cn } from '@/lib/cn';
-import { usePresence } from './api';
+import { usePrivateChannel } from '@/lib/realtime';
+import { inboxKeys, usePresence } from './api';
 import { ChatPane } from './ChatPane';
 import { ContactPanel } from './ContactPanel';
 import { ConversationListPane } from './ConversationListPane';
@@ -31,6 +33,11 @@ export function InboxPage() {
     const [panelOpen, setPanelOpen] = useState(false);
 
     useEffect(() => installPwa(), []);
+    // Tiempo real: cada cambio de una conversación vuelve a pedir la bandeja (el evento solo trae IDs).
+    const queryClient = useQueryClient();
+    usePrivateChannel(`workspace.${workspace.id}.inbox`, 'inbox.updated', () => {
+        void queryClient.invalidateQueries({ queryKey: inboxKeys.all(workspace.id) });
+    });
 
     const setTab = (next: string) => {
         const p = new URLSearchParams(params);

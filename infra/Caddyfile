@@ -39,6 +39,9 @@
 
 growth.imagina.cloud {
 	import common
+	# WebSockets de Reverb (bandeja en tiempo real): /app/{key} y la API HTTP /apps/{id}.
+	@reverb path /app/* /apps/*
+	reverse_proxy @reverb reverb:8080
 	reverse_proxy app:8080
 }
 

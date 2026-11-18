@@ -248,7 +248,11 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 - **Endpoints públicos de widgets:** `/p/{site_public_key}/widgets.json` (configuración, en caché de CDN 5 min) y `/p/{site}/reco?kind=…&product_id=…&cart=…&aid=…` (recomendaciones: caché pública de 60 s para los tipos no personales y privada para los personales; api-connector.md §8.3).
 - **Webhooks salientes:** firmados con HMAC, con reintentos y un registro visible.
 - **MCP** (`laravel/mcp`): herramientas de lectura `get_kpis`, `run_metric_query`, `list_segments`, `get_contact_summary` y `list_insights`, y de escritura `draft_campaign` y `draft_segment`, que crean **borradores** que alguien debe aprobar en la app. Autenticación OAuth o token por espacio de trabajo.
-- **Reverb:** canales privados `workspace.{id}.inbox` y `workspace.{id}.live` (eventos en vivo para el tablero «En este momento»).
+- **Reverb:** canales privados `workspace.{ws_…}.inbox` y `workspace.{ws_…}.live` (eventos en vivo para el tablero «En este momento»), con el id público del espacio de trabajo.
+  - **Autorización** en `routes/channels.php`: la bandeja exige `useInbox` y el tablero en vivo `viewDashboards` en ese espacio de trabajo. La SPA autoriza con su sesión de Sanctum en `POST /api/broadcasting/auth` (`withBroadcasting` con `api` + `auth:sanctum`).
+  - **Eventos solo con IDs** (`InboxUpdated` → `inbox.updated`): la SPA vuelve a pedir los datos por la API, que aplica los permisos de cada rol.
+  - **Configuración:** el hub emite con `BROADCAST_CONNECTION=reverb` y `REVERB_APP_ID/KEY/SECRET`, `REVERB_HOST/PORT/SCHEME` (en Docker, `reverb:8080` por la red interna); la SPA se compila con `VITE_REVERB_APP_KEY/HOST/PORT/SCHEME`. Caddy pasa `/app/*` y `/apps/*` del dominio del panel al servicio `reverb`.
+  - **Sin Reverb** (`BROADCAST_CONNECTION=log`, el valor por defecto, o la SPA sin `VITE_REVERB_APP_KEY`, o la conexión caída) la bandeja consulta cada 5 s; con Reverb conectado, cada 30 s (`resources/js/lib/realtime.ts`).
 
 ## 14. Frontend (SPA)
 

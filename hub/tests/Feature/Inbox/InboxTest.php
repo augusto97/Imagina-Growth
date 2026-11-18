@@ -93,7 +93,7 @@ it('un entrante abre el ciclo, cuenta no leídos, clasifica, asigna al disponibl
         ->and(ConversationEvent::withoutWorkspaceScope()->where('conversation_id', $c->id)->pluck('kind')->all())->toBe(['opened', 'assigned']);
     expect($this->push->sent)->not->toBeEmpty()->and(end($this->push->sent)['user'])->toBe($this->agent->id)
         ->and(end($this->push->sent)['title'])->not->toContain('pintura');
-    Event::assertDispatched(InboxUpdated::class, fn (InboxUpdated $e) => $e->reason === 'inbound' && $e->broadcastOn()[0]->name === 'private-workspace.'.$this->ws->id.'.inbox'
+    Event::assertDispatched(InboxUpdated::class, fn (InboxUpdated $e) => $e->reason === 'inbound' && $e->broadcastOn()[0]->name === 'private-workspace.'.$this->ws->publicId().'.inbox'
         && ! str_contains(json_encode($e->broadcastWith()), 'pintura'));
 
     inboxInbound($this, 'Hola?', 'wamid.IN2')->assertOk();

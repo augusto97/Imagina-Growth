@@ -53,7 +53,13 @@ services:
       interval: 30s
       retries: 5
 
-  # reverb (bandeja y «En este momento») se agrega con su fase.
+  # Tiempo real (bandeja y «En este momento»): WebSockets de Reverb detrás de Caddy, en el mismo
+  # dominio del panel (/app y /apps). El hub emite con BROADCAST_CONNECTION=reverb, REVERB_HOST=reverb,
+  # REVERB_PORT=8080 y REVERB_SCHEME=http (red interna); la SPA se compila con VITE_REVERB_HOST=growth.imagina.cloud,
+  # VITE_REVERB_PORT=443 y VITE_REVERB_SCHEME=https. Escala con REVERB_SCALING_ENABLED=true (Redis).
+  reverb:
+    <<: *hub
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
 
   caddy:
     image: caddy:2
@@ -65,7 +71,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-    depends_on: [app, ingest]
+    depends_on: [app, ingest, reverb]
 
   mariadb:
     image: mariadb:11.4
