@@ -123,7 +123,24 @@
 
 **Listo cuando:** la vista previa tarda menos de 3 s con 100.000 contactos y 5 millones de eventos, y las entradas y salidas disparan flujos en menos de 2 minutos.
 
-**Estado (Fase 1):** vista previa medida con 100.000 contactos, 150.000 pedidos y 5 millones de eventos: entre 137 ms y 1,45 s según el segmento (`igr:segments:benchmark`). Las entradas y salidas se calculan 15 s después del evento; el disparo de flujos se mide en la Fase 2, cuando existan los flujos. Las condiciones de mensajería, fidelización y servicios muestran la fase en que llegan.
+**Estado (Fase 1):** vista previa medida con 100.000 contactos, 150.000 pedidos y 5 millones de eventos: entre 137 ms y 1,45 s según el segmento (`igr:segments:benchmark`). Las entradas y salidas se calculan 15 s después del evento; el disparo de flujos se mide en la Fase 2, cuando existan los flujos.
+
+**Estado (Fase 3):** se habilitan las condiciones de mensajería y fidelización; las de servicios siguen marcadas para la Fase 5.
+
+- **Mensajería** (sobre la tabla `messages` de MariaDB, solo mensajes salientes):
+  - Acciones: recibió (`sent_at`), abrió (correo, `opened_at`), leyó (WhatsApp, `read_at`), hizo clic (`clicked_at`) o respondió (`replied_at`).
+  - Filtros: canal, solo marketing o cualquier tipo, un flujo o una campaña, con conteo («al menos N», «nunca»…) y ventana.
+  - «No ha recibido nada en N días» = recibió · nunca · últimos N días.
+  - **Puntaje de interacción** (0 a 100), calculado al vuelo con los mensajes de los últimos 90 días: por mensaje, abrir o leer suma 1, un clic 3 y una respuesta 5, con tope 100. No necesita un job nocturno y es distinto de la predicción `engagement_score` de la Fase 4.
+  - Recalculan en tiempo real con `message.*` y `whatsapp.inbound`.
+- **Fidelización:**
+  - Nivel VIP: es, no es, «es al menos» (por `rank`), tiene o no tiene nivel.
+  - Puntos disponibles y saldo a favor, con operadores numéricos.
+  - Puntos por vencer en los próximos N días (`points_expiring` > 0 y `points_expiring_at` en el rango).
+  - Referidos que compraron: cuenta los calificados o premiados.
+  - Llegó referido: cualquier estado.
+  - Recalculan en tiempo real con `points.*`, `wallet.*`, `tier.changed` y `referral.*`. La creación de un referido al registrarse no emite evento, así que «Llegó referido» se actualiza en el recálculo nocturno o con el siguiente evento del contacto.
+- `igr:segments:benchmark` incluye ahora un segmento de clics, uno de «sin mensajes en 14 días e interacción alta» y uno de puntos.
 
 ---
 
