@@ -328,6 +328,7 @@ Nunca dependen del visitante en páginas cacheables (`connector/CLAUDE.md` §9).
 | `loyalty` | `{}` | Mi cuenta → «Mis recompensas» (usa `igrUser.token`) |
 | `banner` | `{"placement": "top\|account"}` | banner personalizado por segmento |
 | `wallet` | `{}` | checkout: «Usar saldo» (el clic llama al plugin, que llama a §5.5) |
+| `quote` | `{"calculatorId": "qc_…"}` | cotizador (Fase 5, `[igr_quote id=""]`, bloque `imagina-growth/quote`, widget de Elementor «Cotizador»; reserva 420 px) |
 
 `window.igrUser` (§7.1) también se imprime en Mi cuenta → «Mis recompensas» para que el tracker pida los datos del programa.
 
@@ -482,6 +483,34 @@ Público, caché 5 min: la página explicativa del programa: `{"active": true, "
 
 #### `GET /p/{public_key}/banner?placement=top|account&aid=&token=`
 Privado y sin caché: `{"banner": {"id", "text", "cta", "url", "style": "brand|info|success|warning"} | null}`. Los datos sensibles, como los puntos o el nombre, solo aparecen con `token`; sin él se usa el texto público del banner.
+
+#### `GET /p/{public_key}/quotes/{calculator_id}` (Fase 5)
+Público, en caché de CDN 5 min. Solo calculadoras `active` (y del sitio, si tienen uno). Sin notas internas; si el precio se da a cambio del contacto (`capture.required`), tampoco trae precios ni multiplicadores:
+
+```jsonc
+{ "ok": true, "calculator": { "id": "qc_…", "name": "Pintura de interiores", "kind": "service|area|package", "currency": "COP",
+    "definition": { "fields": [{ "key": "area", "label": "…", "type": "number|select|checkbox", "required": true, "help": null,
+                                 "unit": "m²", "min": 5, "max": 2000, "step": 1, "default": null, "options": [{ "value": "vinilo", "label": "Vinilo" }] }],
+                    "packages": [{ "key": "basico", "label": "Básico", "description": null }], "note": "Incluye materiales." },
+    "capture": { "required": true, "fields": ["first_name", "phone", "email"], "require": "phone|email|phone_or_email",
+                 "consents": [{ "channel": "whatsapp", "label": "…", "version": "v3" }], "title": "…", "cta": "Ver mi cotización" } } }
+```
+`404` `{"ok": false, "error": {"code": "unknown_calculator"}}`.
+
+#### `POST /p/{public_key}/quotes/{calculator_id}/estimate` (Fase 5)
+```json
+{ "anonymous_id": "…", "page_url": "https://…", "answers": { "area": 40, "tipo": "esmalte", "extras": ["techo"], "package": "basico" },
+  "fields": { "first_name": "Ana", "phone": "300 123 4567", "email": "…" }, "consents": { "whatsapp": true }, "utm": { "utm_source": "google", "gclid": "…" } }
+```
+- **`200`:** `{"ok": true, "quote_id": "qt_…", "estimate": {"min": "686000.00", "max": "839000.00", "currency": "COP", "text": "$686.000 – $839.000 COP"}, "lines": [{"label", "amount"}], "note", "message", "whatsapp": "https://wa.me/…" | null}`. Sin datos personales.
+- **`422`:** `{"ok": false, "message": "…", "errors": {"answers.area": ["…"], "fields.phone": ["…"]}}`: respuesta fuera de rango u opción que no existe, o falta el contacto cuando se pide.
+- **`429`:** 20 por minuto por IP (con hash) y 10 por `anonymous_id`.
+
+#### Agenda de citas (Fase 5, páginas del hub)
+Sin tracker ni CORS: páginas Blade del hub, enlazadas desde el sitio con `[igr_booking service=""]` (bloque `imagina-growth/booking`, widget de Elementor «Botón de reservas»), que pinta `<a class="igr-booking igr-booking-button" data-igr-cta="booking" href="{hub}/p/{public_key}/reservar/{servicio}">`. La clave también puede ser el ID del espacio de trabajo (`ws_…`).
+- `GET /p/{key}/reservar` (servicios), `GET /p/{key}/reservar/{servicio}?desde=&dia=&persona=` (días y horarios), `POST /p/{key}/reservar/{servicio}` (formulario: `start` ISO UTC, `persona`, `name`, `phone`, `email`, `notes`, `consent[canal]`, UTM y `aid`): `303` a la gestión de la cita, `422` con errores, `409` si el horario se ocupó. 10 envíos por minuto por IP.
+- `GET /p/{key}/cita/{token}` (40 caracteres), `POST /p/{key}/cita/{token}/confirmar|reprogramar|cancelar` y `GET /p/{key}/cita/{token}/calendario.ics`.
+- `GET /p/_google/calendar/callback`: vuelta del consentimiento de Google Calendar de una persona (state cifrado, vence en 1 hora).
 
 #### Páginas que sirve el hub (no pasan por el tracker)
 - `/r/{token}`: formulario de reseña de 1 toque, con fotos y video y sin iniciar sesión. El token va firmado por pedido y contacto.

@@ -75,7 +75,7 @@ export function CalendarTab({ data }: { data: BookingOverview }) {
                         <ChevronRight />
                     </Button>
                 </div>
-                <h2 className="igr:text-sm igr:font-semibold igr:capitalize">{title}</h2>
+                <h2 className="igr:text-sm igr:font-semibold igr:first-letter:uppercase">{title}</h2>
                 <div className="igr:ml-auto igr:flex igr:flex-wrap igr:items-center igr:gap-2">
                     {data.staff.length > 1 ? (
                         <Select value={staff} onChange={(e) => setStaff(e.target.value)} aria-label={t('agenda.calendar.staff')} className="igr:w-44">
@@ -108,13 +108,13 @@ export function CalendarTab({ data }: { data: BookingOverview }) {
             ) : list.data.data.length === 0 && view === 'day' ? (
                 <EmptyState icon={CalendarCheck} title={t('agenda.calendar.emptyDay')} description={t('agenda.calendar.emptyHelp')} />
             ) : (
-                <div className={view === 'week' ? 'igr:grid igr:gap-3 igr:md:grid-cols-2 igr:xl:grid-cols-7' : ''}>
+                <div className={view === 'week' ? 'igr:grid igr:gap-2 igr:sm:grid-cols-2 igr:lg:grid-cols-4 igr:xl:grid-cols-7' : ''}>
                     {range.days.map((d) => (
                         <Card key={d} className={d === today ? 'igr:border-primary/50' : ''}>
                             <CardContent className="igr:p-3">
                                 <button
                                     type="button"
-                                    className="igr:mb-2 igr:block igr:text-left igr:text-xs igr:font-medium igr:capitalize igr:text-muted-foreground igr:hover:text-foreground"
+                                    className="igr:mb-2 igr:block igr:text-left igr:text-xs igr:font-medium igr:text-muted-foreground igr:first-letter:uppercase igr:hover:text-foreground"
                                     onClick={() => {
                                         setView('day');
                                         setDate(d);
@@ -131,12 +131,12 @@ export function CalendarTab({ data }: { data: BookingOverview }) {
                                 ) : (
                                     <ul className="igr:space-y-2">
                                         {(grouped[d] ?? []).map((a) => (
-                                            <li key={a.id} className={`igr:rounded-md igr:border igr:p-2 igr:text-[13px] ${a.status === 'cancelled' ? 'igr:opacity-60' : ''}`}>
+                                            <li key={a.id} className={`igr:relative igr:rounded-md igr:border igr:p-2 igr:text-[13px] ${a.status === 'cancelled' ? 'igr:opacity-60' : ''}`}>
                                                 <div className="igr:flex igr:items-start igr:gap-2">
                                                     <div className="igr:min-w-0 igr:flex-1">
-                                                        <p className="igr:font-medium igr:tabular-nums">
+                                                        <p className="igr:pr-6 igr:font-medium igr:whitespace-nowrap igr:tabular-nums">
                                                             {localTime(a.starts_at, tz, i18n.language)}
-                                                            <span className="igr:font-normal igr:text-muted-foreground"> – {localTime(a.ends_at, tz, i18n.language)}</span>
+                                                            {view === 'day' ? <span className="igr:font-normal igr:text-muted-foreground"> – {localTime(a.ends_at, tz, i18n.language)}</span> : null}
                                                         </p>
                                                         <p className="igr:truncate">{a.service?.name ?? '—'}</p>
                                                         {a.contact ? (
@@ -158,7 +158,7 @@ export function CalendarTab({ data }: { data: BookingOverview }) {
                                                     {actionsFor(a).length > 0 ? (
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" aria-label={t('agenda.calendar.actions')}>
+                                                                <Button variant="ghost" size="icon" className="igr:absolute igr:top-1 igr:right-1 igr:size-7" aria-label={t('agenda.calendar.actions')}>
                                                                     <MoreHorizontal />
                                                                 </Button>
                                                             </DropdownMenuTrigger>

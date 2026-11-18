@@ -57,7 +57,7 @@ export function SlotPicker({
                 <div className="igr:max-h-72 igr:space-y-3 igr:overflow-y-auto igr:pr-1">
                     {[...byDay.entries()].map(([d, list]) => (
                         <div key={d}>
-                            <p className="igr:mb-1 igr:text-xs igr:font-medium igr:capitalize igr:text-muted-foreground">{dayLabel(d)}</p>
+                            <p className="igr:mb-1 igr:text-xs igr:font-medium igr:text-muted-foreground igr:first-letter:uppercase">{dayLabel(d)}</p>
                             <div className="igr:flex igr:flex-wrap igr:gap-1.5">
                                 {list.map((s) => (
                                     <Button
