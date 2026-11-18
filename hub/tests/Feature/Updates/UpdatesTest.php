@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Updates\Support\UpdateState;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 
@@ -45,6 +46,19 @@ it('el comando consulta la última versión publicada y la guarda para el panel'
     ($this->fakeGithub)('nightly');
     $this->artisan('growth:updates:check')->assertFailed();
     expect($this->state->latest()['version'])->toBe('0.2.0');
+});
+
+it('«Buscar ahora» no depende de los comandos de consola (en la web no están registrados)', function () {
+    ($this->fakeGithub)();
+    Artisan::shouldReceive('call')->never();
+    $this->actingAs($this->admin)->postJson('/api/platform/updates/check')->assertOk()
+        ->assertJsonPath('latest.version', '0.2.0')->assertJsonPath('update_available', true);
+});
+
+it('un pedido en proceso que la app no puede leer no tumba el panel', function () {
+    // growth-update-dispatch (root) lo reescribe; si no se puede leer o está corrupto, el panel sigue y lo da por ocupado.
+    file_put_contents($this->stateDir.'/update-request.processing.json', '{corrupto');
+    $this->actingAs($this->admin)->getJson('/api/platform/updates')->assertOk()->assertJsonPath('busy', true);
 });
 
 it('solo un superadmin con 2FA ve y pide actualizaciones', function () {

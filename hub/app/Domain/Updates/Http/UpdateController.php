@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Updates\Http;
 
+use App\Domain\Updates\Actions\CheckForUpdates;
 use App\Domain\Updates\Support\ReleaseFeed;
 use App\Domain\Updates\Support\UpdateState;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
@@ -11,7 +12,6 @@ use App\Domain\Workspaces\Models\User;
 use App\Support\AppVersion;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -30,9 +30,9 @@ final class UpdateController
     }
 
     /** POST /api/platform/updates/check: busca ahora en vez de esperar a la próxima hora. */
-    public function check(): JsonResponse
+    public function check(CheckForUpdates $check): JsonResponse
     {
-        Artisan::call('growth:updates:check');
+        $check->handle();
 
         return response()->json($this->payload());
     }

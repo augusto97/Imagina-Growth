@@ -77,6 +77,9 @@ clean=$(jq -n --arg v "$version" --arg id "$safe_id" --arg by "$by" --arg at "$(
     '{version: $v, id: $id, requested_by: $by, accepted_at: $at}')
 tmp=$(mktemp "$STATE_DIR/.tmp.XXXXXX")
 printf '%s\n' "$clean" >"$tmp"
+# Legible para la app (el panel muestra el pedido en curso); mktemp lo deja en 0600 de root.
+chmod 0644 "$tmp"
+"$CHOWN" "$GROWTH_USER:$GROWTH_USER" "$tmp" 2>/dev/null || true
 mv -f "$tmp" "$PROCESSING"
 rm -f -- "$REQUEST"
 write_status "$(jq -n --arg id "$safe_id" --arg from "$current" --arg to "$version" --arg by "$by" --arg at "$(now)" \

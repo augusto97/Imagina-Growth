@@ -67,9 +67,16 @@ async function openUpdates(page) {
     page.on('pageerror', (e) => errors.push(String(e.message).slice(0, 160)));
     await login(page);
     await openUpdates(page);
+    await shot(page, `panel-${target}-0-actualizaciones`);
+    const check = page.waitForResponse((r) => r.url().endsWith('/updates/check'), { timeout: 30000 }).catch(() => null);
     await page.getByRole('button', { name: 'Buscar ahora' }).click();
+    const checked = await check;
+    if (checked && !checked.ok()) console.error(`«Buscar ahora» respondió ${checked.status()}: ${(await checked.text()).slice(0, 300)}`);
     const install = page.getByRole('button', { name: `Instalar ${target}` });
-    await install.waitFor({ timeout: 60000 });
+    await install.waitFor({ timeout: 60000 }).catch(async (e) => {
+        await shot(page, `panel-${target}-error-sin-boton`);
+        throw e;
+    });
     await shot(page, `panel-${target}-1-disponible`);
     await install.click();
     await page.getByLabel('Tu contraseña').fill(env.ADMIN_PASS);

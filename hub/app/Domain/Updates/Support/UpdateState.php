@@ -43,10 +43,12 @@ final class UpdateState
     public function read(string $file): ?array
     {
         $path = $this->path($file);
-        if (! is_file($path) || is_link($path) || filesize($path) > 1_000_000) {
-            return null;
+        if (! is_file($path) || is_link($path) || ! is_readable($path) || filesize($path) > 1_000_000) {
+            return null; // lo escribe root: si no se puede leer, el panel sigue funcionando
         }
-        $data = json_decode((string) file_get_contents($path), true);
+        $raw = @file_get_contents($path);
+
+        $data = is_string($raw) ? json_decode($raw, true) : null;
 
         return is_array($data) ? $data : null;
     }
@@ -95,10 +97,11 @@ final class UpdateState
     public function history(int $limit = 10): array
     {
         $path = $this->path(self::HISTORY);
-        if (! is_file($path) || is_link($path)) {
+        $raw = is_file($path) && ! is_link($path) && is_readable($path) ? @file_get_contents($path) : false;
+        if (! is_string($raw)) {
             return [];
         }
-        $lines = array_slice(array_filter(explode("\n", (string) file_get_contents($path))), -$limit);
+        $lines = array_slice(array_filter(explode("\n", $raw)), -$limit);
         $out = [];
         foreach (array_reverse($lines) as $line) {
             $row = json_decode($line, true);
