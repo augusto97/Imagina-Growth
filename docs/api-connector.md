@@ -445,7 +445,7 @@ Privado y sin caché: `{"banner": {"text", "cta", "url", "style"} | null}`. Los 
 
 #### Páginas que sirve el hub (no pasan por el tracker)
 - `/r/{token}`: formulario de reseña de 1 toque, con fotos y video y sin iniciar sesión. El token va firmado por pedido y contacto.
-- `/confirmar/{token}`: doble opt-in por correo.
+- `/p/{public_key}/confirmar/{token}`: doble opt-in por correo (bajo `/p/` porque la SPA atiende las demás rutas del hub; el token va firmado con la clave de la app, por contacto y widget, y vence a los 7 días).
 - `/creadores/{token}`: panel del creador (afiliados), con enlace mágico.
 
 #### Referidos y afiliados en el sitio

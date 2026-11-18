@@ -260,7 +260,8 @@ Migración `2026_11_20_000100_create_phase2_tables`. Diferencias con §3 a §5, 
 Migración `2026_11_21_000100_create_phase3_tables`. Diferencias con §6 y §7, con su motivo:
 - `onsite_widgets`: `name`, `priority`, `coupon_config` (el regalo del widget, o los premios de la ruleta con sus probabilidades, que nunca llegan al navegador), `starts_at`/`ends_at` y `created_by`. `site_id` es opcional: sin sitio, el widget aplica a todos los del espacio de trabajo.
 - Nuevas:
-  - `widget_captures`: quién dejó sus datos en qué widget y variante, con el cupón y las respuestas del quiz. Sirve para las estadísticas, el «un cupón por persona» y la atribución de captación (hub/CLAUDE.md §9, paso 4). `was_known` separa a quien ya era contacto.
+  - `widget_captures`: quién dejó sus datos en qué widget y variante, con el cupón y las respuestas del quiz. Sirve para las estadísticas, el «un cupón por persona» y la atribución de captación (hub/CLAUDE.md §9, paso 4). `was_known` separa a quien ya era contacto. `updated_at` (migración `2026_11_21_100100`) es el último paso o reenvío; `captured_at` queda como la primera captura.
+- `orders.attributed_widget_id` y `attributed_widget_variant` (migración `2026_11_21_100100`): el widget y la variante del paso 4 de la atribución; los leen las estadísticas del widget.
   - `loyalty_rewards`: el catálogo de canje (cupón fijo o porcentual, envío gratis, producto gratis o saldo) con su costo en puntos.
 - `loyalty_programs`: uno por espacio de trabajo, con `wallet_rules` (cashback y vencimiento del saldo).
 - `loyalty_tiers`: `wc_role`, el rol de WooCommerce del nivel para los precios VIP con el comando `customer.set_tier`.
