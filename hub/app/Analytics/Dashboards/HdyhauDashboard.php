@@ -25,7 +25,7 @@ final class HdyhauDashboard extends Dashboard
             ->where('r.created_at', '>=', $period->fromUtc())->where('r.created_at', '<', $period->toUtc())
             ->when($filters->site !== null, fn ($q) => $q->where('o.site_id', $filters->site?->id))
             ->selectRaw("JSON_UNQUOTE(JSON_EXTRACT(r.answers, '$.answer')) AS answer, COALESCE(o.channel_last, 'unknown') AS channel, COUNT(*) AS n, COALESCE(SUM(o.total_ws), 0) AS revenue")
-            ->groupBy('answer', 'channel')
+            ->groupByRaw("JSON_UNQUOTE(JSON_EXTRACT(r.answers, '$.answer')), COALESCE(o.channel_last, 'unknown')")
             ->get();
 
         $answers = [];
