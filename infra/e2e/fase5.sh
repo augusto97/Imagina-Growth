@@ -144,7 +144,7 @@ ok "Lead $LEAD_ID: $(echo "$LEAD" | json 'd["lead"]["score"]') puntos ($(echo "$
 step "C. Recordatorio 2 horas antes y confirmación por WhatsApp"
 REMIND=$(hubphp remind "$WS_CLINIC" "$EMAIL_1" | tail -1)
 echo "$REMIND"
-[ "$(echo "$REMIND" | json '"2h" in d["reminders"]')" = "True" ] || fail "No salió el recordatorio de 2 horas"
+[ "$(echo "$REMIND" | json '"reminder_2" in d["reminders"]')" = "True" ] || fail "No salió el recordatorio de 2 horas"
 wait_hub
 python3 "$E2E/mailcheck.py" "$LOGS/buzon" "$EMAIL_1" "Valoración" | tail -3 || fail "El recordatorio no llegó al correo de la persona"
 hubphp inbound "$WS_CLINIC" "$PHONE_1" "Confirmo" "wamid.E2E5C${STAMP}" >/dev/null
