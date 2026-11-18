@@ -98,3 +98,11 @@ it('desconecta el sitio e invalida sus claves', function () {
     $this->actingAs($owner)->postJson("/api/w/{$ws->publicId()}/sites/{$site->publicId()}/disconnect")->assertOk();
     $this->signedJson('GET', '/v1/s/config', $site, $secret)->assertUnauthorized();
 });
+
+it('acepta una zona horaria como desfase de plugins viejos y usa la del espacio de trabajo', function () {
+    $owner = $this->userWith2fa();
+    $ws = $this->workspaceFor($owner);
+    $code = $this->actingAs($owner)->postJson("/api/w/{$ws->publicId()}/sites/connect-codes", [])->json('code');
+    $this->postJson('/api/connect/exchange', exchangePayload($code, ['timezone' => '-05:00']))->assertOk();
+    expect(Site::withoutWorkspaceScope()->value('timezone'))->toBe('America/Bogota');
+});

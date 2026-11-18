@@ -80,3 +80,12 @@ it('valida el estado del backfill', function () {
     $this->signedJson('PUT', '/v1/s/backfill', $this->site, $this->secret, ['status' => 'otro'])->assertUnprocessable();
     $this->signedJson('PUT', '/v1/s/backfill', $this->site, 'sk_mal', ['status' => 'running'])->assertUnauthorized();
 });
+
+it('devuelve en la conciliación el hash de categoría que mandó el plugin', function () {
+    $this->postSigned($this->site, $this->secret, [
+        $this->envelope($this->site, 'catalog.category_upserted', ['category_id' => '12', 'name' => 'Pinturas', 'slug' => 'pinturas', 'hash' => 'abcdef0123456789abcdef0123456789']),
+    ]);
+    $this->runWorker();
+    $this->signedJson('GET', '/v1/s/catalog/hashes?type=category', $this->site, $this->secret)
+        ->assertOk()->assertJsonPath('items.0', ['id' => '12', 'hash' => 'abcdef0123456789abcdef0123456789']);
+});

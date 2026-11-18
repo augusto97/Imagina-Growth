@@ -25,11 +25,16 @@ final class ExchangeController
             'wp_version' => ['nullable', 'string', 'max:20'],
             'wc_version' => ['nullable', 'string', 'max:20'],
             'php_version' => ['nullable', 'string', 'max:20'],
-            'timezone' => ['nullable', 'timezone'],
+            'timezone' => ['nullable', 'string', 'max:64'],
             'currency' => ['nullable', 'string', 'size:3'],
             'locale' => ['nullable', 'string', 'max:10'],
             'capabilities' => ['nullable', 'array'],
         ]);
+
+        // Versiones viejas del plugin podían mandar un desfase («-05:00») en lugar de un ID IANA.
+        if (isset($data['timezone']) && ! in_array($data['timezone'], timezone_identifiers_list(), true)) {
+            $data['timezone'] = null;
+        }
 
         try {
             return response()->json($exchange->handle($data));

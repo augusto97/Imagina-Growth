@@ -85,3 +85,52 @@ jobs:
         run: npm run test
       - name: Build
         run: npm run build
+
+  connector:
+    name: Connector · PHPUnit (PHP ${{ matrix.php }}), PHPCS y contrato
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.1", "8.3"]
+    defaults:
+      run:
+        working-directory: connector
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: wp_igr_tests
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      WP_CORE_DIR: /tmp/wordpress
+      WC_PLUGIN_DIR: /tmp/wordpress/wp-content/plugins/woocommerce
+      WP_TESTS_DB_NAME: wp_igr_tests
+      WP_TESTS_DB_USER: root
+      WP_TESTS_DB_PASSWORD: root
+      WP_TESTS_DB_HOST: 127.0.0.1:3306
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysqli, sodium, zip, intl
+          coverage: none
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: WordPress y WooCommerce para la suite de integración
+        run: |
+          mkdir -p /tmp/wordpress
+          curl -sSL https://wordpress.org/latest.tar.gz | tar -xz -C /tmp/wordpress --strip-components=1
+          curl -sSL -o /tmp/wc.zip https://downloads.wordpress.org/plugin/woocommerce.latest-stable.zip
+          unzip -q /tmp/wc.zip -d /tmp/wordpress/wp-content/plugins/
+      - name: PHPCS (WordPress-Extra)
+        run: vendor/bin/phpcs -q
+      - name: Unitarias
+        run: vendor/bin/phpunit
+      - name: WordPress + WooCommerce (contrato contra hub/resources/schemas/events)
+        run: vendor/bin/phpunit -c phpunit-wp.xml.dist

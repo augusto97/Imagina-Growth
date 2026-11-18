@@ -280,7 +280,7 @@ final class CatalogCollector {
 		$ok = Recorder::record(
 			$factory->make(
 				'catalog.category_upserted',
-				$props,
+				$props + array( 'hash' => $hash ),
 				array(
 					'type' => $type,
 					'key'  => $fresh_id ? null : 'category:' . $term->term_id . ':' . $hash,

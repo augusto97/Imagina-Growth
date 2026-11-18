@@ -151,7 +151,7 @@ Convenciones: `objeto.acción` en inglés y en pasado. Montos en la moneda del p
 | `catalog.product_deleted` | `product_id` |
 | `catalog.stock_changed` | `product_id`, `from_status`, `to_status`, `qty?` |
 | `catalog.price_changed` | `product_id`, `from`, `to` |
-| `catalog.category_upserted` | `category_id`, `parent_id?`, `name`, `slug` |
+| `catalog.category_upserted` | `category_id`, `parent_id?`, `name`, `slug`, `hash?` (del contenido; el hub lo devuelve en la conciliación de `/v1/s/catalog/hashes`) |
 | `catalog.category_deleted` | `category_id` |
 
 ### 4.4 Formularios y servicios (connector)
@@ -191,7 +191,7 @@ Convenciones: `objeto.acción` en inglés y en pasado. Montos en la moneda del p
   "items": [{
     "item_id": "55", "product_id": "88", "variation_id": "91", "sku": "PNT-AZ-1G",
     "name": "Pintura Azul 1 galón", "category_ids": ["12"], "brand": "Pintuco",
-    "qty": 2, "unit_price": "150000.00", "line_total": "300000.00", "cost": "90000.00"
+    "qty": 2, "unit_price": "150000.00", "line_total": "300000.00", "cost": "90000.00"   // cost: costo UNITARIO (COGS)
   }],
   "billing": { "first_name": "", "last_name": "", "email": "", "phone": "",
                "city": "Manizales", "state": "CO-CAL", "country": "CO", "postcode": "" },

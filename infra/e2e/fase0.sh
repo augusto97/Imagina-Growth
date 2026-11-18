@@ -53,7 +53,7 @@ T1=$(date +%s)
 echo "Conectado en $((T1 - T0)) s"
 
 step "Importación histórica completa"
-$WP igr backfill --now --flush
+$WP igr backfill --now --flush --delay=0
 T2=$(date +%s)
 echo "Backfill enviado en $((T2 - T1)) s"
 

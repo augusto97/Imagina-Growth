@@ -22,6 +22,11 @@
     "slug": {
       "type": "string",
       "maxLength": 200
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16,64}$",
+      "description": "Hash del contenido que calcula el origen; el hub lo devuelve en /v1/s/catalog/hashes"
     }
   },
   "additionalProperties": false,
@@ -30,12 +35,22 @@
       "category_id": "12",
       "parent_id": null,
       "name": "Pinturas",
-      "slug": "pinturas"
+      "slug": "pinturas",
+      "hash": "4f1c2a7b3d4e5f6071829304a5b6c7d8"
+    },
+    {
+      "category_id": "13",
+      "name": "Brochas"
     }
   ],
   "x-invalid-examples": [
     {
       "category_id": "12"
+    },
+    {
+      "category_id": "12",
+      "name": "Pinturas",
+      "hash": "no-hex"
     }
   ]
 }

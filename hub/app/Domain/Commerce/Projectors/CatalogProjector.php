@@ -102,7 +102,8 @@ final class CatalogProjector
                 'parent_external_id' => isset($p['parent_id']) ? (string) $p['parent_id'] : null,
                 'name' => mb_substr((string) $p['name'], 0, 200),
                 'slug' => $p['slug'] ?? null,
-                'content_hash' => hash('sha256', json_encode([$p['name'], $p['slug'] ?? null, $p['parent_id'] ?? null]) ?: ''),
+                // El hash lo calcula el origen (como en los productos): así la conciliación nocturna compara lo mismo.
+                'content_hash' => isset($p['hash']) && is_string($p['hash']) ? $p['hash'] : substr(hash('sha256', json_encode([$p['name'], $p['slug'] ?? null, $p['parent_id'] ?? null]) ?: ''), 0, 32),
                 'deleted_at' => null,
             ],
         );
