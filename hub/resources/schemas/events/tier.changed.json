@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/tier.changed.json",
+  "title": "tier.changed",
+  "description": "Generado en el hub: el contacto subió o bajó de nivel VIP.",
+  "type": "object",
+  "required": [
+    "to",
+    "direction"
+  ],
+  "properties": {
+    "from": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 40
+    },
+    "to": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "from_name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 80
+    },
+    "to_name": {
+      "type": "string",
+      "maxLength": 80
+    },
+    "direction": {
+      "enum": [
+        "up",
+        "down"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "from": "tr_bronce",
+      "to": "tr_plata",
+      "from_name": "Bronce",
+      "to_name": "Plata",
+      "direction": "up"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "to": "tr_plata",
+      "direction": "lateral"
+    }
+  ]
+}

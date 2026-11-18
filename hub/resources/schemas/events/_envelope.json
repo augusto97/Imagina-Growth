@@ -17,7 +17,8 @@
       "enum": [
         1,
         2,
-        3
+        3,
+        4
       ],
       "description": "Versión del contrato. El hub acepta 1 y 2; la 2 solo agrega campos opcionales (eventos.md §8)."
     },
@@ -249,6 +250,12 @@
           "type": "string",
           "maxLength": 1024,
           "description": "Solo en tránsito"
+        },
+        "referral_code": {
+          "type": "string",
+          "maxLength": 32,
+          "pattern": "^[A-Za-z0-9_-]{3,32}$",
+          "description": "v4: ?ref= de la URL de aterrizaje (referidos y afiliados, M14)."
         }
       },
       "additionalProperties": false

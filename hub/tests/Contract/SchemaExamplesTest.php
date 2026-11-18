@@ -53,7 +53,7 @@ it('el sobre rechaza campos desconocidos, versión distinta e IDs mal formados',
     data_set($example, $path, $value);
     expect(app(SchemaRegistry::class)->validateEnvelope(json_decode(json_encode($example))))->not->toBeNull();
 })->with([
-    ['schema_version', 4],
+    ['schema_version', 5],
     ['event_id', 'no-es-uuid'],
     ['source.site_id', 'st_123'],
     ['source.type', 'otro'],

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/points.redeemed.json",
+  "title": "points.redeemed",
+  "description": "Generado en el hub: el contacto canjeó puntos por una recompensa.",
+  "type": "object",
+  "required": [
+    "ledger_id",
+    "points",
+    "reward_kind"
+  ],
+  "properties": {
+    "ledger_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "points": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "balance_after": {
+      "type": "integer"
+    },
+    "reward_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "reward_kind": {
+      "enum": [
+        "coupon_fixed",
+        "coupon_percent",
+        "free_shipping",
+        "free_product",
+        "wallet"
+      ]
+    },
+    "coupon_code": {
+      "type": "string",
+      "maxLength": 64
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "ledger_id": "lg_01JE",
+      "points": 500,
+      "balance_after": 1032,
+      "reward_id": "rw_01JD",
+      "reward_kind": "coupon_fixed",
+      "coupon_code": "PUNTOS-7K2Q9XAB"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "ledger_id": "lg_01JE",
+      "points": 500,
+      "reward_kind": "vacaciones"
+    }
+  ]
+}

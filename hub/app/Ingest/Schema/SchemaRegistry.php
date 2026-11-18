@@ -20,10 +20,12 @@ final class SchemaRegistry
     public const HUB_ONLY = [
         'survey.answered', 'segment.entered', 'segment.exited', 'consent.granted', 'consent.revoked',
         'conversion.delivered', 'cart.abandoned', 'lead.created', 'whatsapp.inbound',
+        // Fase 3 (v4)
+        'review.requested', 'review.collected', 'nps.answered', 'referral.shared', 'referral.converted', 'tier.changed',
     ];
 
     /** Prefijos de eventos que solo genera el hub (eventos.md §4.6). */
-    public const HUB_ONLY_PREFIXES = ['message.', 'flow.'];
+    public const HUB_ONLY_PREFIXES = ['message.', 'flow.', 'points.', 'wallet.', 'product_watch.'];
 
     private Validator $validator;
 

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/nps.answered.json",
+  "title": "nps.answered",
+  "description": "Generado en el hub: el contacto respondió una encuesta NPS o CSAT.",
+  "type": "object",
+  "required": [
+    "survey_id",
+    "score",
+    "kind"
+  ],
+  "properties": {
+    "survey_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "kind": {
+      "enum": [
+        "nps",
+        "csat"
+      ]
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "category": {
+      "enum": [
+        "promoter",
+        "passive",
+        "detractor",
+        "satisfied",
+        "neutral",
+        "unsatisfied"
+      ]
+    },
+    "order_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 60
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "survey_id": "sv_01JE",
+      "kind": "nps",
+      "score": 9,
+      "category": "promoter",
+      "order_id": "1234"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "survey_id": "sv_01JE",
+      "kind": "nps",
+      "score": 11
+    }
+  ]
+}

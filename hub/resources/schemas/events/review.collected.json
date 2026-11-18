@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/review.collected.json",
+  "title": "review.collected",
+  "description": "Generado en el hub: el contacto dejó una reseña en el formulario del hub (el texto no viaja: queda en MariaDB).",
+  "type": "object",
+  "required": [
+    "review_id",
+    "rating"
+  ],
+  "properties": {
+    "review_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "product_id": {
+      "$ref": "_defs.json#/$defs/external_id_or_null"
+    },
+    "order_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 60
+    },
+    "rating": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "has_media": {
+      "type": "boolean"
+    },
+    "media_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source": {
+      "enum": [
+        "request",
+        "widget",
+        "import",
+        "woocommerce"
+      ]
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "published",
+        "rejected"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "review_id": "rv_01JD",
+      "product_id": "88",
+      "order_id": "1234",
+      "rating": 5,
+      "has_media": true,
+      "media_count": 2,
+      "source": "request",
+      "status": "pending"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "review_id": "rv_01JD",
+      "rating": 6
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/product_watch.notified.json",
+  "title": "product_watch.notified",
+  "description": "Generado en el hub: se avisó al contacto que el producto volvió o bajó de precio.",
+  "type": "object",
+  "required": [
+    "watch_id",
+    "product_id",
+    "kind"
+  ],
+  "properties": {
+    "watch_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "product_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "kind": {
+      "enum": [
+        "back_in_stock",
+        "price_drop"
+      ]
+    },
+    "price": {
+      "$ref": "_defs.json#/$defs/money"
+    },
+    "threshold": {
+      "$ref": "_defs.json#/$defs/money"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "watch_id": "pw_01JD",
+      "product_id": "88",
+      "kind": "back_in_stock"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "watch_id": "pw_01JD",
+      "product_id": "88",
+      "kind": "pronto"
+    }
+  ]
+}

@@ -35,7 +35,7 @@ export interface NavItem {
     shortcut?: string;       // tecla después de «g»
 }
 
-/** Navegación completa de hub/CLAUDE.md §14. Activas las fases 0 a 2. */
+/** Navegación completa de hub/CLAUDE.md §14. Activas las fases 0 a 3. */
 export const MAIN_NAV: NavItem[] = [
     { key: 'home', to: '', icon: Home, ability: 'viewDashboards', shortcut: 'h' },
     { key: 'contacts', to: 'contactos', icon: Users, ability: 'viewAssignedContacts', shortcut: 'c' },
@@ -45,10 +45,10 @@ export const MAIN_NAV: NavItem[] = [
     { key: 'campaigns', to: 'campanas', icon: Megaphone, ability: 'viewDashboards', shortcut: 'p' },
     { key: 'templates', to: 'plantillas', icon: FileText, ability: 'viewDashboards', shortcut: 't' },
     { key: 'inbox', icon: Inbox, phase: 4 },
-    { key: 'onsite', icon: MousePointerClick, phase: 3 },
-    { key: 'loyalty', icon: Gift, phase: 3 },
-    { key: 'referrals', icon: Share2, phase: 3 },
-    { key: 'reviews', icon: MessageSquareQuote, phase: 3 },
+    { key: 'onsite', to: 'en-el-sitio', icon: MousePointerClick, ability: 'viewDashboards', shortcut: 'w' },
+    { key: 'loyalty', to: 'fidelizacion', icon: Gift, ability: 'viewDashboards', shortcut: 'l' },
+    { key: 'referrals', to: 'referidos', icon: Share2, ability: 'viewDashboards', shortcut: 'r' },
+    { key: 'reviews', to: 'resenas', icon: MessageSquareQuote, ability: 'viewDashboards', shortcut: 'v' },
     { key: 'measurement', to: 'medicion', icon: Ruler, ability: 'viewDashboards', shortcut: 'm' },
     { key: 'insights', to: 'hallazgos', icon: Lightbulb, ability: 'viewDashboards', shortcut: 'i' },
 ];

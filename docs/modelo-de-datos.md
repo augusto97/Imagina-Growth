@@ -255,3 +255,33 @@ Migración `2026_11_20_000100_create_phase2_tables`. Diferencias con §3 a §5, 
   - `holiday_overrides`: excepciones de festivos que edita el admin de la plataforma (cumplimiento.md §4.2).
   - `conversations`: se adelanta de la Fase 4 porque la ventana de 24 h de WhatsApp la necesita SendPolicy.
 
+## 13. Tablas y columnas de la Fase 3
+
+Migración `2026_11_21_000100_create_phase3_tables`. Diferencias con §6 y §7, con su motivo:
+- `onsite_widgets`: `name`, `priority`, `coupon_config` (el regalo del widget, o los premios de la ruleta con sus probabilidades, que nunca llegan al navegador), `starts_at`/`ends_at` y `created_by`. `site_id` es opcional: sin sitio, el widget aplica a todos los del espacio de trabajo.
+- Nuevas:
+  - `widget_captures`: quién dejó sus datos en qué widget y variante, con el cupón y las respuestas del quiz. Sirve para las estadísticas, el «un cupón por persona» y la atribución de captación (hub/CLAUDE.md §9, paso 4). `was_known` separa a quien ya era contacto.
+  - `loyalty_rewards`: el catálogo de canje (cupón fijo o porcentual, envío gratis, producto gratis o saldo) con su costo en puntos.
+- `loyalty_programs`: uno por espacio de trabajo, con `wallet_rules` (cashback y vencimiento del saldo).
+- `loyalty_tiers`: `wc_role`, el rol de WooCommerce del nivel para los precios VIP con el comando `customer.set_tier`.
+- `loyalty_ledger`:
+  - Solo inserción: confirmar, revertir o vencer agrega una entrada nueva enlazada con `parent_id`.
+  - `delta` y `balance_after` son decimales para servir a puntos (enteros) y a billetera (dinero, con `currency`).
+  - `idempotency_key` es única: nunca se acredita dos veces lo mismo.
+- `referral_programs`: uno por espacio de trabajo, con `share_text`.
+- `referrals`:
+  - `friend_coupon_id`, `reward_ledger_id` y `review_status` (revisión manual de los sospechosos).
+  - Único (workspace_id, friend_contact_id): una persona solo puede ser referida una vez.
+- `affiliates`: `email` cifrado con índice ciego, para el enlace mágico del panel del creador.
+- `affiliate_conversions`: `via` (cupón o enlace), `approved_at` y `paid_at`.
+- `reviews`:
+  - `product_id` es el interno y `external_product_id` el de la tienda (null = reseña de la tienda).
+  - `author_name` es lo que se publica (nombre e inicial).
+  - Columnas de moderación y respuesta.
+  - `media` con la ruta, la URL, el tipo y la miniatura.
+- `review_requests`: `scheduled_for` y `message_id`. Único por pedido.
+- `product_watches`: `site_id`, `external_product_id`, `channel` y `message_id`.
+- Nuevas en M16 y M06:
+  - `product_associations`: las reglas de «comprados juntos» (soporte, confianza y *lift*), que calcula un job nocturno.
+  - `audience_syncs` y `audience_members`: la sincronización de un segmento con un destino de anuncios y el último conjunto enviado, para mandar solo las altas y bajas.
+

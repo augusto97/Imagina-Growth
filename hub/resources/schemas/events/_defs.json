@@ -418,6 +418,12 @@
         },
         "at": {
           "$ref": "#/$defs/datetime"
+        },
+        "referral_code": {
+          "type": "string",
+          "maxLength": 32,
+          "pattern": "^[A-Za-z0-9_-]{3,32}$",
+          "description": "v4: ?ref= de un enlace de referido o de afiliado (M14)."
         }
       },
       "additionalProperties": false

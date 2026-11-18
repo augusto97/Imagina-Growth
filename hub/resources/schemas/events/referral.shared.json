@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/referral.shared.json",
+  "title": "referral.shared",
+  "description": "Generado en el hub: el contacto compartió su enlace de referido.",
+  "type": "object",
+  "required": [
+    "channel"
+  ],
+  "properties": {
+    "referral_code": {
+      "type": "string",
+      "maxLength": 32
+    },
+    "channel": {
+      "enum": [
+        "whatsapp",
+        "copy",
+        "email",
+        "other"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "referral_code": "ANA7K2",
+      "channel": "whatsapp"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "channel": "paloma"
+    }
+  ]
+}

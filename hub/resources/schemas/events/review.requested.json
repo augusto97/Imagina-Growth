@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/review.requested.json",
+  "title": "review.requested",
+  "description": "Generado en el hub: se le pidió una reseña al contacto por un pedido.",
+  "type": "object",
+  "required": [
+    "request_id",
+    "order_id",
+    "channel"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "order_id": {
+      "type": "string",
+      "maxLength": 60
+    },
+    "channel": {
+      "enum": [
+        "whatsapp",
+        "email",
+        "sms"
+      ]
+    },
+    "products": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "string",
+        "maxLength": 60
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "request_id": "rr_01JD",
+      "order_id": "1234",
+      "channel": "whatsapp",
+      "products": [
+        "88"
+      ]
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "request_id": "rr_01JD",
+      "order_id": "1234",
+      "channel": "fax"
+    }
+  ]
+}

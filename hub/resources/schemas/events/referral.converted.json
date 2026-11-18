@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/referral.converted.json",
+  "title": "referral.converted",
+  "description": "Generado en el hub: un amigo referido hizo su primera compra válida (calificada: completada y sobre el mínimo).",
+  "type": "object",
+  "required": [
+    "referral_id",
+    "order_id"
+  ],
+  "properties": {
+    "referral_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "order_id": {
+      "type": "string",
+      "maxLength": 60
+    },
+    "referral_code": {
+      "type": "string",
+      "maxLength": 32
+    },
+    "referrer_contact_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "status": {
+      "enum": [
+        "ordered",
+        "qualified",
+        "rewarded",
+        "rejected"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "referral_id": "rf_01JD",
+      "order_id": "1240",
+      "referral_code": "ANA7K2",
+      "referrer_contact_id": "01JD…",
+      "status": "qualified"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "referral_id": "rf_01JD"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/points.earned.json",
+  "title": "points.earned",
+  "description": "Generado en el hub: el contacto ganó puntos (pendientes hasta que el pedido se completa y pasa el periodo de devolución, o confirmados).",
+  "type": "object",
+  "required": [
+    "ledger_id",
+    "points",
+    "status",
+    "reason"
+  ],
+  "properties": {
+    "ledger_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "points": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "balance_after": {
+      "type": "integer"
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "confirmed"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "maxLength": 40,
+      "description": "order, review, review_media, referral, signup, birthday, profile, campaign, manual, redeem, expiry, refund…"
+    },
+    "ref_type": {
+      "type": "string",
+      "maxLength": 20
+    },
+    "ref_id": {
+      "type": "string",
+      "maxLength": 60
+    },
+    "expires_at": {
+      "$ref": "_defs.json#/$defs/datetime_or_null"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "ledger_id": "lg_01JD",
+      "points": 282,
+      "balance_after": 1532,
+      "status": "pending",
+      "reason": "order",
+      "ref_type": "order",
+      "ref_id": "1234"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "ledger_id": "lg_01JD",
+      "points": -5,
+      "status": "pending",
+      "reason": "order"
+    }
+  ]
+}

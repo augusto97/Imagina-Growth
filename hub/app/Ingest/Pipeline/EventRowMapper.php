@@ -39,15 +39,18 @@ final class EventRowMapper
         $utm = array_filter(is_array($ctx['utm'] ?? null) ? $ctx['utm'] : (is_array($touch['utm'] ?? null) ? $touch['utm'] : []));
         $clicks = array_filter(is_array($ctx['click_ids'] ?? null) ? $ctx['click_ids'] : (is_array($touch['click_ids'] ?? null) ? $touch['click_ids'] : []));
         $referrer = (string) ($ctx['page']['referrer'] ?? ($touch['referrer'] ?? ''));
+        // v4: ?ref= de un enlace de referido o de afiliado (en el contexto del navegador o en last_touch).
+        $referral = $ctx['referral_code'] ?? ($touch['referral_code'] ?? null);
 
         $channel = '';
-        if ($utm !== [] || $clicks !== [] || $referrer !== '' || ($e['source']['type'] ?? '') === 'browser' || ! empty($identity['link_token'])) {
+        if ($utm !== [] || $clicks !== [] || $referrer !== '' || ($e['source']['type'] ?? '') === 'browser' || ! empty($identity['link_token']) || ! empty($referral)) {
             $channel = $this->channels->classify([
                 'utm' => $utm,
                 'click_ids' => $clicks,
                 'referrer' => $referrer,
                 'site_host' => $meta['site_host'],
                 'link_token' => $identity['link_token'] ?? null,
+                'referral_code' => is_string($referral) ? $referral : null,
             ]);
         }
         $clickKind = '';

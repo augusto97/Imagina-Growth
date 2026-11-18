@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/points.expired.json",
+  "title": "points.expired",
+  "description": "Generado en el hub: venció una parte de los puntos del contacto.",
+  "type": "object",
+  "required": [
+    "ledger_id",
+    "points"
+  ],
+  "properties": {
+    "ledger_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "points": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "balance_after": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "ledger_id": "lg_01JF",
+      "points": 120,
+      "balance_after": 912
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "points": 120
+    }
+  ]
+}
