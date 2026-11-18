@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Intelligence\Ai\Support;
 
+use App\Domain\Billing\Contracts\Entitlements;
 use App\Domain\Intelligence\Ai\Data\AiUsage;
+use App\Domain\Workspaces\Models\Workspace;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -48,6 +50,22 @@ final class AiMeter
 
     public function withinBudget(string $workspaceId): bool
     {
-        return $this->spentThisMonth($workspaceId) < (float) config('igr-ai.monthly_budget_usd', 25);
+        return $this->spentThisMonth($workspaceId) < $this->budget($workspaceId);
+    }
+
+    /** Tope del mes: el del plan (M21) o, sin plan, `igr-ai.monthly_budget_usd`. Con el módulo de IA apagado, 0. */
+    public function budget(string $workspaceId): float
+    {
+        $workspace = Workspace::query()->find($workspaceId);
+        $default = (float) config('igr-ai.monthly_budget_usd', 25);
+        if ($workspace === null) {
+            return $default;
+        }
+        $entitlements = app(Entitlements::class);
+        if (! $entitlements->allows($workspace, 'ai')) {
+            return 0.0;
+        }
+
+        return (float) ($entitlements->limit($workspace, 'ai_budget_usd') ?? $default);
     }
 }

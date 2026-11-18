@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Messaging\Sending;
 
+use App\Domain\Billing\Contracts\Entitlements;
 use App\Domain\Consent\Policy\PolicyDecision;
 use App\Domain\Consent\Policy\PolicyRequest;
 use App\Domain\Consent\Policy\SendPolicy;
@@ -62,6 +63,10 @@ final class DefaultMessageDispatcher implements MessageDispatcher
             if (is_string($existing)) {
                 return DispatchResult::duplicate($existing);
             }
+        }
+        // Cuenta suspendida por facturación (M21): solo se frena el marketing; el servicio y lo transaccional siguen.
+        if ($message->kind->isCommercial() && ! app(Entitlements::class)->allows($workspace, 'marketing_sends')) {
+            return DispatchResult::denied('billing_suspended');
         }
         $now = CarbonImmutable::now();
         if ($message->notBefore !== null && $message->notBefore->greaterThan($now)) {

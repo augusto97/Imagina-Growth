@@ -26,7 +26,8 @@ export type Ability =
     | 'useLeads'
     | 'manageServices'
     | 'manageApi'
-    | 'viewAgency';
+    | 'viewAgency'
+    | 'platformAdmin';
 
 export interface Workspace {
     id: string;
@@ -47,6 +48,8 @@ export interface Workspace {
     requires_two_factor: boolean;
     /** Marca que ve el panel en este espacio de trabajo (M22, marca blanca). */
     branding?: WorkspaceBranding;
+    /** M21: estado de facturación de la cuenta (aviso de gracia o suspensión). */
+    billing?: { status: 'trial' | 'active' | 'grace' | 'suspended'; grace_ends_at: string | null; trial_ends_at: string | null };
 }
 
 export interface WorkspaceBranding {

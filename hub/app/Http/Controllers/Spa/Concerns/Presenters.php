@@ -10,6 +10,8 @@ use App\Domain\Workspaces\Contracts\Branding;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 
 /** Formas JSON compartidas por los controladores de la SPA (IDs con prefijo). */
 final class Presenters
@@ -33,9 +35,28 @@ final class Presenters
             'status' => $ws->status,
             'role' => $role?->value,
             // M22: `viewAgency` llega por la cuenta de agencia, no por el rol.
-            'abilities' => $role === null ? [] : array_values(array_unique([...$role->grantedAbilities(), ...AgencyAccess::extraAbilities(self::user(), $ws)])),
+            'abilities' => $role === null ? [] : array_values(array_unique([
+                ...$role->grantedAbilities(), ...AgencyAccess::extraAbilities(self::user(), $ws),
+                // M21: el panel interno de la plataforma, solo para el equipo de Imagina.
+                ...((bool) (self::user()?->getAttributes()['is_platform_admin'] ?? false) ? ['platformAdmin'] : []),
+            ])),
+            // M21: estado de facturación de la cuenta, para el aviso de gracia o suspensión en todo el panel.
+            'billing' => self::billing($ws),
             'branding' => self::branding($ws),
             'requires_two_factor' => $role?->requiresTwoFactor() ?? false,
+        ];
+    }
+
+    /** @return array{status: string, grace_ends_at: string|null, trial_ends_at: string|null} */
+    private static function billing(Workspace $ws): array
+    {
+        $account = DB::table('accounts')->where('id', $ws->account_id)->first(['billing_status', 'grace_ends_at', 'trial_ends_at']);
+        $iso = fn (mixed $v) => $v !== null ? CarbonImmutable::parse((string) $v)->toIso8601String() : null;
+
+        return [
+            'status' => (string) ($account->billing_status ?? 'active'),
+            'grace_ends_at' => $iso($account->grace_ends_at ?? null),
+            'trial_ends_at' => $iso($account->trial_ends_at ?? null),
         ];
     }
 

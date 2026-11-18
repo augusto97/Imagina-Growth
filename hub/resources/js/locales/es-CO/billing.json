@@ -23,7 +23,8 @@
             "trial": {
                 "title": "Tu prueba termina pronto",
                 "body": "La prueba termina el {{date}}. Elige un plan para seguir sin interrupciones."
-            }
+            },
+            "cta": "Ver plan y facturación"
         },
         "plan": {
             "current": "Tu plan",

@@ -18,6 +18,7 @@ import {
     Plug,
     RadioTower,
     Ruler,
+    ServerCog,
     Settings2,
     Share2,
     Shapes,
@@ -72,6 +73,7 @@ export const SETTINGS_NAV: NavItem[] = [
     { key: 'billing', to: 'facturacion', icon: CreditCard, ability: 'manageBilling' },
     { key: 'audit', to: 'auditoria', icon: ClipboardList, ability: 'viewAuditLog' },
     { key: 'agency', to: 'agencia', icon: Building2, ability: 'viewAgency' },
+    { key: 'platform', to: 'plataforma', icon: ServerCog, ability: 'platformAdmin' },
 ];
 
 export const GLOBE_ICON = Globe;

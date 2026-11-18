@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BillingBanner } from '@/features/billing/BillingBanner';
 import { Link, Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router';
 import { Compass } from 'lucide-react';
 import { useMe } from '@/api/queries';
@@ -137,6 +138,7 @@ export function WorkspaceLayout() {
                 <Sidebar />
                 <main className="igr:min-w-0 igr:flex-1 igr:overflow-y-auto">
                     <div className="igr:mx-auto igr:max-w-6xl igr:px-8 igr:py-6">
+                        <BillingBanner />
                         <Outlet />
                     </div>
                 </main>
