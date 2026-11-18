@@ -78,7 +78,7 @@ final class ZenderDriver implements ChannelDriver
         return 0;
     }
 
-    public function estimateCost(ChannelAccount $account, string $country, MessageKind $kind): ?float
+    public function estimateCost(ChannelAccount $account, string $country, MessageKind $kind): float
     {
         return 0.0;
     }

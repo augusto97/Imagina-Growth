@@ -48,8 +48,9 @@ final class RecommendationsDrop extends Drop
                 $categories[(string) $id] = true;
             }
         }
-        $owned = $bought->pluck('external_product_id')->map(fn ($v) => (string) $v)->all();
-        $picked = $categories === [] ? [] : $this->bestSellers(array_keys($categories), $owned);
+        $owned = array_values($bought->pluck('external_product_id')->map(fn ($v) => (string) $v)->all());
+        // PHP vuelve enteros las claves numéricas: se recuperan como texto.
+        $picked = $categories === [] ? [] : $this->bestSellers(array_map('strval', array_keys($categories)), $owned);
 
         return $this->present($picked === [] ? $this->bestSellers([], $owned) : $picked);
     }
@@ -57,7 +58,7 @@ final class RecommendationsDrop extends Drop
     /**
      * @param  list<string>  $categories
      * @param  list<string>  $exclude
-     * @return list<object>
+     * @return list<\stdClass>
      */
     private function bestSellers(array $categories, array $exclude): array
     {
@@ -72,24 +73,28 @@ final class RecommendationsDrop extends Drop
             ->when($categories !== [], function ($q) use ($categories): void {
                 $q->where(function ($w) use ($categories): void {
                     foreach (array_slice($categories, 0, 20) as $category) {
+                        // El catálogo puede guardar los IDs como texto o como número.
                         $w->orWhereJsonContains('p.category_ids', $category);
+                        if (ctype_digit($category)) {
+                            $w->orWhereJsonContains('p.category_ids', (int) $category);
+                        }
                     }
                 });
             })
             ->orderByRaw('COALESCE(s.sold, 0) DESC')->orderByDesc('p.rating_avg')->limit(self::LIMIT);
 
-        return $query->get(['p.name', 'p.permalink', 'p.image_url', 'p.price', 'p.regular_price', 'p.sale_price'])->all();
+        return array_values($query->get(['p.name', 'p.permalink', 'p.image_url', 'p.price', 'p.regular_price', 'p.sale_price'])->all());
     }
 
     /**
-     * @param  list<object>  $rows
+     * @param  list<\stdClass>  $rows
      * @return list<array<string, mixed>>
      */
     private function present(array $rows): array
     {
-        $e = fn (?string $v): string => $this->escape ? htmlspecialchars((string) $v, ENT_QUOTES) : (string) $v;
+        $e = fn (mixed $v): string => $this->escape ? htmlspecialchars(is_scalar($v) ? (string) $v : '', ENT_QUOTES) : (is_scalar($v) ? (string) $v : '');
 
-        return array_map(fn (object $p) => [
+        return array_map(fn (\stdClass $p) => [
             'nombre' => $e($p->name ?? ''),
             'url' => $e($p->permalink ?? ''),
             'imagen' => $e($p->image_url ?? ''),

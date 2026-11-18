@@ -142,7 +142,7 @@ final class SesDriver implements ChannelDriver
         return 0;
     }
 
-    public function estimateCost(ChannelAccount $account, string $country, MessageKind $kind): ?float
+    public function estimateCost(ChannelAccount $account, string $country, MessageKind $kind): float
     {
         return (float) config('igr-messaging.costs.email_usd');
     }

@@ -29,7 +29,7 @@ final class WaitHandler implements NodeHandler
         }
         $config = $node['config'];
         $until = ($config['mode'] ?? 'duration') === 'until_time'
-            ? self::nextTime($state->now, (string) ($state->workspace->timezone ?: 'America/Bogota'), (int) ($config['hour'] ?? 9), (int) ($config['minute'] ?? 0), (array) ($config['weekdays'] ?? [1, 2, 3, 4, 5, 6, 7]))
+            ? self::nextTime($state->now, (string) ($state->workspace->timezone ?: 'America/Bogota'), (int) ($config['hour'] ?? 9), (int) ($config['minute'] ?? 0), array_values((array) ($config['weekdays'] ?? [1, 2, 3, 4, 5, 6, 7])))
             : (Durations::after($state->now, $config['duration'] ?? null) ?? $state->now->addHour());
 
         return Outcome::wait($until);

@@ -116,6 +116,8 @@ final class SendMessageJob implements ShouldQueue, WorkspaceAware
 
             return;
         }
+        $message->status = 'sending';
+        $message->syncOriginalAttribute('status');
         $result = $driver->send($account, new OutgoingMessage(
             $message->publicId(),
             (string) ($payload['to'] ?? ''),

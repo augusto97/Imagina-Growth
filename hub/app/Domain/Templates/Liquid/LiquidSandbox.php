@@ -73,7 +73,12 @@ final class LiquidSandbox
             $template = $env->parseString($source);
         } catch (SyntaxException $e) {
             throw new TemplateRenderException(__('Error de sintaxis en :part: :msg', ['part' => $part, 'msg' => self::clean($e->getMessage())]), 0, $e);
+        } catch (FileSystemException $e) {
+            throw new TemplateRenderException(__('Las plantillas no pueden incluir otros archivos (`render` o `include`).'), 0, $e);
         } catch (Throwable $e) {
+            if (str_contains($e->getMessage(), 'include')) {
+                throw new TemplateRenderException(__('Las plantillas no pueden incluir otros archivos (`render` o `include`).'), 0, $e);
+            }
             throw new TemplateRenderException(__('No se pudo leer :part: :msg', ['part' => $part, 'msg' => self::clean($e->getMessage())]), 0, $e);
         }
 

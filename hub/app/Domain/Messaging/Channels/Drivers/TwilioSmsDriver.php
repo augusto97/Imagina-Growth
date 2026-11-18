@@ -79,7 +79,7 @@ final class TwilioSmsDriver implements ChannelDriver
             if ($mapped !== null) {
                 $batch->statuses[] = ['account' => $account?->external_id, 'update' => new StatusUpdate(
                     $sid, $mapped, CarbonImmutable::now(),
-                    $mapped === 'failed' ? __('Twilio no pudo entregar el SMS') : null,
+                    $mapped === 'failed' ? (string) __('Twilio no pudo entregar el SMS') : null,
                     $request->filled('ErrorCode') ? (string) $request->input('ErrorCode') : null,
                 )];
             }
@@ -93,7 +93,7 @@ final class TwilioSmsDriver implements ChannelDriver
         return 0;
     }
 
-    public function estimateCost(ChannelAccount $account, string $country, MessageKind $kind): ?float
+    public function estimateCost(ChannelAccount $account, string $country, MessageKind $kind): float
     {
         return (float) config('igr-messaging.costs.sms_usd');
     }

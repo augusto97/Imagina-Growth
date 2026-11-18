@@ -1,0 +1,323 @@
+{
+    "channels": {
+        "title": "Canales",
+        "description": "Por dónde le hablas a tus clientes: correo, WhatsApp y SMS. Cada mensaje pasa por la política de envío (consentimiento, horario legal y frecuencia).",
+        "tabs": {
+            "email": "Correo",
+            "whatsapp": "WhatsApp",
+            "sms": "SMS",
+            "suppressions": "Supresión"
+        },
+        "provider": {
+            "ses": "Amazon SES",
+            "smtp": "SMTP",
+            "meta_cloud": "WhatsApp oficial (Cloud API)",
+            "zender": "WhatsApp no oficial (Zender)",
+            "twilio": "Twilio"
+        },
+        "status": {
+            "pending": "Pendiente",
+            "active": "Activo",
+            "paused": "Pausado",
+            "error": "Con error",
+            "disconnected": "Desconectado"
+        },
+        "quality": {
+            "label": "Calidad del número",
+            "GREEN": "Alta",
+            "YELLOW": "Media",
+            "RED": "Baja",
+            "unknown": "Sin dato",
+            "yellowHelp": "Con calidad media se frenan las campañas de marketing de este número.",
+            "redHelp": "Con calidad baja no sale marketing por este número."
+        },
+        "tier": "Límite de Meta: {{tier}}",
+        "default": "Predeterminada",
+        "unofficial": "No oficial",
+        "warmup": "Calentamiento: día {{day}} · {{sent}} de {{limit}} correos hoy",
+        "warmupDone": "Dominio calentado",
+        "caps": "Topes fijos: {{hourly}} por hora y {{daily}} por día",
+        "empty": {
+            "email": {
+                "title": "Conecta tu dominio de correo",
+                "description": "Con tu propio dominio verificado (DKIM, SPF y DMARC) tus correos llegan a la bandeja de entrada y no a spam."
+            },
+            "whatsapp": {
+                "title": "Conecta tu WhatsApp oficial",
+                "description": "Usa tu propio número con la API oficial de Meta. Tú le pagas a Meta los mensajes desde tu cuenta."
+            },
+            "sms": {
+                "title": "SMS (opcional)",
+                "description": "Para respaldo, códigos o clientes que lo prefieren. Necesitas una cuenta de Twilio."
+            }
+        },
+        "actions": {
+            "connect": "Conectar",
+            "connectEmail": "Conectar dominio",
+            "connectWhatsApp": "Conectar WhatsApp",
+            "connectSms": "Conectar Twilio",
+            "test": "Enviar prueba",
+            "makeDefault": "Usar por defecto",
+            "pause": "Pausar",
+            "resume": "Reanudar",
+            "sync": "Sincronizar calidad y plantillas",
+            "verifyDns": "Ver y verificar DNS",
+            "disconnect": "Desconectar",
+            "templates": "Plantillas de WhatsApp",
+            "more": "Más acciones"
+        },
+        "toast": {
+            "connected": "Canal conectado",
+            "updated": "Canal actualizado",
+            "disconnected": "Canal desconectado",
+            "synced": "Sincronizado: {{count}} plantillas",
+            "testQueued": "Mensaje de prueba enviado",
+            "testNot": "La prueba no salió: {{reason}}"
+        },
+        "disconnect": {
+            "title": "¿Desconectar {{name}}?",
+            "description": "Se borran sus credenciales y deja de enviar. El historial de mensajes se conserva.",
+            "confirm": "Desconectar"
+        },
+        "email": {
+            "title": "Conectar un dominio de correo",
+            "providerSes": "Amazon SES (recomendado)",
+            "providerSesHelp": "Verificamos tu dominio con DKIM y calentamos el envío poco a poco.",
+            "providerSmtp": "SMTP propio",
+            "providerSmtpHelp": "Tu servidor de correo. Sin seguimiento de rebotes ni aperturas.",
+            "fromEmail": "Correo remitente",
+            "fromName": "Nombre del remitente",
+            "replyTo": "Responder a (opcional)",
+            "host": "Servidor SMTP",
+            "port": "Puerto",
+            "username": "Usuario",
+            "password": "Contraseña",
+            "encryption": "Cifrado",
+            "none": "Ninguno",
+            "dnsTitle": "Agrega estos registros en tu DNS",
+            "dnsDescription": "En el panel de tu proveedor de dominio (Cloudflare, GoDaddy…). Pueden tardar unos minutos en propagarse.",
+            "purpose": {
+                "dkim": "DKIM",
+                "spf": "SPF",
+                "dmarc": "DMARC"
+            },
+            "required": "Obligatorio",
+            "recommended": "Recomendado",
+            "type": "Tipo",
+            "name": "Nombre",
+            "value": "Valor",
+            "check": "Estado",
+            "ok": "Encontrado",
+            "missing": "No encontrado",
+            "unchecked": "Sin verificar",
+            "verify": "Verificar ahora",
+            "verified": "Dominio verificado: ya puedes enviar.",
+            "notYet": "Todavía faltan registros o Amazon SES no confirma DKIM. Vuelve a verificar en unos minutos.",
+            "copy": "Copiar",
+            "copied": "Copiado",
+            "create": "Continuar"
+        },
+        "wa": {
+            "title": "Conectar WhatsApp",
+            "official": "WhatsApp oficial (recomendado)",
+            "officialHelp": "Conecta tu número con la cuenta de WhatsApp Business de tu empresa. Las plantillas las aprueba Meta.",
+            "signup": "Continuar con Facebook",
+            "signupUnavailable": "El registro con Facebook aún no está configurado en la plataforma. Conecta con los datos de tu cuenta.",
+            "manual": "Conectar con los datos de mi cuenta",
+            "wabaId": "ID de la cuenta de WhatsApp Business (WABA)",
+            "phoneId": "ID del número de teléfono",
+            "token": "Token de acceso permanente",
+            "displayName": "Nombre interno (opcional)",
+            "manualHelp": "Los encuentras en Meta Business Suite → Configuración de WhatsApp. El token se guarda cifrado.",
+            "unofficial": "Conexión no oficial (Zender)",
+            "unofficialHelp": "Solo para conversaciones uno a uno y avisos transaccionales de bajo volumen.",
+            "ownerOnly": "Solo el dueño del espacio de trabajo puede activar la conexión no oficial.",
+            "connect": "Conectar",
+            "errors": {
+                "name": "Usa solo minúsculas, números y guion bajo.",
+                "bodyRequired": "Escribe el mensaje.",
+                "order": "Las variables deben ir en orden: {{v1}}, {{v2}}, {{v3}}…",
+                "examples": "Escribe un ejemplo para cada variable: Meta lo pide para revisar.",
+                "headerLong": "Máximo 60 caracteres.",
+                "footerLong": "Máximo 60 caracteres.",
+                "tooManyUrls": "Máximo 2 botones de enlace.",
+                "buttonText": "Escribe el texto del botón.",
+                "buttonUrl": "Escribe una URL que empiece por https://"
+            }
+        },
+        "zender": {
+            "title": "Conexión no oficial de WhatsApp",
+            "risk": "Esta conexión usa WhatsApp Web, que los términos de WhatsApp no autorizan para automatizar. Tu número puede ser bloqueado.",
+            "rules": "Por eso: no permite campañas ni flujos de marketing, tiene topes fijos de {{hourly}} mensajes por hora y {{daily}} por día que no se pueden subir, y queda registrado quién la activó.",
+            "baseUrl": "URL de tu instalación de Zender",
+            "secret": "Clave de la API",
+            "accountId": "ID de la cuenta en Zender",
+            "phone": "Número de WhatsApp",
+            "accept": "Entiendo el riesgo de bloqueo y que esta conexión no sirve para marketing.",
+            "webhookTitle": "Configura este webhook en Zender",
+            "webhookHelp": "Pega la URL y la clave en Zender para recibir los mensajes. La clave solo se muestra ahora."
+        },
+        "sms": {
+            "title": "Conectar Twilio",
+            "sid": "Account SID",
+            "token": "Auth token",
+            "from": "Número remitente",
+            "service": "Messaging Service SID (opcional)"
+        },
+        "test": {
+            "title": "Enviar un mensaje de prueba",
+            "to": "Enviar a",
+            "toEmail": "correo@ejemplo.com",
+            "toPhone": "+57 300 000 0000",
+            "help": "La prueba no tiene ventana horaria ni límite de frecuencia. Por WhatsApp oficial, un texto libre solo llega si esa persona te escribió en las últimas 24 horas.",
+            "send": "Enviar prueba"
+        },
+        "templates": {
+            "title": "Plantillas de WhatsApp",
+            "description": "Meta revisa cada plantilla antes de que la puedas usar para escribirle primero a un cliente.",
+            "back": "Canales",
+            "account": "Número",
+            "new": "Nueva plantilla",
+            "sync": "Sincronizar con Meta",
+            "empty": "Este número todavía no tiene plantillas.",
+            "emptyHelp": "Crea la primera o sincroniza las que ya tienes en Meta.",
+            "noAccount": "Conecta un WhatsApp oficial para crear plantillas.",
+            "name": "Nombre",
+            "category": "Categoría",
+            "language": "Idioma",
+            "status": "Estado",
+            "quality": "Calidad",
+            "categories": {
+                "MARKETING": "Marketing",
+                "UTILITY": "Utilidad",
+                "AUTHENTICATION": "Autenticación"
+            },
+            "statuses": {
+                "APPROVED": "Aprobada",
+                "PENDING": "En revisión",
+                "REJECTED": "Rechazada",
+                "PAUSED": "Pausada",
+                "DISABLED": "Desactivada",
+                "IN_APPEAL": "En apelación"
+            },
+            "delete": "Eliminar",
+            "deleteConfirm": "¿Eliminar la plantilla {{name}} también en Meta?",
+            "edit": "Editar",
+            "rejected": "Motivo del rechazo: {{reason}}",
+            "deleted": "Plantilla eliminada",
+            "saved": "Plantilla enviada a revisión de Meta"
+        },
+        "wa_editor": {
+            "titleNew": "Nueva plantilla de WhatsApp",
+            "titleEdit": "Editar {{name}}",
+            "name": "Nombre",
+            "nameHelp": "Solo minúsculas, números y guion bajo. No se puede cambiar después.",
+            "categoryHelp": {
+                "MARKETING": "Promociones, ofertas, carritos abandonados, novedades.",
+                "UTILITY": "Sobre una compra o una solicitud del cliente: confirmación, envío, pago pendiente.",
+                "AUTHENTICATION": "Códigos de verificación."
+            },
+            "header": "Encabezado",
+            "headerFormat": {
+                "NONE": "Sin encabezado",
+                "TEXT": "Texto",
+                "IMAGE": "Imagen",
+                "VIDEO": "Video",
+                "DOCUMENT": "Documento"
+            },
+            "headerExample": "URL de ejemplo del archivo",
+            "body": "Mensaje",
+            "bodyHelp": "Usa {{v1}}, {{v2}}… para los datos de cada cliente (nombre, producto, enlace).",
+            "addVariable": "Agregar variable",
+            "example": "Ejemplo de {{n}}",
+            "footer": "Pie (opcional)",
+            "buttons": "Botones",
+            "addButton": "Agregar botón",
+            "buttonTypes": {
+                "URL": "Enlace",
+                "QUICK_REPLY": "Respuesta rápida",
+                "PHONE_NUMBER": "Llamar",
+                "COPY_CODE": "Copiar cupón"
+            },
+            "buttonText": "Texto del botón",
+            "buttonUrl": "URL",
+            "tracked": "Enlace con seguimiento (la URL la pone cada mensaje)",
+            "phone": "Teléfono",
+            "code": "Código de ejemplo",
+            "remove": "Quitar",
+            "preview": "Vista previa",
+            "previewHelp": "Así lo verá tu cliente, con los ejemplos.",
+            "warningTitle": "Esto parece marketing",
+            "warning": "Encontramos «{{words}}» en una plantilla de {{category}}. Meta prohíbe disfrazar marketing de utilidad y puede bloquear el número.",
+            "acknowledge": "Confirmo que es una plantilla de {{category}}",
+            "submit": "Enviar a revisión"
+        },
+        "suppressions": {
+            "title": "Supresión",
+            "description": "Correos y teléfonos a los que no se envía: rebotes, quejas de spam, bajas, bloqueos y registros de exclusión.",
+            "search": "Buscar por correo o teléfono",
+            "allChannels": "Todos los canales",
+            "allReasons": "Todos los motivos",
+            "reasons": {
+                "bounce": "Rebote",
+                "complaint": "Queja de spam",
+                "unsubscribe": "Baja",
+                "rne": "RNE (Colombia)",
+                "repep": "REPEP (México)",
+                "manual": "Manual",
+                "wa_block": "Bloqueo de WhatsApp"
+            },
+            "contact": "Contacto",
+            "channel": "Canal",
+            "reason": "Motivo",
+            "date": "Desde",
+            "protected": "Valor protegido (sin contacto)",
+            "remove": "Quitar",
+            "removed": "Supresión quitada",
+            "complaintLocked": "Las quejas de spam no se pueden quitar.",
+            "add": "Agregar",
+            "addTitle": "Suprimir un correo o teléfono",
+            "value": "Correo o teléfono",
+            "added": "Supresión agregada",
+            "exists": "Ya estaba suprimido",
+            "empty": "Nadie suprimido.",
+            "emptyHelp": "Aquí aparecen los rebotes, las quejas y las bajas automáticamente.",
+            "registryTitle": "Registro de exclusión",
+            "registryHelp": "Importa el archivo del RNE (Colombia, CRC) o del REPEP (México, PROFECO). Esos números no reciben marketing por WhatsApp ni SMS.",
+            "country": "País",
+            "file": "Archivo CSV",
+            "import": "Importar",
+            "imported": "{{rows}} números leídos, {{added}} supresiones nuevas",
+            "lastImports": "Últimas importaciones"
+        },
+        "messagesTab": {
+            "empty": "Todavía no hay mensajes con este contacto.",
+            "emptyHelp": "Aquí verás cada correo, WhatsApp y SMS: si llegó, si lo leyó y si hizo clic.",
+            "in": "Respondió",
+            "out": "Enviado",
+            "button": "Tocó «{{button}}»",
+            "status": {
+                "queued": "En cola",
+                "deferred": "Aplazado",
+                "sending": "Enviando",
+                "sent": "Enviado",
+                "delivered": "Entregado",
+                "read": "Leído",
+                "failed": "Falló",
+                "bounced": "Rebotó",
+                "received": "Recibido"
+            },
+            "opened": "Abrió",
+            "clicked": "Hizo clic",
+            "replied": "Respondió",
+            "source": {
+                "flow": "Flujo",
+                "campaign": "Campaña",
+                "inbox": "Conversación",
+                "api": "API",
+                "system": "Sistema"
+            },
+            "cost": "≈ USD {{cost}}"
+        }
+    }
+}

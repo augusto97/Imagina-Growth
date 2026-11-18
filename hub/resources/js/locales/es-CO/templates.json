@@ -1,0 +1,207 @@
+{
+    "templates": {
+        "title": "Plantillas",
+        "description": "Correos, SMS y mensajes de WhatsApp listos para tus flujos y campañas, con variables del contacto, el carrito y el cupón.",
+        "new": "Nueva plantilla",
+        "newTitle": "Nueva plantilla de {{channel}}",
+        "newHelp": "Ponle un nombre que la distinga en los flujos y las campañas. Luego la diseñas en el editor.",
+        "create": "Crear y abrir",
+        "phase": "Fase {{n}}",
+        "fromLibrary": "De la biblioteca",
+        "duplicated": "Plantilla duplicada",
+        "archived": "Plantilla archivada. Los flujos y campañas que la usan la conservan.",
+        "restored": "Plantilla restaurada como borrador",
+        "tabs": {
+            "mine": "Mis plantillas",
+            "library": "Biblioteca"
+        },
+        "channels": {
+            "email": "Correo",
+            "sms": "SMS",
+            "whatsapp": "WhatsApp"
+        },
+        "categories": {
+            "marketing": "Marketing",
+            "utility": "Utilidad",
+            "transactional": "Transaccional"
+        },
+        "statuses": {
+            "draft": "Borrador",
+            "ready": "Lista",
+            "archived": "Archivada"
+        },
+        "filters": {
+            "search": "Buscar por nombre",
+            "channel": "Canal",
+            "allChannels": "Todos los canales",
+            "status": "Estado",
+            "active": "Borradores y listas"
+        },
+        "columns": {
+            "name": "Nombre",
+            "channel": "Canal",
+            "category": "Categoría",
+            "status": "Estado",
+            "updated": "Actualizada",
+            "actions": "Acciones",
+            "actionsFor": "Acciones de {{name}}"
+        },
+        "actions": {
+            "open": "Abrir",
+            "duplicate": "Duplicar",
+            "archive": "Archivar",
+            "restore": "Restaurar"
+        },
+        "empty": {
+            "title": "Todavía no tienes plantillas",
+            "help": "Empieza con una de la biblioteca: están escritas en español para tu industria y ya traen el pie legal.",
+            "cta": "Ver la biblioteca",
+            "filteredTitle": "Ninguna plantilla coincide",
+            "filteredHelp": "Prueba con otro canal, estado o nombre."
+        },
+        "fields": {
+            "name": "Nombre",
+            "namePlaceholder": "Carrito abandonado · recordatorio",
+            "category": "Categoría",
+            "subject": "Asunto",
+            "preheader": "Preheader",
+            "preheaderHelp": "El texto que aparece junto al asunto en la bandeja de entrada.",
+            "chars": "{{n}}/{{max}}"
+        },
+        "variables": {
+            "insert": "Variable",
+            "insertIn": "Insertar variable en {{field}}",
+            "copied": "Variable copiada: haz doble clic en un texto del correo y pégala."
+        },
+        "editor": {
+            "notFound": "Esta plantilla no existe o se eliminó",
+            "saved": "Plantilla guardada",
+            "markedReady": "Plantilla lista para usar en flujos y campañas",
+            "markReady": "Marcar como lista",
+            "unsaved": "Cambios sin guardar",
+            "saveShortcut": "Guardar (Ctrl+S)",
+            "canvasHelp": "Arrastra bloques desde el panel derecho. Los de «Imagina Growth» traen el carrito, el cupón y las recomendaciones de cada contacto.",
+            "leaveTitle": "¿Salir sin guardar?",
+            "leaveDescription": "Tienes cambios sin guardar en esta plantilla. Si sales, se pierden.",
+            "stay": "Seguir editando",
+            "leave": "Salir sin guardar"
+        },
+        "checks": {
+            "title": "Revisión",
+            "help": "Lo que revisa el hub antes de usar la plantilla. Los errores impiden marcarla como lista.",
+            "liveHelp": "Revisión rápida mientras editas. Al guardar se hace la revisión completa.",
+            "ok": "Todo en orden",
+            "error": "Error",
+            "warning": "Aviso",
+            "codes": {
+                "subject_missing": "Falta el asunto.",
+                "subject_long": "El asunto tiene más de 80 caracteres: en el celular se corta.",
+                "preheader_long": "El preheader tiene más de 120 caracteres.",
+                "unsubscribe_missing": "Falta el enlace para darse de baja ({{ enlaces.baja }}). Es obligatorio en los correos de marketing.",
+                "body_missing": "La plantilla está vacía.",
+                "sms_long": "El SMS ocupa más de 3 partes y cada una se cobra.",
+                "sms_optout_missing": "Los SMS de marketing deben decir cómo darse de baja (por ejemplo: «Responde BAJA para no recibir más»)."
+            }
+        },
+        "preview": {
+            "open": "Vista previa",
+            "title": "Vista previa",
+            "device": "Dispositivo",
+            "desktop": "Escritorio",
+            "mobile": "Celular",
+            "text": "Texto",
+            "sampleHelp": "Con datos de ejemplo. Los enlaces de baja y preferencias se generan en cada envío.",
+            "realHelp": "Con los datos reales del contacto (nunca muestra su correo ni su teléfono).",
+            "sampleOnly": "Vista previa con datos de ejemplo.",
+            "asContact": "Como {{name}}",
+            "useSample": "Usar datos de ejemplo",
+            "searchContact": "Ver como un contacto (busca por nombre, correo o teléfono)",
+            "noContacts": "Sin resultados."
+        },
+        "sms": {
+            "title": "Texto del SMS",
+            "help": "Usa variables con {{ }}. Sin tildes ni eñes cabe más texto por parte.",
+            "text": "Mensaje",
+            "counter": "{{length}} caracteres · {{segments}} parte(s) · {{encoding}}",
+            "unicode": "las tildes, eñes y emojis bajan el límite a 70 caracteres por parte",
+            "liquidNote": "El conteo es del texto escrito; con las variables reemplazadas puede variar."
+        },
+        "wa": {
+            "title": "Plantilla de WhatsApp",
+            "help": "Elige una plantilla aprobada por Meta y dile a cada parámetro qué dato usar.",
+            "source": "Plantilla aprobada",
+            "choose": "Elige una plantilla",
+            "noneTitle": "No hay plantillas de WhatsApp sincronizadas",
+            "noneHelp": "Conecta tu número en Canales y sincroniza o crea las plantillas allí. Luego vuelve para mapear sus variables.",
+            "newHelp": "Después de crearla, elige la plantilla aprobada por Meta y asigna una variable a cada parámetro.",
+            "notChosen": "Sin plantilla de WhatsApp elegida",
+            "status": {
+                "approved": "aprobada",
+                "pending": "en revisión",
+                "rejected": "rechazada",
+                "paused": "pausada",
+                "disabled": "desactivada"
+            },
+            "media": {
+                "image": "imagen",
+                "video": "video",
+                "document": "documento"
+            },
+            "headerMedia": "Encabezado ({{kind}}): enlace del archivo",
+            "headerParam": "Encabezado {{key}}",
+            "bodyParam": "Cuerpo {{key}}",
+            "buttonUrl": "Botón «{{text}}»: final del enlace",
+            "buttonCode": "Botón «{{text}}»: código del cupón",
+            "buttonPayload": "Botón «{{text}}»: respuesta (opcional)",
+            "missing": "Falta la variable de este parámetro.",
+            "noParams": "Esta plantilla no tiene parámetros: se envía tal cual.",
+            "approvedText": "Texto aprobado",
+            "approvedHelp": "Así lo aprobó Meta. Para cambiarlo, edítalo en Canales y espera la nueva aprobación."
+        },
+        "blocks": {
+            "category": "Imagina Growth",
+            "product": "Producto",
+            "recommendations": "Recomendaciones",
+            "cart": "Carrito del contacto",
+            "coupon": "Cupón único",
+            "points": "Puntos y nivel",
+            "reviews": "Reseñas",
+            "whatsapp": "Botón de WhatsApp",
+            "legalFooter": "Pie legal"
+        },
+        "library": {
+            "fromLibrary": "Desde la biblioteca",
+            "industry": "Industria",
+            "general": "General",
+            "help": "Plantillas en español para los 20 flujos listos, con el pie legal incluido. Elige tu industria para ver la copia adaptada.",
+            "flow": "Flujo {{n}}",
+            "preview": "Ver",
+            "use": "Usar plantilla",
+            "installed": "Plantilla agregada a tus plantillas",
+            "inUse": "En tus plantillas",
+            "anotherCopy": "Otra copia",
+            "industryCopy": "Adaptada a tu industria"
+        },
+        "business": {
+            "open": "Datos del negocio",
+            "title": "Datos del negocio",
+            "description": "Van en el pie legal de los correos de marketing (quién envía y cómo contactarlo) y en las variables {{ tienda.* }}.",
+            "saved": "Datos del negocio guardados",
+            "readOnly": "Solo el dueño o un administrador puede cambiarlos.",
+            "fields": {
+                "name": "Nombre que ven tus clientes",
+                "address": "Dirección física",
+                "contact": "Correo o teléfono de contacto",
+                "whatsapp": "WhatsApp del negocio",
+                "logo_url": "Logo (dirección https)"
+            },
+            "placeholders": {
+                "name": "Pinturas La 14",
+                "address": "Calle 23 # 21-40, Manizales",
+                "contact": "hola@tienda.co",
+                "whatsapp": "+57 300 123 4567",
+                "logo_url": "https://tienda.co/logo.png"
+            }
+        }
+    }
+}

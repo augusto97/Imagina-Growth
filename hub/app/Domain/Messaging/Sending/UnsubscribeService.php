@@ -23,6 +23,7 @@ final class UnsubscribeService
 
     /**
      * @param  'channel'|'all'  $scope
+     * @param  array<string, mixed>  $evidence
      * @return list<string> canales revocados
      */
     public function unsubscribe(Workspace $workspace, string $contactId, string $channel, string $scope, string $via, ?Message $message = null, array $evidence = []): array

@@ -94,6 +94,14 @@ final class DefaultMessageDispatcher implements MessageDispatcher
         $publicId = Message::ID_PREFIX.'_'.$id;
         try {
             $rendered = $this->render($workspace, $message, $contact, $account, $publicId);
+        } catch (Throwable $e) {
+            // La plantilla no se pudo renderizar: el cupo de frecuencia vuelve al contacto.
+            $this->policy->release($request, $now);
+            report($e);
+
+            return DispatchResult::denied('template_error');
+        }
+        try {
             $model = DB::transaction(function () use ($workspace, $message, $contact, $account, $rendered, $to, $id, $publicId, $now): Message {
                 $links = new LinkRewriter($workspace->id, $id, $contact?->id);
                 $marketing = $message->kind->isCommercial() && ! $message->isTest;
@@ -118,7 +126,8 @@ final class DefaultMessageDispatcher implements MessageDispatcher
                 $country = strtoupper((string) ($contact?->getAttribute('country') ?: $workspace->country ?: 'CO'));
                 $cost = $this->drivers->for($account->provider)->estimateCost($account, $country, $message->kind);
 
-                return Message::query()->create([
+                $model = new Message;
+                $model->forceFill([
                     'id' => $id,
                     'workspace_id' => $workspace->id,
                     'contact_id' => $contact?->id,
@@ -138,7 +147,9 @@ final class DefaultMessageDispatcher implements MessageDispatcher
                     'cost_currency' => $cost !== null ? 'USD' : null,
                     'payload' => $payload,
                     'queued_at' => $now,
-                ]);
+                ])->save();
+
+                return $model;
             });
         } catch (UniqueConstraintViolationException) {
             // Otro proceso envió la misma clave al mismo tiempo: gana el primero.
@@ -147,11 +158,9 @@ final class DefaultMessageDispatcher implements MessageDispatcher
 
             return is_string($existing) ? DispatchResult::duplicate($existing) : DispatchResult::denied('duplicate');
         } catch (Throwable $e) {
-            // La plantilla no se pudo renderizar: el cupo de frecuencia vuelve al contacto.
             $this->policy->release($request, $now);
-            report($e);
 
-            return DispatchResult::denied('template_error');
+            throw $e;
         }
 
         SendMessageJob::dispatch($workspace->id, $model->id)->onQueue('messages:'.$message->channel->value)->afterCommit();
@@ -223,5 +232,4 @@ final class DefaultMessageDispatcher implements MessageDispatcher
 
         return str_contains($html, '</body>') ? str_replace('</body>', $footer.'</body>', $html) : $html.$footer;
     }
-
 }

@@ -52,15 +52,20 @@ final class TemplateFilters extends FiltersProvider
         if ($input === null || $input === '') {
             return '';
         }
-        try {
-            $date = CarbonImmutable::parse(is_scalar($input) ? (string) $input : '');
-        } catch (Throwable) {
-            return is_scalar($input) ? (string) $input : '';
-        }
         $register = $this->context->getRegister('igr');
         $tz = is_array($register) ? (string) ($register['timezone'] ?? 'America/Bogota') : 'America/Bogota';
-        $date = $date->setTimezone($tz)->locale('es');
+        $raw = is_scalar($input) ? (string) $input : '';
+        try {
+            // Una fecha sin hora es un día del calendario: no se corre de zona horaria.
+            $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) === 1 ? CarbonImmutable::parse($raw, $tz) : CarbonImmutable::parse($raw);
+        } catch (Throwable) {
+            return $raw;
+        }
+        $local = $date->setTimezone($tz)->locale('es');
+        if (! $local instanceof CarbonImmutable) {
+            return $date->format('d/m/Y');
+        }
 
-        return $format === 'corta' ? $date->format('d/m/Y') : $date->isoFormat('D [de] MMMM [de] YYYY');
+        return $format === 'corta' ? $local->format('d/m/Y') : $local->isoFormat('D [de] MMMM [de] YYYY');
     }
 }

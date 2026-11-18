@@ -15,14 +15,15 @@ use App\Domain\Messaging\Data\DispatchResult;
 use App\Domain\Messaging\Data\OutboundMessage;
 use App\Domain\Messaging\Enums\Channel;
 use App\Domain\Messaging\Enums\MessageKind;
-use Throwable;
+use App\Domain\Templates\Exceptions\TemplateRenderException;
 
 /**
  * Envía WhatsApp, correo o SMS por MessageDispatcher con la clave
  * `run:{run}:{nodo}:{intento}`: un reintento del job devuelve `duplicate` y no
  * reenvía. Si la política aplaza, el nodo queda `deferred` y se vuelve a llamar
  * con la misma clave en `until`. Si niega, sigue por la rama `failed` (o por la
- * salida normal si no hay). El grupo de control no recibe nada.
+ * salida normal si no hay). El grupo de control no recibe nada. Un error
+ * transitorio del despachador sube: el job se reintenta con la misma clave.
  */
 final class SendHandler implements NodeHandler
 {
@@ -62,10 +63,10 @@ final class SendHandler implements NodeHandler
                 to: $to,
                 isTest: $state->isTest(),
             ));
-        } catch (Throwable $e) {
-            report($e);
-
-            return Outcome::next('failed', 'failed', ['reason' => 'error', 'error' => mb_substr($e->getMessage(), 0, 300)], fallback: true);
+        } catch (TemplateRenderException $e) {
+            // La plantilla no sirve: no se arregla reintentando. Cualquier otro error
+            // sube y el job se reintenta con la misma clave (sin reenviar).
+            return Outcome::next('failed', 'failed', ['reason' => 'template', 'error' => mb_substr($e->getMessage(), 0, 300)], fallback: true);
         }
 
         return match ($result->status) {

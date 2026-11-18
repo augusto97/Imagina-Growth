@@ -120,7 +120,7 @@ final class TemplateLibrary
     {
         return app(CurrentWorkspace::class)->run($workspace, function () use ($workspace, $key, $industry, $createdBy, $copy): Template {
             if (! $copy) {
-                $existing = Template::query()->where('library_key', $key)->where('status', '!=', 'archived')->orderBy('created_at')->first();
+                $existing = Template::query()->where('library_key', $key)->where('status', '!=', 'archived')->orderBy('created_at')->orderBy('id')->first();
                 if ($existing !== null) {
                     return $existing;
                 }

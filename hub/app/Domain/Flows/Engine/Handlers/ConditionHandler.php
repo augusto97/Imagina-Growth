@@ -27,13 +27,28 @@ final class ConditionHandler implements NodeHandler
             $data = (array) ($state->run->context ?? []);
             $ok = Filters::matches([['prop' => $config['path'] ?? '', 'operator' => $config['operator'] ?? 'eq', 'value' => $config['value'] ?? null]], $data);
 
-            return Outcome::next($ok ? 'yes' : 'no', details: ['result' => $ok]);
+            return $this->outcome($ok, $config);
         }
         $ctx = CompileContext::forContact($state->workspace, $state->run->contact_id);
         try {
             $ok = $this->compiler->query((array) ($config['definition'] ?? []), $ctx)->exists();
         } finally {
             $ctx->cleanup();
+        }
+
+        return $this->outcome($ok, $config);
+    }
+
+    /**
+     * Con `exit_if_no` la condición es un filtro de entrada: si no se cumple el run
+     * sale con motivo `filter`, que no cuenta para la reentrada.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function outcome(bool $ok, array $config): Outcome
+    {
+        if (! $ok && ! empty($config['exit_if_no'])) {
+            return Outcome::exit('filter');
         }
 
         return Outcome::next($ok ? 'yes' : 'no', details: ['result' => $ok]);

@@ -169,7 +169,9 @@ final class TemplateController
     {
         Gate::authorize('ws.viewDashboards');
         $industry = $this->industry($request);
-        $installed = Template::query()->whereNotNull('library_key')->where('status', '!=', 'archived')->pluck('id', 'library_key');
+        // La más antigua de cada clave (la que usan los flujos): pluck se queda con la última fila.
+        $installed = Template::query()->whereNotNull('library_key')->where('status', '!=', 'archived')
+            ->orderByDesc('created_at')->orderByDesc('id')->pluck('id', 'library_key');
 
         return response()->json([
             'industry' => $industry,
@@ -272,7 +274,7 @@ final class TemplateController
         try {
             $rendered = $this->renderer->renderTemplate($template, new RenderContext($workspace, $contact, $sample));
         } catch (TemplateRenderException $e) {
-            return response()->json(['ok' => false, 'error' => $e->getMessage(), 'checks' => TemplateChecks::run($template, $workspace)], 422);
+            return response()->json(['ok' => false, 'message' => $e->getMessage(), 'checks' => TemplateChecks::run($template, $workspace)], 422);
         }
 
         return response()->json([

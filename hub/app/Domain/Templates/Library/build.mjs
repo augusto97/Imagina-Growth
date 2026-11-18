@@ -11,7 +11,7 @@
  * [[token]] y TemplateLibrary los reemplaza por la copia de cada industria.
  */
 import { createRequire } from 'node:module';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -60,8 +60,8 @@ export const BLOCKS = {
     </mj-section>`,
     cart: () => `
     <mj-section padding="8px 24px">
-      <mj-column border="1px solid ${LINE}" border-radius="8px" padding="8px 0">
-        <mj-text font-size="14px" line-height="20px" color="${INK}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">{% for item in carrito.items limit: 6 %}<tr><td width="64" style="padding:8px 12px 8px 0;vertical-align:top">{% if item.imagen != "" %}<img src="{{ item.imagen }}" alt="" width="56" height="56" style="border-radius:6px;display:block;object-fit:cover">{% endif %}</td><td style="padding:8px 0;vertical-align:top"><a href="{{ item.url }}" style="color:${INK};font-weight:600;text-decoration:none">{{ item.nombre }}</a><br><span style="color:${MUTED}">Cantidad: {{ item.cantidad }}</span></td><td align="right" style="padding:8px 0;vertical-align:top;white-space:nowrap">{{ item.precio | moneda }}</td></tr>{% endfor %}<tr><td colspan="2" style="padding:12px 0 4px;border-top:1px solid ${LINE};font-weight:600">Subtotal</td><td align="right" style="padding:12px 0 4px;border-top:1px solid ${LINE};font-weight:600;white-space:nowrap">{{ carrito.subtotal | moneda }}</td></tr></table></mj-text>
+      <mj-column border="1px solid ${LINE}" border-radius="8px" padding="8px 12px">
+        <mj-text font-size="14px" line-height="20px" color="${INK}"><div>{% for item in carrito.items limit: 6 %}<div style="padding:8px 0;border-bottom:1px solid ${LINE}">{% if item.imagen != "" %}<img src="{{ item.imagen }}" alt="" width="56" height="56" style="border-radius:6px;float:left;margin-right:12px;object-fit:cover">{% endif %}<div style="text-align:right;float:right;white-space:nowrap;font-weight:600">{{ item.precio | moneda }}</div><a href="{{ item.url }}" style="color:${INK};font-weight:600;text-decoration:none">{{ item.nombre }}</a><br><span style="color:${MUTED}">Cantidad: {{ item.cantidad }}</span><div style="clear:both"></div></div>{% endfor %}</div><p style="margin:12px 0 4px;font-weight:600">Subtotal: {{ carrito.subtotal | moneda }}</p></mj-text>
       </mj-column>
     </mj-section>`,
     coupon: () => `
@@ -84,7 +84,7 @@ export const BLOCKS = {
     <mj-section padding="8px 24px 0">
       <mj-column>
         <mj-text font-size="18px" font-weight="700" color="${INK}">[[products_title]]</mj-text>
-        <mj-text font-size="14px" line-height="20px" color="${INK}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>{% for p in recomendaciones.${opts.source ?? 'para_ti'} limit: 3 %}<td width="33%" style="padding:0 6px;vertical-align:top;text-align:center"><a href="{{ p.url }}" style="color:${INK};text-decoration:none">{% if p.imagen != "" %}<img src="{{ p.imagen }}" alt="" width="160" style="width:100%;max-width:160px;border-radius:6px;display:block;margin:0 auto 8px">{% endif %}<span style="font-weight:600">{{ p.nombre }}</span><br><span>{{ p.precio | moneda }}</span></a></td>{% endfor %}</tr></table></mj-text>
+        <mj-text align="center" font-size="14px" line-height="20px" color="${INK}"><div>{% for p in recomendaciones.${opts.source ?? 'para_ti'} limit: 3 %}<div style="display:inline-block;width:30%;min-width:140px;vertical-align:top;margin:0 1% 12px;text-align:center"><a href="{{ p.url }}" style="color:${INK};text-decoration:none">{% if p.imagen != "" %}<img src="{{ p.imagen }}" alt="" width="160" style="width:100%;max-width:160px;border-radius:6px;display:block;margin:0 auto 8px">{% endif %}<span style="font-weight:600">{{ p.nombre }}</span><br><span>{{ p.precio | moneda }}</span></a></div>{% endfor %}</div></mj-text>
       </mj-column>
     </mj-section>`,
     order: () => `
@@ -103,7 +103,7 @@ export const BLOCKS = {
     nps: () => `
     <mj-section padding="8px 24px">
       <mj-column>
-        <mj-text align="center" font-size="14px" color="${INK}"><table role="presentation" align="center" cellpadding="0" cellspacing="0"><tr>{% for n in (0..10) %}<td style="padding:2px"><a href="{{ enlaces.nps }}{{ n }}" style="display:inline-block;width:28px;line-height:28px;border:1px solid ${LINE};border-radius:6px;color:${INK};text-decoration:none;text-align:center">{{ n }}</a></td>{% endfor %}</tr></table></mj-text>
+        <mj-text align="center" font-size="14px" color="${INK}"><div>{% for n in (0..10) %}<a href="{{ enlaces.nps }}{{ n }}" style="display:inline-block;width:28px;line-height:28px;margin:2px;border:1px solid ${LINE};border-radius:6px;color:${INK};text-decoration:none;text-align:center">{{ n }}</a>{% endfor %}</div></mj-text>
         <mj-text align="center" font-size="12px" color="${MUTED}">0 = nada probable · 10 = muy probable</mj-text>
       </mj-column>
     </mj-section>`,
@@ -169,9 +169,12 @@ export function compile(mjmlSource) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
+    // --check: no escribe; falla si los archivos versionados no coinciden con library.json.
+    const check = process.argv.includes('--check');
     const library = JSON.parse(readFileSync(join(here, 'library.json'), 'utf8'));
     mkdirSync(join(here, 'email'), { recursive: true });
     let count = 0;
+    const stale = [];
     for (const entry of library.templates) {
         if (entry.channel !== 'email') continue;
         const source = assemble(entry);
@@ -180,9 +183,21 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             console.error(`✗ ${entry.key}:`, errors.map((e) => e.formattedMessage).join('; '));
             process.exitCode = 1;
         }
-        writeFileSync(join(here, 'email', `${entry.key}.mjml`), source);
-        writeFileSync(join(here, 'email', `${entry.key}.html`), html);
+        const files = { [`${entry.key}.mjml`]: source, [`${entry.key}.html`]: html };
+        for (const [name, content] of Object.entries(files)) {
+            const path = join(here, 'email', name);
+            if (check) {
+                if (!existsSync(path) || readFileSync(path, 'utf8') !== content) stale.push(name);
+            } else {
+                writeFileSync(path, content);
+            }
+        }
         count++;
     }
-    console.log(`✓ ${count} plantillas de correo compiladas en ${join(here, 'email')}`);
+    if (check && stale.length) {
+        console.error(`✗ Desactualizadas (corre build.mjs): ${stale.join(', ')}`);
+        process.exitCode = 1;
+    } else {
+        console.log(`✓ ${count} plantillas de correo ${check ? 'al día' : 'compiladas'} en ${join(here, 'email')}`);
+    }
 }

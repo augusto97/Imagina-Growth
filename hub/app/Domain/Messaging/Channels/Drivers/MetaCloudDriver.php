@@ -209,6 +209,23 @@ final class MetaCloudDriver implements ChannelDriver
         return [is_scalar($response->json('id')) ? (string) $response->json('id') : null, strtoupper((string) ($response->json('status') ?? 'PENDING'))];
     }
 
+    /**
+     * Edita una plantilla ya enviada (vuelve a revisión).
+     *
+     * @param  list<array<string, mixed>>  $components
+     */
+    public function editTemplate(ChannelAccount $account, WaTemplate $template, array $components): void
+    {
+        if ($template->meta_template_id === null) {
+            throw new \RuntimeException(__('La plantilla no tiene ID de Meta: sincroniza el número primero.'));
+        }
+        $response = Http::withToken((string) $account->credential('access_token'))->timeout(20)->acceptJson()
+            ->post($this->url($template->meta_template_id), ['components' => $components]);
+        if (! $response->successful()) {
+            throw new \RuntimeException($this->errorMessage($response));
+        }
+    }
+
     public function deleteTemplate(ChannelAccount $account, string $name): void
     {
         Http::withToken((string) $account->credential('access_token'))->timeout(15)

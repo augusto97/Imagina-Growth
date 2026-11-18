@@ -86,7 +86,11 @@ class Message extends Model
         ];
     }
 
-    /** Propiedades comunes de los eventos message.* (eventos.md §4.6). */
+    /**
+     * Propiedades comunes de los eventos message.* (eventos.md §4.6).
+     *
+     * @return array<string, string>
+     */
     public function eventProperties(): array
     {
         return array_filter([

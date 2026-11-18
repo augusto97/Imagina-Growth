@@ -30,7 +30,7 @@ final class HtmlToText
         $text = preg_replace('#<img\b[^>]*alt\s*=\s*(["\'])(.*?)\1[^>]*>#is', '$2', $text) ?? $text;
         $text = preg_replace('#<br\s*/?>#i', "\n", $text) ?? $text;
         $text = preg_replace('#</(p|div|h[1-6]|tr|table|li|section|blockquote)>#i', "\n", $text) ?? $text;
-        $text = preg_replace('#<li\b[^>]*>#i', '• ', $text) ?? $text;
+        $text = preg_replace('#<li\b[^>]*>#i', "\n• ", $text) ?? $text;
         $text = preg_replace('#</t[dh]>#i', ' ', $text) ?? $text;
         $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $text = str_replace("\u{00A0}", ' ', $text);

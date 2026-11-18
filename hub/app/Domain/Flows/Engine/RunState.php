@@ -45,7 +45,7 @@ final class RunState
     /** @return array<string, mixed> */
     public function stepDetails(): array
     {
-        return (array) ($this->step?->details ?? []);
+        return $this->step === null ? [] : (array) ($this->step->details ?? []);
     }
 
     /** Guarda un dato en el contexto del run (p. ej. el cupón generado). */
