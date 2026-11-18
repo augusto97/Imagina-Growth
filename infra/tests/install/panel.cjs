@@ -7,7 +7,7 @@
  * su contraseña y espera el resultado que muestra el panel (instalada, falló o volvió a la anterior). Mientras
  * espera, el panel puede no responder unos segundos (reinicio): se reintenta.
  *
- * Variables: BASE (https://growth.e2e.test), MAP_IP (IP del servidor de prueba), ADMIN_EMAIL, ADMIN_PASS,
+ * Variables: BASE (https://growth.localhost), MAP_IP (opcional: IP para el dominio de BASE), ADMIN_EMAIL, ADMIN_PASS,
  * TOTP_SECRET, WS (ws_…), SHOTS (carpeta de capturas, opcional). Imprime una línea JSON al final.
  */
 'use strict';
@@ -58,10 +58,9 @@ async function openUpdates(page) {
 }
 
 (async () => {
-    // Directo al servidor de prueba: sin el proxy del entorno, con su IP para el dominio de prueba.
-    const browser = await chromium.launch({
-        args: ['--no-proxy-server', `--host-resolver-rules=MAP ${host} ${env.MAP_IP}, MAP in.${host} ${env.MAP_IP}`],
-    });
+    // Con MAP_IP, el dominio de prueba va a esa IP; sin ella (p. ej. *.localhost) se resuelve normal.
+    const args = env.MAP_IP ? [`--host-resolver-rules=MAP ${host} ${env.MAP_IP}, MAP in.${host} ${env.MAP_IP}`] : [];
+    const browser = await chromium.launch({ args });
     const context = await browser.newContext({ ignoreHTTPSErrors: true, locale: 'es-CO', viewport: { width: 1440, height: 1000 } });
     const page = await context.newPage();
     const errors = [];

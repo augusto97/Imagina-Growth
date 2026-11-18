@@ -14,7 +14,8 @@ set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 RUN="$HERE/run.sh"
 NAME=growth-it-e2e
-DOMAIN=growth.e2e.test
+# *.localhost: Chromium nunca lo manda por un proxy y Caddy le da certificados locales solo.
+DOMAIN=growth.localhost
 ASSETS="" KEY="" KEEP=0
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -34,8 +35,10 @@ fail() { printf '\033[31m✗ %s\033[0m\n' "$*"; exit 1; }
 in_box() { "$RUN" exec --name "$NAME" -- bash -c "$1"; }
 as_growth() { in_box "cd /opt/growth/current/hub && runuser -u growth -- env HOME=/tmp /usr/local/bin/growth-php $1"; }
 health() { in_box "curl -s http://127.0.0.1:$1/health/ready" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("status"), d.get("version"))'; }
+FWD_PID=""
 cleanup() {
     in_box 'touch /tmp/stop-availability' >/dev/null 2>&1 || true
+    [ -n "$FWD_PID" ] && kill "$FWD_PID" 2>/dev/null || true
     [ "$KEEP" = 1 ] || "$RUN" down --name "$NAME" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
@@ -59,9 +62,32 @@ after=$(in_box 'sha256sum /opt/growth/shared/.env /etc/growth/updater.conf /etc/
 ok "Idempotente: .env, updater.conf, Caddyfile y versión iguales"
 
 step "Acceso al panel desde el navegador de prueba"
-# Solo en la prueba: certificados locales de Caddy (el dominio .test no puede tener uno público).
-in_box "grep -q '^\s*local_certs' /etc/caddy/Caddyfile || sed -i '0,/^{/s//{\n\tlocal_certs/' /etc/caddy/Caddyfile; systemctl reload caddy"
 IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$NAME")
+# Solo en la prueba: el 443 de esta máquina reenvía al Caddy del servidor de prueba (growth.localhost → 127.0.0.1).
+python3 - "$IP" >"$OUT/reenvio-443.log" 2>&1 <<'PY' &
+import socket, sys, threading
+target = sys.argv[1]
+srv = socket.socket(); srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1); srv.bind(("127.0.0.1", 443)); srv.listen(128)
+def pipe(a, b):
+    try:
+        while (data := a.recv(65536)):
+            b.sendall(data)
+    except OSError:
+        pass
+    finally:
+        for s in (a, b):
+            try: s.shutdown(socket.SHUT_RDWR)
+            except OSError: pass
+while True:
+    c, _ = srv.accept()
+    try:
+        u = socket.create_connection((target, 443), timeout=10)
+    except OSError:
+        c.close(); continue
+    threading.Thread(target=pipe, args=(c, u), daemon=True).start()
+    threading.Thread(target=pipe, args=(u, c), daemon=True).start()
+PY
+FWD_PID=$!
 ADMIN_EMAIL=admin@e2e.test ADMIN_PASS=Clave-plataforma-2026 TOTP_SECRET=JBSWY3DPEHPK3PXP
 WS=$(as_growth "artisan tinker --execute='
 \$u = App\Domain\Workspaces\Models\User::create([\"name\" => \"Equipo Imagina\", \"email\" => \"$ADMIN_EMAIL\", \"password\" => \"$ADMIN_PASS\"]);
@@ -70,10 +96,10 @@ WS=$(as_growth "artisan tinker --execute='
 echo \$ws->publicId();'" | tail -1)
 [[ $WS =~ ^ws_ ]] || fail "no se creó el administrador de la plataforma"
 APP_KEY_BEFORE=$(in_box "grep -E '^APP_KEY=' /opt/growth/shared/.env")
-ok "Administrador de la plataforma en $WS (https://$DOMAIN → $IP)"
+ok "Administrador de la plataforma en $WS (https://$DOMAIN → 127.0.0.1:443 → $IP)"
 
 panel() {
-    BASE="https://$DOMAIN" MAP_IP="$IP" ADMIN_EMAIL="$ADMIN_EMAIL" ADMIN_PASS="$ADMIN_PASS" TOTP_SECRET="$TOTP_SECRET" \
+    BASE="https://$DOMAIN" ADMIN_EMAIL="$ADMIN_EMAIL" ADMIN_PASS="$ADMIN_PASS" TOTP_SECRET="$TOTP_SECRET" \
         WS="$WS" SHOTS="$OUT" node "$HERE/panel.cjs" "$1" | tail -1
 }
 status() { in_box 'cat /opt/growth/shared/state/update-status.json'; }
