@@ -119,8 +119,9 @@ it('suscribe a «avísame» con consentimiento, una sola vez, y avisa si ya hay 
     commerceWatch($this, ['product_id' => '88', 'kind' => 'back_in_stock'])->assertStatus(422);
     commerceWatch($this, ['product_id' => 'no-existe', 'kind' => 'back_in_stock', 'email' => 'ana@ejemplo.com', 'consents' => ['email' => true]])->assertStatus(422);
 
+    commerceWatch($this, ['product_id' => '88', 'kind' => 'back_in_stock', 'email' => 'ana@ejemplo.com', 'consents' => ['email' => true], 'consent_version' => ['v3']])->assertStatus(422);
     $ok = commerceWatch($this, ['product_id' => '88', 'kind' => 'back_in_stock', 'email' => 'ana@ejemplo.com', 'phone' => '300 123 4567',
-        'consents' => ['email' => true, 'whatsapp' => true], 'anonymous_id' => 'anon-ana-12345', 'page_url' => 'https://tienda.co/p/88'])->assertOk();
+        'consents' => ['email' => true, 'whatsapp' => true], 'consent_version' => 'v3', 'anonymous_id' => 'anon-ana-12345', 'page_url' => 'https://tienda.co/p/88'])->assertOk();
     expect($ok->json('message'))->toBe('Listo. Te escribiremos por WhatsApp cuando vuelva.')
         ->and($ok->headers->get('Cache-Control'))->toContain('no-store');
     commerceWatch($this, ['product_id' => '88', 'kind' => 'back_in_stock', 'email' => 'ana@ejemplo.com', 'consents' => ['email' => true]])->assertOk();

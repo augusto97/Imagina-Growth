@@ -130,6 +130,11 @@ final class CommercePublicController
         if ($email === null && $phone === null) {
             $errors['email'] = [__('Escribe un correo o un WhatsApp válido.')];
         }
+        // Versión del texto legal que vio la persona (opcional). CaptureContact registra la vigente,
+        // que es la misma que sirve widgets.json salvo en los minutos de caché tras un cambio.
+        if (isset($body['consent_version']) && (! is_string($body['consent_version']) || mb_strlen($body['consent_version']) > 32)) {
+            $errors['consent_version'] = [__('Versión del texto legal no válida.')];
+        }
         if ($errors !== []) {
             return response()->json(['error' => 'invalid', 'errors' => $errors], 422)->withHeaders($cors);
         }
