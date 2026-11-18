@@ -17,9 +17,14 @@ const BASE = process.env.STORE_URL || 'http://127.0.0.1:8080';
 const EMAIL = process.env.EMAIL || 'laura.gomez.e2e@example.com';
 const SHOTS = process.env.SHOTS || '';
 
-/** fbevents.js simulado: reenvía cada llamada como lo hace Meta (/tr con eid). */
+/**
+ * fbevents.js simulado: como el real, deja _fbp (navegador) y _fbc (si llegó con fbclid)
+ * en el dominio del sitio y reenvía cada llamada a /tr con su eid.
+ */
 const FBEVENTS =
-    '(function(){var f=window.fbq,id="";function send(a){if(a[0]==="init"){id=a[1];return}if(a[0]!=="track")return;var o=a[3]||{},d=a[2]||{};' +
+    '(function(){var now=Date.now();if(!/(^|; )_fbp=/.test(document.cookie)){document.cookie="_fbp=fb.1."+now+"."+Math.floor(Math.random()*1e10)+";path=/;max-age=7776000;SameSite=Lax"}' +
+    'var m=location.search.match(/[?&]fbclid=([^&]+)/);if(m){document.cookie="_fbc=fb.1."+now+"."+m[1]+";path=/;max-age=7776000;SameSite=Lax"}' +
+    'var f=window.fbq,id="";function send(a){if(a[0]==="init"){id=a[1];return}if(a[0]!=="track")return;var o=a[3]||{},d=a[2]||{};' +
     'new Image().src="https://www.facebook.com/tr/?id="+id+"&ev="+encodeURIComponent(a[1])+"&eid="+encodeURIComponent(o.eventID||"")+"&cd[value]="+(d.value||"")+"&cd[currency]="+(d.currency||"")}' +
     'f.callMethod=function(){send([].slice.call(arguments))};(f.queue||[]).forEach(send);f.queue=[]})();';
 
