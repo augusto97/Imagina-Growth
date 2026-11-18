@@ -616,7 +616,7 @@ if ( 'POST' === $method && 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/widgets/([A
 		'referral_code' => $req['referral_code'] ?? null,
 	);
 	$step = (int) ( $req['step'] ?? 1 );
-	$out  = array( 'ok' => true, 'message' => '¡Listo!', 'double_opt_in' => false );
+	$out  = array( 'ok' => true, 'double_opt_in' => false );
 	if ( 'two_step' === $widget['kind'] && 1 === $step ) {
 		$out['next_step'] = 2;
 	}
@@ -632,6 +632,8 @@ if ( 'POST' === $method && 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/widgets/([A
 		$out['message']  = 'Esto es lo que te recomendamos';
 		$out['products'] = array_slice( $fixture_products(), 0, 2 );
 	}
+	// Como el hub: `message` es el texto de éxito ya resuelto.
+	$out['message'] = $out['message'] ?? strtr( (string) ( $content['success'] ?? '¡Listo!' ), array( '{{codigo}}' => $out['coupon']['code'] ?? '', '{{premio}}' => $out['prize']['label'] ?? '' ) );
 	$respond( 200, $out );
 }
 

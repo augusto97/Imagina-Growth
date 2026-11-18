@@ -287,6 +287,17 @@ final class OnsiteTest extends WpTestCase {
 			'body'   => '{"ok":false,"error":{"code":"no_balance"}}',
 		);
 		$this->assertSame( 'No tienes saldo disponible por ahora.', Wallet::redeem( $user )['message'] );
+		// Otro canje en curso o un carrito en otra moneda (api-connector.md §5.5).
+		$this->responder = static fn( array $req ): array => array(
+			'status' => 409,
+			'body'   => '{"ok":false,"error":{"code":"busy"}}',
+		);
+		$this->assertSame( 'Estamos aplicando tu saldo. Inténtalo de nuevo en unos segundos.', Wallet::redeem( $user )['message'] );
+		$this->responder = static fn( array $req ): array => array(
+			'status' => 409,
+			'body'   => '{"ok":false,"error":{"code":"currency_mismatch"}}',
+		);
+		$this->assertSame( 'Tu saldo no se puede usar con la moneda de este carrito.', Wallet::redeem( $user )['message'] );
 		$this->responder = static fn( array $req ): array => array(
 			'status' => 0,
 			'body'   => '',
