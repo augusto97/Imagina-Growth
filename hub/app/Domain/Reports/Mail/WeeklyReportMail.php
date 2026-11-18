@@ -50,6 +50,11 @@ final class WeeklyReportMail extends Mailable implements ShouldQueue
             'numbers' => $numbers,
             'insights' => array_map(fn (array $i) => $i + ['impact_text' => $i['impact'] !== null ? Money::format($i['impact'], $currency) : null], $this->facts['insights']),
             'action' => $this->facts['action'],
+            'analysis' => isset($this->facts['analysis']) ? [
+                'body' => (string) $this->facts['analysis']['body'],
+                'ai' => ($this->facts['analysis']['source'] ?? '') === 'ai',
+                'actions' => array_map(fn (array $a) => ['title' => (string) ($a['titulo'] ?? ''), 'detail' => (string) ($a['detalle'] ?? ''), 'url' => $base.($a['ruta'] ?? 'hallazgos')], (array) $this->facts['analysis']['actions']),
+            ] : null,
             'actionUrl' => $base.($this->facts['action']['to'] ?? ''),
             'dashboardUrl' => $base.'analitica',
         ]);

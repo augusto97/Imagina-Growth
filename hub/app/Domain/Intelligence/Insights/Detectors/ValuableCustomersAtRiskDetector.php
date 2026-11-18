@@ -7,6 +7,9 @@ namespace App\Domain\Intelligence\Insights\Detectors;
 use App\Domain\Intelligence\Insights\Detector;
 use App\Domain\Intelligence\Insights\InsightCandidate;
 use App\Domain\Intelligence\Insights\Money;
+use App\Domain\Intelligence\Insights\Support\Assumptions;
+use App\Domain\Intelligence\Insights\Support\Impact;
+use App\Domain\Intelligence\Insights\Support\Term;
 use App\Domain\Intelligence\Rfm\RfmSegment;
 use App\Domain\Workspaces\Models\Workspace;
 use Carbon\CarbonImmutable;
@@ -18,7 +21,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class ValuableCustomersAtRiskDetector implements Detector
 {
-    public const REACTIVATION = 0.18;
+    public function __construct(private readonly Assumptions $assumptions) {}
 
     public function key(): string
     {
@@ -36,19 +39,23 @@ final class ValuableCustomersAtRiskDetector implements Detector
             return [];
         }
         $aov = (float) $row->aov;
-        $impact = round($n * self::REACTIVATION * $aov, 2);
+        $rate = $this->assumptions->value('reactivation_rate');
+        $formula = Impact::of(
+            new Term(__('clientes'), $n, 'count'),
+            new Term(__('de reactivación de referencia'), $rate, 'rate', 'reactivation_rate'),
+            new Term(__('de ticket'), $aov, 'money'),
+        );
 
         return [new InsightCandidate(
             fingerprint: 'rfm',
             severity: (int) $row->cant_lose >= 10 ? 'warning' : 'opportunity',
             title: __(':n clientes valiosos están en riesgo de irse; compraron :revenue', ['n' => Money::number($n), 'revenue' => Money::format($row->revenue, $workspace->currency)]),
             facts: ['customers' => $n, 'cant_lose' => (int) $row->cant_lose, 'at_risk' => $n - (int) $row->cant_lose,
-                'historical_revenue' => round((float) $row->revenue, 2), 'aov' => round($aov, 2), 'reactivation_rate' => self::REACTIVATION],
-            impact: (string) $impact,
-            assumptions: [__('Estimación: :n clientes × :rate de reactivación de referencia × :aov de ticket = :impact.', [
-                'n' => Money::number($n), 'rate' => Money::percent(self::REACTIVATION, 0), 'aov' => Money::format($aov, $workspace->currency), 'impact' => Money::format($impact, $workspace->currency),
-            ])],
-            action: ['label' => __('Ve el segmento «En riesgo» y prepara una recuperación escalonada'), 'to' => 'segmentos?system=rfm_at_risk'],
+                'historical_revenue' => round((float) $row->revenue, 2), 'aov' => round($aov, 2), 'reactivation_rate' => $rate],
+            assumptions: [__('Estimación: :formula. No es una promesa: ajusta el supuesto con tu experiencia.', ['formula' => $formula->text($workspace->currency)])],
+            action: ['label' => __('Crea una campaña de recuperación para «En riesgo»'), 'to' => 'segmentos?system=rfm_at_risk',
+                'kind' => 'create_campaign', 'payload' => ['system_key' => 'rfm_at_risk', 'name' => __('Recuperación de clientes en riesgo'), 'channel' => 'email']],
+            formula: $formula,
         )];
     }
 }

@@ -1,0 +1,110 @@
+{
+    "copilot": {
+        "createWithAi": "Crear con IA",
+        "unavailable": "La IA no está disponible ahora. Puedes seguir a mano con el asistente.",
+        "badge": { "ai": "Generado con IA", "noAi": "Sin IA" },
+        "errors": { "generic": "No se pudo completar. Intenta de nuevo o sigue a mano." },
+        "examples": {
+            "campaign": ["Haz una campaña de Black Friday para VIP con 20%", "Recupera a los clientes en riesgo con un 10% por WhatsApp", "Anuncia la nueva colección a quienes compraron en los últimos 90 días"],
+            "flow": ["Un flujo para recuperar clientes que no compran hace 60 días con WhatsApp y correo", "Agradece la segunda compra y regala 200 puntos", "Avisa al equipo cuando un cliente VIP abandona el carrito"]
+        },
+        "dialog": {
+            "title": { "campaign": "Crear una campaña con IA", "flow": "Crear un flujo con IA" },
+            "description": {
+                "campaign": "Describe la campaña. El copiloto propone segmento, canales, textos, horario y cupón, con el costo y la revisión de cumplimiento. Nada se envía sin tu aprobación.",
+                "flow": "Describe la automatización. El copiloto arma el flujo con sus pasos; queda en borrador para que lo revises y lo actives."
+            },
+            "prompt": "¿Qué quieres lograr?",
+            "propose": "Proponer",
+            "thinking": { "campaign": "Revisando tus segmentos, plantillas, costo y horarios permitidos…", "flow": "Armando los pasos del flujo…" },
+            "discard": "Descartar",
+            "again": "Pedir otra",
+            "apply": { "campaign": "Crear como borrador", "flow": "Crear el flujo en borrador" },
+            "applyHelp": {
+                "campaign": "Se crean las campañas en borrador (una por canal). Para enviarlas, apruébalas en el asistente después de revisar.",
+                "flow": "El flujo queda en borrador: revísalo en el constructor, publícalo y actívalo cuando esté listo."
+            }
+        },
+        "review": {
+            "name": "Nombre",
+            "segment": "A quién",
+            "newSegment": "Segmento nuevo",
+            "members_one": "{{n}} contacto",
+            "members_other": "{{n}} contactos",
+            "existingTemplate": "Usa una plantilla que ya tienes.",
+            "willSend": "Recibirán",
+            "excluded": "Quedan fuera",
+            "cost": "Costo estimado",
+            "channelUnavailable": "Este canal no está conectado: conéctalo antes de aprobar.",
+            "schedule": "Cuándo",
+            "date": "Fecha",
+            "hour": "Hora (0 a 23)",
+            "mode": "Hora de envío",
+            "localTime": "Sale el {{when}} ({{tz}}), dentro de la ventana legal.",
+            "coupon": "Cupón",
+            "couponDays_one": "vence en {{count}} día",
+            "couponDays_other": "vence en {{count}} días",
+            "couponMin": "compra mínima {{amount}}",
+            "warnings": "Revisa antes de aplicar",
+            "saveEdits": "Guardar cambios",
+            "trigger": "Cuándo entra",
+            "goal": "Meta: {{event}}",
+            "steps": "Pasos"
+        },
+        "copy": { "subject": "Asunto", "preheader": "Preencabezado", "headline": "Titular", "intro": "Texto", "cta": "Botón" },
+        "channel": { "email": "Correo", "whatsapp": "WhatsApp", "sms": "SMS" },
+        "sendMode": { "scheduled": "A la hora de la tienda", "contact_timezone": "A la hora de cada contacto", "best_time": "A la mejor hora de cada contacto" },
+        "couponKind": { "percent": "{{amount}} % de descuento", "fixed_cart": "{{amount}} de descuento", "free_shipping": "Envío gratis" },
+        "trigger": {
+            "event": "Cuando ocurre «{{event}}»",
+            "segment": "Cuando el contacto {{on}} el segmento {{segment}}",
+            "on": { "entered": "entra a", "exited": "sale de" },
+            "date": "Por fecha: {{attribute}}",
+            "other": "Disparador: {{type}}"
+        },
+        "page": {
+            "title": "Copiloto",
+            "description": "Propuestas de campañas y flujos hechas con IA y el tono de tu marca. Todo queda en borrador hasta que lo apruebes.",
+            "history": "Historial",
+            "filter": "Filtrar por tipo",
+            "empty": "Todavía no hay propuestas",
+            "emptyHelp": "Usa «Crear con IA» en Campañas o Flujos, o aquí arriba.",
+            "review": "Revisar",
+            "openApplied": "Abrir"
+        },
+        "kind": { "all": "Todo", "campaign": "Campañas", "flow": "Flujos", "content": "Textos" },
+        "status": { "draft": "Propuesta", "applied": "Aplicada", "discarded": "Descartada" },
+        "contentType": { "subjects": "Asuntos de correo", "whatsapp": "Texto de WhatsApp", "variants": "Variantes A/B" },
+        "tone": {
+            "title": "Tono de marca",
+            "empty": "Aún no conocemos el tono de tu marca. Lo aprendemos de tu sitio (portada y «Nosotros») y de tus plantillas aprobadas.",
+            "learn": "Aprender el tono",
+            "relearn": "Actualizar el tono",
+            "updated": "Actualizado {{when}}"
+        },
+        "suggest": {
+            "subjects": "Sugerir asuntos",
+            "subjectsTitle": "Asuntos sugeridos",
+            "subjectsHelp": "Cuéntale al redactor de qué se trata. Elige uno para usarlo; puedes editarlo después.",
+            "variants": "Variantes A/B",
+            "variantsTitle": "Variantes para una prueba A/B",
+            "variantsHelp": "Versiones con otro enfoque del texto actual. Elige una para reemplazarlo.",
+            "whatsapp": "Redactar con IA",
+            "whatsappTitle": "Texto para una plantilla de WhatsApp",
+            "whatsappHelp": "Un cuerpo que cumple las reglas de Meta, para crear la plantilla y enviarla a aprobación.",
+            "goal": "Objetivo",
+            "goalPlaceholder": "Black Friday para clientes VIP",
+            "offer": "Oferta (opcional)",
+            "offerPlaceholder": "20% en pinturas hasta el domingo",
+            "category": "Categoría de Meta",
+            "categories": { "marketing": "Marketing", "utility": "Utilidad" },
+            "generate": "Generar",
+            "noText": "Escribe primero el texto.",
+            "copy": "Copiar",
+            "copied": "Copiado",
+            "whatsappBody": "Texto sugerido",
+            "variable": "Variable {{n}}: {{meaning}} (p. ej. {{example}})",
+            "rulesOk": "Cumple las reglas de Meta que revisamos."
+        }
+    }
+}

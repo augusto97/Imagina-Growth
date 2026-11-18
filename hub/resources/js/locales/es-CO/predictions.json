@@ -1,0 +1,89 @@
+{
+    "predictions": {
+        "title": "Predicciones",
+        "description": "Próxima compra, riesgo de abandono y valor futuro de cada cliente, con qué tan confiable es cada modelo frente a lo que de verdad pasó.",
+        "recalculate": "Recalcular",
+        "retrain": "Reentrenar modelos",
+        "queued": "Recalculando. Tarda unos minutos.",
+        "queuedTrain": "Reentrenando los modelos. Tarda unos minutos.",
+        "mlMissing": "El servicio de predicciones no está configurado (IGR_ML_URL e IGR_ML_TOKEN): el abandono usa la heurística de días sin comprar y el CLV previsto no se calcula.",
+        "coverage": {
+            "clv": "Clientes con CLV previsto",
+            "churn": "Clientes con riesgo de abandono",
+            "nextOrder": "Clientes con próxima compra",
+            "clvTotal": "CLV previsto a 12 meses"
+        },
+        "models": {
+            "edno": { "title": "Próxima compra", "help": "Fecha esperada según su ritmo y el de su categoría.", "done": "Calculada." },
+            "churn": { "title": "Riesgo de abandono", "help": "Probabilidad de que el cliente siga activo (BG/NBD).", "done": "Calculado." },
+            "clv": { "title": "Valor futuro (CLV)", "help": "Compras esperadas × valor por compra en 12 meses (BG/NBD × Gamma-Gamma).", "done": "Calculado." },
+            "propensity": { "title": "Propensión a 30 días", "help": "", "done": "Calculada." },
+            "affinity": { "title": "Afinidad por categoría y marca", "help": "", "done": "{{contacts}} contactos con sus categorías y marcas favoritas." },
+            "next_product": { "title": "Siguiente producto", "help": "", "done": "{{transitions}} transiciones del pedido N al siguiente." },
+            "price_band": { "title": "Rango de precio", "help": "", "done": "{{contacts}} clientes clasificados en bajo, medio o alto." },
+            "best_hour": { "title": "Mejor hora y canal", "help": "", "done": "{{contacts}} contactos con hora propia; mejor hora del negocio: WhatsApp {{whatsapp}} h, correo {{email}} h." },
+            "engagement": { "title": "Puntaje de interacción", "help": "", "done": "{{contacts}} contactos con puntaje." }
+        },
+        "status": {
+            "completed": "Calculado",
+            "heuristic": "Heurística",
+            "insufficient_data": "Datos insuficientes",
+            "failed": "Falló",
+            "never": "Sin calcular"
+        },
+        "reliability": { "label": "Qué tan confiable es", "high": "Alta", "medium": "Media", "low": "Baja" },
+        "facts": {
+            "clv": "En los últimos {{days}} días predijo {{predicted}} compras y hubo {{actual}}: error de {{error}} %.",
+            "churn": "Distingue a quien volvió a comprar en los últimos {{days}} días de quien no en el {{auc}} % de los pares (AUC).",
+            "edno": "En los últimos {{days}} días, el {{within}} % de los que compraron lo hizo a 15 días o menos de la fecha esperada (error mediano: {{median}} días)."
+        },
+        "heuristicHelp": "Sin modelo todavía: el riesgo sale de los días sin comprar frente a su intervalo esperado.",
+        "trainedAt": "Última corrida: {{date}}",
+        "neverTrained": "Todavía no se ha calculado.",
+        "others": "Otros puntajes",
+        "asChart": "Ver gráfico",
+        "asTable": "Ver tabla",
+        "calibration": {
+            "title": "Compras predichas y reales por decil",
+            "help": "Ajustado con la historia hasta hace {{days}} días; cada barra es el promedio por cliente de su decil en esos {{days}} días.",
+            "predicted": "Predichas",
+            "actual": "Reales",
+            "decile": "Decil",
+            "customers": "Clientes",
+            "decileN": "Decil {{n}}",
+            "decileShort": "D{{n}}",
+            "customersN_one": "{{count}} cliente",
+            "customersN_other": "{{count}} clientes",
+            "empty": "Aparece cuando el modelo de CLV se entrena con datos suficientes."
+        },
+        "alive": {
+            "title": "Probabilidad de seguir activo",
+            "help": "Cuántos clientes hay en cada rango de P(activo): a la izquierda, los que probablemente ya se fueron.",
+            "empty": "Aparece cuando el modelo de abandono se entrena con datos suficientes.",
+            "bin": "P(activo) {{range}}",
+            "customers_one": "{{formatted}} cliente",
+            "customers_other": "{{formatted}} clientes"
+        },
+        "nextOrder": {
+            "title": "Próximas compras esperadas",
+            "overdue": "Vencidas (180 días)",
+            "next_7": "Próximos 7 días",
+            "next_30": "De 8 a 30 días",
+            "later": "Después"
+        },
+        "presets": {
+            "title": "Segmentos con un clic",
+            "create": "Crear segmento",
+            "see": "Ver segmentos",
+            "created": "Se creó «{{name}}»",
+            "high_value_at_risk": { "title": "Alto valor y en riesgo", "help": "CLV previsto en el 25 % más alto con riesgo de abandono medio o alto: para un mensaje personal o un incentivo." },
+            "buying_soon": { "title": "Compran pronto", "help": "Su próxima compra esperada cae en los próximos 14 días: recuérdales sin descuento." },
+            "disengaged": { "title": "Sin interacción", "help": "Puntaje de interacción menor que 10: suprímelos de los envíos masivos para cuidar la entrega." }
+        },
+        "profile": {
+            "reliability": "Confiabilidad del modelo: {{level}}",
+            "heuristic": "Estimado por días sin comprar (sin modelo todavía)",
+            "pAlive": "P(activo): {{value}}"
+        }
+    }
+}

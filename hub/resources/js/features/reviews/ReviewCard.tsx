@@ -1,4 +1,4 @@
-import { BadgeCheck, Check, CircleAlert, ExternalLink, MessageSquareReply, Play, Store, X } from 'lucide-react';
+import { BadgeCheck, Check, CircleAlert, ExternalLink, MessageSquareReply, Play, Sparkles, Store, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -13,6 +13,7 @@ import { cn } from '@/lib/cn';
 import { formatDateTime } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
+import { ReviewSummaryCard } from '@/features/intelligence/ReviewSummaryCard';
 import { useModeration } from './api';
 import { REJECT_REASONS, type RejectReason, type Review } from './types';
 
@@ -37,6 +38,7 @@ export function ReviewCard({ review, selected, onSelect }: { review: Review; sel
     const canModerate = useCan('manageMarketing');
     const { approve } = useModeration(workspace.id);
     const [dialog, setDialog] = useState<'reject' | 'reply' | null>(null);
+    const [aiSummary, setAiSummary] = useState(false);
 
     const onApprove = () =>
         approve.mutate(review.id, {
@@ -68,6 +70,15 @@ export function ReviewCard({ review, selected, onSelect }: { review: Review; sel
                                 <>
                                     {review.product.image ? <img src={review.product.image} alt="" className="igr:size-4 igr:rounded-sm igr:object-cover" /> : null}
                                     {review.product.name ?? t('reviews.card.product', { id: review.product.id })}
+                                    <button
+                                        type="button"
+                                        onClick={() => setAiSummary((v) => !v)}
+                                        aria-expanded={aiSummary}
+                                        className="igr:ml-1 igr:inline-flex igr:items-center igr:gap-0.5 igr:rounded igr:px-1 igr:text-xs igr:text-primary igr:hover:underline"
+                                    >
+                                        <Sparkles className="igr:size-3" aria-hidden />
+                                        {t('intelligence.reviews.open')}
+                                    </button>
                                 </>
                             ) : (
                                 <>
@@ -170,6 +181,11 @@ export function ReviewCard({ review, selected, onSelect }: { review: Review; sel
                     </div>
                 </div>
             </div>
+            {aiSummary && review.product ? (
+                <div className="igr:mt-3">
+                    <ReviewSummaryCard productId={review.product.id} />
+                </div>
+            ) : null}
             <RejectDialog review={review} open={dialog === 'reject'} onClose={() => setDialog(null)} />
             <ReplyDialog review={review} open={dialog === 'reply'} onClose={() => setDialog(null)} />
         </Card>

@@ -134,6 +134,7 @@ final class MetaCloudDriver implements ChannelDriver
             };
             $from = (string) ($m['from'] ?? '');
             $referral = is_array($m['referral'] ?? null) ? $m['referral'] : [];
+            $media = in_array($type, ['image', 'audio', 'video', 'document', 'sticker'], true) && is_array($m[$type] ?? null) ? $m[$type] : [];
             $batch->inbound[] = ['account' => $phoneId, 'message' => new InboundMessage(
                 '+'.ltrim($from, '+'),
                 (string) ($m['id'] ?? ''),
@@ -147,6 +148,9 @@ final class MetaCloudDriver implements ChannelDriver
                 isset($referral['source_id']) ? (string) $referral['source_id'] : null,
                 is_string($names[$from] ?? null) ? $names[$from] : null,
                 $phoneId,
+                isset($media['id']) ? (string) $media['id'] : null,
+                isset($media['mime_type']) ? (string) $media['mime_type'] : null,
+                isset($media['caption']) ? (string) $media['caption'] : null,
             )];
         }
     }

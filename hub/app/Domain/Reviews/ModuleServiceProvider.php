@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Domain\Reviews;
 
+use App\Domain\Intelligence\Ai\Features\Classifiers\AiReviewModerator;
 use App\Domain\Reviews\Console\ProjectStoreReviewsCommand;
 use App\Domain\Reviews\Console\SendReviewRequestsCommand;
 use App\Domain\Reviews\Contracts\ReviewClassifier;
 use App\Domain\Reviews\Listeners\ReviewEventsListener;
-use App\Domain\Reviews\Support\HeuristicReviewClassifier;
 use App\Ingest\Events\EventIngested;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Event;
@@ -23,8 +23,8 @@ final class ModuleServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Fase 4: aquí se registra el ReviewModerator de IA (hub/CLAUDE.md §12).
-        $this->app->bind(ReviewClassifier::class, HeuristicReviewClassifier::class);
+        // Fase 4: moderación con IA (Claude Haiku) sumada a las heurísticas; sin IA, solo las heurísticas.
+        $this->app->bind(ReviewClassifier::class, AiReviewModerator::class);
     }
 
     public function boot(): void

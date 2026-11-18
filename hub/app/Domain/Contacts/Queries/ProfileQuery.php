@@ -10,6 +10,8 @@ use App\Domain\Consent\Models\ContactConsent;
 use App\Domain\Contacts\Http\ContactAccess;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Contacts\Models\ContactIdentity;
+use App\Domain\Intelligence\Predictions\Models\PredictionRun;
+use App\Domain\Intelligence\Predictions\Support\Reliability;
 use App\Domain\Privacy\Actions\ExportContactData;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Models\Workspace;
@@ -52,7 +54,20 @@ final class ProfileQuery
             ->map(fn ($r) => ['month' => $r->getAttribute('month'), 'orders' => (int) $r->getAttribute('orders'), 'revenue' => (string) $r->getAttribute('revenue')]);
 
         $ordersCount = (int) $contact->getAttribute('orders_count');
-        $insufficient = __('Datos insuficientes: llega con las predicciones (Fase 4).');
+        // Predicciones (Fase 4): el motivo de «Datos insuficientes» y la confiabilidad salen de la última corrida de cada modelo.
+        $runs = PredictionRun::latestByModel($workspace->id);
+        $hasOrders = (int) $contact->getAttribute('orders_count') > 0;
+        $reason = function (string $model) use ($runs, $hasOrders): string {
+            $run = $runs[$model] ?? null;
+            $why = match (true) {
+                ! $hasOrders => __('todavía no ha comprado.'),
+                $run === null => __('las predicciones todavía no se han calculado para este espacio de trabajo.'),
+                default => lcfirst((string) ($run->metrics['reason'] ?? __('sin predicción para este contacto en la última corrida.'))),
+            };
+
+            return __('Datos insuficientes: :why', ['why' => $why]);
+        };
+        $insufficient = $reason('clv');
 
         return [
             'id' => $contact->publicId(),
@@ -82,8 +97,23 @@ final class ProfileQuery
                 'predicted_12m' => $contact->getAttribute('predicted_clv_12m_ws'),
                 'predicted_reason' => $contact->getAttribute('predicted_clv_12m_ws') === null ? $insufficient : null,
             ],
-            'churn' => $contact->getAttribute('churn_band') === null ? ['band' => null, 'reason' => $insufficient] : ['band' => $contact->getAttribute('churn_band'), 'risk' => $contact->getAttribute('churn_risk')],
+            'churn' => $contact->getAttribute('churn_band') === null ? ['band' => null, 'reason' => $reason('churn')] : ['band' => $contact->getAttribute('churn_band'), 'risk' => $contact->getAttribute('churn_risk')],
             'expected_next_order_at' => $contact->getAttribute('expected_next_order_at')?->toIso8601String(),
+            'predictions' => [
+                'p_alive' => $contact->getAttribute('p_alive') !== null ? (float) $contact->getAttribute('p_alive') : null,
+                'expected_orders_90d' => $contact->getAttribute('expected_orders_90d') !== null ? (float) $contact->getAttribute('expected_orders_90d') : null,
+                'next_order_reason' => $contact->getAttribute('expected_next_order_at') === null ? $reason('edno') : null,
+                'method' => ['churn' => ($runs['churn'] ?? null)?->status === 'heuristic' ? 'heuristic' : 'model'],
+                'reliability' => [
+                    'clv' => Reliability::level($runs['clv'] ?? null),
+                    'churn' => Reliability::level($runs['churn'] ?? null),
+                    'edno' => Reliability::level($runs['edno'] ?? null),
+                ],
+                'engagement_score' => $contact->getAttribute('engagement_score') !== null ? (int) $contact->getAttribute('engagement_score') : null,
+                'preferred_hour' => $contact->getAttribute('preferred_hour') !== null ? (int) $contact->getAttribute('preferred_hour') : null,
+                'preferred_channel' => $contact->getAttribute('preferred_channel'),
+                'price_band' => $contact->getAttribute('price_band'),
+            ],
             'consents' => $consents,
             'stats' => [
                 'orders_count' => $ordersCount,

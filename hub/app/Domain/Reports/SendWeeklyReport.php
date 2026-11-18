@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Reports;
 
+use App\Domain\Intelligence\Ai\Features\Analyst\WeeklyAnalyst;
 use App\Domain\Reports\Mail\WeeklyReportMail;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Models\User;
@@ -20,7 +21,7 @@ use Illuminate\Support\Str;
  */
 final class SendWeeklyReport
 {
-    public function __construct(private readonly WeeklyReport $report) {}
+    public function __construct(private readonly WeeklyReport $report, private readonly WeeklyAnalyst $analyst) {}
 
     /** @return array{status: string, recipients: list<string>, delivery_id: string|null} */
     public function handle(Workspace $workspace, ?CarbonImmutable $weekStart = null, bool $force = false): array
@@ -36,6 +37,11 @@ final class SendWeeklyReport
             ->filter(fn (User $u) => (json_decode((string) $u->pivot?->getAttribute('notifications'), true)['weekly_report'] ?? true) !== false)
             ->values();
         $facts = $this->report->facts($workspace, $weekStart);
+        // Fase 4: el análisis del analista con IA (o su plantilla sin IA) va en el mismo correo.
+        $analysis = $this->analyst->handle($workspace, $weekStart, $force, $facts);
+        $facts['analysis'] = [
+            'id' => $analysis->publicId(), 'body' => $analysis->body_markdown, 'actions' => $analysis->actions ?? [], 'source' => $analysis->source,
+        ];
         foreach ($recipients as $user) {
             Mail::to($user->email)->locale(str_replace('-', '_', $workspace->locale))->queue(new WeeklyReportMail($facts, $user->name));
         }
@@ -53,6 +59,10 @@ final class SendWeeklyReport
                 'created_at' => $existing->created_at ?? now(),
             ],
         );
+
+        if ($recipients->isNotEmpty()) {
+            $analysis->forceFill(['delivered_at' => now()])->save();
+        }
 
         return ['status' => $recipients->isEmpty() ? 'no_recipients' : 'sent', 'recipients' => array_values($recipients->map(fn (User $u) => $u->email)->all()), 'delivery_id' => (string) $id];
     }

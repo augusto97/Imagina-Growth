@@ -11,6 +11,21 @@
 @endforeach
 </x-mail::table>
 
+@if ($analysis)
+## {{ __('El análisis de la semana') }}
+
+{{ $analysis['body'] }}
+
+@if ($analysis['ai'])
+_{{ __('Escrito con IA a partir de tus cifras; cada número se verificó contra los datos.') }}_
+@endif
+
+@foreach ($analysis['actions'] as $i => $a)
+**{{ $i + 1 }}. {{ $a['title'] }}** — {{ $a['detail'] }} [{{ __('Hacerlo') }}]({{ $a['url'] }})
+
+@endforeach
+@endif
+
 @if (count($insights) > 0)
 ## {{ __('Lo que encontramos') }}
 

@@ -96,16 +96,35 @@ export function ProfileHeader({ profile, actions }: { profile: ContactProfile; a
                 </Kpi>
                 <Kpi label={t('contacts.profile.clvPredicted')}>
                     {profile.clv.predicted_12m !== null ? money(profile.clv.predicted_12m) : <Insufficient reason={profile.clv.predicted_reason} />}
+                    <ReliabilityDot level={profile.predictions?.reliability.clv ?? null} />
                 </Kpi>
                 <Kpi label={t('contacts.profile.churn')}>
                     {profile.churn.band !== null ? (
-                        t(`contacts.profile.churnBand.${profile.churn.band}`, { defaultValue: profile.churn.band })
+                        <Tooltip
+                            content={
+                                profile.predictions?.method.churn === 'heuristic'
+                                    ? t('predictions.profile.heuristic')
+                                    : profile.predictions?.p_alive != null
+                                      ? t('predictions.profile.pAlive', { value: `${Math.round(profile.predictions.p_alive * 100)} %` })
+                                      : t(`contacts.profile.churnBand.${profile.churn.band}`, { defaultValue: profile.churn.band })
+                            }
+                        >
+                            <span tabIndex={0}>{t(`contacts.profile.churnBand.${profile.churn.band}`, { defaultValue: profile.churn.band })}</span>
+                        </Tooltip>
                     ) : (
                         <Insufficient reason={profile.churn.reason ?? null} />
                     )}
+                    <ReliabilityDot level={profile.predictions?.reliability.churn ?? null} />
                 </Kpi>
                 <Kpi label={t('contacts.profile.nextOrder')} help={t('contacts.profile.nextOrderHelp')}>
-                    {profile.expected_next_order_at ? formatDate(profile.expected_next_order_at, workspace.locale, workspace.timezone) : <span className="igr:text-muted-foreground">—</span>}
+                    {profile.expected_next_order_at ? (
+                        formatDate(profile.expected_next_order_at, workspace.locale, workspace.timezone)
+                    ) : profile.predictions?.next_order_reason ? (
+                        <Insufficient reason={profile.predictions.next_order_reason} />
+                    ) : (
+                        <span className="igr:text-muted-foreground">—</span>
+                    )}
+                    <ReliabilityDot level={profile.predictions?.reliability.edno ?? null} />
                 </Kpi>
             </dl>
             <TagsEditor profile={profile} />
@@ -128,6 +147,21 @@ function Kpi({ label, help, children }: { label: string; help?: string; children
             </dt>
             <dd className="igr:mt-1 igr:text-[15px] igr:font-semibold igr:tabular-nums">{children}</dd>
         </div>
+    );
+}
+
+/** Confiabilidad del modelo (Inteligencia → Predicciones), junto a la cifra. */
+function ReliabilityDot({ level }: { level: 'high' | 'medium' | 'low' | null }) {
+    const { t } = useTranslation();
+    if (level === null) return null;
+    const label = t('predictions.profile.reliability', { level: t(`predictions.reliability.${level}`) });
+    return (
+        <Tooltip content={label}>
+            <span tabIndex={0} className="igr:ml-1.5 igr:inline-flex igr:items-center igr:rounded igr:border igr:px-1 igr:text-[10px] igr:font-normal igr:text-muted-foreground">
+                {t(`predictions.reliability.${level}`)}
+                <span className="igr:sr-only">{label}</span>
+            </span>
+        </Tooltip>
     );
 }
 

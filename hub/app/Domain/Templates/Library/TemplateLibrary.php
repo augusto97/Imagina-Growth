@@ -86,13 +86,16 @@ final class TemplateLibrary
 
     /**
      * Atributos de la plantilla ya con la copia de la industria (sin guardar).
+     * `$copyOverride` reemplaza textos de la copia (asunto, titular, introducción…;
+     * lo usa el copiloto de la Fase 4); los vacíos se ignoran.
      *
+     * @param  array<string, string|null>  $copyOverride
      * @return array<string, mixed>
      */
-    public static function attributes(string $key, ?string $industry = null): array
+    public static function attributes(string $key, ?string $industry = null, array $copyOverride = []): array
     {
         $entry = self::entry($key) ?? throw new InvalidArgumentException(__('La plantilla «:key» no existe en la biblioteca.', ['key' => $key]));
-        $copy = self::copy($entry, $industry);
+        $copy = array_replace(self::copy($entry, $industry), array_map('strval', array_filter($copyOverride, fn ($v) => is_string($v) && trim($v) !== '')));
         $attributes = [
             'channel' => $entry['channel'],
             'name' => $entry['name'],

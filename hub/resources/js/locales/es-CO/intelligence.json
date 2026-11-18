@@ -1,0 +1,103 @@
+{
+    "intelligence": {
+        "title": "Inteligencia",
+        "description": "Pregúntale a tus datos, lee el informe de la semana y mira qué tan confiables son las predicciones.",
+        "sections": {
+            "ask": { "title": "Pregúntale a tus datos", "description": "Haz una pregunta en español y recibe la tabla, el gráfico y la explicación." },
+            "reports": { "title": "Informes del analista", "description": "Cada lunes: qué pasó, por qué y 3 acciones para la semana." },
+            "predictions": { "title": "Predicciones", "description": "Próxima compra, riesgo de abandono y valor futuro, con su precisión." },
+            "insights": { "title": "Hallazgos", "description": "Problemas y oportunidades detectados con su impacto estimado." }
+        },
+        "source": {
+            "ai": "Escrito con IA",
+            "aiHelp": "Lo redactó la IA con tus cifras; cada número se verificó contra los datos antes de mostrarlo.",
+            "fallback": "Sin IA",
+            "fallbackHelp": "Texto armado con tus cifras, sin IA."
+        },
+        "fallback": {
+            "numbers": "La IA citó cifras que no estaban en tus datos, así que mostramos el texto sin IA.",
+            "disabled": "La IA no está configurada en este espacio de trabajo.",
+            "budget": "Se alcanzó el tope de gasto en IA de este mes.",
+            "provider": "El proveedor de IA no respondió; mostramos el texto sin IA.",
+            "refusal": "La IA no quiso responder; mostramos el texto sin IA.",
+            "invalid": "La respuesta de la IA no tenía el formato esperado."
+        },
+        "features": {
+            "weekly_analyst": "Analista semanal",
+            "ask_data": "Pregúntale a tus datos",
+            "copilot": "Copiloto",
+            "content": "Contenido",
+            "sales_agent": "Agente de ventas",
+            "inbound_classifier": "Clasificar mensajes",
+            "review_moderator": "Moderar reseñas",
+            "profile_summary": "Resúmenes de perfil",
+            "review_summary": "Resúmenes de reseñas"
+        },
+        "usage": {
+            "title": "Uso de IA este mes",
+            "description": "Lo que va del mes frente al tope de gasto.",
+            "ofBudget": "de {{budget}} de tope mensual",
+            "requests_one": "{{count}} llamada",
+            "requests_other": "{{count}} llamadas",
+            "none": "Todavía no hay llamadas a la IA este mes.",
+            "notConfigured": "IA sin configurar: todo funciona con textos sin IA",
+            "budgetReached": "Tope del mes alcanzado: se usan los textos sin IA"
+        },
+        "saved": {
+            "title": "Consultas fijadas",
+            "description": "Las respuestas que fijaste desde «Pregúntale», con las cifras al día.",
+            "empty": "Fija una respuesta desde «Pregúntale a tus datos» para verla aquí.",
+            "unpin": "Quitar"
+        },
+        "ask": {
+            "title": "Pregúntale a tus datos",
+            "description": "Pregunta en español; la IA arma la consulta, el sistema la corre y la tabla sale de tus datos.",
+            "label": "Tu pregunta",
+            "placeholder": "Por ejemplo: ¿cuánto vendí la semana pasada por canal?",
+            "submit": "Preguntar",
+            "examples": "Ejemplos de preguntas",
+            "privacy": "La IA solo ve las cifras agregadas de la consulta, nunca datos personales.",
+            "noPermission": "Tu rol puede ver las consultas fijadas, pero no hacer preguntas nuevas.",
+            "empty": "Haz tu primera pregunta",
+            "emptyHelp": "Ventas, pedidos, ticket, clientes nuevos, tráfico y conversión, por fecha, canal, ciudad, dispositivo o método de pago.",
+            "failed": "No pudimos responder. Intenta de nuevo.",
+            "showTable": "Ver tabla",
+            "showChart": "Ver gráfico",
+            "pin": "Fijar en Inteligencia",
+            "pinned": "Quedó fijada en Inteligencia",
+            "saveSegment": "Guardar como segmento",
+            "savedSegment": "Segmento creado"
+        },
+        "reports": {
+            "title": "Informes del analista",
+            "description": "Cada lunes a las 7:00 llega por correo a los dueños. Toda cifra se verifica contra tus datos.",
+            "generate": "Escribir el de la última semana",
+            "generated": "Informe listo",
+            "failed": "No pudimos completar la acción.",
+            "empty": "Todavía no hay informes",
+            "emptyHelp": "El primero se escribe el próximo lunes, o ahora mismo con el botón de arriba.",
+            "weeks": "Semanas",
+            "week": "Semana del {{from}} al {{to}}",
+            "delivered": "Enviado por correo el {{date}}",
+            "notDelivered": "Todavía no se envió por correo",
+            "resend": "Reenviar por correo",
+            "sent_one": "Se envió a {{count}} persona",
+            "sent_other": "Se envió a {{count}} personas",
+            "actions": "Tus 3 acciones de la semana",
+            "open": "Ir",
+            "openFlow": "Ver el flujo",
+            "checked_one": "{{count}} cifra verificada",
+            "checked_other": "{{count}} cifras verificadas",
+            "checkedHelp": "Cada número del texto se comparó con los datos de la semana."
+        },
+        "profile": {
+            "title": "Resumen del cliente"
+        },
+        "reviews": {
+            "title": "Lo que dicen las reseñas",
+            "open": "Resumen IA",
+            "positives": "Lo que gusta",
+            "negatives": "Lo que se critica"
+        }
+    }
+}

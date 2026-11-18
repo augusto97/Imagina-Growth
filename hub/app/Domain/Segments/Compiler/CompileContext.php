@@ -106,7 +106,8 @@ final class CompileContext
     public function cleanup(): void
     {
         foreach ($this->tempTables as $name) {
-            Schema::dropIfExists($name);
+            // Con TEMPORARY: un DROP TABLE a secas confirma la transacción abierta en MariaDB.
+            DB::statement('DROP TEMPORARY TABLE IF EXISTS `'.$name.'`');
         }
         $this->tempTables = [];
     }

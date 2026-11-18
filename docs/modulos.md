@@ -403,6 +403,7 @@
   - No inventa precios ni stock (siempre consulta) y no promete descuentos fuera de las reglas.
   - Modos `assist` (sugiere y el humano envía) y `auto`.
   - Registro y revisión de cada conversación.
+  - **Estado (Fase 4):** listo en el hub (`SalesAgent`, inteligencia.md §6.7). Ajustes, «Probar el agente» y revisión en `bandeja/agente`. La bandeja lo llama en cada entrante de una conversación con `ai_mode` `assist` o `auto`, y con «Sugerir respuesta». Las cifras de cada respuesta se validan contra lo que devolvieron sus herramientas; si no cuadran, no se envían.
 - **Clasificador de mensajes entrantes:** intención (compra, soporte, queja, baja). **Un «no me escriban más», «baja», «STOP» o equivalente revoca el consentimiento de inmediato.**
 
 ---
@@ -568,6 +569,13 @@ Especificación completa en `docs/inteligencia.md`.
 | 1 | métricas, canales, RFM y primeros hallazgos (5 detectores) |
 | 2 | mejor hora de envío, atribución de mensajes e incremento |
 | 4 | predicciones (próxima compra, abandono, CLV), afinidad, todos los detectores, analista semanal con IA, «Pregúntale a tus datos», copiloto, resúmenes de perfil y reseñas |
+
+**Cómo quedó (Fase 4: analista, «Pregúntale», resúmenes y clasificadores):**
+- **Analista semanal** (`WeeklyAnalyst`): los lunes a las 7:00 locales, dentro del resumen semanal (`igr:report:weekly --due`). Hechos: los 5 KPI de la semana frente a la anterior y al promedio de las 4 previas, con los cambios ya calculados, y los 5 hallazgos principales (`Insights\Queries\TopInsights` si existe; si no, los abiertos por severidad e impacto), sin datos personales. Salida estructurada: resumen, por qué y exactamente 3 acciones, cada una con ruta del panel o flujo de la biblioteca (lo demás se cambia por «hallazgos»); tope de 250 palabras recortando el «por qué». Toda cifra se valida; si falla dos veces, o la respuesta llega vacía, va la plantilla sin IA. Uno por semana en `ai_reports`; el correo a los dueños lleva el análisis y las 3 acciones. Pantalla «Informes» con «Escrito con IA» o «Sin IA», reenvío y «Escribir el de la última semana».
+- **«Pregúntale a tus datos»** (`AskYourData`): una sola herramienta, `run_metric_query`, con métricas y dimensiones del catálogo como enumeraciones, rango, comparación, granularidad y filtros de canal, dispositivo y ciudad; el hub la valida y la corre con `MetricQueryRunner`. Las cifras de la respuesta se validan contra los resultados (y la pregunta); si inventa, se corrige una vez y luego responde la plantilla con los totales reales. La tabla y el gráfico (línea por fecha, barras por una dimensión, tabla con dos, cifras sin dimensión) salen de los datos. «Guardar como segmento» solo cuando la consulta habla de clientes que compraron (compró en el rango, y en la ciudad si se filtró); los filtros de tráfico no tienen equivalente en el perfil. Los tableros de Analítica son fijos, así que «Agregar al tablero» fija la consulta en Inteligencia, donde se vuelve a correr sin IA con las cifras al día.
+- **Resúmenes:** de perfil (Claude Haiku, solo agregados y el primer nombre; en caché hasta que cambien los datos) y de las reseñas publicadas de un producto (desde 3 reseñas, sin autores).
+- **Clasificadores:** los entrantes que no son palabra de baja se clasifican en la cola `ai` (intención y sentimiento en `conversations.intent`). Una baja leída por la IA con confianza ≥ 0,8 revoca el marketing del canal por el mismo camino que las palabras (`UnsubscribeService`, `via` keyword, evidencia `detected_by: ai`) y lo confirma; con menos, nunca revoca: etiqueta `revisar_baja`. La moderación de reseñas con IA suma banderas a las heurísticas. Sin IA, o si falla, quedan las palabras y las heurísticas.
+- **Uso:** el gasto del mes frente al tope y por función, en Inteligencia.
 
 ---
 

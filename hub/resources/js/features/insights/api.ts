@@ -8,32 +8,98 @@ export type InsightStatus = 'new' | 'seen' | 'dismissed' | 'actioned' | 'expired
 export type InsightListStatus = 'open' | 'actioned' | 'dismissed' | 'expired';
 export const LIST_STATUSES: InsightListStatus[] = ['open', 'actioned', 'dismissed', 'expired'];
 
+/** Categorías de App\Domain\Intelligence\Insights\DetectorCatalog::CATEGORIES. */
+export const CATEGORIES = ['sales', 'customers', 'messaging', 'measurement', 'services'] as const;
+export type InsightCategory = (typeof CATEGORIES)[number];
+
+export type TermUnit = 'count' | 'rate' | 'money' | 'days' | 'number';
+
+export interface ImpactTerm {
+    label: string;
+    value: number;
+    unit: TermUnit;
+    /** Clave del supuesto editable (config/igr-insights.php), si el factor es un supuesto. */
+    assumption: string | null;
+}
+
+export interface InsightAction {
+    label: string;
+    to?: string;
+    url?: string;
+    /** link (por defecto), activate_flow o create_campaign: estos dos se hacen con 1 clic. */
+    kind?: 'link' | 'activate_flow' | 'create_campaign';
+}
+
 export interface Insight {
     id: string;
     detector: string;
+    number: number | null;
+    category: InsightCategory;
     severity: string;
     title: string;
     facts: Record<string, unknown>;
     impact: string | null;
+    formula: { terms: ImpactTerm[]; total: number; text: string } | null;
     assumptions: string[];
-    action: { label: string; to?: string; url?: string } | null;
+    action: InsightAction | null;
     status: InsightStatus;
     period_start: string | null;
     period_end: string | null;
+    valid_until: string | null;
     created_at: string | null;
     updated_at: string | null;
 }
 
+export interface InsightsSummary {
+    open: number;
+    impact_open: number;
+    actioned_month: number;
+    impact_actioned_month: number;
+    by_category: Record<InsightCategory, number>;
+}
+
+export interface Assumption {
+    key: string;
+    value: number;
+    default: number;
+    unit: 'rate';
+    min: number;
+    max: number;
+    edited: boolean;
+}
+
+export interface DetectorInfo {
+    number: number;
+    key: string;
+    category: InsightCategory;
+    cadence: 'nightly' | 'weekly';
+    phase: number;
+    enabled: boolean;
+    last_run: { status: 'ok' | 'skipped' | 'failed' | 'disabled'; found?: number; reason?: string; at?: string | null } | null;
+}
+
+export interface InsightFilters {
+    status: InsightListStatus;
+    category?: InsightCategory | '';
+    severity?: string;
+}
+
 const keys = {
     all: (ws: string) => ['ws', ws, 'insights'] as const,
-    list: (ws: string, status: InsightListStatus) => ['ws', ws, 'insights', 'list', status] as const,
+    list: (ws: string, f: InsightFilters) => ['ws', ws, 'insights', 'list', f.status, f.category ?? '', f.severity ?? ''] as const,
     one: (ws: string, id: string) => ['ws', ws, 'insights', 'one', id] as const,
+    settings: (ws: string) => ['ws', ws, 'insights', 'settings'] as const,
 };
 
-export function useInsights(ws: string, status: InsightListStatus) {
+export function useInsights(ws: string, filters: InsightFilters) {
     return useQuery({
-        queryKey: keys.list(ws, status),
-        queryFn: async ({ signal }) => (await api.get<{ data: Insight[] }>(`${wsPath(ws)}/insights?status=${status}`, signal)).data,
+        queryKey: keys.list(ws, filters),
+        queryFn: async ({ signal }) => {
+            const q = new URLSearchParams({ status: filters.status });
+            if (filters.category) q.set('category', filters.category);
+            if (filters.severity) q.set('severity', filters.severity);
+            return api.get<{ data: Insight[]; meta: InsightsSummary }>(`${wsPath(ws)}/insights?${q.toString()}`, signal);
+        },
     });
 }
 
@@ -59,5 +125,36 @@ export function useUpdateInsight(ws: string) {
             void qc.invalidateQueries({ queryKey: keys.all(ws) });
             void qc.invalidateQueries({ queryKey: ['ws', ws, 'analytics', 'overview'] });
         },
+    });
+}
+
+/** «Hacer ahora» con 1 clic: activa el flujo o crea la campaña y devuelve a dónde ir. */
+export function useRunInsightAction(ws: string) {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => api.post<{ to: string; result: string; insight: Insight }>(`${wsPath(ws)}/insights/${encodeURIComponent(id)}/act`),
+        onSuccess: (res) => {
+            qc.setQueryData(keys.one(ws, res.insight.id), res.insight);
+            void qc.invalidateQueries({ queryKey: keys.all(ws) });
+            void qc.invalidateQueries({ queryKey: ['ws', ws, 'flows'] });
+            void qc.invalidateQueries({ queryKey: ['ws', ws, 'campaigns'] });
+        },
+    });
+}
+
+export function useInsightSettings(ws: string) {
+    return useQuery({
+        queryKey: keys.settings(ws),
+        queryFn: async ({ signal }) => api.get<{ assumptions: Assumption[]; detectors: DetectorInfo[] }>(`${wsPath(ws)}/insights/settings`, signal),
+    });
+}
+
+/** Cambia un supuesto (o lo devuelve a su valor por defecto con null) y recalcula los hallazgos abiertos. */
+export function useUpdateAssumption(ws: string) {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ key, value }: { key: string; value: number | null }) =>
+            api.put<{ assumptions: Assumption[]; updated: number }>(`${wsPath(ws)}/insights/assumptions/${encodeURIComponent(key)}`, { value }),
+        onSuccess: () => void qc.invalidateQueries({ queryKey: keys.all(ws) }),
     });
 }

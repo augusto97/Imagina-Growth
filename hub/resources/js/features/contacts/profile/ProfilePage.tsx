@@ -13,6 +13,7 @@ import { toast } from '@/stores/toast';
 import { ConfirmDeleteDialog } from '@/features/privacy/ConfirmDeleteDialog';
 import { ExportDialog } from '@/features/privacy/ExportDialog';
 import { useRunDataRequest } from '@/features/privacy/api';
+import { ProfileSummaryCard } from '@/features/intelligence/ProfileSummaryCard';
 import { ContactLoyaltyTab } from '@/features/loyalty/ContactLoyaltyTab';
 import { useContactAbilities } from '../abilities';
 import { useContactProfile } from '../api';
@@ -169,6 +170,7 @@ export function ProfilePage() {
                     </TabsContent>
                 </Tabs>
                 <aside className="igr:space-y-4">
+                    <ProfileSummaryCard contactId={p.id} />
                     <NotesPanel contactId={p.id} />
                     <Timeline contactId={p.id} />
                 </aside>

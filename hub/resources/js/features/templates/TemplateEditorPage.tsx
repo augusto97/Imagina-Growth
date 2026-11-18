@@ -14,6 +14,7 @@ import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
 import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
+import { SuggestSubjectButton, SuggestVariantsButton, SuggestWhatsappButton } from '@/features/copilot/Suggest';
 import {
     CATEGORIES,
     type PreviewResult,
@@ -326,6 +327,12 @@ function EmailEditor({ draft, set, canEdit, canvas, errors }: EditorProps & { ca
                 <CardContent className="igr:grid igr:gap-4 igr:pt-5 igr:md:grid-cols-2">
                     <LiquidField id="tpl-subject" label={t('templates.fields.subject')} value={draft.subject} onChange={(v) => set({ subject: v })} disabled={!canEdit} max={80} error={errors.subject} />
                     <LiquidField id="tpl-preheader" label={t('templates.fields.preheader')} value={draft.preheader} onChange={(v) => set({ preheader: v })} disabled={!canEdit} max={120} error={errors.preheader} help={t('templates.fields.preheaderHelp')} />
+                    {canEdit ? (
+                        <div className="igr:flex igr:flex-wrap igr:justify-end igr:gap-1 igr:md:col-span-2">
+                            <SuggestSubjectButton onPick={(subject, preheader) => set({ subject, preheader })} />
+                            {draft.subject.trim() !== '' ? <SuggestVariantsButton text={draft.subject} kind="subject" onPick={(subject) => set({ subject })} /> : null}
+                        </div>
+                    ) : null}
                 </CardContent>
             </Card>
             <div className="igr:flex igr:flex-wrap igr:items-center igr:justify-between igr:gap-2">
@@ -395,6 +402,11 @@ function SmsEditor({ draft, set, canEdit, error }: EditorProps & { error?: strin
                     />
                 </div>
                 <Textarea id="tpl-sms" rows={6} value={draft.body_text} onChange={(e) => set({ body_text: e.target.value })} disabled={!canEdit} aria-invalid={error ? true : undefined} />
+                {canEdit && draft.body_text.trim() !== '' ? (
+                    <div className="igr:flex igr:justify-end">
+                        <SuggestVariantsButton text={draft.body_text} kind="body" onPick={(body_text) => set({ body_text })} />
+                    </div>
+                ) : null}
                 <p className={info.segments > 3 ? 'igr:text-xs igr:text-warning' : 'igr:text-xs igr:text-muted-foreground'} aria-live="polite">
                     {t('templates.sms.counter', { length: info.length, segments: info.segments, encoding: info.encoding })}
                     {info.encoding === 'UCS-2' ? ` · ${t('templates.sms.unicode')}` : ''}
@@ -436,6 +448,11 @@ function WhatsAppEditor({ draft, set, canEdit }: EditorProps) {
                     <CardDescription>{t('templates.wa.help')}</CardDescription>
                 </CardHeader>
                 <CardContent className="igr:space-y-4">
+                    {canEdit ? (
+                        <div className="igr:flex igr:justify-end">
+                            <SuggestWhatsappButton />
+                        </div>
+                    ) : null}
                     {sources.isPending ? (
                         <Skeleton className="igr:h-9" />
                     ) : (sources.data ?? []).length === 0 ? (

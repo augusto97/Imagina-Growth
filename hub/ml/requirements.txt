@@ -1,0 +1,6 @@
+# Servicio de predicciones de Imagina Growth (hub/CLAUDE.md §3, inteligencia.md §4.2–4.3).
+numpy==2.3.4
+scipy==1.16.3
+fastapi==0.121.0
+uvicorn==0.38.0
+pydantic==2.12.4

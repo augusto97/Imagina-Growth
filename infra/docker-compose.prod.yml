@@ -42,7 +42,18 @@ services:
     <<: *hub
     command: ["php", "artisan", "schedule:work"]
 
-  # reverb (Fase 2: bandeja y «En este momento») y ml (Fase 4) se agregan con su fase.
+  # Predicciones (Fase 4, hub/ml): solo en la red interna; el hub lo llama con IGR_ML_URL=http://ml:8095 e IGR_ML_TOKEN.
+  ml:
+    image: ${IGR_ML_IMAGE:-imagina-growth/ml:latest}
+    restart: unless-stopped
+    environment:
+      IGR_ML_TOKEN: ${IGR_ML_TOKEN:?define IGR_ML_TOKEN}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8095/health')"]
+      interval: 30s
+      retries: 5
+
+  # reverb (bandeja y «En este momento») se agrega con su fase.
 
   caddy:
     image: caddy:2

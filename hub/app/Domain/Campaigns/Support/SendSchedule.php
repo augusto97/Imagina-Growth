@@ -6,6 +6,7 @@ namespace App\Domain\Campaigns\Support;
 
 use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Consent\Policy\LegalWindow;
+use App\Domain\Intelligence\Predictions\Support\BestHour;
 use App\Domain\Workspaces\Models\Workspace;
 use Carbon\CarbonImmutable;
 
@@ -47,6 +48,10 @@ final class SendSchedule
         }
         $wall = $sendAt->setTimezone($workspace->timezone ?: 'America/Bogota');
         $tz = LegalWindow::timezoneFor($country, $timezone);
+        // Sin hora propia, la mejor del espacio de trabajo para el canal (inteligencia.md §4.7).
+        if ($campaign->send_mode === 'best_time' && $preferredHour === null) {
+            $preferredHour = BestHour::workspaceHour($workspace->id, (string) $campaign->getAttribute('channel'));
+        }
         $hour = $campaign->send_mode === 'best_time' && $preferredHour !== null && $preferredHour >= 0 && $preferredHour <= 23 ? $preferredHour : (int) $wall->format('G');
         $minute = $campaign->send_mode === 'best_time' && $preferredHour !== null ? 0 : (int) $wall->format('i');
 

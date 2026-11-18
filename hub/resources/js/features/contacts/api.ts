@@ -80,6 +80,17 @@ export interface ContactProfile {
     clv: { historic: string; predicted_12m: string | null; predicted_reason: string | null };
     churn: { band: string | null; reason?: string; risk?: number | null };
     expected_next_order_at: string | null;
+    predictions?: {
+        p_alive: number | null;
+        expected_orders_90d: number | null;
+        next_order_reason: string | null;
+        method: { churn: 'model' | 'heuristic' };
+        reliability: { clv: 'high' | 'medium' | 'low' | null; churn: 'high' | 'medium' | 'low' | null; edno: 'high' | 'medium' | 'low' | null };
+        engagement_score: number | null;
+        preferred_hour: number | null;
+        preferred_channel: string | null;
+        price_band: string | null;
+    };
     consents: Record<string, ConsentState>;
     stats: {
         orders_count: number;

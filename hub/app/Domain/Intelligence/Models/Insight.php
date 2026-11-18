@@ -46,6 +46,7 @@ class Insight extends Model
             'period_start' => 'date',
             'period_end' => 'date',
             'dismissed_at' => 'datetime',
+            'valid_until' => 'datetime',
         ];
     }
 }

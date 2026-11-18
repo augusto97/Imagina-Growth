@@ -16,6 +16,7 @@ import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
 import { formatNumber, formatRelative } from '@/lib/format';
 import { toast } from '@/stores/toast';
+import { CreateWithAiButton } from '@/features/copilot/CopilotDialog';
 import { useCreateFlow, useCreateFromLibrary, useFlowLibrary, useFlowOptions, useFlows } from './api';
 import { triggerText } from './catalog';
 import type { FlowStatus, LibraryFlow } from './types';
@@ -48,10 +49,13 @@ export function FlowsPage() {
                 description={t('flows.description')}
                 actions={
                     canManage ? (
-                        <Button onClick={() => setCreating(true)}>
-                            <Plus />
-                            {t('flows.new')}
-                        </Button>
+                        <div className="igr:flex igr:gap-2">
+                            <CreateWithAiButton kind="flow" />
+                            <Button onClick={() => setCreating(true)}>
+                                <Plus />
+                                {t('flows.new')}
+                            </Button>
+                        </div>
                     ) : null
                 }
             />

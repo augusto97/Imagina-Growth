@@ -11,14 +11,15 @@ final class InsightsCommand extends Command
 {
     use SelectsWorkspaces;
 
-    protected $signature = 'igr:insights {--workspace=}';
+    protected $signature = 'igr:insights {--workspace=} {--all : Corre también los detectores semanales aunque no sea lunes} {--detector=* : Solo estos detectores (clave)}';
 
     protected $description = 'Corre los detectores de hallazgos';
 
     public function handle(InsightEngine $engine): int
     {
         foreach ($this->workspaces() as $ws) {
-            $summary = $engine->run($ws);
+            $only = (array) $this->option('detector');
+            $summary = $engine->run($ws, null, (bool) $this->option('all'), $only === [] ? null : array_values(array_map('strval', $only)));
             $this->line($ws->name.': '.json_encode($summary));
         }
 

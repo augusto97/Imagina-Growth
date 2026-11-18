@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { errorMessage } from '@/features/contacts/errors';
+import { CreateWithAiButton } from '@/features/copilot/CopilotDialog';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/format';
 import { useCalendar, useCampaignActions, useCampaigns, useCreateCampaign } from './api';
@@ -53,10 +54,13 @@ export function CampaignsPage() {
                 description={t('campaigns.description')}
                 actions={
                     canManage ? (
-                        <Button onClick={() => setCreating({ name: '' })}>
-                            <Plus />
-                            {t('campaigns.new')}
-                        </Button>
+                        <div className="igr:flex igr:gap-2">
+                            <CreateWithAiButton kind="campaign" />
+                            <Button onClick={() => setCreating({ name: '' })}>
+                                <Plus />
+                                {t('campaigns.new')}
+                            </Button>
+                        </div>
                     ) : null
                 }
             />

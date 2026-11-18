@@ -22,6 +22,17 @@ use Illuminate\Database\Eloquent\Model;
  * @property CarbonInterface|null $window_expires_at
  * @property CarbonInterface|null $last_inbound_at
  * @property CarbonInterface|null $last_outbound_at
+ * @property string|null $assignee_id
+ * @property list<string>|null $labels
+ * @property string $ai_mode
+ * @property int $unread_count
+ * @property CarbonInterface|null $last_message_at
+ * @property CarbonInterface|null $resolved_at
+ * @property int|null $first_response_seconds
+ * @property string|null $intent
+ * @property string|null $handoff_reason
+ * @property CarbonInterface|null $opened_at
+ * @property CarbonInterface|null $awaiting_since
  */
 class Conversation extends Model
 {
@@ -29,7 +40,8 @@ class Conversation extends Model
 
     public const ID_PREFIX = 'cnv';
 
-    protected $fillable = ['workspace_id', 'contact_id', 'channel_account_id', 'status', 'assignee_id', 'labels', 'ai_mode', 'window_expires_at', 'last_inbound_at', 'last_outbound_at', 'first_response_seconds'];
+    protected $fillable = ['workspace_id', 'contact_id', 'channel_account_id', 'status', 'assignee_id', 'labels', 'ai_mode', 'window_expires_at', 'last_inbound_at', 'last_outbound_at', 'first_response_seconds',
+        'unread_count', 'last_message_at', 'resolved_at', 'intent', 'handoff_reason', 'opened_at', 'awaiting_since'];
 
     protected function casts(): array
     {
@@ -38,6 +50,12 @@ class Conversation extends Model
             'window_expires_at' => 'datetime',
             'last_inbound_at' => 'datetime',
             'last_outbound_at' => 'datetime',
+            'last_message_at' => 'datetime',
+            'resolved_at' => 'datetime',
+            'opened_at' => 'datetime',
+            'awaiting_since' => 'datetime',
+            'unread_count' => 'integer',
+            'first_response_seconds' => 'integer',
         ];
     }
 }

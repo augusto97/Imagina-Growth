@@ -25,5 +25,8 @@ final class InboundMessage
         public readonly ?string $referralSourceId = null,
         public readonly ?string $profileName = null,
         public readonly ?string $recipientId = null,   // phone_number_id o número que recibió
+        public readonly ?string $mediaId = null,       // Fase 4: id del adjunto en el proveedor (imagen, audio, video, documento, sticker)
+        public readonly ?string $mediaMime = null,
+        public readonly ?string $caption = null,       // texto que acompaña al adjunto
     ) {}
 }

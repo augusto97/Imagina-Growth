@@ -74,7 +74,9 @@ final class InboundHandler
                 'kind' => MessageKind::Service,
                 'source_type' => 'inbox',
                 'status' => 'received',
-                'payload' => array_filter(['type' => $in->type, 'text' => $in->text, 'button_payload' => $in->buttonPayload, 'context_id' => $in->contextMessageId], fn ($v) => $v !== null),
+                'payload' => array_filter(['type' => $in->type, 'text' => $in->text ?? $in->caption, 'button_payload' => $in->buttonPayload, 'context_id' => $in->contextMessageId,
+                    'media' => $in->mediaId !== null ? array_filter(['id' => $in->mediaId, 'mime' => $in->mediaMime]) : null,
+                    'ctwa_clid' => $in->ctwaClid, 'referral_source' => $in->referralSourceType], fn ($v) => $v !== null),
                 'queued_at' => $in->at,
             ]);
             if ($account->channel === Channel::WhatsApp) {

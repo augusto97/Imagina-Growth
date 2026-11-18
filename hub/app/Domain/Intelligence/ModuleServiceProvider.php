@@ -12,6 +12,7 @@ use App\Domain\Intelligence\Console\InsightsCommand;
 use App\Domain\Intelligence\Console\NightlyCommand;
 use App\Domain\Intelligence\Console\RfmCommand;
 use App\Domain\Intelligence\Console\WeeklyReportCommand;
+use App\Domain\Intelligence\Predictions\PredictionsServiceProvider;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
 
@@ -25,6 +26,8 @@ final class ModuleServiceProvider extends ServiceProvider
     {
         // Fase 4: la única puerta hacia el modelo (hub/CLAUDE.md §12). Las pruebas usan FakeAiGateway::install().
         $this->app->singleton(AiGateway::class, AnthropicAiGateway::class);
+        // Fase 4: predicciones (comando y horarios propios).
+        $this->app->register(PredictionsServiceProvider::class);
     }
 
     public function boot(): void

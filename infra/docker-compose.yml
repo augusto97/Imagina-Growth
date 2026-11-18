@@ -48,6 +48,18 @@ services:
     <<: *hub
     command: php artisan schedule:work
 
+  # Predicciones (Fase 4): BG/NBD y Gamma-Gamma (hub/ml). El hub lo llama con IGR_ML_URL=http://ml:8095.
+  ml:
+    build:
+      context: ../hub/ml
+    environment:
+      IGR_ML_TOKEN: ${IGR_ML_TOKEN:-dev-ml-token}
+    ports: ["8095:8095"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8095/health')"]
+      interval: 10s
+      retries: 10
+
   vite:
     image: node:22-bookworm-slim
     working_dir: /app

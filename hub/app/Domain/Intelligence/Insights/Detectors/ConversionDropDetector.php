@@ -9,6 +9,8 @@ use App\Domain\Intelligence\Insights\Detector;
 use App\Domain\Intelligence\Insights\InsightCandidate;
 use App\Domain\Intelligence\Insights\Money;
 use App\Domain\Intelligence\Insights\Stats;
+use App\Domain\Intelligence\Insights\Support\Impact;
+use App\Domain\Intelligence\Insights\Support\Term;
 use App\Domain\Workspaces\Models\Workspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -102,10 +104,9 @@ final class ConversionDropDetector implements Detector
             }
             [$dim, $val] = explode(':', $segment, 2);
             $lostOrders = ($before - $after) * $rN;
-            $impact = round($lostOrders * $aov, 2);
+            $formula = Impact::of(new Term(__('pedidos perdidos en la última semana'), round($lostOrders, 1), 'count'), new Term(__('de ticket'), $aov, 'money'));
             $assumptions = [
                 __('Si la conversión hubiera seguido en :before, la última semana habría tenido :orders pedidos más.', ['before' => Money::percent($before), 'orders' => number_format($lostOrders, 1, ',', '.')]),
-                __('Ticket promedio de las últimas 5 semanas: :aov.', ['aov' => Money::format($aov, $workspace->currency)]),
             ];
             if ($changes !== []) {
                 $assumptions[] = __('Ese periodo coincide con cambios en el sitio: :list.', ['list' => implode(', ', array_map(fn ($c) => $c['name'].' ('.$c['date'].')', $changes))]);
@@ -117,7 +118,7 @@ final class ConversionDropDetector implements Detector
                     'metric' => __('insight.metric.'.$metric),
                     'segment' => $dim === 'all' ? '' : ' ('.$this->segmentLabel($dim, $val).')',
                     'before' => Money::percent($before), 'after' => Money::percent($after),
-                ]),
+                ]).($changes !== [] ? __('; coincide con la actualización de :name (:date)', ['name' => $changes[0]['name'], 'date' => $changes[0]['date']]) : ''),
                 facts: [
                     'metric' => $metric, 'dimension' => $dim, 'value' => $val,
                     'baseline' => ['from' => $baseStart->toDateString(), 'to' => $recentStart->subDay()->toDateString(), 'hits' => $bHits, 'n' => $bN, 'rate' => round($before, 4)],
@@ -125,14 +126,14 @@ final class ConversionDropDetector implements Detector
                     'relative_drop' => round($drop, 4), 'z' => round($test['z'], 3), 'p_value' => round($test['p'], 5),
                     'aov' => round($aov, 2), 'lost_orders' => round($lostOrders, 1), 'site_changes' => $changes, 'timezone' => $tz,
                 ],
-                impact: (string) $impact,
                 assumptions: $assumptions,
+                formula: $formula,
                 action: ['label' => __('Revisa el embudo'), 'to' => 'analitica/embudo'],
                 periodStart: $recentStart->toDateString(),
                 periodEnd: $recentEnd->subDay()->toDateString(),
             );
         }
-        usort($found, fn (InsightCandidate $a, InsightCandidate $b) => (float) $b->impact <=> (float) $a->impact);
+        usort($found, fn (InsightCandidate $a, InsightCandidate $b) => (float) $b->impactValue() <=> (float) $a->impactValue());
 
         return array_slice($found, 0, 3);
     }

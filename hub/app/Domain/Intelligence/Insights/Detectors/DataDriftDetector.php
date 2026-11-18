@@ -51,6 +51,7 @@ final class DataDriftDetector implements Detector
                     'rows' => array_values(array_filter($rec['rows'], fn ($r) => ! $r['ok']))],
                 assumptions: [__('Se compara la conciliación por estado que calcula el plugin con los pedidos recibidos.')],
                 action: ['label' => __('Abre el sitio y revisa la conexión y la importación'), 'to' => 'sitios/'.$site->publicId()],
+                magnitude: $diff,
             );
         }
 

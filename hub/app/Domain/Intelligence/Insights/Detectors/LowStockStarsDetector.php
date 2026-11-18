@@ -6,6 +6,8 @@ namespace App\Domain\Intelligence\Insights\Detectors;
 
 use App\Domain\Intelligence\Insights\Detector;
 use App\Domain\Intelligence\Insights\InsightCandidate;
+use App\Domain\Intelligence\Insights\Support\Impact;
+use App\Domain\Intelligence\Insights\Support\Term;
 use App\Domain\Workspaces\Models\Workspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -72,7 +74,7 @@ final class LowStockStarsDetector implements Detector
                 ? __(':name, uno de tus más vendidos, se agota en :days días', ['name' => $first['name'], 'days' => number_format($first['days_left'], 0)])
                 : __(':count de tus productos más vendidos se agotan en menos de 14 días', ['count' => count($low)]),
             facts: ['products' => array_slice($low, 0, 10), 'window_days' => 30, 'threshold_days' => 14],
-            impact: (string) round($impact, 2),
+            formula: Impact::of(new Term(__('en ventas en riesgo en los próximos 30 días'), round($impact, 2), 'money')),
             assumptions: [
                 __('Se siguen vendiendo al ritmo de los últimos 30 días.'),
                 __('Las ventas en riesgo son los días sin inventario dentro de los próximos 30, por el precio actual.'),

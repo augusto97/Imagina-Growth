@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Check, ExternalLink, EyeOff, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Check, EyeOff, RotateCcw } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
@@ -12,6 +12,7 @@ import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { formatDate, formatDateTime, formatMoney, formatNumber, formatPercent } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { useInsight, useUpdateInsight } from './api';
+import { ImpactFormula, InsightActionButton } from './components';
 import { SeverityBadge } from './severity';
 
 /** Formato de una cifra de los hechos según su nombre (las cifras salen calculadas del detector). */
@@ -132,7 +133,10 @@ export function InsightDetailPage() {
             <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-2">
                 <SeverityBadge severity={i.severity} />
                 <Badge variant="outline">{t(`insights.status.${i.status}`)}</Badge>
-                <span className="igr:text-xs igr:text-muted-foreground">{t(`insights.detector.${i.detector}`, { defaultValue: i.detector })}</span>
+                <span className="igr:text-xs igr:text-muted-foreground">
+                    {i.number ? `#${i.number} · ` : ''}
+                    {t(`insights.category.${i.category}`)} · {t(`insights.detector.${i.detector}`, { defaultValue: i.detector })}
+                </span>
             </div>
             <h1 className="igr:mt-2 igr:text-xl igr:font-semibold igr:tracking-tight">{i.title}</h1>
             <p className="igr:mt-1 igr:text-xs igr:text-muted-foreground">
@@ -140,7 +144,7 @@ export function InsightDetailPage() {
                 {t('insights.detectedAt', { date: formatDateTime(i.created_at, workspace.locale, workspace.timezone) })}
             </p>
 
-            <div className="igr:mt-5 igr:grid igr:gap-4 igr:md:grid-cols-[1fr_280px]">
+            <div className="igr:mt-5 igr:grid igr:gap-4 igr:md:grid-cols-[1fr_340px]">
                 <Card>
                     <CardHeader>
                         <CardTitle>{t('insights.whatToDo')}</CardTitle>
@@ -149,20 +153,9 @@ export function InsightDetailPage() {
                         {action ? (
                             <>
                                 <p className="igr:text-[13px]">{action.label}</p>
-                                {action.to ? (
-                                    <Button asChild size="sm">
-                                        <Link to={`${base}/${action.to}`}>
-                                            {t('insights.go')}
-                                            <ArrowRight />
-                                        </Link>
-                                    </Button>
-                                ) : action.url ? (
-                                    <Button asChild size="sm" variant="outline">
-                                        <a href={action.url} target="_blank" rel="noreferrer">
-                                            {t('insights.open')}
-                                            <ExternalLink />
-                                        </a>
-                                    </Button>
+                                {open || !action.kind || action.kind === 'link' ? <InsightActionButton insight={i} /> : null}
+                                {open && (action.kind === 'activate_flow' || action.kind === 'create_campaign') ? (
+                                    <p className="igr:text-xs igr:text-muted-foreground">{t(`insights.oneClick.${action.kind}`)}</p>
                                 ) : null}
                             </>
                         ) : (
@@ -197,15 +190,17 @@ export function InsightDetailPage() {
                         <CardTitle>{t('insights.impact')}</CardTitle>
                         <CardDescription>{t('insights.impactHelp')}</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="igr:space-y-3">
                         <p className="igr:text-2xl igr:font-semibold igr:tabular-nums">{i.impact === null ? '—' : formatMoney(i.impact, workspace.currency, workspace.locale)}</p>
+                        {i.formula ? <ImpactFormula insight={i} /> : null}
                         {i.assumptions.length > 0 ? (
-                            <ul className="igr:mt-2 igr:space-y-1 igr:text-xs igr:text-muted-foreground">
+                            <ul className="igr:space-y-1 igr:text-xs igr:text-muted-foreground">
                                 {i.assumptions.map((a, k) => (
                                     <li key={k}>{a}</li>
                                 ))}
                             </ul>
                         ) : null}
+                        {i.formula?.terms.some((term) => term.assumption) ? <p className="igr:text-xs igr:text-muted-foreground">{t('insights.formula.help')}</p> : null}
                     </CardContent>
                 </Card>
             </div>

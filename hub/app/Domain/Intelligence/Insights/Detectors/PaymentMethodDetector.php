@@ -8,6 +8,9 @@ use App\Domain\Intelligence\Insights\Detector;
 use App\Domain\Intelligence\Insights\InsightCandidate;
 use App\Domain\Intelligence\Insights\Money;
 use App\Domain\Intelligence\Insights\Stats;
+use App\Domain\Intelligence\Insights\Support\Assumptions;
+use App\Domain\Intelligence\Insights\Support\Impact;
+use App\Domain\Intelligence\Insights\Support\Term;
 use App\Domain\Workspaces\Models\Workspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +24,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class PaymentMethodDetector implements Detector
 {
+    public function __construct(private readonly Assumptions $assumptions) {}
+
     public function key(): string
     {
         return 'payment_method';
@@ -60,8 +65,12 @@ final class PaymentMethodDetector implements Detector
                 continue;
             }
             $excess = $rBad - $baseRate * $rN;
-            $recovery = 0.3;
-            $impact = round($excess * $recovery * $aov, 2);
+            $recovery = $this->assumptions->value('payment_recovery_rate');
+            $formula = Impact::of(
+                new Term(__('pedidos sin pagar de más'), round($excess, 1), 'count'),
+                new Term(__('que se recupera'), $recovery, 'rate', 'payment_recovery_rate'),
+                new Term(__('de ticket'), $aov, 'money'),
+            );
             $title = (string) ($row->title ?: $row->m);
             $out[] = new InsightCandidate(
                 fingerprint: (string) $row->m,
@@ -73,14 +82,10 @@ final class PaymentMethodDetector implements Detector
                     'payment_method' => $row->m, 'payment_method_title' => $title,
                     'recent' => ['from' => $recentStart->toDateString(), 'to' => $recentEnd->toDateString(), 'orders' => $rN, 'unpaid' => $rBad, 'rate' => round($recentRate, 4)],
                     'baseline' => ['from' => $baseStart->toDateString(), 'to' => $recentStart->toDateString(), 'orders' => $bN, 'unpaid' => $bBad, 'rate' => round($baseRate, 4)],
-                    'excess_unpaid' => round($excess, 1), 'aov' => round($aov, 2), 'p_value' => round($test['p'], 5), 'recovery_assumption' => $recovery,
+                    'excess_unpaid' => round($excess, 1), 'aov' => round($aov, 2), 'p_value' => round($test['p'], 5), 'payment_recovery_rate' => $recovery,
                 ],
-                impact: (string) $impact,
-                assumptions: [
-                    __(':excess pedidos sin pagar por encima de lo normal en 14 días.', ['excess' => number_format($excess, 1, ',', '.')]),
-                    __('Se recupera el :pct de ellos (supuesto conservador y editable).', ['pct' => Money::percent($recovery, 0)]),
-                    __('Ticket promedio: :aov.', ['aov' => Money::format($aov, $workspace->currency)]),
-                ],
+                assumptions: [__('Pedidos sin pagar por encima de lo normal en 14 días; se recupera una parte al arreglar el método (supuesto editable).')],
+                formula: $formula,
                 action: ['label' => __('Revisa la configuración de :method en WooCommerce y prueba un pago', ['method' => $title]), 'to' => 'analitica/embudo'],
                 periodStart: $recentStart->toDateString(),
                 periodEnd: $recentEnd->toDateString(),

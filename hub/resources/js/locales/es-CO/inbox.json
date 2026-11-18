@@ -1,0 +1,245 @@
+{
+    "inbox": {
+        "title": "Bandeja",
+        "description": "Atiende WhatsApp con tu equipo: asigna, responde dentro de la ventana de 24 h, vende desde el chat y deja que la IA ayude.",
+        "aiAgentLink": "Agente de IA",
+        "available": "Disponible",
+        "unavailable": "No disponible",
+        "back": "Volver a la lista",
+        "cancel": "Cancelar",
+        "unknownContact": "Contacto sin nombre",
+        "pickTitle": "Elige una conversación",
+        "pickHelp": "Los mensajes nuevos de WhatsApp llegan aquí. Marca «Disponible» para que te asignen conversaciones.",
+        "tabs": {
+            "conversaciones": "Conversaciones",
+            "metricas": "Métricas",
+            "ajustes": "Ajustes"
+        },
+        "status": {
+            "open": "Abiertas",
+            "pending": "En espera",
+            "closed": "Cerradas",
+            "all": "Todas"
+        },
+        "intent": {
+            "purchase": "Compra",
+            "support": "Soporte",
+            "complaint": "Queja",
+            "optout": "Baja",
+            "other": "Otro"
+        },
+        "list": {
+            "title": "Conversaciones",
+            "search": "Buscar por nombre, correo o celular",
+            "views": "Vistas",
+            "view": {
+                "all": "Todas",
+                "mine": "Mías",
+                "unassigned": "Sin asignar",
+                "ai": "Con IA"
+            },
+            "status": "Estado",
+            "intent": "Intención",
+            "anyIntent": "Cualquier intención",
+            "empty": "No hay conversaciones con estos filtros.",
+            "you": "Tú",
+            "unread_one": "{{count}} sin leer",
+            "unread_other": "{{count}} sin leer"
+        },
+        "ai": {
+            "label": "Modo de la IA",
+            "off": "IA apagada",
+            "assist": "Sugiere",
+            "auto": "Responde"
+        },
+        "handoff": {
+            "badge": "Pasó a humano",
+            "reason": "La IA pasó la conversación: {{reason}}",
+            "takeOver": "Tomar la conversación",
+            "reasons": {
+                "manual": "lo tomó una persona",
+                "pide_humano": "la persona pidió hablar con alguien",
+                "out_of_scope": "tema fuera del negocio",
+                "complaint": "es una queja",
+                "no_answer": "la IA no tenía la respuesta",
+                "discount": "pidió un descuento fuera de las reglas"
+            }
+        },
+        "chat": {
+            "status": "Estado de la conversación",
+            "assignee": "Asignada a",
+            "unassigned": "Sin asignar",
+            "labels": "Etiquetas",
+            "labelsPlaceholder": "Etiquetas, separadas por comas",
+            "messages": "Mensajes",
+            "noMessages": "Todavía no hay mensajes.",
+            "template": "Plantilla «{{name}}»",
+            "statusValue": {
+                "open": "Abierta",
+                "pending": "En espera",
+                "closed": "Cerrada"
+            }
+        },
+        "window": {
+            "open": "Ventana abierta: {{hours}} h {{minutes}} min",
+            "closed": "Ventana de 24 h cerrada",
+            "closedHelp": "Pasaron más de 24 horas desde el último mensaje del cliente. Solo puedes enviar una plantilla aprobada."
+        },
+        "attachment": {
+            "image": "Imagen",
+            "audio": "Nota de voz",
+            "video": "Video",
+            "document": "Documento",
+            "sticker": "Sticker",
+            "location": "Ubicación"
+        },
+        "delivery": {
+            "queued": "En cola",
+            "sent": "Enviado",
+            "delivered": "Entregado",
+            "read": "Leído"
+        },
+        "notes": {
+            "toggle": "Notas internas",
+            "title": "Notas internas",
+            "empty": "Sin notas. El cliente no las ve.",
+            "placeholder": "Escribe una nota para el equipo",
+            "add": "Agregar nota"
+        },
+        "composer": {
+            "label": "Mensaje",
+            "placeholder": "Escribe un mensaje o / para respuestas rápidas",
+            "placeholderClosed": "La ventana está cerrada: envía una plantilla",
+            "quickReplies": "Respuestas rápidas",
+            "template": "Plantilla",
+            "product": "Producto",
+            "coupon": "Cupón",
+            "suggest": "Sugerir con IA",
+            "noSuggestion": "La IA no tiene una sugerencia para esta conversación.",
+            "hint": "Enter envía · Shift+Enter nueva línea",
+            "send": "Enviar"
+        },
+        "template": {
+            "title": "Enviar plantilla",
+            "description": "Las plantillas aprobadas por Meta se pueden enviar aunque la ventana de 24 h esté cerrada.",
+            "empty": "No hay plantillas de WhatsApp listas. Créalas en Plantillas.",
+            "pick": "Plantilla",
+            "variable": "Valor de {{name}}",
+            "category": {
+                "utility": "Utilidad",
+                "marketing": "Marketing",
+                "authentication": "Autenticación"
+            }
+        },
+        "product": {
+            "title": "Vender desde el chat",
+            "description": "Envía la ficha con precio y stock en vivo, o arma un carrito listo para pagar.",
+            "search": "Buscar producto o SKU",
+            "results": "Productos",
+            "outOfStock": "Agotado",
+            "sendCard": "Enviar ficha",
+            "less": "Quitar uno de {{name}}",
+            "more": "Agregar uno de {{name}}",
+            "none": "No encontramos productos.",
+            "cartEmpty": "Agrega productos con + para armar el carrito.",
+            "cartCount_one": "{{count}} producto en el carrito",
+            "cartCount_other": "{{count}} productos en el carrito",
+            "sendCart": "Enviar carrito listo",
+            "sendPayment": "Enviar enlace de pago"
+        },
+        "coupon": {
+            "title": "Enviar un cupón",
+            "description": "Cupón único para este contacto. Máximo 50% de descuento.",
+            "kind": "Tipo",
+            "amount": "Valor",
+            "days": "Días de vigencia",
+            "send": "Crear y enviar",
+            "kinds": {
+                "percent": "Porcentaje",
+                "fixed_cart": "Valor fijo",
+                "free_shipping": "Envío gratis"
+            }
+        },
+        "panel": {
+            "title": "Perfil del contacto",
+            "toggle": "Ver perfil",
+            "close": "Cerrar perfil",
+            "fromAd": "Vino de un anuncio",
+            "orders": "Pedidos",
+            "revenue": "Compras",
+            "points": "Puntos",
+            "wallet": "Saldo a favor",
+            "cart": "Carrito actual",
+            "cartSummary_one": "{{count}} producto · {{total}}",
+            "cartSummary_other": "{{count}} productos · {{total}}",
+            "cartStatus": {
+                "active": "Activo",
+                "abandoned": "Abandonado"
+            },
+            "noCart": "Sin carrito abierto.",
+            "lastOrders": "Últimos pedidos",
+            "noOrders": "Todavía no ha comprado.",
+            "lastViewed": "Último producto visto",
+            "nothingViewed": "Sin visitas registradas.",
+            "segments": "Segmentos",
+            "profile": "Ver perfil completo"
+        },
+        "metrics": {
+            "period": "Periodo",
+            "days_one": "Último día",
+            "days_other": "Últimos {{count}} días",
+            "opened": "Conversaciones",
+            "resolved_one": "{{count}} cerrada",
+            "resolved_other": "{{count}} cerradas",
+            "firstResponse": "Primera respuesta",
+            "firstResponseHelp": "Mediana del tiempo entre el primer mensaje del cliente y la primera respuesta de una persona del equipo.",
+            "resolution": "Resolución",
+            "resolutionHelp": "Mediana del tiempo entre el primer mensaje del cliente y el cierre de la conversación.",
+            "avg": "Promedio {{value}}",
+            "noData": "Sin datos todavía",
+            "sales": "Ventas desde la bandeja",
+            "salesHelp": "Pedidos pagados después de un clic en un enlace enviado desde la bandeja.",
+            "orders_one": "{{count}} pedido",
+            "orders_other": "{{count}} pedidos",
+            "aiTurns": "Turnos de la IA",
+            "aiReplied_one": "{{count}} respondido",
+            "aiReplied_other": "{{count}} respondidos",
+            "handoffRate": "Traspasos a humano",
+            "handoffs_one": "{{count}} traspaso",
+            "handoffs_other": "{{count}} traspasos",
+            "handoffHelp": "Turnos de la IA que terminaron pasando la conversación a una persona.",
+            "aiSales": "Ventas de la IA",
+            "agent": "Persona",
+            "conversations": "Conversaciones",
+            "messages": "Mensajes",
+            "closed": "Cerradas"
+        },
+        "settings": {
+            "assignment": "Asignación",
+            "autoAssign": "Asignar automáticamente",
+            "autoAssignHelp": "Las conversaciones nuevas van a quien esté disponible, por turnos, salvo que una regla diga otra cosa.",
+            "rules": "Reglas",
+            "ruleIntent": "Intención",
+            "ruleLabel": "Etiqueta",
+            "ruleUser": "Persona",
+            "anyIntent": "Cualquier intención",
+            "removeRule": "Quitar regla",
+            "addRule": "Agregar regla",
+            "save": "Guardar",
+            "saved": "Ajustes guardados",
+            "quickReplies": "Respuestas rápidas",
+            "quickRepliesHelp": "Escribe / en el chat para usarlas.",
+            "shortcut": "Atajo",
+            "replyTitle": "Título",
+            "replyBody": "Texto",
+            "addReply": "Agregar respuesta",
+            "removeReply": "Quitar /{{shortcut}}",
+            "push": "Notificaciones",
+            "pushHelp": "Recibe un aviso en este navegador o en el celular (instala la bandeja como app) cuando te asignen o te escriban.",
+            "pushUnavailable": "Las notificaciones push todavía no están configuradas en esta instalación.",
+            "pushEnable": "Activar notificaciones",
+            "pushOn": "Notificaciones activadas",
+            "pushDenied": "El navegador no permitió las notificaciones."
+        }
+    }
+}
