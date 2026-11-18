@@ -69,6 +69,35 @@ test('_igr se quita de la URL y vincula la visita al enlace', async ({ page }) =
     expect(idf.properties).toEqual({ method: 'link_token' });
 });
 
+test('carrito restaurado desde un mensaje: arma el carrito y lleva al checkout con _igr (api-connector.md §6.1)', async ({ page }) => {
+    const info = JSON.parse(
+        php(
+            `$p = wc_get_products(array('limit' => 1, 'status' => 'publish', 'type' => 'simple', 'stock_status' => 'instock'))[0];` +
+                `$t = ImaginaGrowth\\Connector\\Tracking\\PageToken::sign(array('site' => ImaginaGrowth\\Connector\\Connection\\Connection::site_id(), 'cart' => 'crt_01JE4ZQ8K3M5N7P9R1S2T3V4W6', 'items' => array(array('product_id' => (string) $p->get_id(), 'variation_id' => null, 'qty' => 2)), 'mode' => 'replace', 'exp' => time() + 3600), ImaginaGrowth\\Connector\\Connection\\Connection::secret());` +
+                `echo wp_json_encode(array('token' => $t, 'id' => $p->get_id()));`,
+        ),
+    ) as { token: string; id: number };
+    const hops: { url: string; status: number; cache: string }[] = [];
+    page.on('response', (r) => {
+        if (r.url().includes('igr_cart=')) hops.push({ url: r.url(), status: r.status(), cache: r.headers()['cache-control'] ?? '' });
+    });
+    await page.goto(`/?igr_cart=${info.token}&_igr=lnk_Cart7Q2&utm_source=igr&utm_medium=whatsapp`);
+    await ready(page);
+    expect(new URL(page.url()).pathname).toBe('/checkout/');
+    expect(page.url()).not.toContain('_igr=');
+    expect(page.url()).toContain('utm_medium=whatsapp');
+    expect(hops[0]?.status).toBe(302);
+    expect(hops[0]?.cache).toContain('no-store');
+    const cart = await page.evaluate(async () => (await (await fetch('/wp-json/wc/store/v1/cart')).json()) as { items: { id: number; quantity: number }[] });
+    expect(cart.items.map((i) => [i.id, i.quantity])).toEqual([[info.id, 2]]);
+    await flush(page);
+    await waitHub(byPage('/checkout/', (e) => e.identity['link_token'] === 'lnk_Cart7Q2'));
+
+    // Un enlace adulterado no toca nada y lleva a la tienda.
+    await page.goto('/?igr_cart=eyJzaXRlIjoieCJ9.' + '0'.repeat(64));
+    expect(new URL(page.url()).pathname).toBe('/');
+});
+
 test('clic a WhatsApp: token en el mensaje y cta.clicked antes de salir', async ({ page }) => {
     const id = php(
         `echo wp_insert_post(array('post_type' => 'page', 'post_status' => 'publish', 'post_title' => 'Escríbenos', 'post_content' => '<!-- wp:paragraph --><p><a id="wa" href="https://wa.me/573001234567?text=Hola%2C%20quiero%20cotizar">WhatsApp</a> <a id="otro" href="https://wa.me/573009999999?text=Hola">Otro número</a></p><!-- /wp:paragraph -->'));`,

@@ -128,14 +128,14 @@ imagina-growth-connector/
 
 | Comando | Qué hace |
 |---|---|
-| `coupon.create` | cupón único (`WC_Coupon`): tipo, monto, vencimiento, `usage_limit=1`, `email_restrictions`, `individual_use`, productos o categorías, monto mínimo. Devuelve el código y el ID |
-| `coupon.disable` | lo deja en borrador o vencido |
-| `product.lookup` | por IDs o búsqueda: precio, precio de oferta, stock en vivo, URL, imagen y variaciones. Lo usa el agente de IA |
-| `order.status` | por número de pedido + correo o teléfono que coincida: estado, envío y seguimiento si existe |
+| `coupon.create` | cupón único (`WC_Coupon`): tipo, monto, vencimiento, `usage_limit=1`, `email_restrictions`, `individual_use`, productos o categorías, monto mínimo. Devuelve el código y el ID. **Fase 2:** idempotente por código (hash de los datos en la meta `igr_coupon_hash`): los mismos datos devuelven el mismo cupón; otros datos, o un cupón del dueño con ese código, responden `409 coupon_exists`. Vence al final del día de `expires_at` en la hora de la tienda. Metas `igr_coupon=1` e `igr_source` |
+| `coupon.disable` | lo deja en borrador. Solo los cupones con `igr_coupon=1`; los del dueño responden `409 coupon_not_managed` |
+| `product.lookup` | por IDs o búsqueda: precio, precio de oferta, stock en vivo, URL, imagen y variaciones. Lo usa el agente de IA. **Fase 2:** solo productos publicados, sin contraseña ni ocultos del catálogo; máximo 20 resultados y 20 variaciones por producto |
+| `order.status` | por número de pedido + correo o teléfono que coincida: estado, envío y seguimiento si existe. **Fase 2:** también busca `_order_number` (plugins de números secuenciales); el teléfono se compara en E.164; un dato que no coincide responde igual que un pedido inexistente (`404 not_found`); el seguimiento sale de WooCommerce Shipment Tracking si está |
 | `order.create_payment_link` | crea un pedido pendiente con los ítems indicados y devuelve `get_checkout_payment_url()` |
 | `review.publish` | crea la reseña nativa (comentario `review` con `rating`, `verified=1` si aplica, la meta `igr_review_id` y las URLs de medios) |
 | `review.reply` | respuesta del dueño como comentario hijo |
-| `order.add_note` | nota privada (por ejemplo «Pedido recuperado por Imagina Growth») |
+| `order.add_note` | nota privada (por ejemplo «Pedido recuperado por Imagina Growth»); con `customer_note` se la envía al cliente |
 | `customer.set_tier` | meta `igr_tier` y rol opcional mapeado (para precios VIP con el plugin de precios por rol del cliente) |
 | `catalog.resync` | fuerza la conciliación |
 | `site.diagnostics` | versiones, estado del outbox y de Action Scheduler, capacidades |
@@ -143,6 +143,14 @@ imagina-growth-connector/
 | `secret.rotate` | §4 |
 
 **Carrito restaurable** (sin comando): el hub genera enlaces `https://cliente.com/?igr_cart=<payload>.<firma>`, con el payload en base64url (ítems, cantidades, cupón opcional y vencimiento) firmado con HMAC del secreto del sitio. En `template_redirect` el plugin verifica la firma y el vencimiento, vacía o fusiona el carrito (configurable), agrega los ítems, aplica el cupón y redirige al checkout. **No hace llamadas al hub** en esa petición.
+
+Implementación (Fase 2, `Onsite\CartRestore`, api-connector.md §6.1):
+- Acepta el secreto actual y el anterior durante la rotación.
+- Omite los productos que ya no existen, no se pueden comprar o no tienen stock, y limita la cantidad al stock disponible.
+- Redirige con un 302 `no-store` (`DONOTCACHEPAGE` y `litespeed_control_set_nocache`) al checkout, conservando solo `_igr` y `utm_*`.
+- Un enlace adulterado, vencido o de otro sitio, o sin productos disponibles, lleva a la tienda sin errores y sin tocar el carrito.
+- El ID del carrito del hub queda en la sesión (`igr_restored_from`) y sale ya en `cart.updated.restored_from`, sin esperar el límite de 30 s.
+- El pedido guarda el `cart_token` de la sesión en la meta `_igr_cart_token` al crearse (checkout clásico y de bloques) y lo envía en `order.cart_token` (v3) en todos los eventos del pedido, también en los que llegan después por el webhook de la pasarela.
 
 ## 9. Tracker, cookies y caché
 

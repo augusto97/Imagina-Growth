@@ -248,11 +248,11 @@ Lo llaman los *exporters* y *erasers* de WordPress (`connector/CLAUDE.md` §11) 
 
 | Comando (Fase 2) | `args` | `data` |
 |---|---|---|
-| `coupon.create` | `{"code": "VUELVE-7K2Q", "kind": "percent\|fixed_cart\|fixed_product\|free_shipping", "amount": "10.00", "expires_at": "YYYY-MM-DD"?, "usage_limit": 1, "email_restrictions": ["ana@…"]?, "individual_use": true, "minimum_amount": "100000.00"?, "product_ids": ["88"]?, "category_ids": ["12"]?, "free_shipping": false, "description": "Flujo «Carrito abandonado»"}` | `{"coupon_id": "991", "code": "VUELVE-7K2Q"}`. Si el código ya existe con los mismos datos, devuelve el mismo (idempotente); si existe distinto, `409 coupon_exists` |
-| `coupon.disable` | `{"code": "VUELVE-7K2Q"}` | `{"disabled": true}` (queda en borrador) |
+| `coupon.create` | `{"code": "VUELVE-7K2Q", "kind": "percent\|fixed_cart\|fixed_product\|free_shipping", "amount": "10.00", "expires_at": "YYYY-MM-DD"?, "usage_limit": 1, "email_restrictions": ["ana@…"]?, "individual_use": true, "minimum_amount": "100000.00"?, "product_ids": ["88"]?, "category_ids": ["12"]?, "free_shipping": false, "description": "Flujo «Carrito abandonado»"}` | `{"coupon_id": "991", "code": "VUELVE-7K2Q"}`. Si el código ya existe con los mismos datos, devuelve el mismo (idempotente); si existe distinto o es un cupón del dueño, `409 coupon_exists`. Vale hasta el final del día de `expires_at` en la hora de la tienda, con `usage_limit_per_user = 1`. `free_shipping` se guarda como `fixed_cart` de monto 0 con envío gratis |
+| `coupon.disable` | `{"code": "VUELVE-7K2Q"}` | `{"disabled": true}` (queda en borrador). Solo los que creó Imagina Growth: con uno del dueño, `409 coupon_not_managed` |
 | `order.add_note` | `{"order_id": "1234", "note": "Pedido recuperado por Imagina Growth", "customer_note": false}` | `{"note_id": "77"}` |
 | `product.lookup` | `{"ids": ["88"]?, "search": "pintura"?, "limit": 10}` | `{"products": [{"id", "name", "sku", "price", "regular_price", "sale_price", "stock_status", "stock_qty", "url", "image", "variations": []}]}` con stock y precio **en vivo** |
-| `order.status` | `{"number": "1234", "email": "…"? , "phone": "…"?}` (debe coincidir uno) | `{"status", "status_label", "total", "currency", "created_at", "tracking"?}` o `404 not_found` |
+| `order.status` | `{"number": "1234", "email": "…"? , "phone": "…"?}` (debe coincidir uno) | `{"status", "status_label", "total", "currency", "created_at", "tracking"?}`. Si no coincide, responde igual que un pedido inexistente: `404 not_found`. Sin correo ni teléfono, `422 invalid_args` |
 
 El resto de comandos de `connector/CLAUDE.md` §8 se agregan en su fase.
 
@@ -265,10 +265,10 @@ El hub arma `https://tienda.co/?igr_cart=<payload>.<firma>` con el formato de lo
 ```
 
 En `template_redirect`, el plugin:
-1. Verifica la firma con el secreto actual o el anterior, y el vencimiento. Si algo falla, redirige a la tienda sin error visible.
-2. Vacía el carrito (`replace`) o le suma los ítems (`merge`). Omite los productos que ya no existen o no tienen stock.
+1. Verifica la firma con el secreto actual o el anterior, el sitio y el vencimiento. Si algo falla, o no queda ningún producto, redirige al inicio (`home_url('/')`, conservando `_igr` y `utm_*`) sin error visible y sin tocar el carrito.
+2. Vacía el carrito (`replace`) o le suma los ítems (`merge`). Omite los productos que ya no existen o no tienen stock, y limita la cantidad al stock disponible.
 3. Aplica el cupón si lo hay.
-4. Redirige al checkout conservando `_igr` y los `utm_*` de la URL.
+4. Redirige al checkout (302, sin caché) conservando `_igr` y los `utm_*` de la URL.
 
 **No hace ninguna llamada al hub** en esa petición, y el nuevo carrito guarda `cart` (el ID del hub) en la sesión para enviarlo como `restored_from` en `cart.updated`.
 
