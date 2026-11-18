@@ -30,6 +30,7 @@ export function OnsiteTabs() {
         { to: base, label: t('onsite.tabs.widgets'), end: true },
         { to: `${base}/recomendaciones`, label: t('onsite.tabs.recommendations'), end: false },
         { to: `${base}/avisos`, label: t('onsite.tabs.alerts'), end: false },
+        { to: `${base}/banners`, label: t('onsite.tabs.banners'), end: false },
     ];
     return (
         <nav aria-label={t('onsite.tabs.label')} className="igr:mb-4 igr:inline-flex igr:h-9 igr:items-center igr:rounded-lg igr:bg-muted igr:p-1 igr:text-muted-foreground">

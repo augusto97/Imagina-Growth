@@ -7,7 +7,8 @@
             "label": "Secciones de En el sitio",
             "widgets": "Widgets",
             "recommendations": "Recomendaciones",
-            "alerts": "Avisos de stock y precio"
+            "alerts": "Avisos de stock y precio",
+            "banners": "Banners personalizados"
         },
         "empty": {
             "title": "Aún no tienes widgets",
