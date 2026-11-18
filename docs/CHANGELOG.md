@@ -1,5 +1,102 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-18 — Despliegue nativo sin Docker, con versiones firmadas y actualización desde el panel
+
+La app todavía no estaba instalada en ningún lado, así que el despliegue pasó directo de Docker Compose a
+servicios nativos de systemd. El contrato completo está en `docs/despliegue.md`; la lógica de Laravel, la SPA,
+el plugin y el ML no cambió.
+
+### Qué cambió
+- **Sin Docker:** se borraron los `docker-compose` de local y producción, el Dockerfile del hub y el del ML, y las
+  referencias en la documentación y los scripts. En el CI quedan los service containers de GitHub Actions para
+  las pruebas.
+- **`install.sh`** (Ubuntu 24.04, idempotente):
+  - instala desde los repositorios oficiales: MariaDB 11.4, ClickHouse 25.8, Redis 7.4 en dos instancias
+    (colas con `noeviction` y AOF; caché con `allkeys-lru`), FrankenPHP con PHP 8.4 y sus extensiones, uv y Caddy;
+  - crea el usuario `growth`, `/opt/growth` (`releases/`, `current`, `shared/`), el `.env` con secretos nuevos,
+    las bases, las unidades de systemd agrupadas en `growth.target` y el firewall;
+  - instala la última versión verificada.
+- **Paquete de versión:** al publicar un release, `release.yml` arma el zip (`composer install --no-dev`, la SPA
+  compilada sin `node_modules`, el `uv.lock` del ML) con su `.sha256` y una firma ed25519; la llave pública va
+  incrustada en `install.sh`.
+- **Actualización desde el panel** (`/plataforma` → «Actualizaciones»). El panel solo deja el pedido;
+  `growth-update`, lanzado con `systemd-run`, hace en orden:
+  1. revisa el espacio en disco y los inodos;
+  2. verifica la firma y el sha256;
+  3. extrae y enlaza `shared/`;
+  4. arma las cachés;
+  5. copia MariaDB;
+  6. migra MariaDB y ClickHouse;
+  7. cambia el symlink y reinicia de a uno;
+  8. revisa la salud con la versión;
+  9. vuelve atrás si falla;
+  10. deja 3 versiones.
+- **Seguridad:** las versiones son de root y de solo lectura para la app. Los scripts de root viven en
+  `/usr/local/lib/growth` y solo se reemplazan con los de una versión verificada que pasó el health-check.
+- **En la app:**
+  - `/health/ready` con la versión;
+  - Reverb configurado en tiempo de ejecución (`window.igrRuntime`);
+  - la caché en otra instancia de Redis;
+  - recarga única ante `vite:preloadError`;
+  - el ML con `pyproject.toml` y `uv.lock`.
+- **Copias y vigilancia:**
+  - `mariadb-backup` y el `BACKUP` nativo de ClickHouse al Storage Box con `rclone`, más una prueba semanal que
+    los restaura en bases temporales;
+  - `growth:monitor` con heartbeats de Better Stack, incluido el atraso de los streams.
+- **Desarrollo local sin Docker:** `infra/dev/setup-local.sh`.
+
+### Prueba final (`infra/tests/install/e2e-update.sh`)
+Ubuntu 24.04 limpio con systemd, en un contenedor desechable solo para verificar, con versiones firmadas con una
+llave de prueba y servidas por un simulador de la API de GitHub Releases.
+
+| Paso | Resultado |
+|---|---|
+| `install.sh` en el servidor limpio | 0.1.0 activa con 17 unidades `growth`; `/health/ready` ok en 8080, 8081 y 8082 |
+| `install.sh` otra vez | Ningún cambio: `.env`, `updater.conf`, Caddyfile y versión iguales |
+| 0.2.0 desde el panel (navegador, administrador con 2FA) | Instalada: corrió la migración nueva, se agregó la variable nueva al `.env` sin tocar `APP_KEY`, hubo copia de la base antes de migrar y se actualizaron los scripts de root. **122 pedidos al panel y a la ingesta durante el cambio, ninguno falló** |
+| 0.3.0 rota (`/health/ready` responde 503) | La primera réplica de ingesta no respondió con la versión nueva: el servidor volvió solo a 0.2.0 y el panel lo mostró con cada paso y el historial |
+
+### Errores que encontraron las pruebas (corregidos con prueba)
+- **«Buscar ahora» respondía 500** en un servidor real. Llamaba al comando con Artisan, y en la web los comandos
+  de consola no están registrados (en las pruebas, que corren en consola, funcionaba).
+- **El panel respondía 500 durante toda la actualización**, porque el despachador (root) dejaba el pedido en
+  curso solo legible por root.
+- **`install.sh` publicado no traía la llave pública:** el empaquetado ahora la incrusta y la prueba lo comprueba.
+- **Leer el `.env`:**
+  - `generate: null` inventaba claves VAPID falsas;
+  - en bash 5.2, `&amp;` dentro de `${var//…}` escapaba mal la contraseña de ClickHouse.
+- **Permisos de las carpetas de copias:** con 0700, la instancia temporal de MariaDB y ClickHouse no podían
+  entrar a su subcarpeta; ahora la carpeta padre es 0711.
+- **Al importar el historial de un sitio sin WooCommerce,** el plugin contaba las categorías de producto y
+  lanzaba un aviso (`WP_Error`).
+- **Del sistema operativo y los paquetes:**
+  - `/etc/os-release` pisaba la variable `VERSION` del instalador;
+  - el repositorio oficial de Redis instala Redis 8 por defecto y no trae `redis-server@.service`;
+  - Caddy 2.11 rechaza `format` repetido dentro de `log`.
+
+### Pruebas al cierre
+- **Hub:** 1.033 de 1.033 en la suite completa, más las del arreglo del panel (8 de 8 en `tests/Feature/Updates`).
+  Larastan sin errores, Pint limpio; SPA con 184 de Vitest y `tsc` limpio.
+- **Scripts:**
+  - actualizador («deployer falso», 220 comprobaciones);
+  - copias (72);
+  - empaquetado (firma, sha256 y alteraciones);
+  - shellcheck limpio en todos.
+- **Plugin:** 15 unitarias y 85 de WordPress. **Tracker:** 63 de Vitest y 21 de Playwright.
+- **Recorrido:** `e2e-update.sh` en verde.
+
+### Pendiente
+- **Producción real:**
+  - crear el par de llaves (`infra/release/keygen.sh`) y el secreto `GROWTH_RELEASE_SIGNING_KEY`;
+  - publicar el primer release;
+  - configurar `rclone`, `/etc/growth/backup.conf` y los heartbeats y monitores de Better Stack;
+  - probar el TLS bajo demanda con dominios reales.
+- **Python del ML:** `uv sync` usa el Python 3.12 de Ubuntu. Si una versión pide otro, el servidor necesita salida
+  a GitHub para que uv lo baje.
+- **Sin probar:** `setup-local.sh` en macOS.
+- **Medición pendiente:** la prueba de carga con k6 sigue pendiente; ahora se puede correr contra un servidor
+  instalado con `install.sh`.
+
 ## 2026-11-18 — Cierre de la Fase 5 (Servicios, agencia y escala)
 
 ### Criterio «Listo cuando» (medido con `infra/e2e/fase5.sh`)
