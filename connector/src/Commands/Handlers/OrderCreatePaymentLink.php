@@ -104,17 +104,17 @@ final class OrderCreatePaymentLink implements Command {
 			$variation = is_array( $item ) ? (string) ( $item['variation_id'] ?? '' ) : '';
 			$qty       = is_array( $item ) ? (int) ( $item['qty'] ?? 1 ) : 0;
 			if ( 1 !== preg_match( '/^\d{1,20}$/', $id ) || ( '' !== $variation && 1 !== preg_match( '/^\d{1,20}$/', $variation ) ) || $qty < 1 || $qty > 99 ) {
-				throw Args::invalid( "items.{$i}", 'producto o cantidad no válidos' );
+				throw Args::invalid( "items.{$i}", 'producto o cantidad no válidos' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- respuesta JSON al hub, no HTML.
 			}
 			$product = wc_get_product( (int) ( '' !== $variation ? $variation : $id ) );
 			$parent  = $product instanceof \WC_Product_Variation ? wc_get_product( $product->get_parent_id() ) : $product;
 			if ( ! $product instanceof \WC_Product || ! $parent instanceof \WC_Product
 				|| 'publish' !== $parent->get_status() || '' !== (string) $parent->get_post_password()
 				|| ! $product->is_purchasable() || $product->is_type( 'variable' ) ) {
-				throw new CommandError( 'product_unavailable', "El producto {$id} no se puede comprar", 422 );
+				throw new CommandError( 'product_unavailable', "El producto {$id} no se puede comprar", 422 ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- respuesta JSON al hub, no HTML.
 			}
 			if ( ! $product->is_in_stock() || ( $product->managing_stock() && ! $product->backorders_allowed() && (int) $product->get_stock_quantity() < $qty ) ) {
-				throw new CommandError( 'out_of_stock', "No hay stock suficiente del producto {$id}", 422 );
+				throw new CommandError( 'out_of_stock', "No hay stock suficiente del producto {$id}", 422 ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- respuesta JSON al hub, no HTML.
 			}
 			$lines[] = array(
 				'product' => $product,
