@@ -49,7 +49,7 @@ final class ProgramExplainer
             }
         }
         foreach ($rules->campaigns as $c) {
-            $earn[] = __(':name: puntos x:m del :from al :to.', ['name' => $c['name'] !== '' ? $c['name'] : __('Puntos extra'), 'm' => rtrim(rtrim(number_format($c['multiplier'], 1, ',', ''), '0'), ','), 'from' => $c['starts_on'], 'to' => $c['ends_on']]);
+            $earn[] = __(':name: puntos x:m del :from al :to.', ['name' => $c['name'] !== '' ? $c['name'] : __('Puntos extra'), 'm' => rtrim(rtrim(number_format($c['multiplier'], 2, ',', ''), '0'), ','), 'from' => $c['starts_on'], 'to' => $c['ends_on']]);
         }
 
         $redeem = [];
@@ -106,7 +106,7 @@ final class ProgramExplainer
         $b = (array) ($tier->benefits ?? []);
         $out = [];
         if ($tier->multiplier() > 1) {
-            $out[] = __(':m veces los puntos', ['m' => rtrim(rtrim(number_format($tier->multiplier(), 1, ',', ''), '0'), ',')]);
+            $out[] = __(':m veces los puntos', ['m' => rtrim(rtrim(number_format($tier->multiplier(), 2, ',', ''), '0'), ',')]);
         }
         if (! empty($b['free_shipping'])) {
             $out[] = __('Envío gratis');
