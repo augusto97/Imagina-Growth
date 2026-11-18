@@ -38,7 +38,9 @@ final class OrderAttributor
         $createdAt = CarbonImmutable::instance($order->created_at ?? now());
         $anon = $this->anonymousIds($order->contact_id, $hints['anonymous_id'] ?? null);
 
-        $sessions = $useTracker ? $this->touches->sessions($workspace, $order->contact_id, $anon, $createdAt->subDays(self::WINDOW_DAYS), $createdAt) : [];
+        // La fecha del pedido viene de WooCommerce con precisión de segundos: la visita que llegó
+        // en ese mismo segundo (p. ej. desde el enlace de un mensaje) también cuenta.
+        $sessions = $useTracker ? $this->touches->sessions($workspace, $order->contact_id, $anon, $createdAt->subDays(self::WINDOW_DAYS), $createdAt->endOfSecond()) : [];
         $first = $sessions[0] ?? null;
         $last = null;
         foreach (array_reverse($sessions) as $touch) {

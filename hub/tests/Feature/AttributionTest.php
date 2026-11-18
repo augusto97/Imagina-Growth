@@ -78,3 +78,16 @@ it('atribuye los pedidos importados con la atribución nativa de WooCommerce', f
     expect($channels)->toBe(['1' => 'paid_meta', '2' => 'organic_search', '3' => 'organic_social', '4' => 'direct', '5' => null, '6' => 'ai_assistants']);
     expect(measurementInWs($this, fn () => Order::query()->where('external_id', '1')->first()->getAttribute('utm_last')))->toBe(['source' => 'facebook', 'medium' => 'paid_social', 'campaign' => 'black']);
 });
+
+it('cuenta la visita que llegó en el mismo segundo en que se creó el pedido (WooCommerce guarda segundos)', function () {
+    measurementBrowserVisit($this, 'anon-1', 's1', '2026-11-10T10:00:00-05:00', 'organic_search');
+    // El pedido se creó a las 18:01:00 (sin milisegundos) y la visita desde el correo empezó a las 18:01:00.400.
+    measurementBrowserVisit($this, 'anon-1', 's2', '2026-11-17T18:01:00.400-05:00', 'igr_email', ['source' => 'igr', 'medium' => 'email', 'campaign' => 'carrito-abandonado']);
+    $paid = $this->envelope($this->site, 'order.paid', ['order' => $this->orderSnapshot()], ['identity' => ['anonymous_id' => 'anon-1'], 'occurred_at' => '2026-11-17T18:05:00-05:00']);
+    $this->postSigned($this->site, $this->secret, [$paid]);
+    $this->runWorker();
+
+    $order = measurementInWs($this, fn () => Order::query()->firstOrFail());
+    expect($order->getAttribute('channel_last'))->toBe('igr_email')
+        ->and($order->getAttribute('utm_last'))->toBe(['source' => 'igr', 'medium' => 'email', 'campaign' => 'carrito-abandonado']);
+});
