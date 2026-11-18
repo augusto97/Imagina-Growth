@@ -1,0 +1,18 @@
+{
+    "home": {
+        "codPending_one": "{{count}} pedido de pago contra entrega por confirmar",
+        "codPending_other": "{{count}} pedidos de pago contra entrega por confirmar",
+        "codHelp": "Los pedidos de pago contra entrega cuentan como venta cuando se entregan y se cobran. Mientras tanto aparecen aparte como «venta por confirmar»."
+    },
+    "sites": {
+        "fields": {
+            "codGateways": "Pago contra entrega"
+        }
+    },
+    "security": {
+        "description": "Protege tu cuenta con un código de tu celular además de la contraseña. Es obligatoria para dueños y administradores."
+    },
+    "workspace": {
+        "namePlaceholder": "Ej.: Ferretería La Esperanza"
+    }
+}

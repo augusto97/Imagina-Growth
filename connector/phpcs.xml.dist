@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<ruleset name="Imagina Growth Connector">
+	<description>WordPress-Extra para el plugin (connector/CLAUDE.md, CLAUDE.md §6).</description>
+
+	<file>imagina-growth-connector.php</file>
+	<file>uninstall.php</file>
+	<file>src</file>
+	<file>tests</file>
+	<exclude-pattern>tests/fixtures/*</exclude-pattern>
+	<exclude-pattern>vendor/*</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="sp"/>
+	<arg name="parallel" value="8"/>
+
+	<config name="minimum_wp_version" value="6.4"/>
+	<config name="testVersion" value="8.1-"/>
+
+	<rule ref="WordPress-Extra">
+		<!-- PSR-4: los archivos se llaman como la clase (Outbox.php), no class-outbox.php. -->
+		<exclude name="WordPress.Files.FileName"/>
+		<!-- Se usa declare(strict_types=1) en todos los archivos. -->
+		<exclude name="Universal.Operators.DisallowShortTernary"/>
+	</rule>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="imagina-growth"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="igr_"/>
+				<element value="ImaginaGrowth\Connector"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Pruebas: configuración estándar de la librería de WordPress y hooks del núcleo. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
+</ruleset>

@@ -1,0 +1,14 @@
+{
+    "home": {
+        "codPending_one": "{{count}} pedido de pago contra entrega por confirmar",
+        "codPending_other": "{{count}} pedidos de pago contra entrega por confirmar"
+    },
+    "sites": {
+        "fields": {
+            "codGateways": "Pago contra entrega"
+        }
+    },
+    "workspace": {
+        "namePlaceholder": "Ej.: Pinturas El Ávila"
+    }
+}

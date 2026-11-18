@@ -222,6 +222,21 @@ Menú «Imagina Growth» con estas pestañas:
 | Formularios | todos los de §6 |
 | Ecosistema | JetEngine y JetFormBuilder (Crocoblock), Imagina Search, Imagina Turbo |
 
+### 14.1 Cómo correr las pruebas
+
+- **Unitarias** (sin WordPress: firma, UUID, JSON, montos, cifrado, PII, backoff y contrato del sobre): `vendor/bin/phpunit`.
+- **Con WordPress y WooCommerce reales** (contrato de cada evento contra `hub/resources/schemas/events`, outbox y envío, comandos, importación y conciliación). Usan una base de datos dedicada que la suite vacía:
+
+  ```bash
+  WP_CORE_DIR=/ruta/wordpress WC_PLUGIN_DIR=/ruta/wordpress/wp-content/plugins/woocommerce \
+  WP_TESTS_DB_NAME=wp_igr_tests WP_TESTS_DB_USER=root WP_TESTS_DB_PASSWORD=root WP_TESTS_DB_HOST=127.0.0.1:3306 \
+  vendor/bin/phpunit -c phpunit-wp.xml.dist
+  ```
+- **PHPCS:** `vendor/bin/phpcs` (WordPress-Extra, `phpcs.xml.dist`). Cuidado con `phpcbf`: `CapitalPDangit` cambia el valor del contrato `'wordpress'` por `'WordPress'`; esas líneas llevan `phpcs:ignore`.
+- **Hub simulado** para probar de punta a punta sin el hub real: `MOCK_HUB_DATA=/tmp/mockhub php -S 127.0.0.1:8090 tests/fixtures/mock-hub.php`. Valida cada evento contra los esquemas y expone `GET /_state` (eventos, pedidos por estado, conciliación recibida) y `POST /_reset`.
+- **Recorrido local:** `IGR_HUB_URL=http://127.0.0.1:8090 wp igr connect IGR-XXXX-XXXX-XXXX`, `wp igr backfill --now --flush --delay=0`, `wp igr status`, `wp igr flush --all`, `wp igr disconnect --wipe`. `wp igr demo-store` (solo con `WP_ENVIRONMENT_TYPE=local`) crea la tienda de prueba.
+- **Objetos JSON vacíos:** `identity`, `context`, `properties`, `order.meta`, `billing`, `shipping`… deben viajar como `{}`. Usa `Json::obj()` o `new \stdClass()` y valida siempre el JSON exacto del outbox (decodificarlo como arreglo convierte `{}` en `[]`).
+
 ## 15. Distribución y actualizaciones
 
 - Distribución y actualizaciones por **Imagina Updater** (el sistema propio de licencias y actualizaciones remotas).

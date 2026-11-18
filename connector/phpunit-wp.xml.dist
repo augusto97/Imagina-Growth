@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!--
+  Suite con la librería de pruebas de WordPress y WooCommerce real.
+  Requiere una base de datos vacía de prueba y WordPress + WooCommerce instalados:
+    WP_TESTS_DB_NAME=wp_igr_tests WP_TESTS_DB_USER=root WP_TESTS_DB_PASSWORD=root WP_TESTS_DB_HOST=127.0.0.1:3306 \
+    WP_CORE_DIR=/ruta/a/wordpress WC_PLUGIN_DIR=/ruta/a/wordpress/wp-content/plugins/woocommerce \
+    vendor/bin/phpunit -c phpunit-wp.xml.dist
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap-wp.php"
+         colors="true">
+    <php>
+        <env name="WP_PHPUNIT__TESTS_CONFIG" value="tests/wp-tests-config.php"/>
+    </php>
+    <testsuites>
+        <testsuite name="wp">
+            <directory>tests/Wp</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>
