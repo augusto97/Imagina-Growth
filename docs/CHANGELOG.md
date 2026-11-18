@@ -81,8 +81,8 @@ Lo que hizo la clínica, paso a paso:
   - Larastan nivel 8 sin errores en todo el hub; Pint limpio.
   - SPA: 173 pruebas de Vitest, `tsc` y ESLint limpios.
 - **Connector:** 15 unitarias y 85 de WordPress (incluye `ServiceSlotsTest`); PHPCS 0 errores y 22 advertencias, las mismas de antes.
-- **Tracker:** 63 de Vitest; Playwright: PLAYWRIGHT_RESULT. Tamaños dentro del límite; `igr-w-quote.js` pesa 3.460 B de 4.096.
-- **Recorrido:** `infra/e2e/fase5.sh` en verde (SECOND_RUN).
+- **Tracker:** 63 de Vitest y 21 de Playwright (incluye el cotizador). Tamaños dentro del límite; `igr-w-quote.js` pesa 3.460 B de 4.096.
+- **Recorrido:** `infra/e2e/fase5.sh` en verde en dos corridas limpias seguidas. Al final, el propio recorrido corre 207 pruebas de los módulos de la Fase 5 (Leads, Bookings, Quotes, Agency, Billing, Api, Webhooks y Mcp) en una base aislada.
 
 ### Cambios a la especificación (con su motivo, en el mismo commit que el código)
 - **`page.vitals` entra en el contrato v5 y no abre una v6:** se agregó durante la Fase 5, antes de cerrarla, y ningún sitio envía todavía la v5.
