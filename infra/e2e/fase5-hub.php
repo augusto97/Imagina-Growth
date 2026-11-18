@@ -10,8 +10,8 @@
  *                                                 Imprime: ws_clínica ws_tienda ws_café código qc_…
  *   php fase5-hub.php lead ws_… correo         → el lead de esa persona: etapa, origen, puntaje, fuente, avisos, citas
  *   php fase5-hub.php quote ws_… correo        → el lead del cotizador y su cotización
- *   php fase5-hub.php remind ws_… correo       → corre el programador de la agenda como si faltaran 1 h 59 min para la
- *                                                 cita y muestra los recordatorios que salieron
+ *   php fase5-hub.php remind ws_… correo       → corre el programador de la agenda dentro de las 2 h antes de la cita (y
+ *                                                 30 min después de agendarla) y muestra los recordatorios que salieron
  *   php fase5-hub.php appt ws_… correo         → la cita de esa persona (estado y confirmación)
  *   php fase5-hub.php inbound ws_… +57… "texto" id → un WhatsApp entrante por el webhook firmado de Meta (HTTP al hub)
  *   php fase5-hub.php site ws_…                → el sitio conectado: estado, plataforma y versión de WooCommerce (ninguna)
@@ -223,7 +223,13 @@ exit($current->run($ws, function () use ($cmd, $ws, $argv, $out): int {
         case 'remind':
             $contact = $contactByEmail((string) $argv[3]) ?? throw new RuntimeException('No existe ese contacto');
             $a = Appointment::query()->where('contact_id', $contact->id)->orderByDesc('created_at')->firstOrFail();
-            $now = CarbonImmutable::parse($a->starts_at)->subMinutes(119);
+            // Dentro de las 2 h antes de la cita y al menos 30 min después de agendarla (antes de eso el
+            // recordatorio no sale: la persona acaba de recibir la confirmación).
+            $start = CarbonImmutable::parse($a->starts_at);
+            $now = $start->subMinutes(119)->max(CarbonImmutable::parse($a->created_at)->addMinutes(31));
+            if ($now->greaterThanOrEqualTo($start)) {
+                throw new RuntimeException('La cita empieza antes de que pueda salir el recordatorio');
+            }
             Artisan::call('igr:bookings:tick', ['--now' => $now->toIso8601String()]);
             $sent = DB::table('messages')->where('workspace_id', $ws->id)->where('contact_id', $contact->id)->where('source_type', 'system')->where('source_id', $a->publicId())
                 ->orderBy('created_at')->get(['channel', 'kind', 'status']);
