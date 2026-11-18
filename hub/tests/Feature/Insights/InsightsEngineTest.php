@@ -9,6 +9,7 @@ use App\Domain\Intelligence\Insights\Support\Impact;
 use App\Domain\Intelligence\Insights\Support\Term;
 use App\Domain\Intelligence\Models\Insight;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
+use App\Support\Ids\PrefixedId;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -154,7 +155,7 @@ it('«Hacer ahora»: crea la campaña con el segmento ya elegido y marca el hall
     expect($res->json('result'))->toBe('campaign_created')->and($res->json('to'))->toStartWith('campanas/cmp_')->and($res->json('insight.status'))->toBe('actioned');
     $campaign = DB::table('campaigns')->where('workspace_id', $this->ws->id)->first();
     $segment = DB::table('segments')->where('workspace_id', $this->ws->id)->where('system_key', 'rfm_at_risk')->value('id');
-    expect(json_decode($campaign->audience, true)['segments_include'][0])->toBe(\App\Support\Ids\PrefixedId::encode('sg', $segment))
+    expect(json_decode($campaign->audience, true)['segments_include'][0])->toBe(PrefixedId::encode('sg', $segment))
         ->and(DB::table('audit_logs')->where('action', 'insight.actioned')->exists())->toBeTrue();
 });
 

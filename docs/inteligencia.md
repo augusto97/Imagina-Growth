@@ -207,6 +207,45 @@ Los detectores se ejecutan cada noche (o cada semana, según el detector). Cada 
 ### 5.2 Impacto estimado
 Siempre conservador, con el supuesto visible: «Estimación: 37 clientes × 18% de reactivación de referencia × $185.000 de ticket = **$1.232.100**. Supuesto editable». Nunca se presenta como promesa.
 
+### 5.3 Estado (Fase 4)
+- **Detectores:** los 20 de §5.1 funcionan (`App\Domain\Intelligence\Insights\DetectorCatalog`, con número, categoría y cadencia). Los de servicios (21 a 23) llegan con los leads en la Fase 5 y se listan apagados.
+  - **Nocturnos:** 1, 2, 6, 8, 9, 15, 16, 17, 19 y 20.
+  - **Semanales:** 3, 4, 5, 7, 10, 11, 12, 13, 14 y 18. Corren los lunes, o si nunca corrieron (`igr:insights --all` los fuerza; `--detector=` corre solo los que se nombren).
+- **Umbrales** (`config/igr-insights.php`):
+  - **#3:** tráfico en el cuartil superior y conversión en el decil inferior, con al menos 30 vistas.
+  - **#4:** abandono de 70 % o más y 20 puntos sobre la mediana, con al menos 20 veces agregado.
+  - **#5:** al menos 5 búsquedas por término. Se descartan las que parecen correos o teléfonos.
+  - **#9:** la mediana propia de días hasta la segunda compra (45 días con menos de 30 casos), clientes del último año y sin el flujo 9 activo.
+  - **#10:** el 10 % de los clientes genera el 50 % o más.
+  - **#11 y #12:** 1,5 veces o más el valor a 180 días, con 30 clientes por canal o 20 por producto.
+  - **#13:** al menos 200 sesiones y el 5 % del tráfico, con la mitad o menos de la conversión del sitio.
+  - **#14:** sube 10 puntos o más.
+  - **#16:** calidad amarilla o roja, o una campaña con 2 % de bloqueos (131050) y bajas.
+  - **#17:** rebotes sobre 2 % o quejas sobre 0,1 % en 14 días.
+  - **#18:** más de 3 mensajes de marketing por semana y bajas que suben un 20 %.
+  - **#19:** fallos sobre 10 %, o menos de 2 claves coincidentes en promedio.
+- **#7 Páginas lentas:** necesita Web Vitals (`page.vitals` con `lcp_ms`, que enviará Imagina Turbo). Sin ellos se salta, y la pantalla de ajustes muestra el motivo.
+- **#11 Canal con mejor LTV:** compara el valor a 180 días por canal; el costo de adquisición entra cuando haya gasto en anuncios por canal **[verificar]**.
+- **Impacto:** es un producto de factores (`Impact`/`Term`) guardado en `insights.impact_assumptions.formula`. Los supuestos editables por espacio de trabajo viven en `insight_assumptions`; sin fila, aplica el valor por defecto de `config/igr-insights.php`:
+  - reactivación: 18 %;
+  - recuperación de pedidos sin pagar: 30 %;
+  - recuperación de carritos: 5 %;
+  - segunda compra con un flujo: 10 %;
+  - brecha cerrada al mejorar un producto: 25 %;
+  - abandono de más recuperado: 20 %;
+  - búsquedas sin resultado que comprarían: 25 %;
+  - brecha cerrada en una ciudad: 25 %.
+
+  Cambiar un supuesto recalcula al instante los hallazgos abiertos que lo usan.
+- **Vigencia y repetición:** un hallazgo vale 7 días (nocturno) o 14 (semanal) y vence aunque su detector no corra. Uno descartado no vuelve en 30 días salvo que su impacto, o su magnitud si no tiene impacto en dinero (#10 a #12, #16 a #20), empeore más de un 50 %.
+- **«Hacer ahora» con 1 clic:**
+  - activa el flujo de la biblioteca (#4 y #15 carrito abandonado, #9 segunda compra);
+  - o crea la campaña con el segmento del sistema ya elegido (#8, «En riesgo»);
+  - y marca el hallazgo como atendido.
+
+  Los demás llevan a la pantalla indicada.
+- **Para la IA:** `TopInsights::facts(Workspace, int $limit = 5)` da los hallazgos abiertos por impacto como hechos, sin datos personales, con la fórmula escrita. Lo usa el analista semanal.
+
 ---
 
 ## 6. IA

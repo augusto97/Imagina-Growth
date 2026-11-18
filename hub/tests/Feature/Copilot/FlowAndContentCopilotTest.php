@@ -43,7 +43,7 @@ it('propone un flujo válido y aplicarlo crea un borrador (nunca activo) con las
     $p = $res->json('proposal');
     expect($p['trigger'])->toMatchArray(['type' => 'segment', 'on' => 'entered'])->and($p['goal']['event'])->toBe('order.paid')
         ->and($p['pending_whatsapp'])->toBe(['wa'])->and(implode(' ', $p['warnings']))->toContain('plantilla aprobada de WhatsApp')
-        ->and(array_column($p['steps'], 'label'))->toContain('Espera 1 días')
+        ->and(array_column($p['steps'], 'label'))->toContain('Espera 1 día')
         ->and($p['graph']['nodes'][1]['position'])->toHaveKeys(['x', 'y']);
 
     $applied = $this->actingAs($this->owner)->postJson("/api/w/{$this->ws->publicId()}/copilot/drafts/{$res->json('id')}/apply")->assertOk();
