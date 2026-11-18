@@ -12,7 +12,7 @@ Recibir y validar eventos, resolver identidades, guardar en ClickHouse y MariaDB
 ## 2. Stack y paquetes
 
 - PHP 8.4, Laravel 13, MariaDB 11, ClickHouse 25.x, Redis 7.
-- **Laravel:** Horizon (colas), Reverb (WebSockets), Sanctum (autenticación de la SPA y tokens de la API), Pennant (feature flags por plan), Scout no (la búsqueda es propia), Laravel AI SDK (Anthropic), Laravel MCP.
+- **Laravel:** Horizon (colas), Reverb (WebSockets), Sanctum (autenticación de la SPA y tokens de la API), Pennant (feature flags por plan), Scout no (la búsqueda es propia), Laravel MCP. La IA usa el SDK oficial de Anthropic para PHP (`anthropic-ai/sdk`, §12).
 - **Terceros (verifica la versión vigente al instalar):**
   - `spatie/laravel-data` (DTOs). La auditoría usa la tabla propia `audit_logs` de `modelo-de-datos.md` §1 (acción `RecordAuditLog`, cambios enmascarados e IP con hash) en lugar de `spatie/laravel-activitylog`, porque su esquema no coincide con el del modelo de datos.
   - Autenticación de la SPA: Laravel Fortify (rutas JSON bajo `/auth`, 2FA TOTP con códigos de recuperación) sobre la sesión de Sanctum.
@@ -222,13 +222,19 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 ## 12. IA
 
 - `App\Domain\Intelligence\Ai\` tiene servicios por función: `WeeklyAnalyst`, `AskYourData`, `CampaignCopilot`, `ContentWriter`, `InboundClassifier`, `ReviewModerator`, `SalesAgent`.
-- Todos pasan por `AiGateway`, que se encarga de:
-  - Elegir el modelo por función (`config/igr-ai.php`).
-  - Limpiar datos personales de los prompts de análisis.
-  - Registrar el costo en `ai_usage` y aplicar los límites por plan.
-  - Hacer **`NumberValidator`** sobre las salidas narrativas (ver `inteligencia.md` §6.1).
+- **SDK:** el oficial de Anthropic para PHP (`anthropic-ai/sdk`), en lugar de Laravel AI SDK: es el que documenta Anthropic y trae salidas estructuradas, herramientas con `strict`, caché de prompts y el respaldo del servidor ante rechazos. La clave y la URL son propias del hub (`IGR_ANTHROPIC_API_KEY`, `IGR_ANTHROPIC_BASE_URL`): nunca se leen las `ANTHROPIC_*` del sistema. Sin clave, la IA queda apagada y cada función usa su plantilla sin IA.
+- **Contratos (Fase 4):**
+  - `App\Domain\Intelligence\Ai\Contracts\AiGateway` (`AnthropicAiGateway`; `FakeAiGateway::install()` en las pruebas, con guion: `reply`, `replyJson`, `callTool`, `refuse`, `failWith`):
+    - `available(workspaceId)`, `generate(AiRequest)` y `withTools(AiRequest, list<AiTool>, maxSteps)`.
+    - Modelo, esfuerzo y `max_tokens` por función en `config/igr-ai.php` (`claude-sonnet-5-5` para análisis, copiloto, contenido y agente; `claude-haiku-5-5` para clasificación, moderación y resúmenes).
+    - El `system` va con `cacheControl` (estable por función; lo variable va en los mensajes). Salidas estructuradas con `outputConfig.format` (JSON Schema) y herramientas con `strict`. Respaldo del servidor (`fallbacks: "default"`) ante rechazos por política.
+    - Cada llamada suma tokens y costo en `ai_usage` (`AiMeter`) y respeta el tope mensual del espacio de trabajo (`igr-ai.monthly_budget_usd`). Si no se puede llamar, lanza `AiUnavailable` (`disabled`, `budget`, `provider`, `refusal`, `invalid`).
+  - `NumberValidator` y `NarrativeWriter` (inteligencia.md §6.1): toda cifra de un texto generado debe estar en los hechos (formato colombiano, porcentajes, escalas, redondeo por los ceros finales; sin fechas, años, horas, viñetas ni los enteros 1 a 3). Si falla, se regenera **una** vez diciéndole al modelo qué cifras no están; si vuelve a fallar, plantilla sin IA. El agente de ventas valida sus cifras contra lo que devolvieron sus herramientas en ese turno (`AiResult::toolFacts()`).
+  - `PiiScrubber`: quita correos y teléfonos de los hechos de análisis.
+  - `App\Domain\Inbox\Contracts\ConversationAgent` (`onInbound`, `suggest`; por defecto `NullConversationAgent`) e `InboundClassifier` (`classify(workspaceId, text)`; por defecto `HeuristicInboundClassifier`, por palabras).
+  - `App\Domain\Inbox\Events\InboundMessageReceived` (después del commit): lo emite `InboundHandler` con cada entrante, que ya guarda el texto cifrado en `messages.payload.text`. Lo escuchan la bandeja, el clasificador y el agente.
 - `AskYourData` usa *tool use* con una sola herramienta, `run_metric_query(MetricQuery)`. El modelo nunca recibe credenciales ni escribe SQL.
-- `SalesAgent` usa herramientas que llaman comandos firmados al sitio (`connector/CLAUDE.md` §8) y datos del hub. Tiene un límite de pasos por turno y un registro completo.
+- `SalesAgent` usa herramientas que llaman comandos firmados al sitio (`connector/CLAUDE.md` §8) y datos del hub. Tiene un límite de pasos por turno y un registro completo (`ai_agent_turns`).
 
 ## 13. API, webhooks, MCP y tiempo real
 

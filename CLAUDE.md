@@ -97,7 +97,7 @@ imagina-growth/
 
 | Capa | Tecnología |
 |---|---|
-| Hub, backend | PHP 8.4, **Laravel 13**, MariaDB 11 (transaccional), **ClickHouse** (eventos y analítica), Redis 7 (colas, caché, límites), Laravel Horizon, Laravel Reverb (tiempo real), Laravel Sanctum, Laravel AI SDK (Anthropic), Laravel MCP |
+| Hub, backend | PHP 8.4, **Laravel 13**, MariaDB 11 (transaccional), **ClickHouse** (eventos y analítica), Redis 7 (colas, caché, límites), Laravel Horizon, Laravel Reverb (tiempo real), Laravel Sanctum, SDK oficial de Anthropic para PHP (`anthropic-ai/sdk`), Laravel MCP |
 | Hub, frontend | React 18+ con TypeScript, Vite, shadcn/ui + Tailwind (prefijo propio), TanStack Query/Table, Zustand, React Hook Form + Zod, Recharts, React Flow (`@xyflow/react`) para los flujos, GrapesJS + MJML para el editor de correo, fuente Inter, estética tipo Linear/Vercel |
 | Connector | PHP 8.1+ con tipos estrictos, PSR-4 y Composer con dependencias prefijadas (Strauss), WordPress 6.4+, WooCommerce 8.5+ (opcional), compatible con HPOS y el checkout de bloques, Action Scheduler; admin en React + TS + Vite (`@kucrut/vite-for-wp`) |
 | Tracker | TypeScript sin dependencias, compilado a IIFE con esbuild |

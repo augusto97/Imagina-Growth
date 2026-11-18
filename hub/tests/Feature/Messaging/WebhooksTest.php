@@ -3,6 +3,7 @@
 use App\Domain\Consent\Models\ContactConsent;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Contacts\Models\ContactIdentity;
+use App\Domain\Inbox\Events\InboundMessageReceived;
 use App\Domain\Messaging\Enums\MessageKind;
 use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Models\Conversation;
@@ -12,6 +13,8 @@ use App\Domain\Messaging\Models\WaTemplate;
 use App\Support\Pii\BlindIndex;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Tests\Feature\Messaging\Support\MessagingFixtures;
 
@@ -236,4 +239,14 @@ it('Zender con su secreto y Twilio con su firma; sin ellos, 403', function () {
     $this->post($url, $params, ['X-Twilio-Signature' => 'malo'])->assertForbidden();
     $this->post($url, $params, ['X-Twilio-Signature' => $sign($params)])->assertOk();
     app(CurrentWorkspace::class)->run($this->ws, fn () => expect(ContactConsent::query()->where('contact_id', $this->contact->id)->where('channel', 'sms')->value('status'))->toBe('revoked'));
+});
+
+it('guarda el texto entrante cifrado para la bandeja y avisa con InboundMessageReceived después del commit', function () {
+    Event::fake([InboundMessageReceived::class]);
+    metaPost($this, inboundText('+573001234567', '¿Tienen la pintura azul de galón?', 'wamid.IN9'))->assertOk();
+    $msg = app(CurrentWorkspace::class)->run($this->ws, fn () => Message::query()->where('provider_message_id', 'wamid.IN9')->firstOrFail());
+    expect($msg->payload['text'])->toBe('¿Tienen la pintura azul de galón?')
+        ->and((string) DB::table('messages')->where('id', $msg->id)->value('payload'))->not->toContain('pintura');
+    Event::assertDispatched(InboundMessageReceived::class,
+        fn ($e) => $e->messageId === $msg->id && $e->conversationId !== null && ! $e->optedOutByKeyword);
 });

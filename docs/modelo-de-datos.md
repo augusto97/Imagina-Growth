@@ -305,3 +305,26 @@ La base es la migración `2026_11_21_000100_create_phase3_tables`; cada módulo 
 - `audience_syncs` y `audience_members` (nuevas): la sincronización de un segmento con un destino de anuncios y el último conjunto enviado, para mandar solo las altas y bajas. `2026_11_21_500100`: `purpose` (público, exclusión o semilla de similares), `last_added`, `last_removed`, `skipped_no_consent`, `last_attempt_at` y `created_by` en las sincronizaciones; `identifiers` (los hashes enviados, cifrados) en los miembros, para sacar a alguien aunque cambie o se borre su perfil.
 
 **Supresión (cumplimiento.md §9):** al borrar un contacto se borran sus mensajes, conversaciones, recorridos de flujos, destinatarios de campañas, preferencias, libro de puntos, referidos, huellas, solicitudes de reseña y NPS, avisos y capturas; se desvinculan los carritos, cupones, afiliados y reseñas publicadas (sin nombre del autor), y sale de las audiencias con los hashes guardados.
+
+## 14. Tablas y columnas de la Fase 4
+
+La base es la migración `2026_11_22_000100_create_phase4_tables`; cada módulo agrega lo suyo en su rango (`1xxxxx` predicciones, `2xxxxx` hallazgos, `3xxxxx` analista y «Pregúntale», `4xxxxx` copiloto y contenido, `5xxxxx` bandeja, `6xxxxx` agente de ventas). Diferencias con §1 y §5, con su motivo:
+
+**IA**
+- `ai_usage`: además de tokens y costo, `requests`, `cache_read` y `cache_write` (la caché de prompts cambia el costo). Clave (workspace_id, date, feature, model).
+- `ai_reports`: `period_start`/`period_end` (único por espacio de trabajo, tipo e inicio del periodo), `actions` (las 3 acciones con su botón), `source` (`ai` o `fallback`: el texto sin IA cuando la validación numérica falla dos veces).
+- `ai_drafts` (nueva): las propuestas del copiloto (campaña o flujo) y del contenido, que siempre esperan aprobación humana; `applied_type`/`applied_id` enlazan con lo que se creó.
+- `ask_data_queries` (nueva): cada pregunta de «Pregúntale a tus datos» con la consulta estructurada que armó el modelo, la respuesta y si se guardó como segmento o en el tablero.
+
+**Predicciones**
+- `contacts`: `p_alive`, `expected_orders_90d`, `expected_orders_365d` (BG/NBD), `propensity_30d`, `brand_affinity` (top 5, como `category_affinity`) y `predictions_at`.
+- `product_transitions` (nueva): «siguiente producto», la probabilidad de pasar de un producto o categoría del pedido N a otro del pedido N+1.
+
+**Bandeja**
+- `conversations`: `unread_count`, `last_message_at`, `resolved_at`, `intent` (la del último entrante) y `handoff_reason` (por qué la IA pasó a un humano).
+- El texto de los mensajes entrantes va cifrado en `messages.payload.text`.
+- Nuevas: `conversation_notes` (notas internas, cifradas), `conversation_events` (asignaciones, estados, etiquetas, modo de IA, traspasos y ventas, para las métricas por agente), `quick_replies`, `message_attachments` y `push_subscriptions` (notificaciones de la PWA, cifradas).
+
+**Agente de ventas**
+- `ai_agent_settings` (una fila por espacio de trabajo): alcance del negocio, tono, políticas (envíos, cambios, medios de pago, horarios), reglas de traspaso y de descuentos (el agente nunca promete otros) y el límite de pasos.
+- `ai_agent_turns`: cada turno del agente con las herramientas que usó, la validación de sus cifras contra lo que devolvieron, el modelo, los tokens y la revisión humana.

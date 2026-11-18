@@ -38,6 +38,10 @@ enum WorkspaceRole: string
         'viewPaymentData' => ['owner', 'admin'],
         'manageMarketing' => ['owner', 'admin', 'marketing'],
         'viewAuditLog' => ['owner', 'admin'],
+        // Fase 4: bandeja (M11) e IA (M17).
+        'useInbox' => ['owner', 'admin', 'marketing', 'agent'],
+        'manageInbox' => ['owner', 'admin'],
+        'useAi' => ['owner', 'admin', 'marketing'],
     ];
 
     public function can(string $ability): bool

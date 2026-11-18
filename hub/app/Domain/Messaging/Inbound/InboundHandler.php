@@ -7,6 +7,7 @@ namespace App\Domain\Messaging\Inbound;
 use App\Analytics\Ch;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Contacts\Models\ContactIdentity;
+use App\Domain\Inbox\Events\InboundMessageReceived;
 use App\Domain\Messaging\Channels\Data\InboundMessage;
 use App\Domain\Messaging\Contracts\MessageDispatcher;
 use App\Domain\Messaging\Data\OutboundMessage;
@@ -73,7 +74,7 @@ final class InboundHandler
                 'kind' => MessageKind::Service,
                 'source_type' => 'inbox',
                 'status' => 'received',
-                'payload' => ['type' => $in->type, 'button_payload' => $in->buttonPayload],
+                'payload' => array_filter(['type' => $in->type, 'text' => $in->text, 'button_payload' => $in->buttonPayload, 'context_id' => $in->contextMessageId], fn ($v) => $v !== null),
                 'queued_at' => $in->at,
             ]);
             if ($account->channel === Channel::WhatsApp) {
@@ -100,6 +101,8 @@ final class InboundHandler
             if ($account->channel === Channel::WhatsApp) {
                 $this->emitInbound($workspace, $account, $contact, $message, $in, $keyword, $waRef);
             }
+            // Bandeja, clasificador y agente de IA (Fase 4); se despacha después del commit.
+            event(new InboundMessageReceived($workspace->id, $message->id, $message->conversation_id, $contact->id, $keyword !== null));
 
             return $message;
         });

@@ -20,6 +20,7 @@ import {
     Share2,
     Shapes,
     ShieldCheck,
+    Sparkles,
     Users,
     UsersRound,
     Workflow,
@@ -44,13 +45,14 @@ export const MAIN_NAV: NavItem[] = [
     { key: 'flows', to: 'flujos', icon: Workflow, ability: 'viewDashboards', shortcut: 'f' },
     { key: 'campaigns', to: 'campanas', icon: Megaphone, ability: 'viewDashboards', shortcut: 'p' },
     { key: 'templates', to: 'plantillas', icon: FileText, ability: 'viewDashboards', shortcut: 't' },
-    { key: 'inbox', icon: Inbox, phase: 4 },
+    { key: 'inbox', to: 'bandeja', icon: Inbox, ability: 'useInbox', shortcut: 'b' },
     { key: 'onsite', to: 'en-el-sitio', icon: MousePointerClick, ability: 'viewDashboards', shortcut: 'w' },
     { key: 'loyalty', to: 'fidelizacion', icon: Gift, ability: 'viewDashboards', shortcut: 'l' },
     { key: 'referrals', to: 'referidos', icon: Share2, ability: 'viewDashboards', shortcut: 'r' },
     { key: 'reviews', to: 'resenas', icon: MessageSquareQuote, ability: 'viewDashboards', shortcut: 'v' },
     { key: 'measurement', to: 'medicion', icon: Ruler, ability: 'viewDashboards', shortcut: 'm' },
     { key: 'insights', to: 'hallazgos', icon: Lightbulb, ability: 'viewDashboards', shortcut: 'i' },
+    { key: 'intelligence', to: 'inteligencia', icon: Sparkles, ability: 'viewDashboards', shortcut: 'k' },
 ];
 
 export const SETTINGS_NAV: NavItem[] = [

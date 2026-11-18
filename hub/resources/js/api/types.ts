@@ -19,7 +19,10 @@ export type Ability =
     | 'editContacts'
     | 'viewPaymentData'
     | 'manageMarketing'
-    | 'viewAuditLog';
+    | 'viewAuditLog'
+    | 'useInbox'
+    | 'manageInbox'
+    | 'useAi';
 
 export interface Workspace {
     id: string;

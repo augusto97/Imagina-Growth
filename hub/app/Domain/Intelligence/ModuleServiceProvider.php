@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Intelligence;
 
+use App\Domain\Intelligence\Ai\AnthropicAiGateway;
+use App\Domain\Intelligence\Ai\Contracts\AiGateway;
 use App\Domain\Intelligence\Console\BuildKpiDailyCommand;
 use App\Domain\Intelligence\Console\BuildSessionsCommand;
 use App\Domain\Intelligence\Console\InsightsCommand;
@@ -19,6 +21,12 @@ use Illuminate\Support\ServiceProvider;
  */
 final class ModuleServiceProvider extends ServiceProvider
 {
+    public function register(): void
+    {
+        // Fase 4: la única puerta hacia el modelo (hub/CLAUDE.md §12). Las pruebas usan FakeAiGateway::install().
+        $this->app->singleton(AiGateway::class, AnthropicAiGateway::class);
+    }
+
     public function boot(): void
     {
         if (! $this->app->runningInConsole()) {

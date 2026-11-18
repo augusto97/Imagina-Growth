@@ -198,7 +198,7 @@ Siempre conservador, con el supuesto visible: «Estimación: 37 clientes × 18% 
 ## 6. IA
 
 ### 6.1 Principios
-- Proveedor: Anthropic vía Laravel AI SDK. Por defecto `claude-sonnet-5-5` para análisis, copiloto y agente, y `claude-haiku-5-5` para clasificación, moderación y resúmenes cortos. Se configura por función (`config/igr-ai.php`).
+- Proveedor: Anthropic con su SDK oficial para PHP (`anthropic-ai/sdk`; se eligió en lugar de Laravel AI SDK porque es el que documenta Anthropic y trae salidas estructuradas, herramientas estrictas, caché de prompts y respaldo ante rechazos). Por defecto `claude-sonnet-5-5` para análisis, copiloto y agente, y `claude-haiku-5-5` para clasificación, moderación y resúmenes cortos. Se configura por función (`config/igr-ai.php`).
 - **Mínimo de datos personales:** al analista se le envían agregados y hechos, no perfiles. Al agente de la bandeja, solo la conversación y los datos que necesita, consultados con herramientas.
 - **Validación numérica:** todo número del texto generado (regex con miles, decimales y porcentajes) debe existir en `facts`, con tolerancia por redondeo. Si falla, se regenera una vez; si vuelve a fallar, se usa la plantilla sin IA.
 - Costo registrado en `ai_usage`. Límites por plan y caché de prompts.
