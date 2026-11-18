@@ -420,6 +420,15 @@
 - **Interfaz en el sitio:** lanzador flotante, sección «Mis recompensas» en Mi cuenta, puntos a ganar en la ficha del producto y el carrito, y una página explicativa del programa generada sola.
 - Vencimiento configurable con aviso previo (flujo 15).
 
+**Implementación (Fase 3):**
+- **Libro** (`loyalty_ledger`, solo inserción, idempotente por clave): `pending` no cuenta; `confirmed` y `expired` cuentan; una hija `reversed` resta de su pendiente (reembolso o cancelación antes de confirmar, saldo liberado). Confirmar agrega una hija `confirmed` (clave `settle:{id}`). Los puntos se consumen del más viejo al más nuevo (FIFO) y cada abono vence a los N meses de ganado. `contacts.points_balance`, `wallet_balance_ws`, `points_expiring` y `points_expiring_at` quedan al día en cada movimiento.
+- **Pedidos:** `order.paid` da puntos pendientes (clave `order:{id}`) sobre el total sin envío (o el total), con multiplicador por categoría, por nivel y por campaña, y en la moneda del espacio de trabajo. Se confirman `pending_days` después de `order.completed` (si la tienda nunca lo completa, 30 días después de pagado más ese periodo); ahí también se acredita el cashback. Un reembolso parcial revierte la parte proporcional; uno total o una cancelación, todo (después de confirmar se resta del saldo y puede quedar en negativo). Los pedidos importados no dan puntos.
+- **Niveles:** el de mayor rango cuyo umbral alcanza en 12 meses (gasto neto de reembolsos, puntos ganados o pedidos pagados), recalculado con cada pedido y cada noche (también bajan). Si cambia: `tier.changed` y `customer.set_tier` a cada sitio donde el contacto tiene cuenta. Bajar a «sin nivel» no envía comando (se recomienda un nivel base desde 0).
+- **Canje:** `/p/{key}/me/redeem` resta los puntos y crea el cupón (`source_type: loyalty`, código `PUNTOS-…`); si la tienda no lo crea, los puntos vuelven. «Producto gratis» es un descuento fijo hasta su valor, válido solo con ese producto en el carrito. La recompensa de saldo acredita la billetera.
+- **Saldo en el checkout** (`/v1/s/wallet/redeem`): cupón `SALDO-…` de un solo uso por `min(saldo, total)`, combinable con otros cupones y restringido al correo del cliente; el mismo carrito recibe el mismo cupón. El débito queda pendiente; se confirma con el `order.paid` que lo usa y se libera a las 24 h (desactivando el cupón con `coupon.disable`) salvo que lo use un pedido aún sin pagar.
+- **Flujo 15 «Puntos por vencer»:** disparador por fecha sobre `contacts.points_expiring_at` (la fecha del próximo vencimiento) con `offset_days = −warning_days` (15 por defecto); `points_expiring` trae los puntos que vencen ese día. El job nocturno `igr:loyalty:nightly` vence lo cumplido (`points.expired`), da los puntos de cumpleaños, pasa el saldo de los contactos fusionados y recalcula niveles; `igr:loyalty:settle` (cada 15 min) confirma los periodos cumplidos y libera saldos.
+- **Nodos de flujo** «dar puntos» y «dar saldo» (una vez por visita del nodo; el grupo de control no recibe nada).
+
 ---
 
 ## M14 — Referidos, afiliados e influencers · Fase 3

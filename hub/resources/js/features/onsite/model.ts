@@ -1,4 +1,4 @@
-import type { ConsentChannel, CouponConfig, Gift, OnsiteOptions, Prize, Quiz, QuizQuestion, WidgetDetail, WidgetDraft, WidgetField, WidgetVariant } from './types';
+import type { ConsentChannel, CouponConfig, Gift, OnsiteOptions, Prize, ProductRule, Quiz, QuizQuestion, WidgetDetail, WidgetDraft, WidgetField, WidgetVariant } from './types';
 
 /* Lógica pura del constructor de widgets (probada en onsite.test.ts). */
 
@@ -13,10 +13,26 @@ export function draftFrom(w: WidgetDetail): WidgetDraft {
         variants: structuredClone(w.variants),
         consent_config: structuredClone(w.consent_config),
         coupon_config: structuredClone(w.coupon_config),
-        quiz: w.quiz ? structuredClone(w.quiz) : null,
+        quiz: w.quiz ? normalizeQuiz(structuredClone(w.quiz)) : null,
         starts_at: w.starts_at,
         ends_at: w.ends_at,
         ab_auto_winner: w.ab.auto_winner,
+    };
+}
+
+/** Completa las reglas de productos guardadas con una forma anterior (campos que faltan → vacíos). */
+export function productRule(rule: Partial<ProductRule> | undefined): ProductRule {
+    return { product_ids: rule?.product_ids ?? [], category_ids: rule?.category_ids ?? [], brands: rule?.brands ?? [], max_price: rule?.max_price ?? null, kind: rule?.kind ?? null };
+}
+
+function normalizeQuiz(quiz: Quiz): Quiz {
+    return {
+        ...quiz,
+        outcomes: {
+            ...quiz.outcomes,
+            rules: quiz.outcomes.rules.map((r) => ({ ...r, products: productRule(r.products) })),
+            fallback: { ...quiz.outcomes.fallback, products: productRule(quiz.outcomes.fallback.products) },
+        },
     };
 }
 

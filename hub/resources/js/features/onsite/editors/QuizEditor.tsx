@@ -186,7 +186,7 @@ function ProductRuleEditor({ rule, options, onChange, allowKind = false }: { rul
                         id={id}
                         multiple
                         className="igr:h-24 igr:w-full igr:rounded-md igr:border igr:bg-transparent igr:px-2 igr:py-1 igr:text-[13px]"
-                        value={rule.category_ids ?? []}
+                        value={rule.category_ids}
                         onChange={(e) => onChange({ ...rule, category_ids: Array.from(e.target.selectedOptions).map((o) => o.value) })}
                     >
                         {(options?.categories ?? []).map((c) => (
@@ -203,7 +203,7 @@ function ProductRuleEditor({ rule, options, onChange, allowKind = false }: { rul
                         id={id}
                         multiple
                         className="igr:h-24 igr:w-full igr:rounded-md igr:border igr:bg-transparent igr:px-2 igr:py-1 igr:text-[13px]"
-                        value={rule.brands ?? []}
+                        value={rule.brands}
                         onChange={(e) => onChange({ ...rule, brands: Array.from(e.target.selectedOptions).map((o) => o.value) })}
                     >
                         {(options?.brands ?? []).map((b) => (
@@ -215,7 +215,7 @@ function ProductRuleEditor({ rule, options, onChange, allowKind = false }: { rul
                 )}
             </Field>
             <Field label={t('onsite.quiz.products.ids')} help={t('onsite.quiz.products.idsHelp')}>
-                {(id) => <Input id={id} defaultValue={(rule.product_ids ?? []).join(', ')} placeholder="88, 91" onBlur={(e) => onChange({ ...rule, product_ids: linesToList(e.target.value) })} />}
+                {(id) => <Input id={id} defaultValue={rule.product_ids.join(', ')} placeholder="88, 91" onBlur={(e) => onChange({ ...rule, product_ids: linesToList(e.target.value) })} />}
             </Field>
             <Field label={t('onsite.quiz.products.maxPrice')}>
                 {(id) => <Input id={id} type="number" min={0} value={rule.max_price ?? ''} onChange={(e) => onChange({ ...rule, max_price: e.target.value === '' ? null : e.target.value })} />}

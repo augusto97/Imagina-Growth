@@ -100,8 +100,8 @@ function Summary() {
     const { reviews, requests } = summary.data;
     const dist = (['5', '4', '3', '2', '1'] as const).map((stars) => ({ stars, count: reviews.distribution[stars] }));
     return (
-        <div className="igr:grid igr:gap-3 igr:lg:grid-cols-[minmax(0,1fr)_320px]">
-            <TileGrid className="igr:lg:grid-cols-2 igr:xl:grid-cols-4">
+        <div className="igr:grid igr:items-start igr:gap-3 igr:lg:grid-cols-[minmax(0,1fr)_340px]">
+            <TileGrid className="igr:lg:grid-cols-2 igr:xl:grid-cols-2">
                 <Kpi label={t('reviews.summary.avg')} value={reviews.avg_rating === null ? '—' : fmt.decimal(reviews.avg_rating, 2)} hint={t('reviews.summary.published', { count: reviews.published })} />
                 <Kpi label={t('reviews.summary.pending')} value={fmt.number(reviews.pending)} hint={reviews.flagged_pending > 0 ? t('reviews.summary.flagged', { count: reviews.flagged_pending }) : undefined} />
                 <Kpi label={t('reviews.summary.withMedia')} value={fmt.number(reviews.with_media)} help={t('reviews.summary.withMediaHelp')} />

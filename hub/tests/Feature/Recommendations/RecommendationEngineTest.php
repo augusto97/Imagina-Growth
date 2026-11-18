@@ -203,3 +203,16 @@ it('rechaza tipos desconocidos y no mezcla productos de otro espacio de trabajo'
     // El sitio de otro espacio de trabajo no existe dentro de este.
     expect($this->commerceRun(fn () => app(RecommendationEngine::class)->recommend('trending', new RecommendationContext(siteId: $otherSite->id))))->toBe([]);
 });
+
+it('arma las reglas con IDs numéricos de WooCommerce', function () {
+    foreach (['88' => '12', '91' => '12', '120' => '30'] as $id => $cat) {
+        $this->commerceProduct((string) $id, "Producto {$id}", [$cat]);
+    }
+    foreach (range(1, 3) as $i) {
+        $this->commerceOrder(null, ['88' => 1, '91' => 1]);
+        $this->commerceOrder(null, ['120' => 1]);
+    }
+    ($this->build)(rules: true);
+    expect(($this->ids)(($this->reco)('bought_together', ['productId' => '88'])))->toBe(['91'])
+        ->and(($this->ids)(($this->reco)('complete_cart', ['cartProductIds' => ['91']])))->toBe(['88']);
+});

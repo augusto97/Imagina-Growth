@@ -74,7 +74,7 @@ final class AssociationRulesBuilder
             foreach (array_slice($rules, 0, $maxPerProduct) as $rule) {
                 $rows[] = [
                     'workspace_id' => $workspace->id, 'site_id' => $site->id,
-                    'product_id' => mb_substr($product, 0, 64), 'related_product_id' => mb_substr((string) $rule['related'], 0, 64),
+                    'product_id' => mb_substr((string) $product, 0, 64), 'related_product_id' => mb_substr((string) $rule['related'], 0, 64),
                     'pair_orders' => $rule['pair_orders'],
                     'support' => round($rule['support'], 6), 'confidence' => round($rule['confidence'], 6), 'lift' => round(min($rule['lift'], 999999.9999), 4),
                     'computed_at' => $computedAt,

@@ -133,10 +133,11 @@ imagina-growth-connector/
 | `product.lookup` | por IDs o búsqueda: precio, precio de oferta, stock en vivo, URL, imagen y variaciones. Lo usa el agente de IA. **Fase 2:** solo productos publicados, sin contraseña ni ocultos del catálogo; máximo 20 resultados y 20 variaciones por producto |
 | `order.status` | por número de pedido + correo o teléfono que coincida: estado, envío y seguimiento si existe. **Fase 2:** también busca `_order_number` (plugins de números secuenciales); el teléfono se compara en E.164; un dato que no coincide responde igual que un pedido inexistente (`404 not_found`); el seguimiento sale de WooCommerce Shipment Tracking si está |
 | `order.create_payment_link` | crea un pedido pendiente con los ítems indicados y devuelve `get_checkout_payment_url()` |
-| `review.publish` | crea la reseña nativa (comentario `review` con `rating`, `verified=1` si aplica, la meta `igr_review_id` y las URLs de medios) |
-| `review.reply` | respuesta del dueño como comentario hijo |
+| `review.publish` | crea la reseña nativa (comentario `review` con `rating`, `verified=1` si aplica, la meta `igr_review_id` y las URLs de medios). **Fase 3:** aprobada, con `igr_title` e `igr_media` (JSON, hasta 10, solo http/https), fecha del hub y cliente del pedido si viene `order_id`; recalcula el promedio del producto. Idempotente por `review_id` (si se había despublicado, la vuelve a aprobar) |
+| `review.reply` | respuesta del dueño como comentario hijo. **Fase 3:** comentario aprobado con la meta `igr_reply`; la misma respuesta devuelve el mismo comentario; solo responde reseñas (`404` si no) |
+| `review.unpublish` | **Fase 3:** deja la reseña pendiente (`hold`) y recalcula el promedio |
 | `order.add_note` | nota privada (por ejemplo «Pedido recuperado por Imagina Growth»); con `customer_note` se la envía al cliente |
-| `customer.set_tier` | meta `igr_tier` y rol opcional mapeado (para precios VIP con el plugin de precios por rol del cliente) |
+| `customer.set_tier` | meta `igr_tier` y rol opcional mapeado (para precios VIP con el plugin de precios por rol del cliente). **Fase 3:** también `igr_tier_name`; el rol se agrega sin quitar los otros y el del nivel anterior (`igr_tier_role`) se quita. Seguridad: nunca asigna roles del sistema (administrator, editor, author, contributor, subscriber, customer, shop_manager) ni un rol que dé algo más que `read` (`422 role_not_allowed`); si el rol no existe lo crea solo con `read`; a administradores y gestores de la tienda solo les guarda la meta. Sin `tier_key` borra el nivel |
 | `catalog.resync` | fuerza la conciliación |
 | `site.diagnostics` | versiones, estado del outbox y de Action Scheduler, capacidades |
 | `privacy.erase_local` | borra del outbox y de las metas locales los datos de un contacto |
@@ -167,14 +168,24 @@ Implementación (Fase 2, `Onsite\CartRestore`, api-connector.md §6.1):
 
 ## 10. Widgets y elementos en el sitio
 
-- **Cargador** `igr-widgets.js`: el tracker lo descarga solo si `widgets.json` (desde la CDN del hub) trae widgets activos para esa página.
-- **Espacios (slots)** cacheables con espacio reservado para no causar CLS: `<div class="igr-slot" data-igr-slot="reco|reviews|form|loyalty|bis" data-igr-ctx='{"productId":88}' style="min-height:…"></div>`. Se exponen como:
-  - Bloques de Gutenberg: `imagina-growth/form`, `/recommendations`, `/reviews`, `/loyalty`, `/quiz`.
-  - Shortcodes: `[igr_form id=""]`, `[igr_reco type="para_ti"]`, `[igr_reviews]`, `[igr_quiz id=""]`.
-  - Widgets de Elementor (si está activo).
-- **«Avísame cuando vuelva»:** se inserta en `woocommerce_single_product_summary` cuando el producto está agotado. No es personal, así que es cacheable.
-- **Mi cuenta → «Mis recompensas»:** `add_rewrite_endpoint('recompensas')` + `woocommerce_account_menu_items`. El contenido se carga por JS con el token de usuario de §9.
-- **Saldo en el checkout:** un bloque o hook muestra «Usar saldo». El clic hace una petición AJAX al plugin, que llama al hub (`POST /v1/s/wallet/redeem`, firmado, timeout de 3 s), recibe un cupón de un solo uso y lo aplica al carrito. Es la única llamada síncrona al hub, y la inicia la persona.
+- **Cargador:** el tracker pide `widgets.json` (caché de CDN, igual para todos) en toda página que no sea el checkout y descarga `igr-widgets.js` (el runtime) solo si trae widgets o la página tiene un slot. El runtime descarga el paquete de cada tipo solo cuando un widget aplica (`tracker/CLAUDE.md` §8).
+- **Espacios (slots)** cacheables con espacio reservado para no causar CLS: `<div class="igr-slot igr-slot-reco" data-igr-slot="reco" data-igr-ctx='{"kind":"trending","limit":4}' style="min-height:360px"></div>` (`Onsite\Slots`, api-connector.md §7). El HTML nunca depende del visitante; sin conexión o con el tracker apagado no se pinta nada. Alturas por defecto: `form` 320, `quiz` 360, `reco` 360, `reviews` 420 (lista), 300 (carrusel), 280 (galería), 22 (insignia), `bis` 44, `points` 24, `loyalty` 480, `banner` 56 en la cuenta y 0 arriba (flotante); todos aceptan `height`.
+- Se exponen como:
+  - **Bloques de Gutenberg** dinámicos (`Onsite\Blocks`, editor en JS plano `assets/igr-blocks.js`): `imagina-growth/form`, `/quiz`, `/recommendations`, `/reviews`, `/loyalty`. Pintan exactamente lo mismo que el shortcode.
+  - **Shortcodes** (`Onsite\Shortcodes`, registrados siempre para que nunca se vean como texto): `[igr_form id="wg_…"]`, `[igr_quiz id="wg_…"]`, `[igr_reco type="para_ti|bought_together|recently_viewed|best_sellers_category|trending|complete_cart" product_id="" category_id="" limit="4" title=""]`, `[igr_reviews product_id="" layout="list|carousel|gallery|badge" title=""]`, `[igr_loyalty]` y `[igr_banner placement="account|top"]`. En la ficha toman el producto actual y en una categoría, la categoría; `complete_cart` en el carrito (página que no se cachea) lleva los productos del carrito en `cart`.
+  - **Widgets de Elementor** (`Onsite\Elementor\*`): se registran en `elementor/widgets/register` solo si Elementor está activo.
+- **Automáticos en WooCommerce** (`Onsite\Store`), con interruptores en la pestaña «En el sitio» y, para lo que depende de un módulo del hub, `onsite` de `/v1/s/config` (`loyalty`, `wallet`, `product_watch`). Los interruptores efectivos se copian en `igr_state['trk']['ons']` para no consultar la base en páginas cacheables:
+  - «Avísame cuando vuelva» en `woocommerce_single_product_summary` (35) si el producto está agotado; «Avísame si baja de precio» si tiene stock y está activo (apagado por defecto). Los avisos por variación quedan pendientes.
+  - «Gana N puntos» debajo del precio (11) y en el carrito clásico (`woocommerce_proceed_to_checkout`, 5), solo con la fidelización activa en el hub.
+  - Banner por segmento arriba (`wp_body_open`, apagado por defecto); es flotante y no reserva espacio.
+  - Cookie de sesión `_igr_ct` con el subtotal del carrito (con impuestos) cuando WooCommerce escribe sus cookies: la usa la regla `cart_value_min` de los widgets. No identifica a nadie.
+- **Mi cuenta → «Mis recompensas»** (`Onsite\Account`): endpoint `recompensas` por `woocommerce_get_query_vars` (WooCommerce registra la regla), entrada en `woocommerce_account_menu_items` antes de «Salir» y contenido con el slot `banner` (cuenta) y el slot `loyalty`. Mi cuenta no se cachea, así que ahí está `window.igrUser` (§9). Las reglas de reescritura se refrescan solo cuando el endpoint aparece o desaparece (`Account::sync_rewrite`, bandera `rw_flushed` en `igr_state`).
+- **Saldo en el checkout** (`Onsite\Wallet`, api-connector.md §5.5), solo para clientes con sesión y con `wallet` activo:
+  - Clásico: en `woocommerce_review_order_before_payment` (no se repinta con cada actualización). Bloques: antes del bloque `woocommerce/checkout` (fuera del árbol de React).
+  - El slot va oculto; `assets/igr-wallet.js` (compilado desde `tracker/widgets/wallet.ts`) pide el saldo a `/me` con `igrUser.token` y muestra «Tienes $35.000 de saldo a favor» y el botón «Usar saldo» solo si hay saldo.
+  - El clic llama a `?wc-ajax=igr_wallet_redeem` (nonce `igr-wallet`), que hace la **única llamada síncrona** al hub (`POST /v1/s/wallet/redeem`, firmada, 3 s) y aplica el cupón al carrito de la sesión; el checkout clásico se actualiza con `update_checkout` y el de bloques invalidando el store `wc/store/cart`. Sin saldo (`409`) responde «No tienes saldo disponible por ahora»; con el hub caído, «No pudimos usar tu saldo ahora». El código aplicado queda en la sesión (`igr_wallet_coupon`) para no pedir otro.
+- **Reseñas publicadas desde el hub:** el título (`igr_title`) va antes del texto (`woocommerce_review_before_comment_text`) y las fotos y videos (`igr_media`, solo http/https, imágenes con `loading="lazy"`) debajo (`woocommerce_review_after_comment_text`). `ReviewCollector` no las devuelve al hub como `review.submitted` (ni en vivo ni en la importación).
+- **Referidos:** el tracker guarda `?ref=` en `_igr_src`; `RequestContext::touch()` lo valida (`^[A-Za-z0-9_-]{3,32}$`) y el pedido lo lleva en `context.last_touch.referral_code` (v4). El plugin no lee `?ref=` en PHP: una página cacheada no correría ese código.
 - **Encuesta «¿cómo nos conociste?»:** slot en la página de gracias (`woocommerce_thankyou`).
 
 ## 11. Consentimiento y privacidad
@@ -201,7 +212,7 @@ Menú «Imagina Growth» con estas pestañas:
 | **Datos** | qué se envía (activar o desactivar por tipo), excluir roles (administradores por defecto), páginas excluidas, estados pagados, pasarelas offline |
 | **Formularios** | detectados, mapeo de campos y prueba de envío |
 | **Consentimiento** | textos, casillas del checkout y modo de banner |
-| **En el sitio** | widgets activos (solo lectura, con enlace al hub) y slots disponibles |
+| **En el sitio** | interruptores de los elementos automáticos («Avísame», «Avísame si baja», puntos, «Mis recompensas», «Usar saldo», banner superior; los de fidelización también dependen del hub) y cómo poner los slots (bloques, shortcodes y Elementor) |
 | **Diagnóstico** | Action Scheduler, cron, outbox (pendientes y fallidos con reintento manual), conflictos detectados, exportar el informe de soporte |
 | **Avanzado** | dominio de seguimiento, modo de píxel, importación histórica, desconexión |
 
@@ -243,7 +254,7 @@ Menú «Imagina Growth» con estas pestañas:
 - **PHPCS:** `vendor/bin/phpcs` (WordPress-Extra, `phpcs.xml.dist`). Cuidado con `phpcbf`: `CapitalPDangit` cambia el valor del contrato `'wordpress'` por `'WordPress'`; esas líneas llevan `phpcs:ignore`.
 - **Plugins de formularios en la suite de WordPress:** si `contact-form-7` y `wpforms-lite` están instalados junto a WooCommerce (`WC_PLUGIN_DIR/..`), el arranque los carga y `FormsTest` hace envíos reales con cada uno; si faltan, esas pruebas se saltan (`IGR_TESTS_NO_FORMS=1` los ignora).
 - **Navegador de punta a punta (Playwright):** desde `tracker/`, `IGR_E2E_WP_DIR=/ruta/wordpress IGR_E2E_WP_CLI="wp --allow-root" npm run e2e -- --trace off`. Levanta la tienda (8080) y el hub simulado (8090), conecta el sitio, prueba vistas, `_igr`, WhatsApp, banner, encuesta, `identify` y el píxel de compra, y al final lo desconecta.
-- **Hub simulado** para probar de punta a punta sin el hub real: `MOCK_HUB_DATA=/tmp/mockhub php -S 127.0.0.1:8090 tests/fixtures/mock-hub.php`. Valida cada evento contra los esquemas y expone `GET /_state` (eventos, pedidos por estado, conciliación recibida) y `POST /_reset`.
+- **Hub simulado** para probar de punta a punta sin el hub real: `MOCK_HUB_DATA=/tmp/mockhub php -S 127.0.0.1:8090 tests/fixtures/mock-hub.php`. Valida cada evento contra los esquemas y expone `GET /_state` (eventos, pedidos por estado, conciliación recibida) y `POST /_reset`. **Fase 3:** sirve los endpoints públicos de §8.3 con datos de prueba (`visitor.json`, `widgets/{id}/submit`, `reco`, `watch`, `me` con `redeem` y `share`, `reviews` con `badges`, `points`, `banner`) y `POST /v1/s/wallet/redeem`, que crea el cupón en el sitio con `coupon.create` firmado antes de responder. `POST /_config` reemplaza claves de primer nivel (`widgets`, `reco`, `wallet_balance`, `onsite`, `consent`, `measurement`).
 - **Recorrido local:** `IGR_HUB_URL=http://127.0.0.1:8090 wp igr connect IGR-XXXX-XXXX-XXXX`, `wp igr backfill --now --flush --delay=0`, `wp igr status`, `wp igr flush --all`, `wp igr disconnect --wipe`. `wp igr demo-store` (solo con `WP_ENVIRONMENT_TYPE=local`) crea la tienda de prueba.
 - **Objetos JSON vacíos:** `identity`, `context`, `properties`, `order.meta`, `billing`, `shipping`… deben viajar como `{}`. Usa `Json::obj()` o `new \stdClass()` y valida siempre el JSON exacto del outbox (decodificarlo como arreglo convierte `{}` en `[]`).
 
