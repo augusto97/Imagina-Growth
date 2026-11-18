@@ -38,7 +38,7 @@ final class PageData {
 	 */
 	public static function enqueue(): void {
 		$trk = TrackerConfig::get();
-		if ( null === $trk || empty( $trk['on'] ) || self::excluded( $trk ) ) {
+		if ( null === $trk || empty( $trk['on'] ) || Roles::is_excluded() ) {
 			return;
 		}
 		$url = static fn( string $file ): string => plugins_url( 'assets/' . $file, IGR_PLUGIN_FILE );
@@ -278,21 +278,5 @@ final class PageData {
 			return;
 		}
 		echo '<div class="igr-slot" data-igr-slot="thankyou"></div>';
-	}
-
-	/**
-	 * ¿El usuario actual está excluido de la medición? (administradores por defecto).
-	 *
-	 * @param array<string, mixed> $trk Configuración guardada.
-	 */
-	private static function excluded( array $trk ): bool {
-		if ( ! is_user_logged_in() ) {
-			return false;
-		}
-		if ( is_array( $trk['roles'] ?? null ) ) {
-			$user = wp_get_current_user();
-			return array() !== array_intersect( (array) $user->roles, $trk['roles'] );
-		}
-		return Roles::is_excluded();
 	}
 }

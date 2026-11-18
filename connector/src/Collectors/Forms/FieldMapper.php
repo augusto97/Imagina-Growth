@@ -47,8 +47,10 @@ final class FieldMapper {
 			if ( 1 === preg_match( self::SECRET_TYPES, $type ) || 1 === preg_match( self::SECRET_NAMES, $key ) ) {
 				continue;
 			}
-			if ( self::is_consent( $type, $key ) ) {
-				$consents[ self::consent_key( $key ) ] = self::truthy( $value );
+			// En las casillas, el texto de la opción marcada también cuenta («Novedades» → «Acepto ofertas por WhatsApp»).
+			$probe = in_array( $type, array( 'checkbox', 'checkboxes', 'listcheckbox', 'radio' ), true ) ? trim( $key . ' ' . self::normalize( self::text( $value ) ) ) : $key;
+			if ( self::is_consent( $type, $probe ) ) {
+				$consents[ self::consent_key( $probe ) ] = self::truthy( $value );
 				continue;
 			}
 			$text = self::text( $value );

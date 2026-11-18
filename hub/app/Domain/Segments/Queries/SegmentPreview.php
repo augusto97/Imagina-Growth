@@ -31,13 +31,13 @@ final class SegmentPreview
         $ctx = new CompileContext($workspace, timeoutSeconds: 10);
         DB::statement('SET SESSION max_statement_time = '.$ctx->timeoutSeconds);
         try {
-            $base = $this->compiler->query($ast, $ctx);
-            $count = (clone $base)->count();
-            $sampleIds = (clone $base)->orderByDesc('c.last_seen_at')->orderBy('c.id')->limit($sampleSize)->pluck('c.id')->all();
-            $value = (clone $base)->selectRaw('COALESCE(SUM(c.revenue_total_ws), 0) AS revenue, COALESCE(SUM(c.predicted_clv_12m_ws), 0) AS clv, COUNT(c.predicted_clv_12m_ws) AS with_clv')->first();
+            // La consulta de miembros corre una vez; lo demás lee la tabla temporal.
+            [$table, $count] = $ctx->materializeMembers($this->compiler->query($ast, $ctx));
+            $sampleIds = DB::table($table)->orderByDesc('last_seen_at')->orderBy('contact_id')->limit($sampleSize)->pluck('contact_id')->all();
+            $value = DB::table($table)->selectRaw('COALESCE(SUM(revenue), 0) AS revenue, COALESCE(SUM(clv), 0) AS clv, COUNT(clv) AS with_clv')->first();
             $channels = [];
             foreach (['email', 'whatsapp'] as $channel) {
-                $q = clone $base;
+                $q = DB::table('contacts as c')->join($table.' as m', 'm.contact_id', '=', 'c.id')->where('c.workspace_id', $workspace->id);
                 $this->compiler->applyMarketingConsent($q, $channel);
                 $channels[$channel] = $q->count();
             }

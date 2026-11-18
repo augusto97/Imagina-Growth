@@ -29,6 +29,13 @@ tests_add_filter(
 		// HPOS activo por defecto, como en las tiendas nuevas; las pruebas pueden cambiarlo.
 		update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
 		require_once $igr_wc_dir . '/woocommerce.php';
+		// Plugins de formularios de wordpress.org, si están instalados junto a WooCommerce
+		// (las pruebas de cada adaptador se saltan si falta su plugin).
+		foreach ( array( 'contact-form-7/wp-contact-form-7.php', 'wpforms-lite/wpforms.php' ) as $igr_form_plugin ) {
+			if ( '1' !== getenv( 'IGR_TESTS_NO_FORMS' ) && is_readable( dirname( $igr_wc_dir ) . '/' . $igr_form_plugin ) ) {
+				require_once dirname( $igr_wc_dir ) . '/' . $igr_form_plugin;
+			}
+		}
 		require_once dirname( __DIR__ ) . '/imagina-growth-connector.php';
 	}
 );

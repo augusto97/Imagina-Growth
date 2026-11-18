@@ -92,7 +92,7 @@ final class PerfDatasetCommand extends Command
               FROM seq_0_to_".($contacts - 1).' WHERE seq % 10 < ?', [$channel === 'email' ? 'E' : 'W', $ws, $channel, $tenths]);
         }
 
-        // Pedidos pagados con un ítem cada uno.
+        // Pedidos pagados con un ítem cada uno; la mitad en la categoría «favorita» del contacto.
         $t = microtime(true);
         DB::table('order_items')->where('workspace_id', $ws)->where('id', 'like', '01PERI%')->delete();
         DB::table('orders')->where('workspace_id', $ws)->where('id', 'like', '01PERO%')->delete();
@@ -106,14 +106,17 @@ final class PerfDatasetCommand extends Command
               FROM seq_{$start}_to_{$end}", [$ws, $site->id, $contacts]);
             DB::statement("INSERT INTO order_items (id, workspace_id, order_id, external_product_id, name, category_ids, brand, qty, unit_price, line_total)
               SELECT CONCAT('01PERI', LPAD(seq, 20, '0')), ?, CONCAT('01PERO', LPAD(seq, 20, '0')), CAST(1 + seq % 60 AS CHAR), 'Producto',
-                JSON_ARRAY(CAST(10 + seq % 6 AS CHAR)), ELT(1 + seq % 3, 'Pintuco', 'Sika', 'Truper'), 1, 95000, 95000
+                JSON_ARRAY(CAST(10 + IF(seq % 2 = 0, ((seq * 7919) % {$contacts}) % 6, seq % 6) AS CHAR)), ELT(1 + seq % 3, 'Pintuco', 'Sika', 'Truper'), 1, 95000, 95000
               FROM seq_{$start}_to_{$end}", [$ws]);
         }
         $this->line(sprintf('Pedidos: %s en %.1f s', number_format($orders, 0, ',', '.'), microtime(true) - $t));
 
         // Eventos en ClickHouse: navegación del último año; 2/3 con contacto y 1/3 anónimos resueltos por identity_map.
+        // La mitad de las vistas son del producto «favorito» del visitante (vistas repetidas).
         $t = microtime(true);
-        $wsCh = $workspace->ch_id;
+        // ch_id es autoincremental: se lee de la base (un modelo recién creado no lo trae).
+        $wsCh = (int) DB::table('workspaces')->where('id', $ws)->value('ch_id');
+        $siteCh = (int) DB::table('sites')->where('id', $site->id)->value('ch_id');
         $ch->statement("ALTER TABLE events DELETE WHERE workspace_id = {$wsCh} AND startsWith(anonymous_id, 'perf-')");
         $ch->statement("ALTER TABLE identity_map DELETE WHERE workspace_id = {$wsCh} AND startsWith(anonymous_id, 'perf-')");
         $ch->statement("INSERT INTO identity_map (workspace_id, anonymous_id, contact_id, linked_at)
@@ -123,13 +126,14 @@ final class PerfDatasetCommand extends Command
             $n = min(1000000, $events - $start);
             $ch->statement("INSERT INTO events (workspace_id, site_id, event_id, event, occurred_at, received_at, source_type, anonymous_id, session_id,
                     contact_id, page_type, path, channel, device_type, city, product_id, currency, properties)
-                SELECT {$wsCh}, {$site->ch_id}, generateUUIDv4(),
+                SELECT {$wsCh}, {$siteCh}, generateUUIDv4(),
                     arrayElement(['page.viewed','page.viewed','page.viewed','product.viewed','product.viewed','cart.item_added','checkout.started','search.performed','category.viewed','order.created'], 1 + (number % 10)),
                     now64(3) - toIntervalSecond((number * 7907) % 31536000), now64(3), 'browser',
                     concat('perf-', toString(((number + {$start}) * 104729) % ({$contacts} * 2))),
                     concat('s', toString(((number + {$start}) * 104729) % ({$contacts} * 2)), '-', toString(intDiv((number * 7907) % 31536000, 1800))),
                     if(number % 3 = 0, '', concat('01PERF', leftPad(toString(((number + {$start}) * 104729) % ({$contacts} * 2) % {$contacts}), 20, '0'))),
-                    'product', '/producto', 'organic_search', 'mobile', 'Bogotá', toString(1 + number % 60), 'COP', CAST('{}' AS JSON)
+                    'product', '/producto', 'organic_search', 'mobile', 'Bogotá',
+                    toString(1 + if(number % 2 = 0, ((number + {$start}) * 104729) % ({$contacts} * 2) % 60, number % 60)), 'COP', CAST('{}' AS JSON)
                 FROM numbers({$n})");
         }
         $this->line(sprintf('Eventos: %s en %.1f s', number_format($events, 0, ',', '.'), microtime(true) - $t));

@@ -67,7 +67,7 @@ final class Settings {
 	 * @return array<string, mixed>
 	 */
 	public static function sanitize( array $s ): array {
-		$numbers = is_array( $s['wa_numbers'] ) ? $s['wa_numbers'] : preg_split( '/[\s,;]+/', (string) $s['wa_numbers'] );
+		$numbers = is_array( $s['wa_numbers'] ) ? $s['wa_numbers'] : preg_split( '/[,;\n]+/', (string) $s['wa_numbers'] );
 		$numbers = array_values( array_unique( array_filter( array_map( static fn( $n ): string => (string) preg_replace( '/\D/', '', (string) $n ), (array) $numbers ), static fn( string $n ): bool => strlen( $n ) >= 8 && strlen( $n ) <= 15 ) ) );
 		$format  = sanitize_text_field( (string) $s['wa_format'] );
 		$domain  = strtolower( trim( (string) $s['cookie_domain'] ) );

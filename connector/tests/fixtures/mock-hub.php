@@ -7,8 +7,12 @@
  *
  * Implementa el canje del código, la ingesta firmada `/v1/s` (verifica la firma sobre los bytes
  * comprimidos, valida cada evento contra hub/resources/schemas/events y deduplica por event_id),
- * `/v1/s/config`, `/v1/s/catalog/hashes` y `PUT /v1/s/backfill`. Guarda agregados en
- * `$MOCK_HUB_DATA/state.json` para que las pruebas los inspeccionen (`GET /_state`).
+ * `/v1/s/config`, `/v1/s/catalog/hashes`, `PUT /v1/s/backfill` y `POST /v1/s/privacy/requests`.
+ * Del lado del navegador (Fase 1): `/v1/b` (CORS, clave pública, mismo validador; verifica el token
+ * de `identify`), `GET /p/{pk}/widgets.json` y `POST /p/{pk}/surveys/{id}/answers` (token de igrOrder).
+ * Guarda agregados en `$MOCK_HUB_DATA/state.json` para que las pruebas los inspeccionen (`GET /_state`).
+ * `POST /_config` mezcla ajustes en la respuesta de `/v1/s/config` (p. ej. `measurement`, `consent`)
+ * y en los widgets (`widgets`).
  *
  * @package ImaginaGrowth\Connector
  */
@@ -49,7 +53,15 @@ $state = is_array( $state ) ? $state : array(
 	'backfill'     => null,
 	'batches'      => 0,
 	'bad_signatures' => 0,
+	'browser'      => array(),
+	'browser_batches' => 0,
+	'identified'   => array(),
+	'bad_tokens'   => 0,
+	'survey_answers' => array(),
+	'privacy'      => array(),
+	'overrides'    => array(),
 );
+$state += array( 'browser' => array(), 'browser_batches' => 0, 'identified' => array(), 'bad_tokens' => 0, 'survey_answers' => array(), 'privacy' => array(), 'overrides' => array() );
 
 $respond = static function ( int $status, array $payload ) use ( &$state, $state_file, $lock ): void {
 	file_put_contents( $state_file, json_encode( $state ) );
@@ -69,6 +81,58 @@ $verify = static function () use ( &$state, $body ): bool {
 	}
 	return $ok;
 };
+
+// Token de igrUser / igrOrder (api-connector.md §7.1): base64url(JSON) "." hex(HMAC-SHA256).
+$token = static function ( ?string $token ) use ( &$state ): ?array {
+	if ( ! is_array( $state['site'] ) || ! is_string( $token ) || 1 !== preg_match( '/^([A-Za-z0-9_-]+)\.([0-9a-f]{64})$/', $token, $m ) ) {
+		return null;
+	}
+	if ( ! hash_equals( hash_hmac( 'sha256', $m[1], $state['site']['secret'] ), $m[2] ) ) {
+		return null;
+	}
+	$data = json_decode( (string) base64_decode( strtr( $m[1], '-_', '+/' ), true ), true );
+	if ( ! is_array( $data ) || ( $data['site'] ?? null ) !== $state['site']['site_id'] || ! is_int( $data['exp'] ?? null ) || $data['exp'] < time() ) {
+		return null;
+	}
+	return $data;
+};
+
+// Esquemas compartidos con el hub.
+$schemas   = dirname( __DIR__, 3 ) . '/hub/resources/schemas/events';
+$validator = new Validator();
+$validator->resolver()->registerPrefix( 'https://growth.imagina.cloud/schemas/events/', $schemas );
+$validate = static function ( object $wire, array $event ) use ( $validator, $schemas ): ?string {
+	$env = $validator->validate( $wire, 'https://growth.imagina.cloud/schemas/events/_envelope.json' );
+	if ( ! $env->isValid() ) {
+		return 'envelope: ' . json_encode( ( new ErrorFormatter() )->format( $env->error(), true ), JSON_UNESCAPED_UNICODE );
+	}
+	$name   = (string) $event['event'];
+	$schema = str_starts_with( $name, 'custom.' ) ? 'custom' : $name;
+	if ( ! is_readable( $schemas . '/' . $schema . '.json' ) ) {
+		return 'unknown_event';
+	}
+	$props = $validator->validate( $wire->properties, 'https://growth.imagina.cloud/schemas/events/' . $schema . '.json' );
+	return $props->isValid() ? null : 'properties: ' . json_encode( ( new ErrorFormatter() )->format( $props->error(), true ), JSON_UNESCAPED_UNICODE );
+};
+
+// CORS de los endpoints públicos (el navegador llama desde el dominio del sitio).
+$public = '/v1/b' === $path || str_starts_with( (string) $path, '/p/' );
+if ( $public ) {
+	header( 'Access-Control-Allow-Origin: ' . ( $_SERVER['HTTP_ORIGIN'] ?? '*' ) );
+	header( 'Access-Control-Allow-Methods: GET, POST, OPTIONS' );
+	header( 'Access-Control-Allow-Headers: Content-Type' );
+	header( 'Vary: Origin' );
+	if ( 'OPTIONS' === $method ) {
+		flock( $lock, LOCK_UN );
+		http_response_code( 204 );
+		exit;
+	}
+}
+
+if ( 'POST' === $method && '/_config' === $path ) {
+	$state['overrides'] = array_replace_recursive( $state['overrides'], (array) json_decode( $body, true ) );
+	$respond( 200, $state['overrides'] );
+}
 
 if ( 'GET' === $method && '/_state' === $path ) {
 	$copy = $state;
@@ -216,7 +280,15 @@ if ( 'GET' === $method && '/v1/s/config' === $path ) {
 				'backfill_months'   => 24,
 				'early_capture'     => false,
 			),
-			'consent'            => array( 'mode' => 'strict', 'texts' => array() ),
+			'consent'            => $state['overrides']['consent'] ?? array(
+				'mode'               => 'strict',
+				'privacy_policy_url' => null,
+				'texts'              => array(
+					array( 'kind' => 'marketing_consent', 'channel' => 'whatsapp', 'version' => 'v1', 'label' => 'Quiero recibir ofertas por WhatsApp. Puedo darme de baja cuando quiera.' ),
+					array( 'kind' => 'marketing_consent', 'channel' => 'email', 'version' => 'v1', 'label' => 'Quiero recibir ofertas por correo. Puedo darme de baja cuando quiera.' ),
+				),
+			),
+			'measurement'        => $state['overrides']['measurement'] ?? array( 'mode' => 'server_only', 'pixels' => new stdClass() ),
 			'min_plugin_version' => '0.1.0',
 		)
 	);
@@ -241,6 +313,118 @@ if ( 'PUT' === $method && '/v1/s/backfill' === $path ) {
 	}
 	$state['backfill'] = json_decode( $body, true );
 	$respond( 200, array( 'ok' => true ) );
+}
+
+if ( 'POST' === $method && '/v1/s/privacy/requests' === $path ) {
+	if ( ! $verify() ) {
+		$respond( 401, array( 'error' => 'signature' ) );
+	}
+	$req = json_decode( $body, true );
+	if ( ! is_array( $req ) || ! in_array( $req['kind'] ?? '', array( 'access', 'delete' ), true ) || ! filter_var( $req['email'] ?? '', FILTER_VALIDATE_EMAIL ) ) {
+		$respond( 422, array( 'error' => 'invalid' ) );
+	}
+	$id                 = 'dr_' . strtoupper( bin2hex( random_bytes( 8 ) ) );
+	$state['privacy'][] = array( 'request_id' => $id, 'kind' => $req['kind'], 'email_hash' => hash( 'sha256', strtolower( $req['email'] ) ), 'wp_request_id' => $req['wp_request_id'] ?? null );
+	$respond( 202, array( 'request_id' => $id, 'status' => 'pending', 'due_at' => gmdate( 'Y-m-d\TH:i:s\Z', time() + 15 * 86400 ) ) );
+}
+
+// Ingesta del navegador (api-connector.md §4.2): text/plain con {"k": "pk_…", "events": [...]}, ≤ 20 eventos.
+if ( 'POST' === $method && '/v1/b' === $path ) {
+	$req  = json_decode( $body, true );
+	$wire = json_decode( $body );
+	if ( ! is_array( $req ) || ! is_array( $req['events'] ?? null ) || count( $req['events'] ) > 20 ) {
+		$respond( 400, array( 'error' => 'bad_batch' ) );
+	}
+	if ( ! is_array( $state['site'] ) || ( $req['k'] ?? '' ) !== $state['site']['public_key'] ) {
+		$respond( 401, array( 'error' => 'unknown_key' ) );
+	}
+	++$state['browser_batches'];
+	$rejected = array();
+	$accepted = 0;
+	foreach ( $req['events'] as $index => $event ) {
+		$event_id = (string) ( $event['event_id'] ?? '' );
+		$error    = $validate( $wire->events[ $index ], $event );
+		if ( null === $error && 'browser' !== ( $event['source']['type'] ?? '' ) ) {
+			$error = 'source_type';
+		}
+		if ( null === $error && ( $event['source']['site_id'] ?? '' ) !== $state['site']['site_id'] ) {
+			$error = 'site_mismatch';
+		}
+		if ( null !== $error ) {
+			$rejected[]               = array( 'event_id' => $event_id, 'reason' => strtok( $error, ':' ) );
+			$state['schema_errors'][] = array( 'event' => $event['event'] ?? '?', 'event_id' => $event_id, 'where' => 'browser', 'error' => $error );
+			continue;
+		}
+		if ( isset( $state['seen'][ $event_id ] ) ) {
+			++$state['duplicates'];
+			++$accepted;
+			continue;
+		}
+		$state['seen'][ $event_id ] = 1;
+		$name                       = (string) $event['event'];
+		$state['events'][ $name ]   = ( $state['events'][ $name ] ?? 0 ) + 1;
+		if ( 'identify' === $name ) {
+			$payload = $token( $event['properties']['token'] ?? null );
+			if ( null === $payload ) {
+				++$state['bad_tokens'];
+			} else {
+				$state['identified'][] = array( 'anonymous_id' => $event['identity']['anonymous_id'] ?? null, 'ref' => $payload['ref'] ?? null );
+			}
+		}
+		$state['browser'][] = $event;
+		++$accepted;
+	}
+	$state['browser']       = array_slice( $state['browser'], -300 );
+	$state['schema_errors'] = array_slice( $state['schema_errors'], -200 );
+	$respond( 202, array( 'accepted' => $accepted, 'rejected' => $rejected ) );
+}
+
+// Widgets activos (api-connector.md §8.1).
+if ( 'GET' === $method && 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/widgets\.json$#', (string) $path, $m ) ) {
+	if ( ! is_array( $state['site'] ) || $m[1] !== $state['site']['public_key'] ) {
+		$respond( 404, array( 'error' => 'unknown_key' ) );
+	}
+	header( 'Cache-Control: public, max-age=300' );
+	$widgets = $state['overrides']['widgets'] ?? array(
+		array(
+			'id'          => 'sv_01JD3QH0SURVEY0000000000',
+			'kind'        => 'hdyhau_survey',
+			'slot'        => 'thankyou',
+			'title'       => 'Una pregunta rápida',
+			'question'    => '¿Cómo nos conociste?',
+			'options'     => array(
+				array( 'key' => 'instagram', 'label' => 'Instagram' ),
+				array( 'key' => 'google', 'label' => 'Google' ),
+				array( 'key' => 'recomendacion', 'label' => 'Me lo recomendaron' ),
+			),
+			'allow_other' => true,
+			'other_label' => 'Otro',
+			'thanks'      => '¡Gracias por contarnos!',
+		),
+	);
+	$type = (string) ( $_GET['page_type'] ?? '' );
+	$respond( 200, array( 'widgets' => array_values( array_filter( $widgets, static fn( array $w ): bool => 'thankyou' !== ( $w['slot'] ?? '' ) || 'thankyou' === $type ) ) ) );
+}
+
+// Respuesta de la encuesta (api-connector.md §8.2).
+if ( 'POST' === $method && 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/surveys/([A-Za-z0-9_]+)/answers$#', (string) $path, $m ) ) {
+	if ( ! is_array( $state['site'] ) || $m[1] !== $state['site']['public_key'] ) {
+		$respond( 404, array( 'error' => 'unknown_key' ) );
+	}
+	$req     = json_decode( $body, true );
+	$payload = $token( is_array( $req ) ? ( $req['order_token'] ?? null ) : null );
+	$options = array( 'instagram', 'google', 'recomendacion', 'otro' );
+	if ( null === $payload || ! isset( $payload['order'] ) || ! in_array( $req['answer'] ?? '', $options, true ) ) {
+		++$state['bad_tokens'];
+		$respond( 422, array( 'error' => 'invalid' ) );
+	}
+	foreach ( $state['survey_answers'] as $answer ) {
+		if ( $answer['order_id'] === $payload['order'] ) {
+			$respond( 409, array( 'error' => 'already_answered' ) );
+		}
+	}
+	$state['survey_answers'][] = array( 'survey_id' => $m[2], 'order_id' => $payload['order'], 'answer' => $req['answer'], 'other' => $req['other'] ?? null, 'anonymous_id' => $req['anonymous_id'] ?? null );
+	$respond( 202, array( 'ok' => true ) );
 }
 
 $respond( 404, array( 'error' => 'not_found', 'path' => $path ) );

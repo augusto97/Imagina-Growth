@@ -25,16 +25,20 @@ final class ContactForm7Adapter implements FormAdapter {
 	 * Engancha el hook del plugin.
 	 */
 	public static function register(): void {
-		add_action( 'wpcf7_mail_sent', array( self::class, 'handle' ), 20, 1 );
+		add_action( 'wpcf7_submit', array( self::class, 'handle' ), 20, 2 );
 	}
 
 	/**
 	 * Convierte el envío del plugin en un FormSubmission.
 	 *
-	 * @param mixed $form Formulario.
+	 * Se registra aunque falle el correo de aviso (`mail_failed`): el lead ya existe.
+	 *
+	 * @param mixed $form   Formulario.
+	 * @param mixed $result Resultado (`status`: mail_sent, mail_failed, spam, validation_failed…).
 	 */
-	public static function handle( mixed $form ): void {
-		if ( ! $form instanceof \WPCF7_ContactForm || ! class_exists( 'WPCF7_Submission' ) ) {
+	public static function handle( mixed $form, mixed $result = null ): void {
+		$status = is_array( $result ) ? (string) ( $result['status'] ?? '' ) : 'mail_sent';
+		if ( ! $form instanceof \WPCF7_ContactForm || ! class_exists( 'WPCF7_Submission' ) || ! in_array( $status, array( 'mail_sent', 'mail_failed' ), true ) ) {
 			return;
 		}
 		$submission = \WPCF7_Submission::get_instance();

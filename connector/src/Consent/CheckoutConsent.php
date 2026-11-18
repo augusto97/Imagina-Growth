@@ -23,6 +23,13 @@ final class CheckoutConsent {
 	private const FIELD    = 'imagina-growth/marketing-';
 
 	/**
+	 * Campos de bloques ya registrados en esta petición.
+	 *
+	 * @var bool
+	 */
+	private static bool $block_fields = false;
+
+	/**
 	 * Registra los hooks.
 	 */
 	public static function register(): void {
@@ -109,9 +116,10 @@ final class CheckoutConsent {
 	 * Checkout de bloques: un campo adicional por canal (WooCommerce 8.9+).
 	 */
 	public static function register_block_fields(): void {
-		if ( ! function_exists( 'woocommerce_register_additional_checkout_field' ) ) {
+		if ( self::$block_fields || ! function_exists( 'woocommerce_register_additional_checkout_field' ) ) {
 			return;
 		}
+		self::$block_fields = true;
 		foreach ( self::texts() as $channel => $text ) {
 			try {
 				woocommerce_register_additional_checkout_field(

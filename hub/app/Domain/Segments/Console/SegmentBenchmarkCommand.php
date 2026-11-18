@@ -65,8 +65,8 @@ final class SegmentBenchmarkCommand extends Command
             'Categoría 2+ veces en 365 días' => $and([
                 ['type' => 'purchase', 'scope' => 'category', 'ids' => ['12'], 'operator' => 'count_gte', 'value' => 2, 'window' => ['kind' => 'last_days', 'days' => 365]],
             ]),
-            'Vio el producto 8 dos veces en 30 días' => $and([
-                ['type' => 'event', 'event' => 'product.viewed', 'filters' => [['prop' => 'product_id', 'operator' => 'eq', 'value' => '8']], 'operator' => 'count_gte', 'value' => 2, 'window' => ['kind' => 'last_days', 'days' => 30]],
+            'Vio el producto 7 dos veces en 30 días' => $and([
+                ['type' => 'event', 'event' => 'product.viewed', 'filters' => [['prop' => 'product_id', 'operator' => 'eq', 'value' => '7']], 'operator' => 'count_gte', 'value' => 2, 'window' => ['kind' => 'last_days', 'days' => 30]],
             ]),
             'Compuesto (ciudad, sesiones o RFM, WhatsApp)' => $and([
                 ['type' => 'attribute', 'field' => 'city', 'operator' => 'in', 'value' => ['Bogotá', 'Medellín', 'Cali']],

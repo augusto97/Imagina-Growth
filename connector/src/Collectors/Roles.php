@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace ImaginaGrowth\Connector\Collectors;
 
 use ImaginaGrowth\Connector\Connection\RemoteConfig;
+use ImaginaGrowth\Connector\Tracking\TrackerConfig;
 
 /**
  * Los eventos de navegación y carrito de usuarios con roles excluidos no se envían.
@@ -30,6 +31,8 @@ final class Roles {
 		if ( ! $user instanceof \WP_User ) {
 			return false;
 		}
-		return array() !== array_intersect( (array) $user->roles, RemoteConfig::list( 'excluded_roles' ) );
+		// Los roles elegidos en la pestaña «Datos» mandan sobre los del hub (copia autocargada).
+		$local = TrackerConfig::get()['roles'] ?? null;
+		return array() !== array_intersect( (array) $user->roles, is_array( $local ) ? $local : RemoteConfig::list( 'excluded_roles' ) );
 	}
 }

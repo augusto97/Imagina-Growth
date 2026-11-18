@@ -12,6 +12,7 @@
         "check": "npm run typecheck && npm run test && npm run build && npm run check:size"
     },
     "devDependencies": {
+        "@playwright/test": "^1.63.0",
         "@types/node": "^22.20.5",
         "ajv": "^8.20.0",
         "ajv-formats": "^3.0.1",

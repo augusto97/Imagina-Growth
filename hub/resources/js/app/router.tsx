@@ -26,7 +26,6 @@ export const router = createBrowserRouter([
                 element: <WorkspaceLayout />,
                 children: [
                     { index: true, lazy: async () => ({ Component: (await import('@/features/home/HomePage')).HomePage }) },
-                    { path: 'contactos', lazy: async () => ({ Component: (await import('@/features/contacts/ContactsPage')).ContactsPage }) },
                     { path: 'sitios', lazy: async () => ({ Component: (await import('@/features/sites/SitesPage')).SitesPage }) },
                     { path: 'sitios/:siteId', lazy: async () => ({ Component: (await import('@/features/sites/SiteDetailPage')).SiteDetailPage }) },
                     { path: 'equipo', lazy: async () => ({ Component: (await import('@/features/team/TeamPage')).TeamPage }) },
