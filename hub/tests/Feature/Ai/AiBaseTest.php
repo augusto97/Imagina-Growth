@@ -64,6 +64,8 @@ it('valida las cifras de un texto contra los hechos, con redondeo, porcentajes y
 
     // Escalas y cupones: «1,2 millones» cubre 1.232.100; PRIMA15 no es una cifra.
     expect($v->validate('Unos $1,2 millones con el cupón PRIMA15.', $facts)->ok())->toBeTrue();
+    // Los enlaces no son cifras: el puerto o el carrito de una URL no se validan.
+    expect($v->validate('Págalo aquí: http://127.0.0.1:8080/?igr_cart=eyJ4IjoxMjN9.abc y son $185.000.', $facts)->ok())->toBeTrue();
     expect(NumberValidator::parse('1.232.100,50'))->toBe([1232100.5, 2])->and(NumberValidator::parse('2.500'))->toBe([2500.0, 0]);
 });
 

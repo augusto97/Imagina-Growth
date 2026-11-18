@@ -100,10 +100,18 @@ async function panel() {
     await page.goto(`${HUB}/w/${WS_SHOP}/bandeja`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1500);
-    const first = page.locator('[data-conversation-id], [role=listitem], li button, a[href*="bandeja/"]').first();
-    if ((await first.count()) > 0) {
-        await first.click().catch(() => {});
+    // Vista «Todas» (la dueña no tiene asignadas) y la primera conversación: la de la persona que compró.
+    const all = page.locator('[role=tablist] [role=tab]', { hasText: /^Todas/ }).first();
+    if ((await all.count()) > 0) {
+        await all.click();
+        await page.waitForTimeout(1200);
+    }
+    const items = page.locator('main ul li button');
+    const n = await items.count();
+    for (let i = 0; i < n; i++) {
+        await items.nth(i).click();
         await page.waitForTimeout(1500);
+        if (/\$\s?\d/.test(await page.locator('main').innerText())) break; // la del precio y el carrito
     }
     const inboxText = await page.locator('body').innerText();
     await shot(page, '4-bandeja');

@@ -47,7 +47,7 @@ HUB="http://127.0.0.1:${HUB_PORT}"
 export HUB APP_URL="$HUB" IGR_APP_URL="$HUB" IGR_INGEST_URL="$HUB" IGR_LINKS_URL="$HUB"
 export DB_DATABASE=igr_e2e4 CLICKHOUSE_DATABASE=igr_e2e4 REDIS_INGEST_DB=10 REDIS_DB=11 REDIS_CACHE_DB=12
 export QUEUE_CONNECTION=redis CACHE_STORE=redis SESSION_DRIVER=database SANCTUM_STATEFUL_DOMAINS="127.0.0.1:${HUB_PORT}"
-export SMTP_PORT
+export SMTP_PORT MAIL_MAILER=smtp MAIL_HOST=127.0.0.1 MAIL_PORT="$SMTP_PORT" MAIL_SCHEME=smtp MAIL_ENCRYPTION=null MAIL_USERNAME= MAIL_PASSWORD=
 export IGR_ANTHROPIC_API_KEY=sk-e2e-simulada IGR_ANTHROPIC_BASE_URL="http://127.0.0.1:${AI_PORT}" MOCK_AI_DIR="$LOGS/ai"
 export IGR_META_GRAPH_URL="http://127.0.0.1:${META_PORT}" IGR_META_APP_SECRET=e2e-meta-secret META_LOG="$LOGS/meta.jsonl"
 export IGR_ML_URL="http://127.0.0.1:${ML_PORT}" IGR_ML_TOKEN=e2e-ml-token
@@ -159,7 +159,7 @@ $WP eval 'ImaginaGrowth\Connector\Backfill\Runner::pause(true); as_unschedule_al
 IGR_HUB_URL="$HUB" $WP igr resync-catalog >/dev/null
 IGR_HUB_URL="$HUB" $WP action-scheduler run --group=imagina-growth >/dev/null 2>&1 || true
 settle
-read -r P_NAME P_PRICE P_STOCK < <($WP eval "\$p = wc_get_product($PRODUCT_ID); echo str_replace(' ', '_', \$p->get_name()), ' ', \$p->get_price(), ' ', (int) \$p->get_stock_quantity();")
+read -r P_NAME P_PRICE P_STOCK < <($WP eval "\$p = wc_get_product($PRODUCT_ID); echo str_replace(' ', '_', \$p->get_name()), ' ', \$p->get_price(), ' ', (int) \$p->get_stock_quantity(), PHP_EOL;")
 P_NAME=${P_NAME//_/ }
 P_MONEY=$(python3 -c "print('\$' + f'{int(float(\"$P_PRICE\")):,}'.replace(',', '.'))")
 echo "En la tienda: «$P_NAME» a $P_MONEY con $P_STOCK unidades"

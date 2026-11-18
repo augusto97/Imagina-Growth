@@ -14,7 +14,7 @@ use App\Domain\Intelligence\Ai\Data\NumberValidation;
  * - Lee cifras en formato de Colombia y México: miles con punto (`1.232.100`),
  *   decimales con coma (`2,1`), dinero (`$185.000`), porcentajes (`18 %`),
  *   multiplicadores (`2,1×`) y escalas (`1,2 millones`, `37 mil`).
- * - No revisa fechas («10 de noviembre», «del 3 al 9»), años sueltos, horas
+ * - No revisa enlaces, fechas («10 de noviembre», «del 3 al 9»), años sueltos, horas
  *   (`7:00`), viñetas al inicio de línea ni los enteros de
  *   `igr-ai.validator.free_integers` («3 acciones»). Tampoco lo que va pegado a
  *   letras (códigos de cupón como `PRIMA15`).
@@ -144,6 +144,8 @@ final class NumberValidator
     private function stripIgnored(string $text): string
     {
         $months = self::MONTHS;
+        // Un enlace no es una cifra (el carrito, el pago o la tienda: http://127.0.0.1:8080/?igr_cart=…).
+        $text = (string) preg_replace('#\bhttps?://\S+#iu', ' ', $text);
         $text = (string) preg_replace('/\b\d{1,2}(\s*(?:,|y|al|a|-|–)\s*\d{1,2})*\s+de\s+(?:'.$months.')\b/iu', ' ', $text);
         $text = (string) preg_replace('/\b(?:'.$months.')\.?\s+\d{1,2}\b/iu', ' ', $text);
         $text = (string) preg_replace('/\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b|\b\d{4}-\d{2}-\d{2}\b/u', ' ', $text);

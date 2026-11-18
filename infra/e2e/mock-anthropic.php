@@ -148,7 +148,8 @@ if (isset($tools['get_product'])) {
     // ── Agente de ventas ─────────────────────────────────────────────────────────
     $ask = mb_strtolower($customer());
     $done = $turnResults();
-    $query = trim((string) preg_replace('/^.*?(pintura[^?¿,.]*?)(\s+(y|tienen|hay|me)\b.*)?[?.!]*$/u', '$1', $ask));
+    // «¿cuánto cuesta la pintura para cielos blanca galón y tienen stock?» → «pintura para cielos blanca galón»
+    $query = preg_match('/pintura[^?¿,.!]*/u', $ask, $pm) === 1 ? trim((string) preg_replace('/\s+(y|tienen|hay|me)\b.*$/u', '', $pm[0])) : '';
     if (preg_match('/capital|chiste|f[uú]tbol|presidente|tarea/u', $ask) === 1) {
         $answer = $text('Solo puedo ayudarte con los productos, pedidos y compras de la tienda. ¿Buscas algún producto en especial?');
     } elseif (! isset($done['search_products'])) {
