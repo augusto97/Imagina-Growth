@@ -122,7 +122,7 @@ export function AccountCard({ account, onTest, onDns }: { account: ChannelAccoun
                     <p className="igr:text-xs igr:text-muted-foreground">
                         {warmup.limit === null ? t('channels.warmupDone') : t('channels.warmup', { day: warmup.day, sent: formatNumber(warmup.sent_today), limit: formatNumber(warmup.limit) })}
                     </p>
-                    {warmup.limit !== null && <Progress value={Math.min(100, (warmup.sent_today / Math.max(1, warmup.limit)) * 100)} aria-label={t('channels.warmup', { day: warmup.day, sent: warmup.sent_today, limit: warmup.limit })} />}
+                    {warmup.limit !== null && <Progress value={Math.min(100, (warmup.sent_today / Math.max(1, warmup.limit)) * 100)} label={t('channels.warmup', { day: warmup.day, sent: warmup.sent_today, limit: warmup.limit })} />}
                 </div>
             )}
             {account.last_error && <p className="igr:rounded-md igr:bg-destructive/10 igr:p-2 igr:text-xs igr:text-destructive">{account.last_error}</p>}

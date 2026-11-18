@@ -201,6 +201,7 @@
             "subscription_renewal_failed": "Falló la renovación"
         },
         "config": {
+            "remove": "Quitar",
             "mode": "Tipo de espera",
             "duration": "Durante",
             "untilTime": "Hasta una hora",

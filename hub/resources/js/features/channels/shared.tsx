@@ -37,7 +37,8 @@ export function CopyButton({ value }: { value: string }) {
             size="sm"
             aria-label={t('channels.email.copy')}
             onClick={() => {
-                void navigator.clipboard?.writeText(value);
+                // En http (sin contexto seguro) no hay portapapeles: el valor sigue visible para copiarlo a mano.
+                navigator.clipboard.writeText(value).catch(() => undefined);
                 setCopied(true);
                 window.setTimeout(() => setCopied(false), 1500);
             }}

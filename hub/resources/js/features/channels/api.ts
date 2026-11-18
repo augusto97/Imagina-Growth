@@ -17,7 +17,7 @@ export interface ChannelAccount {
     identity: string | null;
     status: AccountStatus;
     is_default: boolean;
-    quality_rating: 'GREEN' | 'YELLOW' | 'RED' | string | null;
+    quality_rating: string | null; // GREEN | YELLOW | RED
     messaging_limit_tier: string | null;
     last_error: string | null;
     risk_accepted_at: string | null;

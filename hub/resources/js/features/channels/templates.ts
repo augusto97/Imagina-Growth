@@ -64,7 +64,7 @@ export function formFromTemplate(t: WaTemplate, linksBase: string): WaTemplateFo
         header: {
             format: header?.format ?? 'NONE',
             text: header?.format === 'TEXT' ? (header.text ?? '') : '',
-            example: header?.format === 'TEXT' ? String((header.example?.['header_text'] as string[] | undefined)?.[0] ?? '') : String((header?.example?.['header_handle'] as string[] | undefined)?.[0] ?? ''),
+            example: header?.format === 'TEXT' ? ((header.example?.['header_text'] as string[] | undefined)?.[0] ?? '') : ((header?.example?.['header_handle'] as string[] | undefined)?.[0] ?? ''),
         },
         body: { text: body?.text ?? '', examples: bodyExamples.map(String) },
         footer: { text: by('FOOTER')?.text ?? '' },

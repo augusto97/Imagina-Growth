@@ -92,7 +92,7 @@ export function branchesOf(node: Pick<GraphNode, 'type' | 'config'>): (string | 
     }
     if (node.type === 'ab_split') {
         const variants = Array.isArray(node.config.variants) ? (node.config.variants as { key?: string }[]) : [];
-        return variants.map((v) => String(v.key ?? ''));
+        return variants.map((v) => v.key ?? '');
     }
     const channels = Array.isArray(node.config.channels) ? (node.config.channels as string[]) : [];
     return [...channels, 'none'];
@@ -112,12 +112,15 @@ export function branchLabel(t: TFunction, type: string, branch: string | null): 
     return t(`flows.branches.${branch}`);
 }
 
+/** Texto de un valor de configuración (solo cadenas y números). */
+const s = (v: unknown): string => (typeof v === 'string' ? v : typeof v === 'number' ? String(v) : '');
+
 const num = (v: unknown, fallback = 0) => (typeof v === 'number' ? v : typeof v === 'string' && v !== '' && !Number.isNaN(Number(v)) ? Number(v) : fallback);
 
 /** Duración legible: «3 horas». */
 export function durationText(t: TFunction, d: unknown): string {
     const value = num((d as { value?: unknown } | null)?.value, 0);
-    const unit = String((d as { unit?: unknown } | null)?.unit ?? 'hours');
+    const unit = s((d as { unit?: unknown } | null)?.unit) || 'hours';
     return t(`flows.units.${unit}`, { count: value });
 }
 
@@ -134,10 +137,10 @@ export function summarize(t: TFunction, node: GraphNode, options: FlowOptions | 
             }
             return t('flows.summary.wait', { duration: durationText(t, c.duration) });
         case 'wait_event':
-            return t('flows.summary.waitEvent', { event: eventLabel(t, String(c.event ?? '')), duration: durationText(t, c.timeout) });
+            return t('flows.summary.waitEvent', { event: eventLabel(t, s(c.event)), duration: durationText(t, c.timeout) });
         case 'condition':
             if (c.mode === 'context') {
-                return t('flows.summary.contextCondition', { path: String(c.path ?? ''), value: String(c.value ?? '') });
+                return t('flows.summary.contextCondition', { path: s(c.path), value: s(c.value) });
             }
             return t('flows.summary.segmentCondition', { count: Array.isArray((c.definition as { conditions?: unknown[] } | undefined)?.conditions) ? (c.definition as { conditions: unknown[] }).conditions.length : 0 });
         case 'ab_split':
@@ -149,23 +152,23 @@ export function summarize(t: TFunction, node: GraphNode, options: FlowOptions | 
         case 'send_sms': {
             const template = options?.templates.find((tpl) => tpl.id === c.template_id || (tpl.library_key !== null && tpl.library_key === c.template_key));
             const name = template?.name ?? (typeof c.template_key === 'string' ? c.template_key : null);
-            return name ? `${name}${c.kind && c.kind !== 'marketing' ? ` · ${t(`flows.kinds.${String(c.kind)}`)}` : ''}` : t('flows.summary.noTemplate');
+            return name ? `${name}${s(c.kind) !== '' && c.kind !== 'marketing' ? ` · ${t(`flows.kinds.${s(c.kind)}`)}` : ''}` : t('flows.summary.noTemplate');
         }
         case 'coupon':
             return c.kind === 'free_shipping'
                 ? t('flows.summary.couponShipping', { days: num(c.expires_in_days, 7) })
-                : t(c.kind === 'percent' ? 'flows.summary.couponPercent' : 'flows.summary.couponFixed', { amount: String(c.amount ?? ''), days: num(c.expires_in_days, 7) });
+                : t(c.kind === 'percent' ? 'flows.summary.couponPercent' : 'flows.summary.couponFixed', { amount: s(c.amount), days: num(c.expires_in_days, 7) });
         case 'tag': {
             const add = Array.isArray(c.add) ? (c.add as string[]) : [];
             const remove = Array.isArray(c.remove) ? (c.remove as string[]) : [];
             return [add.length ? `+ ${add.join(', ')}` : '', remove.length ? `− ${remove.join(', ')}` : ''].filter(Boolean).join(' · ') || t('flows.summary.noTags');
         }
         case 'update_attribute':
-            return c.key ? `${String(c.key)} = ${String(c.value ?? '')}` : t('flows.summary.noAttribute');
+            return s(c.key) !== '' ? `${s(c.key)} = ${s(c.value)}` : t('flows.summary.noAttribute');
         case 'notify_team':
-            return String(c.message ?? '') || t('flows.summary.noMessage');
+            return s(c.message) || t('flows.summary.noMessage');
         case 'webhook':
-            return String(c.url ?? '') || t('flows.summary.noUrl');
+            return s(c.url) || t('flows.summary.noUrl');
         case 'exit':
             return t('flows.summary.exit');
         default:

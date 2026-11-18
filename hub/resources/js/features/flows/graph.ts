@@ -30,7 +30,7 @@ export function toCanvas(graph: Graph): { nodes: FlowCanvasNode[]; edges: Edge[]
         id: n.id,
         type: 'flow',
         position: n.position ?? { x: 0, y: i * 150 },
-        data: { node: { id: n.id, type: n.type, config: n.config ?? {} } },
+        data: { node: { id: n.id, type: n.type, config: n.config } },
         deletable: n.type !== 'trigger',
     }));
     const edges: Edge[] = graph.edges.map((e) => ({

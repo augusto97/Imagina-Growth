@@ -1,4 +1,4 @@
-import { ArrowLeft, FileDown, GitMerge, Gift, MessageSquare, MoreHorizontal, Trash2, UserX } from 'lucide-react';
+import { ArrowLeft, FileDown, GitMerge, Gift, MoreHorizontal, Trash2, UserX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
@@ -18,6 +18,7 @@ import { useContactProfile } from '../api';
 import { errorMessage } from '../errors';
 import { DataTab } from './DataTab';
 import { IdentitiesTab } from './IdentitiesTab';
+import { MessagesTab } from './MessagesTab';
 import { MergeDialog } from './MergeDialog';
 import { NotesPanel } from './NotesPanel';
 import { OrdersTab } from './OrdersTab';
@@ -151,7 +152,7 @@ export function ProfilePage() {
                         <ProductsTab contactId={p.id} />
                     </TabsContent>
                     <TabsContent value="mensajes">
-                        <EmptyState icon={MessageSquare} title={t('contacts.messages.title')} description={t('contacts.messages.description')} />
+                        <MessagesTab contactId={p.id} />
                     </TabsContent>
                     <TabsContent value="fidelizacion">
                         <EmptyState icon={Gift} title={t('contacts.loyalty.title')} description={t('contacts.loyalty.description')} />

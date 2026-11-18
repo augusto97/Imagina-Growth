@@ -162,7 +162,7 @@ function LibraryGallery() {
         return <ErrorState error={library.error} onRetry={() => void library.refetch()} />;
     }
     const run = (flow: LibraryFlow, activate: boolean) => {
-        setBusy(flow.key + activate);
+        setBusy(`${flow.key}${String(activate)}`);
         create.mutate(
             { key: flow.key, activate },
             {
@@ -214,10 +214,10 @@ function LibraryGallery() {
                                         </Button>
                                     ) : canManage ? (
                                         <>
-                                            <Button size="sm" disabled={f.missing_templates.length > 0} loading={busy === f.key + 'true'} onClick={() => run(f, true)}>
+                                            <Button size="sm" disabled={f.missing_templates.length > 0} loading={busy === `${f.key}true`} onClick={() => run(f, true)}>
                                                 {t('flows.library.activate')}
                                             </Button>
-                                            <Button size="sm" variant="outline" loading={busy === f.key + 'false'} onClick={() => run(f, false)}>
+                                            <Button size="sm" variant="outline" loading={busy === `${f.key}false`} onClick={() => run(f, false)}>
                                                 {t('flows.library.customize')}
                                             </Button>
                                         </>

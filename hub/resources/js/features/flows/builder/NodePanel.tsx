@@ -68,7 +68,7 @@ export function FilterRows({ value, onChange, disabled }: { value: Filter[]; onC
             {value.map((f, i) => (
                 <div key={i} className="igr:grid igr:grid-cols-[1fr_auto_1fr_auto] igr:items-center igr:gap-1.5">
                     <Input aria-label={t('flows.config.filterProp')} placeholder="order.payment_method.id" value={f.prop} disabled={disabled} onChange={(e) => set(i, { prop: e.target.value.trim() })} />
-                    <Select aria-label={t('settings.operator', { defaultValue: 'operador' })} value={f.operator} disabled={disabled} onChange={(e) => set(i, { operator: e.target.value })}>
+                    <Select aria-label={t('flows.settings.operator')} value={f.operator} disabled={disabled} onChange={(e) => set(i, { operator: e.target.value })}>
                         {['eq', 'neq', 'gte', 'lte', 'in', 'contains', 'starts_with', 'exists'].map((op) => (
                             <option key={op} value={op}>
                                 {t(`flows.operators.${op}`)}
@@ -81,7 +81,7 @@ export function FilterRows({ value, onChange, disabled }: { value: Filter[]; onC
                         disabled={disabled || f.operator === 'exists'}
                         onChange={(e) => set(i, { value: f.operator === 'in' ? csv(e.target.value) : e.target.value })}
                     />
-                    <Button variant="ghost" size="icon" className="igr:size-7" disabled={disabled} aria-label={t('common.remove', { defaultValue: 'Quitar' })} onClick={() => onChange(value.filter((_, j) => j !== i))}>
+                    <Button variant="ghost" size="icon" className="igr:size-7" disabled={disabled} aria-label={t('flows.config.remove')} onClick={() => onChange(value.filter((_, j) => j !== i))}>
                         <X />
                     </Button>
                 </div>
@@ -170,7 +170,7 @@ export function NodePanel({ node, options, issues, readOnly, webhookSecret, onCh
                 break;
             case 'ab_split': {
                 const variants = (Array.isArray(c.variants) ? c.variants : []) as { key: string; weight: number }[];
-                const sum = variants.reduce((acc, v) => acc + (Number(v.weight) || 0), 0);
+                const sum = variants.reduce((acc, v) => acc + (Number.isFinite(v.weight) ? v.weight : 0), 0);
                 body = (
                     <Field label={t('flows.config.variants')} help={sum !== 100 ? <span className="igr:text-destructive">{t('flows.config.weightsSum', { sum })}</span> : undefined}>
                         <div className="igr:space-y-1.5">
@@ -179,7 +179,7 @@ export function NodePanel({ node, options, issues, readOnly, webhookSecret, onCh
                                     <span className="igr:w-20 igr:text-[13px]">{t('flows.branches.variant', { key: v.key.toUpperCase() })}</span>
                                     <Input type="number" min={1} max={99} aria-label={t('flows.config.weight')} className="igr:w-24" value={v.weight} disabled={readOnly} onChange={(e) => set({ variants: variants.map((x, j) => (j === i ? { ...x, weight: Number(e.target.value) || 0 } : x)) })} />
                                     {variants.length > 2 && !readOnly ? (
-                                        <Button variant="ghost" size="icon" className="igr:size-7" aria-label={t('common.remove', { defaultValue: 'Quitar' })} onClick={() => set({ variants: variants.filter((_, j) => j !== i) })}>
+                                        <Button variant="ghost" size="icon" className="igr:size-7" aria-label={t('flows.config.remove')} onClick={() => set({ variants: variants.filter((_, j) => j !== i) })}>
                                             <X />
                                         </Button>
                                     ) : null}
