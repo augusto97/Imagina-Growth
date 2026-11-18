@@ -111,7 +111,7 @@ QUOTE_PAGE=$($WPC post create --post_type=page --post_status=publish --post_titl
 settle
 SITE=$(hubphp site "$WS_CLINIC" | tail -1)
 echo "$SITE"
-[ "$(echo "$SITE" | json 'd["site"]["status"] == "active" and d["site"]["wc_version"] is None')" = "True" ] || fail "El sitio corporativo no quedó conectado como WordPress sin WooCommerce"
+[ "$(echo "$SITE" | json 'd["site"]["status"] == "connected" and d["site"]["platform"] == "wordpress" and d["site"]["wc_version"] is None')" = "True" ] || fail "El sitio corporativo no quedó conectado como WordPress sin WooCommerce"
 ok "Clínica conectada: WordPress con Contact Form 7, sin WooCommerce"
 
 step "B. Del anuncio al lead: formulario, aviso a la vendedora y cita agendada"

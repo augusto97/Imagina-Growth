@@ -377,6 +377,23 @@ final class Runner {
 	}
 
 	/**
+	 * Categorías de producto. Sin WooCommerce la taxonomía no existe y wp_count_terms() devuelve un WP_Error:
+	 * un sitio corporativo no tiene categorías que importar.
+	 */
+	private static function category_count(): int {
+		if ( ! taxonomy_exists( 'product_cat' ) ) {
+			return 0;
+		}
+		$count = wp_count_terms(
+			array(
+				'taxonomy'   => 'product_cat',
+				'hide_empty' => false,
+			)
+		);
+		return is_wp_error( $count ) ? 0 : (int) $count;
+	}
+
+	/**
 	 * Totales por entidad al empezar.
 	 *
 	 * @param string $from Fecha.
@@ -397,12 +414,7 @@ final class Runner {
 				'sent'  => 0,
 			),
 			'categories'    => array(
-				'total' => (int) wp_count_terms(
-					array(
-						'taxonomy'   => 'product_cat',
-						'hide_empty' => false,
-					)
-				),
+				'total' => self::category_count(),
 				'sent'  => 0,
 			),
 			'customers'     => array(

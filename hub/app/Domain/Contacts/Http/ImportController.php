@@ -52,7 +52,8 @@ final class ImportController
         Gate::authorize('ws.editContacts');
         // Cuenta suspendida por facturación (M21): no se importan contactos nuevos; los datos siguen.
         if (! app(Entitlements::class)->allows($this->current->get(), 'imports')) {
-            return response()->json(['error' => ['code' => 'billing_suspended', 'message' => __('La cuenta está suspendida por facturación: las importaciones se reanudan al regularizarla.')]], 423);
+            // 402 como `plan_required` (la SPA muestra `message`); 423 lo reserva Laravel para confirmar la contraseña.
+            return response()->json(['error' => 'billing_suspended', 'message' => __('La cuenta está suspendida por facturación: las importaciones se reanudan al regularizarla.')], 402);
         }
         $file = $this->file($request);
         $mapping = json_decode((string) $request->input('mapping', '{}'), true);

@@ -37,7 +37,7 @@ it('con la cuenta suspendida el despachador frena solo el marketing', function (
 it('con la cuenta suspendida no se importan contactos', function () {
     DB::table('accounts')->where('id', $this->ws->account_id)->update(['billing_status' => BillingStatus::SUSPENDED]);
     $this->actingAs($this->owner)->postJson("/api/w/{$this->ws->publicId()}/contacts/imports", [])
-        ->assertStatus(423)->assertJsonPath('error.code', 'billing_suspended');
+        ->assertStatus(402)->assertJsonPath('error', 'billing_suspended');
 });
 
 it('el tope de IA sale del plan, y sin el módulo de IA es cero', function () {
