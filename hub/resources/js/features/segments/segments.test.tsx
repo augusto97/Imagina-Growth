@@ -1,0 +1,181 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
+import { describe, expect, it } from 'vitest';
+import i18n from '@/lib/i18n';
+import texts from '@/locales/es-CO/segments.json';
+import { appendTo, countConditions, defaultCondition, emptyGroup, getAt, isComplete, prune, removeAt, updateAt } from './ast';
+import { BuilderContext, errorsFor, pathKey } from './builder/context';
+import { GroupEditor } from './builder/GroupEditor';
+import { extractContacts } from './dialogs';
+import { summarize } from './humanize';
+import { groupByFolder } from './SegmentsPage';
+import type { ConditionType, Group, SegmentOptions, SegmentSummary } from './types';
+
+type Tree = { [key: string]: string | Tree };
+
+function has(path: string): boolean {
+    let node: string | Tree = texts;
+    for (const part of path.split('.')) {
+        if (typeof node !== 'object' || !(part in node)) {
+            return false;
+        }
+        node = node[part] as string | Tree;
+    }
+    return typeof node === 'string';
+}
+
+const t = i18n.t.bind(i18n);
+
+const options: SegmentOptions = {
+    attributes: [
+        { key: 'city', type: 'string', operators: ['eq', 'neq', 'in', 'not_in', 'contains', 'starts_with', 'is_set', 'is_not_set'], values: null },
+        { key: 'lifecycle_stage', type: 'enum', operators: ['eq', 'neq', 'in', 'not_in', 'is_set', 'is_not_set'], values: ['lead', 'customer', 'vip'] },
+    ],
+    purchase_fields: [{ key: 'orders_count', type: 'number', operators: ['eq', 'gte', 'between'], values: null }],
+    predictions: [{ key: 'rfm_segment', type: 'enum', operators: ['eq', 'in'], values: ['champions', 'lost'] }],
+    custom_attributes: [],
+    events: ['product.viewed', 'checkout.started'],
+    event_columns: ['product_id'],
+    rfm_segments: [
+        { key: 'champions', name: 'Campeones' },
+        { key: 'lost', name: 'Perdidos' },
+    ],
+    values: { city: ['Manizales', 'Pereira'], region_code: [], country: ['CO'], payment_method: [], brand: [], hdyhau: [] },
+    segments: [{ id: 'sg_1', name: 'Clientes VIP' }],
+};
+
+describe('AST del constructor', () => {
+    const base: Group = { op: 'and', conditions: [defaultCondition('attribute'), { op: 'or', conditions: [defaultCondition('cart')] }] };
+
+    it('edita, agrega y quita nodos por ruta sin mutar el original', () => {
+        const added = appendTo(base, [1], defaultCondition('consent'));
+        expect(countConditions(added)).toBe(3);
+        expect(countConditions(base)).toBe(2);
+        const changed = updateAt(added, [0], () => ({ type: 'attribute', field: 'city', operator: 'in', value: ['Manizales'] }));
+        expect(getAt(changed, [0])).toEqual({ type: 'attribute', field: 'city', operator: 'in', value: ['Manizales'] });
+        expect(countConditions(removeAt(changed, [1, 0]))).toBe(2);
+    });
+
+    it('la vista previa ignora condiciones incompletas y grupos vacíos', () => {
+        const draft: Group = { op: 'and', conditions: [defaultCondition('attribute'), emptyGroup('or'), defaultCondition('cart'), defaultCondition('segment')] };
+        const pruned = prune(draft);
+        expect(pruned.conditions).toEqual([defaultCondition('cart')]);
+        expect(isComplete({ type: 'purchase', scope: 'category', ids: [], operator: 'ever' })).toBe(false);
+        expect(isComplete({ type: 'purchase', scope: 'coupon', ids: [], operator: 'ever' })).toBe(true);
+        expect(isComplete({ type: 'attribute', field: 'birthday', operator: 'this_month' })).toBe(true);
+    });
+
+    it('ubica los errores del servidor en su nodo y no en el padre', () => {
+        const errors = { 'definition.conditions.1.conditions.0.value': 'Elige al menos un valor.', 'definition.conditions.1.conditions': 'El grupo está vacío.' };
+        expect(pathKey([1, 0])).toBe('definition.conditions.1.conditions.0');
+        expect(errorsFor(errors, [1, 0])).toEqual(['Elige al menos un valor.']);
+        expect(errorsFor(errors, [1])).toEqual(['El grupo está vacío.']);
+        expect(errorsFor(errors, [])).toEqual([]);
+    });
+});
+
+describe('textos', () => {
+    it('tiene texto para cada tipo, operador, ventana, conteo, campo y canal', () => {
+        const missing: string[] = [];
+        const need = (key: string) => {
+            if (!has(key) && !has(`${key}_one`)) missing.push(key);
+        };
+        const types: ConditionType[] = ['attribute', 'purchase', 'event', 'cart', 'prediction', 'consent', 'segment'];
+        types.forEach((type) => {
+            need(`segments.types.${type}`);
+            need(`segments.typeHelp.${type}`);
+        });
+        ['messaging', 'loyalty', 'lead'].forEach((type) => need(`segments.types.${type}`));
+        const ops = ['eq', 'neq', 'in', 'not_in', 'contains', 'starts_with', 'is_set', 'is_not_set', 'gt', 'gte', 'lt', 'lte', 'between', 'before', 'after', 'within_last_days', 'more_than_days_ago', 'within_next_days', 'this_month', 'is_true', 'is_false'];
+        ops.forEach((op) => {
+            need(`segments.operators.${op}`);
+            need(`segments.op.${op}`);
+        });
+        ['contains_any', 'contains_all', 'not_contains', 'is_set', 'is_not_set'].forEach((op) => need(`segments.operators.tags_${op}`));
+        ['contains_any', 'contains_all', 'not_contains'].forEach((op) => need(`segments.op.${op}`));
+        ['ever', 'last_days', 'this_month', 'between', 'last_days_n', 'between_dates'].forEach((w) => need(`segments.window.${w}`));
+        ['ever', 'never', 'count_gte', 'count_lte', 'count_eq'].forEach((c) => {
+            need(`segments.countOps.${c}`);
+            need(`segments.count.${c}`);
+        });
+        ['times', 'sessions', 'days'].forEach((u) => need(`segments.units.${u}`));
+        ['any', 'product', 'category', 'brand', 'coupon', 'payment_method'].forEach((s) => {
+            need(`segments.scope.${s}`);
+            if (s !== 'any') need(`segments.scope.${s}_items`);
+        });
+        const fields = ['city', 'region_code', 'country', 'locale', 'lifecycle_stage', 'hdyhau', 'tags', 'birthday', 'first_seen_at', 'last_seen_at', 'orders_count', 'total_spent', 'aov', 'refunds_count', 'coupon_ratio', 'avg_days_between_orders', 'first_order_at', 'last_order_at', 'rfm_segment', 'rfm_r', 'rfm_f', 'rfm_m', 'churn_band', 'churn_risk', 'predicted_clv_12m', 'expected_next_order_at', 'engagement_score', 'price_band', 'preferred_channel'];
+        fields.forEach((f) => need(`segments.fields.${f}`));
+        ['email', 'whatsapp', 'sms'].forEach((c) => need(`segments.channels.${c}`));
+        ['visitor', 'subscriber', 'lead', 'customer', 'repeat', 'vip', 'at_risk', 'lost'].forEach((s) => need(`segments.enum.lifecycle_stage.${s}`));
+        ['product.viewed', 'checkout.started', 'cart.item_added', 'order.paid', 'search.performed', 'page.viewed'].forEach((e) => need(`segments.events.${e.replace('.', '_')}`));
+        expect(missing).toEqual([]);
+    });
+
+    it('describe un segmento en español', () => {
+        void i18n.changeLanguage('es-CO');
+        const definition: Group = {
+            op: 'and',
+            conditions: [
+                { type: 'attribute', field: 'city', operator: 'in', value: ['Manizales', 'Pereira'] },
+                { type: 'purchase', scope: 'category', ids: ['12'], operator: 'count_gte', value: 2, window: { kind: 'last_days', days: 365 } },
+                {
+                    op: 'or',
+                    negate: true,
+                    conditions: [
+                        { type: 'prediction', field: 'rfm_segment', operator: 'eq', value: 'lost' },
+                        { type: 'segment', segment_id: 'sg_1', operator: 'in' },
+                    ],
+                },
+            ],
+        };
+        expect(summarize(t, definition, { lost: 'Perdidos', sg_1: 'Clientes VIP', '12': 'Pinturas' })).toBe(
+            'Ciudad es Manizales, Pereira y Compró la categoría Pinturas al menos 2 veces · en los últimos 365 días y (Excepto (Segmento RFM es Perdidos o Está en «Clientes VIP»))',
+        );
+        expect(summarize(t, null)).toBe('Lista fija de contactos (no cambia sola).');
+    });
+});
+
+describe('listas y carpetas', () => {
+    it('saca correos y teléfonos de un CSV sin repetir', () => {
+        const csv = 'nombre,correo,telefono\nAna,ANA@ejemplo.com,+57 300 111 2233\n"Luis","luis@ejemplo.com",3001112233\nAna,ana@ejemplo.com,123';
+        expect(extractContacts(csv)).toEqual(['ana@ejemplo.com', '+57 300 111 2233', 'luis@ejemplo.com', '3001112233']);
+    });
+
+    it('agrupa por carpeta con las del sistema primero y «sin carpeta» al final', () => {
+        const mk = (name: string, folder: string | null, isSystem = false): SegmentSummary => ({
+            id: name, name, description: null, folder, kind: 'dynamic', is_system: isSystem, system_key: null, member_count: 0, revenue_ws: '0', channel_counts: {}, last_computed_at: null, updated_at: null,
+        });
+        const groups = groupByFolder([mk('B', null), mk('Mía', 'Campañas'), mk('Campeones', 'RFM', true), mk('A', null)]);
+        expect(groups.map((g) => g.folder)).toEqual(['RFM', 'Campañas', null]);
+        expect(groups[2]?.items.map((s) => s.name)).toEqual(['A', 'B']);
+    });
+});
+
+describe('constructor visual', () => {
+    function Harness({ initial }: { initial: Group }) {
+        const [root, setRoot] = useState(initial);
+        return (
+            <BuilderContext.Provider value={{ ws: 'ws_1', options, readOnly: false, errors: { 'definition.conditions.0.value': 'Elige al menos un valor.' }, currency: 'COP', locale: 'es-CO' }}>
+                <GroupEditor group={root} path={[]} root={root} setRoot={setRoot} />
+                <output data-testid="ast">{JSON.stringify(root)}</output>
+            </BuilderContext.Provider>
+        );
+    }
+
+    it('cambia «todas» por «cualquiera», quita condiciones y muestra el error en su lugar', () => {
+        void i18n.changeLanguage('es-CO');
+        render(<Harness initial={{ op: 'and', conditions: [{ type: 'attribute', field: 'city', operator: 'in', value: [] }, defaultCondition('cart')] }} />);
+        expect(screen.getByText('Elige al menos un valor.')).toBeInTheDocument();
+        expect(screen.getByText('Abandonó un carrito')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('radio', { name: 'cualquiera' }));
+        expect(JSON.parse(screen.getByTestId('ast').textContent)).toMatchObject({ op: 'or' });
+
+        const input = screen.getByRole('combobox', { name: 'Valor' });
+        fireEvent.change(input, { target: { value: 'Manizales' } });
+        expect(screen.getByText('Manizales')).toBeInTheDocument();
+
+        fireEvent.click(screen.getAllByRole('button', { name: 'Quitar condición' })[1] as HTMLElement);
+        expect((JSON.parse(screen.getByTestId('ast').textContent) as Group).conditions).toEqual([{ type: 'attribute', field: 'city', operator: 'in', value: ['Manizales'] }]);
+    });
+});

@@ -127,25 +127,27 @@ final class ChannelsDashboard extends Dashboard
             $channel = $attribution->firstTouch((string) $f->contact_id, (int) $f->ts) ?? ($f->channel_first ?: ($f->channel_last ?: 'unknown'));
             $age = $now->getTimestamp() - (int) $f->ts;
             $r = $revenue->get($f->contact_id);
-            $agg[$channel]['customers'] = ($agg[$channel]['customers'] ?? 0) + 1;
+            $a = $agg[$channel] ?? ['customers' => 0, 'n90' => 0, 's90' => 0.0, 'n365' => 0, 's365' => 0.0];
+            $a['customers']++;
             if ($age >= 90 * 86400) {
-                $agg[$channel]['n90'] = ($agg[$channel]['n90'] ?? 0) + 1;
-                $agg[$channel]['s90'] = ($agg[$channel]['s90'] ?? 0) + (float) ($r->r90 ?? 0);
+                $a['n90']++;
+                $a['s90'] += (float) ($r->r90 ?? 0);
             }
             if ($age >= 365 * 86400) {
-                $agg[$channel]['n365'] = ($agg[$channel]['n365'] ?? 0) + 1;
-                $agg[$channel]['s365'] = ($agg[$channel]['s365'] ?? 0) + (float) ($r->r365 ?? 0);
+                $a['n365']++;
+                $a['s365'] += (float) ($r->r365 ?? 0);
             }
+            $agg[$channel] = $a;
         }
         $out = [];
         foreach ($agg as $channel => $a) {
             $out[] = [
                 'channel' => (string) $channel,
                 'customers' => $a['customers'],
-                'ltv_90' => isset($a['n90']) ? round($a['s90'] / $a['n90'], 2) : null,
-                'ltv_365' => isset($a['n365']) ? round($a['s365'] / $a['n365'], 2) : null,
-                'customers_90' => $a['n90'] ?? 0,
-                'customers_365' => $a['n365'] ?? 0,
+                'ltv_90' => $a['n90'] > 0 ? round($a['s90'] / $a['n90'], 2) : null,
+                'ltv_365' => $a['n365'] > 0 ? round($a['s365'] / $a['n365'], 2) : null,
+                'customers_90' => $a['n90'],
+                'customers_365' => $a['n365'],
             ];
         }
         usort($out, fn ($a, $b) => ($b['ltv_365'] ?? $b['ltv_90'] ?? 0) <=> ($a['ltv_365'] ?? $a['ltv_90'] ?? 0));

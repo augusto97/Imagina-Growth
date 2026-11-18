@@ -27,7 +27,10 @@ final class EvaluateContactSegmentsJob implements ShouldBeUniqueUntilProcessing,
 
     public int $uniqueFor = 300;
 
-    public function __construct(public string $workspaceIdValue, public string $contactId) {}
+    public function __construct(public string $workspaceIdValue, public string $contactId)
+    {
+        $this->onQueue('triggers'); // hub/CLAUDE.md §15: tiempo real
+    }
 
     public function uniqueId(): string
     {

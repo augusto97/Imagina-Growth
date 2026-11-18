@@ -50,7 +50,7 @@ final class WeeklyReport
                 ->sortByDesc(fn (Insight $i) => [Insight::SEVERITY_ORDER[$i->severity] ?? 0, (float) $i->estimated_impact_ws])
                 ->take(3)->values();
             $top = $insights->first();
-            $action = $top?->recommended_action ?? ['label' => __('Revisa tus clientes en riesgo y prepara una campaña de recuperación'), 'to' => 'analitica/clientes'];
+            $action = $top->recommended_action ?? ['label' => __('Revisa tus clientes en riesgo y prepara una campaña de recuperación'), 'to' => 'analitica/clientes'];
 
             return [
                 'workspace' => ['id' => $workspace->publicId(), 'name' => $workspace->name, 'currency' => $workspace->currency, 'timezone' => $workspace->timezone],

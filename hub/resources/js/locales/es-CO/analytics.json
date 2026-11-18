@@ -1,0 +1,447 @@
+{
+    "analytics": {
+        "title": "Analítica",
+        "dashboardsLabel": "Tableros de analítica",
+        "forbidden": "Tu rol no puede ver los tableros",
+        "notFound": "Ese tablero no existe",
+        "none": "(sin dato)",
+        "dashboards": {
+            "overview": "Inicio",
+            "funnel": "Embudo",
+            "channels": "Canales",
+            "customers": "Clientes",
+            "products": "Productos",
+            "searches": "Búsquedas",
+            "geography": "Geografía",
+            "coupons": "Cupones",
+            "messaging": "Mensajería",
+            "profitability": "Rentabilidad",
+            "services": "Servicios",
+            "hdyhau": "¿Cómo nos conociste?"
+        },
+        "descriptions": {
+            "overview": "Ventas, pedidos, visitas y conversión del periodo, con lo que cambió frente al anterior.",
+            "funnel": "Dónde se queda la gente entre la visita y la compra, por canal, dispositivo y método de pago.",
+            "channels": "De dónde llegan tus visitas y tus ventas, con modelos de atribución y el valor de los clientes por canal.",
+            "customers": "Quién te compra, quién vuelve y quién se está yendo: RFM, cohortes y recompra.",
+            "products": "Qué se ve, qué se vende, qué se abandona en el carrito y cuánto inventario queda.",
+            "searches": "Lo que la gente busca en tu tienda y lo que no encuentra.",
+            "geography": "Ventas y conversión por departamento y ciudad.",
+            "coupons": "Cuánto se usan los cupones, cuánto cuestan y si tus clientes ya solo compran con descuento.",
+            "messaging": "Resultados de WhatsApp, correo y SMS.",
+            "profitability": "Margen por producto y retorno de la inversión en anuncios.",
+            "services": "Formularios, clics a WhatsApp y llamadas: los leads de tu sitio.",
+            "hdyhau": "Lo que tus clientes dicen sobre cómo te conocieron, frente a lo que mide el sitio."
+        },
+        "empty": {
+            "title": "No hay datos en este periodo",
+            "description": "Prueba un rango de fechas más amplio o quita los filtros. Si acabas de conectar tu sitio, los datos aparecen cuando termina la importación."
+        },
+        "table": {
+            "empty": "Sin datos en este periodo",
+            "showAll_one": "Ver {{count}} fila",
+            "showAll_other": "Ver las {{count}} filas",
+            "showLess": "Ver menos"
+        },
+        "section": {
+            "showTable": "Ver como tabla",
+            "showChart": "Ver como gráfico",
+            "export": "Exportar CSV"
+        },
+        "tile": {
+            "points": "{{value}} pp",
+            "howCalculated": "¿Cómo se calcula?",
+            "vs": {
+                "previous": "vs. periodo anterior",
+                "year": "vs. año anterior",
+                "none": ""
+            }
+        },
+        "filters": {
+            "label": "Rango de fechas y filtros",
+            "range": "Rango de fechas",
+            "from": "Desde",
+            "to": "Hasta",
+            "compare": "Comparar con",
+            "site": "Sitio",
+            "allSites": "Todos los sitios",
+            "channel": "Canal",
+            "allChannels": "Todos los canales",
+            "device": "Dispositivo",
+            "allDevices": "Todos los dispositivos",
+            "city": "Ciudad",
+            "cityPlaceholder": "Ciudad",
+            "clear_one": "Quitar filtro",
+            "clear_other": "Quitar {{count}} filtros",
+            "vs": "vs."
+        },
+        "range": {
+            "7d": "Últimos 7 días",
+            "30d": "Últimos 30 días",
+            "90d": "Últimos 90 días",
+            "12m": "Últimos 12 meses",
+            "month": "Este mes",
+            "last_month": "Mes pasado",
+            "custom": "Personalizado"
+        },
+        "compare": {
+            "previous": "Periodo anterior",
+            "year": "Mismo periodo del año pasado",
+            "none": "Sin comparar"
+        },
+        "channel": {
+            "organic_search": "Búsqueda orgánica",
+            "paid_google": "Google Ads",
+            "paid_meta": "Meta Ads",
+            "paid_tiktok": "TikTok Ads",
+            "paid_other": "Otros anuncios",
+            "organic_social": "Redes sociales",
+            "ai_assistants": "Asistentes de IA",
+            "referral": "Sitios que te enlazan",
+            "email": "Correo (externo)",
+            "whatsapp": "WhatsApp (externo)",
+            "sms": "SMS (externo)",
+            "igr_email": "Correo de Imagina Growth",
+            "igr_whatsapp": "WhatsApp de Imagina Growth",
+            "igr_sms": "SMS de Imagina Growth",
+            "affiliate": "Afiliados",
+            "referral_program": "Programa de referidos",
+            "direct": "Directo",
+            "unknown": "Sin canal"
+        },
+        "device": {
+            "mobile": "Celular",
+            "desktop": "Computador",
+            "tablet": "Tableta",
+            "unknown": "Sin dato"
+        },
+        "platform": {
+            "meta": "Meta",
+            "google": "Google",
+            "tiktok": "TikTok"
+        },
+        "metric": {
+            "revenue": "Ventas",
+            "orders": "Pedidos",
+            "aov": "Ticket promedio",
+            "new_customers": "Clientes nuevos",
+            "returning_customers": "Clientes que volvieron",
+            "cod_pending_orders": "Contraentrega por confirmar",
+            "cod_pending_revenue": "Venta por confirmar",
+            "refunded": "Reembolsos",
+            "discount": "Descuentos",
+            "net_revenue": "Ventas netas",
+            "sessions": "Sesiones",
+            "users": "Visitantes",
+            "product_views": "Vistas de producto",
+            "add_to_carts": "Agregados al carrito",
+            "checkouts": "Checkouts",
+            "purchase_sessions": "Sesiones con compra",
+            "conversion_rate": "Conversión",
+            "revenue_per_visitor": "Venta por visitante"
+        },
+        "col": {
+            "period": "Periodo",
+            "channel": "Canal",
+            "device": "Dispositivo",
+            "conversion": "Conversión",
+            "paymentMethod": "Método de pago",
+            "customers": "Clientes",
+            "product": "Producto"
+        },
+        "overview": {
+            "codPending_one": "{{count}} pedido contraentrega por confirmar ({{amount}}). Cuenta como venta cuando se entrega y se cobra.",
+            "codPending_other": "{{count}} pedidos contraentrega por confirmar ({{amount}}). Cuentan como venta cuando se entregan y se cobran.",
+            "trendTitle": "Evolución",
+            "trendDescription": "Por día, semana o mes según el rango elegido.",
+            "metricPicker": "Métrica del gráfico",
+            "insightsTitle": "Hallazgos principales",
+            "insightsDescription": "Problemas y oportunidades que detectamos en tus datos.",
+            "allInsights": "Ver todos",
+            "noInsights": "No hay hallazgos abiertos. Los revisamos cada noche.",
+            "attributedTitle": "Dinero generado por la plataforma",
+            "attributedHelp": "Ventas atribuidas a mensajes, widgets y referidos de Imagina Growth.",
+            "attributedSoon": "Llega con la Fase {{phase}}: cuando envíes mensajes y flujos, aquí verás cuánto vendieron."
+        },
+        "funnel": {
+            "title": "Embudo de compra",
+            "description": "Sesiones que llegan a cada paso. El porcentaje de la derecha es sobre el total de sesiones.",
+            "passRate": "{{rate}} pasa a este paso",
+            "before": "antes {{rate}}",
+            "step": {
+                "sessions": "Sesiones",
+                "product_views": "Vieron un producto",
+                "add_to_carts": "Agregaron al carrito",
+                "checkouts": "Iniciaron el pago",
+                "purchases": "Compraron"
+            },
+            "conversion": "Conversión de la sesión",
+            "conversionHelp": "Sesiones con al menos una compra ÷ sesiones del periodo.",
+            "cartToCheckout": "Del carrito al pago",
+            "checkoutToPurchase": "Del pago a la compra",
+            "byChannel": "Por canal",
+            "byDevice": "Por dispositivo",
+            "byPayment": "Por método de pago",
+            "byPaymentDescription": "Pedidos creados en el periodo y cuántos quedaron pagados.",
+            "created": "Creados",
+            "paid": "Pagados",
+            "paidRate": "Tasa de pago",
+            "paidRateHelp": "Pedidos pagados ÷ pedidos creados con ese método. Una tasa baja suele ser una pasarela con problemas.",
+            "codPending": "Por confirmar",
+            "failed": "Fallidos o cancelados"
+        },
+        "channels": {
+            "title": "Ventas por canal",
+            "description": "Ventas con el modelo de último clic, dentro de una ventana de {{days}} días.",
+            "barDetail": "{{sessions}} sesiones · {{orders}} pedidos · {{conversion}} de conversión",
+            "lastClickHelp": "Atribución de último clic: el pedido se acredita al último canal por el que llegó la persona antes de comprar.",
+            "spend": "Gasto",
+            "roas": "ROAS",
+            "roasHelp": "Ventas atribuidas (último clic) ÷ gasto en anuncios de esa plataforma.",
+            "cac": "CAC",
+            "cacHelp": "Gasto ÷ clientes nuevos atribuidos al canal.",
+            "noSpend": "Importa el gasto de tus campañas para ver CAC y ROAS por canal.",
+            "goToMeasurement": "Ir a Medición",
+            "ai": "Los asistentes de IA (ChatGPT, Perplexity, Gemini, Copilot…) trajeron {{sessions}} sesiones ({{share}} del total) y {{revenue}} en ventas.",
+            "aiNone": "Todavía no llegan visitas desde asistentes de IA (ChatGPT, Perplexity, Gemini, Copilot…). Cuando lleguen, las verás como canal propio.",
+            "modelsTitle": "Modelos de atribución",
+            "modelsDescription": "La misma venta repartida entre canales según cada modelo. Compáralos para ver qué canales abren y cuáles cierran.",
+            "model": {
+                "last_click": "Último clic",
+                "first_click": "Primer clic",
+                "linear": "Lineal",
+                "position": "Por posición"
+            },
+            "modelHelp": {
+                "last_click": "Todo el crédito al último canal antes de la compra.",
+                "first_click": "Todo el crédito al canal por el que llegó la persona la primera vez.",
+                "linear": "El crédito se reparte por igual entre todos los canales del recorrido.",
+                "position": "40 % al primero, 40 % al último y 20 % repartido entre los del medio."
+            },
+            "ltvTitle": "Valor del cliente por canal de adquisición",
+            "ltvDescription": "Lo que gasta en promedio un cliente según el canal por el que llegó la primera vez.",
+            "acquisitionChannel": "Canal de adquisición",
+            "ltv90": "LTV a 90 días",
+            "ltv365": "LTV a 365 días",
+            "ltvHelp": "Promedio de lo que compraron los clientes en los {{days}} días siguientes a su primera compra. Solo cuenta clientes con esa antigüedad.",
+            "base90": "Base 90 días",
+            "base365": "Base 365 días"
+        },
+        "customers": {
+            "repurchaseRate": "Tasa de recompra",
+            "repurchaseHelp": "Clientes con 2 o más pedidos ÷ clientes con al menos un pedido, en los últimos {{months}} meses.",
+            "daysToSecond": "Días hasta la 2.ª compra",
+            "daysToSecondHelp": "Mediana de días entre la primera y la segunda compra.",
+            "secondPurchases_one": "{{count}} segunda compra",
+            "secondPurchases_other": "{{count}} segundas compras",
+            "top10": "Ventas del top 10 %",
+            "top20": "Ventas del top 20 %",
+            "concentrationHelp": "Parte de las ventas históricas que hace el 10 % de clientes que más gasta.",
+            "buyers_one": "{{count}} cliente",
+            "buyers_other": "{{count}} clientes",
+            "rfmTitle": "Mapa RFM",
+            "rfmDescription": "Tus clientes por recencia, frecuencia y monto. Haz clic en un segmento para verlo.",
+            "rfmComputed": "Calculado el {{date}}. Haz clic en un segmento para ver sus clientes.",
+            "rfmHelp": "R: días desde la última compra. F: número de pedidos. M: gasto total. Cada noche se recalcula y cada cliente queda en el primer segmento cuya regla cumple.",
+            "rfmEmpty": "Aún no hay segmentos RFM",
+            "rfmEmptyHelp": "Se calculan cada noche cuando hay clientes con compras.",
+            "openSegment": "Ver los clientes de este segmento",
+            "shareOfRevenue": "{{share}} de las ventas históricas",
+            "segment": "Segmento",
+            "historicRevenue": "Ventas históricas",
+            "revenueShare": "Participación",
+            "recency": "Recencia promedio",
+            "days_one": "{{count}} día",
+            "days_other": "{{count}} días",
+            "avgOrders": "Pedidos promedio",
+            "gridTitle": "Recencia × frecuencia",
+            "gridDescription": "Clientes en cada combinación. R5 compró hace poco; F5 compra muy seguido.",
+            "gridCorner": "F \\ R",
+            "gridCell_one": "R{{r}} · F{{f}}: {{count}} cliente",
+            "gridCell_other": "R{{r}} · F{{f}}: {{count}} clientes",
+            "cohortsTitle": "Cohortes de recompra",
+            "cohortsDescription": "De los clientes que compraron por primera vez cada mes, qué parte volvió a comprar N meses después.",
+            "cohort": "Cohorte",
+            "monthN": "Mes {{n}}",
+            "cohortCell": "{{cohort}}: {{rate}} de {{size}} clientes volvió en el mes {{n}}",
+            "nvrTitle": "Nuevos frente a recurrentes",
+            "nvrDescription": "Ventas pagadas de primeras compras y de clientes que vuelven.",
+            "newOrders": "Pedidos nuevos",
+            "returningOrders": "Pedidos recurrentes",
+            "newRevenue": "Ventas de clientes nuevos",
+            "returningRevenue": "Ventas de clientes que vuelven"
+        },
+        "rfm": {
+            "champions": {
+                "name": "Campeones",
+                "description": "Compran seguido y hace poco. Prémialos y pídeles reseñas y referidos; no les regales descuentos."
+            },
+            "loyal": {
+                "name": "Leales",
+                "description": "Compran con regularidad. Súbelos de nivel VIP y ofréceles venta cruzada."
+            },
+            "cant_lose": {
+                "name": "No podemos perderlos",
+                "description": "Compraban mucho y dejaron de venir. Contacto personal y oferta fuerte."
+            },
+            "at_risk": {
+                "name": "En riesgo",
+                "description": "Buenos clientes que se están enfriando. Recuperación escalonada."
+            },
+            "potential_loyal": {
+                "name": "Potencialmente leales",
+                "description": "Compraron dos veces hace poco. Invítalos al programa de puntos."
+            },
+            "new": {
+                "name": "Nuevos",
+                "description": "Primera compra muy reciente. Bienvenida y empujón a la segunda."
+            },
+            "promising": {
+                "name": "Prometedores",
+                "description": "Una compra reciente. Flujo de segunda compra."
+            },
+            "need_attention": {
+                "name": "Necesitan atención",
+                "description": "Recencia media y pocas compras. Oferta por tiempo limitado o novedades."
+            },
+            "about_to_sleep": {
+                "name": "A punto de dormirse",
+                "description": "Hace rato no compran. Reactivación con contenido y beneficio moderado."
+            },
+            "hibernating": {
+                "name": "Hibernando",
+                "description": "Mucho tiempo sin comprar. Campaña puntual de temporada."
+            },
+            "lost": {
+                "name": "Perdidos",
+                "description": "Una compra lejana. Exclúyelos de campañas caras; inclúyelos solo en grandes fechas."
+            }
+        },
+        "products": {
+            "title": "Rendimiento por producto",
+            "description": "Vistas y carritos del sitio, y pedidos pagados del periodo.",
+            "views": "Vistas",
+            "carts": "Carritos",
+            "units": "Unidades",
+            "viewToPurchase": "Vista → compra",
+            "viewToPurchaseHelp": "Pedidos ÷ vistas del producto.",
+            "cartAbandonment": "Abandono del carrito",
+            "cartAbandonmentHelp": "Parte de los agregados al carrito que no terminan en pedido.",
+            "stock": "Inventario",
+            "daysOfStock": "Días de inventario",
+            "daysOfStockHelp": "Inventario actual ÷ unidades vendidas por día en el periodo. Menos de 14 días se marca.",
+            "lowStock": "{{days}} días",
+            "notSoldTitle": "Se ven pero no se venden",
+            "notSoldDescription": "Muchas vistas y pocas compras: revisa precio, fotos, descripción o envío.",
+            "entryTitle": "Productos de entrada",
+            "entryDescription": "Con qué producto empiezan los clientes y cuánto valen después.",
+            "firstBuyers": "Primeras compras",
+            "avgLtv": "Valor promedio del cliente",
+            "avgLtvHelp": "Promedio de lo que han gastado en total los clientes que empezaron con este producto.",
+            "avgOrders": "Pedidos promedio",
+            "pairsTitle": "Se compran juntos",
+            "pairsDescription": "Pares de productos que aparecen en el mismo pedido más de lo esperado.",
+            "productA": "Producto",
+            "productB": "Se lleva también",
+            "together": "Pedidos juntos",
+            "confidence": "Confianza",
+            "confidenceHelp": "De los pedidos con el primer producto, en qué parte aparece también el segundo.",
+            "lift": "Lift",
+            "liftHelp": "Cuántas veces más se compran juntos de lo que pasaría por azar. Más de 1 es una relación real."
+        },
+        "searches": {
+            "empty": "Aún no hay búsquedas en este periodo",
+            "emptyHelp": "Las búsquedas llegan del tracker del sitio. Si tu tienda no tiene buscador, este tablero queda vacío.",
+            "title": "Lo más buscado",
+            "term": "Búsqueda",
+            "searches": "Búsquedas",
+            "zeroResults": "Sin resultados",
+            "avgResults": "Resultados promedio",
+            "conversionHelp": "Sesiones con esta búsqueda que terminaron en compra.",
+            "total": "Búsquedas en el sitio",
+            "zeroShare": "Búsquedas sin resultados",
+            "zeroShareHelp": "Parte de las búsquedas que no mostraron ningún producto.",
+            "zeroTitle": "Lo que buscan y no encuentran",
+            "zeroDescription": "Términos que la mayoría de las veces no dan resultados: agrega el producto, un sinónimo o una redirección.",
+            "zeroNone": "Todas las búsquedas encuentran algo. ¡Bien!"
+        },
+        "geo": {
+            "region": "Departamento o estado",
+            "city": "Ciudad",
+            "regionsTitle": "Ventas por departamento",
+            "regionsDescription": "Según la dirección de facturación de los pedidos pagados.",
+            "regionDetail": "{{orders}} pedidos · ticket de {{aov}}",
+            "citiesTitle": "Ciudades",
+            "citiesDescription": "Pedidos por la dirección de facturación; sesiones y conversión por la ubicación aproximada de la visita."
+        },
+        "coupons": {
+            "share": "Pedidos con cupón",
+            "ordersWith_one": "{{count}} pedido",
+            "ordersWith_other": "{{count}} pedidos",
+            "discount": "Descuento entregado",
+            "aovWith": "Ticket con cupón",
+            "aovWithout": "Ticket sin cupón",
+            "dependency": "De tus clientes que repiten, {{only}} solo compran con descuento, {{repeat}} repiten en total y {{never}} nunca usan cupones.",
+            "incrementalSoon": "Saber si un cupón trajo ventas que no habrían pasado igual llega con la Fase {{phase}} (grupos de control).",
+            "codesTitle": "Códigos",
+            "code": "Código",
+            "none": "No se usaron cupones en este periodo",
+            "trendTitle": "Uso de cupones por mes",
+            "trendDescription": "Parte de los pedidos pagados que usaron al menos un cupón."
+        },
+        "messaging": {
+            "title": "Mensajería en camino",
+            "soon": "Este tablero llega con la Fase {{phase}}, cuando conectes WhatsApp, correo o SMS. Mostrará entregas, lecturas, clics, ventas atribuidas a cada mensaje y bajas."
+        },
+        "profit": {
+            "noCosts": "Falta el costo de tus productos",
+            "noCostsHelp": "Carga el costo de cada producto en WooCommerce (campo de costo) y lo leemos en la próxima sincronización del catálogo. Con eso calculamos el margen por pedido y por producto.",
+            "grossMargin": "Margen bruto",
+            "grossMarginHelp": "Ventas netas (sin reembolsos) menos el costo de los productos vendidos.",
+            "marginRate": "Margen %",
+            "perOrder": "Margen por pedido",
+            "coverage": "Pedidos con costo",
+            "coverageHelp": "Parte de los pedidos cuyos productos tienen costo cargado. Si es baja, el margen está incompleto.",
+            "cost": "Costo",
+            "margin": "Margen",
+            "adsTitle": "Retorno de los anuncios",
+            "adsDescription": "MER: todas las ventas ÷ todo el gasto. ROAS por plataforma con atribución de último clic.",
+            "noSpend": "No hay gasto en anuncios importado en este periodo.",
+            "mer": "MER",
+            "spendRoas": "Gasto {{spend}} · ROAS {{roas}}",
+            "productsTitle": "Margen por producto"
+        },
+        "services": {
+            "empty": "Aún no hay leads en este periodo",
+            "emptyHelp": "Aquí verás los formularios enviados y los clics en WhatsApp, teléfono y correo de tu sitio.",
+            "submissions": "Formularios enviados",
+            "whatsapp": "Clics a WhatsApp",
+            "phone": "Clics para llamar",
+            "email": "Clics al correo",
+            "responseSoon": "El tiempo de respuesta a cada lead llega con la Fase {{phase}}, con la bandeja de conversaciones.",
+            "formsTitle": "Formularios",
+            "form": "Formulario",
+            "plugin": "Plugin",
+            "page": "Página",
+            "channelsTitle": "Leads por canal",
+            "pagesTitle": "Páginas que generan leads",
+            "pagesDescription": "Vistas de la página y contactos que salen de ella.",
+            "views": "Vistas",
+            "formRate": "Tasa de formulario"
+        },
+        "hdyhau": {
+            "empty": "Aún no hay respuestas",
+            "emptyHelp": "Activa la encuesta «¿Cómo nos conociste?» en la página de gracias del pedido. Las respuestas aparecen aquí y en el perfil de cada cliente.",
+            "responses": "Respuestas",
+            "rate": "Tasa de respuesta",
+            "rateHelp": "Respuestas ÷ pedidos pagados del periodo.",
+            "answersTitle": "Respuestas",
+            "answer": "Respuesta",
+            "share": "Participación",
+            "revenue": "Ventas de quienes respondieron",
+            "detail": "{{share}} de las respuestas · {{revenue}} en ventas",
+            "matrixTitle": "Lo que dicen frente a lo que mide el sitio",
+            "matrixDescription": "Cada fila es una respuesta; cada columna, el canal de último clic registrado en el pedido."
+        }
+    }
+}

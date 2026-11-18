@@ -73,6 +73,18 @@ return [
             'after_commit' => false,
         ],
 
+        // Misma cola de Redis, pero para los jobs largos de `analytics` (importaciones,
+        // segmentos completos, RFM y hallazgos): retry_after debe superar su timeout
+        // (30 min) o el worker los tomaría de nuevo mientras siguen corriendo.
+        'redis-long' => [
+            'driver' => 'redis',
+            'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
+            'queue' => 'analytics',
+            'retry_after' => (int) env('REDIS_LONG_QUEUE_RETRY_AFTER', 1900),
+            'block_for' => null,
+            'after_commit' => false,
+        ],
+
         'deferred' => [
             'driver' => 'deferred',
         ],

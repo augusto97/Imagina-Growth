@@ -219,10 +219,21 @@ final class SegmentController
         ]);
     }
 
-    /** POST segments/library/{key} — crea un segmento desde una plantilla con sus parámetros. */
-    public function fromTemplate(Request $request, string $key, SaveSegment $save): JsonResponse
+    /**
+     * POST segments/library/{key} — crea un segmento desde una plantilla con sus
+     * parámetros. Con la clave de un segmento del sistema que falte, instala
+     * la biblioteca (idempotente) y devuelve ese segmento.
+     */
+    public function fromTemplate(Request $request, string $key, SaveSegment $save, SegmentLibrary $library): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
+        if (in_array($key, array_column(SegmentLibrary::system(), 'key'), true)) {
+            $library->install($this->current->get());
+            $system = Segment::query()->where('system_key', $key)->first() ?? abort(404);
+            RecomputeSegmentJob::dispatch($this->current->id(), $system->id);
+
+            return response()->json(SegmentPresenter::make($system, withDefinition: true), 201);
+        }
         $data = $request->validate([
             'name' => ['nullable', 'string', 'min:2', 'max:160'],
             'params' => ['required', 'array'],

@@ -15,6 +15,8 @@ export type Ability =
     | 'viewAssignedContacts'
     | 'exportContacts'
     | 'deleteContacts'
+    | 'mergeContacts'
+    | 'editContacts'
     | 'viewPaymentData'
     | 'manageMarketing'
     | 'viewAuditLog';

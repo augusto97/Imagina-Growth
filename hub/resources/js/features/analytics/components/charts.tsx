@@ -91,13 +91,13 @@ export function TrendChart<T extends { date: string }>({
                     <YAxis tickFormatter={axisFormatter(fmt, unit)} tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={false} width={64} />
                     <RTooltip
                         cursor={{ stroke: theme.axis, strokeWidth: 1 }}
-                        content={(props: TooltipContentProps<number, string>) => {
+                        content={(props: TooltipContentProps) => {
                             const row = props.payload[0]?.payload as T | undefined;
                             if (!props.active || row === undefined) return null;
                             return <TooltipBox title={fmt.bucket(row.date, granularity)} rows={[{ label, value: fmt.byUnit(unit, Number(row[metric])), color }]} />;
                         }}
                     />
-                    <Area type="monotone" dataKey={metric} stroke={color} strokeWidth={2} fill={`url(#${id})`} dot={false} activeDot={{ r: 4, strokeWidth: 2, stroke: theme.surface }} isAnimationActive={false} />
+                    <Area type="monotone" dataKey={(row: T) => Number(row[metric])} stroke={color} strokeWidth={2} fill={`url(#${id})`} dot={false} activeDot={{ r: 4, strokeWidth: 2, stroke: theme.surface }} isAnimationActive={false} />
                 </AreaChart>
             </ResponsiveContainer>
         </div>
@@ -142,7 +142,7 @@ export function StackedBars<T extends { date: string }>({
                         <YAxis tickFormatter={axisFormatter(fmt, unit)} tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={false} width={64} />
                         <RTooltip
                             cursor={{ fill: theme.grid, opacity: 0.5 }}
-                            content={(props: TooltipContentProps<number, string>) => {
+                            content={(props: TooltipContentProps) => {
                                 const row = props.payload[0]?.payload as T | undefined;
                                 if (!props.active || row === undefined) return null;
                                 return (
@@ -156,7 +156,8 @@ export function StackedBars<T extends { date: string }>({
                         {series.map((s, i) => (
                             <Bar
                                 key={s.key}
-                                dataKey={s.key}
+                                dataKey={(row: T) => Number(row[s.key])}
+                                name={s.label}
                                 stackId="a"
                                 fill={colors[i]}
                                 stroke={theme.surface}

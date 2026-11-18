@@ -37,7 +37,14 @@ export function FilterBar({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [debouncedCity]);
 
-    useEffect(() => setCity(params.city), [params.city]);
+    // Si la URL cambia por fuera (p. ej. «Quitar filtros»), el campo se sincroniza.
+    const [syncedCity, setSyncedCity] = useState(params.city);
+    if (params.city !== syncedCity) {
+        setSyncedCity(params.city);
+        if (params.city !== debouncedCity.trim()) {
+            setCity(params.city);
+        }
+    }
 
     const siteList = sites.data ?? [];
     const filters = activeFilterCount(params);

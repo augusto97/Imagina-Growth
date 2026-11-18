@@ -1,0 +1,13 @@
+{
+    "segments": {
+        "fields": {
+            "region_code": "Estado"
+        },
+        "props": {
+            "region": "Estado"
+        },
+        "typeHelp": {
+            "attribute": "Ciudad, estado, etapa, etiquetas, cumpleaños…"
+        }
+    }
+}

@@ -22,7 +22,7 @@ final class SegmentLibrary
         'loyal' => ['Leales', 'Subir de nivel VIP y venta cruzada.'],
         'cant_lose' => ['No podemos perderlos', 'Contacto personal y oferta fuerte; aviso al dueño.'],
         'at_risk' => ['En riesgo', 'Recuperación escalonada.'],
-        'potential_loyalists' => ['Potencialmente leales', 'Invitar al programa de puntos y recomendar productos.'],
+        'potential_loyal' => ['Potencialmente leales', 'Invitar al programa de puntos y recomendar productos.'],
         'new' => ['Nuevos', 'Bienvenida y empujón a la segunda compra.'],
         'promising' => ['Prometedores', 'Flujo de segunda compra.'],
         'need_attention' => ['Necesitan atención', 'Oferta por tiempo limitado y novedades.'],
@@ -85,7 +85,7 @@ final class SegmentLibrary
         $out[] = [
             'key' => 'discount_only',
             'name' => 'Solo compran con descuento',
-            'description' => 'El 80% o más de sus pedidos usan cupón (inteligencia.md §4.6).',
+            'description' => 'El 80% o más de sus pedidos usan cupón.',
             'folder' => 'Descuentos',
             'definition' => self::and([
                 ['type' => 'purchase', 'field' => 'coupon_ratio', 'operator' => 'gte', 'value' => 0.8],

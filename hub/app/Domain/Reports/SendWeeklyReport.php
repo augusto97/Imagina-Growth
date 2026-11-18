@@ -54,7 +54,7 @@ final class SendWeeklyReport
             ],
         );
 
-        return ['status' => $recipients->isEmpty() ? 'no_recipients' : 'sent', 'recipients' => $recipients->map(fn (User $u) => $u->email)->all(), 'delivery_id' => (string) $id];
+        return ['status' => $recipients->isEmpty() ? 'no_recipients' : 'sent', 'recipients' => array_values($recipients->map(fn (User $u) => $u->email)->all()), 'delivery_id' => (string) $id];
     }
 
     /** ¿Le toca hoy? Lunes a las 07:00 en la zona del espacio de trabajo (inteligencia.md §6.2). */

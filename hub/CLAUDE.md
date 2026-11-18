@@ -225,6 +225,8 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 | `ai` | llamadas a modelos | 2 |
 | `default` | resto | 2 |
 
+Los jobs largos de `analytics` (importación de contactos, recálculo completo de segmentos, inteligencia nocturna) los atiende la conexión `redis-long` de `config/queue.php`: es la misma cola de Redis con `retry_after` de 1.900 s, mayor que su `timeout`, para que ningún worker los vuelva a tomar mientras siguen corriendo. Los segmentos en tiempo real (`EvaluateContactSegmentsJob`, 15 s después del evento) van por `triggers`.
+
 **Programadas:** flujos y campañas (cada minuto), carritos abandonados (cada minuto), sesiones (cada 10 min), segmentos completos, RFM, afinidad, predicciones y hallazgos (cada noche, escalonadas por workspace), gasto en anuncios (cada día), audiencias (cada 12 h), tarifas de WhatsApp (cada trimestre, manual con aviso), analista semanal (los lunes por zona horaria), reporte mensual (el día 1) y purga por retención (cada noche).
 
 ## 16. Rendimiento y observabilidad

@@ -100,7 +100,7 @@ final class Attribution
     /**
      * Suma por canal y modelo.
      *
-     * @param  Collection<int, object>  $orders  filas con contact_id, ts, total_ws, channel_last
+     * @param  Collection<int, \stdClass>  $orders  filas con contact_id, ts, total_ws, channel_last
      * @return array<string, array<string, array{revenue: float, orders: float}>> modelo => canal => totales
      */
     public function attribute(Collection $orders): array

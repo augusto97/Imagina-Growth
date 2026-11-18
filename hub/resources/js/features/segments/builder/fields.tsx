@@ -84,7 +84,7 @@ export function OperatorValue({ field, option, operator, value, onChange }: { fi
         />
     );
 
-    let editor: ReactNode = null;
+    let editor: ReactNode;
     if (NO_VALUE.includes(operator)) {
         editor = null;
     } else if (MULTI.includes(operator)) {

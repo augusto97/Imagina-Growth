@@ -9,6 +9,7 @@ import {
     Lightbulb,
     type LucideIcon,
     Megaphone,
+    MessageCircleQuestion,
     MessageSquareQuote,
     MousePointerClick,
     Plug,
@@ -54,6 +55,7 @@ export const SETTINGS_NAV: NavItem[] = [
     { key: 'team', to: 'equipo', icon: UsersRound, ability: 'viewWorkspace', shortcut: 'e' },
     { key: 'workspace', to: 'ajustes', icon: Settings2, ability: 'viewWorkspace' },
     { key: 'consent', to: 'consentimiento', icon: ShieldCheck, ability: 'viewWorkspace' },
+    { key: 'survey', to: 'encuesta', icon: MessageCircleQuestion, ability: 'viewDashboards' },
     { key: 'audit', to: 'auditoria', icon: ClipboardList, ability: 'viewAuditLog' },
     { key: 'agency', icon: Building2, phase: 5 },
 ];

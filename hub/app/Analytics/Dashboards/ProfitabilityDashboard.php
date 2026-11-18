@@ -25,6 +25,9 @@ final class ProfitabilityDashboard extends Dashboard
         $totals = $this->paidOrders($workspace, $period, $filters)->whereNotNull('cost_ws')
             ->selectRaw('COALESCE(SUM(total_ws), 0) AS revenue, COALESCE(SUM(cost_ws), 0) AS cost, COALESCE(SUM(shipping), 0) AS shipping, COALESCE(SUM(tax), 0) AS tax, COUNT(*) AS n')
             ->first();
+        if ($totals === null) {
+            return ['available' => false, 'reason' => 'no_costs', 'orders' => $orders];
+        }
         $revenue = (float) $totals->revenue;
         $cost = (float) $totals->cost;
         $netSales = $revenue - (float) $totals->shipping - (float) $totals->tax;

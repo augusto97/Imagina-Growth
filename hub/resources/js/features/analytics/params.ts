@@ -126,11 +126,11 @@ export function useAnalyticsParams(timeZone: string) {
             setSearch(
                 (prev) => {
                     const next = new URLSearchParams(prev);
-                    for (const [key, value] of Object.entries(patch)) {
+                    for (const [key, value] of Object.entries(patch) as [string, string | undefined][]) {
                         if (value === '' || value === undefined) {
                             next.delete(key);
                         } else {
-                            next.set(key, String(value));
+                            next.set(key, value);
                         }
                     }
                     if (patch.range !== undefined && patch.range !== 'custom') {

@@ -33,8 +33,9 @@ enum RfmSegment: string
             $r >= 4 && $f === 2 => self::PotentialLoyal,
             $r === 5 && $f === 1 => self::New,
             $r === 4 && $f === 1 => self::Promising,
-            $r === 3 && $f <= 2 => self::NeedAttention,
-            $r === 2 && $f <= 2 => self::AboutToSleep,
+            // Con R = 3 o R = 2, las reglas anteriores ya tomaron F ≥ 3: aquí F ≤ 2.
+            $r === 3 => self::NeedAttention,
+            $r === 2 => self::AboutToSleep,
             $r === 1 && $f === 2 => self::Hibernating,
             default => self::Lost,
         };

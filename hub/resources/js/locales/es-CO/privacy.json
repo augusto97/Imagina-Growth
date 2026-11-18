@@ -1,0 +1,60 @@
+{
+    "privacy": {
+        "kind": {
+            "access": "Exportar datos (acceso)",
+            "delete": "Borrar datos (supresión)"
+        },
+        "status": {
+            "pending": "Pendiente",
+            "completed": "Atendida"
+        },
+        "origin": {
+            "panel": "Desde el panel",
+            "wordpress": "Desde el sitio"
+        },
+        "requests": {
+            "emptyTitle": "Sin solicitudes",
+            "emptyDescription": "Cuando alguien pida sus datos o que los borres, aparece aquí con su plazo legal. Puedes crearlas desde el perfil del contacto o desde el formulario de privacidad del sitio.",
+            "kind": "Solicitud",
+            "status": "Estado",
+            "origin": "Origen",
+            "contact": "Persona",
+            "created": "Recibida",
+            "due": "Plazo",
+            "result": "Resultado",
+            "actions": "Acciones",
+            "viewProfile": "Ver perfil",
+            "erased": "Datos borrados",
+            "unknownPerson": "Sin contacto asociado",
+            "doneOn": "Atendida el {{date}}",
+            "dueOn": "Vence el {{date}}",
+            "overdue": "vencida",
+            "exportedEvents_one": "{{formatted}} evento exportado",
+            "exportedEvents_other": "{{formatted}} eventos exportados",
+            "deletedRows": "{{formatted}} registros borrados",
+            "executeExport": "Exportar",
+            "executeDelete": "Borrar",
+            "download": "Descargar JSON",
+            "exportedToast": "Exportación lista para descargar",
+            "deletedToast": "Datos borrados"
+        },
+        "export": {
+            "title": "Exportar los datos de esta persona",
+            "description": "Genera un archivo JSON con su perfil, pedidos, eventos, consentimientos y notas, para entregárselo cuando ejerce su derecho de acceso.",
+            "audit": "La exportación queda en la auditoría con tu nombre. Entrega el archivo solo a la persona titular.",
+            "generate": "Generar exportación",
+            "ready": "La exportación está lista",
+            "readyHelp": "Descárgala y entrégala por un canal seguro."
+        },
+        "delete": {
+            "title": "Borrar este contacto",
+            "titleNamed": "Borrar a {{name}}",
+            "description": "Supresión definitiva por solicitud de la persona. No se puede deshacer.",
+            "point1": "Se borran su perfil, sus identificadores, sus notas y sus eventos.",
+            "point2": "Los pedidos se conservan sin datos personales para que tus reportes de ventas no cambien.",
+            "point3": "Queda una constancia sin datos personales, y su correo y su teléfono se bloquean para no volver a escribirle si llegan en una importación.",
+            "typeToConfirm": "Escribe {{word}} para confirmar",
+            "confirm": "Borrar definitivamente"
+        }
+    }
+}

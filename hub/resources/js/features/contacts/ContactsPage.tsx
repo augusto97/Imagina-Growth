@@ -195,7 +195,7 @@ export function ContactsPage() {
                                 <TH>{t('contacts.columns.rfm')}</TH>
                                 <TH className="igr:text-right">{t('contacts.columns.orders')}</TH>
                                 <TH className="igr:text-right">{t('contacts.columns.revenue')}</TH>
-                                <TH className="igr:hidden igr:text-right igr:lg:table-cell">{t('contacts.columns.lastOrder')}</TH>
+                                <TH className="igr:hidden igr:whitespace-nowrap igr:text-right igr:lg:table-cell">{t('contacts.columns.lastOrder')}</TH>
                                 <TH className="igr:hidden igr:xl:table-cell">{t('contacts.columns.hdyhau')}</TH>
                                 <TH className="igr:hidden igr:xl:table-cell">{t('contacts.columns.tags')}</TH>
                             </TR>
@@ -203,7 +203,7 @@ export function ContactsPage() {
                         <TBody>
                             {contacts.data.data.map((c) => (
                                 <TR key={c.id} className="igr:cursor-pointer" onClick={() => open(c.id)}>
-                                    <TD>
+                                    <TD className="igr:max-w-72">
                                         <Link
                                             to={`/w/${workspace.id}/contactos/${c.id}`}
                                             className="igr:font-medium igr:outline-none igr:hover:underline igr:focus-visible:underline"
@@ -211,7 +211,9 @@ export function ContactsPage() {
                                         >
                                             {c.name !== '' ? c.name : t('contacts.noName')}
                                         </Link>
-                                        <p className="igr:text-xs igr:text-muted-foreground">{[c.email, c.phone].filter(Boolean).join(' · ') || '—'}</p>
+                                        <p className="igr:truncate igr:text-xs igr:text-muted-foreground" title={[c.email, c.phone].filter(Boolean).join(' · ')}>
+                                            {[c.email, c.phone].filter(Boolean).join(' · ') || '—'}
+                                        </p>
                                     </TD>
                                     <TD className="igr:hidden igr:text-muted-foreground igr:md:table-cell">{c.city ?? '—'}</TD>
                                     <TD>{c.lifecycle_stage ? <Badge variant="secondary">{t(`stages.${c.lifecycle_stage}`, { defaultValue: c.lifecycle_stage })}</Badge> : '—'}</TD>
@@ -223,8 +225,8 @@ export function ContactsPage() {
                                         )}
                                     </TD>
                                     <TD className="igr:text-right igr:tabular-nums">{formatNumber(c.orders_count, workspace.locale)}</TD>
-                                    <TD className="igr:text-right igr:tabular-nums">{formatMoney(c.revenue_total_ws, workspace.currency, workspace.locale)}</TD>
-                                    <TD className="igr:hidden igr:text-right igr:text-muted-foreground igr:lg:table-cell">{formatDate(c.last_order_at, workspace.locale)}</TD>
+                                    <TD className="igr:whitespace-nowrap igr:text-right igr:tabular-nums">{formatMoney(c.revenue_total_ws, workspace.currency, workspace.locale)}</TD>
+                                    <TD className="igr:hidden igr:whitespace-nowrap igr:text-right igr:text-muted-foreground igr:lg:table-cell">{formatDate(c.last_order_at, workspace.locale)}</TD>
                                     <TD className="igr:hidden igr:text-muted-foreground igr:xl:table-cell">{answerLabel(survey.data, c.hdyhau) ?? '—'}</TD>
                                     <TD className="igr:hidden igr:xl:table-cell">
                                         <div className="igr:flex igr:max-w-48 igr:flex-wrap igr:gap-1">

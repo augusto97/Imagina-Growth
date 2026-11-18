@@ -80,7 +80,7 @@ export function OrdersTab({ contactId, enabled }: { contactId: string; enabled: 
                                             </Badge>
                                         )}
                                     </TD>
-                                    <TD className="igr:text-muted-foreground">{formatDate(o.created_at, workspace.locale)}</TD>
+                                    <TD className="igr:whitespace-nowrap igr:text-muted-foreground">{formatDate(o.created_at, workspace.locale)}</TD>
                                     <TD>
                                         <div className="igr:flex igr:flex-wrap igr:gap-1">
                                             <Badge variant={o.status === 'completed' ? 'success' : ['cancelled', 'failed', 'refunded'].includes(o.status) ? 'outline' : 'secondary'}>
@@ -94,7 +94,7 @@ export function OrdersTab({ contactId, enabled }: { contactId: string; enabled: 
                                     <TD className="igr:hidden igr:text-muted-foreground igr:lg:table-cell">
                                         {o.channel_last ? t(`contacts.channels.${o.channel_last}`, { defaultValue: o.channel_last }) : '—'}
                                     </TD>
-                                    <TD className="igr:text-right igr:tabular-nums">
+                                    <TD className="igr:whitespace-nowrap igr:text-right igr:tabular-nums">
                                         {formatMoney(o.total, currency, workspace.locale)}
                                         {refunded && (
                                             <p className="igr:text-[11px] igr:text-destructive">

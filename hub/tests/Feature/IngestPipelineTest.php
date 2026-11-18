@@ -165,7 +165,7 @@ it('actualiza la salud del sitio con site.heartbeat', function () {
 });
 
 it('un listener que falla no frena la ingesta ni hace reprocesar el lote', function () {
-    \Illuminate\Support\Facades\Event::listen(\App\Ingest\Events\EventIngested::class, fn () => throw new RuntimeException('listener roto'));
+    Event::listen(EventIngested::class, fn () => throw new RuntimeException('listener roto'));
     $this->postSigned($this->site, $this->secret, [$this->envelope($this->site, 'order.paid', ['order' => $this->orderSnapshot()])]);
     $this->runWorker();
     expect(inWs($this, fn () => Order::query()->count()))->toBe(1)

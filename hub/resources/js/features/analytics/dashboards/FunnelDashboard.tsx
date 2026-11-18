@@ -95,7 +95,7 @@ export function FunnelDashboard({ response, data, fmt }: DashboardProps<'funnel'
             <Section title={t('analytics.funnel.byChannel')} onExport={exporter(t('analytics.funnel.byChannel'), channelColumns, data.by_channel)} flush>
                 <DataTable columns={channelColumns} rows={data.by_channel} rowKey={(r) => r.key} limit={12} />
             </Section>
-            <div className="igr:grid igr:gap-4 igr:xl:grid-cols-2">
+            <div className="igr:grid igr:gap-4 igr:2xl:grid-cols-2">
                 <Section title={t('analytics.funnel.byDevice')} onExport={exporter(t('analytics.funnel.byDevice'), deviceColumns, data.by_device)} flush>
                     <DataTable columns={deviceColumns} rows={data.by_device} rowKey={(r) => r.key} />
                 </Section>

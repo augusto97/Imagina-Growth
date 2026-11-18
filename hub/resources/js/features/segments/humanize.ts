@@ -20,8 +20,8 @@ export function describeWindow(t: TFunction, w: Window | undefined): string {
     return t('segments.window.between_dates', { from: w.from, to: w.to });
 }
 
-function list(value: unknown): string {
-    return Array.isArray(value) ? value.join(', ') : String(value ?? '');
+function list(value: string | number | (string | number)[] | null | undefined, separator = ', '): string {
+    return Array.isArray(value) ? value.map(String).join(separator) : String(value ?? '');
 }
 
 function countText(t: TFunction, operator: string, value: number | undefined): string {
@@ -32,9 +32,10 @@ export function describeCondition(t: TFunction, c: Condition, names: Record<stri
     switch (c.type) {
         case 'attribute':
         case 'prediction': {
-            const field = t(`segments.fields.${c.field.startsWith('custom.') ? 'custom' : c.field}`, { key: c.field.slice(7), defaultValue: c.field });
-            const value = Array.isArray(c.value) ? c.value.map((v) => names[String(v)] ?? String(v)) : names[String(c.value)] ?? c.value;
-            return t(`segments.op.${c.operator}`, { field, value: list(value) });
+            const field = c.field.startsWith('custom.') ? t('segments.fields.custom', { key: c.field.slice(7) }) : t(`segments.fields.${c.field}`, { defaultValue: c.field });
+            const label = (v: unknown) => t(`segments.enum.${c.field}.${String(v)}`, { defaultValue: names[String(v)] ?? String(v) });
+            const value = Array.isArray(c.value) ? c.value.map(label) : label(c.value ?? '');
+            return t(`segments.op.${c.operator}`, { field, value: list(value, c.operator === 'between' ? t('segments.join.between') : ', ') });
         }
         case 'purchase': {
             if ('scope' in c) {
@@ -42,13 +43,13 @@ export function describeCondition(t: TFunction, c: Condition, names: Record<stri
                 return `${t('segments.describe.purchase', { what })} ${countText(t, c.operator, c.value)} · ${describeWindow(t, c.window)}`;
             }
             const field = t(`segments.fields.${c.field}`);
-            const base = t(`segments.op.${c.operator}`, { field, value: list(c.value) });
+            const base = t(`segments.op.${c.operator}`, { field, value: list(c.value, c.operator === 'between' ? t('segments.join.between') : ', ') });
             return c.window ? `${base} · ${describeWindow(t, c.window)}` : base;
         }
         case 'event': {
-            const filters = c.filters.map((f) => `${t(`segments.props.${f.prop}`, { defaultValue: f.prop })} ${t(`segments.filterOp.${f.operator}`)} ${list(f.value)}`).join(', ');
+            const filters = c.filters.map((f) => `${t(`segments.props.${f.prop.replace(/\./g, '_')}`, { defaultValue: f.prop })} ${t(`segments.filterOp.${f.operator}`)} ${list(f.value)}`).join(', ');
             const measure = c.measure === 'events' ? '' : ` (${t(`segments.measure.${c.measure}`)})`;
-            return `${t('segments.describe.event', { event: t(`segments.events.${c.event}`, { defaultValue: c.event }) })}${filters ? ` [${filters}]` : ''} ${countText(t, c.operator, c.value)}${measure} · ${describeWindow(t, c.window)}`;
+            return `${t('segments.describe.event', { event: t(`segments.events.${c.event.replace(/\./g, '_')}`, { defaultValue: c.event }) })}${filters ? ` [${filters}]` : ''} ${countText(t, c.operator, c.value)}${measure} · ${describeWindow(t, c.window)}`;
         }
         case 'cart':
             return `${t('segments.describe.cart')} · ${describeWindow(t, c.window)}`;

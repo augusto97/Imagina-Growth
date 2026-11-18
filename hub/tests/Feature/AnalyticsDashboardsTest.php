@@ -2,8 +2,11 @@
 
 use App\Analytics\Dashboards\Attribution;
 use App\Analytics\Http\AnalyticsController;
+use App\Domain\Intelligence\Models\Insight;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Models\Workspace;
+use App\Support\Tenancy\CurrentWorkspace;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
@@ -30,12 +33,12 @@ it('las ventas del tablero son las de los pedidos válidos (misma definición qu
     $period = $res->json('period');
     $tz = $this->ws->timezone;
     $expected = (float) DB::table('orders')->where('workspace_id', $this->ws->id)->where('is_paid', true)
-        ->where('created_at', '>=', \Carbon\CarbonImmutable::parse($period['from'], $tz)->utc())
-        ->where('created_at', '<', \Carbon\CarbonImmutable::parse($period['to'], $tz)->addDay()->utc())
+        ->where('created_at', '>=', CarbonImmutable::parse($period['from'], $tz)->utc())
+        ->where('created_at', '<', CarbonImmutable::parse($period['to'], $tz)->addDay()->utc())
         ->sum('total_ws');
     $orders = (int) DB::table('orders')->where('workspace_id', $this->ws->id)->where('is_paid', true)
-        ->where('created_at', '>=', \Carbon\CarbonImmutable::parse($period['from'], $tz)->utc())
-        ->where('created_at', '<', \Carbon\CarbonImmutable::parse($period['to'], $tz)->addDay()->utc())->count();
+        ->where('created_at', '>=', CarbonImmutable::parse($period['from'], $tz)->utc())
+        ->where('created_at', '<', CarbonImmutable::parse($period['to'], $tz)->addDay()->utc())->count();
 
     expect((float) $res->json('data.kpis.revenue'))->toBe(round($expected, 2))
         ->and($res->json('data.kpis.orders'))->toBe($orders)
@@ -86,4 +89,17 @@ it('reparte el crédito según el modelo de atribución', function () {
         ->and(array_sum($a->credit('c1', 5000, null, 'linear')))->toEqualWithDelta(1.0, 1e-9)
         ->and($a->credit('c1', 5000, null, 'position'))->toEqualWithDelta(['paid_meta' => 0.4, 'direct' => 0.4, 'organic_search' => 0.1, 'email' => 0.1], 1e-9)
         ->and($a->credit('nadie', 5000, 'paid_google', 'last_click'))->toBe(['paid_google' => 1.0]);
+});
+
+it('el Inicio deja de mostrar un hallazgo descartado aunque el tablero esté en caché', function () {
+    config(['igr.analytics.cache' => true]);
+    $insight = app(CurrentWorkspace::class)->run($this->ws, fn () => Insight::query()->forceCreate([
+        'detector_key' => 'valuable_at_risk', 'fingerprint' => 'valuable_at_risk:prueba', 'severity' => 'critical',
+        'title' => 'Hallazgo de prueba', 'facts' => ['customers' => 9], 'estimated_impact_ws' => '999999999', 'status' => 'new',
+    ]));
+    $ids = fn () => collect($this->actingAs($this->owner)->getJson("{$this->url}/overview{$this->range}")->assertOk()->json('data.insights'))->pluck('id');
+
+    expect($ids())->toContain($insight->publicId());
+    $this->actingAs($this->owner)->patchJson("/api/w/{$this->ws->publicId()}/insights/{$insight->publicId()}", ['status' => 'dismissed'])->assertOk();
+    expect($ids())->not->toContain($insight->publicId());
 });

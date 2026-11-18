@@ -323,6 +323,7 @@ final class DemoStoreGenerator
 
     /**
      * @param  array<string, mixed>  $properties
+     * @param  array{identity: array<string, string>, context: array<string, mixed>}|null  $session  sesión de navegación demo del pedido
      * @return array<string, mixed>
      */
     private function envelope(string $event, string $key, CarbonImmutable $at, array $properties, ?array $session = null): array

@@ -1,0 +1,56 @@
+{
+    "survey": {
+        "title": "Encuesta «¿Cómo nos conociste?»",
+        "description": "Una pregunta en la página de gracias. Las respuestas muestran los canales que la atribución digital no ve, como el boca a boca o la radio.",
+        "saved": "Encuesta guardada",
+        "discard": "Descartar cambios",
+        "readOnly": "Solo marketing o un administrador puede editar la encuesta.",
+        "status": {
+            "label": "Estado de la encuesta",
+            "active": "Activa",
+            "paused": "Pausada"
+        },
+        "editor": {
+            "title": "Pregunta y opciones",
+            "description": "Aparece después de comprar, una sola vez por pedido.",
+            "surveyTitle": "Título",
+            "question": "Pregunta",
+            "options": "Opciones",
+            "optionsHelp": "De 2 a {{max}} opciones. Cambiar el texto de una opción conserva sus respuestas.",
+            "optionLabel": "Opción {{n}}",
+            "keyHelp": "Clave interna: se conserva para no perder las respuestas anteriores.",
+            "new": "Nueva",
+            "moveUp": "Subir «{{label}}»",
+            "moveDown": "Bajar «{{label}}»",
+            "remove": "Quitar «{{label}}»",
+            "addOption": "Agregar opción",
+            "reorderHint": "Alt + ↑ o ↓ para reordenar",
+            "allowOther": "Permitir «Otro» con respuesta libre",
+            "allowOtherHelp": "La persona escribe cómo te conoció. Útil para descubrir canales nuevos.",
+            "otherLabel": "Texto de la opción «Otro»",
+            "thanks": "Mensaje de agradecimiento"
+        },
+        "errors": {
+            "title": "Escribe un título.",
+            "question": "Escribe la pregunta.",
+            "thanks": "Escribe el mensaje de agradecimiento.",
+            "emptyOption": "Hay opciones vacías.",
+            "duplicateOption": "Hay opciones repetidas."
+        },
+        "preview": {
+            "title": "Vista previa",
+            "showThanks": "Ver agradecimiento",
+            "showQuestion": "Ver pregunta",
+            "other": "Otro",
+            "otherPlaceholder": "Cuéntanos cómo nos conociste",
+            "paused": "La encuesta está pausada: no se muestra en el sitio."
+        },
+        "breakdown": {
+            "title": "Respuestas",
+            "total_one": "{{formatted}} respuesta en total",
+            "total_other": "{{formatted}} respuestas en total",
+            "empty": "Todavía no hay respuestas",
+            "emptyHelp": "Llegan cuando tus clientes compran y responden en la página de gracias."
+        }
+    }
+}

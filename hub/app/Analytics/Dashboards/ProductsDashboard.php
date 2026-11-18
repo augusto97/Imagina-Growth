@@ -98,14 +98,14 @@ final class ProductsDashboard extends Dashboard
      */
     private function entryProducts(Workspace $workspace): array
     {
-        return DB::table('orders as o')->join('order_items as i', 'i.order_id', '=', 'o.id')->join('contacts as c', 'c.id', '=', 'o.contact_id')
+        return array_values(DB::table('orders as o')->join('order_items as i', 'i.order_id', '=', 'o.id')->join('contacts as c', 'c.id', '=', 'o.contact_id')
             ->where('o.workspace_id', $workspace->id)->where('o.is_first_order', true)->where('o.is_paid', true)
             ->groupBy('i.external_product_id')
             ->havingRaw('COUNT(DISTINCT o.contact_id) >= 5')
             ->selectRaw('i.external_product_id AS product_id, MAX(i.name) AS name, COUNT(DISTINCT o.contact_id) AS customers, AVG(c.revenue_total_ws) AS avg_ltv, AVG(c.orders_count) AS avg_orders')
             ->orderByDesc('avg_ltv')->limit(10)->get()
             ->map(fn ($r) => ['product_id' => (string) $r->product_id, 'name' => (string) $r->name, 'customers' => (int) $r->customers,
-                'avg_ltv' => round((float) $r->avg_ltv, 2), 'avg_orders' => round((float) $r->avg_orders, 2)])->all();
+                'avg_ltv' => round((float) $r->avg_ltv, 2), 'avg_orders' => round((float) $r->avg_orders, 2)])->all());
     }
 
     /**
@@ -135,15 +135,17 @@ final class ProductsDashboard extends Dashboard
 
         $out = [];
         foreach ($pairs as $p) {
-            $na = (int) ($single->get($p->pa)->n ?? 0);
-            $nb = (int) ($single->get($p->pb)->n ?? 0);
-            if ($na === 0 || $nb === 0) {
+            $sa = $single->get($p->pa);
+            $sb = $single->get($p->pb);
+            $na = (int) ($sa->n ?? 0);
+            $nb = (int) ($sb->n ?? 0);
+            if ($sa === null || $sb === null || $na === 0 || $nb === 0) {
                 continue;
             }
             $support = (int) $p->n / $orders;
             $out[] = [
-                'a' => ['product_id' => (string) $p->pa, 'name' => (string) $single->get($p->pa)->name],
-                'b' => ['product_id' => (string) $p->pb, 'name' => (string) $single->get($p->pb)->name],
+                'a' => ['product_id' => (string) $p->pa, 'name' => (string) $sa->name],
+                'b' => ['product_id' => (string) $p->pb, 'name' => (string) $sb->name],
                 'orders' => (int) $p->n,
                 'support' => round($support, 5),
                 'confidence' => round((int) $p->n / $na, 4),

@@ -7,6 +7,7 @@ use App\Domain\Intelligence\Models\Insight;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -18,7 +19,7 @@ beforeEach(function () {
     $this->now = CarbonImmutable::now($this->ws->timezone);
 });
 
-function insightsOf($test): \Illuminate\Support\Collection
+function insightsOf($test): Collection
 {
     return app(CurrentWorkspace::class)->run($test->ws, fn () => Insight::query()->get());
 }

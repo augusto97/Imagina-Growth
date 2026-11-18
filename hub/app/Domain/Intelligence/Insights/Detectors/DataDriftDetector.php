@@ -31,7 +31,7 @@ final class DataDriftDetector implements Detector
         $out = [];
         foreach (Site::query()->whereIn('status', [Site::STATUS_CONNECTED, Site::STATUS_DEGRADED])->get() as $site) {
             $rec = $this->reconciliation->handle($site);
-            if (! ($rec['available'] ?? false)) {
+            if ($rec['available'] !== true) {
                 continue;
             }
             $wc = (int) $rec['totals']['wc_count'];

@@ -1,11 +1,12 @@
 import { Check, Search, X } from 'lucide-react';
-import { type KeyboardEvent, useId, useState } from 'react';
+import { type KeyboardEvent, useContext, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input, Select } from '@/components/ui/input';
 import { useDebounced } from '@/hooks/useDebounced';
+import { useWorkspace } from '@/hooks/useWorkspace';
 import { cn } from '@/lib/cn';
 import { usePicker } from '../api';
-import { useBuilder } from './context';
+import { BuilderContext } from './context';
 
 /*
  * Entradas del constructor: varios valores escritos (chips), opciones
@@ -156,7 +157,9 @@ export function SimpleSelect<T extends string>({ value, onChange, options, label
 /** Productos o categorías del catálogo sincronizado, con búsqueda. */
 export function CatalogPicker({ kind, ids, onChange }: { kind: 'products' | 'categories'; ids: string[]; onChange: (ids: string[]) => void }) {
     const { t } = useTranslation();
-    const { ws, readOnly } = useBuilder();
+    // También se usa fuera del constructor (plantillas de la biblioteca).
+    const ws = useWorkspace().workspace.id;
+    const readOnly = useContext(BuilderContext)?.readOnly ?? false;
     const [query, setQuery] = useState('');
     const [open, setOpen] = useState(false);
     const [active, setActive] = useState(0);

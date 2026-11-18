@@ -61,6 +61,12 @@ return [
 
     'min_plugin_version' => '0.1.0',
 
+    // Analítica (M05): caché de 5 min por consulta, que se invalida cuando llegan eventos nuevos.
+    // Se apaga para medir el criterio de la Fase 1 sin caché.
+    'analytics' => [
+        'cache' => (bool) env('IGR_ANALYTICS_CACHE', true),
+    ],
+
     'clickhouse' => [
         'url' => env('CLICKHOUSE_URL', 'http://127.0.0.1:8123'),
         'database' => env('CLICKHOUSE_DATABASE', 'igr'),

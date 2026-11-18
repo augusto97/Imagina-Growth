@@ -147,7 +147,9 @@ final class DemoBrowsingGenerator
         $total = (int) $this->from->diffInDays($this->until);
         for ($d = 0, $day = $this->from; $d <= $total; $d++, $day = $day->addDay()) {
             $w = (1 + 0.4 * ($d / max(1, $total))) * [0.7, 1.05, 1.0, 1.0, 1.0, 1.0, 0.85][$day->dayOfWeek];
-            $w *= match ($day->month) { 12 => 1.35, 11 => 1.2, 5, 6 => 1.1, 1 => 0.85, default => 1.0 };
+            $w *= match ($day->month) {
+                12 => 1.35, 11 => 1.2, 5, 6 => 1.1, 1 => 0.85, default => 1.0
+            };
             $w *= Holidays::isHoliday('CO', $day) ? 0.75 : 1.0;
             $days[] = $day;
             $weights[] = $w;
@@ -186,11 +188,11 @@ final class DemoBrowsingGenerator
 
     private function browseSession(CarbonImmutable $start): void
     {
-        $returning = $this->returningPool !== [] && $this->r->getInt(1, 100) <= 25;
+        $returning = $this->returningPool !== [] && $this->roll() <= 25;
         $aid = $returning
             ? $this->returningPool[$this->r->getInt(0, count($this->returningPool) - 1)]
             : Uuid::uuid5(DemoStoreGenerator::UUID_NAMESPACE, 'visitor:'.(++$this->sequence))->toString();
-        if (! $returning && $this->r->getInt(1, 100) <= 30) {
+        if (! $returning && $this->roll() <= 30) {
             $this->returningPool[] = $aid;
         }
         $sid = 's_'.substr(sha1($aid.$start->getTimestamp()), 0, 20);
@@ -203,11 +205,11 @@ final class DemoBrowsingGenerator
         // Aterrizaje según el canal.
         $landing = match ($channel) {
             'direct', 'email' => 'home',
-            'organic_social', 'ai_assistants', 'referral' => $this->r->getInt(1, 100) <= 40 ? 'blog' : 'product',
-            default => $this->r->getInt(1, 100) <= 70 ? 'product' : 'category',
+            'organic_social', 'ai_assistants', 'referral' => $this->roll() <= 40 ? 'blog' : 'product',
+            default => $this->roll() <= 70 ? 'product' : 'category',
         };
         $pages = 1;
-        while ($pages < 12 && $this->r->getInt(1, 100) <= 58) {
+        while ($pages < 12 && $this->roll() <= 58) {
             $pages++;
         }
         $at = $start;
@@ -232,15 +234,15 @@ final class DemoBrowsingGenerator
                 default => ['/contacto/', 'Contacto'],
             };
             $this->page($sid, $aid, $at, $type, $path, $title, $p === 0 ? $touch : null, $device, $geo, $type === 'product' ? $product : null, $type === 'category' ? $product : null);
-            if ($this->r->getInt(1, 100) <= 35) {
+            if ($this->roll() <= 35) {
                 $seconds = $this->r->getInt(30, 240);
                 $this->browser('page.engaged', $sid, $aid, $at->addSeconds(min($seconds, 200)), $path, $type, null, $device, $geo, ['seconds_visible' => $seconds, 'max_scroll_pct' => $this->r->getInt(50, 100)]);
             }
             $at = $at->addSeconds($this->r->getInt(15, 150));
         }
 
-        if ($this->r->getInt(1, 100) <= 7) {
-            $zero = $this->r->getInt(1, 100) <= 14;
+        if ($this->roll() <= 7) {
+            $zero = $this->roll() <= 14;
             $query = $zero ? self::ZERO_RESULT_TERMS[$this->r->getInt(0, count(self::ZERO_RESULT_TERMS) - 1)] : mb_strtolower(explode(' ', (string) $this->pickProduct()['name'])[0].' '.explode(' ', (string) $this->pickProduct()['name'])[1]);
             $this->page($sid, $aid, $at, 'search', '/?s='.rawurlencode($query), 'Resultados', null, $device, $geo);
             $this->browser('search.performed', $sid, $aid, $at->addSecond(), '/', 'search', null, $device, $geo, ['query' => $query, 'results_count' => $zero ? 0 : $this->r->getInt(1, 24), 'engine' => 'wc']);
@@ -260,14 +262,14 @@ final class DemoBrowsingGenerator
                 'fields' => ['city' => $geo['city'], 'service' => 'Asesoría de color'], 'consents' => new \stdClass,
             ]);
         }
-        if ($viewed !== [] && $this->r->getInt(1, 100) <= 9) {
+        if ($viewed !== [] && $this->roll() <= 9) {
             $product = $viewed[$this->r->getInt(0, count($viewed) - 1)];
             $token = 'c_'.substr(sha1($sid), 0, 14);
             $this->server('cart.item_added', $sid, $aid, $at, $touch, $device, $geo, [
                 'cart_token' => $token, 'product_id' => (string) $product['product_id'], 'qty' => 1,
                 'price' => $product['price'], 'cart_total' => $product['price'], 'currency' => 'COP',
             ]);
-            if ($this->r->getInt(1, 100) <= 42) {
+            if ($this->roll() <= 42) {
                 $at = $at->addSeconds($this->r->getInt(30, 200));
                 $this->page($sid, $aid, $at, 'checkout', '/finalizar-compra/', 'Finalizar compra', null, $device, $geo);
                 $this->server('checkout.started', $sid, $aid, $at->addSecond(), $touch, $device, $geo, [
@@ -312,7 +314,7 @@ final class DemoBrowsingGenerator
     private function browser(string $event, string $sid, string $aid, CarbonImmutable $at, string $path, string $type, ?array $touch, string $device, array $geo, array $properties, string $title = ''): void
     {
         $context = ['page' => ['url' => 'https://demo.tienda.co'.$path, 'path' => $path, 'title' => $title, 'referrer' => 'https://demo.tienda.co/'], 'page_type' => $type,
-            'user_agent' => self::DEVICES[$device][0], 'consent' => ['analytics' => true, 'marketing' => $this->r->getInt(1, 100) <= 70, 'source' => 'wp-consent-api'], 'locale' => 'es-CO', 'currency' => 'COP'];
+            'user_agent' => self::DEVICES[$device][0], 'consent' => ['analytics' => true, 'marketing' => $this->roll() <= 70, 'source' => 'wp-consent-api'], 'locale' => 'es-CO', 'currency' => 'COP'];
         if ($touch !== null) {
             $context = array_replace_recursive($context, $touch['context']);
         }
@@ -359,7 +361,7 @@ final class DemoBrowsingGenerator
         $campaign = $campaigns[$this->r->getInt(0, count($campaigns) - 1)];
         $click = fn () => bin2hex($this->r->getBytes(10));
         [$utm, $clicks, $referrer] = match ($channel) {
-            'organic_search' => [[], [], $this->r->getInt(1, 100) <= 92 ? 'https://www.google.com/' : 'https://www.bing.com/'],
+            'organic_search' => [[], [], $this->roll() <= 92 ? 'https://www.google.com/' : 'https://www.bing.com/'],
             'paid_meta' => [['source' => $this->r->getInt(0, 1) === 1 ? 'facebook' : 'instagram', 'medium' => 'paid_social', 'campaign' => $campaign], ['fbclid' => 'IwAR'.$click()], 'https://l.facebook.com/'],
             'paid_google' => [['source' => 'google', 'medium' => 'cpc', 'campaign' => $campaign], ['gclid' => 'Cj0K'.$click()], 'https://www.google.com/'],
             'paid_tiktok' => [['source' => 'tiktok', 'medium' => 'paid', 'campaign' => $campaign], ['ttclid' => 'E.C.P.'.$click()], ''],
@@ -367,7 +369,7 @@ final class DemoBrowsingGenerator
             'whatsapp' => [[], [], 'https://l.wl.co/'],
             'email' => [['source' => 'newsletter', 'medium' => 'email', 'campaign' => 'boletin-'.$at->format('Y-m')], [], ''],
             'referral' => [[], [], 'https://www.blogdeconstruccion.co/guias/pintura'],
-            'ai_assistants' => [[], [], $this->r->getInt(1, 100) <= 70 ? 'https://chatgpt.com/' : 'https://www.perplexity.ai/'],
+            'ai_assistants' => [[], [], $this->roll() <= 70 ? 'https://chatgpt.com/' : 'https://www.perplexity.ai/'],
             default => [[], [], ''],
         };
         $context = ['page' => ['referrer' => $referrer]];
@@ -454,5 +456,15 @@ final class DemoBrowsingGenerator
     private function float(): float
     {
         return $this->r->getInt(0, 1_000_000) / 1_000_000;
+    }
+
+    /**
+     * Tirada de 1 a 100. Cada llamada es un número nuevo del generador.
+     *
+     * @phpstan-impure
+     */
+    private function roll(): int
+    {
+        return $this->r->getInt(1, 100);
     }
 }

@@ -210,6 +210,24 @@ return [
             'timeout' => 60,
             'nice' => 0,
         ],
+        // Flujos y segmentos en tiempo real (hub/CLAUDE.md §15: triggers, 4 workers en producción).
+        'supervisor-triggers' => [
+            'connection' => 'redis',
+            'queue' => ['triggers'],
+            'balance' => 'simple',
+            'maxProcesses' => 1,
+            'tries' => 3,
+            'timeout' => 60,
+        ],
+        // Jobs pesados nocturnos: segmentos completos, RFM, KPI, hallazgos (analytics, 2 workers).
+        'supervisor-analytics' => [
+            'connection' => 'redis-long', // retry_after de 1900 s (config/queue.php)
+            'queue' => ['analytics'],
+            'balance' => 'simple',
+            'maxProcesses' => 2,
+            'tries' => 2,
+            'timeout' => 1800,
+        ],
         // Conversiones hacia anuncios (hub/CLAUDE.md §15: conversions:*, 2 workers).
         'supervisor-conversions' => [
             'connection' => 'redis',
@@ -227,6 +245,9 @@ return [
                 'maxProcesses' => 10,
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
+            ],
+            'supervisor-triggers' => [
+                'maxProcesses' => 4,
             ],
         ],
 

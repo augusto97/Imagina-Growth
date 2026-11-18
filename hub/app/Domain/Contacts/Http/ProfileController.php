@@ -96,6 +96,7 @@ final class ProfileController
             ]),
             'requests' => DataRequest::query()->whereIn('contact_id', $ids)->orderByDesc('created_at')->get()->map(fn (DataRequest $r) => [
                 'id' => $r->publicId(), 'kind' => $r->kind, 'status' => $r->status, 'due_at' => $r->due_at?->toIso8601String(),
+                'downloadable' => $r->kind === 'access' && $r->status === 'completed' && isset($r->evidence['export']),
             ]),
         ]);
     }

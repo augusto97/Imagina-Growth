@@ -76,3 +76,18 @@ it('exige declarar bien el origen del consentimiento y al menos correo o teléfo
     $viewer = $this->addMember($this->ws, WorkspaceRole::Viewer);
     $this->actingAs($viewer)->post("{$this->url}/preview", ['file' => csvFile($this->csv)], ['Accept' => 'application/json'])->assertForbidden();
 });
+
+it('avisa del correo o el teléfono inválido de una fila que sí se importa', function () {
+    $csv = "Correo,Teléfono,Nombre\njulian.mtz@example,3001112233,Julián\nmarta@ejemplo.com,12,Marta\n";
+    $mapping = json_encode(['Correo' => 'email', 'Teléfono' => 'phone', 'Nombre' => 'first_name']);
+    $res = $this->actingAs($this->owner)->post($this->url, ['file' => csvFile($csv), 'mapping' => $mapping], ['Accept' => 'application/json'])->assertStatus(202);
+
+    $show = $this->actingAs($this->owner)->getJson("{$this->url}/{$res->json('id')}")->assertOk();
+    expect($show->json('totals'))->toMatchArray(['rows' => 2, 'created' => 2, 'invalid' => 0])
+        ->and($show->json('errors'))->toHaveCount(2)
+        ->and($show->json('errors.0'))->toMatchArray(['row' => 2])
+        ->and($show->json('errors.0.message'))->toContain('Correo inválido')
+        ->and($show->json('errors.1'))->toMatchArray(['row' => 3])
+        ->and($show->json('errors.1.message'))->toContain('Teléfono inválido')
+        ->and((string) json_encode($show->json('errors')))->not->toContain('julian');
+});

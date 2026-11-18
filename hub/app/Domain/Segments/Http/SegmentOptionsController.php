@@ -10,8 +10,10 @@ use App\Domain\Segments\Definition\Fields;
 use App\Domain\Segments\Library\SegmentLibrary;
 use App\Ingest\Schema\SchemaRegistry;
 use App\Support\Tenancy\CurrentWorkspace;
+use App\Support\Tenancy\RedisKey;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
@@ -25,10 +27,6 @@ final class SegmentOptionsController
     {
         Gate::authorize('ws.viewAllContacts');
         $ws = $this->current->id();
-        $distinct = fn (string $table, string $column, int $limit = 100) => DB::table($table)->where('workspace_id', $ws)
-            ->whereNotNull($column)->where($column, '<>', '')
-            ->groupBy($column)->orderByRaw('COUNT(*) DESC')->limit($limit)->pluck($column)->map(fn ($v) => (string) $v)->values();
-
         $fieldsOf = fn (array $defs) => collect($defs)->map(fn (array $def, string $key) => [
             'key' => $key, 'type' => $def['type'], 'operators' => Fields::operatorsFor($def['type']), 'values' => $def['values'] ?? null,
         ])->values();
@@ -48,19 +46,52 @@ final class SegmentOptionsController
             'events' => $events,
             'event_columns' => Fields::EVENT_COLUMNS,
             'rfm_segments' => collect(SegmentLibrary::RFM)->map(fn (array $v, string $k) => ['key' => $k, 'name' => $v[0]])->values(),
-            'values' => [
-                'city' => $distinct('contacts', 'city'),
-                'region_code' => $distinct('contacts', 'region_code', 60),
-                'country' => $distinct('contacts', 'country', 30),
-                'payment_method' => DB::table('orders')->where('workspace_id', $ws)->whereNotNull('payment_method_id')
-                    ->groupBy('payment_method_id')->orderByRaw('COUNT(*) DESC')->limit(30)
-                    ->selectRaw('payment_method_id AS id, MAX(payment_method_title) AS title')->get(),
-                'brand' => $distinct('products', 'brand', 200),
-                'hdyhau' => $distinct('contacts', 'hdyhau', 50),
-            ],
+            'values' => $this->values($ws),
             'segments' => DB::table('segments')->where('workspace_id', $ws)->whereNull('deleted_at')->orderBy('name')
                 ->get(['id', 'name'])->map(fn ($s) => ['id' => 'sg_'.$s->id, 'name' => $s->name])->values(),
         ]);
+    }
+
+    /**
+     * Valores frecuentes para sugerir (ciudades, departamentos, medios de pago…).
+     * Recorren toda la tabla de contactos, así que se guardan 10 minutos.
+     *
+     * @return array<string, mixed>
+     */
+    private function values(string $ws): array
+    {
+        return Cache::remember(RedisKey::for($ws, 'segments:option-values'), 600, function () use ($ws): array {
+            // Una sola pasada por contacts para las cuatro listas.
+            $rows = DB::table('contacts')->where('workspace_id', $ws)->whereNull('merged_into_id')
+                ->groupBy('city', 'region_code', 'country', 'hdyhau')
+                ->selectRaw('city, region_code, country, hdyhau, COUNT(*) AS n')
+                ->limit(20000)->get();
+            $top = function (string $column, int $limit) use ($rows): array {
+                $counts = [];
+                foreach ($rows as $row) {
+                    $value = (string) ($row->{$column} ?? '');
+                    if ($value !== '') {
+                        $counts[$value] = ($counts[$value] ?? 0) + (int) $row->n;
+                    }
+                }
+                arsort($counts);
+
+                return array_map('strval', array_slice(array_keys($counts), 0, $limit));
+            };
+
+            return [
+                'city' => $top('city', 100),
+                'region_code' => $top('region_code', 60),
+                'country' => $top('country', 30),
+                'hdyhau' => $top('hdyhau', 50),
+                'payment_method' => DB::table('orders')->where('workspace_id', $ws)->whereNotNull('payment_method_id')
+                    ->groupBy('payment_method_id')->orderByRaw('COUNT(*) DESC')->limit(30)
+                    ->selectRaw('payment_method_id AS id, MAX(payment_method_title) AS title')->get()
+                    ->map(fn ($r) => ['id' => (string) $r->id, 'title' => $r->title === null ? null : (string) $r->title])->all(),
+                'brand' => DB::table('products')->where('workspace_id', $ws)->whereNotNull('brand')->where('brand', '<>', '')
+                    ->groupBy('brand')->orderByRaw('COUNT(*) DESC')->limit(200)->pluck('brand')->map(fn ($v) => (string) $v)->all(),
+            ];
+        });
     }
 
     /** GET segments/options/products?q=&ids[]= */

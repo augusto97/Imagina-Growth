@@ -1,5 +1,5 @@
 import { ArrowLeft, FileDown, GitMerge, Gift, MessageSquare, MoreHorizontal, Trash2, UserX } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,11 @@ export function ProfilePage() {
     const remove = useRunDataRequest(workspace.id, contactId);
     const tabParam = params.get('tab');
     const tab: Tab = TABS.find((x) => x === tabParam) ?? 'resumen';
+    // Un contacto fusionado en otro: se abre el que quedó (el enlace viejo sigue sirviendo).
+    const survivor = profile.data?.merged_into ?? null;
+    useEffect(() => {
+        if (survivor !== null) void navigate(`/w/${workspace.id}/contactos/${survivor}`, { replace: true });
+    }, [survivor, navigate, workspace.id]);
     const back = (
         <Link to={`/w/${workspace.id}/contactos`} className="igr:mb-3 igr:inline-flex igr:items-center igr:gap-1 igr:text-[13px] igr:text-muted-foreground igr:hover:text-foreground">
             <ArrowLeft className="igr:size-3.5" />

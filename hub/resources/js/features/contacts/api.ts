@@ -93,6 +93,8 @@ export interface ContactProfile {
     };
     monthly: MonthlyPoint[];
     merged_count: number;
+    /** Si se fusionó en otro contacto, el ID del que quedó. */
+    merged_into: string | null;
     first_seen_at: string | null;
     last_seen_at: string | null;
     currency: string;
@@ -188,7 +190,7 @@ export interface ConsentEvidence {
 export interface ContactPrivacy {
     consents: ContactConsentRow[];
     evidence: ConsentEvidence[];
-    requests: { id: string; kind: 'access' | 'delete'; status: string; due_at: string | null }[];
+    requests: { id: string; kind: 'access' | 'delete'; status: string; due_at: string | null; downloadable: boolean }[];
 }
 
 export interface ContactNote {
@@ -420,7 +422,7 @@ export async function postMultipart<T>(path: string, form: FormData): Promise<T>
         throw new ApiError(0, 'network', '', {}, null);
     }
     const text = await response.text();
-    let parsed: unknown = null;
+    let parsed: unknown;
     try {
         parsed = text === '' ? null : JSON.parse(text);
     } catch {

@@ -42,7 +42,10 @@ final class ImportContacts implements ShouldQueue, WorkspaceAware
 
     public int $tries = 1;
 
-    public function __construct(public string $workspaceIdValue, public string $importId) {}
+    public function __construct(public string $workspaceIdValue, public string $importId)
+    {
+        $this->onQueue('analytics'); // job largo: lo atiende la conexión redis-long (hub/CLAUDE.md §15)
+    }
 
     public function workspaceId(): string
     {
@@ -124,6 +127,13 @@ final class ImportContacts implements ShouldQueue, WorkspaceAware
                     $errors[] = ['row' => (int) $line, 'message' => __('Sin correo ni teléfono válido.')];
 
                     continue;
+                }
+                // El dato inválido no se guarda, pero se avisa: la fila entra solo con lo que sí sirve.
+                if ($email === null && trim((string) ($data['email'] ?? '')) !== '') {
+                    $errors[] = ['row' => (int) $line, 'message' => __('Correo inválido: no se guardó y el contacto se importó solo con el teléfono.')];
+                }
+                if ($phone === null && trim((string) ($data['phone'] ?? '')) !== '') {
+                    $errors[] = ['row' => (int) $line, 'message' => __('Teléfono inválido: no se guardó y el contacto se importó solo con el correo.')];
                 }
 
                 $emailBidx = $email !== null ? BlindIndex::email($workspace->id, $email) : null;

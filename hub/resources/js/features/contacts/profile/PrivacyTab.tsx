@@ -161,7 +161,7 @@ export function PrivacyTab({ contactId, onExport, onDelete }: { contactId: strin
                                             {r.status === 'completed' ? t('privacy.status.completed') : t('privacy.status.pending')}
                                         </Badge>
                                     </span>
-                                    {r.kind === 'access' && r.status === 'completed' && can.export ? (
+                                    {r.downloadable && can.export ? (
                                         <Button variant="ghost" size="sm" asChild>
                                             <a href={downloadUrl(workspace.id, r.id)} download>
                                                 <Download />

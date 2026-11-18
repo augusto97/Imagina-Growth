@@ -95,6 +95,7 @@ final class ProfileQuery
             ],
             'monthly' => $monthly,
             'merged_count' => $merged,
+            'merged_into' => self::survivor($contact)?->publicId(),
             'first_seen_at' => $contact->first_seen_at?->toIso8601String(),
             'last_seen_at' => $contact->last_seen_at?->toIso8601String(),
             'currency' => $workspace->currency,
@@ -260,6 +261,21 @@ final class ProfileQuery
             'products' => collect($products)->sortByDesc(fn ($r) => ($r['purchases'] * 5) + $r['views'])->take(15)->map(fn ($v, $k) => ['id' => (string) $k] + $v)->values(),
             'affinity' => $contact->getAttribute('category_affinity'),
         ];
+    }
+
+    /** Si el contacto se fusionó en otro, el que quedó (sigue la cadena de fusiones). */
+    public static function survivor(Contact $contact): ?Contact
+    {
+        $current = $contact;
+        for ($hop = 0; $hop < 10 && $current->getAttribute('merged_into_id') !== null; $hop++) {
+            $next = Contact::query()->whereKey($current->getAttribute('merged_into_id'))->first();
+            if ($next === null) {
+                break;
+            }
+            $current = $next;
+        }
+
+        return $current->is($contact) ? null : $current;
     }
 
     /** @return list<array<string, mixed>> */

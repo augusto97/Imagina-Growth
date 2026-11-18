@@ -58,9 +58,11 @@ final class ConversionDropDetector implements Detector
                     continue;
                 }
                 $key = $dim.':'.$val;
-                foreach (['b_cart', 'b_cart_buy', 'b_co', 'b_co_buy', 'r_cart', 'r_cart_buy', 'r_co', 'r_co_buy'] as $m) {
-                    $segments[$key][$m] = ($segments[$key][$m] ?? 0) + (int) $row[$m];
+                $s = $segments[$key] ?? ['b_cart' => 0, 'b_cart_buy' => 0, 'b_co' => 0, 'b_co_buy' => 0, 'r_cart' => 0, 'r_cart_buy' => 0, 'r_co' => 0, 'r_co_buy' => 0];
+                foreach (array_keys($s) as $m) {
+                    $s[$m] += (int) $row[$m];
                 }
+                $segments[$key] = $s;
             }
         }
 
@@ -101,6 +103,13 @@ final class ConversionDropDetector implements Detector
             [$dim, $val] = explode(':', $segment, 2);
             $lostOrders = ($before - $after) * $rN;
             $impact = round($lostOrders * $aov, 2);
+            $assumptions = [
+                __('Si la conversión hubiera seguido en :before, la última semana habría tenido :orders pedidos más.', ['before' => Money::percent($before), 'orders' => number_format($lostOrders, 1, ',', '.')]),
+                __('Ticket promedio de las últimas 5 semanas: :aov.', ['aov' => Money::format($aov, $workspace->currency)]),
+            ];
+            if ($changes !== []) {
+                $assumptions[] = __('Ese periodo coincide con cambios en el sitio: :list.', ['list' => implode(', ', array_map(fn ($c) => $c['name'].' ('.$c['date'].')', $changes))]);
+            }
             $found[] = new InsightCandidate(
                 fingerprint: "{$metric}:{$segment}",
                 severity: $drop > 0.35 ? 'critical' : 'warning',
@@ -117,10 +126,7 @@ final class ConversionDropDetector implements Detector
                     'aov' => round($aov, 2), 'lost_orders' => round($lostOrders, 1), 'site_changes' => $changes, 'timezone' => $tz,
                 ],
                 impact: (string) $impact,
-                assumptions: [
-                    __('Si la conversión hubiera seguido en :before, la última semana habría tenido :orders pedidos más.', ['before' => Money::percent($before), 'orders' => number_format($lostOrders, 1, ',', '.')]),
-                    __('Ticket promedio de las últimas 5 semanas: :aov.', ['aov' => Money::format($aov, $workspace->currency)]),
-                ] + ($changes !== [] ? [2 => __('Ese periodo coincide con cambios en el sitio: :list.', ['list' => implode(', ', array_map(fn ($c) => $c['name'].' ('.$c['date'].')', $changes))])] : []),
+                assumptions: $assumptions,
                 action: ['label' => __('Revisa el embudo'), 'to' => 'analitica/embudo'],
                 periodStart: $recentStart->toDateString(),
                 periodEnd: $recentEnd->subDay()->toDateString(),

@@ -94,3 +94,25 @@ it('filtra la lista de contactos', function () {
     $this->actingAs($this->owner)->getJson("{$base}?buyers=1&city=Manizales&sort=revenue")->assertJsonPath('meta.total', 1);
     $this->actingAs($this->owner)->getJson("{$base}?stage=lead")->assertJsonPath('meta.total', 0);
 });
+
+it('abre el perfil de un contacto con RFM calculado y apunta al que quedó tras una fusión', function () {
+    DB::table('contacts')->where('id', $this->contact->id)->update(['rfm_r' => 5, 'rfm_f' => 1, 'rfm_m' => 3, 'rfm_segment' => 'new', 'rfm_computed_at' => now(), 'expected_next_order_at' => now()->addDays(20)]);
+    $res = $this->actingAs($this->owner)->getJson($this->url)->assertOk();
+    expect($res->json('rfm.segment'))->toBe('new')
+        ->and($res->json('rfm.computed_at'))->not->toBeNull()
+        ->and($res->json('expected_next_order_at'))->not->toBeNull()
+        ->and($res->json('merged_into'))->toBeNull();
+
+    $other = app(CurrentWorkspace::class)->run($this->ws, fn () => Contact::query()->create(['workspace_id' => $this->ws->id, 'first_name' => 'Ana R.']));
+    $this->actingAs($this->owner)->postJson("{$this->url}/merge", ['other_id' => $other->publicId()])->assertOk();
+    $absorbed = "/api/w/{$this->ws->publicId()}/contacts/{$other->publicId()}";
+    $this->actingAs($this->owner)->getJson($absorbed)->assertOk()->assertJsonPath('merged_into', $this->contact->publicId());
+});
+
+it('marca qué solicitudes de acceso se pueden descargar', function () {
+    $api = "/api/w/{$this->ws->publicId()}";
+    $req = $this->actingAs($this->owner)->postJson("{$this->url}/data-requests", ['kind' => 'access'])->assertCreated();
+    expect($this->actingAs($this->owner)->getJson("{$this->url}/privacy")->json('requests.0.downloadable'))->toBeFalse();
+    $this->actingAs($this->owner)->postJson("{$api}/data-requests/{$req->json('id')}/execute")->assertOk();
+    expect($this->actingAs($this->owner)->getJson("{$this->url}/privacy")->json('requests.0.downloadable'))->toBeTrue();
+});

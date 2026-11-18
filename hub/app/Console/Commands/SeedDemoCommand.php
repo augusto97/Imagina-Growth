@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Analytics\Builders\KpiDailyBuilder;
+use App\Analytics\Builders\SessionsBuilder;
+use App\Domain\Intelligence\Insights\InsightEngine;
+use App\Domain\Intelligence\Rfm\RfmCalculator;
 use App\Domain\Sites\Actions\UpdateBackfillState;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Sites\Queries\ReconciliationQuery;
@@ -13,10 +17,6 @@ use App\Domain\Workspaces\Data\WorkspaceData;
 use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Ingest\IngestStream;
-use App\Analytics\Builders\KpiDailyBuilder;
-use App\Analytics\Builders\SessionsBuilder;
-use App\Domain\Intelligence\Insights\InsightEngine;
-use App\Domain\Intelligence\Rfm\RfmCalculator;
 use App\Support\Demo\DemoBrowsingWriter;
 use App\Support\Demo\DemoStoreGenerator;
 use App\Support\Tenancy\CurrentWorkspace;

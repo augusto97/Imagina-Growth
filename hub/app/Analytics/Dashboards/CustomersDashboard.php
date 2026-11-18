@@ -70,9 +70,9 @@ final class CustomersDashboard extends Dashboard
             ->where('o.workspace_id', $workspace->id)->where('f.workspace_id', $workspace->id)->where('o.is_paid', true)
             ->where('f.created_at', '>=', $start->utc())
             ->groupByRaw('cohort, k')
-            ->selectRaw("DATE_FORMAT(DATE_ADD(f.created_at, INTERVAL {$offset} SECOND), '%Y-%m') AS cohort,
-                PERIOD_DIFF(DATE_FORMAT(DATE_ADD(o.created_at, INTERVAL {$offset} SECOND), '%Y%m'), DATE_FORMAT(DATE_ADD(f.created_at, INTERVAL {$offset} SECOND), '%Y%m')) AS k,
-                COUNT(DISTINCT o.contact_id) AS customers")
+            ->selectRaw("DATE_FORMAT(DATE_ADD(f.created_at, INTERVAL ? SECOND), '%Y-%m') AS cohort,
+                PERIOD_DIFF(DATE_FORMAT(DATE_ADD(o.created_at, INTERVAL ? SECOND), '%Y%m'), DATE_FORMAT(DATE_ADD(f.created_at, INTERVAL ? SECOND), '%Y%m')) AS k,
+                COUNT(DISTINCT o.contact_id) AS customers", [$offset, $offset, $offset])
             ->get();
         $table = [];
         foreach ($rows as $r) {
@@ -141,14 +141,15 @@ final class CustomersDashboard extends Dashboard
     private function newVsReturning(Workspace $workspace, Period $period, Filters $filters): array
     {
         $offset = $period->offsetSeconds();
+        // El desfase va como parámetro (cada «?» es la zona en segundos).
         $bucket = match ($period->granularity) {
-            'week' => "DATE(DATE_SUB(DATE_ADD(created_at, INTERVAL {$offset} SECOND), INTERVAL WEEKDAY(DATE_ADD(created_at, INTERVAL {$offset} SECOND)) DAY))",
-            'month' => "DATE_FORMAT(DATE_ADD(created_at, INTERVAL {$offset} SECOND), '%Y-%m-01')",
-            default => "DATE(DATE_ADD(created_at, INTERVAL {$offset} SECOND))",
+            'week' => 'DATE(DATE_SUB(DATE_ADD(created_at, INTERVAL ? SECOND), INTERVAL WEEKDAY(DATE_ADD(created_at, INTERVAL ? SECOND)) DAY))',
+            'month' => "DATE_FORMAT(DATE_ADD(created_at, INTERVAL ? SECOND), '%Y-%m-01')",
+            default => 'DATE(DATE_ADD(created_at, INTERVAL ? SECOND))',
         };
         $rows = $this->paidOrders($workspace, $period, $filters)->groupByRaw('d')
             ->selectRaw("{$bucket} AS d, SUM(is_first_order = 1) AS new_orders, SUM(order_index > 1) AS returning_orders,
-                COALESCE(SUM(CASE WHEN is_first_order = 1 THEN total_ws END), 0) AS new_revenue, COALESCE(SUM(CASE WHEN order_index > 1 THEN total_ws END), 0) AS returning_revenue")
+                COALESCE(SUM(CASE WHEN is_first_order = 1 THEN total_ws END), 0) AS new_revenue, COALESCE(SUM(CASE WHEN order_index > 1 THEN total_ws END), 0) AS returning_revenue", array_fill(0, substr_count($bucket, '?'), $offset))
             ->get()->keyBy('d');
         $out = [];
         foreach ($period->buckets() as $b) {

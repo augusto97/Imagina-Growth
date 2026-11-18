@@ -24,7 +24,10 @@ final class RecomputeSegmentJob implements ShouldBeUnique, ShouldQueue, Workspac
 
     public int $uniqueFor = 900;
 
-    public function __construct(public string $workspaceIdValue, public string $segmentId, public bool $emit = true) {}
+    public function __construct(public string $workspaceIdValue, public string $segmentId, public bool $emit = true)
+    {
+        $this->onQueue('analytics'); // hub/CLAUDE.md §15: recálculo completo, pesado
+    }
 
     public function uniqueId(): string
     {

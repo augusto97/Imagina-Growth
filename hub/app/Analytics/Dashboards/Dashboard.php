@@ -47,7 +47,11 @@ abstract class Dashboard
         return $den == 0 ? 0.0 : round($num / $den, $digits);
     }
 
-    /** Parámetros de fecha para ClickHouse. @return array{from: string, to: string} */
+    /**
+     * Parámetros de fecha para ClickHouse.
+     *
+     * @return array{from: string, to: string}
+     */
     protected static function chRange(Period $period): array
     {
         return ['from' => $period->fromUtc(), 'to' => $period->toUtc()];

@@ -106,6 +106,13 @@ it('crea desde una plantilla de la biblioteca', function () {
     expect($res->json('definition.conditions.1'))->toMatchArray(['type' => 'purchase', 'scope' => 'category', 'ids' => ['15'], 'operator' => 'never']);
 });
 
+it('reinstala desde la biblioteca un segmento del sistema que falte', function () {
+    app(CurrentWorkspace::class)->run($this->ws, fn () => Segment::query()->where('system_key', 'rfm_lost')->forceDelete());
+    $res = $this->actingAs($this->owner)->postJson($this->base.'/library/rfm_lost')->assertCreated();
+    expect($res->json('system_key'))->toBe('rfm_lost')->and($res->json('is_system'))->toBeTrue();
+    $this->actingAs($this->owner)->getJson($this->base.'/library')->assertOk()->assertJsonPath('system.10.segment_id', $res->json('id'));
+});
+
 it('no permite que un segmento dependa de sí mismo', function () {
     $a = $this->actingAs($this->owner)->postJson($this->base, ['name' => 'Base A', 'definition' => segDefinition('Manizales')])->json('id');
     $b = $this->actingAs($this->owner)->postJson($this->base, ['name' => 'Depende de A', 'definition' => ['op' => 'and', 'conditions' => [['type' => 'segment', 'segment_id' => $a, 'operator' => 'in']]]])->assertCreated()->json('id');

@@ -55,7 +55,7 @@ final class MetricQueryRunner
         }
         $version = (string) Site::withoutWorkspaceScope()->where('workspace_id', $workspace->id)->max('last_event_at');
 
-        return Cache::remember('ws:'.$workspace->id.':analytics:'.$key.':'.md5($version), self::CACHE_SECONDS, $compute);
+        return Cache::remember('ws:'.$workspace->id.':analytics:'.$key.':'.md5($version), self::CACHE_SECONDS, fn () => $compute());
     }
 
     /** @return list<array<string, mixed>> */
@@ -117,12 +117,16 @@ final class MetricQueryRunner
      */
     private function orderRows(Workspace $workspace, MetricQuery $q, Period $period, array $metrics): array
     {
-        $offset = $period->offsetSeconds();
-        $local = "DATE_ADD(created_at, INTERVAL {$offset} SECOND)";
+        // El desfase de la zona va como parámetro: cada «?» del SELECT es ese desfase en segundos.
+        $local = 'DATE_ADD(created_at, INTERVAL ? SECOND)';
         $select = [];
         $group = [];
-        foreach ($q->dimensions as $dim) {
-            $expr = Catalog::DIMENSIONS[$dim]['orders'];
+        // Se recorre el catálogo (no la consulta) para que los alias salgan de nombres fijos.
+        foreach (Catalog::DIMENSIONS as $dim => $definition) {
+            if (! in_array($dim, $q->dimensions, true)) {
+                continue;
+            }
+            $expr = $definition['orders'];
             if ($expr === null) {
                 $expr = "''";
             }
@@ -149,8 +153,10 @@ final class MetricQueryRunner
             'discount' => "COALESCE(SUM(CASE WHEN {$paid} THEN discount END), 0)",
             'net_revenue' => "COALESCE(SUM(CASE WHEN {$paid} THEN net_ws END), 0)",
         ];
-        foreach ($metrics as $m) {
-            $select[] = $exprs[$m]." AS `{$m}`";
+        foreach ($exprs as $m => $expr) {
+            if (in_array($m, $metrics, true)) {
+                $select[] = $expr." AS `{$m}`";
+            }
         }
         $query = DB::table('orders')->where('workspace_id', $workspace->id)
             ->where('created_at', '>=', $period->fromUtc())->where('created_at', '<', $period->toUtc());
@@ -163,12 +169,13 @@ final class MetricQueryRunner
         if ($q->filters->city !== null) {
             $query->where('shipping_city', $q->filters->city);
         }
-        $query->selectRaw(implode(', ', $select));
+        $selectSql = implode(', ', $select);
+        $query->selectRaw($selectSql, array_fill(0, substr_count($selectSql, '?'), $period->offsetSeconds()));
         if ($group !== []) {
             $query->groupByRaw(implode(', ', $group));
         }
 
-        return $query->get()->map(function ($r) use ($metrics): array {
+        return array_values($query->get()->map(function ($r) use ($metrics): array {
             $row = (array) $r;
             foreach ($metrics as $m) {
                 $row[$m] = in_array(Catalog::METRICS[$m]['unit'], ['money'], true) ? round((float) $row[$m], 2) : (int) $row[$m];
@@ -178,7 +185,7 @@ final class MetricQueryRunner
             }
 
             return $row;
-        })->all();
+        })->all());
     }
 
     /**

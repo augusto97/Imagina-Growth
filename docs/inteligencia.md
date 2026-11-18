@@ -82,6 +82,8 @@ En el ecommerce de la región, la mayoría de los clientes compra **una sola vez
 | 10 | Hibernando | R = 1 y F = 2 | campaña puntual de temporada |
 | 11 | Perdidos | resto (R = 1 y F = 1) | excluir de campañas caras; incluir solo en grandes fechas |
 
+Claves internas, en el mismo orden (`contacts.rfm_segment` y el segmento de sistema `rfm_<clave>`): `champions`, `loyal`, `cant_lose`, `at_risk`, `potential_loyal`, `new`, `promising`, `need_attention`, `about_to_sleep`, `hibernating`, `lost`. El cálculo corre cada noche (`igr:nightly`, o `igr:rfm --workspace=` a mano) y deja una fila en `prediction_runs` con el modelo `rfm`.
+
 Cada cambio de segmento genera `segment.entered` y `segment.exited` (sirven como disparadores de flujos) y queda en el perfil.
 
 ---

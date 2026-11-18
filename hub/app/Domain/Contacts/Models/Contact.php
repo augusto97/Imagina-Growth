@@ -54,6 +54,9 @@ class Contact extends Model
             'last_seen_at' => 'datetime',
             'first_order_at' => 'datetime',
             'last_order_at' => 'datetime',
+            'rfm_computed_at' => 'datetime',
+            'expected_next_order_at' => 'datetime',
+            'category_affinity' => 'array',
         ];
     }
 

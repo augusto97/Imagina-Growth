@@ -68,7 +68,7 @@ final class PerfDatasetCommand extends Command
         DB::table('contacts')->where('workspace_id', $ws)->where('id', 'like', '01PERF%')->delete();
         $cities = "ELT(1 + seq % 10, '".implode("','", self::CITIES)."')";
         $regions = "ELT(1 + seq % 10, '".implode("','", self::REGIONS)."')";
-        $rfm = "ELT(1 + seq % 11, 'champions','loyal','cant_lose','at_risk','potential_loyalists','new','promising','need_attention','about_to_sleep','hibernating','lost')";
+        $rfm = "ELT(1 + seq % 11, 'champions','loyal','cant_lose','at_risk','potential_loyal','new','promising','need_attention','about_to_sleep','hibernating','lost')";
         for ($start = 0; $start < $contacts; $start += 50000) {
             $end = min($contacts, $start + 50000) - 1;
             DB::statement("INSERT INTO contacts (id, workspace_id, email_bidx, phone_bidx, city, region_code, country, lifecycle_stage,

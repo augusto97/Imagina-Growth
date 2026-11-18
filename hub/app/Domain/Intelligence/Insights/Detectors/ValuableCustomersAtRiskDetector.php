@@ -32,7 +32,7 @@ final class ValuableCustomersAtRiskDetector implements Detector
             ->selectRaw('COUNT(*) AS n, COALESCE(SUM(revenue_total_ws), 0) AS revenue, COALESCE(AVG(aov_ws), 0) AS aov, SUM(rfm_segment = ?) AS cant_lose', [RfmSegment::CantLose->value])
             ->first();
         $n = (int) ($row->n ?? 0);
-        if ($n < 5) {
+        if ($row === null || $n < 5) {
             return [];
         }
         $aov = (float) $row->aov;

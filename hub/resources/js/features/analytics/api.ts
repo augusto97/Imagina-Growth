@@ -122,16 +122,17 @@ export interface ChannelsData {
 }
 
 /* 4. Clientes */
+/** Segmentos RFM en el orden de inteligencia.md §3 (gana la primera regla). */
 export const RFM_SEGMENTS = [
     'champions',
     'loyal',
+    'cant_lose',
+    'at_risk',
     'potential_loyal',
     'new',
     'promising',
     'need_attention',
     'about_to_sleep',
-    'cant_lose',
-    'at_risk',
     'hibernating',
     'lost',
 ] as const;

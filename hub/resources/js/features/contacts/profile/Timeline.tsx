@@ -57,7 +57,7 @@ export function Timeline({ contactId }: { contactId: string }) {
     const { workspace } = useWorkspace();
     const [groups, setGroups] = useState<TimelineGroup[]>([]);
     const timeline = useTimeline(workspace.id, contactId, groups);
-    const sentinel = useRef<HTMLDivElement | null>(null);
+    const sentinel = useRef<HTMLLIElement | null>(null);
     const { hasNextPage, isFetchingNextPage, fetchNextPage } = timeline;
 
     useEffect(() => {
@@ -109,7 +109,7 @@ export function Timeline({ contactId }: { contactId: string }) {
                         <p className="igr:max-w-xs igr:text-xs igr:text-muted-foreground">{t('contacts.timeline.emptyHelp')}</p>
                     </div>
                 ) : (
-                    <ol className="igr:space-y-4">
+                    <ol className="igr:-mx-2 igr:max-h-[70vh] igr:space-y-4 igr:overflow-y-auto igr:px-2 igr:pl-3" tabIndex={0} aria-label={t('contacts.timeline.title')}>
                         {days.map(({ day, events: dayEvents }) => (
                             <li key={day}>
                                 <p className="igr:sticky igr:top-0 igr:mb-1.5 igr:bg-card igr:text-[11px] igr:font-medium igr:uppercase igr:tracking-wide igr:text-muted-foreground">
@@ -137,9 +137,9 @@ export function Timeline({ contactId }: { contactId: string }) {
                                 </ol>
                             </li>
                         ))}
+                        <li ref={sentinel} aria-hidden="true" />
                     </ol>
                 )}
-                <div ref={sentinel} />
                 {hasNextPage && (
                     <Button variant="ghost" size="sm" className="igr:mt-3 igr:w-full" loading={isFetchingNextPage} onClick={() => void fetchNextPage()}>
                         {t('contacts.timeline.loadMore')}

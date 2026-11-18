@@ -72,7 +72,11 @@ final class Filters
         return [$sql, $params];
     }
 
-    /** Lo mismo para `events` (el canal y el dispositivo de cada evento). */
+    /**
+     * Lo mismo para `events` (el canal y el dispositivo de cada evento).
+     *
+     * @return array{0: string, 1: array<string, scalar>}
+     */
     public function eventsSql(): array
     {
         return $this->sessionsSql();

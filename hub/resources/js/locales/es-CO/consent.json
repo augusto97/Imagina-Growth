@@ -1,0 +1,48 @@
+{
+    "consent": {
+        "title": "Consentimiento",
+        "description": "Los textos que aceptan tus clientes, cómo se respeta su consentimiento y las solicitudes de habeas data.",
+        "readOnly": "Solo un administrador puede cambiar estos ajustes.",
+        "texts": {
+            "title": "Textos de consentimiento",
+            "description": "Es lo que dice la casilla del checkout y de los formularios. Cada versión queda guardada: la constancia de cada persona indica qué texto aceptó.",
+            "default": "Texto por defecto",
+            "publishedOn": "Publicado el {{date}}",
+            "version": "{{version}}",
+            "newVersion": "Texto de la nueva versión",
+            "lengthHelp": "Mínimo {{min}} caracteres. Di qué enviarás, por qué canal y cómo darse de baja.",
+            "versionWarning": "Quienes ya aceptaron conservan la versión que vieron. La nueva se usa desde que la publicas.",
+            "preview": "Así se ve en tu sitio",
+            "history_one": "{{count}} versión anterior",
+            "history_other": "{{count}} versiones anteriores",
+            "publishNew": "Publicar versión nueva",
+            "publish": "Publicar",
+            "published": "Nueva versión del texto de {{channel}} publicada"
+        },
+        "mode": {
+            "title": "Modo de consentimiento",
+            "description": "Cómo se mide a los visitantes según lo que acepten en el banner de cookies.",
+            "strict": "Estricto",
+            "strictHelp": "Sin consentimiento de analítica no se guarda el identificador del navegador: solo se cuentan vistas sin identificar. Sin consentimiento de marketing no se envían conversiones a los anuncios.",
+            "informed": "Informado",
+            "informedHelp": "Si el sitio no tiene banner, el plugin muestra uno ligero propio. Recomendado solo para sitios que no tienen ninguno.",
+            "recommended": "Recomendado",
+            "current": "Actual",
+            "relaxWarning": "Pasar a informado relaja la protección por defecto. El cambio queda en la auditoría.",
+            "saved": "Modo de consentimiento guardado"
+        },
+        "policy": {
+            "title": "Política de privacidad",
+            "description": "El enlace que verán tus clientes junto a cada casilla de consentimiento y en los correos.",
+            "url": "Dirección de la política",
+            "invalid": "Usa una dirección completa que empiece por https://",
+            "missing": "Falta: la Ley 1581 exige informar la política de tratamiento de datos.",
+            "help": "Debe decir quién trata los datos, para qué, los derechos de la persona y cómo ejercerlos.",
+            "saved": "Política de privacidad guardada"
+        },
+        "requests": {
+            "title": "Solicitudes de los titulares",
+            "description": "Pedidos de acceso o de borrado de datos (habeas data). Atiéndelos antes del plazo legal: en Colombia, 15 días hábiles."
+        }
+    }
+}

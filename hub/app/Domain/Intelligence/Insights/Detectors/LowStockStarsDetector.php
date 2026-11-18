@@ -6,7 +6,6 @@ namespace App\Domain\Intelligence\Insights\Detectors;
 
 use App\Domain\Intelligence\Insights\Detector;
 use App\Domain\Intelligence\Insights\InsightCandidate;
-use App\Domain\Intelligence\Insights\Money;
 use App\Domain\Workspaces\Models\Workspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -46,7 +45,11 @@ final class LowStockStarsDetector implements Detector
         $low = [];
         $impact = 0.0;
         foreach ($products as $p) {
-            $daily = (float) $stars[$p->external_id]->units / 30;
+            $star = $stars->get($p->external_id);
+            if ($star === null) {
+                continue;
+            }
+            $daily = (float) $star->units / 30;
             $days = $daily > 0 ? (float) $p->stock_qty / $daily : INF;
             if ($days >= 14) {
                 continue;
@@ -54,7 +57,7 @@ final class LowStockStarsDetector implements Detector
             $missing = max(0.0, 30 - $days) * $daily * (float) $p->price;
             $impact += $missing;
             $low[] = ['product_id' => (string) $p->external_id, 'name' => (string) $p->name, 'stock' => (float) $p->stock_qty,
-                'units_30d' => (float) $stars[$p->external_id]->units, 'days_left' => round($days, 1), 'revenue_at_risk' => round($missing, 2)];
+                'units_30d' => (float) $star->units, 'days_left' => round($days, 1), 'revenue_at_risk' => round($missing, 2)];
         }
         if ($low === []) {
             return [];

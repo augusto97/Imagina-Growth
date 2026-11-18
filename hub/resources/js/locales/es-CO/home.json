@@ -1,0 +1,13 @@
+{
+    "home": {
+        "openAnalytics": "Abrir analítica",
+        "last30": "Últimos 30 días frente a los 30 anteriores",
+        "salesTitle": "Ventas pagadas",
+        "salesDescription": "Últimos 30 días. La contraentrega cuenta cuando se cobra.",
+        "insightsTitle": "Hallazgos principales",
+        "allInsights": "Ver todos",
+        "noInsights": "No hay hallazgos abiertos. Revisamos tus datos cada noche.",
+        "attributedTitle": "Dinero generado",
+        "attributedHelp": "Lo que vendan los mensajes, flujos, widgets y referidos de Imagina Growth. Empieza a contar con la Fase {{phase}}."
+    }
+}

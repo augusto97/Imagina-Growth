@@ -37,8 +37,8 @@ final class CouponsDashboard extends Dashboard
         $offset = $period->offsetSeconds();
         $trend = DB::table('orders')->where('workspace_id', $workspace->id)->where('is_paid', true)->where('created_at', '>=', $start->utc())
             ->groupByRaw('m')
-            ->selectRaw("DATE_FORMAT(DATE_ADD(created_at, INTERVAL {$offset} SECOND), '%Y-%m') AS m, COUNT(*) AS orders,
-                SUM(JSON_LENGTH(COALESCE(coupon_codes, '[]')) > 0) AS with_coupon, COALESCE(SUM(discount), 0) AS discount")
+            ->selectRaw("DATE_FORMAT(DATE_ADD(created_at, INTERVAL ? SECOND), '%Y-%m') AS m, COUNT(*) AS orders,
+                SUM(JSON_LENGTH(COALESCE(coupon_codes, '[]')) > 0) AS with_coupon, COALESCE(SUM(discount), 0) AS discount", [$offset])
             ->orderBy('m')->get()
             ->map(fn ($r) => ['month' => (string) $r->m, 'orders' => (int) $r->orders, 'coupon_share' => self::ratio((int) $r->with_coupon, (int) $r->orders), 'discount' => round((float) $r->discount, 2)])->all();
 

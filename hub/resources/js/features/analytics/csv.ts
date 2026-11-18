@@ -3,6 +3,8 @@
  * separador «;», coma decimal y BOM para que abra bien las tildes.
  */
 
+const BOM = '\uFEFF';
+
 export type CsvValue = string | number | null | undefined;
 
 export interface CsvColumn<T> {
@@ -20,7 +22,7 @@ function cell(value: CsvValue): string {
 
 export function toCsv<T>(columns: CsvColumn<T>[], rows: T[]): string {
     const lines = [columns.map((c) => cell(c.label)).join(';'), ...rows.map((row) => columns.map((c) => cell(c.value(row))).join(';'))];
-    return `﻿${lines.join('\r\n')}\r\n`;
+    return `${BOM}${lines.join('\r\n')}\r\n`;
 }
 
 export function csvFilename(parts: string[]): string {
@@ -28,7 +30,7 @@ export function csvFilename(parts: string[]): string {
         .filter(Boolean)
         .join('-')
         .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
+        .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
         .replace(/[^a-z0-9-]+/g, '-')
         .replace(/-+/g, '-')

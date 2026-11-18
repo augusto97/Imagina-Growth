@@ -61,6 +61,9 @@ final class AnalyticsController
 
         $started = microtime(true);
         $data = MetricQueryRunner::remember($workspace, $key, fn () => app($class)->handle($workspace, $period, $filters));
+        if ($dashboard === 'overview') {
+            $data['insights'] = OverviewDashboard::topInsights();
+        }
 
         return response()->json([
             'dashboard' => $dashboard,

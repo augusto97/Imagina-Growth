@@ -23,19 +23,28 @@ final class OverviewDashboard extends Dashboard
         $kpis = $this->runner->run($workspace, new MetricQuery(self::KPIS, [], $period, $filters));
         $series = $this->runner->run($workspace, new MetricQuery(['revenue', 'orders', 'sessions'], ['date'], $period, $filters));
 
-        $insights = Insight::query()->whereIn('status', ['new', 'seen'])->get()
-            ->sortByDesc(fn (Insight $i) => [Insight::SEVERITY_ORDER[$i->severity] ?? 0, (float) $i->estimated_impact_ws])
-            ->take(3)
-            ->map(fn (Insight $i) => ['id' => $i->publicId(), 'severity' => $i->severity, 'title' => $i->title, 'impact' => $i->estimated_impact_ws, 'detector' => $i->detector_key])
-            ->values();
-
         return [
             'kpis' => $kpis['totals'],
             'compare' => $kpis['compare_totals'],
             'series' => $series['rows'],
             // Ingresos atribuidos a mensajes, widgets y referidos: llegan con las fases 2 y 3.
             'attributed' => ['revenue' => 0, 'available' => false, 'phase' => 2],
-            'insights' => $insights,
+            'insights' => self::topInsights(),
         ];
+    }
+
+    /**
+     * Los 3 hallazgos abiertos más graves. El controlador los vuelve a pedir
+     * fuera de la caché del tablero: descartar uno se ve al instante.
+     *
+     * @return list<array{id: string, severity: string, title: string, impact: string|null, detector: string}>
+     */
+    public static function topInsights(): array
+    {
+        return array_values(Insight::query()->whereIn('status', ['new', 'seen'])->get()
+            ->sortByDesc(fn (Insight $i) => [Insight::SEVERITY_ORDER[$i->severity] ?? 0, (float) $i->estimated_impact_ws])
+            ->take(3)
+            ->map(fn (Insight $i) => ['id' => $i->publicId(), 'severity' => (string) $i->severity, 'title' => (string) $i->title, 'impact' => $i->estimated_impact_ws === null ? null : (string) $i->estimated_impact_ws, 'detector' => (string) $i->detector_key])
+            ->all());
     }
 }

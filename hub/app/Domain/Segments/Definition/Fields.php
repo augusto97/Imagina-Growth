@@ -31,7 +31,7 @@ final class Fields
      * Claves de los 11 segmentos RFM (inteligencia.md §3), en el orden de evaluación.
      */
     public const RFM_SEGMENTS = [
-        'champions', 'loyal', 'cant_lose', 'at_risk', 'potential_loyalists', 'new',
+        'champions', 'loyal', 'cant_lose', 'at_risk', 'potential_loyal', 'new',
         'promising', 'need_attention', 'about_to_sleep', 'hibernating', 'lost',
     ];
 
