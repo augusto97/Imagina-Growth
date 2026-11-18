@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Contract">
+            <directory>tests/Contract</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+        <testsuite name="Tenancy">
+            <directory>tests/Tenancy</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_KEY" value="base64:2fl+Ktvkfl+Fuz4Qp/A75G2RTiWVA/ZoKZvp6fiiM10="/>
+        <env name="APP_URL" value="http://localhost"/>
+        <env name="IGR_APP_URL" value="http://localhost"/>
+        <env name="IGR_INGEST_URL" value="http://localhost"/>
+        <env name="IGR_BLIND_INDEX_KEY" value="base64:q4G6cQ4v8m1y2C7bq0aJYw1Zr3bQwJYk7R0x2y9u6pE="/>
+        <env name="IGR_REQUIRE_2FA" value="true"/>
+        <env name="IGR_INGEST_SHARDS" value="2"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="mariadb"/>
+        <env name="DB_HOST" value="127.0.0.1"/>
+        <env name="DB_DATABASE" value="igr_test"/>
+        <env name="DB_USERNAME" value="igr"/>
+        <env name="DB_PASSWORD" value="igr"/>
+        <env name="DB_URL" value=""/>
+        <env name="CLICKHOUSE_URL" value="http://127.0.0.1:8123"/>
+        <env name="CLICKHOUSE_DATABASE" value="igr_test"/>
+        <env name="REDIS_INGEST_DB" value="15"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+    </php>
+</phpunit>

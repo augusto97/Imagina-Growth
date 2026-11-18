@@ -18,6 +18,29 @@
 
 En la base de datos del hub los ULID se guardan sin prefijo (`CHAR(26)`); el prefijo solo existe en la API.
 
+### 1.1 `event_id` deterministas
+
+Los eventos ligados a un objeto usan **UUID v5** con el espacio de nombres `4a9293ae-2f42-5b83-905c-3b8de1f000cb` (= `uuid5(NAMESPACE_DNS, "growth.imagina.cloud")`) y el nombre `"{site_id}:{clave}"`. La importación histórica usa **las mismas claves** que los eventos en vivo, así un pedido que ya llegó en vivo no se cuenta dos veces.
+
+| Evento | Clave |
+|---|---|
+| `order.created` | `order:{order_id}:created` |
+| `order.paid` | `order:{order_id}:paid` |
+| `order.status_changed` | `order:{order_id}:status:{from}:{to}:{modified_unix}` |
+| `order.completed` / `.cancelled` / `.failed` | `order:{order_id}:{completed\|cancelled\|failed}` |
+| `order.payment_pending` | `order:{order_id}:payment_pending` |
+| `order.refunded` | `refund:{refund_id}` |
+| `customer.registered` | `customer:{user_id}:registered` |
+| `catalog.product_upserted` | `product:{product_id}:{hash}` |
+| `catalog.category_upserted` | `category:{category_id}:{hash}` |
+| `review.submitted` | `review:{comment_id}:{status}` |
+
+Los demás eventos usan **UUID v7**. `customer_ref` de WooCommerce es `wc:{user_id}`.
+
+### 1.2 Qué pedidos cuentan
+
+La importación y la conciliación (§5.3) incluyen los pedidos de tipo `shop_order` con `date_created ≥ from`, excepto los estados `checkout-draft`, `auto-draft` y `trash`. Los estados se envían sin el prefijo `wc-`. Los montos van con 2 decimales y punto (`number_format($v, 2, '.', '')`).
+
 ## 2. Firma de las peticiones
 
 Toda petición del sitio al hub (salvo el canje del código, §3.3) y todo comando del hub al sitio (§6) va firmada:
