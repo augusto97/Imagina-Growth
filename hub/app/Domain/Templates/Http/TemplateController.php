@@ -55,7 +55,7 @@ final class TemplateController
             ->when($status !== null && $status !== 'all', fn ($q) => $q->where('status', $status))
             ->when($data['q'] ?? null, fn ($q, $term) => $q->where('name', 'like', '%'.addcslashes((string) $term, '%_').'%'))
             ->orderByDesc('updated_at')
-            ->get(['id', 'workspace_id', 'channel', 'name', 'category', 'subject', 'status', 'library_key', 'wa_template_id', 'created_at', 'updated_at']);
+            ->get(['id', 'workspace_id', 'channel', 'name', 'category', 'subject', 'body_text', 'status', 'library_key', 'wa_template_id', 'created_at', 'updated_at']);
         $waNames = DB::table('wa_templates')->where('workspace_id', $this->current->id())
             ->whereIn('id', $templates->pluck('wa_template_id')->filter()->all())->pluck('name', 'id');
 

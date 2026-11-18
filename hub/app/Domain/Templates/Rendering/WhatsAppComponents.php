@@ -85,7 +85,7 @@ final class WhatsAppComponents
         }
         if ($slots['header_media'] !== null) {
             $source = is_string($mapping['header_media'] ?? null) ? $mapping['header_media'] : '';
-            $link = trim($render($source, __('el encabezado')));
+            $link = trim($render($source, __('encabezado')));
             if ($link === '') {
                 throw new TemplateRenderException(__('Falta la dirección del archivo del encabezado de WhatsApp.'));
             }
@@ -111,7 +111,7 @@ final class WhatsAppComponents
                 $out[] = ['type' => 'button', 'sub_type' => 'copy_code', 'index' => $index, 'parameters' => [['type' => 'coupon_code', 'coupon_code' => self::value($mapping, 'buttons', (string) $index, $render)]]];
             } elseif ($button['type'] === 'quick_reply') {
                 // El payload vuelve en el webhook (message.replied.button_payload).
-                $payload = is_string($mapping['buttons'][(string) $index] ?? null) ? trim($render($mapping['buttons'][(string) $index], __('el botón'))) : '';
+                $payload = is_string($mapping['buttons'][(string) $index] ?? null) ? trim($render($mapping['buttons'][(string) $index], __('botón'))) : '';
                 $out[] = ['type' => 'button', 'sub_type' => 'quick_reply', 'index' => $index, 'parameters' => [['type' => 'payload', 'payload' => $payload !== '' ? $payload : self::slug($button['text'], $index)]]];
             }
         }
@@ -126,13 +126,13 @@ final class WhatsAppComponents
     private static function value(array $mapping, string $part, string $key, Closure $render): string
     {
         $source = is_array($mapping[$part] ?? null) ? ($mapping[$part][$key] ?? null) : null;
-        $label = $part === 'buttons' ? __('el botón :n', ['n' => (int) $key + 1]) : '{{'.$key.'}}';
+        $label = $part === 'buttons' ? __('botón :n', ['n' => (int) $key + 1]) : __('parámetro :key', ['key' => '{{'.$key.'}}']);
         if (! is_string($source) || trim($source) === '') {
-            throw new TemplateRenderException(__('Falta la variable de :label en la plantilla de WhatsApp.', ['label' => $label]));
+            throw new TemplateRenderException(__('Falta la variable del :label en la plantilla de WhatsApp.', ['label' => $label]));
         }
         $value = trim(preg_replace('/\s{4,}/', '   ', str_replace(["\r\n", "\n", "\r", "\t"], ' ', $render($source, $label))) ?? '');
         if ($value === '') {
-            throw new TemplateRenderException(__('La variable de :label quedó vacía: WhatsApp no acepta parámetros vacíos. Usa `| default: "…"`.', ['label' => $label]));
+            throw new TemplateRenderException(__('La variable del :label quedó vacía: WhatsApp no acepta parámetros vacíos. Usa `| default: "…"`.', ['label' => $label]));
         }
 
         return mb_substr($value, 0, 1024);

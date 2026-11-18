@@ -221,7 +221,7 @@ function TemplateRow({ tpl, canEdit, onOpen, onDuplicate, onArchive, onRestore }
                 <Link to={`/w/${workspace.id}/plantillas/${tpl.id}`} onClick={(e) => e.stopPropagation()} className="igr:font-medium igr:hover:underline">
                     {tpl.name}
                 </Link>
-                <p className="igr:truncate igr:text-xs igr:text-muted-foreground">{tpl.channel === 'whatsapp' ? (tpl.wa_template_name ?? t('templates.wa.notChosen')) : (tpl.subject ?? '')}</p>
+                <p className="igr:truncate igr:text-xs igr:text-muted-foreground">{tpl.channel === 'whatsapp' ? (tpl.wa_template_name ?? t('templates.wa.notChosen')) : (tpl.excerpt ?? '')}</p>
             </TD>
             <TD>
                 <span className="igr:inline-flex igr:items-center igr:gap-1.5 igr:text-[13px]">
@@ -315,7 +315,7 @@ function LibraryTab() {
                 </div>
                 <div className="igr:space-y-1.5">
                     <Label htmlFor="lib-channel">{t('templates.filters.channel')}</Label>
-                    <Select id="lib-channel" value={channel} onChange={(e) => setChannel(e.target.value as '' | 'email' | 'sms')} className="igr:w-40">
+                    <Select id="lib-channel" value={channel} onChange={(e) => setChannel(e.target.value as '' | 'email' | 'sms')} className="igr:w-48">
                         <option value="">{t('templates.filters.allChannels')}</option>
                         <option value="email">{t('templates.channels.email')}</option>
                         <option value="sms">{t('templates.channels.sms')}</option>

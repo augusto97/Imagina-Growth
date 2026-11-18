@@ -18,6 +18,8 @@ final class TemplatePresenter
             'name' => $t->name,
             'category' => $t->category,
             'subject' => $t->subject,
+            // Lo que se ve bajo el nombre en la lista: el asunto o el inicio del SMS.
+            'excerpt' => $t->channel === 'sms' ? mb_substr(trim((string) $t->body_text), 0, 120) : $t->subject,
             'status' => $t->status,
             'library_key' => $t->library_key,
             'wa_template_name' => $waName,

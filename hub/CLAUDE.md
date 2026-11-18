@@ -165,6 +165,11 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
     - `windowAllows()` la usa el job de envío justo antes de llamar al proveedor.
     - `LegalWindow` da la franja por país en la hora local del contacto, con el final exclusivo.
   - `App\Domain\Templates\Contracts\TemplateRenderer::render(templateId, RenderContext): RenderedMessage` (Liquid en sandbox).
+    - **Sandbox:** sin sistema de archivos (`render` falla), límites de recursos en lugar de tiempo máximo, filtros desconocidos como error y variables desconocidas vacías.
+    - **Escape:** en el HTML del correo los textos de las variables se escapan; en el asunto, el texto, el SMS y WhatsApp no.
+    - **Preheader:** se inyecta oculto al inicio del cuerpo.
+    - **WhatsApp:** devuelve `template.components` en el formato de la Cloud API. Un parámetro vacío es error.
+    - **Biblioteca:** los flujos piden las plantillas por clave con `TemplateLibrary::install($workspace, 'abandoned_cart_1')`, que es idempotente. Los bucles de los bloques van dentro de `<div>`, nunca entre etiquetas de tabla, porque el parser del navegador del editor sacaría el `{% for %}` fuera de la tabla.
   - `App\Domain\Commerce\Contracts\CouponIssuer::issue(CouponSpec): CouponIssued` (comando `coupon.create`) y `CartRestoreLink::for(Cart)` (api-connector.md §6.1).
 - **Enlaces rastreados:** `https://go.<dominio>/c/{code}` → registra el clic → redirige agregando `utm_source=igr`, `utm_medium={canal}`, `utm_campaign={flujo o campaña}` y `_igr={code}` (identifica en el sitio, ver `eventos.md` §6.2). Los códigos son aleatorios de 8 caracteres, no secuenciales. El `_igr` es el propio código del enlace: el hub lo resuelve con `tracked_links` para vincular el `anonymous_id` con el contacto del mensaje, solo para analítica y atribución, sin fusionar perfiles.
 - **Webhooks entrantes:** Meta (verificación `X-Hub-Signature-256`), SES por SNS (verificación de firma), Zender (secreto compartido). Se actualizan los estados y se emiten los eventos `message.*` y `whatsapp.inbound`.

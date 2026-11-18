@@ -100,7 +100,9 @@
                 "unsubscribe_missing": "Falta el enlace para darse de baja ({{ enlaces.baja }}). Es obligatorio en los correos de marketing.",
                 "body_missing": "La plantilla está vacía.",
                 "sms_long": "El SMS ocupa más de 3 partes y cada una se cobra.",
-                "sms_optout_missing": "Los SMS de marketing deben decir cómo darse de baja (por ejemplo: «Responde BAJA para no recibir más»)."
+                "sms_optout_missing": "Los SMS de marketing deben decir cómo darse de baja (por ejemplo: «Responde BAJA para no recibir más»).",
+                "wa_template_missing": "Elige una plantilla aprobada de WhatsApp.",
+                "wa_variables_missing": "Falta asignar una variable a uno o más parámetros."
             }
         },
         "preview": {
@@ -156,7 +158,8 @@
             "missing": "Falta la variable de este parámetro.",
             "noParams": "Esta plantilla no tiene parámetros: se envía tal cual.",
             "approvedText": "Texto aprobado",
-            "approvedHelp": "Así lo aprobó Meta. Para cambiarlo, edítalo en Canales y espera la nueva aprobación."
+            "approvedHelp": "Así lo aprobó Meta. Para cambiarlo, edítalo en Canales y espera la nueva aprobación.",
+            "placeholder": "Elige una variable con { } o escribe Liquid"
         },
         "blocks": {
             "category": "Imagina Growth",

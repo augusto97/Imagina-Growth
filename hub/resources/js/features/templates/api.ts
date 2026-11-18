@@ -23,6 +23,8 @@ export interface TemplateSummary {
     name: string;
     category: TemplateCategory;
     subject: string | null;
+    /** Asunto del correo o inicio del SMS, para la lista. */
+    excerpt: string | null;
     status: TemplateStatus;
     library_key: string | null;
     wa_template_name: string | null;

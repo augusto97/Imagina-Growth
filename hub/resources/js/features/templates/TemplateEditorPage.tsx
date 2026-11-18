@@ -133,10 +133,15 @@ function Editor({ template }: { template: TemplateDetail }) {
         return () => window.removeEventListener('beforeunload', onBeforeUnload);
     }, [dirty]);
 
-    const live = useMemo(
-        () => liveChecks({ channel: template.channel, category: draft.category, subject: draft.subject, preheader: draft.preheader, body: template.channel === 'sms' ? draft.body_text : (draft.body_html ?? draft.body_mjml) }),
-        [template.channel, draft.category, draft.subject, draft.preheader, draft.body_text, draft.body_html, draft.body_mjml],
-    );
+    const waSources = useWaSources(workspace.id, template.channel === 'whatsapp');
+    const live = useMemo(() => {
+        if (template.channel === 'whatsapp') {
+            const source = waSources.data?.find((s) => s.id === draft.wa_template_id);
+            if (!source) return [{ level: 'error' as const, code: 'wa_template_missing', message: '' }];
+            return missingWaSlots(source.slots, draft.variables).length > 0 ? [{ level: 'error' as const, code: 'wa_variables_missing', message: '' }] : [];
+        }
+        return liveChecks({ channel: template.channel, category: draft.category, subject: draft.subject, preheader: draft.preheader, body: template.channel === 'sms' ? draft.body_text : (draft.body_html ?? draft.body_mjml) });
+    }, [template.channel, waSources.data, draft.wa_template_id, draft.variables, draft.category, draft.subject, draft.preheader, draft.body_text, draft.body_html, draft.body_mjml]);
 
     const save = (status?: 'draft' | 'ready') => {
         let current = draft;
@@ -498,7 +503,7 @@ function MappingRow({ label, value, onChange, disabled, missing }: { label: stri
         <div className="igr:space-y-1.5">
             <Label htmlFor={id}>{label}</Label>
             <div className="igr:flex igr:gap-2">
-                <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} placeholder="{{ contacto.nombre | default: 'hola' }}" aria-invalid={missing ? true : undefined} />
+                <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} placeholder={t('templates.wa.placeholder')} aria-invalid={missing ? true : undefined} />
                 <VariablePicker
                     size="icon"
                     disabled={disabled}
@@ -549,16 +554,18 @@ function PreviewDialog({ open, onOpenChange, channel, draft, canvas }: { open: b
                     <DialogTitle>{t('templates.preview.title')}</DialogTitle>
                     <DialogDescription>{contact ? t('templates.preview.realHelp') : t('templates.preview.sampleHelp')}</DialogDescription>
                 </DialogHeader>
-                <PreviewContactPicker contact={contact} onChange={setContact} />
-                {preview.isPending && !result ? (
-                    <Skeleton className="igr:h-[420px]" />
-                ) : preview.isError ? (
-                    <div role="alert" className="igr:rounded-md igr:border igr:border-destructive/40 igr:bg-destructive/5 igr:p-3 igr:text-[13px] igr:text-destructive">
-                        {errorMessage(preview.error, t)}
-                    </div>
-                ) : result ? (
-                    <PreviewView result={result} channel={channel} waBody={waBodyOf(sources.data?.find((s) => s.id === draft.wa_template_id))} />
-                ) : null}
+                <div className="igr:space-y-3">
+                    <PreviewContactPicker contact={contact} onChange={setContact} />
+                    {preview.isPending && !result ? (
+                        <Skeleton className="igr:h-[420px]" />
+                    ) : preview.isError ? (
+                        <div role="alert" className="igr:rounded-md igr:border igr:border-destructive/40 igr:bg-destructive/5 igr:p-3 igr:text-[13px] igr:text-destructive">
+                            {errorMessage(preview.error, t)}
+                        </div>
+                    ) : result ? (
+                        <PreviewView result={result} channel={channel} waBody={waBodyOf(sources.data?.find((s) => s.id === draft.wa_template_id))} />
+                    ) : null}
+                </div>
             </DialogContent>
         </Dialog>
     );

@@ -4,6 +4,7 @@ use App\Domain\Templates\Contracts\TemplateRenderer;
 use App\Domain\Templates\Data\RenderContext;
 use App\Domain\Templates\Library\TemplateLibrary;
 use App\Domain\Templates\Models\Template;
+use App\Domain\Templates\Rendering\LiquidTemplateRenderer;
 use App\Domain\Templates\Rendering\SampleData;
 use App\Domain\Templates\Support\TemplateChecks;
 use App\Support\Tenancy\CurrentWorkspace;
@@ -23,7 +24,7 @@ it('cada plantilla de la biblioteca se renderiza con datos de ejemplo en todas l
         foreach (TemplateLibrary::keys() as $key) {
             $template = new Template(['workspace_id' => $this->ws->id] + TemplateLibrary::attributes($key, $industry));
             $template->wa_template_id = null;
-            $rendered = app(CurrentWorkspace::class)->run($this->ws, fn () => app(App\Domain\Templates\Rendering\LiquidTemplateRenderer::class)->renderTemplate($template, new RenderContext($this->ws, null, SampleData::vars())));
+            $rendered = app(CurrentWorkspace::class)->run($this->ws, fn () => app(LiquidTemplateRenderer::class)->renderTemplate($template, new RenderContext($this->ws, null, SampleData::vars())));
             $label = $key.' / '.($industry ?? 'general');
             if ($template->channel === 'email') {
                 expect($rendered->subject)->not->toBe('', $label)

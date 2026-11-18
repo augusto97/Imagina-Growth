@@ -213,6 +213,14 @@
 - **Biblioteca en español** por industria (moda, belleza, ferretería y pinturas, mascotas, alimentos, tecnología, servicios profesionales, salud y bienestar, educación).
 - **IA:** asuntos y preheaders, variantes para A/B, adaptar el tono de la marca, acortar para WhatsApp, revisar ortografía y advertir posibles problemas de categoría de plantilla.
 
+**Estado (Fase 2):**
+- **Plantillas de WhatsApp:** se crean, editan y sincronizan con Meta en M07 (Canales). Aquí una plantilla de WhatsApp apunta a la aprobada y asigna una expresión Liquid a cada parámetro (`{{1}}` o con nombre), a cada botón con URL dinámica o código y al archivo del encabezado.
+- **Variables:** `contacto` (sin correo ni teléfono), `tienda`, `carrito`, `cupon`, `pedido`, `producto`, `recomendaciones` y `enlaces`. Además pasa sin cambios cualquier otra clave que mande el flujo o la campaña (por ejemplo `campana`).
+- **Filtros propios:** `limit`, `moneda` y `fecha`, además de los de Liquid.
+- **Pie legal:** los datos del negocio (nombre, dirección, contacto, WhatsApp y logo) se editan en «Datos del negocio» y llenan `tienda.*`. Un correo de marketing sin `{{ enlaces.baja }}` no se puede marcar como lista; el editor avisa también si falta quién envía, la dirección o el motivo.
+- **Biblioteca:** 29 correos y 7 SMS para los 20 flujos, con copia por industria. Se compila a HTML con el mismo MJML del editor (`app/Domain/Templates/Library/build.mjs`) y se versiona, así un flujo la instala sin pasar por el navegador.
+- **IA:** llega en la Fase 4.
+
 ---
 
 ## M09 — Automatizaciones (flujos) · Fase 2
