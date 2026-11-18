@@ -143,7 +143,7 @@ export function EmailDialog({ open, onClose, dnsFor }: { open: boolean; onClose:
 
     return (
         <Dialog open={open} onOpenChange={(next) => !next && close()}>
-            <DialogContent className="igr:max-w-3xl">
+            <DialogContent className="igr:max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>{t('channels.email.title')}</DialogTitle>
                     {!account && <DialogDescription>{t('channels.empty.email.description')}</DialogDescription>}

@@ -9,14 +9,19 @@ use App\Domain\Messaging\Models\Message;
 use App\Domain\Messaging\Models\Suppression;
 use App\Domain\Messaging\Models\WaTemplate;
 use App\Domain\Messaging\Support\DnsResolver;
+use App\Domain\Messaging\Support\SesClientFactory;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Support\Pii\BlindIndex;
 use App\Support\Tenancy\CurrentWorkspace;
+use Aws\CommandInterface;
+use Aws\MockHandler;
+use Aws\Result;
+use Aws\SesV2\SesV2Client;
 use Carbon\CarbonImmutable;
-use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Tests\Feature\Messaging\Support\MessagingFixtures;
 
 uses(MessagingFixtures::class);
@@ -49,16 +54,16 @@ it('el correo por SES pide los registros DKIM, SPF y DMARC y se activa al verifi
     $this->actingAs($marketing)->postJson("{$this->api}/channels/email", ['provider' => 'ses', 'from_email' => 'hola@pinturas.co', 'from_name' => 'Pinturas'])->assertForbidden();
 
     // SES devuelve los tokens DKIM al crear la identidad.
-    app()->instance(\App\Domain\Messaging\Support\SesClientFactory::class, new class extends \App\Domain\Messaging\Support\SesClientFactory
+    app()->instance(SesClientFactory::class, new class extends SesClientFactory
     {
-        public function make(): \Aws\SesV2\SesV2Client
+        public function make(): SesV2Client
         {
-            $h = new \Aws\MockHandler;
-            $h->append(fn (\Aws\CommandInterface $c) => new \Aws\Result($c->getName() === 'CreateEmailIdentity'
+            $h = new MockHandler;
+            $h->append(fn (CommandInterface $c) => new Result($c->getName() === 'CreateEmailIdentity'
                 ? ['DkimAttributes' => ['Tokens' => ['tok1', 'tok2', 'tok3'], 'Status' => 'PENDING']]
                 : ['DkimAttributes' => ['Tokens' => ['tok1', 'tok2', 'tok3'], 'Status' => 'SUCCESS']]));
 
-            return new \Aws\SesV2\SesV2Client(['version' => '2019-09-27', 'region' => 'us-east-1', 'credentials' => ['key' => 'k', 'secret' => 's'], 'handler' => $h]);
+            return new SesV2Client(['version' => '2019-09-27', 'region' => 'us-east-1', 'credentials' => ['key' => 'k', 'secret' => 's'], 'handler' => $h]);
         }
     });
     $res = $this->actingAs($this->owner)->postJson("{$this->api}/channels/email", ['provider' => 'ses', 'from_email' => 'hola@pinturas.co', 'from_name' => 'Pinturas La 14'])->assertCreated();
@@ -117,7 +122,7 @@ it('Zender: solo el dueño, aceptando el riesgo, con topes fijos y nunca como ca
 
 it('SMS por Twilio, lista sin secretos, cambia la cuenta por defecto, desconecta y envía una prueba', function () {
     $this->actingAs($this->owner)->postJson("{$this->api}/channels/sms/twilio", ['account_sid' => 'AC'.str_repeat('b', 32), 'auth_token' => 'secreto-de-twilio-1', 'from' => '3001112222'])->assertCreated()
-        ->assertJsonPath('data.identity', '+573001112222');
+        ->assertJsonPath('data.identity', '+57 300 1112222');
     $list = $this->actingAs($this->owner)->getJson("{$this->api}/channels")->assertOk();
     expect($list->getContent())->not->toContain('secreto-de-twilio-1')->not->toContain('EAAB-token-de-prueba')
         ->and(collect($list->json('data'))->pluck('provider')->sort()->values()->all())->toBe(['meta_cloud', 'ses', 'twilio']);
@@ -183,7 +188,7 @@ it('supresión manual, quejas que no se quitan e importación del RNE que frena 
 });
 
 it('la pestaña Mensajes del perfil lista los envíos con su flujo y respeta el acceso', function () {
-    $flowId = strtoupper((string) \Illuminate\Support\Str::ulid());
+    $flowId = strtoupper((string) Str::ulid());
     DB::table('flows')->insert(['id' => $flowId, 'workspace_id' => $this->ws->id, 'name' => 'Carrito abandonado', 'status' => 'active', 'trigger' => '{}', 'created_at' => now(), 'updated_at' => now()]);
     app(CurrentWorkspace::class)->run($this->ws, function () use ($flowId) {
         $m = new Message;

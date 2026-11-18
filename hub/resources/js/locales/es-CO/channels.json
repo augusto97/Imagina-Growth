@@ -31,7 +31,8 @@
             "yellowHelp": "Con calidad media se frenan las campañas de marketing de este número.",
             "redHelp": "Con calidad baja no sale marketing por este número."
         },
-        "tier": "Límite de Meta: {{tier}}",
+        "tier": "Límite de Meta: {{tier}} clientes al día",
+        "tierUnlimited": "Límite de Meta: sin límite",
         "default": "Predeterminada",
         "unofficial": "No oficial",
         "warmup": "Calentamiento: día {{day}} · {{sent}} de {{limit}} correos hoy",
@@ -124,7 +125,7 @@
             "signup": "Continuar con Facebook",
             "signupUnavailable": "El registro con Facebook aún no está configurado en la plataforma. Conecta con los datos de tu cuenta.",
             "manual": "Conectar con los datos de mi cuenta",
-            "wabaId": "ID de la cuenta de WhatsApp Business (WABA)",
+            "wabaId": "ID de la cuenta de WhatsApp (WABA)",
             "phoneId": "ID del número de teléfono",
             "token": "Token de acceso permanente",
             "displayName": "Nombre interno (opcional)",
@@ -286,8 +287,9 @@
             "registryHelp": "Importa el archivo del RNE (Colombia, CRC) o del REPEP (México, PROFECO). Esos números no reciben marketing por WhatsApp ni SMS.",
             "country": "País",
             "file": "Archivo CSV",
+            "chooseFile": "Elegir archivo…",
             "import": "Importar",
-            "imported": "{{rows}} números leídos, {{added}} supresiones nuevas",
+            "imported": "{{rows}} números · {{added}} supresiones nuevas (WhatsApp y SMS)",
             "lastImports": "Últimas importaciones"
         },
         "messagesTab": {
@@ -317,7 +319,7 @@
                 "api": "API",
                 "system": "Sistema"
             },
-            "cost": "≈ USD {{cost}}"
+            "cost": "Costo estimado ≈ {{cost}}"
         }
     }
 }

@@ -140,13 +140,13 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 
 ## 8. Mensajería
 
-- **Interfaz `ChannelDriver`:** `send(OutboundMessage): SendResult`, `handleWebhook(Request): array<StatusUpdate>`, `syncTemplates(): void`, `estimateCost(Recipient, Category): Money`, `capabilities(): array`.
+- **Interfaz `ChannelDriver`** (`App\Domain\Messaging\Channels\ChannelDriver`): `send(ChannelAccount, OutgoingMessage): SendResult`, `handleWebhook(Request, ?ChannelAccount): WebhookBatch` (estados, entrantes, plantillas y calidad), `syncTemplates(ChannelAccount): int`, `estimateCost(ChannelAccount, país, MessageKind): ?float` (USD) y `capabilities(): array`. El driver recibe la cuenta en cada llamada porque un mismo driver atiende a todas las cuentas de ese proveedor. `DriverRegistry` resuelve el driver por proveedor.
 - **Drivers:**
 
 | Canal | Drivers |
 |---|---|
 | Correo | `SesDriver`, `SmtpDriver` |
-| WhatsApp | `MetaCloudDriver` (con la ruta `/marketing_messages` para marketing), `ZenderDriver` (con topes fijos y bloqueo de marketing masivo), `InfobipDriver` |
+| WhatsApp | `MetaCloudDriver` (con la ruta `/marketing_messages` para marketing), `ZenderDriver` (con topes fijos y bloqueo de marketing masivo), `InfobipDriver` (pendiente) |
 | SMS | `TwilioSmsDriver` |
 
 - **Todo envío pasa por `MessageDispatcher`:**
@@ -154,8 +154,8 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
   2. **`SendPolicy::check()`**: consentimiento, ventana legal por país y festivos, frecuencia (contadores en Redis por contacto, día y semana), supresión, registros de exclusión, ventana de 24 h de WhatsApp para mensajes libres, presupuesto de la campaña y salud del número o dominio. Devuelve `Allow`, `Defer(until, reason)` o `Deny(reason)`.
   3. Renderizar la plantilla (Liquid en sandbox, con un *timeout*).
   4. Reescribir los enlaces.
-  5. Encolar en `messages:{channel}` con *rate limit* por cuenta.
-  6. Llamar al driver y registrar en `messages`.
+  5. Guardar el mensaje en `messages` (con `idempotency_key` única) y encolar `SendMessageJob` en `messages:{channel}` con *rate limit* por cuenta (Redis).
+  6. El job revisa otra vez `SendPolicy::windowAllows()` y los topes de la cuenta (calentamiento de SES, topes de Zender). Si ya no aplica, el mensaje queda `deferred` con `deferred_until`, y `igr:messages:requeue` (cada minuto) lo vuelve a encolar a su hora: no se usan jobs con retraso largo. Luego llama al driver, registra el estado y emite `message.sent` o `message.failed`. Si el envío nunca llegó al proveedor, se libera el cupo de frecuencia.
 - **Contratos internos (Fase 2):**
   - `App\Domain\Messaging\Contracts\MessageDispatcher::dispatch(OutboundMessage): DispatchResult`. Los estados son `queued`, `deferred(until, reason)`, `denied(reason)` y `duplicate(message_id)`. Un aplazamiento **no crea mensaje**: quien llamó vuelve a llamar con la **misma** `idempotencyKey` en `until`. Las claves son `run:{run_id}:{node_id}:{attempt}` y `campaign:{campaign_id}:{contact_id}`. `FakeMessageDispatcher::install()` es el doble para las pruebas.
   - `App\Domain\Consent\Policy\SendPolicy`:
@@ -172,8 +172,10 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
     - **Biblioteca:** los flujos piden las plantillas por clave con `TemplateLibrary::install($workspace, 'abandoned_cart_1')`, que es idempotente. Los bucles de los bloques van dentro de `<div>`, nunca entre etiquetas de tabla, porque el parser del navegador del editor sacaría el `{% for %}` fuera de la tabla.
   - `App\Domain\Commerce\Contracts\CouponIssuer::issue(CouponSpec): CouponIssued` (comando `coupon.create`) y `CartRestoreLink::for(Cart)` (api-connector.md §6.1).
 - **Enlaces rastreados:** `https://go.<dominio>/c/{code}` → registra el clic → redirige agregando `utm_source=igr`, `utm_medium={canal}`, `utm_campaign={flujo o campaña}` y `_igr={code}` (identifica en el sitio, ver `eventos.md` §6.2). Los códigos son aleatorios de 8 caracteres, no secuenciales. El `_igr` es el propio código del enlace: el hub lo resuelve con `tracked_links` para vincular el `anonymous_id` con el contacto del mensaje, solo para analítica y atribución, sin fusionar perfiles.
-- **Webhooks entrantes:** Meta (verificación `X-Hub-Signature-256`), SES por SNS (verificación de firma), Zender (secreto compartido). Se actualizan los estados y se emiten los eventos `message.*` y `whatsapp.inbound`.
-- **Palabras de baja** en WhatsApp y SMS: «baja», «no más», «stop», «cancelar suscripción», «no me escriban» y variantes, más el clasificador de IA (Fase 4). Revocan el consentimiento y responden con una confirmación.
+- **Webhooks entrantes** (`routes/public/messaging.php`): Meta (`/webhooks/meta`, verificación `X-Hub-Signature-256` con el secreto de la app; la cuenta se encuentra por `channel_accounts.external_id` = ID del número), SES por SNS (`/webhooks/ses`, verificación de firma y del host del certificado), Zender (`/webhooks/zender/{cuenta}`, secreto por cuenta) y Twilio (`/webhooks/twilio/{cuenta}`, `X-Twilio-Signature`). `WebhookProcessor` aplica los estados solo hacia adelante y emite cada `message.*` una vez; los entrantes los procesa `InboundHandler` (contacto por teléfono, ventana de 24 h, `message.replied`, `ref:` del widget y palabras de baja) y emite `whatsapp.inbound` sin el texto.
+- **Baja y preferencias:** `/u/{token}` (página de baja y `POST` de un clic de RFC 8058, sin cookies ni CSRF) y `/preferencias/{token}`. El token (`ContactLinkToken`) va firmado con la clave de la app y sigue al contacto si se fusionó. Toda baja pasa por `RecordConsent` con `authoritative`.
+- **Aperturas de Apple MPP:** las aperturas de SES desde las IP de Apple (17.0.0.0/8) se marcan `is_mpp=true` y no cuentan para la atribución **[verificar]**.
+- **Palabras de baja** en WhatsApp y SMS: «baja», «no más», «stop», «cancelar suscripción», «no me escriban» y variantes (`igr-messaging.unsubscribe_keywords`, comparadas sin tildes ni signos), o «baja» dentro de un mensaje de hasta 4 palabras, más el clasificador de IA (Fase 4). Revocan el consentimiento de marketing del canal y responden con una confirmación (mensaje de servicio).
 
 ## 9. Atribución
 

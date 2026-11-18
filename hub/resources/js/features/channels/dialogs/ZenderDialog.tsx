@@ -39,13 +39,13 @@ export function ZenderDialog({ open, onClose, caps }: { open: boolean; onClose: 
             <DialogContent className="igr:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>{t('channels.zender.title')}</DialogTitle>
-                    <DialogDescription className="igr:flex igr:gap-2 igr:rounded-md igr:bg-warning/10 igr:p-3 igr:text-warning">
-                        <ShieldAlert className="igr:mt-0.5 igr:size-4 igr:shrink-0" aria-hidden="true" />
-                        <span>
-                            {t('channels.zender.risk')} {t('channels.zender.rules', caps)}
-                        </span>
-                    </DialogDescription>
                 </DialogHeader>
+                <DialogDescription className="igr:flex igr:gap-2 igr:rounded-md igr:bg-warning/10 igr:p-3 igr:text-warning">
+                    <ShieldAlert className="igr:mt-0.5 igr:size-4 igr:shrink-0" aria-hidden="true" />
+                    <span>
+                        {t('channels.zender.risk')} {t('channels.zender.rules', caps)}
+                    </span>
+                </DialogDescription>
                 {result ? (
                     <div className="igr:space-y-2">
                         <h3 className="igr:text-[13px] igr:font-semibold">{t('channels.zender.webhookTitle')}</h3>

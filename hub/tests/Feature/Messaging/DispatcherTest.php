@@ -18,6 +18,7 @@ use Aws\Result;
 use Aws\SesV2\SesV2Client;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -52,7 +53,7 @@ function send($test, ?string $templateId = 'tpl_wa', Channel $channel = Channel:
     )));
 }
 
-function msgs($test): \Illuminate\Support\Collection
+function msgs($test): Collection
 {
     return app(CurrentWorkspace::class)->run($test->ws, fn () => Message::query()->get());
 }

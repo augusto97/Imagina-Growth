@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
+import { cn } from '@/lib/cn';
 import { formatDate, formatNumber } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { type ChannelKind, type Suppression, useSuppressionMutations, useSuppressions } from './api';
@@ -48,7 +49,10 @@ export function SuppressionsTab() {
         m.registry.mutate(
             { country: registry.country, file: registry.file },
             {
-                onSuccess: (r) => toast.success(t('channels.suppressions.imported', { rows: formatNumber(r.rows), added: formatNumber(r.added) })),
+                onSuccess: (r) => {
+                    toast.success(t('channels.suppressions.imported', { rows: formatNumber(r.rows), added: formatNumber(r.added) }));
+                    setRegistry({ ...registry, file: null });
+                },
                 onError: (err) => toast.error(t('channels.suppressions.registryTitle'), isApiError(err) ? err.message : undefined),
             },
         );
@@ -174,8 +178,13 @@ export function SuppressionsTab() {
                                 </Select>
                             </div>
                             <div className="igr:space-y-1">
-                                <Label htmlFor="rne-file">{t('channels.suppressions.file')}</Label>
-                                <Input id="rne-file" type="file" accept=".csv,.txt" required onChange={(e) => setRegistry({ ...registry, file: e.target.files?.[0] ?? null })} />
+                                <span className="igr:text-[13px] igr:font-medium">{t('channels.suppressions.file')}</span>
+                                {/* Selector propio: el control nativo del navegador sale en inglés. */}
+                                <label className="igr:flex igr:cursor-pointer igr:items-center igr:gap-2 igr:rounded-md igr:border igr:border-dashed igr:px-3 igr:py-2 igr:text-[13px] igr:hover:bg-muted/50 igr:focus-within:ring-2 igr:focus-within:ring-ring">
+                                    <FileUp className="igr:size-4 igr:shrink-0 igr:text-muted-foreground" aria-hidden="true" />
+                                    <span className={cn('igr:truncate', !registry.file && 'igr:text-muted-foreground')}>{registry.file?.name ?? t('channels.suppressions.chooseFile')}</span>
+                                    <input type="file" accept=".csv,.txt,text/csv,text/plain" className="igr:sr-only" onChange={(e) => setRegistry({ ...registry, file: e.target.files?.[0] ?? null })} />
+                                </label>
                             </div>
                             <Button type="submit" loading={m.registry.isPending} disabled={!registry.file}>
                                 {t('channels.suppressions.import')}

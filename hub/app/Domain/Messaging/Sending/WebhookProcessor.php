@@ -139,8 +139,13 @@ final class WebhookProcessor
                     $message->forceFill(['status' => 'failed', 'failed_reason' => $update->error, 'error_code' => $update->errorCode])->save();
                     $this->releaseFrequency($workspace, $message);
                     $this->events->emit($workspace, $message, 'message.failed', ['reason' => $update->error !== null ? mb_substr($update->error, 0, 500) : null, 'error_code' => $update->errorCode], $at);
-                    if ($update->errorCode === '131049' || $update->errorCode === '131050') {
+                    if ($update->errorCode === '131049') {
                         Log::info('igr.messaging.meta_marketing_limit', ['message' => $message->id]); // tope de Meta por usuario: no se reintenta
+                    }
+                    if ($update->errorCode === '131050' && $message->contact_id !== null) {
+                        // La persona detuvo el marketing de esta empresa desde WhatsApp: se revoca solo el marketing
+                        // de WhatsApp (los avisos transaccionales siguen). Sin evento extra: ya salió message.failed.
+                        $this->unsubscribe->unsubscribe($workspace, $message->contact_id, 'whatsapp', 'channel', 'meta_stop', null, ['error_code' => '131050']);
                     }
                 }
                 break;

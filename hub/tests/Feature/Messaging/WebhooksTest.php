@@ -84,6 +84,16 @@ it('aplica entregado y leído una sola vez, aunque Meta repita el webhook o lleg
         ->and(hubEvents($this, 'message.read'))->toHaveCount(1);
 });
 
+it('si la persona detuvo el marketing desde WhatsApp (131050), se revoca ese consentimiento y no se reintenta', function () {
+    $message = outbound($this, 'meta_cloud', 'wamid.STOP1');
+    metaPost($this, metaChange('messages', ['metadata' => ['phone_number_id' => '1111'], 'statuses' => [['id' => 'wamid.STOP1', 'status' => 'failed', 'timestamp' => (string) now()->getTimestamp(),
+        'errors' => [['code' => 131050, 'title' => 'User has stopped marketing messages']]]]]))->assertOk();
+    expect(Message::withoutWorkspaceScope()->find($message->id)->only(['status', 'error_code']))->toBe(['status' => 'failed', 'error_code' => '131050']);
+    app(CurrentWorkspace::class)->run($this->ws, fn () => expect(ContactConsent::query()->where('contact_id', $this->contact->id)->pluck('status', 'channel')->all())
+        ->toMatchArray(['whatsapp' => 'revoked', 'email' => 'granted']));
+    expect(hubEvents($this, 'message.failed'))->toHaveCount(1)->and(hubEvents($this, 'message.unsubscribed'))->toHaveCount(0);
+});
+
 it('«BAJA» por WhatsApp revoca el marketing al instante, abre la ventana de 24 h y responde; el evento no guarda el texto', function () {
     $last = outbound($this, 'meta_cloud', 'wamid.OUT2');
     metaPost($this, inboundText('+573001234567', '  Baja, por favor!! '))->assertOk();

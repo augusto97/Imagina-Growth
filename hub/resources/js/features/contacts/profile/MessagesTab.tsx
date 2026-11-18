@@ -74,7 +74,7 @@ export function MessagesTab({ contactId }: { contactId: string }) {
                                                 {t('channels.messagesTab.replied')} {when(m.replied_at)}
                                             </span>
                                         )}
-                                        {m.cost_estimated && Number(m.cost_estimated) > 0 && <span>{t('channels.messagesTab.cost', { cost: Number(m.cost_estimated).toFixed(4) })}</span>}
+                                        {m.cost_estimated && Number(m.cost_estimated) > 0 && <span>{t('channels.messagesTab.cost', { cost: new Intl.NumberFormat(workspace.locale, { style: 'currency', currency: 'USD', maximumFractionDigits: 4 }).format(Number(m.cost_estimated)) })}</span>}
                                     </div>
                                 </div>
                             </Card>

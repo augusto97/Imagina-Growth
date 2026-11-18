@@ -107,14 +107,15 @@ La ley aplica a los mensajes **comerciales o publicitarios** por SMS, mensajerí
   - Desde el 1 de julio de 2025 Meta cobra por mensaje entregado, según la categoría y el país.
   - Desde el 1 de octubre de 2026 también cobra los mensajes de servicio y las plantillas de utilidad dentro de la ventana de 24 h. Hay 1.000 mensajes de servicio gratis al mes por número.
   - La tabla `wa_rates` se actualiza cada trimestre (Meta cambia las tarifas el 1 de enero, abril, julio y octubre). Sirve para estimar costos antes de cada campaña.
-- **Límites de frecuencia de Meta por usuario** para marketing: si un mensaje no se entrega por ese motivo, se registra con su código y no se reintenta de inmediato.
+- **Límites de frecuencia de Meta por usuario** para marketing: si un mensaje no se entrega por ese motivo (código 131049), se registra con su código y no se reintenta de inmediato.
+- **La persona detiene el marketing desde WhatsApp** (código 131050): se revoca el consentimiento de marketing de WhatsApp de ese contacto, como una baja. Los mensajes transaccionales siguen.
 - **Marketing Messages API:** se usa para el marketing por su entrega optimizada y sus métricas. La Cloud API queda para servicio, utilidad y conversaciones.
 - **IA en WhatsApp:** desde el 15 de enero de 2026 Meta prohíbe los asistentes de IA de propósito general en la plataforma empresarial. Los agentes limitados a la operación del negocio (ventas, soporte, citas, pedidos) están permitidos. El agente de M11 debe quedarse **siempre dentro del alcance del negocio**, por diseño y por prompt.
 - **Calidad del número:** se monitorea. Si baja a «media», se frenan las campañas de marketing de ese número y se avisa.
 
 ### 5.2 Zender (no oficial)
 - Usa WhatsApp Web, que **no está autorizado** por los términos de WhatsApp para automatizar, así que el número puede ser **bloqueado**.
-- En el producto queda limitado a conversaciones 1:1 y mensajes transaccionales de bajo volumen, con topes fijos por hora y por día, y **sin campañas ni flujos masivos de marketing**.
+- En el producto queda limitado a conversaciones 1:1 y mensajes transaccionales de bajo volumen, con topes fijos por hora y por día (30 y 200, definidos por la plataforma en `config/igr-messaging.php`; el cliente no los puede subir), y **sin campañas ni flujos masivos de marketing** (el driver rechaza todo mensaje de marketing).
 - La activación exige que el `owner` acepte un aviso de riesgo (auditoría).
 - No se implementan técnicas para evadir la detección de WhatsApp.
 
@@ -142,7 +143,7 @@ Venezuela no tiene una ley general de protección de datos personales equivalent
 
 - **Requisitos de Gmail y Yahoo para envíos masivos:** SPF, DKIM y DMARC alineados, `List-Unsubscribe` + `List-Unsubscribe-Post` (un clic), tasa de spam por debajo de 0,3% y bajas procesadas en menos de 2 días (el producto lo hace en menos de 1 minuto).
 - Supresión automática por rebote duro y por queja.
-- Pie de cada correo: identificación del remitente, dirección física o de contacto del negocio, motivo del mensaje y enlace de baja.
+- Pie de cada correo: identificación del remitente, dirección física o de contacto del negocio, motivo del mensaje y enlace de baja. Si la plantilla de un correo de marketing no trae el enlace de baja, el despachador agrega un pie mínimo con la baja y el centro de preferencias.
 
 ---
 

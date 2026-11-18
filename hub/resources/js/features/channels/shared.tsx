@@ -34,8 +34,10 @@ export function CopyButton({ value }: { value: string }) {
         <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="icon"
+            className="igr:size-7 igr:shrink-0"
             aria-label={t('channels.email.copy')}
+            title={copied ? t('channels.email.copied') : t('channels.email.copy')}
             onClick={() => {
                 // En http (sin contexto seguro) no hay portapapeles: el valor sigue visible para copiarlo a mano.
                 navigator.clipboard.writeText(value).catch(() => undefined);
@@ -44,7 +46,7 @@ export function CopyButton({ value }: { value: string }) {
             }}
         >
             {copied ? <Check /> : <Copy />}
-            <span className="igr:sr-only igr:sm:not-sr-only">{copied ? t('channels.email.copied') : t('channels.email.copy')}</span>
+            <span className="igr:sr-only" aria-live="polite">{copied ? t('channels.email.copied') : ''}</span>
         </Button>
     );
 }

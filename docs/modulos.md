@@ -203,6 +203,27 @@
 
 **Listo cuando:** un correo de prueba sale con DKIM alineado y pasa la revisión de Gmail, una plantilla de WhatsApp creada en la app queda aprobada y se envía, y una baja por cualquier canal se aplica en menos de 1 minuto en todo el sistema.
 
+**Implementación (Fase 2):**
+- **Cuentas:** «Canales» (`/canales`) con pestañas Correo, WhatsApp, SMS y Supresión. Los secretos se guardan cifrados y la API nunca los devuelve.
+  - **SES:** el asistente crea la identidad del dominio en SES (DKIM Easy DKIM), muestra los registros DKIM, SPF (recomendado) y DMARC con su estado en vivo, y activa la cuenta cuando los obligatorios están y SES confirma DKIM. Desde ese día corre el **calentamiento** (50, 100, 250… 40.000 correos al día en 10 días); lo que pasa del cupo del día se aplaza al siguiente.
+  - **SMTP:** queda activo al conectarlo, sin seguimiento de rebotes ni aperturas.
+  - **WhatsApp oficial:** Embedded Signup con el SDK de Facebook **[verificar: app y configuración de Meta]** o conexión manual (WABA, ID del número y token permanente). Se suscribe la app a la WABA y se leen la calidad y el nivel de límite.
+  - **Zender:** solo el dueño, con la casilla de riesgo aceptada (queda en la auditoría). Topes fijos de 30 por hora y 200 por día (`config/igr-messaging.php`), y el driver rechaza todo mensaje de marketing.
+  - **SMS:** Twilio (número o Messaging Service). Infobip queda pendiente.
+- **Envío:** `MessageDispatcher` → cuenta por defecto del canal → `SendPolicy::checkAndReserve` → plantilla → enlaces rastreados → fila en `messages` con `idempotency_key` única → cola `messages:{canal}` con límite por segundo por cuenta. El job vuelve a revisar la ventana legal justo antes de llamar al proveedor; si ya no aplica, el mensaje queda `deferred` y `igr:messages:requeue` (cada minuto) lo devuelve a la cola a su hora. Si el envío nunca llega al proveedor, se devuelve el cupo de frecuencia. Los errores transitorios se reintentan hasta 5 veces.
+  - Marketing de WhatsApp oficial con plantilla va por `/{phone_id}/marketing_messages` **[verificar con Meta]**; lo demás por `/messages`.
+  - Cada correo de marketing lleva `List-Unsubscribe` y `List-Unsubscribe-Post` (RFC 8058) y, si la plantilla no trae enlace de baja, un pie con la baja y las preferencias.
+  - Costo estimado por mensaje: WhatsApp con `wa_rates` por país y categoría; correo y SMS con la tarifa de `config/igr-messaging.php` **[verificar]**.
+- **Webhooks:** Meta (`X-Hub-Signature-256`, un solo endpoint para todas las cuentas, que se encuentran por el ID del número), SES por SNS (firma verificada y confirmación de la suscripción), Zender (secreto por cuenta) y Twilio (`X-Twilio-Signature`). Los estados solo avanzan y cada evento `message.*` sale una vez aunque el proveedor repita el aviso.
+  - Rebote duro y queja → supresión; la queja además revoca el marketing del correo.
+  - Error 131050 de Meta (la persona detuvo el marketing de la empresa en WhatsApp) → se revoca el marketing de WhatsApp. El 131049 (tope de Meta por persona) no se reintenta.
+  - Apertura de correo desde las IP de Apple Mail Privacy Protection → `message.opened` con `is_mpp=true`, que no cuenta para la atribución **[verificar la lista de rangos]**.
+- **WhatsApp entrante:** crea o encuentra el contacto por teléfono (índice ciego), abre la ventana de 24 h en `conversations`, marca `message.replied` en el último mensaje (o en el citado, con el payload del botón) y emite `whatsapp.inbound` sin el texto. Un «ref: CODIGO» del widget vincula al visitante anónimo del clic. Las palabras de baja (lista normalizada, o «baja» dentro de un mensaje corto de hasta 4 palabras) revocan el marketing del canal y responden con una confirmación.
+- **Enlaces y baja:** `/c/{code}` (no cuenta las vistas previas de WhatsApp ni de redes, y un doble clic en 10 s emite un solo `message.clicked`), `/u/{token}` (página de baja y baja de un clic sin cookies ni CSRF) y `/preferencias/{token}` (canales, temas, frecuencia «normal», semanal o mensual, o baja de todo). Los tokens van firmados y siguen al contacto si se fusionó.
+- **Plantillas de WhatsApp:** `/canales/plantillas-whatsapp` sincroniza, crea, edita y elimina en Meta, con vista previa. Si una plantilla de utilidad o autenticación trae palabras de marketing («descuento», «oferta», «%»…), el editor y la API exigen confirmar la categoría.
+- **Supresión:** lista con búsqueda, alta manual, quitar (las quejas no se pueden quitar) e importación del CSV del RNE o del REPEP, que suprime WhatsApp y SMS.
+- **Atribución por mensaje:** paso 2 de `AttributeOrder` (`MessageAttributor`), con los contactos fusionados. El perfil tiene la pestaña «Mensajes».
+
 ---
 
 ## M08 — Plantillas y contenido · Fase 2

@@ -19,6 +19,12 @@ const ICONS = { email: Mail, whatsapp: MessageCircle, sms: Phone } as const;
 export function AccountCard({ account, onTest, onDns }: { account: ChannelAccount; onTest: () => void; onDns: () => void }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
+    // TIER_1K → «1.000 clientes al día» (límite de conversaciones iniciadas por la empresa).
+    const tierLabel = (tier: string) => {
+        const m = /^TIER_(\d+)(K?)$/.exec(tier);
+        if (!m) return tier === 'TIER_UNLIMITED' ? t('channels.tierUnlimited') : t('channels.tier', { tier });
+        return t('channels.tier', { tier: formatNumber(Number(m[1]) * (m[2] ? 1000 : 1), workspace.locale) });
+    };
     const canManage = useCan('manageWorkspace');
     const canMarketing = useCan('manageMarketing');
     const update = useUpdateChannel(workspace.id);
@@ -108,7 +114,7 @@ export function AccountCard({ account, onTest, onDns }: { account: ChannelAccoun
             </div>
             <div className="igr:flex igr:flex-wrap igr:gap-1.5">
                 <QualityBadge account={account} />
-                {account.messaging_limit_tier && <Badge variant="outline">{t('channels.tier', { tier: account.messaging_limit_tier })}</Badge>}
+                {account.messaging_limit_tier && <Badge variant="outline">{tierLabel(account.messaging_limit_tier)}</Badge>}
                 {account.caps && <Badge variant="outline">{t('channels.caps', { hourly: account.caps.hourly, daily: account.caps.daily })}</Badge>}
                 {account.domain && account.channel === 'email' && (
                     <Badge variant="outline">

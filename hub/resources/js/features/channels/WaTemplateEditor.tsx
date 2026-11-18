@@ -171,7 +171,7 @@ export function WaTemplateEditor({ open, onClose, account, template, linksBase }
                         <fieldset className="igr:space-y-2">
                             <legend className="igr:text-[13px] igr:font-semibold">{t('channels.wa_editor.buttons')}</legend>
                             {form.buttons.map((b, i) => (
-                                <div key={i} className="igr:grid igr:gap-2 igr:rounded-lg igr:border igr:p-2 igr:sm:grid-cols-[140px_1fr_auto]">
+                                <div key={i} className="igr:grid igr:gap-2 igr:rounded-lg igr:border igr:p-2 igr:sm:grid-cols-[180px_1fr_auto]">
                                     <Select aria-label={t('channels.wa_editor.buttons')} value={b.type} onChange={(e) => set({ buttons: form.buttons.map((x, j) => (j === i ? { ...x, type: e.target.value as typeof b.type } : x)) })}>
                                         {(['URL', 'QUICK_REPLY', 'PHONE_NUMBER', 'COPY_CODE'] as const).map((type) => (
                                             <option key={type} value={type}>
@@ -209,6 +209,14 @@ export function WaTemplateEditor({ open, onClose, account, template, linksBase }
                                 </Button>
                             )}
                         </fieldset>
+                    </form>
+                    <aside className="igr:space-y-3 igr:self-start igr:md:sticky igr:md:top-0">
+                        <h3 className={cn('igr:flex igr:items-center igr:gap-1.5 igr:text-[13px] igr:font-semibold')}>
+                            <MessageCircle className="igr:size-4 igr:text-muted-foreground" aria-hidden="true" />
+                            {t('channels.wa_editor.preview')}
+                        </h3>
+                        <p className="igr:text-xs igr:text-muted-foreground">{t('channels.wa_editor.previewHelp')}</p>
+                        <WaPreview form={form} />
                         {(words.length > 0 || err('category')) && (
                             <div role="alert" className="igr:space-y-2 igr:rounded-lg igr:border igr:border-warning/40 igr:bg-warning/10 igr:p-3 igr:text-[13px]">
                                 <p className="igr:flex igr:items-center igr:gap-1.5 igr:font-semibold igr:text-warning">
@@ -222,14 +230,6 @@ export function WaTemplateEditor({ open, onClose, account, template, linksBase }
                                 </label>
                             </div>
                         )}
-                    </form>
-                    <aside className="igr:space-y-2">
-                        <h3 className={cn('igr:flex igr:items-center igr:gap-1.5 igr:text-[13px] igr:font-semibold')}>
-                            <MessageCircle className="igr:size-4 igr:text-muted-foreground" aria-hidden="true" />
-                            {t('channels.wa_editor.preview')}
-                        </h3>
-                        <p className="igr:text-xs igr:text-muted-foreground">{t('channels.wa_editor.previewHelp')}</p>
-                        <WaPreview form={form} />
                     </aside>
                 </div>
                 <DialogFooter>
