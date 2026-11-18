@@ -192,3 +192,15 @@ it('la tabla de excepciones del admin agrega o quita festivos', function () {
     Holidays::flush();
     expect(LegalWindow::isOpen('CO', CarbonImmutable::parse('2026-11-24 10:00:00', 'America/Bogota')))->toBeTrue();
 });
+
+it('el admin de la plataforma agrega y quita festivos con igr:holidays', function () {
+    $this->artisan('igr:holidays', ['country' => 'CO', 'date' => '2026-11-24', '--name' => 'Día cívico'])->assertSuccessful();
+    expect(policyAt($this, '2026-11-24 10:00:00')->reason)->toBe(PolicyDecision::HOLIDAY);
+    $this->artisan('igr:holidays', ['country' => 'CO', 'date' => '2026-12-08', '--remove' => true])->assertSuccessful();
+    expect(policyAt($this, '2026-12-08 10:00:00')->allowed())->toBeTrue();
+    $this->artisan('igr:holidays', ['country' => 'CO', 'date' => '2026-12-08', '--reset' => true])->assertSuccessful();
+    $this->artisan('igr:holidays', ['country' => 'CO', 'date' => 'mañana'])->assertFailed();
+    expect(policyAt($this, '2026-12-08 10:00:00')->reason)->toBe(PolicyDecision::HOLIDAY);
+    DB::table('holiday_overrides')->delete();
+    Holidays::flush();
+});
