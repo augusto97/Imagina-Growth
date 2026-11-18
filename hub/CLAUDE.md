@@ -119,7 +119,9 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
   - *En tiempo real:* cuando llega un evento de un contacto, se evalúan solo los segmentos que referencian ese tipo de evento o atributo, y solo para ese contacto.
   - *Completo:* cada noche para todos, y bajo demanda al editar.
   - Las diferencias de membresía generan `segment.entered` y `segment.exited`.
-- **Vista previa:** consulta de conteo y muestra de 20 contactos, con *timeout* de 10 s y mensaje claro si se excede.
+  - *Implementación:* el recálculo en tiempo real corre en la cola `triggers` **15 s después del evento** (`EvaluateContactSegmentsJob`, único por contacto, así una ráfaga de eventos no encola trabajo repetido). El **primer cálculo** de un segmento nuevo no emite `segment.entered`, para no disparar flujos con toda la base de golpe; los siguientes sí.
+- **Vista previa:** consulta de conteo y muestra de 20 contactos, con *timeout* de 10 s y mensaje claro si se excede. Los miembros se calculan una sola vez en una tabla temporal de MariaDB que reutilizan el conteo, la muestra, el alcance por canal y el valor del segmento (el peor caso medido bajó de 3,1 s a menos de 1,5 s).
+- **Segmentos del sistema:** `system_key` = `rfm_<clave>` con las claves de `inteligencia.md` §3 (`App\Domain\Intelligence\Rfm\RfmSegment`, amarradas por una prueba) y las comunes de la biblioteca. Se crean con cada espacio de trabajo (`igr:segments:install-library` para los existentes) y `?system=rfm_<clave>` en `/segmentos` abre el segmento.
 
 ## 7. Motor de flujos
 

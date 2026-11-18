@@ -123,6 +123,8 @@
 
 **Listo cuando:** la vista previa tarda menos de 3 s con 100.000 contactos y 5 millones de eventos, y las entradas y salidas disparan flujos en menos de 2 minutos.
 
+**Estado (Fase 1):** vista previa medida con 100.000 contactos, 150.000 pedidos y 5 millones de eventos: entre 137 ms y 1,45 s según el segmento (`igr:segments:benchmark`). Las entradas y salidas se calculan 15 s después del evento; el disparo de flujos se mide en la Fase 2, cuando existan los flujos. Las condiciones de mensajería, fidelización y servicios muestran la fase en que llegan.
+
 ---
 
 ## M05 — Analítica e informes · Fase 1
