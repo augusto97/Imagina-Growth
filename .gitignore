@@ -2,3 +2,9 @@ node_modules/
 .DS_Store
 *.log
 dump.rdb
+
+# Python (servicio de predicciones hub/ml)
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
