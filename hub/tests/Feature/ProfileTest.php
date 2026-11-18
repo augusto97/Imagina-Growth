@@ -1,10 +1,12 @@
 <?php
 
 use App\Domain\Contacts\Models\Contact;
+use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Ingest\HubEvents;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     $this->useIngestInfrastructure();
@@ -140,8 +142,8 @@ it('el agente de la bandeja ve solo los contactos de las conversaciones que tien
     $this->actingAs($agent)->getJson($this->url)->assertNotFound();
     expect($this->actingAs($agent)->getJson($api)->assertOk()->json('data'))->toBe([]);
 
-    app(CurrentWorkspace::class)->run($this->ws, fn () => \App\Domain\Messaging\Models\Conversation::query()->create([
-        'workspace_id' => $this->ws->id, 'contact_id' => $this->contact->id, 'channel_account_id' => (string) \Illuminate\Support\Str::ulid(), 'status' => 'open', 'assignee_id' => $agent->id,
+    app(CurrentWorkspace::class)->run($this->ws, fn () => Conversation::query()->create([
+        'workspace_id' => $this->ws->id, 'contact_id' => $this->contact->id, 'channel_account_id' => (string) Str::ulid(), 'status' => 'open', 'assignee_id' => $agent->id,
     ]));
     $this->actingAs($agent)->getJson($this->url)->assertOk()->assertJsonPath('name', 'Ana Ruiz');
     expect($this->actingAs($agent)->getJson($api)->json('data'))->toHaveCount(1);

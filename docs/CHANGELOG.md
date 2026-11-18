@@ -1,5 +1,117 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-18 — Cierre de la Fase 5 (Servicios, agencia y escala)
+
+### Criterio «Listo cuando» (medido con `infra/e2e/fase5.sh`)
+
+El recorrido usa un hub aislado (`igr_e2e5`) con la agencia «Imagina La Web» y tres clientes. La «Clínica Dental Sonrisa» es un **WordPress corporativo sin WooCommerce**, con Contact Form 7 y el plugin conectado. «Pinturas La 14» es una tienda demo con 300 clientes y 1.500 pedidos. «Café Sierra» no tiene sitio.
+
+Meta (Conversions API y WhatsApp Cloud API) y Google (OAuth y Data Manager) son **simuladores locales** (`infra/e2e/mock-meta.php`): se prueba lo que hace el hub, no la respuesta de las plataformas reales. No hay clave de Anthropic: el resumen del reporte salió con la plantilla sin IA.
+
+| Criterio | Resultado |
+|---|---|
+| Un sitio corporativo sin WooCommerce usa el producto completo para leads | **Sí.** Ver el detalle debajo de la tabla. |
+| La agencia ve a todos sus clientes en un tablero | **Sí.** El panel `/w/…/agencia` muestra los tres clientes: la clínica, conectada, con **$3.500.000 generados** («Lo que más aportó: Leads ganados»); la tienda, conectada; y el café, «Sin sitio». Desde ahí la agencia generó y descargó el **reporte mensual en PDF**: una página de 29 KB titulada «Reporte mensual de Clínica Dental Sonrisa · noviembre de 2026», con «$3.500.000». El dueño lo recibió por correo con el PDF adjunto y el asunto «…: $3.500.000 generados». |
+
+Lo que hizo la clínica, paso a paso:
+1. **El lead llega con su fuente.** Una persona llega desde un anuncio de Google (con `gclid`), mira «Servicios» y deja sus datos en el formulario. Nace un lead de **50 puntos**: formulario +30, página de servicios +10 y correo corporativo +10. Queda «tibio», con su fuente (Google Ads con el gclid), asignado a la vendedora y avisado a ella por **WhatsApp** con la plantilla de utilidad aprobada.
+2. **La cita queda en el mismo lead.** La persona agenda su valoración con el botón `[igr_booking]` en la página de reservas del hub; el enlace llevó su visitante y el anuncio.
+3. **Recordatorio y confirmación.** El **recordatorio de 2 h** salió por correo, y la respuesta «Confirmo» por WhatsApp **confirmó la cita**.
+4. **Cotizador.** Otra persona usó el **cotizador** `[igr_quote]` en el celular: vio «$4.600.000 – $5.640.000 COP» y quedó como lead del cotizador con su cotización.
+5. **Lead ganado y conversión offline.** El dueño marcó el primer lead como **ganado por $3.500.000** desde el panel. La conversión offline llegó a Meta (`action_source = system_generated`, con su valor) y a Google Ads (Data Manager, autorizada, con el valor y el **gclid** del anuncio).
+
+### Qué se entregó
+- **Leads (M18):**
+  - Captura desde cualquier formulario y desde WhatsApp con intención de compra, con un lead abierto por contacto.
+  - Puntaje por reglas, con IA opcional (`lead_qualifier`) y decaimiento semanal.
+  - Aviso al vendedor y reparto por turnos o por servicio.
+  - Kanban con arrastrar, lista, ficha con notas cifradas, KPI y embudo editable.
+  - Conversión offline del lead ganado a Meta y Google Ads (una vez por lead, con consentimiento).
+  - Detectores de hallazgos 21 a 23, condición «lead» en segmentos y tarjeta en el perfil.
+- **Agenda y cotizador (M18):**
+  - Página pública de reservas que funciona sin JavaScript, con días, horarios cada 15 min, festivos de Colombia, reprogramar, cancelar y `.ics`.
+  - Recordatorios a 24 h y 2 h, confirmación o reprogramación por WhatsApp e inasistencias.
+  - Google Calendar (sin probar con una cuenta real).
+  - Cotizador por área, por opciones o por fórmula, con rango, mínimo y redondeo; el precio se muestra a cambio del contacto.
+  - Shortcodes, bloques y widgets de Elementor también en sitios sin WooCommerce.
+  - Condición «Citas» en segmentos.
+- **API pública, webhooks y MCP (M19):**
+  - `/api/v1` con 21 operaciones, tokens por alcance, límite por minuto del plan, idempotencia y documentación OpenAPI en `/api/docs`.
+  - Webhooks firmados con reintentos y pausa automática.
+  - Servidor MCP con 7 herramientas; las que escriben solo dejan borradores.
+  - Presets del ecosistema Imagina; Imagina Turbo envía métricas web (`page.vitals`).
+  - Pantalla «API e integraciones».
+- **Planes y facturación (M21):**
+  - Planes por pedidos o contactos activos, módulos por plan (Pennant) y uso medido cada 5 min (incluidas las peticiones a la API y MCP).
+  - Avisos al 80 % y al 100 %, sin cortes bruscos.
+  - Facturas manuales con PDF y enlace de pago.
+  - Prueba, gracia de 7 días y suspensión, que frena solo el marketing, las importaciones y la IA.
+  - Aviso en todo el panel y panel interno de la plataforma.
+- **Agencia y marca blanca (M22):**
+  - Tablero de clientes: dinero generado, salud, hallazgos críticos, uso y facturación.
+  - Biblioteca de plantillas que se copian entre clientes sin datos personales.
+  - Reporte mensual en PDF con marca: se envía el día 1 a las 08:00 locales y lo resume la IA validada o la plantilla.
+  - Marca blanca con logo, color y remitente verificado.
+  - Dominios propios verificados por DNS para el panel, los enlaces y la página de reservas.
+  - Sesiones de soporte auditadas.
+- **Bandeja:** Instagram y Messenger junto a WhatsApp.
+- **Flujos de la biblioteca:**
+  - 18 «Lead de servicios» (respuesta y 3 toques).
+  - 19 «Recordatorio de cita», que lleva a la Agenda.
+  - 20 «Renovación», con `contacts.renewal_at`, editable en el perfil, la importación y la API.
+- **Contrato v5:** `lead.*`, `appointment.*`, `quote.requested` (solo del hub) y `page.vitals`.
+
+### Errores que encontró la integración y el recorrido (corregidos con prueba)
+- **Un negocio de servicios mostraba $0 generados:** `MoneyGenerated` solo contaba pedidos. Ahora cada lead ganado es una venta y suma al módulo que lo captó: formulario o WhatsApp, reservas o cotizador.
+- **«2 a 8 millones» quedaba como $28:** el presupuesto ahora entiende rangos (toma el punto medio), «mil», «millones», «k» y «M».
+- **El puntaje no veía la visita a precios justo antes del formulario.** La visita llegó anónima, y el enlace con el contacto (`identity_map`) llega a ClickHouse en el siguiente lote. Se corrigió de dos formas: los visitantes del contacto salen de MariaDB, y la lectura se repite a los 90 s (`RescoreLeadHistory`).
+- **La cita perdía el anuncio que la trajo:** la página de reservas vive en el hub. El tracker ahora agrega al botón de reservas el visitante y el último contacto (UTM y click IDs). El tracker pesa 5.903 B gzip de 6.144.
+- **El connector lanzaba un aviso en sitios sin WooCommerce:** al importar el historial contaba las categorías de producto (`WP_Error`).
+- **El reporte de un sitio corporativo hablaba de «pedidos» y «ventas de la tienda»** y mostraba «Ventas $0». Ahora tiene un modo «servicios»: negocios cerrados, ventas con los leads ganados y sin las predicciones de recompra. También se corrigió el plural «1 pedidos».
+- **La importación con la cuenta suspendida respondía 423:** Laravel usa ese código para «confirma tu contraseña», así que la SPA pedía la contraseña. Ahora responde 402 `billing_suspended` con su mensaje.
+- **El panel fallaba (500) con un usuario sin `is_platform_admin` cargado** (`MissingAttributeException`).
+- **El enlace del panel de agencia mostraba la clave `agency.modules.leads`** porque la compilación de la SPA era vieja. Se recompiló y la etiqueta neutra dice «de las ventas».
+- **Pruebas:**
+  - La de reintentos de webhooks fallaba a veces (59 frente a 60 s).
+  - Una prueba de hallazgos todavía esperaba apagados los detectores 21 a 23.
+
+### Pruebas al cierre
+- **Hub:**
+  - 1.007 pruebas Pest en la suite completa, más las que se agregaron después: la segunda pasada del puntaje y el reporte en modo servicios. Las carpetas afectadas pasaron.
+  - Larastan nivel 8 sin errores en todo el hub; Pint limpio.
+  - SPA: 173 pruebas de Vitest, `tsc` y ESLint limpios.
+- **Connector:** 15 unitarias y 85 de WordPress (incluye `ServiceSlotsTest`); PHPCS 0 errores y 22 advertencias, las mismas de antes.
+- **Tracker:** 63 de Vitest; Playwright: PLAYWRIGHT_RESULT. Tamaños dentro del límite; `igr-w-quote.js` pesa 3.460 B de 4.096.
+- **Recorrido:** `infra/e2e/fase5.sh` en verde (SECOND_RUN).
+
+### Cambios a la especificación (con su motivo, en el mismo commit que el código)
+- **`page.vitals` entra en el contrato v5 y no abre una v6:** se agregó durante la Fase 5, antes de cerrarla, y ningún sitio envía todavía la v5.
+- **Dinero generado en servicios:** cuentan los leads ganados (M22); sin eso, un sitio corporativo nunca muestra lo que generó (principio 7).
+- **Flujo 19 como tarjeta de la Agenda:** el programador de la Agenda ya envía los recordatorios; un flujo encima los mandaría dos veces.
+- **Flujo 18 como marketing:** por defecto, según cumplimiento.md §4.1, porque el caso es ambiguo.
+- **Clarity recibe el `anonymous_id`, no el `contact_id`:** el navegador no conoce al contacto (M19).
+- **Documentación de la API en `/api/docs`:** la SPA ocupa `/docs/*`.
+- **Importación suspendida responde 402, no 423.**
+
+### Pendiente y desviaciones conocidas
+- **[verificar] con el modelo real** (`IGR_ANTHROPIC_API_KEY`): la calificación de leads con IA, el resumen del reporte mensual y lo que ya estaba pendiente de la Fase 4 (`igr:agent:eval`).
+- **[verificar] con cuentas reales:**
+  - El nombre del evento en Meta para el lead ganado (`Purchase` / `system_generated`) y los campos de Data Manager para `lead_won`.
+  - Google Calendar.
+  - La aprobación en Meta de las plantillas `wa_lead_reply`, `wa_renewal_reminder` y `team_alert` de cada cliente.
+  - Las cuentas de Instagram y Messenger.
+- **MCP:**
+  - Solo con un token pegado; falta OAuth.
+  - [verificar] los pasos exactos para agregarlo como conector en Claude.
+  - [verificar] los nombres y URL de cada producto del ecosistema Imagina.
+- **Dominios propios:** el TLS bajo demanda y el CNAME (`domains.growth.imagina.cloud`) no se probaron en producción.
+- **Facturación:** el enlace de pago es manual (sin pasarela); los precios de los planes son de referencia [verificar con el equipo comercial].
+- **Pendientes de prueba o de funcionamiento:**
+  - Los widgets de Elementor no se probaron en un Elementor real.
+  - La condición «Cita próxima» de los segmentos se actualiza con el recálculo programado, no en el momento.
+  - Falta revisar si las tablas de la Fase 4 guardan datos de contacto que el borrado no cubre.
+- **Heredados:** la imagen Docker del servicio `ml` y los recorridos manuales grabados de las fases 4 y 5.
+
 ## 2026-11-18 — Cierre de la Fase 4 (Inteligencia avanzada e IA)
 
 ### Criterio «Listo cuando» (medido con `infra/e2e/fase4.sh`)
