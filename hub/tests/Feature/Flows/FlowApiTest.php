@@ -252,3 +252,13 @@ it('resultados: conversión del grupo expuesto, incremento con intervalo del 95%
         ->and($res->json('nodes.wa1.outcomes'))->toBe(['sent' => 100])
         ->and($res->json('nodes.wa1.converted'))->toBe(30);
 });
+
+it('carrito y checkout abandonados de la biblioteca se excluyen entre sí por defecto', function () {
+    $cart = $this->actingAs($this->owner)->postJson($this->api('/library/abandoned_cart'), ['activate' => true])->assertCreated()->json('id');
+    $checkout = $this->actingAs($this->owner)->postJson($this->api('/library/abandoned_checkout'), ['activate' => true])->assertCreated()->json('id');
+    app(CurrentWorkspace::class)->run($this->ws, function () use ($cart, $checkout) {
+        $a = Flow::findByPublicId($cart);
+        $b = Flow::findByPublicId($checkout);
+        expect($a->exclusions)->toBe([$b->id])->and($b->exclusions)->toBe([$a->id]);
+    });
+});

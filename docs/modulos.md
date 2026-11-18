@@ -300,6 +300,8 @@
 | 19 | Recordatorio de cita | `appointment.booked` | 24 h y 2 h antes, con reprogramación por botón |
 | 20 | Renovación | fecha de renovación − 15 días | recordatorio, oferta y aviso al equipo si no renueva |
 
+**Exclusión por defecto:** los flujos 2 (carrito abandonado) y 3 (checkout abandonado) de la biblioteca se excluyen entre sí al crearse: quien abandona el checkout también abandona el carrito, y no se le escribe dos veces por lo mismo. Se cambia en la configuración del flujo.
+
 **Listo cuando:** los 20 flujos funcionan de punta a punta en la tienda de prueba, y una prueba automática garantiza que ningún paso de marketing se ejecuta fuera de la ventana legal ni dos veces por reintentos.
 
 **Implementación (Fase 2):**

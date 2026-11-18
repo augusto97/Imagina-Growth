@@ -22,6 +22,9 @@ use App\Support\Tenancy\CurrentWorkspace;
  */
 final class CreateFlowFromLibrary
 {
+    /** @var array<string, list<string>> flujos de la biblioteca que se excluyen entre sí */
+    private const EXCLUSIVE = ['abandoned_cart' => ['abandoned_checkout'], 'abandoned_checkout' => ['abandoned_cart']];
+
     public function __construct(
         private readonly SaveFlow $save,
         private readonly PublishFlow $publish,
@@ -59,6 +62,7 @@ final class CreateFlowFromLibrary
             'graph' => $definition['graph'],
         ], $userId);
         $flow = $result['flow'];
+        $this->excludeSiblings($flow);
         $activated = false;
         if ($activate && $result['issues'] === []) {
             $this->publish->handle($flow, $userId);
@@ -67,5 +71,24 @@ final class CreateFlowFromLibrary
         }
 
         return ['flow' => $flow->refresh(), 'issues' => $result['issues'], 'activated' => $activated];
+    }
+
+    /**
+     * Carrito y checkout abandonados se excluyen entre sí por defecto: quien deja el
+     * checkout también deja el carrito, y no se le escribe dos veces por lo mismo.
+     * La comerciante lo puede cambiar en la configuración del flujo.
+     */
+    private function excludeSiblings(Flow $flow): void
+    {
+        $siblings = self::EXCLUSIVE[$flow->template_key] ?? [];
+        if ($siblings === []) {
+            return;
+        }
+        $others = Flow::query()->whereIn('template_key', $siblings)->where('status', '!=', Flow::ARCHIVED)->where('id', '!=', $flow->id)->get();
+        foreach ($others as $other) {
+            $flow->exclusions = array_values(array_unique([...(array) $flow->exclusions, $other->id]));
+            $other->forceFill(['exclusions' => array_values(array_unique([...(array) $other->exclusions, $flow->id]))])->save();
+        }
+        $flow->save();
     }
 }
