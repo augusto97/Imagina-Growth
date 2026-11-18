@@ -71,7 +71,7 @@ describe('reglas de muestra', () => {
         const first = pickVariant(wg, 'aid-1:wg_1')?.key;
         for (let i = 0; i < 5; i++) expect(pickVariant(wg, 'aid-1:wg_1')?.key).toBe(first);
         const counts: Record<string, number> = { a: 0, b: 0 };
-        for (let i = 0; i < 2000; i++) counts[pickVariant(wg, 'aid-' + i + ':wg_1')?.key ?? '']++;
+        for (let i = 0; i < 2000; i++) counts[pickVariant(wg, 'aid-' + i + ':wg_1')?.key ?? ''] = (counts[pickVariant(wg, 'aid-' + i + ':wg_1')?.key ?? ''] ?? 0) + 1;
         expect(counts['a']).toBeGreaterThan(850);
         expect(counts['b']).toBeGreaterThan(850);
         const skew = w({ variants: [{ key: 'a', weight: 90 }, { key: 'b', weight: 10 }] });

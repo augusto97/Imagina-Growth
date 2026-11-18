@@ -15,6 +15,7 @@ use App\Domain\Segments\Models\Segment;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Domain\Workspaces\Models\User;
 use App\Support\Tenancy\CurrentWorkspace;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -201,9 +202,9 @@ final class AudienceController
     }
 
     /** Próxima corrida programada (02:37 y 14:37 en la zona del servidor). */
-    private static function nextRun(): \Carbon\CarbonImmutable
+    private static function nextRun(): CarbonImmutable
     {
-        $now = \Carbon\CarbonImmutable::now();
+        $now = CarbonImmutable::now();
         foreach ([$now->setTime(2, 37), $now->setTime(14, 37), $now->addDay()->setTime(2, 37)] as $at) {
             if ($at->gt($now)) {
                 return $at;

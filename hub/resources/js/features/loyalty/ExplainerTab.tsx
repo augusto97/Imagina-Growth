@@ -19,7 +19,7 @@ export function ExplainerTab({ data }: { data: LoyaltyOverview }) {
         return <EmptyState icon={FileText} title={t('loyalty.explainer.emptyTitle')} description={t('loyalty.explainer.emptyHelp')} />;
     }
     const copy = () => {
-        void navigator.clipboard?.writeText(explainerText(e)).then(
+        void navigator.clipboard.writeText(explainerText(e)).then(
             () => toast.success(t('loyalty.explainer.copied')),
             () => toast.error(t('errors.generic')),
         );

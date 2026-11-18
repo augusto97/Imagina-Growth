@@ -23,7 +23,7 @@ export interface ProgramDraft {
 }
 
 const n = (v: unknown, fallback = 0): number => {
-    const x = typeof v === 'number' ? v : Number(String(v ?? '').replace(',', '.'));
+    const x = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v.replace(',', '.')) : NaN;
     return Number.isFinite(x) ? x : fallback;
 };
 /** «1000.00» → «1000» y «1.50» → «1.5»: sin ceros que estorben al editar. */

@@ -13,6 +13,8 @@ use App\Domain\Recommendations\Models\CommerceSettings;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Support\Tenancy\CurrentWorkspace;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -215,14 +217,14 @@ final class RecommendationsController
         return response()->json(['queued' => true], 202);
     }
 
-    /** @return \Illuminate\Database\Eloquent\Collection<int, Site> */
-    private function sites(): \Illuminate\Database\Eloquent\Collection
+    /** @return Collection<int, Site> */
+    private function sites(): Collection
     {
         return Site::query()->where('platform', 'woocommerce')->whereIn('status', [Site::STATUS_CONNECTED, Site::STATUS_DEGRADED])->orderBy('created_at')->get();
     }
 
-    /** @param \Illuminate\Database\Eloquent\Collection<int, Site> $sites */
-    private function site(Request $request, \Illuminate\Database\Eloquent\Collection $sites): ?Site
+    /** @param Collection<int, Site> $sites */
+    private function site(Request $request, Collection $sites): ?Site
     {
         $wanted = $request->query('site_id', $request->input('site_id'));
         if (is_string($wanted) && $wanted !== '') {
@@ -234,6 +236,6 @@ final class RecommendationsController
 
     private static function iso(mixed $value): ?string
     {
-        return is_string($value) && $value !== '' ? \Carbon\CarbonImmutable::parse($value)->toIso8601String() : null;
+        return is_string($value) && $value !== '' ? CarbonImmutable::parse($value)->toIso8601String() : null;
     }
 }

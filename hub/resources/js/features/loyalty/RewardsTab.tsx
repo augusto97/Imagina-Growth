@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import { Archive, Gift, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -84,7 +85,7 @@ export function RewardsTab({ data }: { data: LoyaltyOverview }) {
     );
 }
 
-export function rewardValue(t: (k: string, o?: Record<string, unknown>) => string, r: Pick<Reward, 'kind' | 'value'>, currency: string, locale: string): string {
+export function rewardValue(t: TFunction, r: Pick<Reward, 'kind' | 'value'>, currency: string, locale: string): string {
     switch (r.kind) {
         case 'coupon_percent':
             return t('loyalty.rewards.valuePercent', { pct: Number(r.value) });

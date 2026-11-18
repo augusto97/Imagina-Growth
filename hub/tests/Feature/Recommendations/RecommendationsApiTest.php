@@ -1,11 +1,13 @@
 <?php
 
+use App\Domain\Recommendations\Jobs\BuildRecommendationData;
 use App\Domain\Recommendations\Models\OnsiteBanner;
 use App\Domain\Recommendations\Models\ProductWatch;
 use App\Domain\Recommendations\Stats\AssociationRulesBuilder;
 use App\Domain\Recommendations\Stats\ProductStatsBuilder;
 use App\Domain\Segments\Models\Segment;
 use App\Domain\Templates\Library\TemplateLibrary;
+use App\Domain\Templates\Models\Template;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
@@ -80,7 +82,7 @@ it('guarda qué bloques se activan y solo con permiso de marketing; reconstruir 
 
     Bus::fake();
     $this->actingAs($this->owner)->postJson("{$this->api}/recommendations/rebuild")->assertStatus(202);
-    Bus::assertDispatched(fn (App\Domain\Recommendations\Jobs\BuildRecommendationData $job) => $job->workspaceId() === $this->ws->id);
+    Bus::assertDispatched(fn (BuildRecommendationData $job) => $job->workspaceId() === $this->ws->id);
 });
 
 it('resume los avisos con las ventas de los 7 días siguientes y lista las suscripciones', function () {
@@ -111,7 +113,7 @@ it('resume los avisos con las ventas de los 7 días siguientes y lista las suscr
 });
 
 it('elige la plantilla de cada aviso y cancela suscripciones con permiso', function () {
-    $wa = $this->commerceRun(fn () => App\Domain\Templates\Models\Template::query()->create(['workspace_id' => $this->ws->id, 'name' => 'Volvió (WA)', 'channel' => 'whatsapp', 'category' => 'marketing']));
+    $wa = $this->commerceRun(fn () => Template::query()->create(['workspace_id' => $this->ws->id, 'name' => 'Volvió (WA)', 'channel' => 'whatsapp', 'category' => 'marketing']));
     $email = TemplateLibrary::install($this->ws, 'price_drop');
     $saved = $this->actingAs($this->owner)->patchJson("{$this->api}/watches/settings", [
         'channels' => ['whatsapp', 'email'], 'templates' => ['back_in_stock' => ['whatsapp' => $wa->publicId()], 'price_drop' => ['email' => $email->publicId()]],

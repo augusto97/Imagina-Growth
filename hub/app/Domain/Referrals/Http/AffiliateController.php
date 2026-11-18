@@ -258,7 +258,7 @@ final class AffiliateController
             'coupon_codes' => array_values($a->coupon_codes ?? []),
             'link_code' => $a->link_code,
             'commission' => $a->commission,
-            'commission_label' => CreatorPortalData::commissionLabel($a, $this->current->get()),
+            'commission_label' => CreatorPortalData::commissionLabel($a, $this->current->get(), forCreator: false),
             'material' => array_values($a->material ?? []),
             'portal_sent_at' => $a->portal_sent_at?->toIso8601String(),
             'created_at' => $a->created_at?->toIso8601String(),

@@ -2,6 +2,7 @@
 
 use App\Domain\Consent\Actions\RecordConsent;
 use App\Domain\Contacts\Models\Contact;
+use App\Domain\Measurement\Audiences\Jobs\SyncAudienceJob;
 use App\Domain\Measurement\Audiences\Models\AudienceMember;
 use App\Domain\Measurement\Audiences\Models\AudienceSync;
 use App\Domain\Measurement\Enums\DestinationMode;
@@ -191,7 +192,7 @@ it('crea audiencias desde el panel con atajos, con permisos y sin ver las de otr
 
     $created = $this->actingAs($this->owner)->postJson($this->api, ['destination_id' => $meta->publicId(), 'preset' => 'recent_buyers_exclusion'])->assertCreated();
     expect($created->json('purpose'))->toBe('exclusion')->and($created->json('segment.name'))->toBe('Compraron en los últimos 30 días')->and($created->json('status'))->toBe('pending');
-    Bus::assertDispatched(App\Domain\Measurement\Audiences\Jobs\SyncAudienceJob::class);
+    Bus::assertDispatched(SyncAudienceJob::class);
     // El mismo segmento al mismo destino no se repite.
     $this->actingAs($this->owner)->postJson($this->api, ['destination_id' => $meta->publicId(), 'preset' => 'recent_buyers_exclusion'])->assertStatus(422);
     $seed = $this->actingAs($this->owner)->postJson($this->api, ['destination_id' => $tiktok->publicId(), 'preset' => 'high_value_seed'])->assertCreated();

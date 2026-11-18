@@ -85,17 +85,20 @@ final class CreatorPortalData
         ];
     }
 
-    public static function commissionLabel(Affiliate $affiliate, Workspace $workspace): string
+    /** «Tu comisión: 10% …» en el panel del creador; «Comisión: 10% …» en el panel del equipo. */
+    public static function commissionLabel(Affiliate $affiliate, Workspace $workspace, bool $forCreator = true): string
     {
         $rule = $affiliate->commission;
         $value = (string) ($rule['value'] ?? '0');
         if (($rule['type'] ?? 'percent') === 'fixed') {
-            return __('Tu comisión: :amount por pedido completado', ['amount' => MoneyLabel::format($value, $workspace->currency, $workspace->locale)]);
+            $text = __(':amount por pedido completado', ['amount' => MoneyLabel::format($value, $workspace->currency, $workspace->locale)]);
+        } else {
+            $pct = rtrim(rtrim(Decimal::of($value), '0'), '.').'%';
+            $text = ($rule['basis'] ?? 'net') === 'total'
+                ? __(':pct del total de cada pedido completado', ['pct' => $pct])
+                : __(':pct del valor de los productos de cada pedido completado', ['pct' => $pct]);
         }
-        $pct = rtrim(rtrim(Decimal::of($value), '0'), '.').'%';
 
-        return ($rule['basis'] ?? 'net') === 'total'
-            ? __('Tu comisión: :pct del total de cada pedido completado', ['pct' => $pct])
-            : __('Tu comisión: :pct del valor de los productos de cada pedido completado', ['pct' => $pct]);
+        return $forCreator ? __('Tu comisión: :text', ['text' => $text]) : __('Comisión: :text', ['text' => $text]);
     }
 }

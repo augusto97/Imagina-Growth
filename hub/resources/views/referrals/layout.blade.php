@@ -18,7 +18,7 @@
         h2 { font-size: 15px; margin: 0 0 12px; }
         p { margin: 0 0 12px; }
         .muted { color: var(--muted); font-size: 13px; }
-        .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+        .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
         .kpi { border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
         .kpi .label { color: var(--muted); font-size: 12px; margin: 0 0 4px; }
         .kpi .value { font-size: 20px; font-weight: 600; margin: 0; font-variant-numeric: tabular-nums; }
@@ -43,6 +43,7 @@
         ul.plain { list-style: none; padding: 0; margin: 0; }
         ul.plain li { padding: 6px 0; border-bottom: 1px solid var(--line); }
         ul.plain li:last-child { border-bottom: 0; }
+        @media (max-width: 480px) { .hide-sm { display: none; } main { margin: 16px auto; } .card { padding: 18px; } }
     </style>
 </head>
 <body>

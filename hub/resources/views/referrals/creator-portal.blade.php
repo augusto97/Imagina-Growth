@@ -80,13 +80,13 @@
         @else
             <div class="scroll">
                 <table>
-                    <thead><tr><th>{{ __('Fecha') }}</th><th>{{ __('Pedido') }}</th><th>{{ __('Por') }}</th><th class="num">{{ __('Venta') }}</th><th class="num">{{ __('Comisión') }}</th><th>{{ __('Estado') }}</th></tr></thead>
+                    <thead><tr><th>{{ __('Fecha') }}</th><th>{{ __('Pedido') }}</th><th class="hide-sm">{{ __('Por') }}</th><th class="num">{{ __('Venta') }}</th><th class="num">{{ __('Comisión') }}</th><th>{{ __('Estado') }}</th></tr></thead>
                     <tbody>
                     @foreach ($conversions as $row)
                         <tr>
                             <td>{{ $row['date'] }}</td>
                             <td>#{{ $row['number'] }}</td>
-                            <td>{{ $row['via'] }}</td>
+                            <td class="hide-sm">{{ $row['via'] }}</td>
                             <td class="num">{{ $row['amount'] }}</td>
                             <td class="num">{{ $row['commission'] }}</td>
                             <td><span class="status {{ $row['status'] }}">{{ $row['status_label'] }}</span></td>
