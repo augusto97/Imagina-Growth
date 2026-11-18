@@ -9,6 +9,7 @@ use App\Domain\Commerce\Data\CouponSpec;
 use App\Domain\Commerce\Exceptions\CouponIssueException;
 use App\Domain\Commerce\Models\Cart;
 use App\Domain\Commerce\Support\CartRestoreLink;
+use App\Domain\Contacts\Models\Contact;
 use App\Domain\Inbox\Models\ConversationEvent;
 use App\Domain\Inbox\Realtime\InboxUpdated;
 use App\Domain\Messaging\Contracts\MessageDispatcher;
@@ -214,8 +215,15 @@ final class SendInboxMessage
     private function paymentText(Conversation $conversation, array $items): string
     {
         try {
+            // La tienda necesita el correo de facturación: WooCommerce pide verificarlo en la página de pago
+            // de un pedido de invitado. Son datos del propio cliente hacia su propia tienda.
+            $contact = Contact::query()->find($conversation->contact_id);
             $data = $this->site->handle($this->siteFor($conversation), 'order.create_payment_link', [
-                'items' => self::items($items), 'customer' => ['contact_id' => PrefixedId::encode('ct', $conversation->contact_id)],
+                'items' => self::items($items),
+                'billing' => array_filter([
+                    'email' => $contact?->email, 'phone' => $contact?->phone,
+                    'first_name' => $contact?->first_name, 'last_name' => $contact?->last_name,
+                ], fn ($v) => is_string($v) && $v !== ''),
             ], timeout: 10);
         } catch (RuntimeException $e) {
             throw new InvalidArgumentException(__('La tienda no pudo crear el enlace de pago: :msg', ['msg' => $e->getMessage()]), 0, $e);
