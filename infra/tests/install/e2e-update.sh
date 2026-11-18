@@ -46,7 +46,7 @@ echo 0.1.0 >"$ASSETS/LATEST"
 "$RUN" up --name "$NAME" --assets "$ASSETS"
 "$RUN" install --name "$NAME" -- --domain "$DOMAIN" --email ops@e2e.test --releases-api http://127.0.0.1:9999 \
     --pubkey /assets/release-signing.pub.pem --skip-firewall 2>&1 | tee "$OUT/install.log" | tail -5
-[ "$(in_box 'readlink /opt/growth/current')" = "/opt/growth/releases/0.1.0" ] || fail "current no apunta a 0.1.0"
+[ "$(in_box 'readlink -f /opt/growth/current')" = "/opt/growth/releases/0.1.0" ] || fail "current no apunta a 0.1.0"
 [ "$(health 8080)" = "ok 0.1.0" ] || fail "/health/ready no responde 0.1.0"
 ok "0.1.0 instalada: $(in_box 'systemctl list-units "growth*" --state=active --no-legend | wc -l') unidades growth activas"
 
@@ -55,7 +55,7 @@ before=$(in_box 'sha256sum /opt/growth/shared/.env /etc/growth/updater.conf /etc
 "$RUN" install --name "$NAME" -- --releases-api http://127.0.0.1:9999 --pubkey /assets/release-signing.pub.pem --skip-firewall >"$OUT/install-2.log" 2>&1
 after=$(in_box 'sha256sum /opt/growth/shared/.env /etc/growth/updater.conf /etc/caddy/Caddyfile | sha256sum')
 [ "$before" = "$after" ] || fail "la segunda corrida cambió el .env, updater.conf o el Caddyfile"
-[ "$(in_box 'readlink /opt/growth/current')" = "/opt/growth/releases/0.1.0" ] || fail "la segunda corrida cambió la versión"
+[ "$(in_box 'readlink -f /opt/growth/current')" = "/opt/growth/releases/0.1.0" ] || fail "la segunda corrida cambió la versión"
 ok "Idempotente: .env, updater.conf, Caddyfile y versión iguales"
 
 step "Acceso al panel desde el navegador de prueba"
@@ -90,7 +90,7 @@ RESULT=$(panel 0.2.0)
 in_box 'touch /tmp/stop-availability'
 echo "$RESULT"
 [ "$(echo "$RESULT" | python3 -c 'import json,sys; print(json.load(sys.stdin)["state"])')" = "succeeded" ] || { status; fail "el panel no mostró 0.2.0 instalada"; }
-[ "$(in_box 'readlink /opt/growth/current')" = "/opt/growth/releases/0.2.0" ] || fail "current no apunta a 0.2.0"
+[ "$(in_box 'readlink -f /opt/growth/current')" = "/opt/growth/releases/0.2.0" ] || fail "current no apunta a 0.2.0"
 for port in 8080 8081 8082; do [ "$(health $port)" = "ok 0.2.0" ] || fail "el puerto $port no responde 0.2.0"; done
 in_box "mariadb -N -e 'SHOW TABLES IN igr LIKE \"e2e_upgrade_marker\"'" | grep -q e2e_upgrade_marker || fail "no corrió la migración nueva"
 in_box "grep -qx 'E2E_NUEVA=hola' /opt/growth/shared/.env" || fail "no se agregó la variable nueva al .env"
@@ -110,7 +110,7 @@ echo 0.3.0 >"$ASSETS/LATEST"
 RESULT=$(panel 0.3.0)
 echo "$RESULT"
 [ "$(echo "$RESULT" | python3 -c 'import json,sys; print(json.load(sys.stdin)["state"])')" = "rolled_back" ] || { status; fail "el panel no mostró la vuelta atrás"; }
-[ "$(in_box 'readlink /opt/growth/current')" = "/opt/growth/releases/0.2.0" ] || fail "current no volvió a 0.2.0"
+[ "$(in_box 'readlink -f /opt/growth/current')" = "/opt/growth/releases/0.2.0" ] || fail "current no volvió a 0.2.0"
 for port in 8080 8081 8082; do [ "$(health $port)" = "ok 0.2.0" ] || fail "el puerto $port no volvió a 0.2.0"; done
 in_box 'cmp -s /usr/local/lib/growth/bin/growth-update /opt/growth/releases/0.2.0/bin/growth-update' || fail "los scripts de root cambiaron tras la vuelta atrás"
 status | python3 -c 'import json,sys; d=json.load(sys.stdin); print("estado:", d["state"], "· error:", d.get("error"))'
