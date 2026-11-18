@@ -658,6 +658,13 @@ Especificación completa en `docs/cumplimiento.md`. Incluye:
 - Los mensajes de WhatsApp los paga cada cliente a Meta en su propia cuenta; el correo va incluido hasta un volumen y después hay paquetes.
 - En la v1 la facturación es manual o con un enlace de pago. Se integra con el sistema de cobros que se elija después.
 
+**Estado (Fase 5):**
+- **Planes:** `config/igr-plans.php` → tabla `plans` con `igr:plans:sync` (tiendas: Inicio, Crece, Pro; servicios: Inicio, Pro; `agencia` interno). El plan es de la cuenta (`accounts.plan_id`) y cada espacio de trabajo recibe su volumen. `PlanEntitlements` reemplaza a `UnlimitedEntitlements`: los 14 módulos se resuelven con Pennant (`module.<clave>`, alcance: el espacio de trabajo) y el equipo de la plataforma puede forzar uno por espacio (`workspace_feature_overrides`). Sin plan, todo está permitido.
+- **Uso:** `igr:billing:usage` cada 5 minutos y bajo demanda («Actualizar uso») llena `usage_counters` (pedidos, contactos activos, correos, WhatsApp por categoría, SMS, eventos, tokens de IA). Avisos por correo al 80 % y al 100 % del volumen y de los correos incluidos, una vez por umbral y mes.
+- **Sin cortes bruscos:** al llegar al 100 % del volumen o con una factura vencida, la cuenta pasa a **gracia** 7 días (franja en «Plan y facturación» y correo). Si sigue así al terminar, queda **suspendida**: solo se apagan `Entitlements::allows($ws, 'marketing_sends')` (campañas y mensajes de marketing de los flujos) e `imports` (importaciones nuevas). La ingesta, la medición, la bandeja y los mensajes de servicio siguen. Al resolverse (plan mayor, pago) vuelve a activa sola (`igr:billing:status` cada hora).
+- **Facturas v1:** las emite el equipo desde el panel interno con número `IGR-AAAA-NNNN`, PDF con la marca del emisor (dompdf) y enlace de pago (`PaymentLinkProvider`: manual con URL configurada o ninguno; una pasarela se conecta implementando el contrato). Estados: borrador → enviada → pagada | vencida; anulada. Los correos de facturación son de la plataforma al cliente (Laravel Mail con la marca de `Branding`), no salen por los canales del cliente.
+- **Cambio de plan:** el dueño compara planes y pide el cambio; el equipo recibe un correo y lo aplica o rechaza en el panel. No hay cobro automático.
+
 ---
 
 ## M22 — Panel de agencia · Fase 5

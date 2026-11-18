@@ -1,5 +1,5 @@
 import { CheckCircle2, CircleAlert, Clock, Globe, ImageUp, Trash2 } from 'lucide-react';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,7 +39,7 @@ export function BrandTab() {
     return (
         <div className="igr:space-y-6">
             {branding.data.accounts.map((account) => (
-                <AccountBrand key={account.id} account={account} />
+                <AccountBrand key={`${account.id}:${JSON.stringify(account.branding)}`} account={account} />
             ))}
         </div>
     );
@@ -53,7 +53,6 @@ function AccountBrand({ account }: { account: AgencyBrandingAccount }) {
     const removeLogo = useDeleteLogo(workspace.id);
     const file = useRef<HTMLInputElement>(null);
     const [form, setForm] = useState<Omit<BrandingForm, 'logo_url'>>(() => strip(account.branding));
-    useEffect(() => setForm(strip(account.branding)), [account.branding]);
     const disabled = !account.can_manage;
     const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
     const onError = (e: unknown) => toast.error(t('errors.title'), isApiError(e) ? e.message : undefined);

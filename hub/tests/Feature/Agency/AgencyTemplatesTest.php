@@ -11,6 +11,7 @@ use App\Domain\Templates\Models\Template;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\Feature\Agency\AgencyWorld;
 
 /** En el cliente A: plantilla de correo, segmento propio (y otro que depende de él), flujo, campaña y widget. */
@@ -45,7 +46,7 @@ function agencySeedSource(AgencyWorld $w): array
         $campaign = Campaign::query()->create(['workspace_id' => $w->a->id, 'name' => 'Black Friday', 'channel' => 'email', 'status' => 'scheduled',
             'audience' => ['segments_include' => [$city->publicId(), $system->publicId()], 'segments_exclude' => [$static->publicId()], 'all_contacts' => false, 'rules_include' => [], 'rules_exclude' => []],
             'template_id' => $tpl->id, 'send_mode' => 'scheduled', 'send_at' => now()->addDays(5)]);
-        $widget = OnsiteWidget::query()->create(['workspace_id' => $w->a->id, 'site_id' => strtoupper((string) \Illuminate\Support\Str::ulid()), 'name' => 'Popup 10%', 'kind' => 'popup', 'status' => 'active',
+        $widget = OnsiteWidget::query()->create(['workspace_id' => $w->a->id, 'site_id' => strtoupper((string) Str::ulid()), 'name' => 'Popup 10%', 'kind' => 'popup', 'status' => 'active',
             'targeting' => ['segments' => [$city->publicId()], 'pages' => ['/tienda']], 'content' => ['title' => '10% en tu primera compra']]);
 
         return compact('tpl', 'city', 'nested', 'static', 'system', 'flow', 'campaign', 'widget');

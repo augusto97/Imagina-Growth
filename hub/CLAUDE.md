@@ -244,7 +244,7 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 
 - **Contratos (Fase 5):**
   - `App\Domain\Workspaces\Contracts\Branding::for(Workspace): BrandingData` (nombre, logo, color, remitente, soporte, dominio del panel y marca blanca). Por defecto `DefaultBranding` (Imagina Growth); la agencia la reemplaza (M22). La usan el reporte mensual, los correos del sistema, la página de reservas y el portal de creadores.
-  - `App\Domain\Billing\Contracts\Entitlements`: `allows(Workspace, módulo)`, `limit(Workspace, clave)` (null = sin límite) y `planFor(Workspace)`. Por defecto `UnlimitedEntitlements`; los planes (M21, con Laravel Pennant) lo reemplazan. Nunca corta de golpe: gracia y aviso.
+  - `App\Domain\Billing\Contracts\Entitlements`: `allows(Workspace, módulo)`, `limit(Workspace, clave)` (null = sin límite) y `planFor(Workspace)`. Lo implementa `PlanEntitlements` (M21: plan de la cuenta + Pennant `module.<clave>` por espacio + ajustes de la plataforma; sin plan, todo permitido). Además responde `marketing_sends` e `imports`, que solo se apagan con la cuenta suspendida tras la gracia: quien envía marketing o importa debe preguntarlo antes. Nunca corta de golpe: gracia y aviso.
   - `App\Domain\Services\Contracts\LeadIntake::capture(LeadIntakeInput): ?string`: crea o actualiza el lead de un contacto, idempotente por (origen, referencia). La usan el cotizador, la agenda, la API y la bandeja; los formularios entran solos por `form.submitted`. Por defecto `NullLeadIntake`.
   - Paquetes de la fase: Laravel Pennant (tabla `features`), Scramble (solo `/api/v1`), Laravel MCP y `spatie/laravel-pdf` con el driver **dompdf** (sin Chromium en la imagen).
 
@@ -286,7 +286,7 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 
 Los jobs largos de `analytics` (importación de contactos, recálculo completo de segmentos, inteligencia nocturna) los atiende la conexión `redis-long` de `config/queue.php`: es la misma cola de Redis con `retry_after` de 1.900 s, mayor que su `timeout`, para que ningún worker los vuelva a tomar mientras siguen corriendo. Los segmentos en tiempo real (`EvaluateContactSegmentsJob`, 15 s después del evento) van por `triggers`.
 
-**Programadas:** flujos y campañas (cada minuto), carritos abandonados (cada minuto), sesiones (cada 10 min), segmentos completos, RFM, afinidad, predicciones y hallazgos (cada noche, escalonadas por workspace), gasto en anuncios (cada día), audiencias (cada 12 h), tarifas de WhatsApp (cada trimestre, manual con aviso), analista semanal (los lunes por zona horaria), reporte mensual (el día 1) y purga por retención (cada noche).
+**Programadas:** flujos y campañas (cada minuto), carritos abandonados (cada minuto), sesiones (cada 10 min), segmentos completos, RFM, afinidad, predicciones y hallazgos (cada noche, escalonadas por workspace), gasto en anuncios (cada día), audiencias (cada 12 h), tarifas de WhatsApp (cada trimestre, manual con aviso), analista semanal (los lunes por zona horaria), reporte mensual (el día 1), uso de los planes con avisos al 80/100 % (`igr:billing:usage`, cada 5 min), facturas vencidas y fin de la gracia (`igr:billing:status`, cada hora) y purga por retención (cada noche).
 
 ## 16. Rendimiento y observabilidad
 
@@ -302,7 +302,7 @@ Los jobs largos de `analytics` (importación de contactos, recálculo completo d
 | Vista previa de segmento | < 3 s |
 
 - **Observabilidad:** Sentry (o GlitchTip autoalojado) para errores; Horizon, Telescope solo en local; Better Stack para *uptime* y logs; `/health` con chequeos de MariaDB, ClickHouse, Redis, colas y retraso del stream.
-- **Panel interno de la plataforma** (solo superadmin): retraso de ingesta por shard, rechazos, entregas fallidas por proveedor, costo de IA y uso por espacio de trabajo.
+- **Panel interno de la plataforma** (solo superadmin): retraso de ingesta por shard, rechazos, entregas fallidas por proveedor, costo de IA y uso por espacio de trabajo. API en `/api/platform/*` (`routes/platform.php`, middleware `EnsurePlatformAdmin`, cargada por el proveedor de Billing); en la SPA vive en `/w/:ws/plataforma`. Ahí también se asignan planes, se fuerzan módulos por espacio, se emiten facturas y se atienden los pedidos de cambio de plan; todo queda en `audit_logs`.
 
 ## 17. Pruebas
 

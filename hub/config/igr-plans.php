@@ -16,8 +16,6 @@ return [
     // Umbrales de aviso de uso y días de gracia: sin cortes bruscos (M21).
     'alert_thresholds' => [80, 100],
     'grace_days' => 7,
-    // Días que un espacio de trabajo nuevo prueba todo sin plan.
-    'trial_days' => 14,
 
     // Facturas v1 (manuales): numeración IGR-AAAA-NNNN, vencimiento y enlace de pago.
     'invoices' => [

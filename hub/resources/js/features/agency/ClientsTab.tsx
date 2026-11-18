@@ -51,15 +51,6 @@ export function ClientsTab() {
             setDir(key === 'name' ? 'asc' : 'desc');
         }
     };
-    const SortHead = ({ k, label, className }: { k: ClientSort; label: string; className?: string }) => (
-        <TH className={className} aria-sort={sort === k ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-            <button type="button" onClick={() => toggleSort(k)} className="igr:inline-flex igr:items-center igr:gap-1 igr:hover:text-foreground" title={t('agency.sort_by', { column: label })}>
-                {label}
-                <ArrowDownUp className={cn('igr:size-3', sort === k ? 'igr:opacity-100' : 'igr:opacity-40')} aria-hidden />
-            </button>
-        </TH>
-    );
-
     return (
         <div className="igr:space-y-4">
             <div className="igr:grid igr:grid-cols-2 igr:gap-3 igr:lg:grid-cols-5">
@@ -100,13 +91,13 @@ export function ClientsTab() {
                     <Table>
                         <THead>
                             <TR>
-                                <SortHead k="name" label={t('agency.columns.client')} />
+                                <SortHead sort={sort} dir={dir} onToggle={toggleSort} k="name" label={t('agency.columns.client')} />
                                 <TH>{t('agency.columns.connection')}</TH>
-                                <SortHead k="money" label={t('agency.columns.generated')} className="igr:min-w-56" />
-                                <SortHead k="delta" label={t('agency.columns.change')} />
+                                <SortHead sort={sort} dir={dir} onToggle={toggleSort} k="money" label={t('agency.columns.generated')} className="igr:min-w-56" />
+                                <SortHead sort={sort} dir={dir} onToggle={toggleSort} k="delta" label={t('agency.columns.change')} />
                                 <TH>{t('agency.columns.top_module')}</TH>
-                                <SortHead k="critical" label={t('agency.columns.critical')} />
-                                <SortHead k="usage" label={t('agency.columns.usage')} />
+                                <SortHead sort={sort} dir={dir} onToggle={toggleSort} k="critical" label={t('agency.columns.critical')} />
+                                <SortHead sort={sort} dir={dir} onToggle={toggleSort} k="usage" label={t('agency.columns.usage')} />
                                 <TH>{t('agency.columns.billing')}</TH>
                                 <TH />
                             </TR>
@@ -165,6 +156,18 @@ export function ClientsTab() {
             )}
             <EnterDialog client={entering} onClose={() => setEntering(null)} />
         </div>
+    );
+}
+
+function SortHead({ k, label, className, sort, dir, onToggle }: { k: ClientSort; label: string; className?: string; sort: ClientSort; dir: 'asc' | 'desc'; onToggle: (k: ClientSort) => void }) {
+    const { t } = useTranslation();
+    return (
+        <TH className={className} aria-sort={sort === k ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+            <button type="button" onClick={() => onToggle(k)} className="igr:inline-flex igr:items-center igr:gap-1 igr:hover:text-foreground" title={t('agency.sort_by', { column: label })}>
+                {label}
+                <ArrowDownUp className={cn('igr:size-3', sort === k ? 'igr:opacity-100' : 'igr:opacity-40')} aria-hidden />
+            </button>
+        </TH>
     );
 }
 

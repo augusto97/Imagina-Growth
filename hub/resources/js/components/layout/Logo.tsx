@@ -10,8 +10,7 @@ import { cn } from '@/lib/cn';
 export function Logo({ className, compact = false, brand }: { className?: string; compact?: boolean; brand?: WorkspaceBranding | null }) {
     const fromHost = usePublicBranding(brand === undefined);
     const b = brand ?? fromHost.data?.branding ?? null;
-    const custom = b !== null && (b.white_label || b.logo_url !== null || b.name !== 'Imagina Growth');
-    if (custom && b) {
+    if (b !== null && (b.white_label || b.logo_url !== null || b.name !== 'Imagina Growth')) {
         const color = b.primary_color && /^#[0-9a-f]{6}$/i.test(b.primary_color) ? b.primary_color : undefined;
         return (
             <div className={cn('igr:flex igr:items-center igr:gap-2', className)}>

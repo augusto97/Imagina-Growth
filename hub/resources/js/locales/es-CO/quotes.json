@@ -1,0 +1,164 @@
+{
+    "quotes": {
+        "title": "Cotizador",
+        "description": "Calculadoras de precio para tu sitio: la persona responde, deja su contacto y ve un precio estimado. Cada cotización llega como lead.",
+        "new": "Nueva calculadora",
+        "empty": "Todavía no tienes calculadoras",
+        "emptyHelp": "Crea una por servicio, por área (m², metros, horas) o por paquetes y ponla en tu sitio con un shortcode.",
+        "kind": {
+            "service": "Por servicio",
+            "area": "Por área o cantidad",
+            "package": "Por paquetes"
+        },
+        "kindHelp": {
+            "service": "Preguntas con opciones que suman o multiplican el precio.",
+            "area": "Un precio por unidad (m², metros lineales, horas) más opciones: pintura, pisos, limpieza, jardinería.",
+            "package": "La persona elige un paquete y le suma adicionales."
+        },
+        "status": {
+            "draft": "Borrador",
+            "active": "Publicada",
+            "paused": "En pausa"
+        },
+        "fieldType": {
+            "number": "Número",
+            "select": "Una opción",
+            "checkbox": "Varias opciones"
+        },
+        "contactField": {
+            "first_name": "Nombre",
+            "last_name": "Apellido",
+            "phone": "WhatsApp",
+            "email": "Correo"
+        },
+        "require": {
+            "phone_or_email": "WhatsApp o correo",
+            "phone": "WhatsApp obligatorio",
+            "email": "Correo obligatorio"
+        },
+        "channel": {
+            "whatsapp": "WhatsApp",
+            "email": "Correo",
+            "sms": "SMS"
+        },
+        "list": {
+            "name": "Calculadora",
+            "kind": "Tipo",
+            "status": "Estado",
+            "quotes": "Cotizaciones",
+            "leads": "Leads",
+            "avg": "Valor medio",
+            "last30": "Últimos 30 días."
+        },
+        "requests": {
+            "title": "Cotizaciones recientes",
+            "empty": "Cuando alguien cotice en tu sitio, aparece aquí.",
+            "when": "Fecha",
+            "contact": "Contacto",
+            "calculator": "Calculadora",
+            "estimate": "Estimado",
+            "anonymous": "Sin datos",
+            "lead": "Lead",
+            "prev": "Anterior",
+            "next": "Siguiente"
+        },
+        "presets": {
+            "service": {
+                "name": "Cotización de servicio",
+                "scope": "¿Qué tamaño tiene el proyecto?",
+                "small": "Pequeño",
+                "medium": "Mediano",
+                "large": "Grande",
+                "hours": "Horas de acompañamiento"
+            },
+            "area": {
+                "name": "Cotización por metro cuadrado",
+                "area": "¿Cuántos metros cuadrados?",
+                "kind": "Tipo de espacio",
+                "interior": "Interior",
+                "exterior": "Exterior"
+            },
+            "package": {
+                "name": "Cotización por paquetes",
+                "basic": "Básico",
+                "full": "Completo",
+                "extras": "Adicionales",
+                "rush": "Entrega urgente"
+            }
+        },
+        "builder": {
+            "optionN": "Opción {{n}}",
+            "newField": {
+                "number": "Nueva pregunta de número",
+                "select": "Nueva pregunta de una opción",
+                "checkbox": "Nueva pregunta de varias opciones"
+            }
+        },
+        "editor": {
+            "general": "General",
+            "name": "Nombre",
+            "site": "Sitio",
+            "allSites": "Todos los sitios",
+            "embed": "En tu sitio",
+            "embedHelp": "Pega el shortcode en una página o usa el bloque «Cotizador» del editor. También hay widget de Elementor.",
+            "packages": "Paquetes",
+            "packagesHelp": "La persona elige uno; su precio es la base de la cotización.",
+            "packageName": "Nombre del paquete",
+            "packageDescription": "Qué incluye",
+            "price": "Precio",
+            "addPackage": "Agregar paquete",
+            "questions": "Preguntas",
+            "questionsHelp": {
+                "service": "Cada opción puede sumar un valor o multiplicar el total (1,2 = +20 %).",
+                "area": "La pregunta de número con precio por unidad es la principal (por ejemplo, m² × $12.000).",
+                "package": "Adicionales sobre el paquete elegido."
+            },
+            "question": "Pregunta",
+            "type": "Tipo",
+            "required": "Obligatoria",
+            "remove": "Quitar",
+            "unitPrice": "Precio por unidad ({{currency}})",
+            "unit": "Unidad",
+            "min": "Mínimo",
+            "max": "Máximo",
+            "option": "Opción",
+            "adds": "Suma ({{currency}})",
+            "multiplier": "Multiplica",
+            "addOption": "Agregar opción",
+            "pricing": "Precio",
+            "pricingHelp": "Total = (base + paquete + números × precio + opciones) × multiplicadores. Nunca menos que el mínimo; se muestra como rango.",
+            "base": "Valor base ({{currency}})",
+            "minimum": "Mínimo ({{currency}})",
+            "range": "Rango ± %",
+            "round": "Redondear a",
+            "note": "Nota para la persona (opcional)",
+            "internal": "Notas internas (no se publican)",
+            "capture": "Datos de contacto",
+            "captureHelp": "Qué pide antes de mostrar el precio. Las casillas de consentimiento van sin marcar, con el texto legal vigente.",
+            "captureRequired": "Mostrar el precio solo a cambio del contacto",
+            "require": "Dato obligatorio",
+            "whatsapp": "WhatsApp para seguir la conversación (opcional)",
+            "consents": "Casillas de consentimiento",
+            "texts": {
+                "title": "Título del formulario",
+                "titlePlaceholder": "¿A dónde te enviamos tu cotización?",
+                "cta": "Botón",
+                "ctaPlaceholder": "Ver mi cotización",
+                "success": "Texto debajo del precio",
+                "successPlaceholder": "Es un valor estimado…"
+            },
+            "preview": "Vista previa",
+            "previewHelp": "Calculado en el hub con lo que tienes en pantalla, sin guardar.",
+            "choosePackage": "Paquete",
+            "estimate": "Precio estimado",
+            "previewCapture": "En el sitio, el precio aparece después de dejar los datos de contacto.",
+            "publish": "Publicar",
+            "pause": "Pausar",
+            "saved": "Calculadora guardada.",
+            "published": "Calculadora publicada.",
+            "paused": "Calculadora en pausa.",
+            "delete": "Eliminar calculadora",
+            "deleteConfirm": "¿Eliminar esta calculadora? Si ya tiene cotizaciones, queda en pausa."
+        }
+    }
+}

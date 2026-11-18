@@ -6,6 +6,7 @@ namespace App\Domain\Agency\Models;
 
 use App\Support\Ids\HasPrefixedUlid;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 /**
  * Dominio propio de una cuenta (M22): el panel de la agencia, los enlaces, la
@@ -19,7 +20,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $purpose
  * @property string $status
  * @property string $verification_token
- * @property \Illuminate\Support\Carbon|null $verified_at
+ * @property Carbon|null $verified_at
  * @property string|null $last_error
  */
 class CustomDomain extends Model

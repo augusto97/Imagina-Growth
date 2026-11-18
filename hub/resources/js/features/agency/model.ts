@@ -94,5 +94,5 @@ export function previousMonth(now: Date = new Date()): string {
 
 /** Normaliza lo que se escribe como dominio: sin esquema, ruta ni mayúsculas. */
 export function normalizeHost(input: string): string {
-    return input.trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0]!.replace(/\.$/, '');
+    return (input.trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0] ?? '').replace(/\.$/, '');
 }

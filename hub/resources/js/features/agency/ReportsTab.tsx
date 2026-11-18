@@ -56,7 +56,7 @@ export function ReportsTab() {
                         <TBody>
                             {reports.data.clients.map((row) => {
                                 const r = row.report;
-                                const busy = (generate.isPending && generate.variables?.client === row.workspace_id) || (send.isPending && send.variables?.client === row.workspace_id);
+                                const busy = (generate.isPending && generate.variables.client === row.workspace_id) || (send.isPending && send.variables.client === row.workspace_id);
                                 return (
                                     <TR key={row.workspace_id}>
                                         <TD className="igr:font-medium">{row.workspace}</TD>

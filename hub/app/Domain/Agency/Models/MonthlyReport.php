@@ -7,6 +7,7 @@ namespace App\Domain\Agency\Models;
 use App\Support\Ids\HasPrefixedUlid;
 use App\Support\Tenancy\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 /**
  * Reporte mensual con marca (M22): hechos del mes, resumen (IA con cifras
@@ -14,13 +15,13 @@ use Illuminate\Database\Eloquent\Model;
  *
  * @property string $id
  * @property string $workspace_id
- * @property \Illuminate\Support\Carbon $period
+ * @property Carbon $period
  * @property array<string, mixed> $facts
  * @property string|null $summary
  * @property string|null $summary_source
  * @property string|null $pdf_path
- * @property \Illuminate\Support\Carbon|null $sent_at
- * @property array{count?: int, masked?: list<string>}|null $recipients  sin correos en claro: cuántos y enmascarados
+ * @property Carbon|null $sent_at
+ * @property array{count?: int, masked?: list<string>}|null $recipients sin correos en claro: cuántos y enmascarados
  */
 class MonthlyReport extends Model
 {

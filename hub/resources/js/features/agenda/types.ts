@@ -1,6 +1,17 @@
-export type Location = 'onsite' | 'online' | 'phone';
-export type AppointmentStatus = 'booked' | 'confirmed' | 'rescheduled' | 'cancelled' | 'completed' | 'no_show';
-export type AppointmentAction = 'confirm' | 'complete' | 'no-show' | 'cancel' | 'reschedule';
+export type Location = "onsite" | "online" | "phone";
+export type AppointmentStatus =
+    | "booked"
+    | "confirmed"
+    | "rescheduled"
+    | "cancelled"
+    | "completed"
+    | "no_show";
+export type AppointmentAction =
+    | "confirm"
+    | "complete"
+    | "no-show"
+    | "cancel"
+    | "reschedule";
 
 export interface BookingSettings {
     enabled: boolean;
@@ -9,7 +20,12 @@ export interface BookingSettings {
     ask_email: boolean;
     require_email: boolean;
     consent_channels: string[];
-    whatsapp_templates: Partial<Record<'confirmation' | 'reminder' | 'rescheduled' | 'cancelled', string | null>>;
+    whatsapp_templates: Partial<
+        Record<
+            "confirmation" | "reminder" | "rescheduled" | "cancelled",
+            string | null
+        >
+    >;
     auto_no_show: boolean;
     reminder_hours: number[];
 }
@@ -75,7 +91,12 @@ export interface Appointment {
     ends_at: string;
     service: { id: string; name: string; location: Location } | null;
     staff_id: string | null;
-    contact: { id: string; name: string | null; email: string | null; phone: string | null } | null;
+    contact: {
+        id: string;
+        name: string | null;
+        email: string | null;
+        phone: string | null;
+    } | null;
     lead_id: string | null;
     calendar_synced: boolean;
 }

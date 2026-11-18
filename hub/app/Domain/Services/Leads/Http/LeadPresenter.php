@@ -8,6 +8,7 @@ use App\Domain\Contacts\Models\Contact;
 use App\Domain\Services\Leads\Models\Lead;
 use App\Domain\Services\Leads\Models\LeadActivity;
 use App\Domain\Services\Leads\Support\LeadFacts;
+use App\Domain\Services\Leads\Support\Pipelines;
 use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
 
@@ -71,6 +72,7 @@ final class LeadPresenter
         $source = (array) ($l->source ?? []);
 
         return self::row($workspace, $l, $contact, $owner) + [
+            'pipeline_stages' => Pipelines::for($l)->stages,
             'email' => $contact?->email,
             'phone' => $contact?->phone,
             'source' => array_intersect_key($source, array_flip(['channel', 'utm_source', 'utm_medium', 'utm_campaign', 'page', 'form_name', 'referrer_host'])) + [
