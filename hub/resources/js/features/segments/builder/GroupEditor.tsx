@@ -9,14 +9,10 @@ import { isGroup } from '../types';
 import { ConditionEditor, TYPE_ICONS } from './ConditionEditor';
 import { errorsFor, useBuilder } from './context';
 
-const TYPES: ConditionType[] = ['attribute', 'purchase', 'event', 'cart', 'prediction', 'consent', 'segment'];
+const TYPES: ConditionType[] = ['attribute', 'purchase', 'event', 'cart', 'messaging', 'loyalty', 'prediction', 'consent', 'segment'];
 
 /** Condiciones que llegan en fases siguientes (se muestran, pero no se pueden usar todavía). */
-const LATER: { key: string; phase: number }[] = [
-    { key: 'messaging', phase: 2 },
-    { key: 'loyalty', phase: 3 },
-    { key: 'lead', phase: 5 },
-];
+const LATER: { key: string; phase: number }[] = [{ key: 'lead', phase: 5 }];
 
 /**
  * Grupo con «todas» (y) o «cualquiera» (o), que se puede negar y anidar

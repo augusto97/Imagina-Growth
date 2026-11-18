@@ -30,6 +30,10 @@ export function defaultCondition(type: ConditionType): Condition {
             return { type: 'consent', channel: 'whatsapp', purpose: 'marketing', status: 'granted' };
         case 'segment':
             return { type: 'segment', segment_id: '', operator: 'in' };
+        case 'messaging':
+            return { type: 'messaging', action: 'clicked', channel: 'any', kind: 'marketing', operator: 'ever', window: { kind: 'last_days', days: 30 } };
+        case 'loyalty':
+            return { type: 'loyalty', field: 'points_balance', operator: 'gte', value: 500 };
     }
 }
 
@@ -110,6 +114,10 @@ export function isComplete(c: Condition): boolean {
             return c.event !== '' && c.filters.every((f) => (Array.isArray(f.value) ? f.value.length > 0 : f.value !== ''));
         case 'segment':
             return c.segment_id !== '';
+        case 'messaging':
+            return c.action === 'engagement' ? hasValue(c.operator, c.value) : true;
+        case 'loyalty':
+            return hasValue(c.operator, c.value);
         default:
             return true;
     }

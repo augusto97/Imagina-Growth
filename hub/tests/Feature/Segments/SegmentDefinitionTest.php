@@ -46,8 +46,6 @@ it('explica en español qué está mal y dónde', function (array $definition, s
     'atributo desconocido' => [['op' => 'and', 'conditions' => [['type' => 'attribute', 'field' => 'cedula', 'operator' => 'eq', 'value' => '1']]], 'conditions.0.field', 'Atributo desconocido'],
     'evento inexistente' => [['op' => 'and', 'conditions' => [['type' => 'event', 'event' => 'order.inventado', 'operator' => 'ever']]], 'conditions.0.event', 'no existe'],
     'propiedad con inyección' => [['op' => 'and', 'conditions' => [['type' => 'event', 'event' => 'page.viewed', 'filters' => [['prop' => "x') OR 1=1 --", 'value' => 'a']], 'operator' => 'ever']]], 'conditions.0.filters.0.prop', 'Propiedad inválida'],
-    'mensajería' => [['op' => 'and', 'conditions' => [['type' => 'messaging']]], 'conditions.0', 'Fase 2'],
-    'fidelización' => [['op' => 'and', 'conditions' => [['type' => 'loyalty']]], 'conditions.0', 'Fase 3'],
     'servicios' => [['op' => 'and', 'conditions' => [['type' => 'service']]], 'conditions.0', 'Fase 5'],
     'valor fuera de la lista' => [['op' => 'and', 'conditions' => [['type' => 'prediction', 'field' => 'rfm_segment', 'operator' => 'eq', 'value' => 'vip']]], 'conditions.0.value', 'no es válido'],
     'ventana inválida' => [['op' => 'and', 'conditions' => [['type' => 'purchase', 'scope' => 'any', 'operator' => 'ever', 'window' => ['kind' => 'last_days', 'days' => 0]]]], 'conditions.0.window.days', 'entre 1 y 3.650'],

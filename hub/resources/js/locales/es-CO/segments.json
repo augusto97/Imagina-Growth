@@ -198,7 +198,16 @@
             "status": "Estado",
             "purpose": "Finalidad",
             "by": "por",
-            "channel": "Canal"
+            "channel": "Canal",
+            "messageAction": "Qué hizo con los mensajes",
+            "messageKind": "Tipo de mensaje",
+            "messageSource": "De qué flujo o campaña",
+            "anySource": "De cualquier flujo o campaña",
+            "flows": "Flujos",
+            "campaigns": "Campañas",
+            "engagementHint": "Puntaje de 0 a 100 con los mensajes de los últimos {{days}} días: abrir o leer suma 1, un clic 3 y una respuesta 5.",
+            "noTiers": "Primero crea los niveles en Fidelización.",
+            "chooseTier": "Elige un nivel…"
         },
         "types": {
             "attribute": "Perfil",
@@ -208,8 +217,8 @@
             "prediction": "Inteligencia",
             "consent": "Consentimiento",
             "segment": "Segmento",
-            "messaging": "Mensajes enviados, leídos y clics",
-            "loyalty": "Fidelización: nivel, puntos y saldo",
+            "messaging": "Mensajes",
+            "loyalty": "Fidelización",
             "lead": "Leads y citas"
         },
         "typeHelp": {
@@ -219,7 +228,9 @@
             "cart": "Abandonó un carrito y no compró",
             "prediction": "Segmento RFM y puntajes calculados",
             "consent": "Quién acepta WhatsApp, correo o SMS",
-            "segment": "Está (o no) en otro segmento"
+            "segment": "Está (o no) en otro segmento",
+            "messaging": "Recibió, abrió, leyó, hizo clic o respondió; interacción",
+            "loyalty": "Nivel VIP, puntos, saldo y referidos"
         },
         "fields": {
             "city": "Ciudad",
@@ -251,7 +262,14 @@
             "engagement_score": "Puntaje de interacción",
             "price_band": "Rango de precio que compra",
             "preferred_channel": "Canal preferido",
-            "custom": "{{key}}"
+            "custom": "{{key}}",
+            "engagement": "Interacción con mensajes",
+            "tier": "Nivel VIP",
+            "points_balance": "Puntos disponibles",
+            "wallet_balance": "Saldo a favor",
+            "points_expiring": "Puntos por vencer",
+            "referrals_made": "Referidos que compraron",
+            "was_referred": "Llegó referido"
         },
         "operators": {
             "eq": "es",
@@ -378,7 +396,23 @@
             "consent_granted": "Acepta {{channel}}",
             "consent_not_granted": "No acepta {{channel}}",
             "segment_in": "Está en «{{name}}»",
-            "segment_not_in": "No está en «{{name}}»"
+            "segment_not_in": "No está en «{{name}}»",
+            "msg_received": "Recibió mensajes",
+            "msg_opened": "Abrió correos",
+            "msg_read": "Leyó mensajes",
+            "msg_clicked": "Hizo clic en mensajes",
+            "msg_replied": "Respondió mensajes",
+            "marketing": "de marketing",
+            "byChannel": "por {{channel}}",
+            "fromFlow": "del flujo «{{name}}»",
+            "fromCampaign": "de la campaña «{{name}}»",
+            "tier_in": "{{field}} es {{value}}",
+            "tier_not_in": "{{field}} no es {{value}}",
+            "tier_at_least": "{{field}} es al menos {{value}}",
+            "tier_is_set": "Tiene nivel VIP",
+            "tier_is_not_set": "No tiene nivel VIP",
+            "referred_is_true": "Llegó referido por alguien",
+            "referred_is_false": "No llegó referido"
         },
         "consent": {
             "granted": "Aceptó",
@@ -478,6 +512,31 @@
             "segment_exited": "Salió de un segmento",
             "conversion_delivered": "Conversión enviada",
             "custom": "Evento propio"
+        },
+        "msgAction": {
+            "received": "Recibió",
+            "opened": "Abrió (correo)",
+            "read": "Leyó (WhatsApp)",
+            "clicked": "Hizo clic",
+            "replied": "Respondió",
+            "engagement": "Puntaje de interacción"
+        },
+        "msgChannel": {
+            "any": "por cualquier canal",
+            "email": "por correo",
+            "whatsapp": "por WhatsApp",
+            "sms": "por SMS"
+        },
+        "msgKind": {
+            "marketing": "de marketing",
+            "any": "de cualquier tipo"
+        },
+        "tierOps": {
+            "in": "es",
+            "not_in": "no es",
+            "at_least": "es al menos",
+            "is_set": "tiene un nivel",
+            "is_not_set": "no tiene nivel"
         }
     }
 }

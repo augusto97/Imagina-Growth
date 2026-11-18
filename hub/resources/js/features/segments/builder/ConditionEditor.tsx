@@ -1,4 +1,4 @@
-import { MousePointerClick, Plus, Shapes, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Trash2, UserRound, X } from 'lucide-react';
+import { Gift, MessageSquare, MousePointerClick, Plus, Shapes, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Trash2, UserRound, X } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import type { LucideIcon } from 'lucide-react';
 import { useId } from 'react';
@@ -13,9 +13,14 @@ import type {
     Condition,
     ConditionType,
     ConsentCondition,
+    EngagementCondition,
     EventCondition,
     EventFilter,
     FieldOption,
+    LoyaltyCondition,
+    MessageAction,
+    MessageChannel,
+    MessagingCondition,
     PredictionCondition,
     PurchaseAggregateCondition,
     PurchaseItemsCondition,
@@ -34,6 +39,8 @@ export const TYPE_ICONS: Record<ConditionType, LucideIcon> = {
     prediction: Sparkles,
     consent: ShieldCheck,
     segment: Shapes,
+    messaging: MessageSquare,
+    loyalty: Gift,
 };
 
 /** Predicciones que llegan con la Fase 4: se pueden usar, pero hoy no tienen datos. */
@@ -88,6 +95,10 @@ function Body({ condition: c, onChange }: { condition: Condition; onChange: (c: 
             return <ConsentEditor c={c} onChange={onChange} />;
         case 'segment':
             return <SegmentRefEditor c={c} onChange={onChange} />;
+        case 'messaging':
+            return c.action === 'engagement' ? <EngagementEditor c={c} onChange={onChange} /> : <MessagingEditor c={c} onChange={onChange} />;
+        case 'loyalty':
+            return <LoyaltyEditor c={c} onChange={onChange} />;
     }
 }
 
@@ -392,6 +403,155 @@ function SegmentRefEditor({ c, onChange }: { c: SegmentRefCondition; onChange: (
                 onChange={(segment_id) => onChange({ ...c, segment_id })}
                 options={[{ value: '', label: t('segments.builder.chooseSegment'), disabled: true }, ...others.map((s) => ({ value: s.id, label: s.name }))]}
             />
+        </>
+    );
+}
+
+const MESSAGE_ACTIONS: MessageAction[] = ['received', 'opened', 'read', 'clicked', 'replied'];
+const ENGAGEMENT_OPTION: FieldOption = { key: 'engagement', type: 'number', operators: ['gte', 'gt', 'lte', 'lt', 'eq', 'between'], values: null };
+
+/** Qué hizo con los mensajes, o el puntaje de interacción (cambia la forma de la condición). */
+function MessagingAction({ action, onChange }: { action: MessageAction | 'engagement'; onChange: (c: Condition) => void }) {
+    const { t } = useTranslation();
+    const { readOnly } = useBuilder();
+    const change = (next: string) => {
+        if (next === 'engagement') {
+            onChange({ type: 'messaging', action: 'engagement', operator: 'gte', value: 5 });
+            return;
+        }
+        const a = next as MessageAction;
+        // Abrir es del correo y leer, de WhatsApp: el canal se ajusta solo.
+        const channel: MessageChannel = a === 'opened' ? 'email' : a === 'read' ? 'whatsapp' : 'any';
+        onChange({ type: 'messaging', action: a, channel, kind: 'marketing', operator: 'ever', window: { kind: 'last_days', days: 30 } });
+    };
+    return (
+        <SimpleSelect
+            value={action}
+            label={t('segments.builder.messageAction')}
+            disabled={readOnly}
+            onChange={change}
+            options={[...MESSAGE_ACTIONS, 'engagement' as const].map((a) => ({ value: a, label: t(`segments.msgAction.${a}`) }))}
+        />
+    );
+}
+
+function MessagingEditor({ c, onChange }: { c: MessagingCondition; onChange: (c: Condition) => void }) {
+    const { t } = useTranslation();
+    const { options, readOnly } = useBuilder();
+    const channels: MessageChannel[] = c.action === 'opened' ? ['email'] : c.action === 'read' ? ['whatsapp'] : options.message_channels;
+    const source = c.flow_id ? `flow:${c.flow_id}` : c.campaign_id ? `campaign:${c.campaign_id}` : '';
+    const changeSource = (value: string) => {
+        const rest: MessagingCondition = { ...c };
+        delete rest.flow_id;
+        delete rest.campaign_id;
+        const [kind, id = ''] = value.split(':');
+        onChange(kind === 'flow' ? { ...rest, flow_id: id } : kind === 'campaign' ? { ...rest, campaign_id: id } : rest);
+    };
+
+    return (
+        <>
+            <MessagingAction action={c.action} onChange={onChange} />
+            <SimpleSelect value={c.channel} label={t('segments.builder.channel')} disabled={readOnly} onChange={(channel) => onChange({ ...c, channel })} options={channels.map((ch) => ({ value: ch, label: t(`segments.msgChannel.${ch}`) }))} />
+            <SimpleSelect value={c.kind} label={t('segments.builder.messageKind')} disabled={readOnly} onChange={(kind) => onChange({ ...c, kind })} options={(['marketing', 'any'] as const).map((k) => ({ value: k, label: t(`segments.msgKind.${k}`) }))} />
+            {options.flows.length > 0 || options.campaigns.length > 0 ? (
+                <Select className="igr:w-auto igr:max-w-56" aria-label={t('segments.builder.messageSource')} disabled={readOnly} value={source} onChange={(e) => changeSource(e.target.value)}>
+                    <option value="">{t('segments.builder.anySource')}</option>
+                    {options.flows.length > 0 ? (
+                        <optgroup label={t('segments.builder.flows')}>
+                            {options.flows.map((f) => (
+                                <option key={f.id} value={`flow:${f.id}`}>
+                                    {f.name}
+                                </option>
+                            ))}
+                        </optgroup>
+                    ) : null}
+                    {options.campaigns.length > 0 ? (
+                        <optgroup label={t('segments.builder.campaigns')}>
+                            {options.campaigns.map((x) => (
+                                <option key={x.id} value={`campaign:${x.id}`}>
+                                    {x.name}
+                                </option>
+                            ))}
+                        </optgroup>
+                    ) : null}
+                </Select>
+            ) : null}
+            <CountEditor operator={c.operator} value={c.value} onChange={(next) => onChange({ ...c, operator: next.operator, value: next.value })} />
+            <WindowEditor window={c.window} onChange={(w) => onChange({ ...c, window: w })} />
+        </>
+    );
+}
+
+function EngagementEditor({ c, onChange }: { c: EngagementCondition; onChange: (c: Condition) => void }) {
+    const { t } = useTranslation();
+    const { options } = useBuilder();
+    return (
+        <>
+            <MessagingAction action="engagement" onChange={onChange} />
+            <OperatorValue field="engagement" option={ENGAGEMENT_OPTION} operator={c.operator} value={c.value} onChange={(next) => onChange({ ...c, ...next })} />
+            <p className="igr:w-full igr:text-xs igr:text-muted-foreground">{t('segments.builder.engagementHint', { days: options.engagement_days })}</p>
+        </>
+    );
+}
+
+function LoyaltyEditor({ c, onChange }: { c: LoyaltyCondition; onChange: (c: Condition) => void }) {
+    const { t } = useTranslation();
+    const { options, readOnly } = useBuilder();
+    const option = options.loyalty_fields.find((f) => f.key === c.field);
+    const tiers = options.loyalty_tiers;
+
+    const changeField = (key: string) => {
+        const next = options.loyalty_fields.find((f) => f.key === key);
+        if (!next) {
+            return;
+        }
+        if (next.type === 'tier') {
+            onChange({ type: 'loyalty', field: key, operator: 'in', value: [] });
+        } else if (next.type === 'expiring') {
+            onChange({ type: 'loyalty', field: key, operator: 'within_next_days', value: 15 });
+        } else {
+            const op = firstOperator(next);
+            onChange({ type: 'loyalty', field: key, operator: op, value: defaultValue(next.type, op) });
+        }
+    };
+
+    let body = null;
+    if (option?.type === 'tier') {
+        const list = Array.isArray(c.value) ? c.value.map(String) : [];
+        body =
+            tiers.length === 0 ? (
+                <span className="igr:text-xs igr:text-muted-foreground">{t('segments.builder.noTiers')}</span>
+            ) : (
+                <>
+                    <SimpleSelect
+                        value={c.operator}
+                        label={t('segments.builder.operator')}
+                        disabled={readOnly}
+                        onChange={(op) => onChange({ ...c, operator: op, value: op === 'at_least' ? '' : op === 'in' || op === 'not_in' ? [] : undefined })}
+                        options={option.operators.map((op) => ({ value: op, label: t(`segments.tierOps.${op}`) }))}
+                    />
+                    {c.operator === 'in' || c.operator === 'not_in' ? (
+                        <ToggleChips label={t('segments.fields.tier')} disabled={readOnly} values={list} onChange={(value) => onChange({ ...c, value })} options={tiers.map((x) => ({ value: x.id, label: x.name }))} />
+                    ) : null}
+                    {c.operator === 'at_least' ? (
+                        <SimpleSelect
+                            value={typeof c.value === 'string' ? c.value : ''}
+                            label={t('segments.fields.tier')}
+                            disabled={readOnly}
+                            onChange={(value) => onChange({ ...c, value })}
+                            options={[{ value: '', label: t('segments.builder.chooseTier'), disabled: true }, ...tiers.map((x) => ({ value: x.id, label: x.name }))]}
+                        />
+                    ) : null}
+                </>
+            );
+    } else if (option) {
+        body = <OperatorValue field={c.field} option={option} operator={c.operator} value={c.value} onChange={(next) => onChange({ ...c, ...next })} />;
+    }
+
+    return (
+        <>
+            <SimpleSelect value={c.field} label={t('segments.builder.field')} disabled={readOnly} onChange={changeField} options={options.loyalty_fields.map((f) => ({ value: f.key, label: t(`segments.fields.${f.key}`) }))} />
+            {body}
         </>
     );
 }

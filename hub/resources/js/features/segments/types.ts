@@ -75,6 +75,39 @@ export interface ConsentCondition {
     status: 'granted' | 'not_granted';
 }
 
+export type MessageAction = 'received' | 'opened' | 'read' | 'clicked' | 'replied';
+
+export type MessageChannel = 'any' | 'email' | 'whatsapp' | 'sms';
+
+/** Mensajería (Fase 2): qué hizo con los mensajes, con conteo y ventana. */
+export interface MessagingCondition {
+    type: 'messaging';
+    action: MessageAction;
+    channel: MessageChannel;
+    kind: 'any' | 'marketing';
+    flow_id?: string;
+    campaign_id?: string;
+    operator: CountOperator;
+    value?: number;
+    window?: Window;
+}
+
+/** Puntaje de interacción de los últimos 90 días (0 a 100). */
+export interface EngagementCondition {
+    type: 'messaging';
+    action: 'engagement';
+    operator: string;
+    value?: Scalar | Scalar[] | null;
+}
+
+/** Fidelización (Fase 3): nivel, puntos, saldo, puntos por vencer y referidos. */
+export interface LoyaltyCondition {
+    type: 'loyalty';
+    field: string;
+    operator: string;
+    value?: Scalar | Scalar[] | null;
+}
+
 export interface SegmentRefCondition {
     type: 'segment';
     segment_id: string;
@@ -89,7 +122,10 @@ export type Condition =
     | CartCondition
     | PredictionCondition
     | ConsentCondition
-    | SegmentRefCondition;
+    | SegmentRefCondition
+    | MessagingCondition
+    | EngagementCondition
+    | LoyaltyCondition;
 
 export interface Group {
     op: 'and' | 'or';
@@ -107,6 +143,10 @@ export function isGroup(node: Node): node is Group {
 
 export function isPurchaseItems(c: Condition): c is PurchaseItemsCondition {
     return c.type === 'purchase' && 'scope' in c;
+}
+
+export function isEngagement(c: Condition): c is EngagementCondition {
+    return c.type === 'messaging' && c.action === 'engagement';
 }
 
 // ── API ────────────────────────────────────────────────────────────────
@@ -154,7 +194,7 @@ export interface Preview {
 
 export interface FieldOption {
     key: string;
-    type: 'string' | 'enum' | 'number' | 'date' | 'tags' | 'birthday' | 'bool';
+    type: 'string' | 'enum' | 'number' | 'date' | 'tags' | 'birthday' | 'bool' | 'tier' | 'expiring';
     operators: string[];
     values: string[] | null;
     label?: string;
@@ -177,6 +217,13 @@ export interface SegmentOptions {
         hdyhau: string[];
     };
     segments: { id: string; name: string }[];
+    message_actions: MessageAction[];
+    message_channels: MessageChannel[];
+    engagement_days: number;
+    flows: { id: string; name: string }[];
+    campaigns: { id: string; name: string }[];
+    loyalty_fields: FieldOption[];
+    loyalty_tiers: { id: string; name: string; rank: number }[];
 }
 
 export interface LibraryResponse {

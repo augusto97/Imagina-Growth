@@ -57,6 +57,27 @@ export function describeCondition(t: TFunction, c: Condition, names: Record<stri
             return t(`segments.describe.consent_${c.status}`, { channel: t(`segments.channels.${c.channel}`) });
         case 'segment':
             return t(`segments.describe.segment_${c.operator}`, { name: names[c.segment_id] ?? c.segment_id });
+        case 'messaging': {
+            if (c.action === 'engagement') {
+                return t(`segments.op.${c.operator}`, { field: t('segments.fields.engagement'), value: list(c.value, c.operator === 'between' ? t('segments.join.between') : ', ') });
+            }
+            const channel = c.channel === 'any' ? '' : ` ${t('segments.describe.byChannel', { channel: t(`segments.channels.${c.channel}`) })}`;
+            const kind = c.kind === 'marketing' ? ` ${t('segments.describe.marketing')}` : '';
+            const sourceId = c.flow_id ?? c.campaign_id;
+            const source = sourceId ? ` ${t(c.flow_id ? 'segments.describe.fromFlow' : 'segments.describe.fromCampaign', { name: names[sourceId] ?? sourceId })}` : '';
+            return `${t(`segments.describe.msg_${c.action}`)}${kind}${channel}${source} ${countText(t, c.operator, c.value)} · ${describeWindow(t, c.window)}`;
+        }
+        case 'loyalty': {
+            const field = t(`segments.fields.${c.field}`, { defaultValue: c.field });
+            if (c.field === 'tier') {
+                const tiers = Array.isArray(c.value) ? c.value.map((v) => names[String(v)] ?? String(v)).join(', ') : names[String(c.value ?? '')] ?? String(c.value ?? '');
+                return t(`segments.describe.tier_${c.operator}`, { field, value: tiers });
+            }
+            if (c.field === 'was_referred') {
+                return t(`segments.describe.referred_${c.operator}`);
+            }
+            return t(`segments.op.${c.operator}`, { field, value: list(c.value, c.operator === 'between' ? t('segments.join.between') : ', ') });
+        }
     }
 }
 

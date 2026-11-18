@@ -1,6 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import i18n from '@/lib/i18n';
 import texts from '@/locales/es-CO/segments.json';
 import { appendTo, countConditions, defaultCondition, emptyGroup, getAt, isComplete, prune, removeAt, updateAt } from './ast';
@@ -42,6 +42,21 @@ const options: SegmentOptions = {
     ],
     values: { city: ['Manizales', 'Pereira'], region_code: [], country: ['CO'], payment_method: [], brand: [], hdyhau: [] },
     segments: [{ id: 'sg_1', name: 'Clientes VIP' }],
+    message_actions: ['received', 'opened', 'read', 'clicked', 'replied'],
+    message_channels: ['any', 'email', 'whatsapp', 'sms'],
+    engagement_days: 90,
+    flows: [{ id: 'fl_1', name: 'Carrito abandonado' }],
+    campaigns: [{ id: 'cmp_1', name: 'Black Friday' }],
+    loyalty_fields: [
+        { key: 'tier', type: 'tier', operators: ['in', 'not_in', 'at_least', 'is_set', 'is_not_set'], values: null },
+        { key: 'points_balance', type: 'number', operators: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'between'], values: null },
+        { key: 'points_expiring', type: 'expiring', operators: ['within_next_days'], values: null },
+        { key: 'was_referred', type: 'bool', operators: ['is_true', 'is_false'], values: null },
+    ],
+    loyalty_tiers: [
+        { id: 'tr_1', name: 'Plata', rank: 1 },
+        { id: 'tr_2', name: 'Oro', rank: 2 },
+    ],
 };
 
 describe('AST del constructor', () => {
@@ -80,7 +95,7 @@ describe('textos', () => {
         const need = (key: string) => {
             if (!has(key) && !has(`${key}_one`)) missing.push(key);
         };
-        const types: ConditionType[] = ['attribute', 'purchase', 'event', 'cart', 'prediction', 'consent', 'segment'];
+        const types: ConditionType[] = ['attribute', 'purchase', 'event', 'cart', 'prediction', 'consent', 'segment', 'messaging', 'loyalty'];
         types.forEach((type) => {
             need(`segments.types.${type}`);
             need(`segments.typeHelp.${type}`);
@@ -106,6 +121,14 @@ describe('textos', () => {
         const fields = ['city', 'region_code', 'country', 'locale', 'lifecycle_stage', 'hdyhau', 'tags', 'birthday', 'first_seen_at', 'last_seen_at', 'orders_count', 'total_spent', 'aov', 'refunds_count', 'coupon_ratio', 'avg_days_between_orders', 'first_order_at', 'last_order_at', 'rfm_segment', 'rfm_r', 'rfm_f', 'rfm_m', 'churn_band', 'churn_risk', 'predicted_clv_12m', 'expected_next_order_at', 'engagement_score', 'price_band', 'preferred_channel'];
         fields.forEach((f) => need(`segments.fields.${f}`));
         ['email', 'whatsapp', 'sms'].forEach((c) => need(`segments.channels.${c}`));
+        ['received', 'opened', 'read', 'clicked', 'replied', 'engagement'].forEach((a) => need(`segments.msgAction.${a}`));
+        ['received', 'opened', 'read', 'clicked', 'replied'].forEach((a) => need(`segments.describe.msg_${a}`));
+        ['any', 'email', 'whatsapp', 'sms'].forEach((c) => need(`segments.msgChannel.${c}`));
+        ['in', 'not_in', 'at_least', 'is_set', 'is_not_set'].forEach((op) => {
+            need(`segments.tierOps.${op}`);
+            need(`segments.describe.tier_${op}`);
+        });
+        ['engagement', 'tier', 'points_balance', 'wallet_balance', 'points_expiring', 'referrals_made', 'was_referred'].forEach((f) => need(`segments.fields.${f}`));
         ['visitor', 'subscriber', 'lead', 'customer', 'repeat', 'vip', 'at_risk', 'lost'].forEach((s) => need(`segments.enum.lifecycle_stage.${s}`));
         ['product.viewed', 'checkout.started', 'cart.item_added', 'order.paid', 'search.performed', 'page.viewed'].forEach((e) => need(`segments.events.${e.replace('.', '_')}`));
         expect(missing).toEqual([]);
@@ -133,6 +156,23 @@ describe('textos', () => {
         );
         expect(summarize(t, null)).toBe('Lista fija de contactos (no cambia sola).');
     });
+
+    it('describe mensajería y fidelización', () => {
+        void i18n.changeLanguage('es-CO');
+        const definition: Group = {
+            op: 'and',
+            conditions: [
+                { type: 'messaging', action: 'clicked', channel: 'whatsapp', kind: 'marketing', flow_id: 'fl_1', operator: 'count_gte', value: 2, window: { kind: 'last_days', days: 30 } },
+                { type: 'messaging', action: 'engagement', operator: 'gte', value: 10 },
+                { type: 'loyalty', field: 'tier', operator: 'at_least', value: 'tr_2' },
+                { type: 'loyalty', field: 'points_expiring', operator: 'within_next_days', value: 15 },
+                { type: 'loyalty', field: 'was_referred', operator: 'is_true' },
+            ],
+        };
+        expect(summarize(t, definition, { fl_1: 'Carrito abandonado', tr_2: 'Oro' })).toBe(
+            'Hizo clic en mensajes de marketing por WhatsApp del flujo «Carrito abandonado» al menos 2 veces · en los últimos 30 días y Interacción con mensajes de al menos 10 y Nivel VIP es al menos Oro y Puntos por vencer en los próximos 15 días y Llegó referido por alguien',
+        );
+    });
 });
 
 describe('listas y carpetas', () => {
@@ -152,6 +192,8 @@ describe('listas y carpetas', () => {
 });
 
 describe('constructor visual', () => {
+    afterEach(cleanup);
+
     function Harness({ initial }: { initial: Group }) {
         const [root, setRoot] = useState(initial);
         return (
@@ -177,5 +219,36 @@ describe('constructor visual', () => {
 
         fireEvent.click(screen.getAllByRole('button', { name: 'Quitar condición' })[1] as HTMLElement);
         expect((JSON.parse(screen.getByTestId('ast').textContent) as Group).conditions).toEqual([{ type: 'attribute', field: 'city', operator: 'in', value: ['Manizales'] }]);
+    });
+
+    it('edita mensajería: cambiar a «abrió» deja solo el correo y el puntaje cambia la forma', () => {
+        void i18n.changeLanguage('es-CO');
+        render(<Harness initial={{ op: 'and', conditions: [defaultCondition('messaging')] }} />);
+        const ast = () => (JSON.parse(screen.getByTestId('ast').textContent) as Group).conditions[0];
+
+        fireEvent.change(screen.getByRole('combobox', { name: 'Qué hizo con los mensajes' }), { target: { value: 'opened' } });
+        expect(ast()).toMatchObject({ type: 'messaging', action: 'opened', channel: 'email' });
+        expect(screen.getByRole('combobox', { name: 'Canal' }).querySelectorAll('option')).toHaveLength(1);
+
+        fireEvent.change(screen.getByRole('combobox', { name: 'De qué flujo o campaña' }), { target: { value: 'campaign:cmp_1' } });
+        expect(ast()).toMatchObject({ campaign_id: 'cmp_1' });
+        expect(ast()).not.toHaveProperty('flow_id');
+
+        fireEvent.change(screen.getByRole('combobox', { name: 'Qué hizo con los mensajes' }), { target: { value: 'engagement' } });
+        expect(ast()).toEqual({ type: 'messaging', action: 'engagement', operator: 'gte', value: 5 });
+        expect(screen.getByText(/últimos 90 días/)).toBeInTheDocument();
+    });
+
+    it('edita fidelización: nivel con «al menos» y los niveles del programa', () => {
+        void i18n.changeLanguage('es-CO');
+        render(<Harness initial={{ op: 'and', conditions: [defaultCondition('loyalty')] }} />);
+        const ast = () => (JSON.parse(screen.getByTestId('ast').textContent) as Group).conditions[0];
+        expect(ast()).toEqual({ type: 'loyalty', field: 'points_balance', operator: 'gte', value: 500 });
+
+        fireEvent.change(screen.getByRole('combobox', { name: 'Campo' }), { target: { value: 'tier' } });
+        fireEvent.change(screen.getByRole('combobox', { name: 'Operador' }), { target: { value: 'at_least' } });
+        fireEvent.change(screen.getByRole('combobox', { name: 'Nivel VIP' }), { target: { value: 'tr_2' } });
+        expect(ast()).toEqual({ type: 'loyalty', field: 'tier', operator: 'at_least', value: 'tr_2' });
+        expect(isComplete(ast() as never)).toBe(true);
     });
 });

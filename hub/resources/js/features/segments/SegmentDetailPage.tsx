@@ -189,6 +189,9 @@ function Definition({ segment }: { segment: SegmentDetail }) {
     for (const s of options.data?.rfm_segments ?? []) {
         names[s.key] = s.name;
     }
+    for (const s of [...(options.data?.flows ?? []), ...(options.data?.campaigns ?? []), ...(options.data?.loyalty_tiers ?? [])]) {
+        names[s.id] = s.name;
+    }
     const definition = segment.definition;
     if (definition === null) {
         return null;
