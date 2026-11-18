@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/customer.logged_in.json",
+  "title": "customer.logged_in",
+  "description": "Esquema de `properties` del evento customer.logged_in (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "customer_ref"
+  ],
+  "properties": {
+    "customer_ref": {
+      "type": "string",
+      "pattern": "^[a-z]+:[A-Za-z0-9_-]{1,64}$"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "customer_ref": "wc:77"
+    }
+  ],
+  "x-invalid-examples": [
+    {}
+  ]
+}

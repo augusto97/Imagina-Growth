@@ -6,6 +6,7 @@
 
 Convenciones para MariaDB:
 - IDs ULID con prefijo legible en la API (`ct_`, `ws_`, `st_`…). En la base son `CHAR(26)`.
+- `workspaces` y `sites` tienen además un `ch_id` numérico (`INT UNSIGNED`, autoincremental y único) que es el `workspace_id` y `site_id` de ClickHouse.
 - Toda tabla de negocio lleva `workspace_id` (índice compuesto como primera columna) y el trait `BelongsToWorkspace`.
 - Montos en `DECIMAL(18,2)` con su `currency`. Cuando hace falta comparar se agrega `*_ws` (convertido a la moneda del espacio de trabajo con la tasa del día, tabla `fx_rates`).
 - PII cifrada con los casts `encrypted` de Laravel más un **índice ciego** (`*_bidx` = HMAC-SHA256 con una clave por espacio de trabajo) para buscar por igualdad.
@@ -18,22 +19,24 @@ Convenciones para MariaDB:
 | Tabla | Columnas clave |
 |---|---|
 | `accounts` | id, type (`agency`, `direct`), name, legal_name, tax_id, country, billing_email, plan_id, status |
-| `workspaces` | id, account_id, name, slug, country, timezone, currency, locale, industry, legal_name, privacy_policy_url, settings (json: estados pagados, ventanas de atribución, límites de frecuencia, captura temprana, modo de consentimiento), brand_kit (json: logo, colores, tono de voz), status |
+| `workspaces` | id, ch_id, account_id, name, slug, country, timezone, currency, locale, industry, legal_name, privacy_policy_url, settings (json: estados pagados, ventanas de atribución, límites de frecuencia, captura temprana, modo de consentimiento), brand_kit (json: logo, colores, tono de voz), status |
 | `users` | id, name, email, password, two_factor_secret, locale, last_login_at |
 | `workspace_user` | workspace_id, user_id, role (`owner`, `admin`, `marketing`, `agent`, `viewer`), notifications (json) |
 | `account_user` | account_id, user_id, role (`agency_owner`, `agency_member`) |
-| `sites` | id, workspace_id, platform (`woocommerce`, `wordpress`), url, domains (json), public_key, secret (cifrado), secret_rotated_at, status (`pending`, `connected`, `degraded`, `disconnected`), plugin_version, wp_version, wc_version, capabilities (json: formularios detectados, HPOS, checkout de bloques, COGS), backfill_state (json), last_seen_at, tracking_domain? |
+| `site_connect_codes` | id, workspace_id, code_hash, site_url?, nonce?, return_url?, platform?, name?, created_by, expires_at (10 min), used_at? |
+| `sites` | id, ch_id, workspace_id, platform (`woocommerce`, `wordpress`), url, domains (json), public_key, secret (cifrado), secret_rotated_at, previous_secret (cifrado)?, previous_secret_expires_at?, rest_url, name, status (`pending`, `connected`, `degraded`, `disconnected`), plugin_version, wp_version, wc_version, capabilities (json: formularios detectados, HPOS, checkout de bloques, COGS), backfill_state (json), last_seen_at, tracking_domain? |
 | `api_keys` | id, workspace_id, name, token_hash, scopes (json), last_used_at |
 | `audit_logs` | id, workspace_id, user_id?, action, subject_type, subject_id, changes (json), ip_hash, created_at |
 | `feature_flags` | Laravel Pennant por espacio de trabajo y plan |
 | `ingest_rejections` | id, workspace_id, site_id, event_id, event, reason, sample (json truncado y sin PII), created_at. Se purga a los 7 días |
+| `workspace_invitations` | id, workspace_id, email, role, token_hash, invited_by, expires_at, accepted_at? |
 
 ## 2. Contactos e identidad
 
 | Tabla | Columnas clave |
 |---|---|
 | `contacts` | id, workspace_id, email (cifrado), email_bidx, phone (cifrado), phone_bidx, first_name (cifrado), last_name (cifrado), birthday?, city, region_code, country, locale, timezone, lifecycle_stage (`visitor`, `subscriber`, `lead`, `customer`, `repeat`, `vip`, `at_risk`, `lost`), first_seen_at, last_seen_at, first_source (json), first_order_source (json), hdyhau (respuesta a «¿cómo nos conociste?»), orders_count, revenue_total_ws, aov_ws, first_order_at, last_order_at, avg_days_between_orders, refunds_count, coupon_orders_ratio, rfm_r, rfm_f, rfm_m, rfm_segment, predicted_clv_12m_ws, churn_risk (0-1), churn_band, expected_next_order_at, engagement_score, lead_score, preferred_hour, preferred_channel, category_affinity (json top 5), price_band, points_balance, tier_id, wallet_balance_ws, referral_code, custom_attributes (json), tags (json), merged_into_id?, deleted_at |
-| `contact_identities` | id, workspace_id, contact_id, type (`anonymous_id`, `customer_ref`, `email_hash`, `phone_hash`, `wa_id`, `link_token`, `external`), value, site_id?, first_seen_at, last_seen_at. Único (workspace_id, type, value) |
+| `contact_identities` | id, workspace_id, contact_id, type (`anonymous_id`, `customer_ref`, `email_hash`, `phone_hash`, `wa_id`, `link_token`, `external`), value, site_id?, first_seen_at, last_seen_at. Único (workspace_id, type, value). **`email_hash` y `phone_hash` se guardan como HMAC con la clave del espacio de trabajo** (el mismo índice ciego de `contacts`), no como SHA-256 plano: un SHA-256 plano de un correo se puede revertir con un diccionario. El SHA-256 que piden Meta y Google se calcula al enviar, desde el dato cifrado |
 | `contact_merges` | id, workspace_id, winner_id, loser_id, reason, snapshot (json), reverted_at? |
 | `contact_notes` | id, workspace_id, contact_id, user_id, body, created_at |
 | `custom_attribute_defs` | id, workspace_id, key, label, type (`text`, `number`, `date`, `bool`, `enum`), options (json), source |

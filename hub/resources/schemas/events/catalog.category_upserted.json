@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/catalog.category_upserted.json",
+  "title": "catalog.category_upserted",
+  "description": "Esquema de `properties` del evento catalog.category_upserted (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "category_id",
+    "name"
+  ],
+  "properties": {
+    "category_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "parent_id": {
+      "$ref": "_defs.json#/$defs/external_id_or_null"
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "slug": {
+      "type": "string",
+      "maxLength": 200
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "category_id": "12",
+      "parent_id": null,
+      "name": "Pinturas",
+      "slug": "pinturas"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "category_id": "12"
+    }
+  ]
+}

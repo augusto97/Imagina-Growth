@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/cart.item_removed.json",
+  "title": "cart.item_removed",
+  "description": "Esquema de `properties` del evento cart.item_removed (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "cart_token",
+    "product_id"
+  ],
+  "properties": {
+    "cart_token": {
+      "$ref": "_defs.json#/$defs/cart_token"
+    },
+    "product_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "variation_id": {
+      "$ref": "_defs.json#/$defs/external_id_or_null"
+    },
+    "qty": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "cart_token": "c7f1a2b3c4d5e6f7",
+      "product_id": "88",
+      "qty": 1
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "product_id": "88"
+    }
+  ]
+}

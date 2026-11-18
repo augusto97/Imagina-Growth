@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/order.refunded.json",
+  "title": "order.refunded",
+  "description": "Esquema de `properties` del evento order.refunded (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "order_id",
+    "refund_id",
+    "amount",
+    "is_partial"
+  ],
+  "properties": {
+    "order_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "refund_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "amount": {
+      "$ref": "_defs.json#/$defs/money"
+    },
+    "is_partial": {
+      "type": "boolean"
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 300
+    },
+    "refunded_at": {
+      "$ref": "_defs.json#/$defs/datetime_or_null"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "product_id",
+          "qty"
+        ],
+        "properties": {
+          "item_id": {
+            "$ref": "_defs.json#/$defs/external_id_or_null"
+          },
+          "product_id": {
+            "$ref": "_defs.json#/$defs/external_id"
+          },
+          "qty": {
+            "type": "number"
+          },
+          "amount": {
+            "$ref": "_defs.json#/$defs/money"
+          }
+        },
+        "additionalProperties": false
+      },
+      "maxItems": 500
+    },
+    "order": {
+      "$ref": "_defs.json#/$defs/order"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "order_id": "1234",
+      "refund_id": "1300",
+      "amount": "150000.00",
+      "is_partial": true,
+      "items": [
+        {
+          "item_id": "55",
+          "product_id": "88",
+          "qty": 1,
+          "amount": "150000.00"
+        }
+      ]
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "order_id": "1234",
+      "amount": "150000.00"
+    }
+  ]
+}

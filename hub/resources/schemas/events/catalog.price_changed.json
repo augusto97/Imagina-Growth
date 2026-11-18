@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/catalog.price_changed.json",
+  "title": "catalog.price_changed",
+  "description": "Esquema de `properties` del evento catalog.price_changed (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "product_id",
+    "from",
+    "to"
+  ],
+  "properties": {
+    "product_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "from": {
+      "$ref": "_defs.json#/$defs/money_or_null"
+    },
+    "to": {
+      "$ref": "_defs.json#/$defs/money"
+    },
+    "currency": {
+      "$ref": "_defs.json#/$defs/currency"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "product_id": "88",
+      "from": "150000.00",
+      "to": "129000.00",
+      "currency": "COP"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "product_id": "88",
+      "to": "barato"
+    }
+  ]
+}

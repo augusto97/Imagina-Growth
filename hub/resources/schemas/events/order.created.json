@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/order.created.json",
+  "title": "order.created",
+  "description": "Esquema de `properties` del evento order.created (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "order"
+  ],
+  "properties": {
+    "order": {
+      "$ref": "_defs.json#/$defs/order"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "order": {
+        "order_id": "1234",
+        "number": "1234",
+        "status": "processing",
+        "created_at": "2026-11-17T18:01:00-05:00",
+        "paid_at": "2026-11-17T18:05:00-05:00",
+        "modified_at": "2026-11-17T18:05:00-05:00",
+        "created_via": "checkout",
+        "currency": "COP",
+        "totals": {
+          "subtotal": "300000.00",
+          "discount": "30000.00",
+          "shipping": "12000.00",
+          "tax": "0.00",
+          "total": "282000.00",
+          "refunded": "0.00"
+        },
+        "payment_method": {
+          "id": "wompi",
+          "title": "Wompi - PSE",
+          "is_offline": false
+        },
+        "shipping_method": {
+          "id": "flat_rate",
+          "title": "Envío nacional"
+        },
+        "coupons": [
+          "BIENVENIDA10"
+        ],
+        "items": [
+          {
+            "item_id": "55",
+            "product_id": "88",
+            "variation_id": "91",
+            "sku": "PNT-AZ-1G",
+            "name": "Pintura Azul 1 galón",
+            "category_ids": [
+              "12"
+            ],
+            "brand": "Pintuco",
+            "qty": 2,
+            "unit_price": "150000.00",
+            "line_total": "300000.00",
+            "cost": "90000.00"
+          }
+        ],
+        "billing": {
+          "first_name": "Ana",
+          "last_name": "Ruiz",
+          "email": "ana@ejemplo.com",
+          "phone": "3001234567",
+          "city": "Manizales",
+          "state": "CO-CAL",
+          "country": "CO",
+          "postcode": ""
+        },
+        "shipping": {
+          "city": "Manizales",
+          "state": "CO-CAL",
+          "country": "CO"
+        },
+        "customer_ref": "wc:77",
+        "wc_attribution": {
+          "source_type": "utm",
+          "utm_source": "facebook",
+          "utm_medium": "paid_social",
+          "utm_campaign": "nov",
+          "session_entry": "/",
+          "session_pages": 4,
+          "session_count": 2,
+          "device_type": "Mobile"
+        },
+        "consents": {
+          "email_marketing": true,
+          "whatsapp_marketing": false,
+          "text_version": "v3"
+        },
+        "meta": {}
+      }
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "order": {
+        "order_id": "1234",
+        "number": "1234",
+        "status": "processing",
+        "created_at": "2026-11-17T18:01:00-05:00",
+        "paid_at": "2026-11-17T18:05:00-05:00",
+        "modified_at": "2026-11-17T18:05:00-05:00",
+        "created_via": "checkout",
+        "currency": "COP",
+        "totals": {
+          "total": 282000
+        },
+        "payment_method": {
+          "id": "wompi",
+          "title": "Wompi - PSE",
+          "is_offline": false
+        },
+        "shipping_method": {
+          "id": "flat_rate",
+          "title": "Envío nacional"
+        },
+        "coupons": [
+          "BIENVENIDA10"
+        ],
+        "items": [
+          {
+            "item_id": "55",
+            "product_id": "88",
+            "variation_id": "91",
+            "sku": "PNT-AZ-1G",
+            "name": "Pintura Azul 1 galón",
+            "category_ids": [
+              "12"
+            ],
+            "brand": "Pintuco",
+            "qty": 2,
+            "unit_price": "150000.00",
+            "line_total": "300000.00",
+            "cost": "90000.00"
+          }
+        ],
+        "billing": {
+          "first_name": "Ana",
+          "last_name": "Ruiz",
+          "email": "ana@ejemplo.com",
+          "phone": "3001234567",
+          "city": "Manizales",
+          "state": "CO-CAL",
+          "country": "CO",
+          "postcode": ""
+        },
+        "shipping": {
+          "city": "Manizales",
+          "state": "CO-CAL",
+          "country": "CO"
+        },
+        "customer_ref": "wc:77",
+        "wc_attribution": {
+          "source_type": "utm",
+          "utm_source": "facebook",
+          "utm_medium": "paid_social",
+          "utm_campaign": "nov",
+          "session_entry": "/",
+          "session_pages": 4,
+          "session_count": 2,
+          "device_type": "Mobile"
+        },
+        "consents": {
+          "email_marketing": true,
+          "whatsapp_marketing": false,
+          "text_version": "v3"
+        },
+        "meta": {}
+      }
+    },
+    {}
+  ]
+}

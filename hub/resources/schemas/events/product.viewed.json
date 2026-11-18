@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/product.viewed.json",
+  "title": "product.viewed",
+  "description": "Esquema de `properties` del evento product.viewed (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "product_id",
+    "name",
+    "price",
+    "currency"
+  ],
+  "properties": {
+    "product_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "variation_id": {
+      "$ref": "_defs.json#/$defs/external_id_or_null"
+    },
+    "sku": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 100
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 300
+    },
+    "category_ids": {
+      "$ref": "_defs.json#/$defs/id_list"
+    },
+    "price": {
+      "$ref": "_defs.json#/$defs/money"
+    },
+    "currency": {
+      "$ref": "_defs.json#/$defs/currency"
+    },
+    "in_stock": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "product_id": "88",
+      "sku": "PNT-AZ-1G",
+      "name": "Pintura Azul 1 galón",
+      "category_ids": [
+        "12"
+      ],
+      "price": "150000.00",
+      "currency": "COP",
+      "in_stock": true
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "product_id": "88",
+      "name": "X",
+      "price": 150000,
+      "currency": "COP"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/subscription.created.json",
+  "title": "subscription.created",
+  "description": "Esquema de `properties` del evento subscription.created (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "subscription_id",
+    "status"
+  ],
+  "properties": {
+    "subscription_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "status": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "next_payment_at": {
+      "$ref": "_defs.json#/$defs/datetime_or_null"
+    },
+    "total": {
+      "$ref": "_defs.json#/$defs/money"
+    },
+    "currency": {
+      "$ref": "_defs.json#/$defs/currency"
+    },
+    "billing_period": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 20
+    },
+    "customer_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "parent_order_id": {
+      "$ref": "_defs.json#/$defs/external_id_or_null"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "subscription_id": "700",
+      "status": "active",
+      "next_payment_at": "2026-12-17T00:00:00Z",
+      "total": "89000.00",
+      "currency": "COP"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "status": "active"
+    }
+  ]
+}

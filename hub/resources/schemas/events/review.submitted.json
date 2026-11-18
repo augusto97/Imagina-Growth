@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/review.submitted.json",
+  "title": "review.submitted",
+  "description": "Esquema de `properties` del evento review.submitted (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "product_id",
+    "rating",
+    "review_id"
+  ],
+  "properties": {
+    "product_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "rating": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "verified_owner": {
+      "type": "boolean"
+    },
+    "review_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "approved",
+        "pending",
+        "spam",
+        "trash"
+      ]
+    },
+    "body_length": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "customer_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "created_at": {
+      "$ref": "_defs.json#/$defs/datetime_or_null"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "product_id": "88",
+      "rating": 5,
+      "verified_owner": true,
+      "review_id": "901",
+      "status": "approved"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "product_id": "88",
+      "rating": 7,
+      "review_id": "901"
+    }
+  ]
+}

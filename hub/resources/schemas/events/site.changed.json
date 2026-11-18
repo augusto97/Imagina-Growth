@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/site.changed.json",
+  "title": "site.changed",
+  "description": "Esquema de `properties` del evento site.changed (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "change",
+    "name"
+  ],
+  "properties": {
+    "change": {
+      "type": "string",
+      "enum": [
+        "plugin_activated",
+        "plugin_deactivated",
+        "plugin_updated",
+        "theme_switched",
+        "theme_updated",
+        "wp_updated",
+        "wc_updated",
+        "core_updated"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "from_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 40
+    },
+    "to_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 40
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "change": "plugin_updated",
+      "name": "woocommerce",
+      "from_version": "9.4.1",
+      "to_version": "9.5.0"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "change": "otro",
+      "name": "x"
+    }
+  ]
+}

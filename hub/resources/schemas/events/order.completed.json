@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/order.completed.json",
+  "title": "order.completed",
+  "description": "Esquema de `properties` del evento order.completed (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "order_id"
+  ],
+  "properties": {
+    "order_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "order": {
+      "$ref": "_defs.json#/$defs/order"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "order_id": "1234"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "order_id": 1234
+    }
+  ]
+}

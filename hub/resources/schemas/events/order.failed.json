@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/order.failed.json",
+  "title": "order.failed",
+  "description": "Esquema de `properties` del evento order.failed (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "order_id"
+  ],
+  "properties": {
+    "order_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 300
+    },
+    "order": {
+      "$ref": "_defs.json#/$defs/order"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "order_id": "1234",
+      "reason": null
+    }
+  ],
+  "x-invalid-examples": [
+    {}
+  ]
+}

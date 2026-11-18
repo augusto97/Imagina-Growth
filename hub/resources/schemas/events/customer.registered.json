@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/customer.registered.json",
+  "title": "customer.registered",
+  "description": "Esquema de `properties` del evento customer.registered (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "customer_ref"
+  ],
+  "properties": {
+    "customer_ref": {
+      "type": "string",
+      "pattern": "^[a-z]+:[A-Za-z0-9_-]{1,64}$"
+    },
+    "first_name": {
+      "type": "string",
+      "maxLength": 120
+    },
+    "last_name": {
+      "type": "string",
+      "maxLength": 120
+    },
+    "email": {
+      "anyOf": [
+        {
+          "$ref": "_defs.json#/$defs/email"
+        },
+        {
+          "const": ""
+        }
+      ]
+    },
+    "phone": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 32
+    },
+    "marketing_optin": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "billing": {
+      "$ref": "_defs.json#/$defs/address"
+    },
+    "registered_at": {
+      "$ref": "_defs.json#/$defs/datetime_or_null"
+    },
+    "locale": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 10
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "customer_ref": "wc:77",
+      "first_name": "Ana",
+      "last_name": "Ruiz",
+      "email": "ana@ejemplo.com",
+      "phone": "+573001234567",
+      "marketing_optin": null,
+      "billing": {
+        "city": "Manizales",
+        "state": "CO-CAL",
+        "country": "CO"
+      }
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "first_name": "Ana"
+    },
+    {
+      "customer_ref": "77"
+    }
+  ]
+}

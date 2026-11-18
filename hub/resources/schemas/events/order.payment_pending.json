@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/order.payment_pending.json",
+  "title": "order.payment_pending",
+  "description": "Esquema de `properties` del evento order.payment_pending (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "order_id",
+    "payment_method",
+    "total"
+  ],
+  "properties": {
+    "order_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "payment_method": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "total": {
+      "$ref": "_defs.json#/$defs/money"
+    },
+    "currency": {
+      "$ref": "_defs.json#/$defs/currency"
+    },
+    "pay_url": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 2048
+    },
+    "order": {
+      "$ref": "_defs.json#/$defs/order"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "order_id": "1234",
+      "payment_method": "bacs",
+      "total": "282000.00",
+      "currency": "COP",
+      "pay_url": "https://tienda.co/finalizar-compra/order-pay/1234/?pay_for_order=true&key=wc_order_x"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "order_id": "1234",
+      "total": "282000.00"
+    }
+  ]
+}

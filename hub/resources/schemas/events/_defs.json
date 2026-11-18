@@ -1,0 +1,482 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/_defs.json",
+  "title": "Definiciones compartidas del contrato de eventos",
+  "$defs": {
+    "money": {
+      "type": "string",
+      "pattern": "^-?[0-9]{1,16}(\\.[0-9]{1,6})?$",
+      "description": "Monto decimal en texto, p. ej. \"159900.00\""
+    },
+    "money_or_null": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/money"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "external_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "ID externo de la plataforma, en texto"
+    },
+    "external_id_or_null": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/external_id"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "datetime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "datetime_or_null": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "email": {
+      "type": "string",
+      "maxLength": 254,
+      "pattern": "^[^@\\s]+@[^@\\s]+$"
+    },
+    "phone_e164": {
+      "type": "string",
+      "pattern": "^\\+[1-9][0-9]{6,14}$"
+    },
+    "id_list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/external_id"
+      },
+      "maxItems": 200
+    },
+    "cart_token": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 64
+    },
+    "address": {
+      "type": "object",
+      "properties": {
+        "first_name": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "last_name": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "company": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "email": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/email"
+            },
+            {
+              "const": ""
+            }
+          ]
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Tal como lo escribió la persona; el hub lo normaliza a E.164"
+        },
+        "city": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "state": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Código ISO 3166-2 (CO-CAL) o el código de WooCommerce"
+        },
+        "country": {
+          "type": "string",
+          "maxLength": 2
+        },
+        "postcode": {
+          "type": "string",
+          "maxLength": 20
+        }
+      },
+      "additionalProperties": false
+    },
+    "order_item": {
+      "type": "object",
+      "required": [
+        "item_id",
+        "product_id",
+        "name",
+        "qty",
+        "unit_price",
+        "line_total"
+      ],
+      "properties": {
+        "item_id": {
+          "$ref": "#/$defs/external_id"
+        },
+        "product_id": {
+          "$ref": "#/$defs/external_id"
+        },
+        "variation_id": {
+          "$ref": "#/$defs/external_id_or_null"
+        },
+        "sku": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 100
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "category_ids": {
+          "$ref": "#/$defs/id_list"
+        },
+        "brand": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 120
+        },
+        "qty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "unit_price": {
+          "$ref": "#/$defs/money"
+        },
+        "line_total": {
+          "$ref": "#/$defs/money"
+        },
+        "cost": {
+          "$ref": "#/$defs/money_or_null"
+        }
+      },
+      "additionalProperties": false
+    },
+    "order": {
+      "type": "object",
+      "required": [
+        "order_id",
+        "status",
+        "created_at",
+        "currency",
+        "totals",
+        "items"
+      ],
+      "properties": {
+        "order_id": {
+          "$ref": "#/$defs/external_id"
+        },
+        "number": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Estado de WooCommerce sin el prefijo wc-"
+        },
+        "created_at": {
+          "$ref": "#/$defs/datetime"
+        },
+        "paid_at": {
+          "$ref": "#/$defs/datetime_or_null"
+        },
+        "modified_at": {
+          "$ref": "#/$defs/datetime_or_null",
+          "description": "Última modificación; el hub no sobrescribe una proyección más nueva con una más vieja"
+        },
+        "created_via": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "checkout | admin | rest-api | store-api | otro valor de WooCommerce"
+        },
+        "currency": {
+          "$ref": "#/$defs/currency"
+        },
+        "totals": {
+          "type": "object",
+          "required": [
+            "subtotal",
+            "discount",
+            "shipping",
+            "tax",
+            "total",
+            "refunded"
+          ],
+          "properties": {
+            "subtotal": {
+              "$ref": "#/$defs/money"
+            },
+            "discount": {
+              "$ref": "#/$defs/money"
+            },
+            "shipping": {
+              "$ref": "#/$defs/money"
+            },
+            "tax": {
+              "$ref": "#/$defs/money"
+            },
+            "total": {
+              "$ref": "#/$defs/money"
+            },
+            "refunded": {
+              "$ref": "#/$defs/money"
+            }
+          },
+          "additionalProperties": false
+        },
+        "payment_method": {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "is_offline": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "shipping_method": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 200
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "coupons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "maxItems": 50
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/order_item"
+          },
+          "maxItems": 500
+        },
+        "billing": {
+          "$ref": "#/$defs/address"
+        },
+        "shipping": {
+          "$ref": "#/$defs/address"
+        },
+        "customer_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z]+:[A-Za-z0-9_-]{1,64}$"
+        },
+        "wc_attribution": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "consents": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "email_marketing": {
+              "type": "boolean"
+            },
+            "whatsapp_marketing": {
+              "type": "boolean"
+            },
+            "sms_marketing": {
+              "type": "boolean"
+            },
+            "text_version": {
+              "type": "string",
+              "maxLength": 32
+            }
+          }
+        },
+        "meta": {
+          "type": "object",
+          "maxProperties": 50
+        }
+      },
+      "additionalProperties": false
+    },
+    "cart_item": {
+      "type": "object",
+      "required": [
+        "product_id",
+        "qty"
+      ],
+      "properties": {
+        "product_id": {
+          "$ref": "#/$defs/external_id"
+        },
+        "variation_id": {
+          "$ref": "#/$defs/external_id_or_null"
+        },
+        "sku": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 100
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "qty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "price": {
+          "$ref": "#/$defs/money"
+        },
+        "line_total": {
+          "$ref": "#/$defs/money"
+        }
+      },
+      "additionalProperties": false
+    },
+    "touch": {
+      "type": "object",
+      "properties": {
+        "utm": {
+          "$ref": "#/$defs/utm"
+        },
+        "click_ids": {
+          "$ref": "#/$defs/click_ids"
+        },
+        "referrer": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "landing": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "at": {
+          "$ref": "#/$defs/datetime"
+        }
+      },
+      "additionalProperties": false
+    },
+    "utm": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "medium": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "campaign": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "content": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "term": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "id": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "additionalProperties": false
+    },
+    "click_ids": {
+      "type": "object",
+      "properties": {
+        "fbclid": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "gclid": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "gbraid": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "wbraid": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "ttclid": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "msclkid": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

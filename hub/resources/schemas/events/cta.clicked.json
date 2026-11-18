@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/cta.clicked.json",
+  "title": "cta.clicked",
+  "description": "Esquema de `properties` del evento cta.clicked (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "kind",
+    "target"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": [
+        "whatsapp",
+        "phone",
+        "email",
+        "download",
+        "custom"
+      ]
+    },
+    "target": {
+      "type": "string",
+      "maxLength": 2048
+    },
+    "label": {
+      "type": "string",
+      "maxLength": 300
+    },
+    "wa_ref": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-HJ-NP-Z2-9]{4,6}$"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "kind": "whatsapp",
+      "target": "https://wa.me/573001234567",
+      "label": "Escríbenos",
+      "wa_ref": "K7Q2"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "kind": "fax",
+      "target": "x"
+    }
+  ]
+}

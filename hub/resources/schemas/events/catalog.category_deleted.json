@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/catalog.category_deleted.json",
+  "title": "catalog.category_deleted",
+  "description": "Esquema de `properties` del evento catalog.category_deleted (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "category_id"
+  ],
+  "properties": {
+    "category_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "category_id": "12"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "category_id": ""
+    }
+  ]
+}

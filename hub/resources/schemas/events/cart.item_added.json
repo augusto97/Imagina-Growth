@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/cart.item_added.json",
+  "title": "cart.item_added",
+  "description": "Esquema de `properties` del evento cart.item_added (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "cart_token",
+    "product_id",
+    "qty"
+  ],
+  "properties": {
+    "cart_token": {
+      "$ref": "_defs.json#/$defs/cart_token"
+    },
+    "product_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "variation_id": {
+      "$ref": "_defs.json#/$defs/external_id_or_null"
+    },
+    "qty": {
+      "type": "number",
+      "minimum": 0
+    },
+    "price": {
+      "$ref": "_defs.json#/$defs/money"
+    },
+    "cart_total": {
+      "$ref": "_defs.json#/$defs/money"
+    },
+    "currency": {
+      "$ref": "_defs.json#/$defs/currency"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "cart_token": "c7f1a2b3c4d5e6f7",
+      "product_id": "88",
+      "variation_id": "91",
+      "qty": 2,
+      "price": "150000.00",
+      "cart_total": "300000.00",
+      "currency": "COP"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "cart_token": "c7f1a2b3c4d5e6f7",
+      "qty": 1
+    }
+  ]
+}

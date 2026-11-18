@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/search.performed.json",
+  "title": "search.performed",
+  "description": "Esquema de `properties` del evento search.performed (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "query"
+  ],
+  "properties": {
+    "query": {
+      "type": "string",
+      "maxLength": 300
+    },
+    "results_count": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "engine": {
+      "type": "string",
+      "enum": [
+        "wp",
+        "wc",
+        "imagina_search"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "query": "pintura azul",
+      "results_count": 4,
+      "engine": "wc"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "query": "x",
+      "engine": "google"
+    }
+  ]
+}

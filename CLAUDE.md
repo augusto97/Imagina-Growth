@@ -34,6 +34,7 @@ imagina-growth/
 ├── CLAUDE.md                 ← este archivo
 ├── docs/                     ← especificación funcional (fuente de verdad)
 │   ├── eventos.md            ← contrato de eventos y datos que se recogen
+│   ├── api-connector.md      ← contrato en el cable entre el plugin y el hub (firma, handshake, ingesta, comandos)
 │   ├── modelo-de-datos.md    ← tablas MariaDB y ClickHouse
 │   ├── modulos.md            ← especificación por módulo, con fase y criterios
 │   ├── inteligencia.md       ← métricas, RFM, predicciones, hallazgos, IA

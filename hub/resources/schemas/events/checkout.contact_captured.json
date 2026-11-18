@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/checkout.contact_captured.json",
+  "title": "checkout.contact_captured",
+  "description": "Esquema de `properties` del evento checkout.contact_captured (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "has_email",
+    "has_phone"
+  ],
+  "properties": {
+    "has_email": {
+      "type": "boolean"
+    },
+    "has_phone": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "has_email": true,
+      "has_phone": false
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "has_email": true,
+      "has_phone": false,
+      "email": "ana@ejemplo.com"
+    }
+  ]
+}

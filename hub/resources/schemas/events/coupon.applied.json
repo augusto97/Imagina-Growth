@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/coupon.applied.json",
+  "title": "coupon.applied",
+  "description": "Esquema de `properties` del evento coupon.applied (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "cart_token",
+    "code"
+  ],
+  "properties": {
+    "cart_token": {
+      "$ref": "_defs.json#/$defs/cart_token"
+    },
+    "code": {
+      "type": "string",
+      "maxLength": 100
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "cart_token": "c7f1a2b3c4d5e6f7",
+      "code": "BIENVENIDA10"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "code": "X"
+    }
+  ]
+}

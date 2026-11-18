@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/category.viewed.json",
+  "title": "category.viewed",
+  "description": "Esquema de `properties` del evento category.viewed (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "category_id"
+  ],
+  "properties": {
+    "category_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 200
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "category_id": "12",
+      "name": "Pinturas"
+    }
+  ],
+  "x-invalid-examples": [
+    {}
+  ]
+}

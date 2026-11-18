@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/site.heartbeat.json",
+  "title": "site.heartbeat",
+  "description": "Esquema de `properties` del evento site.heartbeat (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "plugin_version"
+  ],
+  "properties": {
+    "wp_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 20
+    },
+    "wc_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 20
+    },
+    "php_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 20
+    },
+    "plugin_version": {
+      "type": "string",
+      "maxLength": 20
+    },
+    "outbox_pending": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "outbox_dead": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "oldest_pending_at": {
+      "$ref": "_defs.json#/$defs/datetime_or_null"
+    },
+    "last_error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 500
+    },
+    "capabilities": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "wp_version": "6.8.1",
+      "wc_version": "9.5.0",
+      "php_version": "8.3.6",
+      "plugin_version": "0.1.0",
+      "outbox_pending": 0,
+      "last_error": null
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "plugin_version": 1
+    }
+  ]
+}

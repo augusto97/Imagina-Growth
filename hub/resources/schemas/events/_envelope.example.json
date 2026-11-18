@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "event_id": "0193a7b2-6c1e-7f3a-9a51-2f6d1c0e4b7a",
+  "event": "order.paid",
+  "occurred_at": "2026-11-17T18:05:00.123-05:00",
+  "source": {
+    "type": "server",
+    "platform": "woocommerce",
+    "site_id": "st_01JD3QG7Y2V8K6N4M5P9R0S1T2",
+    "sdk": "connector/0.1.0"
+  },
+  "identity": {
+    "anonymous_id": "c3b0f4a2-1d2e-4f5a-8b9c-0d1e2f3a4b5c",
+    "session_id": "s_8f2a91",
+    "customer_ref": "wc:77",
+    "email": "ana@ejemplo.com",
+    "phone": "+573001234567",
+    "link_token": null
+  },
+  "context": {
+    "page_type": "checkout",
+    "utm": {
+      "source": "facebook",
+      "medium": "paid_social"
+    },
+    "click_ids": {
+      "fbclid": "IwAR0x"
+    },
+    "ad_cookies": {
+      "fbp": "fb.1.1731880000000.123456789"
+    },
+    "consent": {
+      "analytics": true,
+      "marketing": false,
+      "source": "wp-consent-api"
+    },
+    "locale": "es-CO",
+    "currency": "COP",
+    "ip": "190.24.1.10",
+    "user_agent": "Mozilla/5.0"
+  },
+  "properties": {
+    "order": {
+      "order_id": "1234",
+      "number": "1234",
+      "status": "processing",
+      "created_at": "2026-11-17T18:01:00-05:00",
+      "paid_at": "2026-11-17T18:05:00-05:00",
+      "modified_at": "2026-11-17T18:05:00-05:00",
+      "created_via": "checkout",
+      "currency": "COP",
+      "totals": {
+        "subtotal": "300000.00",
+        "discount": "30000.00",
+        "shipping": "12000.00",
+        "tax": "0.00",
+        "total": "282000.00",
+        "refunded": "0.00"
+      },
+      "payment_method": {
+        "id": "wompi",
+        "title": "Wompi - PSE",
+        "is_offline": false
+      },
+      "shipping_method": {
+        "id": "flat_rate",
+        "title": "Envío nacional"
+      },
+      "coupons": [
+        "BIENVENIDA10"
+      ],
+      "items": [
+        {
+          "item_id": "55",
+          "product_id": "88",
+          "variation_id": "91",
+          "sku": "PNT-AZ-1G",
+          "name": "Pintura Azul 1 galón",
+          "category_ids": [
+            "12"
+          ],
+          "brand": "Pintuco",
+          "qty": 2,
+          "unit_price": "150000.00",
+          "line_total": "300000.00",
+          "cost": "90000.00"
+        }
+      ],
+      "billing": {
+        "first_name": "Ana",
+        "last_name": "Ruiz",
+        "email": "ana@ejemplo.com",
+        "phone": "3001234567",
+        "city": "Manizales",
+        "state": "CO-CAL",
+        "country": "CO",
+        "postcode": ""
+      },
+      "shipping": {
+        "city": "Manizales",
+        "state": "CO-CAL",
+        "country": "CO"
+      },
+      "customer_ref": "wc:77",
+      "wc_attribution": {
+        "source_type": "utm",
+        "utm_source": "facebook",
+        "utm_medium": "paid_social",
+        "utm_campaign": "nov",
+        "session_entry": "/",
+        "session_pages": 4,
+        "session_count": 2,
+        "device_type": "Mobile"
+      },
+      "consents": {
+        "email_marketing": true,
+        "whatsapp_marketing": false,
+        "text_version": "v3"
+      },
+      "meta": {}
+    }
+  }
+}

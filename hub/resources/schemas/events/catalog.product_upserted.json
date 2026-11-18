@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/catalog.product_upserted.json",
+  "title": "catalog.product_upserted",
+  "description": "Esquema de `properties` del evento catalog.product_upserted (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "product_id",
+    "type",
+    "name",
+    "price",
+    "stock_status",
+    "status",
+    "hash"
+  ],
+  "properties": {
+    "product_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "parent_id": {
+      "$ref": "_defs.json#/$defs/external_id_or_null"
+    },
+    "type": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "sku": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 100
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 300
+    },
+    "slug": {
+      "type": "string",
+      "maxLength": 300
+    },
+    "permalink": {
+      "type": "string",
+      "maxLength": 2048
+    },
+    "image_url": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 2048
+    },
+    "category_ids": {
+      "$ref": "_defs.json#/$defs/id_list"
+    },
+    "brand": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 120
+    },
+    "price": {
+      "$ref": "_defs.json#/$defs/money"
+    },
+    "regular_price": {
+      "$ref": "_defs.json#/$defs/money_or_null"
+    },
+    "sale_price": {
+      "$ref": "_defs.json#/$defs/money_or_null"
+    },
+    "stock_status": {
+      "type": "string",
+      "maxLength": 20
+    },
+    "stock_qty": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "rating_avg": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 5
+    },
+    "rating_count": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "status": {
+      "type": "string",
+      "maxLength": 20
+    },
+    "cost": {
+      "$ref": "_defs.json#/$defs/money_or_null"
+    },
+    "currency": {
+      "$ref": "_defs.json#/$defs/currency"
+    },
+    "created_at": {
+      "$ref": "_defs.json#/$defs/datetime_or_null"
+    },
+    "modified_at": {
+      "$ref": "_defs.json#/$defs/datetime_or_null"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16,64}$"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "product_id": "88",
+      "parent_id": null,
+      "type": "variable",
+      "sku": "PNT-AZ",
+      "name": "Pintura Azul",
+      "slug": "pintura-azul",
+      "permalink": "https://tienda.co/producto/pintura-azul/",
+      "image_url": null,
+      "category_ids": [
+        "12"
+      ],
+      "brand": "Pintuco",
+      "price": "150000.00",
+      "regular_price": "150000.00",
+      "sale_price": null,
+      "stock_status": "instock",
+      "stock_qty": 14,
+      "rating_avg": 4.6,
+      "rating_count": 12,
+      "status": "publish",
+      "cost": "90000.00",
+      "hash": "9f2c1a7b3d4e5f60"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "product_id": "88",
+      "type": "simple",
+      "name": "X",
+      "price": "1",
+      "stock_status": "instock",
+      "status": "publish",
+      "hash": "nothex!"
+    }
+  ]
+}

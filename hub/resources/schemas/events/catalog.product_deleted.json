@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/catalog.product_deleted.json",
+  "title": "catalog.product_deleted",
+  "description": "Esquema de `properties` del evento catalog.product_deleted (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "product_id"
+  ],
+  "properties": {
+    "product_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "product_id": "88"
+    }
+  ],
+  "x-invalid-examples": [
+    {}
+  ]
+}

@@ -65,6 +65,7 @@ Para orientar bien las estrategias, cada espacio de trabajo debe responder estas
     "click_ids": { "fbclid": "", "gclid": "", "gbraid": "", "wbraid": "", "ttclid": "", "msclkid": "" },
     "ad_cookies": { "fbp": "", "fbc": "", "ga_client_id": "", "ttp": "" },
     "first_touch": { /* mismo formato utm + click_ids + referrer + landing, persistido 90 días */ },
+    "last_touch": { /* último contacto no directo, mismo formato (cookie _igr_src) */ },
     "device": { "type": "mobile | tablet | desktop", "os": "", "browser": "" },  // el hub lo deriva del UA
     "consent": { "analytics": true, "marketing": false, "source": "wp-consent-api | complianz | cookieyes | none" },
     "locale": "es-CO",
@@ -72,7 +73,8 @@ Para orientar bien las estrategias, cada espacio de trabajo debe responder estas
     "ip": "x.x.x.x",       // solo en tránsito: el hub deriva el geo y la descarta; nunca se guarda
     "user_agent": "..."    // solo en tránsito
   },
-  "properties": { /* específicas del evento (§4) */ }
+  "properties": { /* específicas del evento (§4) */ },
+  "encrypted": { "alg": "...", "data": "..." }          // opcional: dato cifrado con la clave del sitio (checkout.contact_captured)
 }
 ```
 
@@ -84,6 +86,8 @@ Para orientar bien las estrategias, cada espacio de trabajo debe responder estas
 - `source.type = import` marca el backfill: se guarda y alimenta la analítica, pero no dispara flujos ni conversiones hacia anuncios.
 - Eventos personalizados: prefijo `custom.` (por ejemplo, `custom.cotizacion_solicitada`). Las propiedades son libres pero con un máximo de 50 claves y 8 KB.
 - Tamaño máximo por evento: 32 KB. Lote de servidor: hasta 500 eventos o 1 MB comprimido.
+- Los esquemas viven en `hub/resources/schemas/events/`: `_envelope.json` (sobre), `_defs.json` (tipos compartidos, incluido el objeto `order` de §5) y un archivo por evento que describe sus `properties`, con `examples` válidos y `x-invalid-examples` para las pruebas de contrato. Los `custom.*` usan `custom.json`.
+- El detalle de transporte, firma y respuestas está en `docs/api-connector.md`.
 
 ---
 
@@ -127,14 +131,14 @@ Convenciones: `objeto.acción` en inglés y en pasado. Montos en la moneda del p
 | `checkout.started` | carga del checkout clásico o de bloques | `cart_token`, `subtotal`, `items_count` |
 | `order.created` | `woocommerce_new_order` / `woocommerce_store_api_checkout_order_processed` | `order` (§5) |
 | `order.paid` | pasa a un estado pagado (`processing`, `completed` o estados pagados configurables) por primera vez | `order` (§5) |
-| `order.status_changed` | `woocommerce_order_status_changed` | `order_id`, `from`, `to` |
-| `order.completed` | estado `completed` | `order_id` |
-| `order.cancelled` / `order.failed` | estados correspondientes | `order_id`, `reason?` |
-| `order.refunded` | `woocommerce_order_refunded` | `order_id`, `refund_id`, `amount`, `is_partial`, `items[]?` |
-| `order.payment_pending` | queda `on-hold` o `pending` con método offline (transferencia, Efecty, Baloto, PSE pendiente, contraentrega por confirmar) | `order_id`, `payment_method`, `total`, `pay_url?` |
+| `order.status_changed` | `woocommerce_order_status_changed` | `order_id`, `from`, `to`, `order?` |
+| `order.completed` | estado `completed` | `order_id`, `order?` |
+| `order.cancelled` / `order.failed` | estados correspondientes | `order_id`, `reason?`, `order?` |
+| `order.refunded` | `woocommerce_order_refunded` | `order_id`, `refund_id`, `amount`, `is_partial`, `reason?`, `refunded_at?`, `items[]?`, `order?` |
+| `order.payment_pending` | queda `on-hold` o `pending` con método offline (transferencia, Efecty, Baloto, PSE pendiente, contraentrega por confirmar) | `order_id`, `payment_method`, `total`, `currency?`, `pay_url?`, `order?` |
 | `coupon.applied` | `woocommerce_applied_coupon` | `cart_token`, `code` |
-| `customer.registered` | `user_register` (rol cliente) / `woocommerce_created_customer` | `customer_ref`, `first_name`, `last_name`, `email`, `phone?`, `marketing_optin?` |
-| `customer.updated` | `profile_update`, `woocommerce_customer_save_address` | campos cambiados |
+| `customer.registered` | `user_register` (rol cliente) / `woocommerce_created_customer` | `customer_ref`, `first_name`, `last_name`, `email`, `phone?`, `marketing_optin?`, `billing?` (ciudad, estado, país), `registered_at?`, `locale?` |
+| `customer.updated` | `profile_update`, `woocommerce_customer_save_address` | `customer_ref`, `changed[]` y solo los campos que cambiaron |
 | `customer.logged_in` | `wp_login` | `customer_ref` |
 | `review.submitted` | comentario `review` aprobado (`comment_post`, `wp_set_comment_status`) | `product_id`, `rating`, `verified_owner`, `review_id` |
 | `subscription.created` / `.renewed` / `.renewal_failed` / `.cancelled` / `.expired` | hooks de WooCommerce Subscriptions | `subscription_id`, `status`, `next_payment_at`, `total` |
@@ -148,6 +152,7 @@ Convenciones: `objeto.acción` en inglés y en pasado. Montos en la moneda del p
 | `catalog.stock_changed` | `product_id`, `from_status`, `to_status`, `qty?` |
 | `catalog.price_changed` | `product_id`, `from`, `to` |
 | `catalog.category_upserted` | `category_id`, `parent_id?`, `name`, `slug` |
+| `catalog.category_deleted` | `category_id` |
 
 ### 4.4 Formularios y servicios (connector)
 
@@ -191,6 +196,7 @@ Convenciones: `objeto.acción` en inglés y en pasado. Montos en la moneda del p
   "billing": { "first_name": "", "last_name": "", "email": "", "phone": "",
                "city": "Manizales", "state": "CO-CAL", "country": "CO", "postcode": "" },
   "shipping": { "city": "", "state": "", "country": "" },
+  "modified_at": "...",                     // última modificación (para no pisar una proyección más nueva)
   "customer_ref": "wc:77",                 // null si es invitado
   "wc_attribution": {                       // atribución nativa de WooCommerce (_wc_order_attribution_*)
     "source_type": "utm | organic | referral | typein | admin",
@@ -201,6 +207,10 @@ Convenciones: `objeto.acción` en inglés y en pasado. Montos en la moneda del p
   "meta": { /* claves permitidas por el espacio de trabajo, p. ej. campos personalizados del checkout */ }
 }
 ```
+
+**`order?` en los eventos de estado:** los eventos `order.status_changed`, `.completed`, `.cancelled`, `.failed`, `.refunded` y `.payment_pending` llevan opcionalmente la foto completa del pedido. El connector siempre la envía, así la proyección del hub queda al día aunque un evento llegue tarde. El hub no reemplaza una proyección por otra con `modified_at` más viejo.
+
+**Importación histórica:** cada pedido se importa como `order.created` (con `occurred_at` = fecha de creación) y, si ya se pagó, `order.paid` (con `occurred_at` = fecha de pago); cada reembolso como `order.refunded`. Todos con `source.type = import` y la foto actual del pedido.
 
 **Estados pagados por defecto:** `processing`, `completed`. Cada sitio puede mapear estados personalizados como pagados o no pagados (por ejemplo, `wc-despachado`).
 

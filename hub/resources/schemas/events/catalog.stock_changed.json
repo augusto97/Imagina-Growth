@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/catalog.stock_changed.json",
+  "title": "catalog.stock_changed",
+  "description": "Esquema de `properties` del evento catalog.stock_changed (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "product_id",
+    "to_status"
+  ],
+  "properties": {
+    "product_id": {
+      "$ref": "_defs.json#/$defs/external_id"
+    },
+    "from_status": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 20
+    },
+    "to_status": {
+      "type": "string",
+      "maxLength": 20
+    },
+    "qty": {
+      "type": [
+        "number",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "product_id": "88",
+      "from_status": "instock",
+      "to_status": "outofstock",
+      "qty": 0
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "product_id": "88"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/page.engaged.json",
+  "title": "page.engaged",
+  "description": "Esquema de `properties` del evento page.engaged (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "seconds_visible",
+    "max_scroll_pct"
+  ],
+  "properties": {
+    "seconds_visible": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "max_scroll_pct": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "seconds_visible": 34,
+      "max_scroll_pct": 62
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "seconds_visible": 34,
+      "max_scroll_pct": 140
+    }
+  ]
+}

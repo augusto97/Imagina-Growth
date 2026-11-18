@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/identify.json",
+  "title": "identify",
+  "description": "Esquema de `properties` del evento identify (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "method"
+  ],
+  "properties": {
+    "method": {
+      "type": "string",
+      "enum": [
+        "login",
+        "link_token",
+        "form"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "method": "login"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "method": "magic"
+    }
+  ]
+}

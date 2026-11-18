@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/widget.shown.json",
+  "title": "widget.shown",
+  "description": "Esquema de `properties` del evento widget.shown (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "widget_id",
+    "kind"
+  ],
+  "properties": {
+    "widget_id": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "variant": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 32
+    },
+    "kind": {
+      "type": "string",
+      "maxLength": 40
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "widget_id": "wg_01",
+      "variant": "a",
+      "kind": "popup"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "kind": "popup"
+    }
+  ]
+}

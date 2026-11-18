@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/checkout.started.json",
+  "title": "checkout.started",
+  "description": "Esquema de `properties` del evento checkout.started (docs/eventos.md §4)",
+  "type": "object",
+  "required": [
+    "cart_token",
+    "subtotal",
+    "items_count"
+  ],
+  "properties": {
+    "cart_token": {
+      "$ref": "_defs.json#/$defs/cart_token"
+    },
+    "subtotal": {
+      "$ref": "_defs.json#/$defs/money"
+    },
+    "items_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "currency": {
+      "$ref": "_defs.json#/$defs/currency"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "cart_token": "c7f1a2b3c4d5e6f7",
+      "subtotal": "300000.00",
+      "items_count": 2,
+      "currency": "COP"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "cart_token": "c7f1a2b3c4d5e6f7",
+      "subtotal": "300000.00"
+    }
+  ]
+}
