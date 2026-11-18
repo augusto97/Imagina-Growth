@@ -77,8 +77,11 @@ final class LoyaltyPresenter
         ];
     }
 
-    /** @return array<string, mixed> */
-    public static function entry(LedgerEntry $e): array
+    /**
+     * @param  string|null  $settled  cómo terminó una entrada pendiente: confirmed | reversed | null (sigue pendiente)
+     * @return array<string, mixed>
+     */
+    public static function entry(LedgerEntry $e, ?string $settled = null): array
     {
         return [
             'id' => $e->publicId(),
@@ -87,6 +90,7 @@ final class LoyaltyPresenter
             'balance_after' => $e->kind === 'points' ? (int) round((float) $e->balance_after) : (string) $e->balance_after,
             'currency' => $e->currency,
             'status' => $e->status,
+            'settled' => $settled,
             'reason' => $e->reason,
             'ref_type' => $e->ref_type,
             'ref_id' => $e->ref_id,

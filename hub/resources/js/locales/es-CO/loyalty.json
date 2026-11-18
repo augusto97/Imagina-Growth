@@ -306,7 +306,9 @@
             "pending": "Pendiente",
             "confirmed": "Confirmado",
             "reversed": "Revertido",
-            "expired": "Vencido"
+            "expired": "Vencido",
+            "settled_confirmed": "Ya confirmado",
+            "settled_reversed": "Revertido"
         },
         "reasons": {
             "order": "Compra",
@@ -330,7 +332,9 @@
             "flow": "Flujo",
             "reversed": "Revertido (reembolso o cancelación)",
             "walletUsed": "Usó saldo en una compra",
-            "walletReleased": "Saldo liberado"
+            "walletReleased": "Saldo liberado",
+            "walletConfirmed": "Saldo usado (pedido pagado)",
+            "confirmed": "{{reason}}: puntos confirmados"
         },
         "flowNode": {
             "points": "Puntos",

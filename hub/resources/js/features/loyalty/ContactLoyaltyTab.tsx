@@ -17,7 +17,7 @@ import { isApiError } from '@/lib/api';
 import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { useAdjust, useContactLoyalty } from './api';
-import { entryAmount, reasonLabel, statusTone } from './labels';
+import { entryAmount, reasonLabel, statusKey, statusTone } from './labels';
 import type { Adjustment, ContactLoyalty } from './types';
 
 /** Pestaña «Fidelización» del perfil 360: saldos, nivel, avance y el libro de movimientos. */
@@ -116,7 +116,7 @@ export function ContactLoyaltyTab({ contactId }: { contactId: string }) {
                                             <span className="igr:ml-1.5 igr:text-xs igr:text-muted-foreground">{e.kind === 'wallet' ? t('loyalty.contact.walletShort') : name}</span>
                                         </TD>
                                         <TD>
-                                            <Badge variant={statusTone(e.status)}>{t(`loyalty.ledgerStatus.${e.status}`)}</Badge>
+                                            <Badge variant={statusTone(e.status, e.settled)}>{t(`loyalty.ledgerStatus.${statusKey(e)}`)}</Badge>
                                         </TD>
                                         <TD className="igr:text-right igr:tabular-nums">{entryAmount(e, d.currency, workspace.locale)}</TD>
                                         <TD className="igr:text-right igr:tabular-nums igr:text-muted-foreground">{e.kind === 'wallet' ? money(e.balance_after) : formatNumber(Number(e.balance_after), workspace.locale)}</TD>

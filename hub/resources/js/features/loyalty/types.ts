@@ -119,6 +119,8 @@ export interface LedgerEntry {
     balance_after: number | string;
     currency: string | null;
     status: 'pending' | 'confirmed' | 'reversed' | 'expired';
+    /** Cómo terminó una entrada pendiente (la fila original no cambia). */
+    settled?: 'confirmed' | 'reversed' | null;
     reason: string;
     ref_type: string | null;
     ref_id: string | null;

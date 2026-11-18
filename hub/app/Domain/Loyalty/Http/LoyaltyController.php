@@ -7,6 +7,7 @@ namespace App\Domain\Loyalty\Http;
 use App\Domain\Contacts\Http\ContactAccess;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Loyalty\Jobs\RecalculateTiersJob;
+use App\Domain\Loyalty\Ledger\Balances;
 use App\Domain\Loyalty\Ledger\DatabaseLoyaltyLedger;
 use App\Domain\Loyalty\Models\LedgerEntry;
 use App\Domain\Loyalty\Models\LoyaltyProgram;
@@ -18,6 +19,7 @@ use App\Domain\Loyalty\Support\ProgramExplainer;
 use App\Domain\Loyalty\Support\ProgramRules;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Support\Ids\PrefixedId;
+use App\Support\Money\Decimal;
 use App\Support\Phone\Phone;
 use App\Support\Pii\BlindIndex;
 use App\Support\Tenancy\CurrentWorkspace;
@@ -297,13 +299,23 @@ final class LoyaltyController
         $state = $status->forContact($model->id);
         $page = LedgerEntry::query()->where('contact_id', $model->id)->orderByDesc('created_at')->orderByDesc('id')
             ->paginate(20, ['*'], 'page', max(1, (int) $request->query('page', 1)));
+        // Cómo terminó cada pendiente de la página (el libro no cambia la fila original).
+        $pendingIds = collect($page->items())->filter(fn (LedgerEntry $e) => $e->status === 'pending')->pluck('id')->all();
+        $children = $pendingIds === [] ? collect() : LedgerEntry::query()->whereIn('parent_id', $pendingIds)->get()->groupBy('parent_id');
+        $settled = [];
+        foreach ($pendingIds as $id) {
+            $kids = $children->get($id, collect());
+            $parent = collect($page->items())->firstWhere('id', $id);
+            $settled[$id] = $kids->contains('status', 'confirmed') ? 'confirmed'
+                : ($parent instanceof LedgerEntry && Decimal::equals(Balances::pendingRemaining($parent, array_values($kids->all())), '0') ? 'reversed' : null);
+        }
 
         return response()->json([
             'program' => $program !== null ? ['status' => $program->status, 'currency_name' => $program->currency_name] : null,
             'currency' => $this->current->get()->currency,
             'balances' => $state['balances'],
             'tier' => $state['tier'],
-            'ledger' => collect($page->items())->map(fn (LedgerEntry $e) => LoyaltyPresenter::entry($e))->values(),
+            'ledger' => collect($page->items())->map(fn (LedgerEntry $e) => LoyaltyPresenter::entry($e, $settled[$e->id] ?? null))->values(),
             'meta' => ['page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'total' => $page->total()],
             'rewards' => $program !== null ? LoyaltyReward::query()->where('program_id', $program->id)->where('status', 'active')->orderBy('points_cost')->get()
                 ->map(fn (LoyaltyReward $r) => LoyaltyPresenter::reward($r))->values() : [],

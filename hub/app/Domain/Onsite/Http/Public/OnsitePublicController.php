@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Onsite\Http\Public;
 
+use App\Domain\Consent\Actions\RecordConsent;
 use App\Domain\Onsite\Actions\ConfirmDoubleOptIn;
 use App\Domain\Onsite\Actions\SubmitWidget;
 use App\Domain\Onsite\Models\OnsiteWidget;
@@ -11,7 +12,6 @@ use App\Domain\Onsite\Queries\VisitorProfile;
 use App\Domain\Onsite\Support\OptInToken;
 use App\Domain\Onsite\Support\PublicSite;
 use App\Domain\Onsite\Support\PublicWidgetConfig;
-use App\Domain\Consent\Actions\RecordConsent;
 use App\Support\Ids\PrefixedId;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;

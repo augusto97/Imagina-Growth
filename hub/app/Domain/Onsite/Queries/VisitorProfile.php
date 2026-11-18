@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Domain\Onsite\Queries;
 
 use App\Analytics\Ch;
-use App\Domain\Onsite\Actions\ConfirmDoubleOptIn;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Contacts\Models\ContactIdentity;
+use App\Domain\Onsite\Actions\ConfirmDoubleOptIn;
 use App\Domain\Onsite\Models\OnsiteWidget;
 use App\Domain\Segments\Models\Segment;
 use App\Domain\Workspaces\Models\Workspace;
