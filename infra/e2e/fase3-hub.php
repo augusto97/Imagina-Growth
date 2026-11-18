@@ -28,6 +28,7 @@ use App\Domain\Consent\Policy\LegalWindow;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Contacts\Queries\ProfileQuery;
 use App\Domain\Loyalty\Ledger\DatabaseLoyaltyLedger;
+use App\Domain\Privacy\Actions\ExportContactData;
 use App\Domain\Loyalty\Models\LoyaltyProgram;
 use App\Domain\Loyalty\Support\ProgramRules;
 use App\Domain\Messaging\Models\ChannelAccount;
@@ -208,9 +209,13 @@ function fase3Check($ws, ?Contact $marta, ?Contact $luis, string $orderM, string
     $welcome = OnsiteWidget::query()->where('kind', 'referral_welcome')->firstOrFail();
 
     // 1. Captación: dejó su WhatsApp en el popup, con consentimiento y cupón.
-    $capture = DB::table('widget_captures')->where('widget_id', $popup->id)->where('contact_id', $marta->id)->first();
+    // El popup creó un contacto (WhatsApp + navegador) que se fusionó con el del checkout: los módulos leen el
+    // contacto y los fusionados en él (ExportContactData::contactIds), y así se comprueba aquí.
+    $ids = ExportContactData::contactIds($marta);
+    $check('El contacto del popup y el del checkout son la misma persona (fusionados)', count($ids) >= 2, count($ids).' contactos fusionados');
+    $capture = DB::table('widget_captures')->where('widget_id', $popup->id)->whereIn('contact_id', $ids)->first();
     $check('Marta dejó sus datos en el popup (widget_captures)', $capture !== null && $capture->coupon_id !== null, $capture !== null ? 'variante '.$capture->variant.($capture->was_known ? ', ya conocida' : ', nueva') : '—');
-    $wa = DB::table('contact_consents')->where('contact_id', $marta->id)->where('channel', 'whatsapp')->first();
+    $wa = DB::table('contact_consents')->whereIn('contact_id', $ids)->where('channel', 'whatsapp')->first();
     $check('… con consentimiento de WhatsApp concedido desde el widget', $wa !== null && $wa->status === 'granted' && str_starts_with((string) $wa->source, 'widget'), $wa !== null ? $wa->status.' · '.$wa->source.' · '.$wa->legal_text_version : '—');
     $coupon = $capture !== null ? CouponIssued::query()->find($capture->coupon_id) : null;
 
@@ -250,7 +255,7 @@ function fase3Check($ws, ?Contact $marta, ?Contact $luis, string $orderM, string
     $check('Luis quedó como referido de Marta y la recompensa se entregó', $referral !== null && $referral->friend_contact_id === $luis->id && $referral->status === Referral::REWARDED, ($referral->status ?? '—').' · revisión '.($referral->review_status ?? '—').' · señales '.json_encode($referral?->signals() ?? []));
     $friendCoupon = $referral !== null && $referral->friend_coupon_id !== null ? CouponIssued::query()->find($referral->friend_coupon_id) : null;
     $check('… su regalo lo dio la bienvenida de referido y lo usó al comprar', $friendCoupon !== null && $orderLuis !== null && $friendCoupon->redeemed_order_id === $orderLuis->id, ($friendCoupon->code ?? '—'));
-    $luisCapture = DB::table('widget_captures')->where('widget_id', $welcome->id)->where('contact_id', $luis->id)->exists();
+    $luisCapture = DB::table('widget_captures')->where('widget_id', $welcome->id)->whereIn('contact_id', ExportContactData::contactIds($luis))->exists();
     $check('… y Luis dejó su correo en la bienvenida de referido', $luisCapture);
     $check('El pedido de Luis está atribuido al referido', $orderLuis !== null && $referral !== null && $orderLuis->attributed_referral_id === $referral->id, (string) ($orderLuis->attributed_referral_id ?? '—'));
     $check('… con el canal de afiliados y referidos', $orderLuis !== null && in_array('affiliates', [$orderLuis->channel_last, $orderLuis->channel_first], true), ($orderLuis->channel_first ?? '—').' → '.($orderLuis->channel_last ?? '—'));

@@ -45,8 +45,8 @@ const address = (first, last, phone) => ({
 });
 
 /** Agrega un producto con stock y aplica el cupón por la Store API (como el carrito de bloques). */
-async function cartWithCoupon(page, coupon) {
-    return page.evaluate(async (coupon) => {
+async function cartWithCoupon(page, coupon, email) {
+    return page.evaluate(async ({ coupon, email }) => {
         const products = await (await fetch('/wp-json/wc/store/v1/products?per_page=5&type=simple&stock_status=instock&orderby=price&order=desc')).json();
         const product = products[1] || products[0];
         const r = await fetch('/wp-json/wc/store/v1/cart', { credentials: 'same-origin' });
@@ -55,11 +55,14 @@ async function cartWithCoupon(page, coupon) {
             fetch('/wp-json/wc/store/v1/cart/' + path, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Nonce: nonce }, body: JSON.stringify(body) });
         const add = await post('add-item', { id: product.id, quantity: 1 });
         if (!add.ok) throw new Error('add-item ' + add.status + ' ' + (await add.text()));
+        // Los cupones con el correo restringido (el regalo del amigo) piden el correo antes de aplicarse.
+        const who = await post('update-customer', { billing_address: { email } });
+        if (!who.ok) throw new Error('update-customer ' + who.status + ' ' + (await who.text()));
         const apply = await post('apply-coupon', { code: coupon });
         if (!apply.ok) throw new Error('apply-coupon ' + apply.status + ' ' + (await apply.text()));
         const cart = await apply.json();
         return { id: product.id, name: product.name, coupons: cart.coupons.map((c) => c.code), total: cart.totals.total_price };
-    }, coupon);
+    }, { coupon, email });
 }
 
 /** Paga el carrito con la tarjeta de prueba; con `password` crea la cuenta en el checkout. */
@@ -124,6 +127,7 @@ async function page_wait(locator) {
         await acceptBanner(page);
         const dialog = page.locator('[data-igr-w="popup"]').getByRole('dialog');
         await dialog.waitFor({ timeout: 15000 });
+        await page.waitForTimeout(600); // fin de la animación de entrada
         out.title = (await dialog.getByRole('heading').first().innerText()).trim();
         await shot(page, '1-popup');
         await dialog.getByLabel('Tu nombre').fill('Marta');
@@ -138,7 +142,7 @@ async function page_wait(locator) {
         await dialog.getByRole('button', { name: /Cerrar/i }).first().click().catch(() => {});
 
         // 2. Compra con el cupón, acepta correos y crea su cuenta.
-        out.cart = await cartWithCoupon(page, out.coupon.code);
+        out.cart = await cartWithCoupon(page, out.coupon.code, EMAIL);
         await page.goto(BASE + '/checkout/');
         await ready(page);
         out.order = await checkout(page, { email: EMAIL, address: address('Marta', 'Rincón', PHONE), consent: true, password: PASS });
@@ -174,7 +178,7 @@ async function page_wait(locator) {
         await slot.getByRole('heading').first().waitFor({ timeout: 15000 });
         await slot.locator('input[readonly]').first().waitFor({ timeout: 15000 });
         out.heading = (await slot.getByRole('heading').first().innerText()).trim();
-        out.text = (await slot.innerText()).replace(/\s+/g, ' ').slice(0, 400);
+        out.points = (await slot.getByText(/^[\d.]+$/).first().innerText().catch(() => '')).trim();
         out.link = await slot.locator('input[readonly]').first().inputValue();
         await shot(page, '6-mis-recompensas');
     } else if (step === 'amigo') {
@@ -184,6 +188,7 @@ async function page_wait(locator) {
         await acceptBanner(page);
         const dialog = page.locator('[data-igr-w="referral_welcome"]').getByRole('dialog');
         await dialog.waitFor({ timeout: 15000 });
+        await page.waitForTimeout(600); // fin de la animación de entrada
         await shot(page, '7-bienvenida-referido');
         await dialog.getByLabel('Tu nombre').fill('Luis');
         await dialog.getByLabel('Tu correo').fill(EMAIL);
@@ -194,7 +199,7 @@ async function page_wait(locator) {
         await flush(page);
         await dialog.getByRole('button', { name: /Cerrar/i }).first().click().catch(() => {});
         out.src = (await ctx.cookies()).find((c) => c.name === '_igr_src')?.value || null;
-        out.cart = await cartWithCoupon(page, out.coupon.code);
+        out.cart = await cartWithCoupon(page, out.coupon.code, EMAIL);
         await page.goto(BASE + '/checkout/');
         await ready(page);
         out.order = await checkout(page, { email: EMAIL, address: address('Luis', 'Ospina', PHONE), consent: false });

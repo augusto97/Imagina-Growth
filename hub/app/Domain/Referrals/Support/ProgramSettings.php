@@ -11,7 +11,7 @@ use App\Support\Money\Decimal;
 
 /**
  * Lectura del programa de referidos con sus valores por defecto, los textos de las
- * recompensas («10% en tu primera compra», «500 puntos») y los cupones que da.
+ * recompensas («10% en su primera compra», «500 puntos») y los cupones que da.
  */
 final class ProgramSettings
 {
@@ -117,10 +117,10 @@ final class ProgramSettings
         );
     }
 
-    /** «10% en tu primera compra», «$20.000 en tu primera compra», «Envío gratis en tu primera compra». */
+    /** «10% en su primera compra», «$20.000 en su primera compra», «Envío gratis en su primera compra»: se lee igual en el panel y en «Mis recompensas» de quien refiere («Tu amigo recibe …»). */
     public function friendRewardLabel(): string
     {
-        return __(':reward en tu primera compra', ['reward' => $this->discountLabel((string) $this->friend['kind'], (string) $this->friend['amount'])]);
+        return __(':reward en su primera compra', ['reward' => $this->discountLabel((string) $this->friend['kind'], (string) $this->friend['amount'])]);
     }
 
     /** «500 puntos», «$20.000 de saldo a favor», «Un cupón de 10%». */

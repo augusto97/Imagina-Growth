@@ -9,6 +9,7 @@ use App\Domain\Messaging\Models\ContactPreference;
 use App\Domain\Messaging\Models\Message;
 use App\Domain\Messaging\Models\TrackedLink;
 use App\Domain\Messaging\Support\ContactLinkToken;
+use App\Domain\Messaging\Support\LinkRewriter;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -101,4 +102,16 @@ it('el centro de preferencias cambia canales, temas y frecuencia, o da de baja d
 
     $this->post('/preferencias/'.$token, ['all' => '1'])->assertOk();
     app(CurrentWorkspace::class)->run($this->ws, fn () => expect(ContactConsent::query()->where('contact_id', $this->contact->id)->where('status', 'granted')->count())->toBe(0));
+});
+
+it('rastrea los enlaces del correo pero deja tal cual la baja, las preferencias y los ya rastreados', function () {
+    $base = ContactLinkToken::base();
+    $rewriter = new LinkRewriter($this->ws->id, (string) Str::ulid(), null);
+    $html = $rewriter->html('<a href="https://tienda.co/p/88">Ver</a> <a href="'.$base.'/u/abc">Baja</a> <a href="'.$base.'/preferencias/xyz">Preferencias</a> <a href="'.$base.'/c/Ya12345">Rastreado</a>');
+    $text = $rewriter->text("Baja: {$base}/u/abc · Tienda: https://tienda.co/p/88");
+
+    expect($html)->toContain('href="'.$base.'/u/abc"')->toContain('href="'.$base.'/preferencias/xyz"')->toContain('href="'.$base.'/c/Ya12345"')
+        ->not->toContain('/c/http')
+        ->and($text)->toContain("Baja: {$base}/u/abc")->not->toContain('/c/http')
+        ->and(app(CurrentWorkspace::class)->run($this->ws, fn () => TrackedLink::query()->count()))->toBe(1);
 });

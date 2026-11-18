@@ -529,7 +529,7 @@ if ( 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/(visitor\.json|reco|points|progra
 					'points'   => array( 'balance' => $balance, 'pending' => 282, 'currency_name' => 'Puntos Prueba', 'expiring' => array( 'points' => 120, 'at' => '2026-12-31' ) ),
 					'tier'     => array( 'name' => 'Plata', 'next_name' => 'Oro', 'progress_pct' => 64, 'benefits' => array( 'Envío gratis' ) ),
 					'wallet'   => array( 'balance' => (string) ( $state['overrides']['wallet_balance'] ?? '35000.00' ), 'currency' => 'COP' ),
-					'referral' => array( 'code' => $code, 'link' => 'http://127.0.0.1:8080/?ref=' . $code, 'share_text' => 'Te regalo 10% en la tienda de prueba', 'friend_reward' => '10% en tu primera compra', 'referrer_reward' => '500 puntos' ),
+					'referral' => array( 'code' => $code, 'link' => 'http://127.0.0.1:8080/?ref=' . $code, 'share_text' => 'Te regalo 10% en la tienda de prueba', 'friend_reward' => '10% en su primera compra', 'referrer_reward' => '500 puntos' ),
 					'rewards'  => array(
 						array( 'id' => 'rw_01JF0REWARD000000000001', 'name' => '$20.000 de descuento', 'points' => 500, 'kind' => 'coupon_fixed', 'affordable' => $balance >= 500 ),
 						array( 'id' => 'rw_01JF0REWARD000000000002', 'name' => 'Kit de brochas', 'points' => 5000, 'kind' => 'product', 'affordable' => $balance >= 5000 ),

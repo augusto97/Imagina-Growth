@@ -78,13 +78,20 @@ final class LinkRewriter
 
     private function track(string $url): string
     {
-        return ContactLinkToken::base().'/c/'.$this->code($url);
+        // La baja, las preferencias y los ya rastreados quedan tal cual (antes salían como `/c/https://…/u/…`).
+        return self::excluded($url) ? $url : ContactLinkToken::base().'/c/'.$this->code($url);
+    }
+
+    private static function excluded(string $url): bool
+    {
+        $base = ContactLinkToken::base();
+
+        return str_starts_with($url, $base.'/u/') || str_starts_with($url, $base.'/preferencias/') || str_starts_with($url, $base.'/c/');
     }
 
     private function code(string $url): string
     {
-        $base = ContactLinkToken::base();
-        if (str_starts_with($url, $base.'/u/') || str_starts_with($url, $base.'/preferencias/') || str_starts_with($url, $base.'/c/')) {
+        if (self::excluded($url)) {
             return $url;
         }
         if (! isset($this->codes[$url])) {

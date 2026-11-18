@@ -73,7 +73,7 @@ const me = {
     points: { balance: 1532, pending: 282, currency_name: 'Puntos Pintor', expiring: { points: 120, at: '2026-12-31' } },
     tier: { name: 'Plata', next_name: 'Oro', progress_pct: 64, benefits: ['Envío gratis'] },
     wallet: { balance: '35000.00', currency: 'COP' },
-    referral: { code: 'ANA7K2', link: 'https://tienda.co/?ref=ANA7K2', share_text: 'Te regalo 10% en Pinturas La 14', friend_reward: '10% en tu primera compra', referrer_reward: '500 puntos' },
+    referral: { code: 'ANA7K2', link: 'https://tienda.co/?ref=ANA7K2', share_text: 'Te regalo 10% en Pinturas La 14', friend_reward: '10% en su primera compra', referrer_reward: '500 puntos' },
     rewards: [
         { id: 'rw_1', name: '$20.000 de descuento', points: 500, kind: 'coupon_fixed' },
         { id: 'rw_2', name: 'Kit de brochas', points: 5000, kind: 'product' },

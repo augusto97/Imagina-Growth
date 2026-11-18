@@ -53,7 +53,7 @@ it('configura el programa: valores por defecto, validación, puntos solo con fid
 
     $this->actingAs($marketing)->putJson($this->referralApi('/referrals/program'), referralProgramPayload())->assertOk()
         ->assertJsonPath('exists', true)->assertJsonPath('status', 'active')
-        ->assertJsonPath('labels.friend_reward', '15% en tu primera compra')
+        ->assertJsonPath('labels.friend_reward', '15% en su primera compra')
         ->assertJsonPath('labels.referrer_reward', '$ 25.000 de saldo a favor')
         ->assertJsonPath('labels.share_preview', 'Te regalo 15% en tienda.co: https://tienda.co/?ref=ANA7K2')
         ->assertJsonPath('rules.min_order', '80000.00');
@@ -131,7 +131,7 @@ it('agrega la sección de referidos a «Mis recompensas» y registra cuando el c
     expect($section['code'])->toMatch('/^ANA/')
         ->and($section['link'])->toBe('https://tienda.co/?ref='.$section['code'])
         ->and($section['share_text'])->toBe('Usa mi enlace https://tienda.co/?ref='.$section['code'].' y te dan 10%')
-        ->and($section['friend_reward'])->toBe('10% en tu primera compra')
+        ->and($section['friend_reward'])->toBe('10% en su primera compra')
         ->and($section['referrer_reward'])->toBe('$ 20.000 de saldo a favor')
         ->and($this->inWs(fn () => $sections->first()->forContact($this->site, null)))->toBeNull();
 
