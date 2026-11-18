@@ -162,9 +162,10 @@ async function quote() {
     } else {
         await page.getByLabel('Porcelana').check();
     }
-    await page.getByLabel('Nombre').fill(env.NAME);
+    // Las casillas de consentimiento también dicen «WhatsApp» y «correo»: se buscan las cajas de texto exactas.
+    await page.getByRole('textbox', { name: 'Nombre', exact: true }).fill(env.NAME);
     await page.getByRole('textbox', { name: 'WhatsApp', exact: true }).fill(env.PHONE);
-    await page.getByLabel('Correo').fill(env.EMAIL);
+    await page.getByRole('textbox', { name: 'Correo', exact: true }).fill(env.EMAIL);
     await shot(page, '05-cotizador');
     await page.getByRole('button', { name: 'Ver mi cotización' }).click();
     const status = page.locator('[role=status]').filter({ hasText: '$' }).first();
