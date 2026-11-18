@@ -17,8 +17,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Guarda la respuesta de la página de gracias y la vincula con el pedido y el
- * contacto (api-connector.md §8.2). Si el pedido todavía no llegó al hub, la
- * vincula un job unos minutos después.
+ * contacto (api-connector.md §8.2). Si el pedido todavía no llegó al hub, lo
+ * vincula OrderProjector al proyectarlo (attachPending); el job de unos minutos
+ * después queda de respaldo.
  */
 final class RecordSurveyAnswer
 {
@@ -53,13 +54,25 @@ final class RecordSurveyAnswer
         $this->hubEvents->emit($workspace, 'survey.answered', [
             'survey_id' => $survey->publicId(), 'kind' => 'hdyhau', 'answer' => $answer,
             'other' => $other, 'score' => null, 'order_id' => $externalOrderId,
-        ], is_string($contactId) ? $contactId : null, $site);
+        ], is_string($contactId) ? $contactId : null, $site, anonymousId: $anonymousId);
 
         if ($order === null) {
             AttachSurveyResponse::dispatch($workspace->id, $response->id)->delay(now()->addMinutes(2));
         }
 
         return $response;
+    }
+
+    /** Vincula las respuestas que esperaban este pedido (llegaron antes que él). */
+    public static function attachPending(Order $order): void
+    {
+        $pending = SurveyResponse::query()->where('site_id', $order->site_id)->where('external_order_id', $order->external_id)->whereNull('order_id')->get();
+        foreach ($pending as $response) {
+            $response->forceFill(['order_id' => $order->id, 'contact_id' => $response->contact_id ?? $order->contact_id])->save();
+            if (is_string($response->contact_id)) {
+                self::fillContact($response->contact_id, (string) $response->answer);
+            }
+        }
     }
 
     /** Llena contacts.hdyhau si estaba vacío (la primera respuesta es la que vale). */

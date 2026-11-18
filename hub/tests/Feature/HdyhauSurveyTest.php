@@ -56,20 +56,30 @@ it('guarda la respuesta con el token del pedido, la vincula al contacto y no ace
     expect($events)->toHaveCount(1)->and($events[0]['contact_id'])->not->toBe('');
 });
 
-it('vincula después la respuesta que llegó antes que el pedido', function () {
+it('vincula la respuesta que llegó antes que el pedido en cuanto el pedido llega, y la muestra en el perfil', function () {
     $surveyId = $this->getJson("/p/{$this->site->public_key}/widgets.json?page_type=thankyou")->json('widgets.0.id');
-    answerSurvey($this, $surveyId, ['order_token' => orderToken($this, '1234'), 'answer' => 'otro', 'other' => 'Una valla en la autopista'])->assertStatus(202);
-    $this->postSigned($this->site, $this->secret, [$this->envelope($this->site, 'order.paid', ['order' => $this->orderSnapshot()])]);
+    // Responde en la página de gracias antes de que el outbox del plugin envíe el pedido.
+    answerSurvey($this, $surveyId, ['order_token' => orderToken($this, '1234'), 'answer' => 'otro', 'other' => 'Una valla en la autopista', 'anonymous_id' => 'anon-valla'])->assertStatus(202);
+    $survey = $this->chRows($this->ws, "SELECT anonymous_id FROM events WHERE workspace_id = {workspace_id:UInt32} AND event = 'survey.answered'");
+    expect($survey[0]['anonymous_id'])->toBe('anon-valla');
+
+    $this->postSigned($this->site, $this->secret, [$this->envelope($this->site, 'order.paid', ['order' => $this->orderSnapshot()], ['identity' => ['anonymous_id' => 'anon-valla']])]);
     $this->runWorker();
 
-    app(CurrentWorkspace::class)->run($this->ws, function () {
+    $contact = app(CurrentWorkspace::class)->run($this->ws, function () {
         $response = SurveyResponse::query()->firstOrFail();
-        expect($response->order_id)->toBeNull();
+        $contact = Contact::query()->firstOrFail();
+        expect($response->order_id)->not->toBeNull()
+            ->and($response->contact_id)->toBe($contact->id)
+            ->and($response->answers['other'])->toBe('Una valla en la autopista')
+            ->and($contact->getAttribute('hdyhau'))->toBe('otro');
+        // El job de respaldo ya no tiene nada que hacer.
         (new AttachSurveyResponse($this->ws->id, $response->id))->handle();
-        expect($response->fresh()->order_id)->not->toBeNull()
-            ->and($response->fresh()->answers['other'])->toBe('Una valla en la autopista')
-            ->and(Contact::query()->value('hdyhau'))->toBe('otro');
+
+        return $contact;
     });
+    $timeline = $this->actingAs($this->owner)->getJson("/api/w/{$this->ws->publicId()}/contacts/{$contact->publicId()}/timeline?groups[]=encuestas")->assertOk();
+    expect(array_column($timeline->json('data'), 'event'))->toContain('survey.answered');
 });
 
 it('el panel configura las opciones sin romper las claves existentes', function () {

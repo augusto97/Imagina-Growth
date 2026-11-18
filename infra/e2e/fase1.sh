@@ -78,7 +78,7 @@ app(App\Support\Tenancy\CurrentWorkspace::class)->run($ws, fn () => App\Domain\M
     "config" => ["dataset_id" => "1234567890", "access_token" => "EAAB-e2e-fase1"],
     "mode" => App\Domain\Measurement\Enums\DestinationMode::Full, "pixel_id" => "1234567890", "status" => "active",
 ]));
-echo $ws->id, " ", app(App\Domain\Sites\Actions\CreateConnectCode::class)->handle($ws, $u, [])["code"];' | tail -1)
+echo $ws->publicId(), " ", app(App\Domain\Sites\Actions\CreateConnectCode::class)->handle($ws, $u, [])["code"];' | tail -1)
 read -r WS CODE <<<"$WS_CODE"
 echo "Espacio de trabajo: $WS · código: $CODE"
 
@@ -99,30 +99,39 @@ else
     $WP eval 'ImaginaGrowth\Connector\Backfill\Runner::pause(true); as_unschedule_all_actions("igr_backfill_step");'
 fi
 
-step "Navegador: anuncio de Facebook → banner → producto → búsqueda → compra con tarjeta → encuesta"
-EMAIL="laura.gomez.$(date +%s)@example.com"
-STORE_URL=http://127.0.0.1:8080 EMAIL="$EMAIL" SHOTS="$LOGS/capturas" node "$E2E/fase1-browser.cjs" | tee "$LOGS/browser.out"
-tail -1 "$LOGS/browser.out" >"$LOGS/browser.json"
-
-step "Esperando a que el hub procese la tienda y la visita"
+step "La «noche anterior»: sesiones, atribución, KPI, RFM, segmentos y hallazgos con el historial"
 wait_ingest() {
     until php artisan tinker --execute='
 $s = app(App\Ingest\IngestStream::class); $r = $s->connection()->client(); $p = 0; $lag = 0;
 for ($i = 0; $i < $s->shards(); $i++) { $x = $r->xPending($s->key($i), config("igr.ingest.consumer_group")); $p += is_array($x) ? (int) ($x[0] ?? 0) : 0; foreach ((array) $r->xInfo("GROUPS", $s->key($i)) as $g) { $lag += (int) ($g["lag"] ?? 0); } }
 echo ($p + $lag) === 0 ? "listo" : "pendientes=".($p + $lag);' | tail -1 | grep -q listo; do sleep 2; done
-    until [ "$(php artisan tinker --execute='echo Illuminate\Support\Facades\Queue::connection("redis")->size("projections") + Illuminate\Support\Facades\Queue::connection("redis")->size("conversions:meta");' | tail -1)" = "0" ]; do sleep 2; done
+    until [ "$(php artisan tinker --execute='echo Illuminate\Support\Facades\Queue::connection("redis")->size("projections") + Illuminate\Support\Facades\Queue::connection("redis")->size("triggers") + Illuminate\Support\Facades\Queue::connection("redis")->size("conversions:meta");' | tail -1)" = "0" ]; do sleep 2; done
+}
+nightly() {
+    php artisan igr:sessions:build --workspace="$WS"
+    php artisan igr:attribution:backfill --workspace="$WS"
+    php artisan igr:kpi:build --workspace="$WS" --days=800
+    php artisan igr:rfm --workspace="$WS"
+    php artisan igr:segments:recompute --workspace="$WS" --sync | tail -3
+    php artisan igr:insights --workspace="$WS"
 }
 wait_ingest
 IGR_HUB_URL="$HUB" $WP igr flush --all >/dev/null || true
+wait_ingest
+nightly
+
+step "Navegador: anuncio de Facebook → banner → producto → búsqueda → compra con tarjeta → encuesta"
+EMAIL="laura.gomez.$(date +%s)@example.com"
+STORE_URL=http://127.0.0.1:8080 EMAIL="$EMAIL" SHOTS="$LOGS/capturas" node "$E2E/fase1-browser.cjs" | tee "$LOGS/browser.out"
+tail -1 "$LOGS/browser.out" >"$LOGS/browser.json"
+
+step "Después de la visita: segmentos en tiempo real (15 s) y el cálculo de la noche siguiente"
+IGR_HUB_URL="$HUB" $WP igr flush --all >/dev/null || true
 sleep 3
 wait_ingest
-php artisan igr:sessions:build --workspace="$WS" -q
-php artisan igr:attribution:backfill --workspace="$WS" -q
-php artisan igr:kpi:build --workspace="$WS" --days=800 -q
-php artisan igr:rfm --workspace="$WS" -q
-php artisan igr:segments:install-library --workspace="$WS" -q
-php artisan igr:segments:recompute --workspace="$WS" --sync -q
-php artisan igr:insights --workspace="$WS" -q
+sleep 20
+wait_ingest
+nightly
 wait_ingest
 
 step "Comprobaciones en el hub (identidad, perfil, consentimiento, atribución, Meta, segmentos, RFM)"

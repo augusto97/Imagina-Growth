@@ -17,9 +17,10 @@ use App\Domain\Commerce\Models\Order;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Contacts\Models\ContactIdentity;
 use App\Domain\Contacts\Queries\ProfileQuery;
+use App\Domain\Privacy\Actions\ExportContactData;
 use App\Domain\Segments\Models\Segment;
 use App\Domain\Sites\Models\Site;
-use App\Domain\Workspaces\Models\Workspace;
+use App\Support\Console\WorkspaceOption;
 use App\Support\Pii\BlindIndex;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Contracts\Console\Kernel;
@@ -38,7 +39,7 @@ $check = function (string $label, bool $ok, string $detail = '') use (&$failures
     $failures += $ok ? 0 : 1;
 };
 
-$ws = Workspace::query()->findOrFail($wsId);
+$ws = WorkspaceOption::resolve($wsId)->firstOrFail();
 app(CurrentWorkspace::class)->run($ws, function () use ($ws, $browser, $check): void {
     $site = Site::query()->firstOrFail();
     $ch = Ch::forWorkspace($ws);
@@ -51,7 +52,7 @@ app(CurrentWorkspace::class)->run($ws, function () use ($ws, $browser, $check): 
     }
     $check('Está pagado (tarjeta)', (bool) $order->is_paid);
     $check('Atribuido al anuncio de Meta (último toque)', $order->channel_last === 'paid_meta', 'channel_last='.($order->channel_last ?? 'null'));
-    $check('Total igual al de igrOrder', bccomp((string) $order->total, (string) $browser['igrOrder']['value'], 2) === 0, $order->total.' '.$order->currency);
+    $check('Total igual al de igrOrder', number_format((float) $order->total, 2, '.', '') === number_format((float) $browser['igrOrder']['value'], 2, '.', ''), $order->total.' '.$order->currency);
 
     // 2. Identidad: la cookie del navegador quedó en el mismo contacto que el pedido.
     $contact = Contact::query()->where('email_bidx', BlindIndex::email($ws->id, $browser['email']))->whereNull('merged_into_id')->first();
@@ -72,9 +73,10 @@ app(CurrentWorkspace::class)->run($ws, function () use ($ws, $browser, $check): 
     $byEvent = array_column($browserEvents, 'n', 'event');
     $check('page.viewed del tracker en ClickHouse', (int) ($byEvent['page.viewed'] ?? 0) >= 4, json_encode($byEvent, JSON_UNESCAPED_UNICODE) ?: '');
     $check('search.performed del tracker', (int) ($byEvent['search.performed'] ?? 0) >= 1);
+    // Por event_id: la primera vista (antes de aceptar el banner) llega sin anonymous_id, como debe.
     $pvIds = $ch->select(
-        "SELECT toString(event_id) AS id FROM events WHERE workspace_id = {workspace_id:UInt32} AND anonymous_id = {aid:String} AND event = 'page.viewed'",
-        ['aid' => $browser['aid']],
+        "SELECT toString(event_id) AS id FROM events WHERE workspace_id = {workspace_id:UInt32} AND event = 'page.viewed' AND has({ids:Array(String)}, toString(event_id))",
+        ['ids' => ExportContactData::chArray($browser['pixel']['pageViewEventIds'])],
     );
     $pvIds = array_column($pvIds, 'id');
     $missing = array_diff($browser['pixel']['pageViewEventIds'], $pvIds);
@@ -118,7 +120,7 @@ app(CurrentWorkspace::class)->run($ws, function () use ($ws, $browser, $check): 
         ['id' => $browser['pixel']['purchaseEventId']],
     );
     $check('Entrega a la Conversions API registrada como enviada', ($delivery[0]['status'] ?? '') === 'delivered', json_encode($delivery[0] ?? []) ?: '');
-    $meta = json_decode((string) file_get_contents('http://127.0.0.1:'.(getenv('META_PORT') ?: '8091').'/_log'), true) ?: [];
+    $meta = json_decode((string) @file_get_contents('http://127.0.0.1:'.(getenv('META_PORT') ?: '8091').'/_log'), true) ?: [];
     $sent = null;
     foreach ($meta as $req) {
         foreach ((array) ($req['body']['data'] ?? []) as $ev) {

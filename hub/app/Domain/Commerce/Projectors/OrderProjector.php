@@ -8,6 +8,7 @@ use App\Domain\Commerce\Models\Order;
 use App\Domain\Commerce\Models\OrderItem;
 use App\Domain\Commerce\Models\Product;
 use App\Domain\Sites\Models\Site;
+use App\Domain\Surveys\Actions\RecordSurveyAnswer;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Money\Decimal;
 use Carbon\CarbonImmutable;
@@ -180,6 +181,7 @@ final class OrderProjector
         return DB::transaction(function () use ($existing, $attributes, $items, $workspace, $site): Order {
             if ($existing === null) {
                 $order = Order::query()->create($attributes);
+                RecordSurveyAnswer::attachPending($order);
             } else {
                 $existing->forceFill($attributes)->save();
                 $order = $existing;

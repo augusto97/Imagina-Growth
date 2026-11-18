@@ -6,7 +6,7 @@ namespace App\Domain\Measurement\Console;
 
 use App\Domain\Measurement\AdSpend\ImportAdSpend;
 use App\Domain\Measurement\Models\AdDestination;
-use App\Domain\Workspaces\Models\Workspace;
+use App\Support\Console\WorkspaceOption;
 use App\Support\Pii\Pii;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
@@ -22,10 +22,7 @@ final class ImportAdSpendCommand extends Command
 
     public function handle(ImportAdSpend $import, CurrentWorkspace $current): int
     {
-        $ids = (array) $this->option('workspace');
-        $workspaces = $ids === []
-            ? Workspace::query()->where('status', 'active')->get()
-            : Workspace::query()->whereIn('id', array_map(fn ($id) => substr((string) $id, 3), $ids))->get();
+        $workspaces = WorkspaceOption::resolve((array) $this->option('workspace'));
         $to = CarbonImmutable::yesterday();
         $from = $to->subDays(max(1, (int) $this->option('days')) - 1);
         $failed = 0;

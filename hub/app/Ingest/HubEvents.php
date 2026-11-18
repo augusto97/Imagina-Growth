@@ -32,11 +32,11 @@ final class HubEvents
      * @param  array<string, mixed>  $properties
      * @return string event_id
      */
-    public function emit(Workspace $workspace, string $event, array $properties, ?string $contactId, ?Site $site = null, ?CarbonInterface $at = null, ?string $eventId = null): string
+    public function emit(Workspace $workspace, string $event, array $properties, ?string $contactId, ?Site $site = null, ?CarbonInterface $at = null, ?string $eventId = null, ?string $anonymousId = null): string
     {
         $ids = $this->emitMany($workspace, [[
             'event' => $event, 'properties' => $properties, 'contact_id' => $contactId,
-            'site' => $site, 'at' => $at, 'event_id' => $eventId,
+            'site' => $site, 'at' => $at, 'event_id' => $eventId, 'anonymous_id' => $anonymousId,
         ]]);
 
         return $ids[0];
@@ -45,7 +45,7 @@ final class HubEvents
     /**
      * Inserta varios eventos en una sola escritura (p. ej. las altas y bajas de un segmento).
      *
-     * @param  list<array{event: string, properties: array<string, mixed>, contact_id: string|null, site?: Site|null, at?: CarbonInterface|null, event_id?: string|null}>  $items
+     * @param  list<array{event: string, properties: array<string, mixed>, contact_id: string|null, site?: Site|null, at?: CarbonInterface|null, event_id?: string|null, anonymous_id?: string|null}>  $items
      * @return list<string>
      */
     public function emitMany(Workspace $workspace, array $items, bool $publish = true): array
@@ -71,7 +71,8 @@ final class HubEvents
                 'event' => $event,
                 'occurred_at' => CarbonImmutable::instance($item['at'] ?? now())->toIso8601String(),
                 'source' => ['type' => 'hub', 'platform' => 'hub', 'site_id' => $site?->publicId() ?? '', 'sdk' => 'hub/'.config('app.version', '1')],
-                'identity' => [],
+                // El anonymous_id liga el evento a la navegación previa aunque aún no haya contacto.
+                'identity' => isset($item['anonymous_id']) && $item['anonymous_id'] !== '' ? ['anonymous_id' => $item['anonymous_id']] : [],
                 'context' => [],
                 'properties' => $item['properties'],
             ];

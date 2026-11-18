@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Segments\Console;
 
 use App\Domain\Segments\Library\SegmentLibrary;
-use App\Domain\Workspaces\Models\Workspace;
-use App\Support\Ids\PrefixedId;
+use App\Support\Console\WorkspaceOption;
 use Illuminate\Console\Command;
 
 final class InstallLibraryCommand extends Command
@@ -17,8 +16,7 @@ final class InstallLibraryCommand extends Command
 
     public function handle(SegmentLibrary $library): int
     {
-        $ids = array_filter(array_map(fn ($id) => PrefixedId::decode('ws', (string) $id), (array) $this->option('workspace')));
-        $workspaces = $ids === [] ? Workspace::query()->get() : Workspace::query()->whereIn('id', $ids)->get();
+        $workspaces = WorkspaceOption::resolve((array) $this->option('workspace'));
         $created = 0;
         foreach ($workspaces as $workspace) {
             $created += $library->install($workspace);

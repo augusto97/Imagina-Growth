@@ -8,6 +8,7 @@ use App\Domain\Segments\Actions\RecomputeSegment;
 use App\Domain\Segments\Jobs\RecomputeSegmentJob;
 use App\Domain\Segments\Models\Segment;
 use App\Domain\Workspaces\Models\Workspace;
+use App\Support\Console\WorkspaceOption;
 use App\Support\Ids\PrefixedId;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Console\Command;
@@ -26,7 +27,7 @@ final class RecomputeSegmentsCommand extends Command
     {
         $workspaces = $this->option('all')
             ? Workspace::query()->where('status', 'active')->get()
-            : Workspace::query()->whereIn('id', array_filter(array_map(fn ($id) => PrefixedId::decode('ws', (string) $id), (array) $this->option('workspace'))))->get();
+            : WorkspaceOption::resolve((array) $this->option('workspace'), allWhenEmpty: false);
         if ($workspaces->isEmpty()) {
             $this->error('Indica --workspace=ws_… o --all.');
 

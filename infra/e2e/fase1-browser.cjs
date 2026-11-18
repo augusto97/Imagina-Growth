@@ -141,6 +141,7 @@ async function waitFor(fn, what, timeout = 15000) {
     await page.reload();
     await ready(page);
     await page.waitForTimeout(1000);
+    await flush(page);
     const purchases = hits.filter((h) => h.searchParams.get('ev') === 'Purchase').length;
 
     const result = {

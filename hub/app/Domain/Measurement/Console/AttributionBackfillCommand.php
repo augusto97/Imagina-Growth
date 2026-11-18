@@ -7,7 +7,7 @@ namespace App\Domain\Measurement\Console;
 use App\Domain\Commerce\Models\Order;
 use App\Domain\Measurement\Attribution\OrderAttributor;
 use App\Domain\Measurement\Attribution\TouchQuery;
-use App\Domain\Workspaces\Models\Workspace;
+use App\Support\Console\WorkspaceOption;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Console\Command;
 use Throwable;
@@ -24,10 +24,7 @@ final class AttributionBackfillCommand extends Command
 
     public function handle(OrderAttributor $attributor, TouchQuery $touches, CurrentWorkspace $current): int
     {
-        $ids = (array) $this->option('workspace');
-        $workspaces = $ids === []
-            ? Workspace::query()->where('status', 'active')->get()
-            : Workspace::query()->whereIn('id', array_map(fn ($id) => substr((string) $id, 3), $ids))->get();
+        $workspaces = WorkspaceOption::resolve((array) $this->option('workspace'));
 
         foreach ($workspaces as $workspace) {
             $count = $current->run($workspace, function () use ($workspace, $attributor, $touches): int {
