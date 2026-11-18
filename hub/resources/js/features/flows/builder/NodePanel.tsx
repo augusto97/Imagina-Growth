@@ -66,8 +66,16 @@ export function FilterRows({ value, onChange, disabled }: { value: Filter[]; onC
     return (
         <div className="igr:space-y-2">
             {value.map((f, i) => (
-                <div key={i} className="igr:grid igr:grid-cols-[1fr_auto_1fr_auto] igr:items-center igr:gap-1.5">
-                    <Input aria-label={t('flows.config.filterProp')} placeholder="order.payment_method.id" value={f.prop} disabled={disabled} onChange={(e) => set(i, { prop: e.target.value.trim() })} />
+                // En el panel angosto: la propiedad ocupa la primera línea; operador, valor y quitar, la segunda.
+                <div key={i} className="igr:grid igr:grid-cols-[auto_1fr_auto] igr:items-center igr:gap-1.5 igr:rounded-md igr:border igr:p-1.5">
+                    <Input
+                        className="igr:col-span-3"
+                        aria-label={t('flows.config.filterProp')}
+                        placeholder="order.payment_method.id"
+                        value={f.prop}
+                        disabled={disabled}
+                        onChange={(e) => set(i, { prop: e.target.value.trim() })}
+                    />
                     <Select aria-label={t('flows.settings.operator')} value={f.operator} disabled={disabled} onChange={(e) => set(i, { operator: e.target.value })}>
                         {['eq', 'neq', 'gte', 'lte', 'in', 'contains', 'starts_with', 'exists'].map((op) => (
                             <option key={op} value={op}>

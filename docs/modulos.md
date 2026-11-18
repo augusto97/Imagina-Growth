@@ -302,6 +302,30 @@
 
 **Listo cuando:** los 20 flujos funcionan de punta a punta en la tienda de prueba, y una prueba automática garantiza que ningún paso de marketing se ejecuta fuera de la ventana legal ni dos veces por reintentos.
 
+**Implementación (Fase 2):**
+- **Estados:** `draft` → `active` ⇄ `paused` → `archived`. Activar exige una versión publicada. Archivar saca a todos los runs en curso (`manual`). Un borrador que nunca corrió se borra; si ya corrió, se archiva.
+- **Una persona nunca va dos veces a la vez por el mismo flujo.** La reentrada (`once`, `every_days` o `always`) solo decide cuándo puede volver a entrar después de terminar. Las salidas por una condición con «salir si no se cumple» (`exit_reason = filter`) y los runs de prueba no cuentan para la reentrada.
+- **Disparadores implementados:**
+  - Evento con filtros (operadores `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `not_in`, `contains`, `starts_with`, `exists` y `not_exists` sobre rutas con puntos, p. ej. `order.payment_method.id`).
+  - Entrada o salida de un segmento (`segment.entered`/`exited`, por ID o por `system_key`).
+  - Fecha de un atributo (`birthday`, `first_order_anniversary`, `expected_next_order_at` y `second_purchase_due` = primer pedido + mediana de días hasta la segunda compra del espacio de trabajo, 45 por defecto) a una hora local, con `igr:flows:date-triggers` cada hora. El 29 de febrero se celebra el 28 en los años no bisiestos.
+  - Umbral (pedidos, ingresos, ticket promedio, *engagement*, puntaje del lead, CLV o riesgo de abandono), una sola vez por contacto.
+  - Manual (inscribir un segmento o contactos) y webhook entrante `POST /webhooks/flows/{token}` con `email`, `phone` o `contact_id`. El token es secreto y va en la URL que muestra el constructor.
+  - Puntos, renovación y aniversarios de otras fases llegan con sus módulos.
+- **Nodos de fases siguientes** (dar puntos o saldo, asignar agente, etapa del lead, tarea en el CRM) aparecen en la paleta bloqueados, con la fase en que llegan. Publicar con uno de ellos falla con un mensaje claro.
+- **Condición:** sobre el AST de segmentos (M04) evaluado para ese contacto, o sobre los datos del run (`props.*` del disparador o `last_event.props.*` del evento que despertó una espera, p. ej. el botón que respondió). Con «salir si no se cumple», la rama «no» termina el run como `filter`.
+- **Modo prueba:** corre el **borrador** (o la versión publicada) de punta a punta al instante, sin esperas (las esperas de evento toman la rama «se acabó el tiempo»), con los datos de un contacto real. Los mensajes van al correo y al teléfono de quien prueba, el cupón es ficticio (`PRUEBA-…`), los webhooks no salen y nada cuenta en la analítica.
+- **Envíos y política:** el nodo de envío llama a `MessageDispatcher` con la clave `run:{run}:{nodo}:{intento}`. Un aplazamiento por horario o frecuencia deja el run esperando hasta `until` y vuelve a llamar con la misma clave. Una denegación (sin consentimiento, suprimido) sigue por la rama «si no se envía» si está conectada y, si no, por la salida normal. Los clasificados como utilidad o transaccional piden un motivo de al menos 10 caracteres (Ley 2300).
+- **Grupo de control:** el sorteo es al entrar. El control recorre el flujo sin envíos, cupones, avisos ni webhooks.
+- **Analítica:** «Entraron» y «En curso» cuentan a todos. Convirtieron, tasa e ingresos de la meta son del grupo expuesto. Los números de cada paso excluyen al control. El incremento es la diferencia de tasas (expuesto − control) con un intervalo del 95% (aproximación normal) y pide al menos 30 contactos por grupo. Los ingresos atribuidos por clic salen de `orders.attributed_flow_id` (§9 del hub).
+- **Biblioteca:** 11 de los 20 flujos funcionan en la Fase 2 (1 a 7, 9, 10, 11 y 13). Los demás se listan con la fase en que llegan.
+  - Las plantillas de correo son las de la biblioteca de M08 (`welcome_1`…`3`, `abandoned_cart_1` y `_2`, `abandoned_checkout`, `browse_abandonment`, `payment_pending_1` y `_2`, `cod_confirm_email`, `post_purchase`, `second_purchase`, `replenishment`, `winback_1` y `_2`, `birthday` y `team_alert`) y se instalan solas al crear el flujo.
+  - Las de WhatsApp (`wa_*`, aprobadas por Meta en la cuenta del cliente) se piden por `library_key`. Si no hay una, el flujo queda en borrador y el constructor pide elegirla.
+  - **Sin WhatsApp conectado**, la biblioteca quita los pasos de WhatsApp: quien llegaba a uno sigue por su respaldo por correo o por su salida normal, y las divisiones por canal dejan de ofrecerlo. Así una tienda que solo tiene correo activa en un clic.
+  - Carrito abandonado: WhatsApp a 1 h (si no se puede, sigue igual), correo a 4 h, cupón y WhatsApp a 24 h con respaldo por correo con incentivo. Con el tope de frecuencia por defecto (1 mensaje de marketing al día en Colombia), el segundo y el tercer toque del mismo día se aplazan al día siguiente.
+  - Confirmar contraentrega: WhatsApp de utilidad con botones (`cod_confirm` y `cod_cancel`). Si el WhatsApp no sale, envía el correo de respaldo y avisa al equipo.
+  - Reposición: el carrito restaurado en 1 clic llega con el comando del sitio en una fase siguiente; por ahora el correo enlaza los productos.
+
 ---
 
 ## M10 — Campañas · Fase 2
