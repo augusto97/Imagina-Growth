@@ -132,6 +132,21 @@ done
 if [ -n "${GROWTH_RELEASE_PUBKEY_FILE:-}" ]; then
     [ -f "$GROWTH_RELEASE_PUBKEY_FILE" ] || { echo "No existe $GROWTH_RELEASE_PUBKEY_FILE" >&2; exit 2; }
     cp "$GROWTH_RELEASE_PUBKEY_FILE" "$STAGE/release-signing.pub.pem"
+    # install.sh lleva la llave pública incrustada (marca __GROWTH_RELEASE_PUBKEY__): con ella verifica la versión
+    # que baja y la deja en /etc/growth para las actualizaciones. Sin la marca, el paquete no sirve: se detiene.
+    if [ -f "$STAGE/install.sh" ]; then
+        grep -qx '__GROWTH_RELEASE_PUBKEY__' "$STAGE/install.sh" \
+            || { echo "install.sh no tiene la marca __GROWTH_RELEASE_PUBKEY__" >&2; exit 2; }
+        python3 - "$STAGE/install.sh" "$GROWTH_RELEASE_PUBKEY_FILE" <<'PY'
+import sys
+script, key = sys.argv[1], sys.argv[2]
+pem = open(key).read().strip()
+src = open(script).read()
+lines = src.split('\n')
+lines = [pem if line == '__GROWTH_RELEASE_PUBKEY__' else line for line in lines]
+open(script, 'w').write('\n'.join(lines))
+PY
+    fi
 fi
 
 # Nada de pruebas ni de dependencias de Node en el paquete.

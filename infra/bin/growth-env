@@ -257,7 +257,11 @@ function growth_env_main(array $argv): int
                     continue;
                 }
                 if ($secret) {
-                    $value = growth_env_secret((string) ($var['generate'] ?? ($name === 'APP_KEY' ? 'laravel_key' : 'hex32')));
+                    // `generate: null` o `"none"`: no se genera aquí (p. ej. llaves VAPID) y queda vacía.
+                    $format = array_key_exists('generate', $var)
+                        ? ($var['generate'] === null ? 'none' : (string) $var['generate'])
+                        : ($name === 'APP_KEY' ? 'laravel_key' : 'hex32');
+                    $value = growth_env_secret($format);
                     if ($value === null) {
                         $value = ''; // formato que no se puede generar aquí (p. ej. llaves VAPID): queda vacío
                     }

@@ -359,7 +359,9 @@ ENV
  {"name":"APP_NAME","default":"Otro","secret":false},
  {"name":"NUEVA","default":"con espacios y #","secret":false},
  {"name":"TOKEN_NUEVO","default":null,"secret":true},
- {"name":"LLAVE_LARAVEL","default":null,"secret":true,"generate":"laravel_key"}
+ {"name":"LLAVE_LARAVEL","default":null,"secret":true,"generate":"laravel_key"},
+ {"name":"VAPID_NULA","default":null,"secret":true,"generate":null},
+ {"name":"VAPID_NONE","default":null,"secret":true,"generate":"none"}
 ]}
 JSON
     php "$BIN/growth-env" repair "$dir/release.json" "$env" >/dev/null
@@ -370,6 +372,8 @@ JSON
     assert_eq "$(get NUEVA)" "con espacios y #" "valor nuevo bien citado"
     [[ $(get TOKEN_NUEVO) =~ ^[0-9a-f]{64}$ ]] && ok || bad "secreto de 32 bytes"
     [[ $(get LLAVE_LARAVEL) =~ ^base64: ]] && ok || bad "llave con formato de Laravel"
+    assert_eq "$(get VAPID_NULA)" "" "generate null: queda vacía, no inventa una llave"
+    assert_eq "$(get VAPID_NONE)" "" "generate none: queda vacía"
     assert_eq "$(stat -c %a "$env")" 600 "modo 0600"
     local token
     token=$(get TOKEN_NUEVO)

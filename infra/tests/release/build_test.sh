@@ -63,6 +63,15 @@ has hub/resources/views/app.blade.php
 has hub/database/clickhouse/0001_events.sql
 has hub/bootstrap/app.php
 has release-signing.pub.pem
+# install.sh (el del zip y el asset suelto) lleva la llave pública incrustada en lugar de la marca.
+for inst in "$T/out/install.sh"; do
+    if grep -q -- '-----BEGIN PUBLIC KEY-----' "$inst" && ! grep -qx '__GROWTH_RELEASE_PUBKEY__' "$inst" \
+        && grep -qF -- "$(sed -n 2p "$T/pub.pem")" "$inst"; then
+        pass "install.sh trae la llave pública de la versión"
+    else
+        fail "install.sh no trae la llave pública incrustada"
+    fi
+done
 for f in growth-backup-mariadb growth-backup-clickhouse growth-backup-verify growth-backup-lib.sh; do
     if [ -f "$ROOT/infra/backup/$f" ]; then has "backup/$f"; fi
 done

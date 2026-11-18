@@ -1,55 +1,55 @@
 # infra/
 
-Despliegue del hub. La especificación está en `hub/CLAUDE.md` §18.
+Despliegue del hub **sin Docker**: servicios nativos de systemd en Ubuntu 24.04, versiones en zip firmadas en
+GitHub Releases, el symlink `current` y actualización con un clic desde el panel de la plataforma. El contrato
+completo (procesos, puertos, rutas, paquete, actualizador, copias y vigilancia) está en
+[`docs/despliegue.md`](../docs/despliegue.md); lo que diga ese documento manda sobre los scripts.
 
-| Archivo | Para qué |
+| Carpeta o archivo | Para qué |
 |---|---|
-| `docker-compose.yml` | Entorno local: hub, worker de ingesta, Horizon, scheduler, MariaDB 11.4, ClickHouse 25.8, Redis 7, Mailpit y (perfil `store`) la tienda WooCommerce de prueba con el plugin montado |
-| `docker-compose.prod.yml` | Producción en el VPS de Hetzner dedicado: `app`, `ingest` (réplicas aparte), un `ingest-worker` por shard, `horizon`, `scheduler`, MariaDB, ClickHouse, Redis y Caddy. `reverb` (Fase 2) y `ml` (Fase 4) se agregan con su fase |
-| `docker/hub/Dockerfile` | Imagen del hub con FrankenPHP y PHP 8.4 (`dev` y `prod`) |
-| `Caddyfile` | Panel, ingesta, enlaces y dominios de los clientes con TLS bajo demanda (pregunta a `/internal/caddy/ask`) |
-| `backup/` | `mariadb-backup.sh` (diario + binlogs), `clickhouse-backup.sh` (completa los domingos, incremental el resto) y la guía del simulacro mensual `RESTAURACION.md` |
-| `../.github/workflows/ci.yml` | CI: pruebas, Larastan, Pint, frontend y connector |
+| `install.sh` | Instalador para un servidor limpio: repositorios oficiales, MariaDB 11.4, ClickHouse 25.8, dos Redis 7, FrankenPHP con PHP 8.4, uv, Caddy, usuario `growth`, `/opt/growth`, `.env` con secretos, unidades, firewall y la última versión. Idempotente |
+| `systemd/` | Unidades: `growth.target`, `growth-app`, `growth-ingest-api@`, `growth-ingest@`, `growth-horizon`, `growth-reverb`, `growth-scheduler`, `growth-ml`, `growth-update.path` + `growth-update-dispatch`, las copias y la vigilancia (timers) y nuestra plantilla `redis-server@` |
+| `bin/` | Scripts del servidor: `growth-update` (actualiza o instala una versión), `growth-update-dispatch` (atiende el pedido del panel con `systemd-run`), `growth-env` (lee y repara el `.env` sin `source`) y los envoltorios de los servicios |
+| `config/` | Plantillas de PHP, MariaDB, ClickHouse, Redis (colas y caché) y el Caddyfile interno de FrankenPHP |
+| `caddy/Caddyfile` | Caddy de entrada: panel, ingesta (dos réplicas con reintento), Reverb y dominios de clientes con TLS bajo demanda. `install.sh` lo escribe solo si no existe; el actualizador nunca lo toca |
+| `backup/` | Copias de MariaDB y ClickHouse al Storage Box, prueba semanal de restauración y guías (`README.md`, `RESTAURACION.md`) |
+| `release/` | Paquete de versión: `build.sh`, `sign.sh`, `verify.sh`, `keygen.sh` y `env.json` (las variables del `.env`) |
+| `dev/` | Desarrollo local sin Docker: `setup-local.sh` y su guía |
+| `tests/` | Pruebas de los scripts: `release/`, `updater/` (el «deployer falso»), `backup/` e `install/` (Ubuntu limpio en un contenedor desechable, solo para verificar) |
+| `e2e/` | Recorridos de punta a punta de cada fase |
+| `wordpress/igr-setup.sh` | Tienda WooCommerce de prueba con el plugin (WP-CLI) |
 
-## Local con Docker
+## Desarrollo local
+
+Ver [`dev/README.md`](dev/README.md): `sudo infra/dev/setup-local.sh` instala MariaDB, ClickHouse y Redis nativos y
+crea los usuarios y bases de desarrollo. En el CI las pruebas usan los service containers de GitHub Actions (son del
+CI, no de la app).
+
+## Publicar una versión
+
+1. **Una sola vez:** `infra/release/keygen.sh` explica cómo crear el par de llaves ed25519 con `openssl`. La llave
+   privada (PEM) va al secreto `GROWTH_RELEASE_SIGNING_KEY` del repositorio y **nunca** al repositorio; la pública
+   la incrusta el CI en cada `install.sh`.
+2. Sube el número en `VERSION` (por ejemplo `0.2.0`) y fusiona a `main` con el CI en verde.
+3. Publica un release con el tag `v0.2.0`. El workflow `release.yml` falla si el tag no coincide con `VERSION` o si
+   falta el secreto; si no, arma, firma, verifica y sube `growth-0.2.0.zip`, su `.sha256`, el `.sig`,
+   `release.json`, `release-signing.pub.pem` e `install.sh`.
+4. Los servidores lo ven en la próxima consulta horaria; el administrador de la plataforma lo instala desde
+   `/plataforma` → «Actualizaciones».
+
+## Instalar un servidor
 
 ```bash
-cp hub/.env.example hub/.env           # y completa APP_KEY e IGR_BLIND_INDEX_KEY (ver el comentario del archivo)
-docker compose -f infra/docker-compose.yml up -d
-docker compose -f infra/docker-compose.yml exec hub composer install
-docker compose -f infra/docker-compose.yml exec hub php artisan migrate
-docker compose -f infra/docker-compose.yml exec hub php artisan igr:clickhouse:migrate
-docker compose -f infra/docker-compose.yml --profile frontend up -d vite     # SPA con recarga en caliente
+curl -fsSL https://github.com/augusto97/Imagina-Growth/releases/latest/download/install.sh \
+  | sudo bash -s -- --domain growth.ejemplo.com --email ops@ejemplo.com
 ```
 
-Datos de prueba sin WordPress: `php artisan igr:seed-demo --process` crea «Pinturas Demo» (usuario `demo@growth.test`, contraseña `demo-growth-2026`) con 2.000 clientes y 10.000 pedidos que pasan por el pipeline de ingesta, y muestra la conciliación.
+Después:
+- DNS del dominio (y de `in.` para la ingesta) hacia el servidor; `domains.growth.imagina.cloud` (o
+  `IGR_CUSTOM_DOMAINS_CNAME`) para los dominios propios de las agencias.
+- Completar en `/opt/growth/shared/.env` lo que no se puede generar: correo (SES), Meta, Anthropic.
+- Configurar `rclone` y `/etc/growth/backup.conf` para las copias ([`backup/README.md`](backup/README.md)) y los
+  heartbeats y monitores de Better Stack.
+- Crear el primer administrador de la plataforma (`growth-php artisan tinker` como `growth`).
 
-Tienda WooCommerce de prueba conectada al hub local:
-
-```bash
-docker compose -f infra/docker-compose.yml --profile store up -d
-docker compose -f infra/docker-compose.yml run --rm wpcli igr-setup 10000 2000   # WordPress + WooCommerce + plugin + tienda demo
-```
-
-Luego entra a `http://localhost:8080/wp-admin` (admin / admin), **Imagina Growth → Conectar**.
-
-## Local sin Docker
-
-Sirve cualquier MariaDB 11, ClickHouse 25.x y Redis 7. Ajusta `hub/.env` y corre `php artisan serve` y `php artisan igr:ingest:work` en dos terminales.
-
-## Producción
-
-1. VPS de Hetzner dedicado al hub, Docker y `rclone` (remoto cifrado hacia el Storage Box o S3).
-2. `/srv/igr/.env` con `APP_ENV=production`, `APP_KEY`, `IGR_BLIND_INDEX_KEY` (nunca se cambia sin reindexar), credenciales de bases de datos y `IGR_INGEST_SHARDS=4`.
-3. Construir y desplegar:
-   ```bash
-   docker build -f infra/docker/hub/Dockerfile --target prod -t imagina-growth/hub:$(git rev-parse --short HEAD) .
-   IGR_IMAGE=imagina-growth/hub:<sha> docker compose -f infra/docker-compose.prod.yml up -d
-   docker compose -f infra/docker-compose.prod.yml exec app php artisan migrate --force      # migraciones compatibles hacia atrás
-   docker compose -f infra/docker-compose.prod.yml exec app php artisan igr:clickhouse:migrate
-   docker compose -f infra/docker-compose.prod.yml exec app php artisan storage:link           # logos de marca blanca (disco public); una sola vez
-   docker compose -f infra/docker-compose.prod.yml exec horizon php artisan horizon:terminate
-   ```
-4. DNS: `domains.growth.imagina.cloud` (o `IGR_CUSTOM_DOMAINS_CNAME`) apunta al VPS; las agencias crean un CNAME de su panel, enlaces o página de reservas hacia él y lo verifican en Agencia → Marca.
-5. Cron del host: `mariadb-backup.sh` (03:15 UTC) y `clickhouse-backup.sh` (03:45 UTC). Simulacro de restauración cada mes (`backup/RESTAURACION.md`).
-6. Better Stack revisa `https://in.growth.imagina.cloud/health` (MariaDB, ClickHouse, Redis y retraso del stream).
+Correr `install.sh` otra vez no pisa el `.env`, las bases, el Caddyfile ni la versión instalada.

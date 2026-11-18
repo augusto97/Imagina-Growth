@@ -11,8 +11,8 @@ Todo escucha en `127.0.0.1` salvo Caddy. El firewall (ufw) solo abre SSH, `80/tc
 
 | Servicio (systemd) | Qué corre | Puerto |
 |---|---|---|
-| `growth-app` | FrankenPHP `php-server`: panel, API, SPA, webhooks, páginas públicas | 8080 |
-| `growth-ingest-api@1`, `@2` | FrankenPHP `php-server`: ingesta `/v1/*` y `/p/*` (dos réplicas detrás de Caddy) | 8081, 8082 (`8080 + instancia`) |
+| `growth-app` | FrankenPHP (`frankenphp run` con `config/frankenphp/Caddyfile`, admin apagado): panel, API, SPA, webhooks, páginas públicas | 8080 |
+| `growth-ingest-api@1`, `@2` | FrankenPHP: ingesta `/v1/*` y `/p/*` (dos réplicas detrás de Caddy, que las balancea con chequeo en `/up` para no sacarlas si ClickHouse va lento) | 8081, 8082 (`8080 + instancia`) |
 | `growth-ingest@1` … `@4` | `artisan igr:ingest:work --shard=<instancia − 1>` | — |
 | `growth-horizon` | `artisan horizon` | — |
 | `growth-reverb` | `artisan reverb:start` | 8085 |
@@ -20,7 +20,7 @@ Todo escucha en `127.0.0.1` salvo Caddy. El firewall (ufw) solo abre SSH, `80/tc
 | `growth-ml` | uvicorn (`hub/ml`, entorno de `uv`), 2 workers | 8095 |
 | `mariadb` | MariaDB 11.4 (repositorio oficial de MariaDB) | 3306 |
 | `clickhouse-server` | ClickHouse 25.8 (repositorio oficial, fijado a 25.8.*) | 8123 HTTP, 9000 nativo |
-| `redis-server@queue` | Redis 7: colas, streams de ingesta, candados. `noeviction` + AOF (`everysec`) | 6379 |
+| `redis-server@queue` | Redis 7.4 (repositorio oficial, fijado a `7.4.*` porque instala Redis 8 por defecto): colas, streams de ingesta, candados. `noeviction` + AOF (`everysec`). La plantilla `redis-server@.service` es nuestra: el paquete oficial no la trae | 6379 |
 | `redis-server@cache` | Redis 7: caché. `allkeys-lru`, sin persistencia | 6380 |
 | `caddy` | Caddy (repositorio oficial), TLS automático y bajo demanda | 80, 443 |
 
@@ -34,7 +34,8 @@ Todos los servicios `growth-*` tienen `PartOf=growth.target` y `WantedBy=growth.
   `php-zts-gd`, `php-zts-gmp` y `php-zts-bcmath`. Ajustes en `/etc/php-zts/conf.d/90-growth.ini` (los de la
   imagen anterior: memoria 512M, opcache con `validate_timestamps=0`, zona UTC…).
 - **`/usr/local/bin/growth-php`:** el PHP de línea de comandos para todo (unidades y scripts). Lo crea
-  `install.sh` apuntando al binario CLI del paquete.
+  `install.sh` apuntando a `/usr/bin/php-zts` (configuración en `/etc/php-zts/`). El paquete `frankenphp` trae su
+  propio `frankenphp.service` en 80/443: el instalador lo desactiva y lo enmascara.
 - **Python:** `uv` (instalador oficial de Astral) en `/usr/local/bin/uv`; Python lo baja `uv` a
   `/opt/growth/shared/python`; la caché de paquetes en `/opt/growth/shared/cache/uv`.
 
@@ -58,7 +59,9 @@ Todos los servicios `growth-*` tienen `PartOf=growth.target` y `WantedBy=growth.
 /etc/growth/                          root:root 0755
   updater.conf                        0644     repositorio y URL de la API de releases (§5)
   release-signing.pub.pem             0644     llave pública ed25519 que valida las versiones
+  clickhouse-default.pass             0600     contraseña aleatoria del usuario `default` de ClickHouse (nadie lo usa)
   backup.conf                         0600     remoto de rclone, retención y heartbeats de Better Stack (§6)
+/var/lib/growth/<unidad>/             estado interno de cada proceso de FrankenPHP
 /var/lib/growth-backups/              root 0711    copias nocturnas antes de subirlas
   mariadb/                            root 0700
   clickhouse/                         clickhouse 0700 (disco `backups` de ClickHouse)
@@ -82,6 +85,7 @@ archivo `VERSION` de la raíz. Arma el paquete con `infra/release/build.sh <vers
 | `growth-<v>.zip.sha256` | `<sha256 en hex>  growth-<v>.zip` |
 | `growth-<v>.zip.sha256.sig` | firma ed25519 (64 bytes) del archivo `.sha256`, hecha con `openssl pkeyutl -sign -rawin` y la llave del secreto `GROWTH_RELEASE_SIGNING_KEY` (PEM). Sin el secreto, el workflow falla |
 | `release.json` | el mismo de adentro del zip, para revisar espacio antes de descargar |
+| `release-signing.pub.pem` | la llave pública con la que se firmó (también va incrustada en `install.sh` y en la raíz del zip) |
 | `install.sh` | instalador para un servidor limpio |
 
 Contenido del zip (sin carpeta raíz):
@@ -123,8 +127,10 @@ install.sh                  el instalador
 (`growth-env repair` agrega las que falten sin tocar las que ya existen). Campos de cada entrada:
 
 - `secret: true`: se genera solo si falta, con el formato de `generate`: `hex32` (por defecto), `base64_32` o
-  `laravel_key` (`base64:` + 32 bytes, el de `APP_KEY`). Con `generate: null` (las llaves VAPID) queda vacía y la
-  genera `install.sh` en la primera instalación.
+  `laravel_key` (`base64:` + 32 bytes, el de `APP_KEY`). Con `generate: "none"` o `null` (las llaves VAPID, las
+  de Meta o Anthropic) queda vacía y la completa `install.sh` o el administrador.
+- Los valores por defecto no usan `${VAR}`: se escriben literales (la configuración ya cae a `APP_URL` o `APP_NAME`
+  cuando hace falta).
 - `never_regenerate: true` (`APP_KEY`, `IGR_BLIND_INDEX_KEY`, `DB_PASSWORD`, `CLICKHOUSE_PASSWORD`,
   `REDIS_PASSWORD`): en una actualización nunca se generan; si faltan, la actualización se detiene (sin ellas los
   datos cifrados, los índices ciegos y las conexiones ya configuradas dejan de funcionar).
@@ -132,7 +138,7 @@ install.sh                  el instalador
 ## 4. Salud y versión
 
 - `GET /health/ready` (sin dominio, cualquier host): `200 {"status":"ok","version":"X.Y.Z","checks":{...}}` si
-  MariaDB, ClickHouse y Redis responden; `503` si no. La versión sale del archivo `VERSION` de la raíz de la
+  MariaDB, ClickHouse y los dos Redis (`redis_queue` y `redis_cache`) responden; `503` si no. La versión sale del archivo `VERSION` de la raíz de la
   versión (`base_path('../VERSION')`; en desarrollo, el `VERSION` del repositorio).
 - `GET /health` (ya existe) sigue siendo la salud de la ingesta con el atraso de los streams.
 - El health-check del actualizador exige `status = ok` **y** `version` igual a la versión instalada en
@@ -244,4 +250,9 @@ Instala los repositorios oficiales y los paquetes (§1), crea el usuario `growth
 `.env` con secretos nuevos, las bases (MariaDB `igr` y usuario, ClickHouse `igr` y usuario), las dos
 instancias de Redis, la configuración de PHP, las unidades y el firewall; escribe `/etc/growth/*`, el
 Caddyfile (solo si no existe) y baja e instala la última versión con `growth-update --install`.
-**Idempotente:** correrlo otra vez no pisa el `.env`, ni las bases, ni el Caddyfile, ni los datos.
+**Idempotente:** correrlo otra vez no pisa el `.env`, ni las bases, ni el Caddyfile, ni los datos, y nunca reemplaza
+una versión ya instalada (para eso está el panel; `--version` solo cuenta en la primera instalación). Si se le pasa
+`--domain` o `--email` y el Caddyfile ya existe, deja la propuesta en `/etc/caddy/Caddyfile.growth.new`.
+
+**Python del ML:** `uv sync --frozen` usa el Python 3.12 de Ubuntu si cumple `requires-python`; si una versión
+necesitara otro, `uv` lo baja de GitHub (el servidor necesita salida a GitHub).
