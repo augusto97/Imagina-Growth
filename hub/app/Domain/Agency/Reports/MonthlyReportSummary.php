@@ -98,12 +98,20 @@ final class MonthlyReportSummary
         $total = (float) ($money['total'] ?? 0);
         $lines = [];
         if ($total > 0) {
-            $line = __('En :month la plataforma ayudó a generar :amount en :orders pedidos, el :share del total de la tienda.', [
+            $count = (int) ($money['pedidos'] ?? 0);
+            $params = [
                 'month' => (string) ($facts['mes'] ?? ''),
                 'amount' => Money::format($total, $currency),
-                'orders' => Money::number((int) ($money['pedidos'] ?? 0)),
+                'count' => Money::number($count),
                 'share' => Money::percent((float) ($money['participacion_pct'] ?? 0) / 100),
-            ]);
+            ];
+            $line = ($facts['modo'] ?? 'tienda') === 'servicios'
+                ? ($count === 1
+                    ? __('En :month la plataforma ayudó a generar :amount con 1 negocio cerrado, el :share de las ventas del negocio.', $params)
+                    : __('En :month la plataforma ayudó a generar :amount con :count negocios cerrados, el :share de las ventas del negocio.', $params))
+                : ($count === 1
+                    ? __('En :month la plataforma ayudó a generar :amount en 1 pedido, el :share del total de la tienda.', $params)
+                    : __('En :month la plataforma ayudó a generar :amount en :count pedidos, el :share del total de la tienda.', $params));
             $change = $money['cambio_vs_anterior_pct'] ?? null;
             if (is_numeric($change)) {
                 $line .= ' '.((float) $change >= 0

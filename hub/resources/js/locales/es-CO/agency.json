@@ -36,7 +36,7 @@
             "billing": "Facturación"
         },
         "sort_by": "Ordenar por {{column}}",
-        "of_store": "{{pct}} de la tienda",
+        "of_store": "{{pct}} de las ventas",
         "health": {
             "healthy": "Conectado",
             "degraded": "Con fallas",

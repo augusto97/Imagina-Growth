@@ -16,6 +16,11 @@ use Illuminate\Support\Facades\Schema;
  * del mes contra el anterior, los hallazgos principales y lo que dicen las
  * predicciones. Son los únicos números que puede citar el resumen con IA.
  * Sin datos personales: todo son agregados.
+ *
+ * `modo`: «tienda» si el espacio de trabajo tiene un sitio WooCommerce o pedidos; si no,
+ * «servicios» (sitio corporativo): las ventas son los leads ganados, se habla de
+ * negocios cerrados en lugar de pedidos y no van los indicadores de pedidos ni las
+ * predicciones de recompra, que no aplican.
  */
 final class MonthlyReportFacts
 {
@@ -52,11 +57,12 @@ final class MonthlyReportFacts
         $previous = $this->money->forWorkspace($workspace, $prevFrom, $prevTo);
         $labels = self::moduleLabels();
 
+        $mode = self::mode($workspace);
         $kpis = [];
-        $now = $this->kpis($workspace, $from, $to);
-        $before = $this->kpis($workspace, $prevFrom, $prevTo);
+        $now = $this->kpis($workspace, $from, $to, $mode);
+        $before = $this->kpis($workspace, $prevFrom, $prevTo, $mode);
         foreach ($now as $key => $kpi) {
-            if ($key === 'leads_nuevos' || $key === 'leads_ganados') {
+            if ($mode === 'tienda' && ($key === 'leads_nuevos' || $key === 'leads_ganados')) {
                 if ((float) $kpi['valor'] === 0.0 && (float) $before[$key]['valor'] === 0.0) {
                     continue; // no usa leads
                 }
@@ -81,6 +87,7 @@ final class MonthlyReportFacts
 
         return [
             'negocio' => $workspace->name,
+            'modo' => $mode,
             'mes' => self::monthName($from),
             'periodo' => ['desde' => $from->toDateString(), 'hasta' => $to->subDay()->toDateString(), 'mes' => $from->format('Y-m')],
             'moneda' => $money['currency'],
@@ -99,9 +106,33 @@ final class MonthlyReportFacts
         ];
     }
 
-    /** @return array<string, array{nombre: string, valor: float|int, unidad: string}> */
-    private function kpis(Workspace $workspace, CarbonImmutable $from, CarbonImmutable $to): array
+    /** «tienda» con un sitio WooCommerce o algún pedido; si no, «servicios» (sitio corporativo). */
+    public static function mode(Workspace $workspace): string
     {
+        $store = DB::table('sites')->where('workspace_id', $workspace->id)->where('platform', 'woocommerce')->exists()
+            || DB::table('orders')->where('workspace_id', $workspace->id)->exists();
+
+        return $store ? 'tienda' : 'servicios';
+    }
+
+    /** @return array<string, array{nombre: string, valor: float|int, unidad: string}> */
+    private function kpis(Workspace $workspace, CarbonImmutable $from, CarbonImmutable $to, string $mode = 'tienda'): array
+    {
+        if ($mode === 'servicios') {
+            $won = DB::table('leads')->where('workspace_id', $workspace->id)->where('stage', 'won')
+                ->where('won_at', '>=', $from->utc())->where('won_at', '<', $to->utc())
+                ->selectRaw('COUNT(*) AS n, COALESCE(SUM(value_ws), 0) AS revenue')->first();
+            $n = (int) ($won->n ?? 0);
+            $revenue = (float) ($won->revenue ?? 0);
+            $new = DB::table('leads')->where('workspace_id', $workspace->id)->where('created_at', '>=', $from->utc())->where('created_at', '<', $to->utc())->count();
+
+            return [
+                'ventas' => ['nombre' => __('Ventas (leads ganados)'), 'valor' => round($revenue, 0), 'unidad' => 'money'],
+                'leads_nuevos' => ['nombre' => __('Leads nuevos'), 'valor' => $new, 'unidad' => 'count'],
+                'leads_ganados' => ['nombre' => __('Negocios cerrados'), 'valor' => $n, 'unidad' => 'count'],
+                'ticket_promedio' => ['nombre' => __('Valor promedio por negocio'), 'valor' => $n > 0 ? round($revenue / $n, 0) : 0, 'unidad' => 'money'],
+            ];
+        }
         $orders = DB::table('orders')->where('workspace_id', $workspace->id)->where('is_paid', true)
             ->whereNotIn('status', ['cancelled', 'failed', 'refunded'])
             ->where('paid_at', '>=', $from->utc())->where('paid_at', '<', $to->utc())

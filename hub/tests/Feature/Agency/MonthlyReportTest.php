@@ -55,6 +55,26 @@ it('arma los hechos del mes: dinero por módulo, KPI frente al mes anterior, hal
         ->and(json_encode($f))->not->toContain('@');
 });
 
+it('en un sitio corporativo sin tienda el reporte habla de negocios cerrados con los leads ganados', function () {
+    FakeAiGateway::install()->failWith('provider');
+    $ws = $this->w->b;
+    DB::table('orders')->where('workspace_id', $ws->id)->delete();
+    $nov = CarbonImmutable::parse('2026-11-12 10:00:00', 'America/Bogota');
+    foreach ([['form', '3500000', 'won'], ['booking', '1500000', 'won'], ['quote', null, 'new']] as [$origin, $value, $stage]) {
+        DB::table('leads')->insert(['id' => strtoupper((string) Str::ulid()), 'workspace_id' => $ws->id, 'contact_id' => strtoupper((string) Str::ulid()),
+            'stage' => $stage, 'origin' => $origin, 'value_ws' => $value, 'won_at' => $stage === 'won' ? $nov : null, 'created_at' => $nov, 'updated_at' => $nov]);
+    }
+    $report = app(MonthlyReports::class)->generate($ws, MonthlyReports::lastMonth($ws));
+    $f = $report->facts;
+    $kpis = collect($f['kpis'])->keyBy('clave');
+
+    expect($f['modo'])->toBe('servicios')
+        ->and($f['dinero_generado']['total'])->toEqual(5000000)
+        ->and($kpis->keys()->all())->toBe(['ventas', 'leads_nuevos', 'leads_ganados', 'ticket_promedio'])
+        ->and($kpis['ventas']['valor'])->toEqual(5000000)->and($kpis['leads_ganados']['valor'])->toBe(2)->and($kpis['leads_nuevos']['valor'])->toBe(3)
+        ->and($report->summary)->toContain('2 negocios cerrados')->not->toContain('pedidos');
+});
+
 it('el resumen con IA solo pasa si cada cifra está en los hechos; si no, va la plantilla', function () {
     $ai = FakeAiGateway::install()->replyJson([
         'resumen' => 'En noviembre de 2026 la plataforma generó $300.000, el 60 % de tus ventas, 200 % más que en octubre.',

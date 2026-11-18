@@ -13,6 +13,11 @@
         default => Money::number($k['anterior']),
     };
     $change = fn ($v) => $v === null ? '—' : (($v >= 0 ? '▲ ' : '▼ ').Money::percent(abs((float) $v) / 100));
+    // Sitio corporativo (sin WooCommerce): las ventas son los leads ganados.
+    $services = ($facts['modo'] ?? 'tienda') === 'servicios';
+    $sales = fn (int $n) => $services
+        ? ($n === 1 ? __('1 negocio cerrado') : __(':count negocios cerrados', ['count' => Money::number($n)]))
+        : ($n === 1 ? __('1 pedido') : __(':count pedidos', ['count' => Money::number($n)]));
     $severity = ['critical' => __('Crítico'), 'warning' => __('Atención'), 'opportunity' => __('Oportunidad'), 'info' => __('Informativo')];
 @endphp
 <!DOCTYPE html>
@@ -50,7 +55,7 @@
 <div class="footer">
     {{ __('Preparado por :brand', ['brand' => $brand->name]) }}@if (! $brand->whiteLabel && $brand->name !== 'Imagina Growth') · {{ __('con Imagina Growth') }}@endif
     @if ($brand->supportEmail) · {{ $brand->supportEmail }}@endif
-    · {{ __('Ventas atribuidas: cada pedido cuenta una sola vez, en el módulo que lo explica primero.') }}
+    · {{ $services ? __('Ventas atribuidas: cada lead ganado cuenta una sola vez, en el módulo que lo captó.') : __('Ventas atribuidas: cada pedido cuenta una sola vez, en el módulo que lo explica primero.') }}
 </div>
 
 <table class="head">
@@ -75,7 +80,9 @@
             <div class="muted">{{ __('Dinero que generó la plataforma') }}</div>
             <div class="big">{{ Money::format($money['total'] ?? 0, $currency) }}</div>
             <div class="muted">
-                {{ __(':orders pedidos · :share de las ventas de la tienda', ['orders' => Money::number((int) ($money['pedidos'] ?? 0)), 'share' => Money::percent((float) ($money['participacion_pct'] ?? 0) / 100)]) }}
+                {{ $sales((int) ($money['pedidos'] ?? 0)) }} · {{ $services
+                    ? __(':share de las ventas del negocio', ['share' => Money::percent((float) ($money['participacion_pct'] ?? 0) / 100)])
+                    : __(':share de las ventas de la tienda', ['share' => Money::percent((float) ($money['participacion_pct'] ?? 0) / 100)]) }}
             </div>
             <div style="margin-top: 3px;">
                 {{ __('Frente al mes anterior') }}: <strong>{{ $change($money['cambio_vs_anterior_pct'] ?? null) }}</strong>
@@ -84,14 +91,19 @@
         </td>
         <td style="width: 27%; padding-right: 8px;">
             <div class="tile">
-                <div class="label">{{ __('Ventas de la tienda') }}</div>
+                <div class="label">{{ $services ? __('Ventas del negocio') : __('Ventas de la tienda') }}</div>
                 <div class="value">{{ Money::format($money['ventas_tienda'] ?? 0, $currency) }}</div>
             </div>
         </td>
         <td style="width: 27%;">
             <div class="tile">
-                <div class="label">{{ __('Valor futuro de los clientes (12 meses)') }}</div>
-                <div class="value">{{ Money::format($facts['predicciones']['valor_futuro_12m'] ?? 0, $currency) }}</div>
+                @if ($services)
+                    <div class="label">{{ __('Leads nuevos del mes') }}</div>
+                    <div class="value">{{ Money::number((int) (collect((array) ($facts['kpis'] ?? []))->firstWhere('clave', 'leads_nuevos')['valor'] ?? 0)) }}</div>
+                @else
+                    <div class="label">{{ __('Valor futuro de los clientes (12 meses)') }}</div>
+                    <div class="value">{{ Money::format($facts['predicciones']['valor_futuro_12m'] ?? 0, $currency) }}</div>
+                @endif
             </div>
         </td>
     </tr>
@@ -115,7 +127,7 @@
 @else
     <table class="list">
         <thead>
-            <tr><th style="width: 30%;">{{ __('Módulo') }}</th><th style="width: 38%;"></th><th class="num">{{ __('Ventas') }}</th><th class="num">{{ __('Pedidos') }}</th><th class="num">{{ __('Del total') }}</th></tr>
+            <tr><th style="width: 30%;">{{ __('Módulo') }}</th><th style="width: 38%;"></th><th class="num">{{ __('Ventas') }}</th><th class="num">{{ $services ? __('Negocios') : __('Pedidos') }}</th><th class="num">{{ __('Del total') }}</th></tr>
         </thead>
         <tbody>
         @foreach ($modules as $m)
@@ -161,6 +173,7 @@
     </table>
 @endif
 
+@unless ($services)
 <h2>{{ __('Lo que viene') }}</h2>
 <table class="list">
     <tbody>
@@ -168,5 +181,6 @@
         <tr><td>{{ __('Compras esperadas en los próximos 30 días') }}</td><td class="num"><strong>{{ Money::number((int) ($facts['predicciones']['compras_esperadas_30_dias'] ?? 0)) }}</strong></td></tr>
     </tbody>
 </table>
+@endunless
 </body>
 </html>
