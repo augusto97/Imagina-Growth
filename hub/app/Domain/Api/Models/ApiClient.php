@@ -7,6 +7,7 @@ namespace App\Domain\Api\Models;
 use App\Support\Ids\HasPrefixedUlid;
 use App\Support\Tenancy\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Laravel\Sanctum\HasApiTokens;
 
 /**
@@ -23,9 +24,9 @@ use Laravel\Sanctum\HasApiTokens;
  * @property list<string> $scopes
  * @property string|null $token_prefix
  * @property string|null $created_by
- * @property \Illuminate\Support\Carbon|null $last_used_at
- * @property \Illuminate\Support\Carbon|null $revoked_at
- * @property \Illuminate\Support\Carbon|null $created_at
+ * @property Carbon|null $last_used_at
+ * @property Carbon|null $revoked_at
+ * @property Carbon|null $created_at
  */
 class ApiClient extends Model
 {

@@ -67,6 +67,7 @@ $state = is_array( $state ) ? $state : array(
 );
 $state += array( 'browser' => array(), 'browser_batches' => 0, 'identified' => array(), 'bad_tokens' => 0, 'survey_answers' => array(), 'privacy' => array(), 'overrides' => array() );
 $state += array( 'submits' => array(), 'watches' => array(), 'redeems' => array(), 'shares' => array(), 'wallet_redeems' => array(), 'public_requests' => array() );
+$state += array( 'quotes' => array() );
 
 $respond = static function ( int $status, array $payload ) use ( &$state, $state_file, $lock ): void {
 	file_put_contents( $state_file, json_encode( $state ) );
@@ -635,6 +636,63 @@ if ( 'POST' === $method && 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/widgets/([A
 	// Como el hub: `message` es el texto de éxito ya resuelto.
 	$out['message'] = $out['message'] ?? strtr( (string) ( $content['success'] ?? '¡Listo!' ), array( '{{codigo}}' => $out['coupon']['code'] ?? '', '{{premio}}' => $out['prize']['label'] ?? '' ) );
 	$respond( 200, $out );
+}
+
+// Cotizador (M18): la definición pública (sin precios si pide el contacto) y el cálculo en el hub.
+if ( 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/quotes/(qc_[0-9A-Za-z]{26})(/estimate)?$#', (string) $path, $m ) ) {
+	if ( ! $pk_ok( $m[1] ) ) {
+		$respond( 404, array( 'ok' => false, 'error' => array( 'code' => 'unknown_site' ) ) );
+	}
+	$calc = $state['overrides']['quote'] ?? null;
+	if ( ! is_array( $calc ) || ( $calc['id'] ?? '' ) !== $m[2] ) {
+		$respond( 404, array( 'ok' => false, 'error' => array( 'code' => 'unknown_calculator', 'message' => 'Este cotizador no está disponible.' ) ) );
+	}
+	if ( 'GET' === $method && ! isset( $m[3] ) ) {
+		$respond( 200, array( 'ok' => true, 'calculator' => $calc ) );
+	}
+	if ( 'POST' === $method && isset( $m[3] ) ) {
+		$req     = $public_body();
+		$answers = is_array( $req['answers'] ?? null ) ? $req['answers'] : array();
+		$fields  = is_array( $req['fields'] ?? null ) ? $req['fields'] : array();
+		$errors  = array();
+		$area    = $answers['area'] ?? null;
+		if ( ! is_numeric( $area ) || $area < 5 || $area > 2000 ) {
+			$errors['answers.area'] = array( 'Escribe un número entre 5 y 2.000.' );
+		}
+		$phone = preg_replace( '/\D/', '', (string) ( $fields['phone'] ?? '' ) );
+		if ( ! empty( $calc['capture']['required'] ) && strlen( (string) $phone ) < 10 && ! filter_var( (string) ( $fields['email'] ?? '' ), FILTER_VALIDATE_EMAIL ) ) {
+			$errors['fields.phone'] = array( 'Escribe tu WhatsApp o tu correo.' );
+		}
+		if ( array() !== $errors ) {
+			$respond( 422, array( 'ok' => false, 'message' => (string) reset( $errors )[0], 'errors' => $errors ) );
+		}
+		// Como el hub: (50.000 + m² × 12.000) × 1,25 si es esmalte, ± 10 %, redondeado a miles.
+		$mid                = ( 50000 + (float) $area * 12000 ) * ( 'esmalte' === ( $answers['tipo'] ?? '' ) ? 1.25 : 1 );
+		$min                = floor( $mid * 0.9 / 1000 ) * 1000;
+		$max                = ceil( $mid * 1.1 / 1000 ) * 1000;
+		$state['quotes'][]  = array(
+			'calculator_id' => $m[2],
+			'anonymous_id'  => $req['anonymous_id'] ?? null,
+			'answers'       => $answers,
+			'fields'        => array_keys( array_filter( $fields ) ),
+			'consents'      => $req['consents'] ?? array(),
+			'utm'           => $req['utm'] ?? array(),
+		);
+		$fmt                = static fn( float $v ): string => '$' . number_format( $v, 0, ',', '.' );
+		$respond(
+			200,
+			array(
+				'ok'       => true,
+				'quote_id' => 'qt_01JF0QUOTE000000000000000' . count( $state['quotes'] ),
+				'estimate' => array( 'min' => number_format( $min, 2, '.', '' ), 'max' => number_format( $max, 2, '.', '' ), 'currency' => 'COP', 'text' => $fmt( $min ) . ' – ' . $fmt( $max ) . ' COP' ),
+				'lines'    => array( array( 'label' => 'Área a pintar (' . $area . ' m²)', 'amount' => number_format( (float) $area * 12000, 2, '.', '' ) ) ),
+				'note'     => 'Incluye materiales.',
+				'message'  => 'Es un valor estimado. Te contactaremos para confirmar el precio final.',
+				'whatsapp' => null,
+			)
+		);
+	}
+	$respond( 405, array( 'ok' => false ) );
 }
 
 if ( 'POST' === $method && 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/(watch|me/redeem|me/share)$#', (string) $path, $m ) ) {

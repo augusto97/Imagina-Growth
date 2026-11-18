@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domain\Api\Http\V1;
 
-use Dedoc\Scramble\Attributes\Group;
 use App\Domain\Api\Support\ApiContext;
 use App\Domain\Api\Support\ApiError;
 use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Segments\Models\Segment;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
+use App\Support\Ids\PrefixedId;
 use App\Support\Tenancy\CurrentWorkspace;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -77,6 +78,6 @@ final class CampaignsController
 
     public static function panelUrl(Campaign $campaign): string
     {
-        return rtrim((string) config('app.url'), '/').'/w/'.\App\Support\Ids\PrefixedId::encode('ws', $campaign->workspace_id).'/campanas/'.$campaign->publicId();
+        return rtrim((string) config('app.url'), '/').'/w/'.PrefixedId::encode('ws', $campaign->workspace_id).'/campanas/'.$campaign->publicId();
     }
 }

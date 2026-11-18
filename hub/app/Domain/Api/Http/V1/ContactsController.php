@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Api\Http\V1;
 
-use Dedoc\Scramble\Attributes\Group;
 use App\Domain\Api\Actions\ResolveApiContact;
 use App\Domain\Api\Support\ApiContext;
 use App\Domain\Api\Support\ApiError;
@@ -17,6 +16,7 @@ use App\Support\Phone\Phone;
 use App\Support\Pii\BlindIndex;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -121,24 +121,24 @@ final class ContactsController
         try {
             [$contact, $created] = DB::transaction(function () use ($workspace, $site, $data, $resolver, $consents, $texts, $client, $now): array {
                 [$contact, $created] = $resolver->handle($workspace, $site, $data);
-            if (isset($data['tags'])) {
-                $contact->setAttribute('tags', array_values(array_unique([...((array) ($contact->getAttribute('tags') ?? [])), ...$data['tags']])));
-                $contact->save();
-            }
-            foreach ($data['consents'] ?? [] as $consent) {
-                $channel = (string) $consent['channel'];
-                if (($channel === 'email' && $contact->email === null) || ($channel !== 'email' && $contact->phone === null)) {
-                    continue; // no se consiente un canal sin su dirección
+                if (isset($data['tags'])) {
+                    $contact->setAttribute('tags', array_values(array_unique([...((array) ($contact->getAttribute('tags') ?? [])), ...$data['tags']])));
+                    $contact->save();
                 }
-                $version = $consent['legal_text_version'] ?? ($consent['action'] === 'granted' ? $texts->latest($workspace, $channel)?->version : null);
-                $at = isset($consent['occurred_at']) ? CarbonImmutable::parse((string) $consent['occurred_at']) : $now;
-                $consents->handle($workspace, $contact->id, $channel, 'marketing', $consent['action'] === 'granted' ? 'granted' : 'revoked', 'api', $version, $at->greaterThan($now) ? $now : $at, array_filter([
-                    'api_client' => $client->publicId(),
-                    'page_url' => $consent['page_url'] ?? null,
-                ]));
-            }
+                foreach ($data['consents'] ?? [] as $consent) {
+                    $channel = (string) $consent['channel'];
+                    if (($channel === 'email' && $contact->email === null) || ($channel !== 'email' && $contact->phone === null)) {
+                        continue; // no se consiente un canal sin su dirección
+                    }
+                    $version = $consent['legal_text_version'] ?? ($consent['action'] === 'granted' ? $texts->latest($workspace, $channel)?->version : null);
+                    $at = isset($consent['occurred_at']) ? CarbonImmutable::parse((string) $consent['occurred_at']) : $now;
+                    $consents->handle($workspace, $contact->id, $channel, 'marketing', $consent['action'] === 'granted' ? 'granted' : 'revoked', 'api', $version, $at->greaterThan($now) ? $now : $at, array_filter([
+                        'api_client' => $client->publicId(),
+                        'page_url' => $consent['page_url'] ?? null,
+                    ]));
+                }
 
-            return [$contact->refresh(), $created];
+                return [$contact->refresh(), $created];
             });
         } catch (InvalidArgumentException $e) {
             return ApiError::make(422, 'validation_failed', ApiError::defaultMessage(422), ['phone' => [$e->getMessage()]]);

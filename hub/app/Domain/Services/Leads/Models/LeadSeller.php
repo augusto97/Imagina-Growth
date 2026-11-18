@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property list<string>|null $services
  * @property bool $active
  * @property Carbon|null $last_assigned_at
+ * @property int|null $last_assigned_seq
  */
 class LeadSeller extends Model
 {
@@ -27,12 +28,12 @@ class LeadSeller extends Model
 
     public const ID_PREFIX = 'lsl';
 
-    protected $fillable = ['workspace_id', 'user_id', 'phone', 'services', 'active', 'last_assigned_at'];
+    protected $fillable = ['workspace_id', 'user_id', 'phone', 'services', 'active', 'last_assigned_at', 'last_assigned_seq'];
 
     protected $hidden = ['phone'];
 
     protected function casts(): array
     {
-        return ['phone' => 'encrypted', 'services' => 'array', 'active' => 'boolean', 'last_assigned_at' => 'datetime'];
+        return ['phone' => 'encrypted', 'services' => 'array', 'active' => 'boolean', 'last_assigned_at' => 'datetime', 'last_assigned_seq' => 'integer'];
     }
 }

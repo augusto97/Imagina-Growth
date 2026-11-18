@@ -35,9 +35,9 @@ final class ModuleServiceProvider extends ServiceProvider
                 ->expose(ui: 'api/docs', document: 'api/docs.json')
                 ->routes(fn (Route $route): bool => str_starts_with($route->uri, 'api/v1/') && ! $route->isFallback)
                 ->withDocumentTransformers(function (OpenApi $openApi): void {
-                $openApi->info->setDescription((string) __('API pública de Imagina Growth. Autenticación con un token del espacio de trabajo (`Authorization: Bearer igr_…`) creado en «API e integraciones». Cada token tiene alcances; los errores vienen como `{"error": {"code", "message", "fields"}}`. Guía completa: docs/api-publica.md.'));
-                $openApi->secure(SecurityScheme::http('bearer'));
-            });
+                    $openApi->info->setDescription((string) __('API pública de Imagina Growth. Autenticación con un token del espacio de trabajo (`Authorization: Bearer igr_…`) creado en «API e integraciones». Cada token tiene alcances; los errores vienen como `{"error": {"code", "message", "fields"}}`. Guía completa: docs/api-publica.md.'));
+                    $openApi->secure(SecurityScheme::http('bearer'));
+                });
         }
     }
 }

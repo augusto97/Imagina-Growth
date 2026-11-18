@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\Api\Http\V1;
 
-use Dedoc\Scramble\Attributes\Group;
 use App\Domain\Api\Support\ApiError;
 use App\Domain\Commerce\Models\Order;
 use App\Support\Ids\PrefixedId;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

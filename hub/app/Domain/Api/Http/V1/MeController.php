@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace App\Domain\Api\Http\V1;
 
-use Dedoc\Scramble\Attributes\Group;
 use App\Domain\Api\Support\ApiContext;
 use App\Domain\Api\Support\ClientResolver;
 use App\Support\Tenancy\CurrentWorkspace;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/**
- */
 #[Group('Cuenta', weight: 0)]
 final class MeController
 {

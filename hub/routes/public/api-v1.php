@@ -14,6 +14,7 @@ use App\Domain\Api\Http\V1\MeController;
 use App\Domain\Api\Http\V1\OrdersController;
 use App\Domain\Api\Http\V1\SegmentsController;
 use App\Domain\Api\Http\V1\VitalsController;
+use App\Domain\Api\Support\ApiError;
 use App\Domain\Webhooks\Http\WebhookApiController;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
@@ -62,5 +63,5 @@ Route::prefix('api/v1')
         Route::post('webhooks', [WebhookApiController::class, 'store'])->middleware([$scope('webhooks:manage'), Idempotent::class])->name('webhooks.store');
         Route::delete('webhooks/{webhook}', [WebhookApiController::class, 'destroy'])->middleware($scope('webhooks:manage'))->name('webhooks.destroy');
 
-        Route::fallback(fn () => App\Domain\Api\Support\ApiError::make(404, 'not_found', __('Esa ruta no existe en la API v1.')));
+        Route::fallback(fn () => ApiError::make(404, 'not_found', __('Esa ruta no existe en la API v1.')));
     });

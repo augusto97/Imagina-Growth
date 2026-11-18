@@ -34,6 +34,7 @@ return new class extends Migration
             $table->json('services')->nullable();            // palabras del servicio que atiende (reglas)
             $table->boolean('active')->default(true);
             $table->timestamp('last_assigned_at')->nullable();
+            $table->unsignedBigInteger('last_assigned_seq')->nullable(); // turno: el menor recibe el siguiente lead
             $table->timestamps();
             $table->unique(['workspace_id', 'user_id']);
         });

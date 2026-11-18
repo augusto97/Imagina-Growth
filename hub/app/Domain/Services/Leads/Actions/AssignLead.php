@@ -26,7 +26,7 @@ final class AssignLead
         }
         $members = DB::table('workspace_user')->where('workspace_id', $lead->workspace_id)->pluck('user_id')->map(fn ($v) => (string) $v)->all();
         $sellers = LeadSeller::query()->where('active', true)->whereIn('user_id', $members)
-            ->orderByRaw('last_assigned_at IS NOT NULL')->orderBy('last_assigned_at')->orderBy('id')->get();
+            ->orderByRaw('last_assigned_seq IS NOT NULL')->orderBy('last_assigned_seq')->orderBy('id')->get();
         if ($sellers->isEmpty()) {
             return null;
         }
@@ -48,7 +48,8 @@ final class AssignLead
         if (! $pick instanceof LeadSeller) {
             return null;
         }
-        $pick->forceFill(['last_assigned_at' => now()])->save();
+        $seq = (int) LeadSeller::query()->max('last_assigned_seq') + 1;
+        $pick->forceFill(['last_assigned_at' => now(), 'last_assigned_seq' => $seq])->save();
 
         return $pick->user_id;
     }

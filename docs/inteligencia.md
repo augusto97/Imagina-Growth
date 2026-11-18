@@ -144,6 +144,7 @@ Suma con decaimiento: visita al sitio, clic en un mensaje, lectura en WhatsApp, 
 
 - **IA opcional:** clasifica el mensaje del formulario (intención, urgencia, presupuesto mencionado) y suma o resta hasta 20 puntos, con la razón visible.
 - Umbrales «frío», «tibio» y «caliente» configurables. Un lead caliente avisa al vendedor al instante.
+- **Estado (Fase 5):** `LeadScorer`. El puntaje es la suma de las razones guardadas en `leads.score_reasons` (de 0 a 100): cada señal suma **una vez por lead** con los puntos vigentes cuando ocurrió (las vistas de precios llevan la cuenta en `detail.views`); al crear el lead se leen 30 días de navegación en ClickHouse (vistas de precios, días con visita en los últimos 7, clics en WhatsApp o llamada) y después suman las señales en vivo. Páginas de precios o servicios por prefijo de ruta (`/precios`, `/tarifas`, `/planes`, `/servicios`, `/cotiza`, `/pricing` por defecto); correo corporativo = dominio fuera de la lista de correos personales (gmail, hotmail, outlook, yahoo, icloud, live…, más los que agregue el negocio); área de servicio = lista de ciudades del negocio (vacía, no aplica). Umbrales por defecto: tibio 30, caliente 60. **Decaimiento:** −5 por cada semana completa sin actividad desde la última señal; una señal nueva lo reinicia (`igr:leads:decay` cada noche, idempotente). **IA:** el mensaje del formulario va al modelo sin correos ni teléfonos (cola `ai`, job cifrado) y devuelve puntos de −20 a +20, la razón y el servicio si faltaba; el mensaje nunca se guarda. Sin IA o si falla, quedan las reglas. Función de IA: hoy `inbound_classifier` (Haiku) **[pendiente]** una clave propia `lead_qualifier`.
 
 ### 4.10 Estado (Fase 4)
 
@@ -208,7 +209,7 @@ Los detectores se ejecutan cada noche (o cada semana, según el detector). Cada 
 Siempre conservador, con el supuesto visible: «Estimación: 37 clientes × 18% de reactivación de referencia × $185.000 de ticket = **$1.232.100**. Supuesto editable». Nunca se presenta como promesa.
 
 ### 5.3 Estado (Fase 4)
-- **Detectores:** los 20 de §5.1 funcionan (`App\Domain\Intelligence\Insights\DetectorCatalog`, con número, categoría y cadencia). Los de servicios (21 a 23) llegan con los leads en la Fase 5 y se listan apagados.
+- **Detectores:** los 23 de §5.1 funcionan (`App\Domain\Intelligence\Insights\DetectorCatalog`, con número, categoría y cadencia). Los de servicios (21 a 23) llegaron en la Fase 5 con los leads: **#21** (nocturno) leads de los últimos 7 días que esperaron más de 15 minutos, con el dinero en juego = abiertos sin respuesta × tasa de cierre de 180 días × valor promedio ganado; **#22** (semanal) la página con formulario que convierte menos de la mitad del promedio de las páginas con formulario (28 días, al menos 200 vistas); **#23** (semanal) la fuente con más leads frente a la que más leads ganados deja (90 días, al menos 5 leads por fuente), si la de volumen cierra a la mitad o menos.
   - **Nocturnos:** 1, 2, 6, 8, 9, 15, 16, 17, 19 y 20.
   - **Semanales:** 3, 4, 5, 7, 10, 11, 12, 13, 14 y 18. Corren los lunes, o si nunca corrieron (`igr:insights --all` los fuerza; `--detector=` corre solo los que se nombren).
 - **Umbrales** (`config/igr-insights.php`):

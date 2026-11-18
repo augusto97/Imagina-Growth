@@ -47,6 +47,7 @@ const options: SegmentOptions = {
     engagement_days: 90,
     flows: [{ id: 'fl_1', name: 'Carrito abandonado' }],
     campaigns: [{ id: 'cmp_1', name: 'Black Friday' }],
+    lead_fields: [{ key: 'has_open_lead', type: 'bool', operators: ['is_true', 'is_false'], values: null }],
     loyalty_fields: [
         { key: 'tier', type: 'tier', operators: ['in', 'not_in', 'at_least', 'is_set', 'is_not_set'], values: null },
         { key: 'points_balance', type: 'number', operators: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'between'], values: null },

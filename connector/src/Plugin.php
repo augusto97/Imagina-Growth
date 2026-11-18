@@ -18,6 +18,7 @@ use ImaginaGrowth\Connector\Onsite\Account;
 use ImaginaGrowth\Connector\Onsite\Blocks;
 use ImaginaGrowth\Connector\Onsite\CartRestore;
 use ImaginaGrowth\Connector\Onsite\Elementor\Registrar as ElementorWidgets;
+use ImaginaGrowth\Connector\Onsite\ServiceSlots;
 use ImaginaGrowth\Connector\Onsite\Shortcodes;
 use ImaginaGrowth\Connector\Onsite\Store;
 use ImaginaGrowth\Connector\Onsite\Wallet;
@@ -96,6 +97,7 @@ final class Plugin {
 		// si el sitio se desconecta (sin conexión no pintan nada).
 		Shortcodes::register();
 		Blocks::register();
+		ServiceSlots::register();
 		add_action( 'init', array( Account::class, 'sync_rewrite' ), 99 );
 
 		if ( Connection::is_connected() ) {

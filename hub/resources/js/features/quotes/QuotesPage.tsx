@@ -31,7 +31,7 @@ export function QuotesPage() {
     const requests = useQuoteRequests(workspace.id, '', page);
 
     const create = (kind: CalculatorKind) => {
-        const p = preset(kind, t);
+        const p = preset(kind, (k, o) => t(k, o ?? {}));
         save.mutate(
             { id: null, data: { name: p.name, kind, definition: p.definition } },
             { onSuccess: (c) => void navigate(`/w/${workspace.id}/en-el-sitio/cotizador/${c.id}`), onError: (e) => toast.error(errorMessage(e, t)) },

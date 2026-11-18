@@ -61,7 +61,11 @@ function ConnectDialog({ ws, preset, onClose }: { ws: string; preset: EcosystemP
         <Dialog open onOpenChange={(o) => !o && onClose()}>
             <DialogContent className="igr:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>{t('integrations.ecosystem.connectTitle', { name: preset.name })}</DialogTitle>
+                    <DialogTitle>
+                        {t('integrations.ecosystem.connectTitle', {
+                            name: preset.name,
+                        })}
+                    </DialogTitle>
                     <DialogDescription>{t('integrations.ecosystem.connectHint')}</DialogDescription>
                 </DialogHeader>
                 {result ? (
@@ -75,7 +79,10 @@ function ConnectDialog({ ws, preset, onClose }: { ws: string; preset: EcosystemP
                         className="igr:space-y-3"
                         onSubmit={(e) => {
                             e.preventDefault();
-                            connect.mutate({ preset: preset.key, webhook_url: url.trim() === '' ? null : url.trim() });
+                            connect.mutate({
+                                preset: preset.key,
+                                webhook_url: url.trim() === '' ? null : url.trim(),
+                            });
                         }}
                     >
                         {preset.events.length > 0 && (

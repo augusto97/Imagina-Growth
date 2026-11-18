@@ -17,16 +17,12 @@ export function filtersQuery(f: LeadFilters): string {
  * toca (lo recalcula el servidor al refrescar).
  */
 export function moveCard(columns: BoardColumn[], leadId: string, to: string): BoardColumn[] {
-    let moved: LeadRow | null = null;
-    const without = columns.map((c) => {
-        const found = c.leads.find((l) => l.id === leadId);
-        if (!found) return c;
-        moved = found;
-        return { ...c, count: Math.max(0, c.count - 1), leads: c.leads.filter((l) => l.id !== leadId) };
-    });
-    if (moved === null) return columns;
-    const card: LeadRow = { ...(moved as LeadRow), stage: to };
-    return without.map((c) => (c.key === to ? { ...c, count: c.count + 1, leads: [card, ...c.leads] } : c));
+    const moved = columns.flatMap((c) => c.leads).find((l) => l.id === leadId);
+    if (!moved) return columns;
+    const card: LeadRow = { ...moved, stage: to };
+    return columns
+        .map((c) => (c.leads.some((l) => l.id === leadId) ? { ...c, count: Math.max(0, c.count - 1), leads: c.leads.filter((l) => l.id !== leadId) } : c))
+        .map((c) => (c.key === to ? { ...c, count: c.count + 1, leads: [card, ...c.leads] } : c));
 }
 
 /** ¿Pedir valor o motivo antes de mover? Ganado pide valor; perdido, motivo. */

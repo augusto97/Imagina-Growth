@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Api\Http\V1;
 
-use Dedoc\Scramble\Attributes\Group;
 use App\Analytics\Dashboards\OverviewDashboard;
 use App\Analytics\Semantic\Catalog;
 use App\Analytics\Semantic\MetricQuery;
@@ -12,8 +11,10 @@ use App\Analytics\Semantic\MetricQueryRunner;
 use App\Analytics\Semantic\Period;
 use App\Domain\Api\Support\ApiError;
 use App\Domain\Intelligence\Ai\Features\AskData\MetricQueryTool;
+use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
@@ -90,7 +91,7 @@ final class AnalyticsController
      *
      * @return array<string, mixed>
      */
-    public static function kpisFor(\App\Domain\Workspaces\Models\Workspace $workspace, MetricQueryRunner $runner, mixed $month, mixed $from, mixed $to): array
+    public static function kpisFor(Workspace $workspace, MetricQueryRunner $runner, mixed $month, mixed $from, mixed $to): array
     {
         $tz = (string) ($workspace->timezone ?: 'America/Bogota');
         if (is_string($month) && preg_match('/^\d{4}-\d{2}$/', $month) === 1) {

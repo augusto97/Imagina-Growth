@@ -51,6 +51,7 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
     const { workspace } = useWorkspace();
     const navigate = useNavigate();
     const { save, remove, preview } = useQuoteMutations(workspace.id);
+    const tr = (k: string, o?: Record<string, unknown>) => t(k, o ?? {});
     const [name, setName] = useState(calc.name);
     const [siteId, setSiteId] = useState(calc.site_id ?? '');
     const [def, setDef] = useState<QuoteDefinition>(calc.definition);
@@ -198,7 +199,7 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                         </div>
                                         <div>
                                             <Label htmlFor={`ft-${i}`}>{t('quotes.editor.type')}</Label>
-                                            <Select id={`ft-${i}`} className="igr:mt-1" value={f.type} disabled={disabled} onChange={(e) => setD('fields', def.fields.map((x, j) => (j === i ? { ...newField(e.target.value as FieldType, j, t), key: x.key, label: x.label } : x)))}>
+                                            <Select id={`ft-${i}`} className="igr:mt-1" value={f.type} disabled={disabled} onChange={(e) => setD('fields', def.fields.map((x, j) => (j === i ? { ...newField(e.target.value as FieldType, j, tr), key: x.key, label: x.label } : x)))}>
                                                 {(['number', 'select', 'checkbox'] as const).map((type) => (
                                                     <option key={type} value={type}>
                                                         {t(`quotes.fieldType.${type}`)}
@@ -255,7 +256,7 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                             {canManage ? (
                                 <div className="igr:flex igr:flex-wrap igr:gap-2">
                                     {(['number', 'select', 'checkbox'] as const).map((type) => (
-                                        <Button key={type} size="sm" variant="outline" onClick={() => setD('fields', [...def.fields, newField(type, def.fields.length, t)])}>
+                                        <Button key={type} size="sm" variant="outline" onClick={() => setD('fields', [...def.fields, newField(type, def.fields.length, tr)])}>
                                             <Plus />
                                             {t(`quotes.fieldType.${type}`)}
                                         </Button>

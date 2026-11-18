@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Domain\Webhooks\Http;
 
-use Dedoc\Scramble\Attributes\Group;
 use App\Domain\Api\Support\ApiContext;
 use App\Domain\Api\Support\ApiError;
 use App\Domain\Webhooks\Actions\SaveWebhookSubscription;
 use App\Domain\Webhooks\Models\WebhookSubscription;
 use App\Support\Tenancy\CurrentWorkspace;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

@@ -86,17 +86,29 @@ export interface WebhookInput {
 const base = (ws: string) => ['ws', ws, 'integrations'] as const;
 
 export function useIntegrations(ws: string) {
-    return useQuery({ queryKey: [...base(ws), 'overview'], queryFn: ({ signal }) => api.get<IntegrationsOverview>(`${wsPath(ws)}/integrations`, signal) });
+    return useQuery({
+        queryKey: [...base(ws), 'overview'],
+        queryFn: ({ signal }) => api.get<IntegrationsOverview>(`${wsPath(ws)}/integrations`, signal),
+    });
 }
 
 export function useApiTokens(ws: string) {
-    return useQuery({ queryKey: [...base(ws), 'tokens'], queryFn: ({ signal }) => api.get<{ data: ApiClientRow[] }>(`${wsPath(ws)}/integrations/tokens`, signal).then((r) => r.data) });
+    return useQuery({
+        queryKey: [...base(ws), 'tokens'],
+        queryFn: ({ signal }) =>
+            api
+                .get<{
+                    data: ApiClientRow[];
+                }>(`${wsPath(ws)}/integrations/tokens`, signal)
+                .then((r) => r.data),
+    });
 }
 
 export function useCreateToken(ws: string) {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (input: { name: string; kind: 'token' | 'mcp'; scopes: string[] }) => api.post<{ data: ApiClientRow; token: string }>(`${wsPath(ws)}/integrations/tokens`, input),
+        mutationFn: (input: { name: string; kind: 'token' | 'mcp'; scopes: string[] }) =>
+            api.post<{ data: ApiClientRow; token: string }>(`${wsPath(ws)}/integrations/tokens`, input),
         onSuccess: () => void qc.invalidateQueries({ queryKey: base(ws) }),
     });
 }
@@ -113,20 +125,32 @@ export function useConnectPreset(ws: string) {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (input: { preset: string; webhook_url: string | null }) =>
-            api.post<{ data: ApiClientRow; token: string; webhook: WebhookRow | null; secret: string | null }>(`${wsPath(ws)}/integrations/ecosystem/${input.preset}`, { webhook_url: input.webhook_url }),
+            api.post<{
+                data: ApiClientRow;
+                token: string;
+                webhook: WebhookRow | null;
+                secret: string | null;
+            }>(`${wsPath(ws)}/integrations/ecosystem/${input.preset}`, {
+                webhook_url: input.webhook_url,
+            }),
         onSuccess: () => void qc.invalidateQueries({ queryKey: base(ws) }),
     });
 }
 
 export function useWebhooks(ws: string) {
-    return useQuery({ queryKey: [...base(ws), 'webhooks'], queryFn: ({ signal }) => api.get<{ data: WebhookRow[] }>(`${wsPath(ws)}/webhooks`, signal).then((r) => r.data) });
+    return useQuery({
+        queryKey: [...base(ws), 'webhooks'],
+        queryFn: ({ signal }) => api.get<{ data: WebhookRow[] }>(`${wsPath(ws)}/webhooks`, signal).then((r) => r.data),
+    });
 }
 
 export function useSaveWebhook(ws: string) {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: ({ id, ...input }: WebhookInput & { id?: string }) =>
-            id ? api.patch<{ data: WebhookRow; secret?: string }>(`${wsPath(ws)}/webhooks/${id}`, input) : api.post<{ data: WebhookRow; secret: string }>(`${wsPath(ws)}/webhooks`, input),
+            id
+                ? api.patch<{ data: WebhookRow; secret?: string }>(`${wsPath(ws)}/webhooks/${id}`, input)
+                : api.post<{ data: WebhookRow; secret: string }>(`${wsPath(ws)}/webhooks`, input),
         onSuccess: () => void qc.invalidateQueries({ queryKey: base(ws) }),
     });
 }
@@ -140,14 +164,17 @@ export function useDeleteWebhook(ws: string) {
 }
 
 export function useRotateSecret(ws: string) {
-    return useMutation({ mutationFn: (id: string) => api.post<{ secret: string }>(`${wsPath(ws)}/webhooks/${id}/rotate-secret`) });
+    return useMutation({
+        mutationFn: (id: string) => api.post<{ secret: string }>(`${wsPath(ws)}/webhooks/${id}/rotate-secret`),
+    });
 }
 
 export function useWebhookDeliveries(ws: string, id: string | null, failedOnly: boolean) {
     return useQuery({
         queryKey: [...base(ws), 'deliveries', id, failedOnly],
         enabled: id !== null,
-        queryFn: ({ signal }) => api.get<{ data: DeliveryRow[]; next_before: string | null }>(`${wsPath(ws)}/webhooks/${id}/deliveries${failedOnly ? '?status=failed' : ''}`, signal),
+        queryFn: ({ signal }) =>
+            api.get<{ data: DeliveryRow[]; next_before: string | null }>(`${wsPath(ws)}/webhooks/${id}/deliveries${failedOnly ? '?status=failed' : ''}`, signal),
     });
 }
 
@@ -171,7 +198,12 @@ export function useMcpDrafts(ws: string, enabled: boolean) {
     return useQuery({
         queryKey: [...base(ws), 'mcp-drafts'],
         enabled,
-        queryFn: ({ signal }) => api.get<{ data: McpDraft[] }>(`${wsPath(ws)}/integrations/mcp-drafts`, signal).then((r) => r.data),
+        queryFn: ({ signal }) =>
+            api
+                .get<{
+                    data: McpDraft[];
+                }>(`${wsPath(ws)}/integrations/mcp-drafts`, signal)
+                .then((r) => r.data),
     });
 }
 

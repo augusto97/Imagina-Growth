@@ -38,6 +38,7 @@ export const CHUNKS: Record<string, string> = {
     reviews: 'reviews',
     loyalty: 'loyalty',
     thankyou: 'survey',
+    quote: 'quote',
 };
 
 function cookie(name: string): string | null {

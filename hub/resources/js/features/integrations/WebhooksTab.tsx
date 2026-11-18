@@ -27,8 +27,17 @@ import {
 } from './api';
 import { SecretReveal } from './SecretReveal';
 
-const STATUS_TONE = { active: 'success', failing: 'warning', paused: 'muted' } as const;
-const STATE_VARIANT = { ok: 'success', failed: 'destructive', pending: 'warning', sending: 'secondary' } as const;
+const STATUS_TONE = {
+    active: 'success',
+    failing: 'warning',
+    paused: 'muted',
+} as const;
+const STATE_VARIANT = {
+    ok: 'success',
+    failed: 'destructive',
+    pending: 'warning',
+    sending: 'secondary',
+} as const;
 
 export function WebhooksTab({ ws, overview }: { ws: string; overview: IntegrationsOverview }) {
     const { t } = useTranslation();
@@ -65,14 +74,23 @@ export function WebhooksTab({ ws, overview }: { ws: string; overview: Integratio
                                 <CardTitle className="igr:flex igr:items-center igr:gap-2">
                                     <StatusDot tone={STATUS_TONE[h.status]} />
                                     {h.name ?? h.url}
-                                    <Badge variant={h.status === 'active' ? 'success' : h.status === 'failing' ? 'warning' : 'outline'}>{t(`integrations.webhooks.status.${h.status}`)}</Badge>
+                                    <Badge variant={h.status === 'active' ? 'success' : h.status === 'failing' ? 'warning' : 'outline'}>
+                                        {t(`integrations.webhooks.status.${h.status}`)}
+                                    </Badge>
                                     {h.include_pii && <Badge variant="warning">{t('integrations.webhooks.withPii')}</Badge>}
                                 </CardTitle>
                                 <CardDescription className="igr:mt-1 igr:truncate igr:font-mono igr:text-xs">{h.url}</CardDescription>
                                 <p className="igr:mt-1 igr:text-xs igr:text-muted-foreground">
-                                    {t('integrations.webhooks.events', { count: h.events.length })}: {h.events.join(', ')}
+                                    {t('integrations.webhooks.events', {
+                                        count: h.events.length,
+                                    })}
+                                    : {h.events.join(', ')}
                                     {' · '}
-                                    {h.last_success_at ? t('integrations.webhooks.lastSuccess', { at: formatDateTime(h.last_success_at) }) : t('integrations.webhooks.noSuccess')}
+                                    {h.last_success_at
+                                        ? t('integrations.webhooks.lastSuccess', {
+                                              at: formatDateTime(h.last_success_at),
+                                          })
+                                        : t('integrations.webhooks.noSuccess')}
                                     {h.consecutive_failures > 0 && ` · ${t('integrations.webhooks.failures', { count: h.consecutive_failures })}`}
                                 </p>
                             </div>
@@ -85,7 +103,11 @@ export function WebhooksTab({ ws, overview }: { ws: string; overview: Integratio
                                         ping.mutate(h.id, {
                                             onSuccess: (r) =>
                                                 r.data.state === 'ok'
-                                                    ? toast.success(t('integrations.webhooks.pingOk', { code: r.data.status_code ?? '' }))
+                                                    ? toast.success(
+                                                          t('integrations.webhooks.pingOk', {
+                                                              code: r.data.status_code ?? '',
+                                                          }),
+                                                      )
                                                     : toast.error(t('integrations.webhooks.pingFailed'), r.data.error ?? undefined),
                                             onError: (e) => toast.error(errorMessage(e, t)),
                                         })
@@ -103,18 +125,41 @@ export function WebhooksTab({ ws, overview }: { ws: string; overview: Integratio
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => save.mutate({ id: h.id, status: h.status === 'paused' ? 'active' : 'paused' }, { onError: (e) => toast.error(errorMessage(e, t)) })}
+                                    onClick={() =>
+                                        save.mutate(
+                                            {
+                                                id: h.id,
+                                                status: h.status === 'paused' ? 'active' : 'paused',
+                                            },
+                                            {
+                                                onError: (e) => toast.error(errorMessage(e, t)),
+                                            },
+                                        )
+                                    }
                                 >
                                     {h.status === 'paused' ? t('integrations.webhooks.resume') : t('integrations.webhooks.pause')}
                                 </Button>
-                                <Button variant="ghost" size="sm" onClick={() => rotate.mutate(h.id, { onSuccess: (r) => setSecret(r.secret) })}>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                        rotate.mutate(h.id, {
+                                            onSuccess: (r) => setSecret(r.secret),
+                                        })
+                                    }
+                                >
                                     {t('integrations.webhooks.rotate')}
                                 </Button>
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     className="igr:text-destructive"
-                                    onClick={() => window.confirm(t('integrations.webhooks.deleteConfirm')) && remove.mutate(h.id, { onSuccess: () => toast.success(t('integrations.webhooks.deleted')) })}
+                                    onClick={() =>
+                                        window.confirm(t('integrations.webhooks.deleteConfirm')) &&
+                                        remove.mutate(h.id, {
+                                            onSuccess: () => toast.success(t('integrations.webhooks.deleted')),
+                                        })
+                                    }
                                 >
                                     {t('integrations.delete')}
                                 </Button>
@@ -128,7 +173,15 @@ export function WebhooksTab({ ws, overview }: { ws: string; overview: Integratio
                     </Card>
                 ))
             )}
-            {editing !== null && <WebhookDialog key={editing === 'new' ? 'new' : editing.id} ws={ws} overview={overview} webhook={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
+            {editing !== null && (
+                <WebhookDialog
+                    key={editing === 'new' ? 'new' : editing.id}
+                    ws={ws}
+                    overview={overview}
+                    webhook={editing === 'new' ? null : editing}
+                    onClose={() => setEditing(null)}
+                />
+            )}
             <Dialog open={secret !== null} onOpenChange={(o) => !o && setSecret(null)}>
                 <DialogContent>
                     <DialogHeader>
@@ -188,8 +241,16 @@ function DeliveriesLog({ ws, id }: { ws: string; id: string }) {
                                     <Badge variant={STATE_VARIANT[d.state]}>{t(`integrations.webhooks.state.${d.state}`)}</Badge>{' '}
                                     {d.status_code !== null && <span className="igr:font-mono">{d.status_code}</span>}
                                     {d.duration_ms !== null && <span className="igr:text-muted-foreground"> · {d.duration_ms} ms</span>}
-                                    {d.error && <div className="igr:mt-0.5 igr:text-muted-foreground">{t(`integrations.webhooks.errors.${d.error}`, { defaultValue: d.error })}</div>}
-                                    {d.next_attempt_at && <div className="igr:mt-0.5 igr:text-muted-foreground">{t('integrations.webhooks.nextAttempt', { at: formatDateTime(d.next_attempt_at) })}</div>}
+                                    {d.error && (
+                                        <div className="igr:mt-0.5 igr:text-muted-foreground">{t(`integrations.webhooks.errors.${d.error}`, { defaultValue: d.error })}</div>
+                                    )}
+                                    {d.next_attempt_at && (
+                                        <div className="igr:mt-0.5 igr:text-muted-foreground">
+                                            {t('integrations.webhooks.nextAttempt', {
+                                                at: formatDateTime(d.next_attempt_at),
+                                            })}
+                                        </div>
+                                    )}
                                 </TD>
                                 <TD className="igr:text-xs igr:text-muted-foreground">{formatDateTime(d.created_at)}</TD>
                                 <TD className="igr:text-right">
@@ -200,7 +261,10 @@ function DeliveriesLog({ ws, id }: { ws: string; id: string }) {
                                             loading={replay.isPending && replay.variables === d.id}
                                             onClick={() =>
                                                 replay.mutate(d.id, {
-                                                    onSuccess: (r) => (r.data.state === 'ok' ? toast.success(t('integrations.webhooks.replayOk')) : toast.error(t('integrations.webhooks.replayFailed'))),
+                                                    onSuccess: (r) =>
+                                                        r.data.state === 'ok'
+                                                            ? toast.success(t('integrations.webhooks.replayOk'))
+                                                            : toast.error(t('integrations.webhooks.replayFailed')),
                                                     onError: (e) => toast.error(errorMessage(e, t)),
                                                 })
                                             }
@@ -246,7 +310,13 @@ function WebhookDialog({ ws, overview, webhook, onClose }: { ws: string; overvie
                         onSubmit={(e) => {
                             e.preventDefault();
                             save.mutate(
-                                { id: webhook?.id, name: name || null, url, events, include_pii: pii },
+                                {
+                                    id: webhook?.id,
+                                    name: name || null,
+                                    url,
+                                    events,
+                                    include_pii: pii,
+                                },
                                 {
                                     onSuccess: (r) => {
                                         if (!webhook && r.secret) setSecret(r.secret);
@@ -287,7 +357,12 @@ function WebhookDialog({ ws, overview, webhook, onClose }: { ws: string; overvie
                                             )}
                                             {list.map((ev) => (
                                                 <label key={ev} className="igr:flex igr:items-center igr:gap-1.5 igr:text-xs">
-                                                    <input type="checkbox" checked={events.includes(ev)} disabled={groupAll && events.includes(all)} onChange={(e) => toggle(ev, e.target.checked)} />
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={events.includes(ev)}
+                                                        disabled={groupAll && events.includes(all)}
+                                                        onChange={(e) => toggle(ev, e.target.checked)}
+                                                    />
                                                     <span className="igr:font-mono">{ev}</span>
                                                 </label>
                                             ))}

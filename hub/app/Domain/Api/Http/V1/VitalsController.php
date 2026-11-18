@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Api\Http\V1;
 
-use Dedoc\Scramble\Attributes\Group;
 use App\Domain\Api\Actions\ResolveApiContact;
 use App\Domain\Api\Support\ApiError;
 use App\Ingest\Http\EnvelopeChecker;
@@ -12,6 +11,7 @@ use App\Ingest\Http\IngestResult;
 use App\Ingest\IngestStream;
 use App\Ingest\Schema\SchemaRegistry;
 use App\Support\Tenancy\CurrentWorkspace;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;

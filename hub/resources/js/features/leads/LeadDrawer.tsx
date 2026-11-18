@@ -28,7 +28,7 @@ export function LeadDrawer({ id, onClose }: { id: string | null; onClose: () => 
             <DialogContent className="igr:left-auto igr:right-0 igr:top-0 igr:h-dvh igr:max-w-xl igr:translate-x-0 igr:overflow-y-auto igr:rounded-none igr:border-y-0 igr:border-r-0">
                 {lead.isError ? (
                     <ErrorState error={lead.error} onRetry={() => void lead.refetch()} />
-                ) : lead.isPending || !lead.data ? (
+                ) : lead.isPending ? (
                     <>
                         <DialogHeader>
                             <DialogTitle>{t('leads.drawer.loading')}</DialogTitle>
@@ -188,11 +188,11 @@ function EditableFields({ lead }: { lead: LeadDetail }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const update = useUpdateLead(workspace.id);
-    const [value, setValue] = useState(lead.value ?? '');
+    const [value, setValue] = useState((lead.value ?? '').replace(/\.00$/, ''));
     const [service, setService] = useState(lead.service ?? '');
     const [nextStep, setNextStep] = useState(lead.next_step ?? '');
     const [nextAt, setNextAt] = useState(lead.next_step_at ? lead.next_step_at.slice(0, 10) : '');
-    const dirty = value !== (lead.value ?? '') || service !== (lead.service ?? '') || nextStep !== (lead.next_step ?? '') || nextAt !== (lead.next_step_at ? lead.next_step_at.slice(0, 10) : '');
+    const dirty = value !== (lead.value ?? '').replace(/\.00$/, '') || service !== (lead.service ?? '') || nextStep !== (lead.next_step ?? '') || nextAt !== (lead.next_step_at ? lead.next_step_at.slice(0, 10) : '');
     return (
         <form
             className="igr:grid igr:gap-3 igr:sm:grid-cols-2"
@@ -261,30 +261,31 @@ function ReasonRow({ reason }: { reason: ScoreReason }) {
 function Timeline({ activities, stages, currency }: { activities: Activity[]; stages: Stage[]; currency: string }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
-    const label = (k: unknown) => stages.find((s) => s.key === k)?.label ?? String(k ?? '');
+    const str = (v: unknown, fallback = ''): string => (typeof v === 'string' || typeof v === 'number' ? String(v) : fallback);
+    const label = (k: unknown) => stages.find((s) => s.key === k)?.label ?? str(k);
     const text = (a: Activity): string => {
         const d = a.data;
         switch (a.kind) {
             case 'created':
-                return t('leads.timeline.created', { origin: t(`leads.origins.${String(d.origin ?? 'form')}`), score: Number(d.score ?? 0) });
+                return t('leads.timeline.created', { origin: t(`leads.origins.${str(d.origin, 'form')}`), score: Number(d.score ?? 0) });
             case 'intake':
-                return t('leads.timeline.intake', { origin: t(`leads.origins.${String(d.origin ?? 'form')}`) });
+                return t('leads.timeline.intake', { origin: t(`leads.origins.${str(d.origin, 'form')}`) });
             case 'stage':
-                return d.reopened ? t('leads.timeline.reopened') : t('leads.timeline.stage', { from: label(d.from), to: label(d.to) }) + (d.reason ? ` · ${String(d.reason)}` : '');
+                return d.reopened ? t('leads.timeline.reopened') : t('leads.timeline.stage', { from: label(d.from), to: label(d.to) }) + (d.reason ? ` · ${str(d.reason)}` : '');
             case 'score':
-                return d.signal === 'ai' ? t('leads.timeline.ai', { points: Number(d.points ?? 0), reason: String(d.reason ?? '') }) : t('leads.timeline.score', { from: Number(d.from ?? 0), to: Number(d.to ?? 0) });
+                return d.signal === 'ai' ? t('leads.timeline.ai', { points: Number(d.points ?? 0), reason: str(d.reason) }) : t('leads.timeline.score', { from: Number(d.from ?? 0), to: Number(d.to ?? 0) });
             case 'alert':
-                return t(`leads.timeline.alert_${String(d.channel ?? 'none')}`, { defaultValue: t('leads.timeline.alert_none') });
+                return t(`leads.timeline.alert_${str(d.channel, 'none')}`, { defaultValue: t('leads.timeline.alert_none') });
             case 'owner':
-                return t('leads.timeline.owner', { name: String(d.to_name ?? t('leads.unassigned')) });
+                return t('leads.timeline.owner', { name: str(d.to_name, t('leads.unassigned')) });
             case 'value':
-                return t('leads.timeline.value', { value: d.value ? formatMoney(String(d.value), currency, workspace.locale) : '—' });
+                return t('leads.timeline.value', { value: d.value ? formatMoney(str(d.value), currency, workspace.locale) : '—' });
             case 'message':
                 return t('leads.timeline.firstResponse');
             case 'conversion':
-                return t(`leads.timeline.conversion_${String(d.status ?? 'queued')}`);
+                return t(`leads.timeline.conversion_${str(d.status, 'queued')}`);
             case 'note':
-                return String(d.body ?? '');
+                return str(d.body);
             default:
                 return a.kind;
         }

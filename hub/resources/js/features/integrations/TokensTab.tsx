@@ -31,7 +31,9 @@ export function TokensTab({ ws, overview, onCreate }: { ws: string; overview: In
                 <EmptyState
                     icon={KeyRound}
                     title={t('integrations.tokens.empty')}
-                    description={t('integrations.tokens.emptyHint', { url: overview.base_url })}
+                    description={t('integrations.tokens.emptyHint', {
+                        url: overview.base_url,
+                    })}
                     action={
                         <Button onClick={onCreate}>
                             <Plus className="igr:size-4" aria-hidden />
@@ -86,7 +88,11 @@ export function TokensTab({ ws, overview, onCreate }: { ws: string; overview: In
             <Dialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{t('integrations.tokens.revokeTitle', { name: confirm?.name ?? '' })}</DialogTitle>
+                        <DialogTitle>
+                            {t('integrations.tokens.revokeTitle', {
+                                name: confirm?.name ?? '',
+                            })}
+                        </DialogTitle>
                         <DialogDescription>{t('integrations.tokens.revokeHint')}</DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -117,7 +123,19 @@ export function TokensTab({ ws, overview, onCreate }: { ws: string; overview: In
 }
 
 /** Crear un token: nombre, tipo (API o MCP) y alcances. El token se muestra una vez. */
-export function CreateTokenDialog({ ws, overview, open, kind, onClose }: { ws: string; overview: IntegrationsOverview; open: boolean; kind: 'token' | 'mcp'; onClose: () => void }) {
+export function CreateTokenDialog({
+    ws,
+    overview,
+    open,
+    kind,
+    onClose,
+}: {
+    ws: string;
+    overview: IntegrationsOverview;
+    open: boolean;
+    kind: 'token' | 'mcp';
+    onClose: () => void;
+}) {
     const { t } = useTranslation();
     const create = useCreateToken(ws);
     const [name, setName] = useState('');
@@ -152,7 +170,14 @@ export function CreateTokenDialog({ ws, overview, open, kind, onClose }: { ws: s
                     >
                         <div className="igr:space-y-1.5">
                             <Label htmlFor="token-name">{t('integrations.tokens.name')}</Label>
-                            <Input id="token-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === 'mcp' ? 'Claude' : 'Zapier'} maxLength={120} required />
+                            <Input
+                                id="token-name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder={kind === 'mcp' ? 'Claude' : 'Zapier'}
+                                maxLength={120}
+                                required
+                            />
                         </div>
                         <fieldset className="igr:space-y-1.5">
                             <legend className="igr:text-[13px] igr:font-medium">{t('integrations.tokens.scopes')}</legend>

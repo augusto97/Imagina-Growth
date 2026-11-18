@@ -11,7 +11,10 @@ export function SecretReveal({ label, value }: { label: string; value: string })
         <div className="igr:space-y-2">
             <p className="igr:text-[13px] igr:font-medium">{label}</p>
             <div className="igr:flex igr:items-center igr:gap-2">
-                <code data-testid="secret-value" className="igr:min-w-0 igr:flex-1 igr:truncate igr:rounded-md igr:border igr:bg-muted igr:px-2 igr:py-1.5 igr:font-mono igr:text-xs">
+                <code
+                    data-testid="secret-value"
+                    className="igr:min-w-0 igr:flex-1 igr:truncate igr:rounded-md igr:border igr:bg-muted igr:px-2 igr:py-1.5 igr:font-mono igr:text-xs"
+                >
                     {value}
                 </code>
                 <Button

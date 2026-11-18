@@ -89,6 +89,7 @@ export interface ListResponse {
 
 export interface LeadFilters {
     pipeline?: string;
+    contact?: string;
     stage?: string;
     owner?: string;
     temperature?: Temperature | '';

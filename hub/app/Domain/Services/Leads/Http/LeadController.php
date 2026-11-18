@@ -198,6 +198,7 @@ final class LeadController
             'service' => ['nullable', 'string', 'max:160'],
             'origin' => ['nullable', Rule::in(['form', 'whatsapp', 'quote', 'booking', 'manual', 'api'])],
             'status' => ['nullable', Rule::in(['open', 'won', 'lost', 'all'])],
+            'contact' => ['nullable', 'string', 'max:40'],
         ]);
         $query = Lead::query()->where(fn (Builder $q) => $pipeline->is_default
             ? $q->where('pipeline_id', $pipeline->id)->orWhereNull('pipeline_id')
@@ -217,6 +218,9 @@ final class LeadController
             if (isset($f[$col]) && $f[$col] !== '') {
                 $query->where($col, $f[$col]);
             }
+        }
+        if (isset($f['contact']) && $f['contact'] !== '') {
+            $query->where('contact_id', PrefixedId::decode(Contact::ID_PREFIX, $f['contact']) ?? '-');
         }
         if (isset($f['source']) && $f['source'] !== '') {
             $query->where('source->channel', $f['source']);

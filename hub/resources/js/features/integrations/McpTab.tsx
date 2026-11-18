@@ -70,7 +70,13 @@ export function McpTab({ ws, overview, highlight, onCreateToken }: { ws: string;
                     ) : (
                         <ul className="igr:divide-y">
                             {drafts.data.map((d) => (
-                                <li key={d.id} className={cn('igr:flex igr:items-start igr:justify-between igr:gap-3 igr:py-3', highlight === d.id && 'igr:rounded-md igr:bg-primary/5 igr:px-2')}>
+                                <li
+                                    key={d.id}
+                                    className={cn(
+                                        'igr:flex igr:items-start igr:justify-between igr:gap-3 igr:py-3',
+                                        highlight === d.id && 'igr:rounded-md igr:bg-primary/5 igr:px-2',
+                                    )}
+                                >
                                     <div className="igr:min-w-0">
                                         <p className="igr:font-medium">{d.name}</p>
                                         {d.description && <p className="igr:text-xs igr:text-muted-foreground">{d.description}</p>}
@@ -82,13 +88,31 @@ export function McpTab({ ws, overview, highlight, onCreateToken }: { ws: string;
                                                 size="sm"
                                                 loading={review.isPending && review.variables.id === d.id && review.variables.action === 'approve'}
                                                 onClick={() =>
-                                                    review.mutate({ id: d.id, action: 'approve' }, { onSuccess: () => toast.success(t('integrations.mcp.approved')), onError: (e) => toast.error(errorMessage(e, t)) })
+                                                    review.mutate(
+                                                        {
+                                                            id: d.id,
+                                                            action: 'approve',
+                                                        },
+                                                        {
+                                                            onSuccess: () => toast.success(t('integrations.mcp.approved')),
+                                                            onError: (e) => toast.error(errorMessage(e, t)),
+                                                        },
+                                                    )
                                                 }
                                             >
                                                 <Check className="igr:size-3.5" aria-hidden />
                                                 {t('integrations.mcp.approve')}
                                             </Button>
-                                            <Button variant="ghost" size="sm" onClick={() => review.mutate({ id: d.id, action: 'discard' })}>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() =>
+                                                    review.mutate({
+                                                        id: d.id,
+                                                        action: 'discard',
+                                                    })
+                                                }
+                                            >
                                                 <X className="igr:size-3.5" aria-hidden />
                                                 {t('integrations.mcp.discard')}
                                             </Button>

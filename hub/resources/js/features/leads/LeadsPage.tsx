@@ -85,6 +85,7 @@ function FilterBar({ filters, onChange, compact }: { filters: LeadFilters; onCha
     const settings = useLeadSettings(workspace.id);
     const pipelines = settings.data?.pipelines ?? [];
     const label = 'igr:sr-only';
+    if (compact && pipelines.length <= 1) return null;
 
     return (
         <div className="igr:mt-4 igr:flex igr:flex-wrap igr:items-center igr:gap-2" role="search" aria-label={t('leads.filters.label')}>
@@ -120,7 +121,7 @@ function FilterBar({ filters, onChange, compact }: { filters: LeadFilters; onCha
                     ) : null}
                     <label>
                         <span className={label}>{t('leads.filters.temperature')}</span>
-                        <Select className="igr:h-8 igr:w-36" value={filters.temperature ?? ''} onChange={(e) => onChange('temperature', e.target.value)}>
+                        <Select className="igr:h-8 igr:w-48" value={filters.temperature ?? ''} onChange={(e) => onChange('temperature', e.target.value)}>
                             <option value="">{t('leads.filters.anyTemperature')}</option>
                             {(['hot', 'warm', 'cold'] as const).map((k) => (
                                 <option key={k} value={k}>

@@ -76,7 +76,11 @@ export function IntegrationsPage() {
                             </div>
                             <div>
                                 <p className="igr:text-xs igr:text-muted-foreground">{t('integrations.rateLimit')}</p>
-                                <p className="igr:text-lg igr:font-semibold igr:tabular-nums">{t('integrations.perMinute', { n: formatNumber(overview.data.rate_limit_per_minute) })}</p>
+                                <p className="igr:text-lg igr:font-semibold igr:tabular-nums">
+                                    {t('integrations.perMinute', {
+                                        n: formatNumber(overview.data.rate_limit_per_minute),
+                                    })}
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
