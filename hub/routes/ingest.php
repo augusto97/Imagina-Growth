@@ -5,6 +5,7 @@ use App\Domain\Surveys\Http\PublicWidgetsController;
 use App\Http\Controllers\Connector\CaddyAskController;
 use App\Http\Controllers\Connector\SiteApiController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\HealthReadyController;
 use App\Http\Middleware\VerifySiteSignature;
 use App\Ingest\Http\BrowserIngestController;
 use App\Ingest\Http\ServerIngestController;
@@ -31,6 +32,8 @@ Route::get('internal/caddy/ask', CaddyAskController::class);
 
 // Salud para Better Stack (hub/CLAUDE.md §16).
 Route::get('health', HealthController::class);
+// Lista para atender, con la versión instalada: la usa el actualizador (docs/despliegue.md §4).
+Route::get('health/ready', HealthReadyController::class);
 
 // Widgets públicos del sitio (api-connector.md §8).
 Route::get('p/{publicKey}/widgets.json', [PublicWidgetsController::class, 'widgets']);

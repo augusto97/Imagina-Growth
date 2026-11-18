@@ -15,6 +15,9 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    // Versión instalada (docs/despliegue.md §4): el archivo VERSION de la raíz de la versión.
+    'version' => App\Support\AppVersion::fromFile(base_path('../VERSION')),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment
