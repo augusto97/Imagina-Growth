@@ -43,7 +43,16 @@ export function QuoteEditorPage() {
             </>
         );
     }
-    return <Editor key={calc.data.id + (calc.data.updated_at ?? '')} calc={calc.data} canManage={list.data?.can_manage ?? false} sites={list.data?.sites ?? []} currency={list.data?.currency ?? workspace.currency} back={back} />;
+    return (
+        <Editor
+            key={calc.data.id + (calc.data.updated_at ?? '')}
+            calc={calc.data}
+            canManage={list.data?.can_manage ?? false}
+            sites={list.data?.sites ?? []}
+            currency={list.data?.currency ?? workspace.currency}
+            back={back}
+        />
+    );
 }
 
 function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; canManage: boolean; sites: { id: string; name: string }[]; currency: string; back: string }) {
@@ -63,7 +72,11 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
     const disabled = !canManage;
     const setD = <K extends keyof QuoteDefinition>(k: K, v: QuoteDefinition[K]) => setDef((d) => ({ ...d, [k]: v }));
     const setC = <K extends keyof QuoteCaptureSettings>(k: K, v: QuoteCaptureSettings[K]) => setCapture((c) => ({ ...c, [k]: v }));
-    const setField = (i: number, patch: Partial<QuoteField>) => setD('fields', def.fields.map((f, j) => (j === i ? { ...f, ...patch } : f)));
+    const setField = (i: number, patch: Partial<QuoteField>) =>
+        setD(
+            'fields',
+            def.fields.map((f, j) => (j === i ? { ...f, ...patch } : f)),
+        );
     const setOption = (i: number, o: number, patch: Partial<QuoteOption>) => setField(i, { options: (def.fields[i]?.options ?? []).map((x, j) => (j === o ? { ...x, ...patch } : x)) });
 
     // Vista previa: el hub calcula con la definición sin guardar (mismo motor que en el sitio).
@@ -73,8 +86,14 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
             runPreview(
                 { id: calc.id, answers: sampleAnswers(def, answers), definition: def, kind: calc.kind },
                 {
-                    onSuccess: (e) => { setEstimate(e); setPreviewError(null); },
-                    onError: (e) => { setEstimate(null); setPreviewError(isApiError(e) ? (Object.values(e.fieldErrors)[0] ?? e.message) : t('errors.generic')); },
+                    onSuccess: (e) => {
+                        setEstimate(e);
+                        setPreviewError(null);
+                    },
+                    onError: (e) => {
+                        setEstimate(null);
+                        setPreviewError(isApiError(e) ? (Object.values(e.fieldErrors)[0] ?? e.message) : t('errors.generic'));
+                    },
                 },
             );
         }, 400);
@@ -84,7 +103,10 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
     const persist = (status?: CalculatorStatus) =>
         save.mutate(
             { id: calc.id, data: { name: name.trim(), site_id: siteId === '' ? null : siteId, definition: def, capture, ...(status ? { status } : {}) } },
-            { onSuccess: () => toast.success(t(status === 'active' ? 'quotes.editor.published' : status === 'paused' ? 'quotes.editor.paused' : 'quotes.editor.saved')), onError: (e) => toast.error(errorMessage(e, t)) },
+            {
+                onSuccess: () => toast.success(t(status === 'active' ? 'quotes.editor.published' : status === 'paused' ? 'quotes.editor.paused' : 'quotes.editor.saved')),
+                onError: (e) => toast.error(errorMessage(e, t)),
+            },
         );
     const copy = (text: string) => void navigator.clipboard.writeText(text).then(() => toast.success(t('common.copied')));
 
@@ -166,16 +188,65 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                             <CardContent className="igr:space-y-2">
                                 {def.packages.map((p, i) => (
                                     <div key={i} className="igr:grid igr:items-end igr:gap-2 igr:sm:grid-cols-[1fr_1.4fr_9rem_auto]">
-                                        <Input aria-label={t('quotes.editor.packageName')} value={p.label} disabled={disabled} placeholder={t('quotes.editor.packageName')} onChange={(e) => setD('packages', def.packages.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} />
-                                        <Input aria-label={t('quotes.editor.packageDescription')} value={p.description ?? ''} disabled={disabled} placeholder={t('quotes.editor.packageDescription')} onChange={(e) => setD('packages', def.packages.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)))} />
-                                        <Input aria-label={t('quotes.editor.price')} type="number" min={0} value={p.price} disabled={disabled} onChange={(e) => setD('packages', def.packages.map((x, j) => (j === i ? { ...x, price: Number(e.target.value) } : x)))} />
-                                        <Button variant="ghost" size="icon" aria-label={t('quotes.editor.remove')} disabled={disabled} onClick={() => setD('packages', def.packages.filter((_, j) => j !== i))}>
+                                        <Input
+                                            aria-label={t('quotes.editor.packageName')}
+                                            value={p.label}
+                                            disabled={disabled}
+                                            placeholder={t('quotes.editor.packageName')}
+                                            onChange={(e) =>
+                                                setD(
+                                                    'packages',
+                                                    def.packages.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)),
+                                                )
+                                            }
+                                        />
+                                        <Input
+                                            aria-label={t('quotes.editor.packageDescription')}
+                                            value={p.description ?? ''}
+                                            disabled={disabled}
+                                            placeholder={t('quotes.editor.packageDescription')}
+                                            onChange={(e) =>
+                                                setD(
+                                                    'packages',
+                                                    def.packages.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)),
+                                                )
+                                            }
+                                        />
+                                        <Input
+                                            aria-label={t('quotes.editor.price')}
+                                            type="number"
+                                            min={0}
+                                            value={p.price}
+                                            disabled={disabled}
+                                            onChange={(e) =>
+                                                setD(
+                                                    'packages',
+                                                    def.packages.map((x, j) => (j === i ? { ...x, price: Number(e.target.value) } : x)),
+                                                )
+                                            }
+                                        />
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label={t('quotes.editor.remove')}
+                                            disabled={disabled}
+                                            onClick={() =>
+                                                setD(
+                                                    'packages',
+                                                    def.packages.filter((_, j) => j !== i),
+                                                )
+                                            }
+                                        >
                                             <Trash2 />
                                         </Button>
                                     </div>
                                 ))}
                                 {canManage ? (
-                                    <Button size="sm" variant="outline" onClick={() => setD('packages', [...def.packages, { key: `paquete_${def.packages.length + 1}`, label: '', description: null, price: 0 }])}>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setD('packages', [...def.packages, { key: `paquete_${def.packages.length + 1}`, label: '', description: null, price: 0 }])}
+                                    >
                                         <Plus />
                                         {t('quotes.editor.addPackage')}
                                     </Button>
@@ -199,7 +270,18 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                         </div>
                                         <div>
                                             <Label htmlFor={`ft-${i}`}>{t('quotes.editor.type')}</Label>
-                                            <Select id={`ft-${i}`} className="igr:mt-1" value={f.type} disabled={disabled} onChange={(e) => setD('fields', def.fields.map((x, j) => (j === i ? { ...newField(e.target.value as FieldType, j, tr), key: x.key, label: x.label } : x)))}>
+                                            <Select
+                                                id={`ft-${i}`}
+                                                className="igr:mt-1"
+                                                value={f.type}
+                                                disabled={disabled}
+                                                onChange={(e) =>
+                                                    setD(
+                                                        'fields',
+                                                        def.fields.map((x, j) => (j === i ? { ...newField(e.target.value as FieldType, j, tr), key: x.key, label: x.label } : x)),
+                                                    )
+                                                }
+                                            >
                                                 {(['number', 'select', 'checkbox'] as const).map((type) => (
                                                     <option key={type} value={type}>
                                                         {t(`quotes.fieldType.${type}`)}
@@ -211,16 +293,39 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                             <input type="checkbox" checked={f.required} disabled={disabled} onChange={(e) => setField(i, { required: e.target.checked })} />
                                             {t('quotes.editor.required')}
                                         </label>
-                                        <Button variant="ghost" size="icon" aria-label={t('quotes.editor.remove')} disabled={disabled} onClick={() => setD('fields', def.fields.filter((_, j) => j !== i))}>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label={t('quotes.editor.remove')}
+                                            disabled={disabled}
+                                            onClick={() =>
+                                                setD(
+                                                    'fields',
+                                                    def.fields.filter((_, j) => j !== i),
+                                                )
+                                            }
+                                        >
                                             <Trash2 />
                                         </Button>
                                     </div>
                                     {f.type === 'number' ? (
                                         <div className="igr:grid igr:gap-2 igr:sm:grid-cols-4">
-                                            <NumberBox label={t('quotes.editor.unitPrice', { currency: cur })} value={f.unit_price ?? 0} disabled={disabled} onChange={(v) => setField(i, { unit_price: v ?? 0 })} />
+                                            <NumberBox
+                                                label={t('quotes.editor.unitPrice', { currency: cur })}
+                                                value={f.unit_price ?? 0}
+                                                disabled={disabled}
+                                                onChange={(v) => setField(i, { unit_price: v ?? 0 })}
+                                            />
                                             <div>
                                                 <Label className="igr:text-xs">{t('quotes.editor.unit')}</Label>
-                                                <Input className="igr:mt-1" value={f.unit ?? ''} maxLength={20} disabled={disabled} placeholder="m²" onChange={(e) => setField(i, { unit: e.target.value || null })} />
+                                                <Input
+                                                    className="igr:mt-1"
+                                                    value={f.unit ?? ''}
+                                                    maxLength={20}
+                                                    disabled={disabled}
+                                                    placeholder="m²"
+                                                    onChange={(e) => setField(i, { unit: e.target.value || null })}
+                                                />
                                             </div>
                                             <NumberBox label={t('quotes.editor.min')} value={f.min ?? 0} disabled={disabled} onChange={(v) => setField(i, { min: v ?? 0 })} />
                                             <NumberBox label={t('quotes.editor.max')} value={f.max ?? null} disabled={disabled} onChange={(v) => setField(i, { max: v })} />
@@ -236,15 +341,51 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                             {(f.options ?? []).map((o, j) => (
                                                 <div key={j} className="igr:grid igr:items-center igr:gap-2 igr:sm:grid-cols-[1fr_8rem_7rem_auto]">
                                                     <Input aria-label={t('quotes.editor.option')} value={o.label} disabled={disabled} onChange={(e) => setOption(i, j, { label: e.target.value })} />
-                                                    <Input aria-label={t('quotes.editor.adds', { currency: cur })} type="number" value={o.price} disabled={disabled} onChange={(e) => setOption(i, j, { price: Number(e.target.value) })} />
-                                                    <Input aria-label={t('quotes.editor.multiplier')} type="number" step="0.05" min="0.01" value={o.multiplier} disabled={disabled} onChange={(e) => setOption(i, j, { multiplier: Number(e.target.value) || 1 })} />
-                                                    <Button variant="ghost" size="icon" aria-label={t('quotes.editor.remove')} disabled={disabled || (f.options ?? []).length <= 1} onClick={() => setField(i, { options: (f.options ?? []).filter((_, k) => k !== j) })}>
+                                                    <Input
+                                                        aria-label={t('quotes.editor.adds', { currency: cur })}
+                                                        type="number"
+                                                        value={o.price}
+                                                        disabled={disabled}
+                                                        onChange={(e) => setOption(i, j, { price: Number(e.target.value) })}
+                                                    />
+                                                    <Input
+                                                        aria-label={t('quotes.editor.multiplier')}
+                                                        type="number"
+                                                        step="0.05"
+                                                        min="0.01"
+                                                        value={o.multiplier}
+                                                        disabled={disabled}
+                                                        onChange={(e) => setOption(i, j, { multiplier: Number(e.target.value) || 1 })}
+                                                    />
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        aria-label={t('quotes.editor.remove')}
+                                                        disabled={disabled || (f.options ?? []).length <= 1}
+                                                        onClick={() => setField(i, { options: (f.options ?? []).filter((_, k) => k !== j) })}
+                                                    >
                                                         <Trash2 />
                                                     </Button>
                                                 </div>
                                             ))}
                                             {canManage ? (
-                                                <Button size="sm" variant="ghost" onClick={() => setField(i, { options: [...(f.options ?? []), { value: `op_${(f.options ?? []).length + 1}`, label: t('quotes.builder.optionN', { n: (f.options ?? []).length + 1 }), price: 0, multiplier: 1 }] })}>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() =>
+                                                        setField(i, {
+                                                            options: [
+                                                                ...(f.options ?? []),
+                                                                {
+                                                                    value: `op_${(f.options ?? []).length + 1}`,
+                                                                    label: t('quotes.builder.optionN', { n: (f.options ?? []).length + 1 }),
+                                                                    price: 0,
+                                                                    multiplier: 1,
+                                                                },
+                                                            ],
+                                                        })
+                                                    }
+                                                >
                                                     <Plus />
                                                     {t('quotes.editor.addOption')}
                                                 </Button>
@@ -278,11 +419,27 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                             <NumberBox label={t('quotes.editor.round')} value={def.round_to} disabled={disabled} onChange={(v) => setD('round_to', v ?? 0)} />
                             <div className="igr:sm:col-span-2">
                                 <Label htmlFor="qc-note">{t('quotes.editor.note')}</Label>
-                                <Textarea id="qc-note" className="igr:mt-1" rows={2} maxLength={400} value={def.note ?? ''} disabled={disabled} onChange={(e) => setD('note', e.target.value || null)} />
+                                <Textarea
+                                    id="qc-note"
+                                    className="igr:mt-1"
+                                    rows={2}
+                                    maxLength={400}
+                                    value={def.note ?? ''}
+                                    disabled={disabled}
+                                    onChange={(e) => setD('note', e.target.value || null)}
+                                />
                             </div>
                             <div className="igr:sm:col-span-2">
                                 <Label htmlFor="qc-internal">{t('quotes.editor.internal')}</Label>
-                                <Textarea id="qc-internal" className="igr:mt-1" rows={2} maxLength={2000} value={def.internal_notes ?? ''} disabled={disabled} onChange={(e) => setD('internal_notes', e.target.value || null)} />
+                                <Textarea
+                                    id="qc-internal"
+                                    className="igr:mt-1"
+                                    rows={2}
+                                    maxLength={2000}
+                                    value={def.internal_notes ?? ''}
+                                    disabled={disabled}
+                                    onChange={(e) => setD('internal_notes', e.target.value || null)}
+                                />
                             </div>
                         </CardContent>
                     </Card>
@@ -300,7 +457,12 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                             <div className="igr:flex igr:flex-wrap igr:gap-4">
                                 {(['first_name', 'last_name', 'phone', 'email'] as const).map((f) => (
                                     <label key={f} className="igr:flex igr:items-center igr:gap-1.5">
-                                        <input type="checkbox" checked={capture.fields.includes(f)} disabled={disabled} onChange={(e) => setC('fields', e.target.checked ? [...capture.fields, f] : capture.fields.filter((x) => x !== f))} />
+                                        <input
+                                            type="checkbox"
+                                            checked={capture.fields.includes(f)}
+                                            disabled={disabled}
+                                            onChange={(e) => setC('fields', e.target.checked ? [...capture.fields, f] : capture.fields.filter((x) => x !== f))}
+                                        />
                                         {t(`quotes.contactField.${f}`)}
                                     </label>
                                 ))}
@@ -308,7 +470,13 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                             <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2">
                                 <div>
                                     <Label htmlFor="qc-require">{t('quotes.editor.require')}</Label>
-                                    <Select id="qc-require" className="igr:mt-1" value={capture.require} disabled={disabled} onChange={(e) => setC('require', e.target.value as QuoteCaptureSettings['require'])}>
+                                    <Select
+                                        id="qc-require"
+                                        className="igr:mt-1"
+                                        value={capture.require}
+                                        disabled={disabled}
+                                        onChange={(e) => setC('require', e.target.value as QuoteCaptureSettings['require'])}
+                                    >
                                         {(['phone_or_email', 'phone', 'email'] as const).map((r) => (
                                             <option key={r} value={r}>
                                                 {t(`quotes.require.${r}`)}
@@ -318,7 +486,15 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                 </div>
                                 <div>
                                     <Label htmlFor="qc-wa">{t('quotes.editor.whatsapp')}</Label>
-                                    <Input id="qc-wa" className="igr:mt-1" inputMode="numeric" placeholder="573001234567" value={capture.whatsapp_number ?? ''} disabled={disabled} onChange={(e) => setC('whatsapp_number', e.target.value.replace(/\D/g, '') || null)} />
+                                    <Input
+                                        id="qc-wa"
+                                        className="igr:mt-1"
+                                        inputMode="numeric"
+                                        placeholder="573001234567"
+                                        value={capture.whatsapp_number ?? ''}
+                                        disabled={disabled}
+                                        onChange={(e) => setC('whatsapp_number', e.target.value.replace(/\D/g, '') || null)}
+                                    />
                                 </div>
                             </div>
                             <fieldset>
@@ -326,7 +502,12 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                 <div className="igr:mt-1 igr:flex igr:gap-4">
                                     {(['whatsapp', 'email', 'sms'] as const).map((c) => (
                                         <label key={c} className="igr:flex igr:items-center igr:gap-1.5">
-                                            <input type="checkbox" checked={capture.consent_channels.includes(c)} disabled={disabled} onChange={(e) => setC('consent_channels', e.target.checked ? [...capture.consent_channels, c] : capture.consent_channels.filter((x) => x !== c))} />
+                                            <input
+                                                type="checkbox"
+                                                checked={capture.consent_channels.includes(c)}
+                                                disabled={disabled}
+                                                onChange={(e) => setC('consent_channels', e.target.checked ? [...capture.consent_channels, c] : capture.consent_channels.filter((x) => x !== c))}
+                                            />
                                             {t(`quotes.channel.${c}`)}
                                         </label>
                                     ))}
@@ -336,7 +517,15 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                 {(['title', 'cta', 'success'] as const).map((k) => (
                                     <div key={k}>
                                         <Label htmlFor={`qc-${k}`}>{t(`quotes.editor.texts.${k}`)}</Label>
-                                        <Input id={`qc-${k}`} className="igr:mt-1" maxLength={200} value={capture[k] ?? ''} placeholder={t(`quotes.editor.texts.${k}Placeholder`)} disabled={disabled} onChange={(e) => setC(k, e.target.value || null)} />
+                                        <Input
+                                            id={`qc-${k}`}
+                                            className="igr:mt-1"
+                                            maxLength={200}
+                                            value={capture[k] ?? ''}
+                                            placeholder={t(`quotes.editor.texts.${k}Placeholder`)}
+                                            disabled={disabled}
+                                            onChange={(e) => setC(k, e.target.value || null)}
+                                        />
                                     </div>
                                 ))}
                             </div>
@@ -384,11 +573,21 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                     <p className="igr:mb-1 igr:font-medium">{f.label || '—'}</p>
                                     {f.type === 'number' ? (
                                         <div className="igr:flex igr:items-center igr:gap-2">
-                                            <Input type="number" className="igr:w-32" aria-label={f.label} value={typeof answers[f.key] === 'number' ? (answers[f.key] as number) : ''} onChange={(e) => setAnswers({ ...answers, [f.key]: e.target.value === '' ? null : Number(e.target.value) })} />
+                                            <Input
+                                                type="number"
+                                                className="igr:w-32"
+                                                aria-label={f.label}
+                                                value={typeof answers[f.key] === 'number' ? (answers[f.key] as number) : ''}
+                                                onChange={(e) => setAnswers({ ...answers, [f.key]: e.target.value === '' ? null : Number(e.target.value) })}
+                                            />
                                             <span className="igr:text-muted-foreground">{f.unit}</span>
                                         </div>
                                     ) : f.type === 'select' ? (
-                                        <Select aria-label={f.label} value={typeof answers[f.key] === 'string' ? (answers[f.key] as string) : ''} onChange={(e) => setAnswers({ ...answers, [f.key]: e.target.value })}>
+                                        <Select
+                                            aria-label={f.label}
+                                            value={typeof answers[f.key] === 'string' ? (answers[f.key] as string) : ''}
+                                            onChange={(e) => setAnswers({ ...answers, [f.key]: e.target.value })}
+                                        >
                                             {(f.options ?? []).map((o) => (
                                                 <option key={o.value} value={o.value}>
                                                     {o.label}
@@ -401,7 +600,11 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                                 const picked = Array.isArray(answers[f.key]) ? (answers[f.key] as string[]) : [];
                                                 return (
                                                     <label key={o.value} className="igr:flex igr:items-center igr:gap-1.5">
-                                                        <input type="checkbox" checked={picked.includes(o.value)} onChange={(e) => setAnswers({ ...answers, [f.key]: e.target.checked ? [...picked, o.value] : picked.filter((v) => v !== o.value) })} />
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={picked.includes(o.value)}
+                                                            onChange={(e) => setAnswers({ ...answers, [f.key]: e.target.checked ? [...picked, o.value] : picked.filter((v) => v !== o.value) })}
+                                                        />
                                                         {o.label}
                                                     </label>
                                                 );

@@ -136,7 +136,9 @@ export function QuotesPage() {
                                 <TBody>
                                     {requests.data.data.map((r) => (
                                         <TR key={r.id}>
-                                            <TD className="igr:whitespace-nowrap igr:tabular-nums">{new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(r.created_at))}</TD>
+                                            <TD className="igr:whitespace-nowrap igr:tabular-nums">
+                                                {new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(r.created_at))}
+                                            </TD>
                                             <TD>
                                                 {r.contact ? (
                                                     <Link to={`/w/${workspace.id}/contactos/${r.contact.id}`} className="igr:hover:underline">
@@ -152,7 +154,9 @@ export function QuotesPage() {
                                                 ) : null}
                                             </TD>
                                             <TD>{r.calculator}</TD>
-                                            <TD className="igr:text-right igr:tabular-nums">{r.estimate_min && r.estimate_max ? formatRange(r.estimate_min, r.estimate_max, r.currency, i18n.language) : '—'}</TD>
+                                            <TD className="igr:text-right igr:tabular-nums">
+                                                {r.estimate_min && r.estimate_max ? formatRange(r.estimate_min, r.estimate_max, r.currency, i18n.language) : '—'}
+                                            </TD>
                                         </TR>
                                     ))}
                                 </TBody>

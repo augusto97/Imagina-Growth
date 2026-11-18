@@ -3,7 +3,16 @@ import type { CalculatorKind, QuoteDefinition, QuoteField } from './types';
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 const empty = (over: Partial<QuoteDefinition>): QuoteDefinition => ({
-    currency: null, base_price: 0, minimum: 0, range_pct: 10, round_to: 1000, note: null, internal_notes: null, fields: [], packages: [], ...over,
+    currency: null,
+    base_price: 0,
+    minimum: 0,
+    range_pct: 10,
+    round_to: 1000,
+    note: null,
+    internal_notes: null,
+    fields: [],
+    packages: [],
+    ...over,
 });
 
 /** Definiciones de partida de cada tipo de calculadora (con textos en el idioma de la interfaz). */
@@ -12,13 +21,22 @@ export function preset(kind: CalculatorKind, t: Translate): { name: string; defi
         return {
             name: t('quotes.presets.area.name'),
             definition: empty({
-                base_price: 50000, minimum: 300000, range_pct: 10,
+                base_price: 50000,
+                minimum: 300000,
+                range_pct: 10,
                 fields: [
                     { key: 'area', label: t('quotes.presets.area.area'), type: 'number', required: true, help: null, unit: 'm²', min: 1, max: 5000, step: 1, default: 20, unit_price: 12000 },
-                    { key: 'tipo', label: t('quotes.presets.area.kind'), type: 'select', required: true, help: null, options: [
-                        { value: 'interior', label: t('quotes.presets.area.interior'), price: 0, multiplier: 1 },
-                        { value: 'exterior', label: t('quotes.presets.area.exterior'), price: 0, multiplier: 1.3 },
-                    ] },
+                    {
+                        key: 'tipo',
+                        label: t('quotes.presets.area.kind'),
+                        type: 'select',
+                        required: true,
+                        help: null,
+                        options: [
+                            { value: 'interior', label: t('quotes.presets.area.interior'), price: 0, multiplier: 1 },
+                            { value: 'exterior', label: t('quotes.presets.area.exterior'), price: 0, multiplier: 1.3 },
+                        ],
+                    },
                 ],
             }),
         };
@@ -32,20 +50,37 @@ export function preset(kind: CalculatorKind, t: Translate): { name: string; defi
                     { key: 'basico', label: t('quotes.presets.package.basic'), description: null, price: 900000 },
                     { key: 'completo', label: t('quotes.presets.package.full'), description: null, price: 1500000 },
                 ],
-                fields: [{ key: 'urgente', label: t('quotes.presets.package.extras'), type: 'checkbox', required: false, help: null, options: [{ value: 'urgente', label: t('quotes.presets.package.rush'), price: 0, multiplier: 1.2 }] }],
+                fields: [
+                    {
+                        key: 'urgente',
+                        label: t('quotes.presets.package.extras'),
+                        type: 'checkbox',
+                        required: false,
+                        help: null,
+                        options: [{ value: 'urgente', label: t('quotes.presets.package.rush'), price: 0, multiplier: 1.2 }],
+                    },
+                ],
             }),
         };
     }
     return {
         name: t('quotes.presets.service.name'),
         definition: empty({
-            base_price: 150000, range_pct: 15,
+            base_price: 150000,
+            range_pct: 15,
             fields: [
-                { key: 'alcance', label: t('quotes.presets.service.scope'), type: 'select', required: true, help: null, options: [
-                    { value: 'basico', label: t('quotes.presets.service.small'), price: 0, multiplier: 1 },
-                    { value: 'medio', label: t('quotes.presets.service.medium'), price: 200000, multiplier: 1 },
-                    { value: 'grande', label: t('quotes.presets.service.large'), price: 500000, multiplier: 1 },
-                ] },
+                {
+                    key: 'alcance',
+                    label: t('quotes.presets.service.scope'),
+                    type: 'select',
+                    required: true,
+                    help: null,
+                    options: [
+                        { value: 'basico', label: t('quotes.presets.service.small'), price: 0, multiplier: 1 },
+                        { value: 'medio', label: t('quotes.presets.service.medium'), price: 200000, multiplier: 1 },
+                        { value: 'grande', label: t('quotes.presets.service.large'), price: 500000, multiplier: 1 },
+                    ],
+                },
                 { key: 'horas', label: t('quotes.presets.service.hours'), type: 'number', required: false, help: null, unit: 'h', min: 0, max: 200, step: 1, default: 0, unit_price: 80000 },
             ],
         }),
