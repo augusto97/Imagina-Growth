@@ -66,7 +66,9 @@ describe('niveles', () => {
         const drafts = toTierDrafts(tiers);
         expect(tierProblems(drafts)).toEqual([]);
         expect(tierProblems([...drafts].reverse())).toEqual([1]);
-        expect(tierProblems([{ ...drafts[0]!, name: '' }, { ...drafts[1]!, wc_role: 'Cliente VIP' }])).toEqual([0, 1]);
+        const [bronce, plata] = drafts;
+        if (!bronce || !plata) throw new Error('faltan niveles');
+        expect(tierProblems([{ ...bronce, name: '' }, { ...plata, wc_role: 'Cliente VIP' }])).toEqual([0, 1]);
         expect(presetTiers('orders_12m', ['A', 'B', 'C']).map((d) => d.threshold)).toEqual(['0', '3', '8']);
     });
 });

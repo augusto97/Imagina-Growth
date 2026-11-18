@@ -7,6 +7,6 @@ use Illuminate\Support\Facades\Route;
 Route::get('/restablecer/{token}', fn () => view('app'))->name('password.reset');
 
 // SPA: cualquier ruta que no sea de la API, la autenticación, la ingesta, Horizon
-// o los endpoints públicos de routes/public (c/ enlaces, u/ bajas, preferencias, webhooks).
+// o los endpoints públicos de routes/public (c/ enlaces, u/ bajas, r/ reseñas, creadores, preferencias, webhooks).
 Route::get('/{any?}', fn () => view('app'))
-    ->where('any', '^(?!api|auth|v1|p/|c/|u/|r/|preferencias|webhooks|internal|health|sanctum|horizon|up|build).*$');
+    ->where('any', '^(?!api|auth|v1|p/|c/|u/|r/|creadores|preferencias|webhooks|internal|health|sanctum|horizon|up|build).*$');
