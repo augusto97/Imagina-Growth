@@ -64,6 +64,8 @@ for ($i = 0; $i < $s->shards(); $i++) { $x = $r->xPending($s->key($i), config("i
 $info = 0; foreach (range(0, $s->shards() - 1) as $i) { $g = $r->xInfo("GROUPS", $s->key($i)); foreach ((array) $g as $gr) { $info += (int) ($gr["lag"] ?? 0); } }
 echo ($p + $info) === 0 ? "listo" : "pendientes=".($p + $info);' | tail -1 | grep -q listo; do sleep 2; done
 $WP igr flush || true
+# También la cola de recálculos de contadores de contactos.
+until [ "$(php artisan tinker --execute='echo Illuminate\Support\Facades\Queue::connection("redis")->size("projections");' | tail -1)" = "0" ]; do sleep 2; done
 sleep 3
 T3=$(date +%s)
 echo "Ingesta completa en $((T3 - T1)) s desde la conexión"
