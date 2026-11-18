@@ -22,7 +22,7 @@
 # Variables: WP_CORP_DIR=/ruta/wordpress-corporativo (sin WooCommerce, con Contact Form 7 y el plugin; su wp-config.php
 #   lleva WP_ENVIRONMENT_TYPE=local y `define('IGR_HUB_URL', getenv('IGR_HUB_URL') ?: …)` como la tienda de prueba, y las
 #   páginas /servicios/, /valoracion/ (formulario 5 de CF7 con casillas de novedades) y /agenda/ ([igr_booking]))
-#   HUB_PORT=8010  CORP_PORT=8081  LOGS=/carpeta  DB_ROOT="docker exec igr-mariadb mariadb -uroot -proot"
+#   HUB_PORT=8010  CORP_PORT=8081  LOGS=/carpeta  DB_ROOT="sudo mariadb"
 set -euo pipefail
 E2E=$(cd "$(dirname "$0")" && pwd)
 cd "$E2E/../../hub"
@@ -34,7 +34,7 @@ HUB_PORT=${HUB_PORT:-8010}
 CORP_PORT=${CORP_PORT:-8081}
 SMTP_PORT=${SMTP_PORT:-2527}
 META_PORT=${META_PORT:-8091}
-DB_ROOT=${DB_ROOT:-docker exec igr-mariadb mariadb -uroot -proot}
+DB_ROOT=${DB_ROOT:-sudo mariadb}
 LOGS=${LOGS:-$(mktemp -d)}
 mkdir -p "$LOGS/buzon" "$LOGS/capturas"
 HUB="http://127.0.0.1:${HUB_PORT}"

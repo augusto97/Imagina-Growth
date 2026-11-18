@@ -83,7 +83,7 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 ```
 
 - **Particionado por `workspace_id`** en shards del stream para mantener el orden por contacto.
-- **Implementación (Fase 0):** el worker no corre dentro de Horizon (Horizon solo supervisa colas de jobs, no consumidores de Streams): son procesos propios supervisados por Docker, uno por shard. Cada lote va en **una transacción de MariaDB con un savepoint por evento**: un evento con datos inválidos se rechaza sin tumbar el lote, y un error transitorio revierte el lote completo, que se reintenta. La clave de dedupe y el `XACK` se escriben **después** de que ClickHouse confirma la inserción, así un fallo a mitad de camino nunca pierde eventos (entrega «al menos una vez» con escrituras idempotentes). Los contadores del contacto se recalculan con un job por contacto y lote.
+- **Implementación (Fase 0):** el worker no corre dentro de Horizon (Horizon solo supervisa colas de jobs, no consumidores de Streams): son procesos propios supervisados por systemd (`growth-ingest@1..4`), uno por shard; con SIGTERM terminan el lote en curso antes de salir. Cada lote va en **una transacción de MariaDB con un savepoint por evento**: un evento con datos inválidos se rechaza sin tumbar el lote, y un error transitorio revierte el lote completo, que se reintenta. La clave de dedupe y el `XACK` se escriben **después** de que ClickHouse confirma la inserción, así un fallo a mitad de camino nunca pierde eventos (entrega «al menos una vez» con escrituras idempotentes). Los contadores del contacto se recalculan con un job por contacto y lote.
 - **Rendimiento medido** (un proceso, MariaDB y ClickHouse locales): ~117 eventos/s por shard con 6 consultas por evento. El objetivo de carga de §17 (500 eventos/s) se reparte entre shards; la prueba con k6 queda para la Fase 1.
 - Los eventos `source.type=import` saltan el paso 10 (no disparan nada).
 - Los errores de esquema van a la tabla `ingest_rejections` (muestra de 7 días) y se ven en el panel del sitio.
@@ -262,7 +262,7 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 - **Reverb:** canales privados `workspace.{ws_…}.inbox` y `workspace.{ws_…}.live` (eventos en vivo para el tablero «En este momento»), con el id público del espacio de trabajo.
   - **Autorización** en `routes/channels.php`: la bandeja exige `useInbox` y el tablero en vivo `viewDashboards` en ese espacio de trabajo. La SPA autoriza con su sesión de Sanctum en `POST /api/broadcasting/auth` (`withBroadcasting` con `api` + `auth:sanctum`).
   - **Eventos solo con IDs** (`InboxUpdated` → `inbox.updated`): la SPA vuelve a pedir los datos por la API, que aplica los permisos de cada rol.
-  - **Configuración:** el hub emite con `BROADCAST_CONNECTION=reverb` y `REVERB_APP_ID/KEY/SECRET`, `REVERB_HOST/PORT/SCHEME` (en Docker, `reverb:8080` por la red interna); la SPA se compila con `VITE_REVERB_APP_KEY/HOST/PORT/SCHEME`. Caddy pasa `/app/*` y `/apps/*` del dominio del panel al servicio `reverb`.
+  - **Configuración:** el hub emite con `BROADCAST_CONNECTION=reverb` y `REVERB_APP_ID/KEY/SECRET`, `REVERB_HOST/PORT/SCHEME` (en producción `127.0.0.1:8085`, servicio `growth-reverb`). La SPA recibe la clave y el host público en tiempo de ejecución (`window.igrRuntime`, desde `IGR_REVERB_PUBLIC_*`), porque el paquete de versión se compila una sola vez para todos los servidores; en desarrollo sigue sirviendo `VITE_REVERB_*`. Caddy pasa `/app/*` y `/apps/*` del dominio del panel a Reverb.
   - **Sin Reverb** (`BROADCAST_CONNECTION=log`, el valor por defecto, o la SPA sin `VITE_REVERB_APP_KEY`, o la conexión caída) la bandeja consulta cada 5 s; con Reverb conectado, cada 30 s (`resources/js/lib/realtime.ts`).
 
 ## 14. Frontend (SPA)
@@ -318,8 +318,8 @@ Los jobs largos de `analytics` (importación de contactos, recálculo completo d
 
 ## 18. Despliegue
 
-- `infra/docker-compose.prod.yml`: `app` (PHP-FPM o FrankenPHP), `ingest` (Octane para los endpoints de ingesta), `horizon`, `scheduler`, `reverb`, `mariadb`, `clickhouse`, `redis`, `caddy`, `ml` (Fase 4).
+- **Servicios nativos de systemd** agrupados en `growth.target` (contrato completo en `docs/despliegue.md`): `growth-app` (FrankenPHP, panel y API), `growth-ingest-api@1/2` (ingesta, dos réplicas), `growth-ingest@1..4` (workers por shard), `growth-horizon`, `growth-reverb`, `growth-scheduler` y `growth-ml`; MariaDB 11.4, ClickHouse 25.8, Redis 7 para colas (`noeviction` + AOF) y otro para caché (`allkeys-lru`), y Caddy. Sin Docker.
 - **Caddy** con TLS bajo demanda para los dominios de seguimiento de los clientes (`t.cliente.com`) y para los dominios propios de enlaces y preferencias, con un endpoint `ask` que valida que el dominio pertenece a un sitio.
-- **Despliegue sin caída:** compilar la imagen → migraciones compatibles hacia atrás → reiniciar workers con `horizon:terminate`.
-- **Copias de seguridad:** `mariadb-backup` cada día + binlogs; `BACKUP` de ClickHouse a S3 o Storage Box cada semana con incrementales diarios; **simulacro de restauración cada mes** documentado.
-- **Entornos:** `local` (Sail o Compose), `staging` (datos de prueba) y `production`.
+- **Versiones:** cada release de GitHub publica `growth-<v>.zip` firmado (ed25519) con su `.sha256`. El administrador de la plataforma instala con un clic desde `/plataforma`: el panel deja un pedido y `growth-update` (lanzado con `systemd-run`) revisa espacio, verifica la firma, extrae, cachea, copia la base, migra (compatible hacia atrás), cambia el symlink `current`, reinicia de a uno y vuelve atrás si el health-check falla.
+- **Copias de seguridad:** `mariadb-backup` cada día + binlogs; `BACKUP` nativo de ClickHouse completo los domingos e incremental los demás días, al Storage Box con `rclone`; una prueba semanal restaura las dos en bases temporales y compara conteos; **simulacro de restauración cada mes** documentado.
+- **Entornos:** `local` (MariaDB, ClickHouse y Redis nativos: `infra/dev/`), `staging` (datos de prueba) y `production`.

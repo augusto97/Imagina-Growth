@@ -26,7 +26,7 @@
 #
 # Variables: WP="wp --allow-root --path=/ruta/wp"  WP_DIR=/ruta/wp  (obligatorias)
 #   ML_PYTHON=/ruta/venv/bin/python (con hub/ml/requirements.txt)  HUB_PORT=8010  LOGS=/carpeta
-#   DB_ROOT="docker exec igr-mariadb mariadb -uroot -proot"
+#   DB_ROOT="sudo mariadb"
 set -euo pipefail
 E2E=$(cd "$(dirname "$0")" && pwd)
 cd "$E2E/../../hub"
@@ -40,7 +40,7 @@ SMTP_PORT=${SMTP_PORT:-2526}
 AI_PORT=${AI_PORT:-8097}
 META_PORT=${META_PORT:-8091}
 ML_PORT=${ML_PORT:-8095}
-DB_ROOT=${DB_ROOT:-docker exec igr-mariadb mariadb -uroot -proot}
+DB_ROOT=${DB_ROOT:-sudo mariadb}
 LOGS=${LOGS:-$(mktemp -d)}
 mkdir -p "$LOGS/buzon" "$LOGS/capturas" "$LOGS/ai"
 HUB="http://127.0.0.1:${HUB_PORT}"

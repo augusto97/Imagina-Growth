@@ -15,7 +15,7 @@
 # Variables:
 #   WP="wp --allow-root --path=/ruta/wp"   WP_DIR=/ruta/wp   (obligatorias)
 #   HUB_PORT=8010  META_PORT=8091  SMTP_PORT=2526  BACKFILL=1  LOGS=/carpeta
-#   DB_ROOT="docker exec igr-mariadb mariadb -uroot -proot"
+#   DB_ROOT="sudo mariadb"
 # La tienda se sirve en 127.0.0.1:8080 (la URL del sitio de prueba).
 set -euo pipefail
 E2E=$(cd "$(dirname "$0")" && pwd)
@@ -27,7 +27,7 @@ HUB_PORT=${HUB_PORT:-8010}
 META_PORT=${META_PORT:-8091}
 SMTP_PORT=${SMTP_PORT:-2526}
 BACKFILL=${BACKFILL:-1}
-DB_ROOT=${DB_ROOT:-docker exec igr-mariadb mariadb -uroot -proot}
+DB_ROOT=${DB_ROOT:-sudo mariadb}
 LOGS=${LOGS:-$(mktemp -d)}
 mkdir -p "$LOGS/buzon" "$LOGS/capturas"
 HUB="http://127.0.0.1:${HUB_PORT}"

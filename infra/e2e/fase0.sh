@@ -7,13 +7,13 @@
 # Usa una base aislada del hub (igr_e2e) y una tienda WordPress ya preparada
 # con `wp igr demo-store`. Variables:
 #   WP="php wp-cli.phar --path=/ruta/wp --allow-root"   (obligatoria)
-#   HUB_PORT=8000  DB_ROOT="docker exec igr-mariadb mariadb -uroot -proot"
+#   HUB_PORT=8000  DB_ROOT="sudo mariadb"
 set -euo pipefail
 cd "$(dirname "$0")/../../hub"
 
 : "${WP:?define WP con el comando de WP-CLI de la tienda de prueba}"
 HUB_PORT=${HUB_PORT:-8000}
-DB_ROOT=${DB_ROOT:-docker exec igr-mariadb mariadb -uroot -proot}
+DB_ROOT=${DB_ROOT:-sudo mariadb}
 LOGS=${LOGS:-$(mktemp -d)}
 export APP_URL="http://127.0.0.1:${HUB_PORT}" IGR_APP_URL="http://127.0.0.1:${HUB_PORT}" IGR_INGEST_URL="http://127.0.0.1:${HUB_PORT}"
 export DB_DATABASE=igr_e2e CLICKHOUSE_DATABASE=igr_e2e REDIS_INGEST_DB=9 REDIS_DB=8 REDIS_CACHE_DB=7

@@ -47,7 +47,7 @@ imagina-growth/
 │   └── CLAUDE.md
 ├── tracker/                  ← script del navegador (TypeScript, se compila al plugin)
 │   └── CLAUDE.md
-└── infra/                    ← Docker Compose, despliegue, copias de seguridad
+└── infra/                    ← instalador, systemd, actualizador, copias de seguridad (docs/despliegue.md)
 ```
 
 ### Flujo de datos
@@ -101,7 +101,7 @@ imagina-growth/
 | Hub, frontend | React 18+ con TypeScript, Vite, shadcn/ui + Tailwind (prefijo propio), TanStack Query/Table, Zustand, React Hook Form + Zod, Recharts, React Flow (`@xyflow/react`) para los flujos, GrapesJS + MJML para el editor de correo, fuente Inter, estética tipo Linear/Vercel |
 | Connector | PHP 8.1+ con tipos estrictos, PSR-4 y Composer con dependencias prefijadas (Strauss), WordPress 6.4+, WooCommerce 8.5+ (opcional), compatible con HPOS y el checkout de bloques, Action Scheduler; admin en React + TS + Vite (`@kucrut/vite-for-wp`) |
 | Tracker | TypeScript sin dependencias, compilado a IIFE con esbuild |
-| Infraestructura | VPS Hetzner **dedicado al hub** (no el de ServerAvatar de los clientes), Docker Compose, Caddy (TLS automático, también para los dominios de seguimiento de cada cliente), Cloudflare delante del panel, copias en Hetzner Storage Box o S3, monitoreo con Better Stack |
+| Infraestructura | VPS Hetzner **dedicado al hub** (no el de ServerAvatar de los clientes) con Ubuntu 24.04 y **servicios nativos de systemd** (sin Docker): FrankenPHP con PHP 8.4, MariaDB 11.4, ClickHouse 25.8 y dos Redis 7 (colas y caché) de sus repositorios oficiales, el ML con `uv`. Cada versión es un zip firmado en GitHub Releases, en `/opt/growth/releases/<versión>` con el symlink `current`, y se actualiza con un clic desde el panel de la plataforma (`docs/despliegue.md`). Caddy (TLS automático, también para los dominios de seguimiento de cada cliente), Cloudflare delante del panel, copias en Hetzner Storage Box, monitoreo con Better Stack |
 
 ¿Por qué Laravel y no un plugin de WordPress para el hub? Por el volumen de eventos, las colas de larga duración, el tiempo real de la bandeja y el aislamiento entre clientes. Un WordPress multi-cliente no aguanta eso. El conocimiento de PHP se reutiliza.
 
@@ -112,7 +112,7 @@ imagina-growth/
 Cada fase se puede vender sola. No se empieza una fase sin cerrar los criterios de «Listo cuando» de la anterior.
 
 ### Fase 0 — Cimientos
-Monorepo, Docker local, autenticación con 2FA, cuentas, espacios de trabajo y roles. Conexión del sitio (handshake), endpoint de ingesta, ClickHouse, outbox del plugin, sincronización de catálogo e importación histórica (backfill).
+Monorepo, entorno local, autenticación con 2FA, cuentas, espacios de trabajo y roles. Conexión del sitio (handshake), endpoint de ingesta, ClickHouse, outbox del plugin, sincronización de catálogo e importación histórica (backfill).
 **Listo cuando:** un WooCommerce de prueba con 10.000 pedidos generados se conecta en menos de 2 minutos, el backfill completo termina sin errores, y los conteos de pedidos y la venta total coinciden al 100% con WooCommerce.
 
 ### Fase 1 — Conocer al cliente (datos y medición)

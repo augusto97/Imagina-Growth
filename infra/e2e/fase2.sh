@@ -18,7 +18,7 @@
 #      de envío (domingo, festivo y sábado tarde se aplazan).
 #
 # Variables: WP="wp --allow-root --path=/ruta/wp"  WP_DIR=/ruta/wp  (obligatorias)
-#   HUB_PORT=8010  SMTP_PORT=2526  LOGS=/carpeta  DB_ROOT="docker exec igr-mariadb mariadb -uroot -proot"
+#   HUB_PORT=8010  SMTP_PORT=2526  LOGS=/carpeta  DB_ROOT="sudo mariadb"
 set -euo pipefail
 E2E=$(cd "$(dirname "$0")" && pwd)
 cd "$E2E/../../hub"
@@ -27,7 +27,7 @@ cd "$E2E/../../hub"
 : "${WP_DIR:?define WP_DIR con la ruta de WordPress}"
 HUB_PORT=${HUB_PORT:-8010}
 SMTP_PORT=${SMTP_PORT:-2526}
-DB_ROOT=${DB_ROOT:-docker exec igr-mariadb mariadb -uroot -proot}
+DB_ROOT=${DB_ROOT:-sudo mariadb}
 LOGS=${LOGS:-$(mktemp -d)}
 mkdir -p "$LOGS/buzon" "$LOGS/capturas"
 HUB="http://127.0.0.1:${HUB_PORT}"
