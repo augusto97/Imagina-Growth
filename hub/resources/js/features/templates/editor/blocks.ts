@@ -33,7 +33,7 @@ export const DYNAMIC_BLOCKS: DynamicBlock[] = [
         labelKey: 'recommendations',
         content: `<mj-section padding="8px 24px"><mj-column>
   <mj-text font-size="18px" font-weight="700" color="${INK}">Elegidos para ti</mj-text>
-  <mj-text align="center" font-size="14px" line-height="20px" color="${INK}"><div>{% for p in recomendaciones.para_ti limit: 3 %}<div style="display:inline-block;width:30%;min-width:140px;vertical-align:top;margin:0 1% 12px;text-align:center"><a href="{{ p.url }}" style="color:${INK};text-decoration:none">{% if p.imagen != "" %}<img src="{{ p.imagen }}" alt="" width="160" style="width:100%;max-width:160px;border-radius:6px;display:block;margin:0 auto 8px">{% endif %}<span style="font-weight:600">{{ p.nombre }}</span><br><span>{{ p.precio | moneda }}</span></a></div>{% endfor %}</div></mj-text>
+  <mj-text align="center" font-size="14px" line-height="20px" color="${INK}"><div>{% for p in recomendaciones.para_ti limit: 3 %}<div style="display:inline-block;width:30%;min-width:140px;vertical-align:top;margin:0 1% 12px;text-align:center"><a href="{{ p.url }}" style="color:${INK};text-decoration:none">{% if p.imagen and p.imagen != "" %}<img src="{{ p.imagen }}" alt="" width="160" style="width:100%;max-width:160px;border-radius:6px;display:block;margin:0 auto 8px">{% endif %}<span style="font-weight:600">{{ p.nombre }}</span><br><span>{{ p.precio | moneda }}</span></a></div>{% endfor %}</div></mj-text>
 </mj-column></mj-section>`,
     },
     {

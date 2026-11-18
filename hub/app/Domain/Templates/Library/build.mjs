@@ -61,7 +61,7 @@ export const BLOCKS = {
     cart: () => `
     <mj-section padding="8px 24px">
       <mj-column border="1px solid ${LINE}" border-radius="8px" padding="8px 12px">
-        <mj-text font-size="14px" line-height="20px" color="${INK}"><div>{% for item in carrito.items limit: 6 %}<div style="padding:8px 0;border-bottom:1px solid ${LINE}">{% if item.imagen != "" %}<img src="{{ item.imagen }}" alt="" width="56" height="56" style="border-radius:6px;float:left;margin-right:12px;object-fit:cover">{% endif %}<div style="text-align:right;float:right;white-space:nowrap;font-weight:600">{{ item.precio | moneda }}</div><a href="{{ item.url }}" style="color:${INK};font-weight:600;text-decoration:none">{{ item.nombre }}</a><br><span style="color:${MUTED}">Cantidad: {{ item.cantidad }}</span><div style="clear:both"></div></div>{% endfor %}</div><p style="margin:12px 0 4px;font-weight:600">Subtotal: {{ carrito.subtotal | moneda }}</p></mj-text>
+        <mj-text font-size="14px" line-height="20px" color="${INK}"><div>{% for item in carrito.items limit: 6 %}<div style="padding:8px 0;border-bottom:1px solid ${LINE}">{% if item.imagen and item.imagen != "" %}<img src="{{ item.imagen }}" alt="" width="56" height="56" style="border-radius:6px;float:left;margin-right:12px;object-fit:cover">{% endif %}<div style="text-align:right;float:right;white-space:nowrap;font-weight:600">{{ item.precio | moneda }}</div><a href="{{ item.url }}" style="color:${INK};font-weight:600;text-decoration:none">{{ item.nombre }}</a><br><span style="color:${MUTED}">Cantidad: {{ item.cantidad }}</span><div style="clear:both"></div></div>{% endfor %}</div><p style="margin:12px 0 4px;font-weight:600">Subtotal: {{ carrito.subtotal | moneda }}</p></mj-text>
       </mj-column>
     </mj-section>`,
     coupon: () => `
@@ -84,7 +84,7 @@ export const BLOCKS = {
     <mj-section padding="8px 24px 0">
       <mj-column>
         <mj-text font-size="18px" font-weight="700" color="${INK}">[[products_title]]</mj-text>
-        <mj-text align="center" font-size="14px" line-height="20px" color="${INK}"><div>{% for p in recomendaciones.${opts.source ?? 'para_ti'} limit: 3 %}<div style="display:inline-block;width:30%;min-width:140px;vertical-align:top;margin:0 1% 12px;text-align:center"><a href="{{ p.url }}" style="color:${INK};text-decoration:none">{% if p.imagen != "" %}<img src="{{ p.imagen }}" alt="" width="160" style="width:100%;max-width:160px;border-radius:6px;display:block;margin:0 auto 8px">{% endif %}<span style="font-weight:600">{{ p.nombre }}</span><br><span>{{ p.precio | moneda }}</span></a></div>{% endfor %}</div></mj-text>
+        <mj-text align="center" font-size="14px" line-height="20px" color="${INK}"><div>{% for p in recomendaciones.${opts.source ?? 'para_ti'} limit: 3 %}<div style="display:inline-block;width:30%;min-width:140px;vertical-align:top;margin:0 1% 12px;text-align:center"><a href="{{ p.url }}" style="color:${INK};text-decoration:none">{% if p.imagen and p.imagen != "" %}<img src="{{ p.imagen }}" alt="" width="160" style="width:100%;max-width:160px;border-radius:6px;display:block;margin:0 auto 8px">{% endif %}<span style="font-weight:600">{{ p.nombre }}</span><br><span>{{ p.precio | moneda }}</span></a></div>{% endfor %}</div></mj-text>
       </mj-column>
     </mj-section>`,
     order: () => `

@@ -207,7 +207,7 @@
                   
       <div
          style="font-family:Inter, Helvetica, Arial, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#111827;"
-      ><div>{% for item in carrito.items limit: 6 %}<div style="padding:8px 0;border-bottom:1px solid #e5e7eb">{% if item.imagen != "" %}<img src="{{ item.imagen }}" alt="" width="56" height="56" style="border-radius:6px;float:left;margin-right:12px;object-fit:cover">{% endif %}<div style="text-align:right;float:right;white-space:nowrap;font-weight:600">{{ item.precio | moneda }}</div><a href="{{ item.url }}" style="color:#111827;font-weight:600;text-decoration:none">{{ item.nombre }}</a><br><span style="color:#6b7280">Cantidad: {{ item.cantidad }}</span><div style="clear:both"></div></div>{% endfor %}</div><p style="margin:12px 0 4px;font-weight:600">Subtotal: {{ carrito.subtotal | moneda }}</p></div>
+      ><div>{% for item in carrito.items limit: 6 %}<div style="padding:8px 0;border-bottom:1px solid #e5e7eb">{% if item.imagen and item.imagen != "" %}<img src="{{ item.imagen }}" alt="" width="56" height="56" style="border-radius:6px;float:left;margin-right:12px;object-fit:cover">{% endif %}<div style="text-align:right;float:right;white-space:nowrap;font-weight:600">{{ item.precio | moneda }}</div><a href="{{ item.url }}" style="color:#111827;font-weight:600;text-decoration:none">{{ item.nombre }}</a><br><span style="color:#6b7280">Cantidad: {{ item.cantidad }}</span><div style="clear:both"></div></div>{% endfor %}</div><p style="margin:12px 0 4px;font-weight:600">Subtotal: {{ carrito.subtotal | moneda }}</p></div>
     
                 </td>
               </tr>

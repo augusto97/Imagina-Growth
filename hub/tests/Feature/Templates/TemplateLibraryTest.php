@@ -84,3 +84,16 @@ it('el HTML compilado de la biblioteca está al día con library.json (build.mjs
     $process->run();
     expect($process->getExitCode())->toBe(0, $process->getErrorOutput().$process->getOutput());
 });
+
+it('un producto del carrito sin imagen no deja una imagen rota en el correo', function () {
+    $template = TemplateLibrary::install($this->ws, 'abandoned_cart_1');
+    $render = fn (array $item) => app(CurrentWorkspace::class)->run($this->ws, fn () => app(TemplateRenderer::class)->render($template->publicId(), new RenderContext($this->ws->fresh(), null, [
+        'carrito' => ['items' => [$item], 'subtotal' => '11800.00', 'url_restaurar' => 'https://tienda.co/?igr_cart=x'],
+    ])));
+    $without = $render(['nombre' => 'Chazo Plástico 1/4', 'cantidad' => 2, 'precio' => '5900.00', 'url' => 'https://tienda.co/p/chazo']);
+    $empty = $render(['nombre' => 'Chazo Plástico 1/4', 'cantidad' => 2, 'precio' => '5900.00', 'url' => 'https://tienda.co/p/chazo', 'imagen' => '']);
+    $with = $render(['nombre' => 'Chazo Plástico 1/4', 'cantidad' => 2, 'precio' => '5900.00', 'url' => 'https://tienda.co/p/chazo', 'imagen' => 'https://tienda.co/img/chazo.jpg']);
+    expect($without->html)->toContain('Chazo Plástico 1/4')->not->toContain('<img src=""')
+        ->and($empty->html)->not->toContain('<img src=""')
+        ->and($with->html)->toContain('src="https://tienda.co/img/chazo.jpg"');
+});
