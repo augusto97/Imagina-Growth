@@ -1,0 +1,257 @@
+# hub/ — App central (Laravel 13 + React)
+
+> Lee antes: `/CLAUDE.md`, `/docs/eventos.md`, `/docs/modelo-de-datos.md`, y el documento del módulo en el que trabajas (`/docs/modulos.md`).
+> Dominio: `growth.imagina.cloud` (panel y API), `in.growth.imagina.cloud` (ingesta), `go.growth.imagina.cloud` (enlaces rastreados y centro de preferencias, o el dominio propio del cliente).
+
+---
+
+## 1. Responsabilidades
+
+Recibir y validar eventos, resolver identidades, guardar en ClickHouse y MariaDB, calcular segmentos, métricas y predicciones, ejecutar flujos y campañas, enviar mensajes, enviar conversiones a plataformas de anuncios, servir el panel (SPA), la API pública, el servidor MCP y los endpoints públicos de los widgets.
+
+## 2. Stack y paquetes
+
+- PHP 8.4, Laravel 13, MariaDB 11, ClickHouse 25.x, Redis 7.
+- **Laravel:** Horizon (colas), Reverb (WebSockets), Sanctum (autenticación de la SPA y tokens de la API), Pennant (feature flags por plan), Scout no (la búsqueda es propia), Laravel AI SDK (Anthropic), Laravel MCP.
+- **Terceros (verifica la versión vigente al instalar):**
+  - `spatie/laravel-data` (DTOs) y `spatie/laravel-activitylog` (auditoría).
+  - `giggsey/libphonenumber-for-php` (E.164).
+  - `keepsuit/liquid` (plantillas Liquid en sandbox).
+  - `matomo/device-detector` (user agent) y `geoip2/geoip2` con la base GeoLite2 de MaxMind (geo por IP; la IP se descarta después).
+  - Un cliente de ClickHouse para PHP (por ejemplo `smi2/phpclickhouse`) envuelto en `App\Analytics\Ch`.
+  - `aws/aws-sdk-php` (SES y SNS), `league/csv`, `spatie/laravel-pdf` (reporte mensual), `dedoc/scramble` (OpenAPI).
+  - `ramsey/uuid` (UUID v5 y v7).
+- **Calidad:** Pest, Larastan nivel 8, Pint, Rector.
+
+## 3. Estructura
+
+```
+hub/
+├── app/
+│   ├── Domain/                     ← un directorio por módulo de negocio
+│   │   ├── Workspaces/  Sites/  Contacts/  Identity/  Consent/
+│   │   ├── Commerce/    (orders, carts, products, coupons)
+│   │   ├── Segments/    Flows/   Campaigns/  Messaging/  Templates/
+│   │   ├── Inbox/       Onsite/  Loyalty/    Referrals/  Reviews/
+│   │   ├── Measurement/ (ad destinations, conversions, audiences, spend)
+│   │   ├── Intelligence/ (rfm, predictions, insights, ai)
+│   │   ├── Services/    (leads, bookings, quotes)
+│   │   └── Billing/
+│   │       Cada módulo: Actions/ Models/ Data/ Jobs/ Events/ Listeners/ Policies/ Queries/
+│   ├── Ingest/                     ← endpoints y pipeline de ingesta (§5)
+│   ├── Analytics/                  ← Ch (cliente ClickHouse), capa semántica (§10)
+│   ├── Support/                    ← Pii, Money, Tenancy, Hmac, Holidays, Phone
+│   └── Http/ (Controllers/Api/V1, Controllers/Spa, Controllers/Public, Middleware)
+├── resources/
+│   ├── js/                         ← SPA React (§14)
+│   └── schemas/events/*.json       ← JSON Schema de cada evento (compartido con connector y tracker)
+├── ml/                             ← servicio Python (FastAPI) de predicciones (Fase 4)
+├── database/ (migrations, clickhouse/*.sql, seeders)
+└── tests/ (Feature, Unit, Contract, Tenancy)
+```
+
+**Reglas:** la lógica de negocio va en `Actions` (una clase, un `handle()`), nunca en controladores ni en modelos. Las consultas complejas van en `Queries`. Los DTOs se hacen con `laravel-data`.
+
+## 4. Multi-cliente (tenancy)
+
+- `App\Support\Tenancy\CurrentWorkspace` es un singleton por request o job. El middleware `ResolveWorkspace` lo toma de la ruta `/api/w/{workspace}/...` y verifica la membresía.
+- El trait `BelongsToWorkspace` agrega un *global scope* y llena `workspace_id` al crear. **Todos** los modelos de negocio lo usan.
+- Los jobs implementan `WorkspaceAware` y el middleware de job `SetWorkspaceContext` restaura el contexto.
+- Las claves de Redis y la caché llevan el prefijo `ws:{id}:`.
+- ClickHouse: `Ch::forWorkspace($ws)->select(...)`. No existe un método que consulte sin workspace.
+- **Pruebas `tests/Tenancy`:** recorren todos los modelos y endpoints con dos espacios de trabajo y verifican que no hay fugas. Corren en CI y son obligatorias.
+
+## 5. Pipeline de ingesta
+
+```
+POST /v1/b (tracker) ─┐
+POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
+      1. autenticar (clave pública + Origin | HMAC + tiempo + nonce)
+      2. validar el sobre (barato) y el tamaño
+      3. XADD al Redis Stream  ingest:{shard}   → 202
+                    │
+       IngestWorker (consumer group, procesos de Horizon dedicados)
+      4. dedupe: SET NX evt:{event_id} con TTL 7 días (Redis)
+      5. validar el esquema del evento (JSON Schema compilado en caché)
+      6. enriquecer: geo (y descartar la IP), dispositivo, canal (§2 de inteligencia), moneda → ws
+      7. identidad: IdentityResolver (caché Redis del mapa anónimo→contacto; crea o une contactos)
+      8. escribir: buffer → ClickHouse cada 1 s o 5.000 filas
+      9. proyectar en MariaDB según el evento: orders, carts, products, contacts (contadores), consents
+     10. publicar el evento de dominio → TriggerRouter (flujos, segmentos en tiempo real, conversiones)
+```
+
+- **Particionado por `workspace_id`** en shards del stream para mantener el orden por contacto.
+- Los eventos `source.type=import` saltan el paso 10 (no disparan nada).
+- Los errores de esquema van a la tabla `ingest_rejections` (muestra de 7 días) y se ven en el panel del sitio.
+- **Proyección de pedidos:** `order.*` hace *upsert* en `orders` y `order_items` por (site_id, external_id). Recalcula los contadores del contacto en un job con *debounce* (5 s) por contacto.
+- **Carritos:** `cart.*` hace *upsert* en `carts`. Un job cada minuto marca `abandoned` a los carritos sin actividad durante N min (configurable, 45 por defecto) con contacto conocido o identificable, y emite `cart.abandoned` (evento interno del hub).
+
+## 6. Motor de segmentos
+
+**AST (JSON) guardado en `segments.definition`:**
+
+```jsonc
+{
+  "op": "and",
+  "conditions": [
+    { "type": "attribute", "field": "city", "operator": "in", "value": ["Manizales", "Pereira"] },
+    { "type": "purchase", "scope": "category", "ids": ["12"], "operator": "count_gte", "value": 2,
+      "window": { "kind": "last_days", "days": 365 } },
+    { "op": "or", "conditions": [
+      { "type": "event", "event": "product.viewed", "filters": [{ "prop": "product_id", "operator": "eq", "value": "88" }],
+        "operator": "count_gte", "value": 2, "window": { "kind": "last_days", "days": 7 } },
+      { "type": "prediction", "field": "churn_band", "operator": "eq", "value": "high" }
+    ]},
+    { "type": "consent", "channel": "whatsapp", "purpose": "marketing", "status": "granted" }
+  ]
+}
+```
+
+- **Compilador** `SegmentCompiler`:
+  - Las condiciones de atributo, compra, consentimiento, fidelización y predicción se convierten en SQL de MariaDB (sobre `contacts`, `orders`, `order_items`, `contact_consents`…).
+  - Las de evento o comportamiento se convierten en SQL de ClickHouse que devuelve un conjunto de `contact_id` (usando `identity_map`).
+  - El resultado final es la combinación de ambos conjuntos según los operadores. Para conjuntos grandes se usan tablas temporales en Redis (SINTER/SUNION) o en MariaDB.
+- **Recálculo:**
+  - *En tiempo real:* cuando llega un evento de un contacto, se evalúan solo los segmentos que referencian ese tipo de evento o atributo, y solo para ese contacto.
+  - *Completo:* cada noche para todos, y bajo demanda al editar.
+  - Las diferencias de membresía generan `segment.entered` y `segment.exited`.
+- **Vista previa:** consulta de conteo y muestra de 20 contactos, con *timeout* de 10 s y mensaje claro si se excede.
+
+## 7. Motor de flujos
+
+- **Grafo** en `flow_versions.graph`: nodos `{id, type, config}` y aristas `{from, to, branch?}`. Se valida al publicar: sin ciclos sin espera, todas las ramas terminan y no hay nodos de envío sin plantilla.
+- **Entrada:** `TriggerRouter` mantiene en Redis un índice `ws:{id}:triggers:{event}` → flujos activos. Al llegar un evento:
+  1. Se evalúan los filtros del disparador.
+  2. Se revisa la política de reentrada y la exclusión mutua.
+  3. Se crea el `flow_run` con un sorteo de grupo de control (`is_holdout`).
+- **Ejecución:**
+  - El *scheduler* corre cada minuto y busca `flow_runs` con `status in (active, waiting)` y `next_run_at <= now()`, por lotes con `SKIP LOCKED`, y despacha `AdvanceFlowRun`.
+  - Cada tipo de nodo implementa `NodeHandler::handle(FlowRun, Node): NodeOutcome`. Los resultados posibles son `Continue(next)`, `Wait(until)`, `WaitForEvent(event, timeout)`, `Exit(reason)` y `Deferred(until)` (cuando la política de envío lo pide).
+  - **Idempotencia:** cada paso se registra en `flow_run_steps` con la clave única (run_id, node_id, intento lógico). Un reintento del job nunca reenvía un mensaje.
+- **Metas:** al llegar un evento que cumple la meta, el run termina con `goal_reached` y se marca la atribución.
+- **Los grupos de control** recorren el flujo sin envíos (los nodos de envío se marcan `skipped_holdout`) para medir el incremento.
+- **Versionado:** los runs activos se quedan en su versión. Opción «migrar los runs en curso» solo si los nodos son compatibles.
+
+## 8. Mensajería
+
+- **Interfaz `ChannelDriver`:** `send(OutboundMessage): SendResult`, `handleWebhook(Request): array<StatusUpdate>`, `syncTemplates(): void`, `estimateCost(Recipient, Category): Money`, `capabilities(): array`.
+- **Drivers:**
+
+| Canal | Drivers |
+|---|---|
+| Correo | `SesDriver`, `SmtpDriver` |
+| WhatsApp | `MetaCloudDriver` (con la ruta `/marketing_messages` para marketing), `ZenderDriver` (con topes fijos y bloqueo de marketing masivo), `InfobipDriver` |
+| SMS | `TwilioSmsDriver` |
+
+- **Todo envío pasa por `MessageDispatcher`:**
+  1. Resolver el canal y la cuenta.
+  2. **`SendPolicy::check()`**: consentimiento, ventana legal por país y festivos, frecuencia (contadores en Redis por contacto, día y semana), supresión, registros de exclusión, ventana de 24 h de WhatsApp para mensajes libres, presupuesto de la campaña y salud del número o dominio. Devuelve `Allow`, `Defer(until, reason)` o `Deny(reason)`.
+  3. Renderizar la plantilla (Liquid en sandbox, con un *timeout*).
+  4. Reescribir los enlaces.
+  5. Encolar en `messages:{channel}` con *rate limit* por cuenta.
+  6. Llamar al driver y registrar en `messages`.
+- **Enlaces rastreados:** `https://go.<dominio>/c/{code}` → registra el clic → redirige agregando `utm_*` y `_igr={token}` (identifica en el sitio, ver `eventos.md` §6.2). Los códigos son aleatorios de 8 caracteres, no secuenciales.
+- **Webhooks entrantes:** Meta (verificación `X-Hub-Signature-256`), SES por SNS (verificación de firma), Zender (secreto compartido). Se actualizan los estados y se emiten los eventos `message.*` y `whatsapp.inbound`.
+- **Palabras de baja** en WhatsApp y SMS: «baja», «no más», «stop», «cancelar suscripción», «no me escriban» y variantes, más el clasificador de IA (Fase 4). Revocan el consentimiento y responden con una confirmación.
+
+## 9. Atribución
+
+- Cuando llega `order.paid`, el job `AttributeOrder`:
+  1. Calcula los canales de primer y último contacto con las sesiones de ClickHouse del contacto o anónimo (30 días antes del pedido).
+  2. Busca **mensajes con clic** en la ventana (5 días por defecto). Si no hay, busca lecturas o aperturas sin MPP dentro de 1 día (si está activo). Gana el más reciente → `attributed_message_id`, `flow_id` o `campaign_id`.
+  3. Revisa el cupón de referido o afiliado y la cookie de referido → `attributed_referral_id` o `attributed_affiliate_id`.
+  4. Revisa el widget que capturó al contacto en los últimos 7 días (atribución de captación).
+- **Incremento:** el informe compara la conversión y el ingreso por contacto del grupo expuesto frente al de control, con intervalo de confianza.
+
+## 10. Analítica y capa semántica
+
+- `App\Analytics\Semantic\Catalog` define **métricas** (fórmula en SQL de ClickHouse o MariaDB, unidad, formato) y **dimensiones** (columna, joins permitidos). Lo usan los tableros, la exportación, «Pregúntale a tus datos» (IA) y la API.
+- `MetricQuery` (DTO): métricas[], dimensiones[], filtros[], rango, comparación, granularidad. `MetricQueryRunner` lo compila, aplica el workspace, consulta `kpi_daily` cuando puede y cae a `events`/`sessions` cuando no, y guarda el resultado en caché (5 min, invalidado por ingesta).
+- **Cohortes, RFM y afinidad** se calculan en jobs nocturnos y se guardan en tablas o columnas, no en cada request.
+
+## 11. Medición (conversiones hacia anuncios)
+
+- `ConversionRouter` escucha los eventos mapeados por destino. Arma el payload por plataforma (con hash según `eventos.md` §7) y lo encola en `conversions:{platform}` con reintentos exponenciales (1 m, 5 m, 30 m, 2 h; máximo 24 h, porque las plataformas descartan conversiones viejas).
+- **Meta:** `/{dataset_id}/events`, con `action_source=website` o `business_messaging` (más `messaging_channel=whatsapp` y `ctwa_clid`). Solo se usan los nombres de evento que Meta acepta para mensajería. Se respeta el modo de prueba (`test_event_code`).
+- **Google:** GA4 Measurement Protocol para el análisis, y **Data Manager API** para las conversiones mejoradas, las conversiones offline de leads y Customer Match.
+- **TikTok:** Events API.
+- Cada entrega se registra en `conversion_deliveries` (ClickHouse). El panel muestra los errores con un mensaje humano.
+- **Sincronización de audiencias** (Fase 3): un job cada 12 h calcula las diferencias del segmento y envía altas y bajas por lotes.
+
+## 12. IA
+
+- `App\Domain\Intelligence\Ai\` tiene servicios por función: `WeeklyAnalyst`, `AskYourData`, `CampaignCopilot`, `ContentWriter`, `InboundClassifier`, `ReviewModerator`, `SalesAgent`.
+- Todos pasan por `AiGateway`, que se encarga de:
+  - Elegir el modelo por función (`config/igr-ai.php`).
+  - Limpiar datos personales de los prompts de análisis.
+  - Registrar el costo en `ai_usage` y aplicar los límites por plan.
+  - Hacer **`NumberValidator`** sobre las salidas narrativas (ver `inteligencia.md` §6.1).
+- `AskYourData` usa *tool use* con una sola herramienta, `run_metric_query(MetricQuery)`. El modelo nunca recibe credenciales ni escribe SQL.
+- `SalesAgent` usa herramientas que llaman comandos firmados al sitio (`connector/CLAUDE.md` §8) y datos del hub. Tiene un límite de pasos por turno y un registro completo.
+
+## 13. API, webhooks, MCP y tiempo real
+
+- **API pública `/api/v1`:** tokens de Sanctum por espacio de trabajo con alcances (`contacts:read`, `events:write`, `segments:read`, `campaigns:write`…), límites por plan y OpenAPI con Scramble.
+- **API interna de la SPA:** `/api/w/{workspace}/...`, con sesión de Sanctum.
+- **API del connector** (firmada con HMAC, ver `connector/CLAUDE.md` §4): `POST /api/connect/exchange` (handshake), `GET /v1/s/catalog/hashes` (conciliación), `POST /v1/s/wallet/redeem` (canje de saldo en el checkout) y `GET /v1/s/config` (textos de consentimiento, estados pagados y ajustes del sitio).
+- **Endpoints públicos de widgets:** `/p/{site_public_key}/widgets.json` (configuración, en caché de CDN 5 min) y `/p/{site}/reco?aid=…&ctx=…` (recomendaciones, en caché 60 s por contexto).
+- **Webhooks salientes:** firmados con HMAC, con reintentos y un registro visible.
+- **MCP** (`laravel/mcp`): herramientas de lectura `get_kpis`, `run_metric_query`, `list_segments`, `get_contact_summary` y `list_insights`, y de escritura `draft_campaign` y `draft_segment`, que crean **borradores** que alguien debe aprobar en la app. Autenticación OAuth o token por espacio de trabajo.
+- **Reverb:** canales privados `workspace.{id}.inbox` y `workspace.{id}.live` (eventos en vivo para el tablero «En este momento»).
+
+## 14. Frontend (SPA)
+
+- `resources/js/` con React, TypeScript `strict`, Vite, React Router, TanStack Query (todo el estado del servidor), Zustand (UI), shadcn/ui con prefijo `igr-`, Tailwind, Recharts, React Flow (constructor de flujos), GrapesJS + MJML (correo) y la fuente Inter.
+- **Estética Linear/Vercel:** densidad media, modo oscuro, ⌘K para navegar y buscar contactos, atajos de teclado, estados vacíos que enseñan («Activa tu primer flujo: carrito abandonado») y skeletons en lugar de spinners.
+- **Pantallas principales:** Inicio · Contactos (lista y perfil) · Segmentos · Analítica (12 tableros) · Flujos (lista, constructor, analítica por nodo) · Campañas · Bandeja · En el sitio (widgets) · Fidelización · Referidos y afiliados · Reseñas · Medición (destinos, entregas, audiencias, gasto) · Hallazgos · Configuración (sitios, canales, consentimiento, textos legales, equipo, facturación) · Agencia.
+- **i18n** con `i18next`; los textos en `resources/js/locales/es-CO.json` (base), `es-MX.json` y `es-VE.json`.
+- **Formato:** moneda con `Intl.NumberFormat` según la moneda y la configuración regional del espacio de trabajo (COP sin decimales en la interfaz).
+
+## 15. Colas y tareas programadas
+
+| Cola | Uso | Workers |
+|---|---|---|
+| `ingest` (stream) | eventos | dedicados, escalables |
+| `projections` | upserts en MariaDB, contadores | 4 |
+| `triggers` | flujos y segmentos en tiempo real | 4 |
+| `flows` | `AdvanceFlowRun` | 4 |
+| `messages:email`, `messages:whatsapp`, `messages:sms` | envíos con rate limit | 2 a 4 c/u |
+| `conversions:*` | anuncios | 2 |
+| `analytics` | jobs pesados nocturnos | 2 |
+| `ai` | llamadas a modelos | 2 |
+| `default` | resto | 2 |
+
+**Programadas:** flujos y campañas (cada minuto), carritos abandonados (cada minuto), sesiones (cada 10 min), segmentos completos, RFM, afinidad, predicciones y hallazgos (cada noche, escalonadas por workspace), gasto en anuncios (cada día), audiencias (cada 12 h), tarifas de WhatsApp (cada trimestre, manual con aviso), analista semanal (los lunes por zona horaria), reporte mensual (el día 1) y purga por retención (cada noche).
+
+## 16. Rendimiento y observabilidad
+
+- **Objetivos:**
+
+| Operación | Objetivo |
+|---|---|
+| Ingesta | p95 < 50 ms |
+| Evento → ClickHouse | < 5 s |
+| Evento → disparo de flujo | < 60 s |
+| Tableros | p95 < 1,5 s |
+| Perfil | < 800 ms |
+| Vista previa de segmento | < 3 s |
+
+- **Observabilidad:** Sentry (o GlitchTip autoalojado) para errores; Horizon, Telescope solo en local; Better Stack para *uptime* y logs; `/health` con chequeos de MariaDB, ClickHouse, Redis, colas y retraso del stream.
+- **Panel interno de la plataforma** (solo superadmin): retraso de ingesta por shard, rechazos, entregas fallidas por proveedor, costo de IA y uso por espacio de trabajo.
+
+## 17. Pruebas
+
+- **Contrato:** cada JSON Schema tiene ejemplos válidos e inválidos. El connector y el tracker generan eventos reales en sus pruebas y se validan contra los mismos esquemas.
+- **Tenancy:** §4.
+- **`SendPolicy`:** suites por país (`docs/cumplimiento.md` §4.2).
+- **Flujos:** de punta a punta con el reloj simulado (`travel()`), reintentos e idempotencia.
+- **Atribución:** escenarios con clics, lecturas, MPP, control y referidos.
+- **Carga:** k6 con 500 eventos/s sostenidos en ingesta, en un entorno parecido a producción.
+
+## 18. Despliegue
+
+- `infra/docker-compose.prod.yml`: `app` (PHP-FPM o FrankenPHP), `ingest` (Octane para los endpoints de ingesta), `horizon`, `scheduler`, `reverb`, `mariadb`, `clickhouse`, `redis`, `caddy`, `ml` (Fase 4).
+- **Caddy** con TLS bajo demanda para los dominios de seguimiento de los clientes (`t.cliente.com`) y para los dominios propios de enlaces y preferencias, con un endpoint `ask` que valida que el dominio pertenece a un sitio.
+- **Despliegue sin caída:** compilar la imagen → migraciones compatibles hacia atrás → reiniciar workers con `horizon:terminate`.
+- **Copias de seguridad:** `mariadb-backup` cada día + binlogs; `BACKUP` de ClickHouse a S3 o Storage Box cada semana con incrementales diarios; **simulacro de restauración cada mes** documentado.
+- **Entornos:** `local` (Sail o Compose), `staging` (datos de prueba) y `production`.
