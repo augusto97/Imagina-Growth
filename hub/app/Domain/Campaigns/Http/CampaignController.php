@@ -42,8 +42,17 @@ final class CampaignController
             ->when(is_string($status) && $status !== '', fn ($q) => $q->where('status', $status))
             ->orderByRaw("FIELD(status, 'sending', 'scheduled', 'paused', 'draft', 'sent', 'cancelled')")
             ->orderByDesc('updated_at')->limit(500)->get();
+        // Para las que ya empezaron: destinatarios reales (sin el grupo de control) y enviados, en una consulta.
+        $counts = DB::table('campaign_recipients')->where('workspace_id', $this->current->id())
+            ->whereIn('campaign_id', $campaigns->whereNotNull('started_at')->pluck('id')->all())
+            ->groupBy('campaign_id')
+            ->selectRaw("campaign_id, SUM(CASE WHEN is_holdout = 0 THEN 1 ELSE 0 END) AS recipients, SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) AS sent")
+            ->get()->keyBy('campaign_id');
 
-        return response()->json(['data' => $campaigns->map(fn (Campaign $c) => CampaignPresenter::make($c))->values()]);
+        return response()->json(['data' => $campaigns->map(fn (Campaign $c) => CampaignPresenter::make($c) + [
+            'recipients' => isset($counts[$c->id]) ? (int) $counts[$c->id]->recipients : null,
+            'sent' => isset($counts[$c->id]) ? (int) $counts[$c->id]->sent : null,
+        ])->values()]);
     }
 
     /** POST campaigns {name, channel} */
@@ -250,7 +259,7 @@ final class CampaignController
     {
         Gate::authorize('ws.viewDashboards');
         $ws = $this->current->get();
-        $segments = Segment::query()->orderByDesc('is_system')->orderBy('name')->get()
+        $segments = Segment::query()->orderBy('is_system')->orderBy('name')->get()
             ->map(fn (Segment $s) => ['id' => $s->publicId(), 'name' => $s->name, 'member_count' => $s->member_count, 'is_system' => $s->is_system, 'folder' => $s->folder])->values();
         $templates = DB::table('templates')->where('workspace_id', $ws->id)->where('status', '!=', 'archived')
             ->orderBy('name')->get(['id', 'name', 'channel', 'category', 'subject', 'status'])

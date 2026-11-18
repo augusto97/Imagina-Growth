@@ -286,6 +286,21 @@
 - **Calendario comercial LATAM** precargado por país: Día de la Madre (mayo; México el 10 de mayo), Amor y Amistad (septiembre, Colombia), Día del Padre, Hot Sale y Buen Fin (México), CyberLunes (Colombia), Black Friday, Navidad, regreso a clases y **pagos de prima en junio y diciembre** (Colombia), con ideas de campaña.
 - **Copiloto** (Fase 4): «Haz una campaña de Black Friday para VIP con 20%» propone segmento, canales, textos, horario, reglas del cupón, costo y revisión de cumplimiento. **Nunca envía sin aprobación humana.**
 
+**Implementación (Fase 2):**
+- **Estados:** `draft` → `scheduled` (aprobada) → `sending` → `sent`, más `paused` y `cancelled`. La aprobación exige el permiso `manageMarketing`, una cuenta activa del canal y una revisión hecha en ese momento; queda en la auditoría. Editar una campaña aprobada que aún no empieza la devuelve a borrador.
+- **Audiencia:** segmentos incluidos (o «todos los contactos») y excluidos, sobre la membresía ya calculada, más reglas.
+  - Para excluir: «compró en los últimos N días» y «recibió un mensaje en los últimos N días».
+  - Para incluir: «tiene consentimiento del canal» y «nunca compró».
+- **Revisión de cumplimiento:** usa `SendPolicy::check` (sin reservar cupos) a la hora planeada de cada contacto y separa a los que **quedan fuera** de los que **se aplazan**. Con más de 3.000 contactos revisa una muestra al azar y extrapola, y lo dice en pantalla.
+- **Costo:** WhatsApp se calcula por país del contacto con la tarifa de marketing de `wa_rates` (`WaRateCard`, tabla de Meta vigente desde el 1 de julio de 2025 **[verificar]**). La tabla se carga con `igr:wa-rates --seed` y se revisa el día 2 de enero, abril, julio y octubre (`igr:wa-rates --check` deja un aviso si está desactualizada). El correo se estima con la tarifa de SES **[verificar]**; el SMS depende del proveedor.
+- **Envío:** `igr:campaigns:tick` corre cada minuto.
+  - Congela la audiencia en `campaign_recipients` al empezar. Con zona del contacto o mejor hora, lo hace 26 h antes.
+  - Sortea el grupo de control y la variante de forma determinista por campaña y contacto.
+  - Despacha por lotes de 500 con la clave `campaign:{id}:{contacto}`. Lo aplazado se reintenta en la hora que indica la política; lo negado queda con su motivo.
+  - **A/B:** la muestra (20% por defecto) recibe las variantes y, pasadas las horas de espera (4 por defecto), el resto recibe la de más clics o ingresos por enviado.
+- **Incremento:** compara la conversión (pedido pagado) en los días de la ventana de atribución (`attribution.click_days`, 5 por defecto) entre los destinatarios y el grupo de control, por intención de tratar, con intervalo de confianza del 95%.
+- **Calendario comercial:** las fechas se calculan con reglas por año. Hot Sale, Buen Fin y los CyberLunes de Colombia usan la regla de los últimos años **[verificar cada año]**.
+
 ---
 
 ## M11 — Bandeja de conversaciones y agente de IA · Fase 4

@@ -1,0 +1,269 @@
+{
+    "campaigns": {
+        "title": "Campañas",
+        "description": "Envíos puntuales a un segmento, con revisión de costo y cumplimiento antes de aprobar y el dinero que generaron.",
+        "new": "Nueva campaña",
+        "newHelp": "Ponle un nombre y elige el canal. Después armas la audiencia, el contenido y la hora, y la revisas antes de aprobarla.",
+        "createAndContinue": "Crear y continuar",
+        "copilotSoon": "El copiloto que arma campañas a partir de una frase llega en la Fase 4.",
+        "tabs": {
+            "list": "Lista",
+            "calendar": "Calendario comercial"
+        },
+        "empty": {
+            "title": "Aún no tienes campañas",
+            "description": "Crea la primera: elige un segmento, el mensaje y la hora. Antes de enviar verás cuántos la recibirán, cuánto cuesta y quién queda fuera por ley."
+        },
+        "list": {
+            "name": "Campaña",
+            "channel": "Canal",
+            "status": "Estado",
+            "when": "Envío",
+            "recipients": "Destinatarios",
+            "ab": "A/B",
+            "abWinner": "A/B · ganó {{variant}}",
+            "whenNow": "Al aprobar",
+            "sentOf": "{{sent}} enviados",
+            "estimate": "Estimado en la última revisión"
+        },
+        "status": {
+            "draft": "Borrador",
+            "scheduled": "Programada",
+            "sending": "Enviando",
+            "sent": "Enviada",
+            "paused": "Pausada",
+            "cancelled": "Cancelada"
+        },
+        "channel": {
+            "email": "Correo",
+            "whatsapp": "WhatsApp",
+            "sms": "SMS"
+        },
+        "channelHelp": {
+            "whatsapp": "Plantilla aprobada por Meta. Meta te cobra cada mensaje entregado.",
+            "email": "Correo con tu dominio, con baja en un clic.",
+            "sms": "Mensaje corto por tu proveedor de SMS."
+        },
+        "countries": {
+            "CO": "Colombia",
+            "MX": "México",
+            "VE": "Venezuela",
+            "ZZ": "Otros países"
+        },
+        "fields": {
+            "name": "Nombre",
+            "namePlaceholder": "Por ejemplo: Black Friday para clientes VIP",
+            "channel": "Canal"
+        },
+        "actions": {
+            "duplicate": "Duplicar",
+            "edit": "Editar",
+            "continue": "Continuar el borrador",
+            "pause": "Pausar",
+            "resume": "Reanudar",
+            "cancel": "Cancelar campaña"
+        },
+        "cancel": {
+            "title": "¿Cancelar la campaña?",
+            "description": "Los mensajes que aún no salieron no se enviarán. Los que ya salieron no se pueden recuperar. Queda en la auditoría.",
+            "confirm": "Sí, cancelar"
+        },
+        "calendar": {
+            "year": "Año",
+            "country": "País",
+            "help": "Fechas comerciales de cada país con ideas de campaña. Empieza a comunicar unos días antes.",
+            "nothing": "Sin fechas comerciales ni campañas.",
+            "startsCommunicating": "comunica desde el {{date}}",
+            "create": "Crear campaña",
+            "ideas_one": "Ver {{count}} idea",
+            "ideas_other": "Ver {{count}} ideas",
+            "hideIdeas": "Ocultar ideas"
+        },
+        "wizard": {
+            "subtitle": "Arma la campaña paso a paso; se guarda al avanzar.",
+            "steps": "Pasos de la campaña",
+            "step": {
+                "channel": "Canal",
+                "audience": "Audiencia",
+                "content": "Contenido",
+                "schedule": "Programación",
+                "review": "Revisión"
+            },
+            "saveAndNext": "Guardar y seguir",
+            "channelHelp": "El canal define qué contenido puedes usar y cómo se cobra.",
+            "channelConnected": "Conectado",
+            "channelMissing": "Sin conectar",
+            "connectChannel": "Este canal no tiene una cuenta activa: no podrás aprobar la campaña hasta conectarla.",
+            "goChannels": "Ir a Canales",
+            "notEditable": "Esta campaña ya empezó a enviarse",
+            "notEditableHelp": "Ya no se puede editar. Puedes pausarla, cancelarla o duplicarla para hacer otra.",
+            "seeReport": "Ver el reporte"
+        },
+        "audience": {
+            "help": "Incluye uno o varios segmentos y excluye a quien no deba recibirla. El conteo es antes de revisar consentimiento y horarios.",
+            "count": "Contactos en la audiencia",
+            "all": "Todos los contactos",
+            "include": "Incluir a los de",
+            "exclude": "Excluir a los de",
+            "searchSegments": "Buscar segmentos",
+            "noSegments": "No hay segmentos con ese nombre.",
+            "system": "Sistema",
+            "rules": "Reglas",
+            "days": "días",
+            "excludeBuyers": "Excluir a quien compró en los últimos",
+            "excludeMessaged": "Excluir a quien recibió un mensaje en los últimos",
+            "onlyConsent": "Solo contactos con consentimiento de {{channel}}",
+            "onlyNeverPurchased": "Solo quien nunca ha comprado"
+        },
+        "content": {
+            "help": "Elige la plantilla. Con A/B, una muestra recibe cada variante y el resto recibe la ganadora.",
+            "template": "Plantilla",
+            "variant": "Variante {{key}}",
+            "chooseTemplate": "Elige una plantilla",
+            "noTemplates": "No tienes plantillas de {{channel}}.",
+            "goTemplates": "Crear una plantilla",
+            "startAb": "Probar otra variante (A/B)",
+            "addVariant": "Agregar variante",
+            "removeVariant": "Quitar",
+            "stopAb": "Quitar la prueba A/B",
+            "samplePct": "Muestra (%)",
+            "metric": "Gana la de más",
+            "metricClicks": "Clics",
+            "metricRevenue": "Ingresos",
+            "waitHours": "Esperar (horas)",
+            "abHelp": "El {{pct}}% de la audiencia recibe las variantes; a las {{hours}} h el resto recibe la ganadora.",
+            "holdout": "Grupo de control (%)",
+            "holdoutHelp": "Un porcentaje al azar no recibe la campaña. Así se mide cuánto vendió de más frente a no enviar nada."
+        },
+        "schedule": {
+            "help": "Siempre dentro del horario legal del país de cada contacto: lo que caiga fuera se aplaza, nunca se descarta.",
+            "mode": {
+                "now": "Al aprobar",
+                "scheduled": "En una fecha y hora",
+                "contact_timezone": "A la misma hora local de cada contacto",
+                "best_time": "A la mejor hora de cada contacto"
+            },
+            "modeHelp": {
+                "now": "Sale en cuanto la apruebes (o en la próxima franja legal).",
+                "scheduled": "Todos a la vez, a la hora elegida.",
+                "contact_timezone": "Las 10:00 son las 10:00 en la zona de cada contacto.",
+                "best_time": "El día elegido, a la hora en que cada contacto suele interactuar; sin datos, a la hora elegida."
+            },
+            "at": "Fecha y hora",
+            "day": "Día (y hora para quien no tenga una preferida)",
+            "timezone": "Hora de {{tz}}.",
+            "legal": "En Colombia solo de lunes a viernes de 7:00 a 19:00 y sábados de 8:00 a 15:00, nunca domingos ni festivos (Ley 2300). En México, de lunes a sábado de 9:00 a 20:00. Además se respeta el tope de un mensaje comercial al día por contacto."
+        },
+        "review": {
+            "running": "Revisando consentimiento, horarios, frecuencia y costo…",
+            "notReviewed": "La campaña aún no tiene revisión",
+            "noChannel": "No hay una cuenta activa del canal. Conéctala en Canales antes de aprobar.",
+            "audience": "En la audiencia",
+            "willSend": "La recibirán",
+            "excluded": "Quedan fuera",
+            "holdout": "Grupo de control",
+            "estimated": "Estimado con una muestra al azar de {{n}} contactos.",
+            "compliance": "Revisión de cumplimiento",
+            "complianceHelp": "Lo mismo que se revisa al enviar: consentimiento, bajas, registros de exclusión, horario legal y frecuencia.",
+            "excludedWhy": "Quedan fuera por",
+            "deferredWhy": "Se aplazan (salen más tarde) por",
+            "noneExcluded": "Nadie queda fuera.",
+            "noneDeferred": "Nada se aplaza.",
+            "window": "Los envíos irán del {{from}} al {{to}}",
+            "cost": "Costo estimado",
+            "country": "País",
+            "recipients": "Destinatarios",
+            "rate": "Tarifa",
+            "subtotal": "Subtotal",
+            "ratesFrom": "Tarifas de Meta vigentes desde el {{date}}.",
+            "ratesStale": "Tarifas de Meta del {{date}}: pueden estar desactualizadas (se revisan cada trimestre).",
+            "checkedAt": "Revisado {{when}}",
+            "rerun": "Revisar de nuevo",
+            "approve": "Aprobar y programar",
+            "approveNow": "Aprobar y enviar",
+            "scheduledToast": "Campaña aprobada y programada",
+            "sentToast": "Campaña aprobada: empezó el envío",
+            "windowSingle": "Saldrán el {{at}}"
+        },
+        "detail": {
+            "finished": "terminó {{when}}",
+            "notStarted": "La campaña aún no empieza",
+            "draftHelp": "Es un borrador: termina el asistente y apruébala para enviarla.",
+            "scheduledHelp": "Está programada para el {{when}}; según la última revisión la recibirán {{count}} contactos."
+        },
+        "report": {
+            "recipients": "Destinatarios",
+            "holdoutHint": "y {{n}} en el grupo de control",
+            "sent": "Enviados",
+            "deliveredHint": "{{n}} entregados",
+            "clicks": "Clics",
+            "clickRate": "{{pct}} de los enviados",
+            "revenue": "Ingresos atribuidos",
+            "orders_one": "{{count}} pedido",
+            "orders_other": "{{count}} pedidos",
+            "funnel": "Entrega e interacción",
+            "funnelHelp": "Cada paso como porcentaje de los mensajes enviados.",
+            "opensNoMpp": "Las aperturas no cuentan las automáticas de Apple Mail.",
+            "opensMaybeMpp": "Las aperturas pueden incluir las automáticas de Apple Mail.",
+            "step": {
+                "sent": "Enviados",
+                "delivered": "Entregados",
+                "read": "Leídos",
+                "opened": "Abiertos",
+                "clicked": "Con clic"
+            },
+            "unsubscribed": "{{n}} bajas",
+            "failed": "{{n}} fallidos",
+            "uplift": "Incremento frente al grupo de control",
+            "upliftHelp": "Conversión (pedido pagado) en los {{days}} días desde el inicio: quienes recibieron la campaña frente a quienes no.",
+            "noHoldout": "Sin grupo de control no se puede medir el incremento. Actívalo en el paso Contenido de la próxima campaña.",
+            "treatment": "Recibieron la campaña",
+            "control": "Grupo de control",
+            "converted": "{{n}} de {{of}} compraron",
+            "ci": "(IC 95%: {{low}} a {{high}})",
+            "significant": "diferencia significativa",
+            "notSignificant": "aún no es significativa",
+            "incremental": "Ingreso incremental estimado: {{amount}}",
+            "windowOpen": "La ventana de medición sigue abierta: los números pueden cambiar.",
+            "variants": "Variantes A/B",
+            "variant": "Variante",
+            "clickRateCol": "Tasa de clics",
+            "revenuePerSent": "Ingreso por enviado",
+            "winner": "Ganadora",
+            "winnerChosen": "Ganó la variante {{variant}}: el resto de la audiencia la recibió.",
+            "winnerPending": "La muestra está en curso; luego se elige la ganadora.",
+            "recipientsTitle": "Destinatarios por estado",
+            "recipientsHelp": "Quién recibió la campaña, quién se aplazó y quién quedó fuera, con el motivo.",
+            "noReasons": "Sin exclusiones ni aplazamientos."
+        },
+        "recipientStatus": {
+            "pending": "Esperan su hora",
+            "held": "Esperan la variante ganadora",
+            "deferred": "Aplazados",
+            "sent": "Enviados",
+            "denied": "Fuera por política",
+            "skipped": "Omitidos (control o cancelación)",
+            "failed": "Con error"
+        },
+        "reasons": {
+            "no_consent": "Sin consentimiento de marketing",
+            "no_address": "Sin correo o teléfono",
+            "suppressed": "Suprimido (rebote, queja o bloqueo)",
+            "unsubscribed": "Se dio de baja",
+            "excluded_registry": "En el registro de exclusión (RNE o REPEP)",
+            "outside_hours": "Fuera del horario legal",
+            "sunday": "Domingo",
+            "holiday": "Festivo",
+            "frequency_day": "Ya recibió un mensaje comercial ese día",
+            "frequency_week": "Tope semanal de mensajes",
+            "frequency_channel_week": "Esa semana ya se le escribió por otro canal",
+            "frequency_preference": "Pidió recibir menos mensajes",
+            "channel_unavailable": "Sin cuenta activa del canal",
+            "quality_low": "Calidad baja del número de WhatsApp",
+            "unofficial_marketing": "La conexión no oficial no permite marketing",
+            "holdout": "Grupo de control",
+            "cancelled": "Campaña cancelada",
+            "dispatch_error": "Error al despachar"
+        }
+    }
+}

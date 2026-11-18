@@ -19,10 +19,11 @@ use App\Domain\Workspaces\Models\Workspace;
  * - `pedido`: numero, total, estado, url_pago.
  * - `producto` / `recomendaciones`: para_ti, mas_vendidos (listas de productos).
  * - `enlaces`: baja, preferencias (los pone el despachador: cada mensaje los suyos).
+ * - `campana`: nombre y variante (A/B) de la campaña que envía.
  */
 final class RenderContext
 {
-    public const VARIABLES = ['contacto', 'tienda', 'carrito', 'cupon', 'pedido', 'producto', 'recomendaciones', 'enlaces'];
+    public const VARIABLES = ['contacto', 'tienda', 'carrito', 'cupon', 'pedido', 'producto', 'recomendaciones', 'enlaces', 'campana'];
 
     /**
      * @param  array<string, mixed>  $vars
