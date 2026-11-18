@@ -7,8 +7,10 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "aws/aws-sdk-php": "^3.404",
         "brick/math": "^1.0",
         "giggsey/libphonenumber-for-php": "^9.0",
+        "keepsuit/liquid": "^0.13.0",
         "laravel/fortify": "^1.43",
         "laravel/framework": "^13.17",
         "laravel/horizon": "^5.52",

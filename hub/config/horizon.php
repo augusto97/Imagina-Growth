@@ -228,6 +228,24 @@ return [
             'tries' => 2,
             'timeout' => 1800,
         ],
+        // Flujos: AdvanceFlowRun (hub/CLAUDE.md §15: flows, 4 workers en producción).
+        'supervisor-flows' => [
+            'connection' => 'redis',
+            'queue' => ['flows'],
+            'balance' => 'simple',
+            'maxProcesses' => 1,
+            'tries' => 3,
+            'timeout' => 60,
+        ],
+        // Envíos por canal con límite por cuenta (messages:*, 2 a 4 workers por canal).
+        'supervisor-messages' => [
+            'connection' => 'redis',
+            'queue' => ['messages:whatsapp', 'messages:email', 'messages:sms'],
+            'balance' => 'auto',
+            'maxProcesses' => 3,
+            'tries' => 5,
+            'timeout' => 60,
+        ],
         // Conversiones hacia anuncios (hub/CLAUDE.md §15: conversions:*, 2 workers).
         'supervisor-conversions' => [
             'connection' => 'redis',
@@ -248,6 +266,12 @@ return [
             ],
             'supervisor-triggers' => [
                 'maxProcesses' => 4,
+            ],
+            'supervisor-flows' => [
+                'maxProcesses' => 4,
+            ],
+            'supervisor-messages' => [
+                'maxProcesses' => 9,
             ],
         ],
 

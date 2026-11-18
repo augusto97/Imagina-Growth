@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         then: function (): void {
             Route::group([], base_path('routes/ingest.php'));
+            // Endpoints públicos de cada módulo (enlaces rastreados, bajas, preferencias,
+            // webhooks de proveedores): sin sesión ni CSRF, protegidos por token o firma.
+            foreach (glob(base_path('routes/public/*.php')) ?: [] as $file) {
+                Route::group([], $file);
+            }
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
