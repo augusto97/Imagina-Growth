@@ -14,7 +14,13 @@ use ImaginaGrowth\Connector\Backfill\Runner;
 use ImaginaGrowth\Connector\Catalog\CatalogCollector;
 use ImaginaGrowth\Connector\Catalog\CatalogSync;
 use ImaginaGrowth\Connector\Collectors\CartCollector;
+use ImaginaGrowth\Connector\Onsite\Account;
+use ImaginaGrowth\Connector\Onsite\Blocks;
 use ImaginaGrowth\Connector\Onsite\CartRestore;
+use ImaginaGrowth\Connector\Onsite\Elementor\Registrar as ElementorWidgets;
+use ImaginaGrowth\Connector\Onsite\Shortcodes;
+use ImaginaGrowth\Connector\Onsite\Store;
+use ImaginaGrowth\Connector\Onsite\Wallet;
 use ImaginaGrowth\Connector\Collectors\CustomerCollector;
 use ImaginaGrowth\Connector\Collectors\OrderCollector;
 use ImaginaGrowth\Connector\Collectors\ReviewCollector;
@@ -86,6 +92,11 @@ final class Plugin {
 		add_action( Scheduler::BACKFILL, array( self::class, 'backfill_step' ) );
 
 		add_action( 'rest_api_init', array( CommandsController::class, 'register_routes' ) );
+		// Slots de la Fase 3: siempre registrados para que un shortcode no se vea como texto
+		// si el sitio se desconecta (sin conexión no pintan nada).
+		Shortcodes::register();
+		Blocks::register();
+		add_action( 'init', array( Account::class, 'sync_rewrite' ), 99 );
 
 		if ( Connection::is_connected() ) {
 			$this->register_collectors();
@@ -116,12 +127,16 @@ final class Plugin {
 		Ping::register();
 		PageData::register();
 		Optimizers::register();
+		ElementorWidgets::register();
 		$woo = static function (): void {
 			OrderCollector::register();
 			CartCollector::register();
 			CatalogCollector::register();
 			CheckoutConsent::register();
 			CartRestore::register();
+			Store::register();
+			Account::register();
+			Wallet::register();
 			add_action( 'woocommerce_thankyou', array( CartCollector::class, 'reset_token' ), 5, 0 );
 		};
 		// WooCommerce suele cargar después (orden alfabético), pero no siempre.

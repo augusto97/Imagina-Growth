@@ -1,0 +1,88 @@
+{
+    "measurement": {
+        "tabs": {
+            "audiencias": "Audiencias"
+        }
+    },
+    "audiences": {
+        "consent": {
+            "explicit": {
+                "title": "Solo se suben contactos con consentimiento para anuncios",
+                "help": "Tu espacio de trabajo usa el modo estricto: entra a la audiencia solo quien aceptó que usemos sus datos para anuncios. Se envían solo hashes del correo y el teléfono, nunca los datos en claro."
+            },
+            "unless_revoked": {
+                "title": "Se suben todos los contactos del segmento, menos quien rechazó los anuncios",
+                "help": "Se envían solo hashes del correo y el teléfono, nunca los datos en claro. Quien revoca el consentimiento de anuncios sale de todas las audiencias en minutos."
+            }
+        },
+        "noDestinations": {
+            "title": "Conecta una plataforma de anuncios",
+            "description": "Agrega Meta, Google o TikTok en la pestaña Destinos, con la cuenta publicitaria, para sincronizar audiencias."
+        },
+        "empty": {
+            "title": "Todavía no sincronizas audiencias",
+            "description": "Usa un atajo o elige un segmento: se sube ahora y se actualiza cada 12 horas con las altas y las bajas."
+        },
+        "created": "Audiencia creada. La primera sincronización empieza en segundo plano.",
+        "create": {
+            "title": "Nueva audiencia",
+            "help": "Un segmento se sube a una audiencia de la plataforma y se mantiene al día cada 12 horas.",
+            "noUsable": "Ningún destino tiene lo necesario para audiencias. Completa sus datos en la pestaña Destinos.",
+            "destination": "Destino",
+            "usePreset": "Crear",
+            "segment": "Segmento",
+            "chooseSegment": "Elige un segmento",
+            "segmentOption_one": "{{name}} ({{count}} contacto)",
+            "segmentOption_other": "{{name}} ({{count}} contactos)",
+            "purpose": "Para qué",
+            "name": "Nombre en la plataforma",
+            "namePlaceholder": "Imagina Growth · nombre del segmento",
+            "submit": "Crear audiencia"
+        },
+        "preset": {
+            "recent_buyers_exclusion": {
+                "title": "Excluir compradores recientes",
+                "help": "Quien compró en los últimos 30 días. Úsala como exclusión para no pagar anuncios a quien acaba de comprar."
+            },
+            "high_value_seed": {
+                "title": "Semilla de públicos similares",
+                "help": "Tus mejores clientes (RFM «Campeones»). Crea con ella un público similar en la plataforma para encontrar más como ellos."
+            },
+            "at_risk_reactivation": {
+                "title": "Reactivar clientes en riesgo",
+                "help": "Clientes RFM «En riesgo»: muéstrales anuncios para que vuelvan antes de perderlos."
+            }
+        },
+        "purpose": {
+            "target": "Público",
+            "exclusion": "Exclusión",
+            "lookalike_seed": "Semilla de similares"
+        },
+        "status": {
+            "pending": "Pendiente",
+            "active": "Sincronizada",
+            "paused": "En pausa",
+            "error": "Con error"
+        },
+        "table": {
+            "audience": "Audiencia",
+            "purpose": "Para qué",
+            "status": "Estado",
+            "members": "Enviados",
+            "lastSync": "Última sincronización",
+            "from": "{{segment}} → {{destination}}",
+            "delta": "+{{added}} / −{{removed}}",
+            "skipped_one": "{{count}} fuera por consentimiento",
+            "skipped_other": "{{count}} fuera por consentimiento",
+            "small": "Menos de {{min}}: puede no servir para anuncios",
+            "never": "Todavía no",
+            "next": "Próxima {{when}}",
+            "syncNow": "Sincronizar ahora",
+            "queued": "Sincronización en curso",
+            "pause": "Pausar",
+            "resume": "Reanudar",
+            "delete": "Dejar de sincronizar",
+            "deleteConfirm": "¿Dejar de sincronizar «{{name}}»? La audiencia sigue en la plataforma con sus miembros actuales."
+        }
+    }
+}

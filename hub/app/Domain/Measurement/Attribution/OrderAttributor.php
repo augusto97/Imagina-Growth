@@ -17,6 +17,7 @@ use Carbon\CarbonImmutable;
  * Preferencia: visitas del tracker en los 30 días anteriores → contexto del
  * evento del pedido (cookie _igr_src) → atribución nativa de WooCommerce.
  * El último contacto es el último no directo («último clic no directo»).
+ * Con `referral_code` (?ref= de un referido o afiliado, v4) el canal es afiliados.
  * Los pasos de mensajes, referidos y widgets llegan en las fases 2 y 3.
  */
 final class OrderAttributor
@@ -130,12 +131,13 @@ final class OrderAttributor
         $utm = is_array($touch['utm'] ?? null) ? $touch['utm'] : [];
         $clicks = is_array($touch['click_ids'] ?? null) ? $touch['click_ids'] : [];
         $referrer = is_string($touch['referrer'] ?? null) ? $touch['referrer'] : null;
-        if ($utm === [] && $clicks === [] && ($referrer === null || $referrer === '')) {
+        $referral = is_string($touch['referral_code'] ?? null) && $touch['referral_code'] !== '' ? $touch['referral_code'] : null;
+        if ($utm === [] && $clicks === [] && ($referrer === null || $referrer === '') && $referral === null) {
             return new Touch(ChannelClassifier::DIRECT, at: is_string($touch['at'] ?? null) ? $touch['at'] : null, source: 'order_context');
         }
 
         return new Touch(
-            $this->classifier->classify(['utm' => $utm, 'click_ids' => $clicks, 'referrer' => $referrer, 'site_host' => $site?->host]),
+            $this->classifier->classify(['utm' => $utm, 'click_ids' => $clicks, 'referrer' => $referrer, 'site_host' => $site?->host, 'referral_code' => $referral]),
             isset($utm['source']) ? (string) $utm['source'] : null,
             isset($utm['medium']) ? (string) $utm['medium'] : null,
             isset($utm['campaign']) ? (string) $utm['campaign'] : null,

@@ -10,9 +10,13 @@
  * `/v1/s/config`, `/v1/s/catalog/hashes`, `PUT /v1/s/backfill` y `POST /v1/s/privacy/requests`.
  * Del lado del navegador (Fase 1): `/v1/b` (CORS, clave pública, mismo validador; verifica el token
  * de `identify`), `GET /p/{pk}/widgets.json` y `POST /p/{pk}/surveys/{id}/answers` (token de igrOrder).
+ * Fase 3 (§5.5 y §8.3): `widgets.json` con widgets de captación, `visitor.json`, `widgets/{id}/submit`
+ * (cupón, premio de la ruleta y productos del quiz), `reco`, `watch`, `me` (+ `redeem` y `share`),
+ * `reviews` (+ `badges`), `points`, `banner` y `POST /v1/s/wallet/redeem` (crea el cupón en el sitio con
+ * `coupon.create` firmado antes de responder, como el hub).
  * Guarda agregados en `$MOCK_HUB_DATA/state.json` para que las pruebas los inspeccionen (`GET /_state`).
- * `POST /_config` mezcla ajustes en la respuesta de `/v1/s/config` (p. ej. `measurement`, `consent`)
- * y en los widgets (`widgets`).
+ * `POST /_config` reemplaza claves de primer nivel: la respuesta de `/v1/s/config` (`measurement`, `consent`,
+ * `onsite`), los widgets (`widgets`), los productos de `reco` (`reco`) y el saldo (`wallet_balance`).
  *
  * @package ImaginaGrowth\Connector
  */
@@ -62,6 +66,7 @@ $state = is_array( $state ) ? $state : array(
 	'overrides'    => array(),
 );
 $state += array( 'browser' => array(), 'browser_batches' => 0, 'identified' => array(), 'bad_tokens' => 0, 'survey_answers' => array(), 'privacy' => array(), 'overrides' => array() );
+$state += array( 'submits' => array(), 'watches' => array(), 'redeems' => array(), 'shares' => array(), 'wallet_redeems' => array(), 'public_requests' => array() );
 
 $respond = static function ( int $status, array $payload ) use ( &$state, $state_file, $lock ): void {
 	file_put_contents( $state_file, json_encode( $state ) );
@@ -130,7 +135,7 @@ if ( $public ) {
 }
 
 if ( 'POST' === $method && '/_config' === $path ) {
-	$state['overrides'] = array_replace_recursive( $state['overrides'], (array) json_decode( $body, true ) );
+	$state['overrides'] = array_merge( $state['overrides'], (array) json_decode( $body, true ) );
 	$respond( 200, $state['overrides'] );
 }
 
@@ -289,6 +294,7 @@ if ( 'GET' === $method && '/v1/s/config' === $path ) {
 				),
 			),
 			'measurement'        => $state['overrides']['measurement'] ?? array( 'mode' => 'server_only', 'pixels' => new stdClass() ),
+			'onsite'             => $state['overrides']['onsite'] ?? array( 'loyalty' => true, 'wallet' => true, 'product_watch' => true ),
 			'min_plugin_version' => '0.1.0',
 		)
 	);
@@ -403,7 +409,16 @@ if ( 'GET' === $method && 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/widgets\.jso
 		),
 	);
 	$type = (string) ( $_GET['page_type'] ?? '' );
-	$respond( 200, array( 'widgets' => array_values( array_filter( $widgets, static fn( array $w ): bool => 'thankyou' !== ( $w['slot'] ?? '' ) || 'thankyou' === $type ) ) ) );
+	$keep = static fn( array $w ): bool => ( 'thankyou' !== ( $w['slot'] ?? '' ) || 'thankyou' === $type )
+		&& ( empty( $w['targeting']['page_types'] ) || in_array( $type, $w['targeting']['page_types'], true ) );
+	$respond(
+		200,
+		array(
+			'widgets'  => array_values( array_filter( $widgets, $keep ) ),
+			// Propuesta: los textos de consentimiento para los slots que no son widgets («avísame»).
+			'consents' => array( array( 'channel' => 'email', 'label' => 'Quiero recibir ofertas por correo. Puedo darme de baja cuando quiera.', 'version' => 'v1' ) ),
+		)
+	);
 }
 
 // Respuesta de la encuesta (api-connector.md §8.2).
@@ -425,6 +440,249 @@ if ( 'POST' === $method && 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/surveys/([A
 	}
 	$state['survey_answers'][] = array( 'survey_id' => $m[2], 'order_id' => $payload['order'], 'answer' => $req['answer'], 'other' => $req['other'] ?? null, 'anonymous_id' => $req['anonymous_id'] ?? null );
 	$respond( 202, array( 'ok' => true ) );
+}
+
+
+// ---------------------------------------------------------------- Fase 3 (api-connector.md §5.5 y §8.3)
+
+$pk_ok = static function ( string $pk ) use ( &$state ): bool {
+	return is_array( $state['site'] ) && $pk === $state['site']['public_key'];
+};
+$public_body = static function () use ( $body ): array {
+	$req = json_decode( $body, true );
+	return is_array( $req ) ? $req : array();
+};
+$log_public = static function ( string $what ) use ( &$state ): void {
+	$state['public_requests'][] = array( 'path' => $what, 'query' => $_GET );
+	$state['public_requests']   = array_slice( $state['public_requests'], -100 );
+};
+$user_ref = static function ( ?string $tok ) use ( $token ): ?string {
+	$p = $token( $tok );
+	return is_array( $p ) && isset( $p['ref'] ) ? (string) $p['ref'] : null;
+};
+$fixture_products = static function () use ( &$state ): array {
+	return $state['overrides']['reco'] ?? array(
+		array( 'id' => '1', 'name' => 'Producto recomendado', 'price' => '150000.00', 'regular_price' => '150000.00', 'sale_price' => null, 'currency' => 'COP', 'image' => null, 'url' => 'http://127.0.0.1:8080/', 'rating_avg' => 4.5, 'rating_count' => 12 ),
+	);
+};
+
+if ( 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/(visitor\.json|reco|points|banner|me|reviews|reviews/badges)$#', (string) $path, $m ) && 'GET' === $method ) {
+	if ( ! $pk_ok( $m[1] ) ) {
+		$respond( 404, array( 'error' => 'unknown_key' ) );
+	}
+	$log_public( $m[2] );
+	switch ( $m[2] ) {
+		case 'visitor.json':
+			header( 'Cache-Control: private, no-store' );
+			$aid  = (string) ( $_GET['aid'] ?? '' );
+			$subs = array( 'email' => false, 'whatsapp' => false );
+			$known = false;
+			foreach ( $state['submits'] as $sub ) {
+				if ( '' !== $aid && $sub['anonymous_id'] === $aid ) {
+					$known = true;
+					foreach ( (array) $sub['consents'] as $ch => $on ) {
+						$subs[ $ch ] = $subs[ $ch ] || (bool) $on;
+					}
+				}
+			}
+			$views     = count( array_filter( $state['browser'], static fn( $e ): bool => '' !== $aid && 'page.viewed' === $e['event'] && ( $e['identity']['anonymous_id'] ?? '' ) === $aid ) );
+			$returning = $views > 1;
+			$respond( 200, array( 'known' => $known, 'returning' => $returning, 'subscribed' => $subs, 'country' => 'CO', 'segments' => array() ) );
+		case 'reco':
+			header( 'Cache-Control: ' . ( in_array( $_GET['kind'] ?? '', array( 'para_ti', 'recently_viewed', 'complete_cart' ), true ) ? 'private' : 'public' ) . ', max-age=60' );
+			$limit = max( 1, min( 12, (int) ( $_GET['limit'] ?? 4 ) ) );
+			$respond( 200, array( 'kind' => (string) ( $_GET['kind'] ?? 'trending' ), 'products' => array_slice( $fixture_products(), 0, $limit ) ) );
+		case 'points':
+			header( 'Cache-Control: public, max-age=300' );
+			$base   = (float) ( $_GET['price'] ?? $_GET['cart_total'] ?? 0 );
+			$points = (int) floor( $base / 1000 );
+			$respond( 200, array( 'points' => $points, 'label' => 'Gana ' . $points . ' Puntos Prueba' ) );
+		case 'banner':
+			header( 'Cache-Control: private, no-store' );
+			$ref = $user_ref( isset( $_GET['token'] ) ? (string) $_GET['token'] : null );
+			$respond( 200, array( 'banner' => 'account' === ( $_GET['placement'] ?? '' ) && null !== $ref ? array( 'text' => 'Eres cliente Plata: envío gratis este mes', 'cta' => 'Ver beneficios', 'url' => 'http://127.0.0.1:8080/', 'style' => 'vip' ) : null ) );
+		case 'me':
+			header( 'Cache-Control: private, no-store' );
+			$ref = $user_ref( isset( $_GET['token'] ) ? (string) $_GET['token'] : null );
+			if ( null === $ref ) {
+				$respond( 401, array( 'error' => 'token' ) );
+			}
+			$spent   = array_sum( array_map( static fn( $r ) => $r['ref'] === $ref ? (int) $r['points'] : 0, $state['redeems'] ) );
+			$balance = 1532 - $spent;
+			$code    = 'REF' . strtoupper( substr( hash( 'sha256', $ref ), 0, 5 ) );
+			$respond(
+				200,
+				array(
+					'points'   => array( 'balance' => $balance, 'pending' => 282, 'currency_name' => 'Puntos Prueba', 'expiring' => array( 'points' => 120, 'at' => '2026-12-31' ) ),
+					'tier'     => array( 'name' => 'Plata', 'next_name' => 'Oro', 'progress_pct' => 64, 'benefits' => array( 'Envío gratis' ) ),
+					'wallet'   => array( 'balance' => (string) ( $state['overrides']['wallet_balance'] ?? '35000.00' ), 'currency' => 'COP' ),
+					'referral' => array( 'code' => $code, 'link' => 'http://127.0.0.1:8080/?ref=' . $code, 'share_text' => 'Te regalo 10% en la tienda de prueba', 'friend_reward' => '10% en tu primera compra', 'referrer_reward' => '500 puntos' ),
+					'rewards'  => array(
+						array( 'id' => 'rw_01JF0REWARD000000000001', 'name' => '$20.000 de descuento', 'points' => 500, 'kind' => 'coupon_fixed' ),
+						array( 'id' => 'rw_01JF0REWARD000000000002', 'name' => 'Kit de brochas', 'points' => 5000, 'kind' => 'product' ),
+					),
+				)
+			);
+		case 'reviews':
+			header( 'Cache-Control: public, max-age=300' );
+			$page  = max( 1, (int) ( $_GET['page'] ?? 1 ) );
+			$media = array( array( 'url' => 'http://127.0.0.1:8090/_media/1.svg', 'type' => 'image', 'thumb' => 'http://127.0.0.1:8090/_media/1.svg' ) );
+			$all   = array(
+				array( 'id' => 'rv_01', 'rating' => 5, 'title' => 'Excelente cubrimiento', 'body' => 'Con una mano quedó perfecta.', 'author' => 'Ana R.', 'verified' => true, 'media' => $media, 'created_at' => '2026-11-01T10:00:00Z', 'reply' => '¡Gracias, Ana!' ),
+				array( 'id' => 'rv_02', 'rating' => 4, 'title' => null, 'body' => 'Buena, el color es un poco más claro.', 'author' => 'Luis P.', 'verified' => false, 'media' => array(), 'created_at' => '2026-10-20T10:00:00Z', 'reply' => null ),
+			);
+			if ( '1' === (string) ( $_GET['with_media'] ?? '0' ) ) {
+				$all = array_values( array_filter( $all, static fn( $r ) => array() !== $r['media'] ) );
+			}
+			$respond( 200, array( 'summary' => array( 'avg' => 4.8, 'count' => 23, 'distribution' => array( '5' => 20, '4' => 2, '3' => 1, '2' => 0, '1' => 0 ) ), 'reviews' => 1 === $page ? $all : array(), 'next_page' => null ) );
+		case 'reviews/badges':
+			header( 'Cache-Control: public, max-age=300' );
+			$out = array();
+			foreach ( array_filter( explode( ',', (string) ( $_GET['product_ids'] ?? '' ) ) ) as $pid ) {
+				$out[ $pid ] = array( 'avg' => 4.8, 'count' => 23 );
+			}
+			$respond( 200, $out );
+	}
+}
+
+if ( 'GET' === $method && str_starts_with( (string) $path, '/_media/' ) ) {
+	flock( $lock, LOCK_UN );
+	header( 'Content-Type: image/svg+xml' );
+	echo '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" fill="#2563eb"/></svg>';
+	exit;
+}
+
+// Envío de un widget: crea o une el contacto (aquí, solo lo guarda), cupón único, premio y productos.
+if ( 'POST' === $method && 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/widgets/([A-Za-z0-9_-]+)/submit$#', (string) $path, $m ) ) {
+	if ( ! $pk_ok( $m[1] ) ) {
+		$respond( 404, array( 'error' => 'unknown_key' ) );
+	}
+	$req    = $public_body();
+	$widget = null;
+	foreach ( (array) ( $state['overrides']['widgets'] ?? array() ) as $w ) {
+		if ( ( $w['id'] ?? '' ) === $m[2] ) {
+			$widget = $w;
+		}
+	}
+	if ( null === $widget ) {
+		$respond( 404, array( 'error' => 'unknown_widget' ) );
+	}
+	$fields  = is_array( $req['fields'] ?? null ) ? $req['fields'] : array();
+	$errors  = array();
+	$content = $widget['content'] ?? array();
+	foreach ( (array) ( $content['fields'] ?? array() ) as $f ) {
+		$v = trim( (string) ( $fields[ $f['key'] ] ?? '' ) );
+		if ( ! empty( $f['required'] ) && '' === $v ) {
+			$errors[ $f['key'] ] = array( 'Este dato es obligatorio.' );
+		} elseif ( 'phone' === $f['key'] && '' !== $v && strlen( preg_replace( '/\D/', '', $v ) ) < 10 ) {
+			$errors[ $f['key'] ] = array( 'Escribe un celular colombiano de 10 dígitos.' );
+		} elseif ( 'email' === $f['key'] && '' !== $v && ! filter_var( $v, FILTER_VALIDATE_EMAIL ) ) {
+			$errors[ $f['key'] ] = array( 'Escribe un correo válido.' );
+		}
+	}
+	if ( array() !== $errors ) {
+		$respond( 422, array( 'message' => 'Revisa los datos.', 'errors' => $errors ) );
+	}
+	$contact = strtolower( (string) ( $fields['email'] ?? '' ) ) . preg_replace( '/\D/', '', (string) ( $fields['phone'] ?? '' ) );
+	foreach ( $state['submits'] as $sub ) {
+		if ( '' !== $contact && $sub['widget_id'] === $m[2] && $sub['contact'] === $contact ) {
+			$respond( 409, array( 'ok' => false, 'message' => 'Ya recibiste este cupón.' ) );
+		}
+	}
+	$state['submits'][] = array(
+		'widget_id'     => $m[2],
+		'kind'          => $widget['kind'],
+		'variant'       => $req['variant'] ?? null,
+		'step'          => $req['step'] ?? null,
+		'anonymous_id'  => $req['anonymous_id'] ?? null,
+		'page_url'      => $req['page_url'] ?? null,
+		'contact'       => $contact,
+		'fields'        => array_keys( $fields ),
+		'consents'      => $req['consents'] ?? array(),
+		'answers'       => $req['answers'] ?? null,
+		'referral_code' => $req['referral_code'] ?? null,
+	);
+	$out = array( 'ok' => true, 'double_opt_in' => false );
+	if ( in_array( $widget['kind'], array( 'popup', 'embedded_form', 'spin_wheel', 'two_step', 'referral_welcome', 'bar', 'teaser' ), true ) && '' !== $contact ) {
+		$out['coupon'] = array( 'code' => 'BIENV-' . strtoupper( substr( hash( 'sha256', $contact . $m[2] ), 0, 6 ) ), 'description' => '10% en tu primera compra', 'expires_at' => gmdate( 'Y-m-d\T23:59:59\Z', time() + 14 * 86400 ) );
+	}
+	if ( 'spin_wheel' === $widget['kind'] ) {
+		$slices       = $content['slices'] ?? array( array( 'key' => '10', 'label' => '10%' ) );
+		$prize        = $slices[ min( 1, count( $slices ) - 1 ) ];
+		$out['prize'] = array( 'key' => $prize['key'], 'label' => $prize['label'] . ' de descuento' );
+	}
+	if ( 'quiz' === $widget['kind'] ) {
+		$out['message']  = 'Esto es lo que te recomendamos';
+		$out['products'] = array_slice( $fixture_products(), 0, 2 );
+	}
+	$respond( 200, $out );
+}
+
+if ( 'POST' === $method && 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/(watch|me/redeem|me/share)$#', (string) $path, $m ) ) {
+	if ( ! $pk_ok( $m[1] ) ) {
+		$respond( 404, array( 'error' => 'unknown_key' ) );
+	}
+	$req = $public_body();
+	if ( 'watch' === $m[2] ) {
+		$email = (string) ( $req['email'] ?? '' );
+		$phone = (string) ( $req['phone'] ?? '' );
+		if ( 1 !== preg_match( '/^\d+$/', (string) ( $req['product_id'] ?? '' ) ) || ! in_array( $req['kind'] ?? '', array( 'back_in_stock', 'price_drop' ), true ) || ( ! filter_var( $email, FILTER_VALIDATE_EMAIL ) && strlen( preg_replace( '/\D/', '', $phone ) ) < 7 ) ) {
+			$respond( 422, array( 'message' => 'Revisa los datos.', 'errors' => array() ) );
+		}
+		$state['watches'][] = array( 'product_id' => $req['product_id'], 'kind' => $req['kind'], 'channel' => '' !== $email ? 'email' : 'whatsapp', 'consents' => $req['consents'] ?? array(), 'anonymous_id' => $req['anonymous_id'] ?? null );
+		$respond( 200, array( 'ok' => true, 'message' => 'back_in_stock' === $req['kind'] ? 'Te avisaremos cuando vuelva.' : 'Te avisaremos si baja de precio.' ) );
+	}
+	$ref = $user_ref( isset( $req['token'] ) ? (string) $req['token'] : null );
+	if ( null === $ref ) {
+		$respond( 401, array( 'error' => 'token' ) );
+	}
+	if ( 'me/share' === $m[2] ) {
+		$state['shares'][] = array( 'ref' => $ref, 'channel' => $req['channel'] ?? null );
+		$respond( 202, array( 'ok' => true ) );
+	}
+	$points = array( 'rw_01JF0REWARD000000000001' => 500, 'rw_01JF0REWARD000000000002' => 5000 )[ $req['reward_id'] ?? '' ] ?? null;
+	$spent  = array_sum( array_map( static fn( $r ) => $r['ref'] === $ref ? (int) $r['points'] : 0, $state['redeems'] ) );
+	if ( null === $points || 1532 - $spent < $points ) {
+		$respond( 409, array( 'ok' => false, 'message' => 'No te alcanzan los puntos.' ) );
+	}
+	$state['redeems'][] = array( 'ref' => $ref, 'reward_id' => $req['reward_id'], 'points' => $points );
+	$respond( 200, array( 'coupon' => array( 'code' => 'PUNTOS-' . strtoupper( bin2hex( random_bytes( 3 ) ) ), 'description' => '$20.000 de descuento', 'expires_at' => gmdate( 'Y-m-d\T23:59:59\Z', time() + 30 * 86400 ) ), 'balance' => 1532 - $spent - $points ) );
+}
+
+// Saldo a favor (§5.5): firmado; crea el cupón en el sitio con coupon.create antes de responder.
+if ( 'POST' === $method && '/v1/s/wallet/redeem' === $path ) {
+	if ( ! $verify() ) {
+		$respond( 401, array( 'error' => 'signature' ) );
+	}
+	$req     = json_decode( $body, true );
+	$balance = (float) ( $state['overrides']['wallet_balance'] ?? '35000.00' );
+	if ( ! is_array( $req ) || 1 !== preg_match( '/^wc:\d+$/', (string) ( $req['customer_ref'] ?? '' ) ) ) {
+		$respond( 422, array( 'error' => 'invalid' ) );
+	}
+	if ( $balance <= 0 ) {
+		$respond( 409, array( 'ok' => false, 'error' => array( 'code' => 'no_balance' ) ) );
+	}
+	$amount  = number_format( min( $balance, (float) $req['cart_total'] ), 2, '.', '' );
+	$code    = 'SALDO-' . strtoupper( bin2hex( random_bytes( 4 ) ) );
+	$command = json_encode(
+		array(
+			'command'    => 'coupon.create',
+			'args'       => array( 'code' => $code, 'kind' => 'fixed_cart', 'amount' => $amount, 'expires_at' => gmdate( 'Y-m-d', time() + 86400 ), 'usage_limit' => 1, 'individual_use' => false, 'description' => 'Saldo a favor' ),
+			'request_id' => 'wr_' . bin2hex( random_bytes( 8 ) ),
+			'nonce'      => bin2hex( random_bytes( 16 ) ),
+			'issued_at'  => gmdate( 'c' ),
+		)
+	);
+	$ch = curl_init( rtrim( (string) $state['site']['request']['rest_url'], '/' ) . '/commands' );
+	curl_setopt_array( $ch, array( CURLOPT_POST => true, CURLOPT_POSTFIELDS => $command, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 2, CURLOPT_HTTPHEADER => array( 'Content-Type: application/json', 'X-IGR-Signature: ' . Hmac::header( $state['site']['secret'], $command ) ) ) );
+	$res    = (string) curl_exec( $ch );
+	$status = (int) curl_getinfo( $ch, CURLINFO_RESPONSE_CODE );
+	curl_close( $ch );
+	$state['wallet_redeems'][] = array( 'request' => $req, 'coupon_status' => $status, 'code' => $code );
+	if ( 200 !== $status ) {
+		$respond( 503, array( 'error' => 'coupon_create_failed', 'detail' => substr( $res, 0, 300 ) ) );
+	}
+	$respond( 200, array( 'coupon' => array( 'code' => $code, 'amount' => $amount, 'expires_at' => gmdate( 'Y-m-d\T23:59:59\Z', time() + 86400 ) ), 'balance' => number_format( $balance, 2, '.', '' ) ) );
 }
 
 $respond( 404, array( 'error' => 'not_found', 'path' => $path ) );

@@ -2,12 +2,13 @@ import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { PageHeader } from '@/components/ui/misc';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AudiencesTab } from './audiences/AudiencesTab';
 import { DeliveriesTab } from './DeliveriesTab';
 import { DestinationsTab } from './DestinationsTab';
 import { QualityTab } from './QualityTab';
 import { SpendTab } from './SpendTab';
 
-const TABS = ['destinos', 'entregas', 'calidad', 'gasto'] as const;
+const TABS = ['destinos', 'entregas', 'calidad', 'audiencias', 'gasto'] as const;
 type Tab = (typeof TABS)[number];
 
 export function MeasurementPage() {
@@ -40,6 +41,9 @@ export function MeasurementPage() {
                 </TabsContent>
                 <TabsContent value="calidad">
                     <QualityTab />
+                </TabsContent>
+                <TabsContent value="audiencias">
+                    <AudiencesTab />
                 </TabsContent>
                 <TabsContent value="gasto">
                     <SpendTab />

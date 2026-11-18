@@ -28,6 +28,13 @@ final class Settings {
 		'banner'         => false,
 		'cookie_domain'  => '',
 		'excluded_roles' => null, // null = los del hub (`/v1/s/config`).
+		// En el sitio (Fase 3, connector/CLAUDE.md §10). Los de fidelización también dependen del hub (`onsite`).
+		'bis'            => true,
+		'price_drop'     => false,
+		'points'         => true,
+		'rewards'        => true,
+		'wallet'         => true,
+		'top_banner'     => false,
 	);
 
 	/**
@@ -81,6 +88,12 @@ final class Settings {
 			'banner'         => (bool) $s['banner'],
 			'cookie_domain'  => 1 === preg_match( '/^\.?[a-z0-9.-]{3,190}$/', $domain ) ? $domain : '',
 			'excluded_roles' => $roles,
+			'bis'            => (bool) $s['bis'],
+			'price_drop'     => (bool) $s['price_drop'],
+			'points'         => (bool) $s['points'],
+			'rewards'        => (bool) $s['rewards'],
+			'wallet'         => (bool) $s['wallet'],
+			'top_banner'     => (bool) $s['top_banner'],
 		);
 	}
 }

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Surveys\Http;
 
 use App\Domain\Identity\SiteToken;
+use App\Domain\Onsite\Models\OnsiteWidget;
+use App\Domain\Onsite\Support\PublicWidgetConfig;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Surveys\Actions\HdyhauSurvey;
 use App\Domain\Surveys\Actions\RecordSurveyAnswer;
@@ -29,8 +31,8 @@ final class PublicWidgetsController
 {
     public function __construct(private readonly SiteResolver $sites, private readonly CurrentWorkspace $current) {}
 
-    /** GET /p/{publicKey}/widgets.json?page_type= */
-    public function widgets(Request $request, string $publicKey, HdyhauSurvey $hdyhau): JsonResponse
+    /** GET /p/{publicKey}/widgets.json?page_type=&path= (§8.1 y, desde la Fase 3, los widgets de M12 de §8.3) */
+    public function widgets(Request $request, string $publicKey, HdyhauSurvey $hdyhau, PublicWidgetConfig $onsite): JsonResponse
     {
         [$site, $workspace] = $this->resolve($publicKey) ?? [null, null];
         if ($site === null || $workspace === null) {
@@ -49,6 +51,15 @@ final class PublicWidgetsController
                 ];
             }
         }
+        // M12: widgets activos del sitio para ese tipo de página y ruta (nunca en el checkout).
+        $pageType = is_string($request->query('page_type')) ? (string) $request->query('page_type') : null;
+        $path = is_string($request->query('path')) ? mb_substr((string) $request->query('path'), 0, 500) : null;
+        $this->current->run($workspace, function () use ($onsite, $workspace, $site, $pageType, $path, &$widgets): void {
+            foreach ($onsite->live($site, $pageType, $path) as $widget) {
+                /** @var OnsiteWidget $widget */
+                $widgets[] = $onsite->entry($workspace, $widget);
+            }
+        });
 
         return response()->json(['widgets' => $widgets])
             ->withHeaders($this->cors($request, $site) + ['Cache-Control' => 'public, max-age=300']);

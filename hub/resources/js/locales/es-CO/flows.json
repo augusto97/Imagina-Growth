@@ -113,7 +113,7 @@
             "notify_team": "Avisar al equipo",
             "webhook": "Webhook saliente",
             "exit": "Salida",
-            "give_points": "Dar puntos o saldo",
+            "give_points": "Dar puntos",
             "give_wallet": "Dar saldo a favor",
             "assign_agent": "Asignar a un agente",
             "lead_stage": "Mover etapa del lead",

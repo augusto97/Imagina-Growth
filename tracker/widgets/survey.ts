@@ -1,6 +1,6 @@
 /*
- * Encuesta «¿Cómo nos conociste?» en la página de gracias (docs/api-connector.md §8).
- * La carga el tracker solo si widgets.json trae la encuesta activa. Shadow DOM
+ * Encuesta «¿Cómo nos conociste?» en la página de gracias (docs/api-connector.md §8),
+ * igr-w-survey.js. La carga el runtime de widgets si widgets.json trae la encuesta. Shadow DOM
  * para no heredar estilos del tema; accesible (fieldset, etiquetas, foco
  * visible, Esc para cerrar, contraste AA, sin animaciones forzadas).
  */
@@ -21,11 +21,11 @@ export interface SurveyWidget {
     thanks?: string;
 }
 
+import { register } from './lib/dom';
+
 interface WWindow {
-    igrConfig?: { widgetsUrl?: string };
     igrOrder?: { orderId?: string; token?: string };
     igr?: unknown[] & { push: (...c: unknown[]) => number };
-    __igrWidgets?: { widgets?: SurveyWidget[] };
 }
 
 const W = window as unknown as WWindow;
@@ -49,15 +49,15 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Record<string,
 
 function track(name: string, w: SurveyWidget): void {
     try {
-        W.igr?.push(['track', name, { widget_id: w.id.slice(0, 64), kind: 'hdyhau_survey' }]);
+        W.igr?.push(['track', name, { widget_id: w.id.slice(0, 64), variant: null, kind: 'hdyhau_survey' }]);
     } catch {
         /* sin tracker */
     }
 }
 
-/** URL de respuestas: …/p/{pk}/widgets.json → …/p/{pk}/surveys/{id}/answers. */
-export function answersUrl(widgetsUrl: string, surveyId: string): string {
-    return widgetsUrl.replace(/widgets\.json(\?.*)?$/, 'surveys/' + encodeURIComponent(surveyId) + '/answers');
+/** URL de respuestas: …/p/{pk}/ → …/p/{pk}/surveys/{id}/answers. */
+export function answersUrl(base: string, surveyId: string): string {
+    return base.replace(/widgets\.json(\?.*)?$/, '') + 'surveys/' + encodeURIComponent(surveyId) + '/answers';
 }
 
 function anonymousId(): string | null {
@@ -65,7 +65,7 @@ function anonymousId(): string | null {
     return m && m[1] ? decodeURIComponent(m[1]) : null;
 }
 
-export function render(slot: HTMLElement, w: SurveyWidget, order: { orderId?: string; token?: string }, widgetsUrl: string): void {
+export function render(slot: HTMLElement, w: SurveyWidget, order: { orderId?: string; token?: string }, base: string): void {
     const key = '_igr_sv_' + (order.orderId ?? '');
     try {
         if (localStorage.getItem(key)) return;
@@ -132,7 +132,7 @@ export function render(slot: HTMLElement, w: SurveyWidget, order: { orderId?: st
             other: v === '__other' ? other.value.trim().slice(0, 300) || null : null,
             anonymous_id: anonymousId(),
         });
-        fetch(answersUrl(widgetsUrl, w.id), { method: 'POST', body, credentials: 'omit', headers: { 'Content-Type': 'text/plain;charset=UTF-8' } })
+        fetch(answersUrl(base, w.id), { method: 'POST', body, credentials: 'omit', headers: { 'Content-Type': 'text/plain;charset=UTF-8' } })
             .then((r) => {
                 if (!r.ok && r.status !== 409) throw new Error(String(r.status));
                 card.replaceChildren(el('p', { role: 'status' }, w.thanks ?? '¡Gracias!'));
@@ -152,13 +152,10 @@ export function render(slot: HTMLElement, w: SurveyWidget, order: { orderId?: st
     track('widget.shown', w);
 }
 
-try {
-    const order = W.igrOrder;
-    const url = W.igrConfig?.widgetsUrl;
-    for (const w of W.__igrWidgets?.widgets ?? []) {
-        const slot = document.querySelector('[data-igr-slot="' + (w.slot ?? 'thankyou') + '"]') as HTMLElement | null;
-        if (w.kind === 'hdyhau_survey' && slot && order?.token && url) render(slot, w, order, url);
-    }
-} catch {
-    /* nunca hacia la página */
-}
+register({
+    thankyou: (slot, _w, x, ctx) => {
+        const w = ctx['widget'] as SurveyWidget | undefined;
+        const order = W.igrOrder;
+        if (slot && w && w.kind === 'hdyhau_survey' && order?.token) render(slot, w, order, x.base);
+    },
+});

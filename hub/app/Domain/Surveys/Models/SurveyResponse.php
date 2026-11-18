@@ -17,6 +17,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $external_order_id
  * @property string|null $answer
  * @property array<string, mixed> $answers
+ * @property int|null $score
+ * @property string|null $comment
  */
 class SurveyResponse extends Model
 {
@@ -30,6 +32,6 @@ class SurveyResponse extends Model
 
     protected function casts(): array
     {
-        return ['answers' => 'array', 'created_at' => 'datetime'];
+        return ['answers' => 'array', 'score' => 'integer', 'comment' => 'encrypted', 'created_at' => 'datetime'];
     }
 }

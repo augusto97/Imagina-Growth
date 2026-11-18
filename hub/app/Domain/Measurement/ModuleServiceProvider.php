@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Measurement;
 
+use App\Domain\Measurement\Audiences\AudiencesServiceProvider;
 use App\Domain\Measurement\Console\AttributionBackfillCommand;
 use App\Domain\Measurement\Console\ImportAdSpendCommand;
 use App\Domain\Measurement\Listeners\AttributionListener;
@@ -16,6 +17,12 @@ use Illuminate\Support\ServiceProvider;
 /** Medición (M06): conversiones desde el servidor, atribución de canales y gasto en anuncios. */
 final class ModuleServiceProvider extends ServiceProvider
 {
+    public function register(): void
+    {
+        // Audiencias (Fase 3): su propio proveedor dentro de Medición.
+        $this->app->register(AudiencesServiceProvider::class);
+    }
+
     public function boot(): void
     {
         Event::listen(EventIngested::class, ConversionRouter::class);

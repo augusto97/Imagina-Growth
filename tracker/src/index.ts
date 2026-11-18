@@ -3,7 +3,7 @@
  * Sin dependencias, ≤ 6 KB gzip, nunca lanza errores hacia la página.
  */
 import { CONSENT_EVENTS, detectConsent } from './consent';
-import { adCookies, anonymousId, currentTouch, readSources, session, touchSession, updateSources } from './ids';
+import { adCookies, anonymousId, currentTouch, readSources, refCode, session, touchSession, updateSources } from './ids';
 import { enqueue, flush, initTransport, retryPending } from './transport';
 import type { Config, Consent, Envelope, OrderData, PageData, Props, Touch } from './types';
 import { cut, idle, shortToken, store, uuid7 } from './util';
@@ -31,6 +31,7 @@ let aid = '';
 let sid = '';
 let link = '';
 let entry: Touch | null = null;
+let refc: string | null = null;
 const subs: Listener[] = [];
 const recent: Envelope[] = [];
 let pixelsLoaded = false;
@@ -52,6 +53,7 @@ function touchCtx(t: Touch | undefined): Record<string, unknown> | undefined {
     if (t.click_ids) o['click_ids'] = t.click_ids;
     if (t.referrer) o['referrer'] = t.referrer;
     if (t.landing) o['landing'] = t.landing;
+    if (t.referral_code) o['referral_code'] = t.referral_code;
     if (t.at) o['at'] = new Date(t.at).toISOString();
     return o;
 }
@@ -68,6 +70,8 @@ function context(): Record<string, unknown> {
     if (/^[a-z]{2}([-_][A-Za-z]{2})?$/.test(lang)) ctx['locale'] = lang;
     const cur = cfg.currency;
     if (cur && /^[A-Z]{3}$/.test(cur)) ctx['currency'] = cur;
+    // El código del referidor no identifica al visitante: viaja en los eventos del aterrizaje aun sin consentimiento.
+    if (refc) ctx['referral_code'] = refc;
     if (!consent.analytics) return ctx;
     const ref = document.referrer;
     if (ref) (ctx['page'] as Record<string, string>)['referrer'] = cut(ref, 2048);
@@ -85,7 +89,7 @@ function context(): Record<string, unknown> {
     return ctx;
 }
 
-/** Construye el sobre (eventos.md §2, schema_version 2) y lo encola. */
+/** Construye el sobre (eventos.md §2, schema_version 4) y lo encola. */
 function track(name: string, props: Props = {}): Envelope | undefined {
     // Una instancia reemplazada (script cargado dos veces) no envía nada.
     // Modo estricto sin consentimiento de analítica: solo page.viewed agregado, sin identificadores.
@@ -98,7 +102,7 @@ function track(name: string, props: Props = {}): Envelope | undefined {
         touchSession(sid, cfg.cookieDomain);
     }
     const e: Envelope = {
-        schema_version: 2,
+        schema_version: 4,
         event_id: uuid7(),
         event: name,
         occurred_at: new Date().toISOString(),
@@ -282,18 +286,23 @@ function loadScript(src: string): void {
     document.head.appendChild(s);
 }
 
-/** Widgets solo si `widgets.json` trae alguno activo para esta página. */
+/**
+ * Widgets (api-connector.md §8.3): `widgets.json` (caché de CDN, igual para todos) en
+ * toda página que no sea el checkout; el paquete de widgets se carga solo si trae
+ * alguno o si la página tiene un slot.
+ */
 function widgets(): void {
-    if (!cfg.widgetsUrl || !cfg.widgetsJs || !document.querySelector('[data-igr-slot]')) return;
-    fetch(cfg.widgetsUrl + '?page_type=' + pageType(), { credentials: 'omit' })
+    const t = pageType();
+    if (!cfg.widgetsUrl || !cfg.widgetsJs || t === 'checkout') return;
+    fetch(cfg.widgetsUrl + '?page_type=' + t + '&path=' + encodeURIComponent(location.pathname), { credentials: 'omit' })
         .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null)
         .then((data: { widgets?: unknown[] } | null) => {
-            if (data && data.widgets && data.widgets.length) {
-                W.__igrWidgets = data;
+            if ((data && data.widgets && data.widgets.length) || document.querySelector('[data-igr-slot]')) {
+                W.__igrWidgets = data || { widgets: [] };
                 loadScript(cfg.widgetsJs as string);
             }
-        })
-        .catch(() => undefined);
+        });
 }
 
 /** Modo «completo» (api-connector.md §5.1): píxeles solo con consentimiento de marketing. */
@@ -357,6 +366,7 @@ function main(): void {
     consent = detectConsent(c.consent ?? { analytics: c.consentMode !== 'strict', marketing: false, source: 'none' });
     initTransport(c.endpoint, c.siteKey, () => consent.analytics);
 
+    refc = refCode();
     // `_igr` (enlace de un mensaje): vincula la visita y se quita de la URL para que nadie lo comparta.
     const url = new URL(location.href);
     const lt = url.searchParams.get('_igr');

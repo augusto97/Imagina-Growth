@@ -19,8 +19,17 @@ interface LoyaltyLedger
     public function isActive(): bool;
 
     /**
-     * Acredita puntos. Con `pending`, quedan pendientes hasta `confirm()` (pedidos:
-     * hasta que se completa y pasa el periodo de devolución).
+     * Puntos fijos que el programa da por ese motivo (`signup`, `birthday`,
+     * `review`, `review_media`, `referral`, `profile`); 0 si está apagado o no
+     * hay programa activo. `earnPoints` con `points <= 0` usa este valor.
+     */
+    public function rulePoints(string $reason): int;
+
+    /**
+     * Acredita puntos. Con `pending`, quedan pendientes hasta `settle()` (pedidos:
+     * hasta que se completa y pasa el periodo de devolución). Con `points <= 0`
+     * se usa la regla del programa para `reason` (rulePoints); si da 0, no hay
+     * puntos y devuelve null.
      *
      * @return string|null ID de la entrada (`lg_…`), o null si no hay programa activo
      */

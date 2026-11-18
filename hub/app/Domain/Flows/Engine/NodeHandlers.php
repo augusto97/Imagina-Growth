@@ -9,6 +9,8 @@ use App\Domain\Flows\Engine\Handlers\ChannelSplitHandler;
 use App\Domain\Flows\Engine\Handlers\ConditionHandler;
 use App\Domain\Flows\Engine\Handlers\CouponHandler;
 use App\Domain\Flows\Engine\Handlers\ExitHandler;
+use App\Domain\Flows\Engine\Handlers\GivePointsHandler;
+use App\Domain\Flows\Engine\Handlers\GiveWalletHandler;
 use App\Domain\Flows\Engine\Handlers\NotifyTeamHandler;
 use App\Domain\Flows\Engine\Handlers\SendHandler;
 use App\Domain\Flows\Engine\Handlers\TagHandler;
@@ -37,6 +39,8 @@ final class NodeHandlers
         NodeTypes::NOTIFY_TEAM => NotifyTeamHandler::class,
         NodeTypes::WEBHOOK => WebhookHandler::class,
         NodeTypes::EXIT => ExitHandler::class,
+        NodeTypes::GIVE_POINTS => GivePointsHandler::class,
+        NodeTypes::GIVE_WALLET => GiveWalletHandler::class,
     ];
 
     public function for(string $type): ?NodeHandler

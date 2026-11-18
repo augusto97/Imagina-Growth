@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace App\Domain\Templates\Rendering;
 
-use Illuminate\Support\Facades\DB;
+use App\Domain\Commerce\Contracts\RecommendationService;
+use App\Domain\Commerce\Data\RecommendationContext;
+use App\Domain\Sites\Models\Site;
 use Keepsuit\Liquid\Attributes\Cache;
 use Keepsuit\Liquid\Drop;
 
 /**
- * `recomendaciones.para_ti` y `recomendaciones.mas_vendidos` (modulos.md M08).
- * Perezoso: solo consulta si la plantilla lo usa. Fase 2: «para ti» son los más
- * vendidos de las categorías que el contacto ya compró y que todavía no tiene;
- * sin historial, los más vendidos de la tienda. M16 (Fase 3) lo reemplaza por
- * el motor de recomendaciones.
+ * `recomendaciones.para_ti`, `recomendaciones.mas_vendidos` y
+ * `recomendaciones.tendencia` (modulos.md M08). Perezoso: solo consulta si la
+ * plantilla lo usa. Desde la Fase 3 sale del motor de recomendaciones de M16
+ * (RecommendationService) con el primer sitio conectado del espacio de trabajo:
+ * «para ti» es la afinidad del contacto (sin lo que ya compró); sin contacto o
+ * sin historial, los más vendidos.
  */
 final class RecommendationsDrop extends Drop
 {
@@ -29,78 +32,42 @@ final class RecommendationsDrop extends Drop
     #[Cache]
     public function masVendidos(): array
     {
-        return $this->present($this->bestSellers([], []));
+        return $this->present('best_sellers_category', null);
     }
 
     /** @return list<array<string, mixed>> */
     #[Cache]
     public function paraTi(): array
     {
-        if ($this->contactId === null) {
-            return $this->masVendidos();
-        }
-        $bought = DB::table('order_items as i')->join('orders as o', 'o.id', '=', 'i.order_id')
-            ->where('o.workspace_id', $this->workspaceId)->where('o.contact_id', $this->contactId)
-            ->get(['i.external_product_id', 'i.category_ids']);
-        $categories = [];
-        foreach ($bought as $row) {
-            foreach ((array) json_decode((string) $row->category_ids, true) as $id) {
-                $categories[(string) $id] = true;
-            }
-        }
-        $owned = array_values($bought->pluck('external_product_id')->map(fn ($v) => (string) $v)->all());
-        // PHP vuelve enteros las claves numéricas: se recuperan como texto.
-        $picked = $categories === [] ? [] : $this->bestSellers(array_map('strval', array_keys($categories)), $owned);
-
-        return $this->present($picked === [] ? $this->bestSellers([], $owned) : $picked);
+        return $this->present('para_ti', $this->contactId);
     }
 
-    /**
-     * @param  list<string>  $categories
-     * @param  list<string>  $exclude
-     * @return list<\stdClass>
-     */
-    private function bestSellers(array $categories, array $exclude): array
+    /** @return list<array<string, mixed>> */
+    #[Cache]
+    public function tendencia(): array
     {
-        $sales = DB::table('order_items as i')->join('orders as o', 'o.id', '=', 'i.order_id')
-            ->where('o.workspace_id', $this->workspaceId)->where('o.is_paid', true)
-            ->where('o.created_at', '>=', now()->subDays(90))
-            ->groupBy('i.external_product_id')->selectRaw('i.external_product_id AS pid, SUM(i.qty) AS sold');
-        $query = DB::table('products as p')->leftJoinSub($sales, 's', 's.pid', '=', 'p.external_id')
-            ->where('p.workspace_id', $this->workspaceId)->where('p.status', 'publish')->whereNull('p.deleted_at')
-            ->where('p.stock_status', '!=', 'outofstock')->whereNull('p.parent_external_id')
-            ->when($exclude !== [], fn ($q) => $q->whereNotIn('p.external_id', $exclude))
-            ->when($categories !== [], function ($q) use ($categories): void {
-                $q->where(function ($w) use ($categories): void {
-                    foreach (array_slice($categories, 0, 20) as $category) {
-                        // El catálogo puede guardar los IDs como texto o como número.
-                        $w->orWhereJsonContains('p.category_ids', $category);
-                        if (ctype_digit($category)) {
-                            $w->orWhereJsonContains('p.category_ids', (int) $category);
-                        }
-                    }
-                });
-            })
-            ->orderByRaw('COALESCE(s.sold, 0) DESC')->orderByDesc('p.rating_avg')->limit(self::LIMIT);
-
-        return array_values($query->get(['p.name', 'p.permalink', 'p.image_url', 'p.price', 'p.regular_price', 'p.sale_price'])->all());
+        return $this->present('trending', null);
     }
 
-    /**
-     * @param  list<\stdClass>  $rows
-     * @return list<array<string, mixed>>
-     */
-    private function present(array $rows): array
+    /** @return list<array<string, mixed>> */
+    private function present(string $kind, ?string $contactId): array
     {
-        $e = fn (mixed $v): string => $this->escape ? htmlspecialchars(is_scalar($v) ? (string) $v : '', ENT_QUOTES) : (is_scalar($v) ? (string) $v : '');
+        $siteId = Site::withoutWorkspaceScope()->where('workspace_id', $this->workspaceId)
+            ->whereIn('status', [Site::STATUS_CONNECTED, Site::STATUS_DEGRADED])->orderBy('created_at')->value('id');
+        if (! is_string($siteId)) {
+            return [];
+        }
+        $products = app(RecommendationService::class)->recommend($kind, new RecommendationContext(siteId: $siteId, contactId: $contactId), self::LIMIT);
+        $e = fn (?string $v): string => $this->escape ? htmlspecialchars((string) $v, ENT_QUOTES) : (string) $v;
 
-        return array_map(fn (\stdClass $p) => [
-            'nombre' => $e($p->name ?? ''),
-            'url' => $e($p->permalink ?? ''),
-            'imagen' => $e($p->image_url ?? ''),
-            'precio' => (string) ($p->sale_price ?? $p->price ?? ''),
-            'precio_normal' => (string) ($p->regular_price ?? $p->price ?? ''),
-            'en_oferta' => $p->sale_price !== null && $p->sale_price !== '' && (float) $p->sale_price < (float) ($p->regular_price ?? 0),
-        ], $rows);
+        return array_map(fn (array $p) => [
+            'nombre' => $e($p['name']),
+            'url' => $e($p['url']),
+            'imagen' => $e($p['image']),
+            'precio' => $p['sale_price'] ?? $p['price'],
+            'precio_normal' => $p['regular_price'] ?? $p['price'],
+            'en_oferta' => $p['sale_price'] !== null && $p['regular_price'] !== null && (float) $p['sale_price'] < (float) $p['regular_price'],
+            'calificacion' => $p['rating_avg'],
+        ], $products);
     }
 }

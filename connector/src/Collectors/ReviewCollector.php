@@ -67,6 +67,10 @@ final class ReviewCollector {
 		if ( 'review' !== $comment->comment_type || 'product' !== get_post_type( (int) $comment->comment_post_ID ) ) {
 			return null;
 		}
+		// Las que publicó el hub (`review.publish`) ya están en el hub: no vuelven como reseña nativa.
+		if ( '' !== (string) get_comment_meta( (int) $comment->comment_ID, 'igr_review_id', true ) ) {
+			return null;
+		}
 		$rating = (int) get_comment_meta( (int) $comment->comment_ID, 'rating', true );
 		if ( $rating < 1 || $rating > 5 ) {
 			return null;

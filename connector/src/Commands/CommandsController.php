@@ -28,16 +28,21 @@ final class CommandsController {
 	 * @var array<string, class-string<Command>>
 	 */
 	private const COMMANDS = array(
-		'site.diagnostics' => Handlers\SiteDiagnostics::class,
-		'catalog.resync'   => Handlers\CatalogResync::class,
-		'backfill.start'   => Handlers\BackfillStart::class,
-		'secret.rotate'    => Handlers\SecretRotate::class,
+		'site.diagnostics'  => Handlers\SiteDiagnostics::class,
+		'catalog.resync'    => Handlers\CatalogResync::class,
+		'backfill.start'    => Handlers\BackfillStart::class,
+		'secret.rotate'     => Handlers\SecretRotate::class,
 		// Fase 2.
-		'coupon.create'    => Handlers\CouponCreate::class,
-		'coupon.disable'   => Handlers\CouponDisable::class,
-		'order.add_note'   => Handlers\OrderAddNote::class,
-		'product.lookup'   => Handlers\ProductLookup::class,
-		'order.status'     => Handlers\OrderStatus::class,
+		'coupon.create'     => Handlers\CouponCreate::class,
+		'coupon.disable'    => Handlers\CouponDisable::class,
+		'order.add_note'    => Handlers\OrderAddNote::class,
+		'product.lookup'    => Handlers\ProductLookup::class,
+		'order.status'      => Handlers\OrderStatus::class,
+		// Fase 3.
+		'review.publish'    => Handlers\ReviewPublish::class,
+		'review.reply'      => Handlers\ReviewReply::class,
+		'review.unpublish'  => Handlers\ReviewUnpublish::class,
+		'customer.set_tier' => Handlers\CustomerSetTier::class,
 	);
 
 	/**

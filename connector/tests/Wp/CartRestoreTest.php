@@ -145,7 +145,7 @@ final class CartRestoreTest extends WpTestCase {
 		$this->assertNotEmpty( $updated );
 		$last = end( $updated );
 		$this->assertSame( 'crt_01JE4ZQ8K3M5N7P9R1S2T3V4W6', $last['properties']['restored_from'] );
-		$this->assertSame( 3, $last['schema_version'] );
+		$this->assertSame( EventFactory::SCHEMA_VERSION, $last['schema_version'] );
 		$this->assertContract( $this->outbox_raw() );
 	}
 
@@ -241,7 +241,7 @@ final class CartRestoreTest extends WpTestCase {
 	}
 
 	public function test_el_pedido_lleva_el_cart_token_del_checkout(): void {
-		$this->assertSame( 3, EventFactory::SCHEMA_VERSION );
+		$this->assertSame( 4, EventFactory::SCHEMA_VERSION );
 		$paint = $this->product( '141000' );
 		WC()->cart->add_to_cart( $paint->get_id(), 1 );
 		$token = CartCollector::current_token();

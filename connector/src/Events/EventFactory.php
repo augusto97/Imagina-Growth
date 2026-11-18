@@ -19,7 +19,7 @@ use ImaginaGrowth\Connector\Support\Uuid;
  */
 final class EventFactory {
 
-	public const SCHEMA_VERSION = 3;
+	public const SCHEMA_VERSION = 4;
 
 	/**
 	 * Constructor.

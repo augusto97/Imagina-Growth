@@ -41,6 +41,10 @@ final class NodeTypes
 
     public const EXIT = 'exit';
 
+    public const GIVE_POINTS = 'give_points';
+
+    public const GIVE_WALLET = 'give_wallet';
+
     /** @var array<string, array{category: string, branches: list<string|null>|'dynamic', phase?: int}> */
     public const TYPES = [
         self::TRIGGER => ['category' => 'trigger', 'branches' => [null]],
@@ -58,9 +62,10 @@ final class NodeTypes
         self::NOTIFY_TEAM => ['category' => 'action', 'branches' => [null, 'failed']],
         self::WEBHOOK => ['category' => 'action', 'branches' => [null, 'failed']],
         self::EXIT => ['category' => 'control', 'branches' => []],
+        // Fidelización (M13): dar puntos o saldo a favor.
+        self::GIVE_POINTS => ['category' => 'action', 'branches' => [null]],
+        self::GIVE_WALLET => ['category' => 'action', 'branches' => [null]],
         // Llegan con sus módulos (CLAUDE.md §5).
-        'give_points' => ['category' => 'action', 'branches' => [null], 'phase' => 3],
-        'give_wallet' => ['category' => 'action', 'branches' => [null], 'phase' => 3],
         'assign_agent' => ['category' => 'action', 'branches' => [null], 'phase' => 4],
         'lead_stage' => ['category' => 'action', 'branches' => [null], 'phase' => 5],
         'crm_task' => ['category' => 'action', 'branches' => [null], 'phase' => 5],

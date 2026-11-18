@@ -24,6 +24,7 @@ use ImaginaGrowth\Connector\Outbox\Flusher;
 use ImaginaGrowth\Connector\Outbox\Outbox;
 use ImaginaGrowth\Connector\Scheduler;
 use ImaginaGrowth\Connector\Settings;
+use ImaginaGrowth\Connector\Tracking\TrackerConfig;
 
 /**
  * Menú «Imagina Growth» con las pestañas Estado, Diagnóstico y Avanzado.
@@ -39,7 +40,7 @@ final class AdminPage {
 	public static function register(): void {
 		add_action( 'admin_menu', array( self::class, 'menu' ) );
 		add_action( 'admin_init', array( self::class, 'maybe_handle_return' ) );
-		foreach ( array( 'connect', 'manual_code', 'disconnect', 'backfill', 'retry_dead', 'flush', 'settings' ) as $action ) {
+		foreach ( array( 'connect', 'manual_code', 'disconnect', 'backfill', 'retry_dead', 'flush', 'settings', 'onsite' ) as $action ) {
 			add_action( 'admin_post_igr_' . $action, array( self::class, 'action_' . $action ) );
 		}
 	}
@@ -174,6 +175,28 @@ final class AdminPage {
 	}
 
 	/**
+	 * Guarda la pestaña «En el sitio».
+	 */
+	public static function action_onsite(): void {
+		self::guard( 'igr_onsite' );
+		$changes = array();
+		foreach ( array( 'bis', 'price_drop', 'points', 'rewards', 'wallet', 'top_banner' ) as $key ) {
+			$changes[ $key ] = ! empty( $_POST[ 'igr_' . $key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verificado en guard().
+		}
+		Settings::save( $changes );
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'tab'        => 'onsite',
+					'igr_notice' => 'saved',
+				),
+				admin_url( 'admin.php?page=' . self::SLUG )
+			)
+		);
+		exit;
+	}
+
+	/**
 	 * Pinta la página.
 	 */
 	public static function render(): void {
@@ -188,6 +211,7 @@ final class AdminPage {
 		$tabs = array(
 			'status'      => __( 'Estado', 'imagina-growth' ),
 			'data'        => __( 'Datos', 'imagina-growth' ),
+			'onsite'      => __( 'En el sitio', 'imagina-growth' ),
 			'diagnostics' => __( 'Diagnóstico', 'imagina-growth' ),
 			'advanced'    => __( 'Avanzado', 'imagina-growth' ),
 		);
@@ -208,6 +232,8 @@ final class AdminPage {
 		echo '</nav><div style="max-width:960px;margin-top:16px">';
 		if ( 'data' === $tab ) {
 			self::render_data();
+		} elseif ( 'onsite' === $tab ) {
+			self::render_onsite();
 		} elseif ( 'diagnostics' === $tab ) {
 			self::render_diagnostics();
 		} elseif ( 'advanced' === $tab ) {
@@ -396,6 +422,47 @@ final class AdminPage {
 		$inner .= '<tr><th scope="row">' . esc_html__( 'Dominio de la cookie', 'imagina-growth' ) . '</th><td><input type="text" class="regular-text" name="igr_cookie_domain" value="' . esc_attr( (string) $s['cookie_domain'] ) . '" placeholder=".tienda.co"><p class="description">' . esc_html__( 'Solo si la tienda y el sitio usan subdominios distintos. Vacío = el dominio actual.', 'imagina-growth' ) . '</p></td></tr>';
 		$inner .= '</tbody></table><p><button class="button button-primary">' . esc_html__( 'Guardar', 'imagina-growth' ) . '</button></p>';
 		self::form( 'igr_settings', $inner );
+	}
+
+	/**
+	 * Pestaña «En el sitio»: elementos automáticos y cómo poner los slots.
+	 */
+	private static function render_onsite(): void {
+		$s       = Settings::all();
+		$trk     = TrackerConfig::get();
+		$active  = is_array( $trk['ons'] ?? null ) ? $trk['ons'] : array();
+		$checked = static fn( bool $on ): string => $on ? ' checked' : '';
+		$rows    = array(
+			'bis'        => array( __( '«Avísame cuando vuelva» en los productos agotados', 'imagina-growth' ), 'bis' ),
+			'price_drop' => array( __( '«Avísame si baja de precio» en los productos con stock', 'imagina-growth' ), 'pd' ),
+			'points'     => array( __( '«Gana N puntos» en la ficha y en el carrito', 'imagina-growth' ), 'points' ),
+			'rewards'    => array( __( '«Mis recompensas» en Mi cuenta', 'imagina-growth' ), 'rw' ),
+			'wallet'     => array( __( '«Usar saldo» en el checkout', 'imagina-growth' ), 'wallet' ),
+			'top_banner' => array( __( 'Banner por segmento arriba de la página', 'imagina-growth' ), 'top' ),
+		);
+		$inner   = '<table class="form-table" role="presentation"><tbody><tr><th scope="row">' . esc_html__( 'Elementos automáticos', 'imagina-growth' ) . '</th><td>';
+		foreach ( $rows as $key => [ $label, $flag ] ) {
+			$inner .= '<label style="display:block;margin-bottom:6px"><input type="checkbox" name="igr_' . esc_attr( $key ) . '" value="1"' . $checked( (bool) $s[ $key ] ) . '> ' . esc_html( $label ) . '</label>';
+			if ( (bool) $s[ $key ] && empty( $active[ $flag ] ) ) {
+				$inner .= '<p class="description" style="margin:-4px 0 8px 24px">' . esc_html__( 'Se mostrará cuando el módulo esté activo en el panel de Imagina Growth.', 'imagina-growth' ) . '</p>';
+			}
+		}
+		$inner .= '</td></tr></tbody></table><p><button class="button button-primary">' . esc_html__( 'Guardar', 'imagina-growth' ) . '</button></p>';
+		self::form( 'igr_onsite', $inner );
+		echo '<h2>' . esc_html__( 'Dónde poner los widgets', 'imagina-growth' ) . '</h2><p>' . esc_html__( 'Los popups, barras y el botón de WhatsApp se configuran en el panel de Imagina Growth y aparecen solos. Para los elementos incrustados usa un bloque «Imagina Growth», un widget de Elementor o un shortcode:', 'imagina-growth' ) . '</p>';
+		echo '<table class="widefat striped" style="max-width:760px"><tbody>';
+		foreach (
+			array(
+				'[igr_form id="wg_…"]'              => __( 'Formulario incrustado', 'imagina-growth' ),
+				'[igr_quiz id="wg_…"]'              => __( 'Quiz', 'imagina-growth' ),
+				'[igr_reco type="bought_together"]' => __( 'Recomendaciones: para_ti, bought_together, recently_viewed, best_sellers_category, trending o complete_cart', 'imagina-growth' ),
+				'[igr_reviews layout="carousel"]'   => __( 'Reseñas: list, carousel, gallery o badge', 'imagina-growth' ),
+				'[igr_loyalty]'                     => __( 'Mis recompensas (solo en páginas con sesión)', 'imagina-growth' ),
+			) as $code => $what
+		) {
+			echo '<tr><td><code>' . esc_html( $code ) . '</code></td><td>' . esc_html( $what ) . '</td></tr>';
+		}
+		echo '</tbody></table>';
 	}
 
 	/**

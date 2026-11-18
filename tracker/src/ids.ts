@@ -9,6 +9,12 @@ const DAY = 86400;
 const CLICKS = ['fbclid', 'gclid', 'gbraid', 'wbraid', 'ttclid', 'msclkid'];
 const UTMS = ['source', 'medium', 'campaign', 'content', 'term', 'id'];
 
+/** Código de referido o de afiliado de la URL (`?ref=ANA7K2`, eventos.md v4), o null. */
+export function refCode(href: string = location.href): string | null {
+    const r = new URL(href).searchParams.get('ref');
+    return r && /^[A-Za-z0-9_-]{3,32}$/.test(r) ? r : null;
+}
+
 function host(url: string): string {
     try {
         return new URL(url).hostname.replace(/^www\./, '');
@@ -33,10 +39,12 @@ export function currentTouch(href: string = location.href, referrer: string = do
         if (v && /^[\w.\-~]{1,500}$/.test(v)) clicks[k] = v;
     }
     const external = !!referrer && host(referrer) !== '' && host(referrer) !== host(href);
-    if (!Object.keys(utm).length && !Object.keys(clicks).length && !external) return null;
+    const ref = refCode(href);
+    if (!Object.keys(utm).length && !Object.keys(clicks).length && !external && !ref) return null;
     if (Object.keys(utm).length) t.utm = utm;
     if (Object.keys(clicks).length) t.click_ids = clicks;
     if (external) t.referrer = cut(referrer, 300);
+    if (ref) t.referral_code = ref;
     t.landing = cut(url.origin + url.pathname, 300);
     t.at = Date.now();
     return t;

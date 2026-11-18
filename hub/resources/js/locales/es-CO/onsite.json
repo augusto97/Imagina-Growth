@@ -1,0 +1,407 @@
+{
+    "onsite": {
+        "title": "En el sitio",
+        "description": "Popups, formularios, ruleta, quiz y widget de WhatsApp para captar contactos con su consentimiento y medir cuánto venden.",
+        "new": "Nuevo widget",
+        "tabs": {
+            "label": "Secciones de En el sitio",
+            "widgets": "Widgets",
+            "recommendations": "Recomendaciones",
+            "alerts": "Avisos de stock y precio"
+        },
+        "empty": {
+            "title": "Aún no tienes widgets",
+            "description": "Crea un popup con cupón de bienvenida: es la forma más rápida de convertir visitantes anónimos en contactos con permiso para escribirles.",
+            "archived": "No hay widgets archivados"
+        },
+        "list": {
+            "name": "Widget",
+            "kind": "Tipo",
+            "status": "Estado",
+            "views": "Vistas",
+            "submissions": "Envíos",
+            "rate": "Tasa de envío",
+            "revenue": "Ingresos atribuidos",
+            "ab_one": "A/B · {{count}} variante",
+            "ab_other": "A/B · {{count}} variantes",
+            "coupon": "Con cupón",
+            "window": "Últimos 30 días. Los ingresos son los pedidos pagados de quienes dejaron sus datos en el widget en los 7 días anteriores.",
+            "showArchived": "Ver archivados",
+            "hideArchived": "Ver activos y borradores"
+        },
+        "status": {
+            "draft": "Borrador",
+            "active": "Activo",
+            "paused": "Pausado",
+            "archived": "Archivado",
+            "scheduled": "Programado"
+        },
+        "kinds": {
+            "popup": { "name": "Popup", "description": "Ventana al centro, en una esquina o a pantalla completa, con cupón." },
+            "embedded_form": { "name": "Formulario incrustado", "description": "Dentro de la página con el bloque, el shortcode o Elementor." },
+            "bar": { "name": "Barra superior", "description": "Una franja arriba o abajo con un mensaje y un campo." },
+            "spin_wheel": { "name": "Ruleta", "description": "Gira y gana: el premio lo sortea el hub con tus probabilidades." },
+            "teaser": { "name": "Teaser", "description": "Una pestaña discreta en la esquina que se abre al tocarla." },
+            "two_step": { "name": "Formulario en 2 pasos", "description": "Primero el correo y después, opcional, el WhatsApp." },
+            "quiz": { "name": "Quiz recomendador", "description": "Preguntas con lógica que terminan en productos recomendados." },
+            "wa_widget": { "name": "Widget de WhatsApp", "description": "Botón flotante que abre el chat con atribución." },
+            "referral_welcome": { "name": "Bienvenida del referido", "description": "Para quien llega con el enlace de un amigo: su regalo a cambio de sus datos." }
+        },
+        "create": {
+            "title": "Nuevo widget",
+            "description": "Elige el tipo. Empieza con textos y diseño listos que puedes cambiar antes de activarlo.",
+            "kind": "Tipo de widget",
+            "name": "Nombre interno",
+            "site": "Sitio",
+            "allSites": "Todos los sitios del espacio de trabajo",
+            "submit": "Crear y editar"
+        },
+        "actions": {
+            "activate": "Activar",
+            "saveActivate": "Guardar y activar",
+            "pause": "Pausar",
+            "archive": "Archivar",
+            "delete": "Eliminar",
+            "duplicate": "Duplicar",
+            "more": "Más acciones",
+            "confirmDelete": "¿Eliminar este widget? Solo se puede si todavía no capturó contactos; si ya lo hizo, archívalo."
+        },
+        "channels": {
+            "email": "Correo",
+            "whatsapp": "WhatsApp",
+            "sms": "SMS"
+        },
+        "fields": {
+            "email": "Correo",
+            "phone": "WhatsApp",
+            "first_name": "Nombre",
+            "last_name": "Apellido"
+        },
+        "devices": {
+            "desktop": "Escritorio",
+            "mobile": "Celular",
+            "tablet": "Tableta"
+        },
+        "pageTypes": {
+            "home": "Inicio",
+            "product": "Producto",
+            "category": "Categoría",
+            "cart": "Carrito",
+            "thankyou": "Gracias por tu compra",
+            "search": "Búsqueda",
+            "account": "Mi cuenta",
+            "blog": "Blog",
+            "landing": "Landing",
+            "other": "Otras páginas"
+        },
+        "editor": {
+            "name": "Nombre del widget",
+            "save": "Guardar",
+            "saved": "Cambios guardados",
+            "activated": "Widget activo: ya se muestra en tu sitio (la caché tarda hasta 5 minutos).",
+            "archived": "Widget archivado",
+            "tabs": {
+                "content": "Contenido",
+                "targeting": "Segmentación",
+                "consent": "Consentimiento",
+                "coupon": "Regalo",
+                "prizes": "Premios",
+                "quiz": "Quiz",
+                "schedule": "Programación",
+                "stats": "Estadísticas"
+            },
+            "variants": {
+                "title": "Variantes A/B",
+                "help": "Cada visitante ve siempre la misma variante. El peso es el porcentaje del tráfico que la ve.",
+                "name": "Variante {{key}}",
+                "weight": "Peso de la variante {{key}}",
+                "add": "Agregar variante",
+                "remove": "Quitar la variante {{key}}",
+                "total": "Los pesos suman {{total}} %; se reparten en proporción.",
+                "auto": "Elegir la ganadora sola",
+                "autoHelp": "Cuando una variante supera a la otra en tasa de envío con 95 % de confianza y al menos 100 vistas cada una, se queda con todo el tráfico."
+            },
+            "content": {
+                "title": "Textos y campos",
+                "heading": "Título",
+                "bubble": "Mensaje de la burbuja",
+                "body": "Texto",
+                "cta": "Texto del botón",
+                "ctaQuiz": "Botón para ver el resultado",
+                "start": "Botón para empezar el quiz",
+                "success": "Mensaje de éxito",
+                "successHelp": "Usa {{code}} donde va el cupón. Si el widget no da cupón, esa frase no se muestra.",
+                "successWheelHelp": "Usa {{prize}} y {{code}}: el hub los llena con lo que salió en la ruleta.",
+                "lose": "Mensaje si no gana premio",
+                "contactOptional": "Mostrar el resultado sin pedir datos",
+                "contactOptionalHelp": "Si está apagado, la persona deja su correo o WhatsApp para ver el resultado (recomendado).",
+                "footer": "Letra pequeña",
+                "footerHelp": "Por ejemplo, condiciones del cupón. Las casillas de consentimiento se agregan solas.",
+                "waNumber": "Número de WhatsApp",
+                "waNumberHelp": "Con el indicativo del país, sin espacios. Ej.: 573001234567.",
+                "waText": "Mensaje prellenado",
+                "waTextHelp": "La atribución se agrega sola al final del mensaje."
+            },
+            "step2": {
+                "title": "Segundo paso",
+                "help": "Se muestra después del primero, en el mismo widget. El contacto se une al del primer paso.",
+                "skip": "Texto para saltar"
+            },
+            "fields": {
+                "title": "Datos que pide",
+                "label": "Etiqueta del campo {{field}}",
+                "labelPlaceholder": "Etiqueta que ve la persona",
+                "required": "Obligatorio"
+            },
+            "design": {
+                "title": "Diseño",
+                "position": "Posición",
+                "positions": {
+                    "center": "Centro",
+                    "corner": "Esquina",
+                    "fullscreen": "Pantalla completa",
+                    "top": "Arriba",
+                    "bottom": "Abajo",
+                    "left": "Izquierda",
+                    "right": "Derecha"
+                },
+                "display": "Cómo se muestra",
+                "displayHelp": "Incrustado usa el shortcode [igr_quiz id=\"…\"] o el bloque del plugin.",
+                "displays": {
+                    "popup": "Como popup",
+                    "embedded": "Incrustado en la página"
+                },
+                "layout": "Distribución",
+                "layouts": {
+                    "text_only": "Solo texto",
+                    "image_top": "Imagen arriba",
+                    "image_left": "Imagen a la izquierda"
+                },
+                "image": "Imagen (URL https)",
+                "imageHelp": "Usa una imagen liviana (menos de 100 KB) para no hacer lenta la tienda.",
+                "colors": {
+                    "background": "Fondo",
+                    "text": "Texto",
+                    "accent": "Botón",
+                    "accent_text": "Texto del botón"
+                }
+            }
+        },
+        "targeting": {
+            "trigger": {
+                "title": "Cuándo aparece",
+                "help": "Nunca aparece en el checkout ni a quien lo cerró hace poco.",
+                "type": "Disparador",
+                "types": {
+                    "exit_intent": "Al intentar salir",
+                    "time": "Después de unos segundos",
+                    "scroll": "Al bajar en la página",
+                    "immediate": "Al cargar la página",
+                    "click": "Al hacer clic en un elemento"
+                },
+                "seconds": "Segundos",
+                "percent": "Porcentaje de la página",
+                "selector": "Selector del elemento",
+                "selectorHelp": "Selector CSS del botón o enlace que lo abre."
+            },
+            "pages": {
+                "title": "Dónde aparece",
+                "help": "Sin nada marcado, aparece en todas las páginas.",
+                "types": "Tipos de página",
+                "typesHelp": "El checkout no está en la lista a propósito.",
+                "include": "Solo en estas rutas",
+                "exclude": "Nunca en estas rutas",
+                "patternHelp": "Una por línea. Usa * al final para incluir todo lo de abajo (/tienda/*).",
+                "checkout": "Durante el checkout nunca se muestra ningún widget."
+            },
+            "audience": {
+                "title": "A quién",
+                "devices": "Dispositivos",
+                "allIfNone": "Sin nada marcado: todos.",
+                "visitors": "Visitantes",
+                "visitorsAll": "Nuevos y recurrentes",
+                "visitorsNew": "Solo nuevos",
+                "visitorsReturning": "Solo recurrentes",
+                "cart": "Valor mínimo del carrito",
+                "cartHelp": "Vacío: sin mínimo.",
+                "countries": "Países",
+                "countriesHelp": "Según la conexión del visitante. Sin nada marcado: todos.",
+                "utm": {
+                    "source": "Fuente (utm_source)",
+                    "medium": "Medio (utm_medium)",
+                    "campaign": "Campaña (utm_campaign)"
+                },
+                "segments": "Solo a contactos de estos segmentos",
+                "segmentsHelp": "Funciona con visitantes ya identificados en ese navegador.",
+                "noSegments": "Todavía no tienes segmentos.",
+                "hide": "No mostrar a quien ya está suscrito",
+                "hideHelp": "Si ya dio permiso por el canal que pide el widget, no lo ve.",
+                "referral": "Solo a quien llega con un enlace de referido",
+                "referralHelp": "Para la bienvenida del amigo referido (?ref=CODIGO)."
+            },
+            "frequency": {
+                "title": "Frecuencia",
+                "help": "Para no cansar: cuántas veces lo ve una persona y cuánto esperar después de cerrarlo.",
+                "maxViews": "Veces como máximo",
+                "zero": "0 = sin límite.",
+                "cooldown": "Días de espera después de cerrarlo"
+            }
+        },
+        "consent": {
+            "title": "Casillas de consentimiento",
+            "help": "Una casilla por canal, sin marcar. Cada consentimiento queda con su prueba y la versión del texto legal.",
+            "orphan": "Estos canales no tienen su campo en el formulario y no se mostrarán: {{channels}}.",
+            "version": "texto legal {{version}}",
+            "noText": "sin texto legal publicado",
+            "unchecked": "Los textos son los vigentes de Consentimiento y nunca van marcados por defecto.",
+            "editTexts": "Editar textos legales",
+            "doi": {
+                "title": "Doble opt-in",
+                "enable": "Pedir confirmación por correo",
+                "help": "El correo queda pendiente hasta que la persona hace clic en el enlace de confirmación.",
+                "template": "Plantilla del correo de confirmación",
+                "templateHelp": "Debe incluir {{link}}. Si no eliges una, se usa un texto del sistema.",
+                "systemTemplate": "Texto del sistema"
+            }
+        },
+        "coupon": {
+            "title": "Regalo",
+            "help": "Un cupón único por persona, que crea tu tienda en el momento. Si alguien lo pide dos veces, no recibe otro.",
+            "enable": "Dar un cupón",
+            "referral": "El regalo de este widget es el del programa de referidos (Referidos → regalo del amigo).",
+            "kind": "Tipo de descuento",
+            "kinds": {
+                "percent": "Porcentaje",
+                "fixed_cart": "Valor fijo",
+                "free_shipping": "Envío gratis"
+            },
+            "percent": "Porcentaje (%)",
+            "amount": "Valor ({{currency}})",
+            "expires": "Vence en (días)",
+            "prefix": "Prefijo del código",
+            "prefixHelp": "Ej.: BIENVENIDA → BIENVENIDA-7K2Q9X.",
+            "minimum": "Compra mínima ({{currency}})",
+            "prizes": {
+                "title": "Premios de la ruleta",
+                "help": "Las probabilidades se quedan en el hub: el navegador solo ve los nombres.",
+                "label": "Nombre del premio",
+                "weight": "Peso",
+                "odds": "Probabilidad: {{value}}",
+                "givesCoupon": "Da un cupón",
+                "noCouponHelp": "Sin cupón es una casilla de «sigue intentando».",
+                "add": "Agregar premio",
+                "remove": "Quitar premio"
+            }
+        },
+        "quiz": {
+            "questions": "Preguntas",
+            "questionsHelp": "Cada respuesta puede llevar a otra pregunta o terminar el quiz.",
+            "text": "Pregunta",
+            "attribute": "Guardar la respuesta en el atributo",
+            "attributeHelp": "Queda en el perfil del contacto para segmentar. Solo minúsculas, números y _.",
+            "options": "Respuestas",
+            "optionLabel": "Respuesta {{n}}",
+            "next": "Después de la respuesta {{n}}",
+            "nextDefault": "Siguiente pregunta",
+            "goTo": "Ir a {{id}}",
+            "end": "Terminar y ver resultado",
+            "addOption": "Agregar respuesta",
+            "removeOption": "Quitar respuesta",
+            "addQuestion": "Agregar pregunta",
+            "removeQuestion": "Quitar pregunta",
+            "outcomes": "Resultados",
+            "outcomesHelp": "Gana la primera regla que coincide con las respuestas. Si ninguna coincide, se usa el respaldo.",
+            "ruleName": "Nombre de la regla",
+            "when": "Cuando respondió",
+            "whenHelp": "Sin nada marcado en una pregunta, cualquier respuesta sirve.",
+            "message": "Mensaje del resultado",
+            "addRule": "Agregar regla",
+            "removeRule": "Quitar regla",
+            "fallback": "Respaldo (si ninguna regla coincide)",
+            "limit": "Productos a mostrar",
+            "products": {
+                "kind": "Recomendación automática",
+                "kindHelp": "En vez de reglas, usa las recomendaciones de la tienda.",
+                "byRules": "Por categorías, marcas o productos",
+                "kinds": {
+                    "trending": "Tendencia esta semana",
+                    "best_sellers_category": "Más vendidos",
+                    "para_ti": "Para ti (personalizado)"
+                },
+                "categories": "Categorías",
+                "brands": "Marcas",
+                "ids": "IDs de producto",
+                "idsHelp": "Los de la tienda, separados por coma.",
+                "maxPrice": "Precio máximo"
+            }
+        },
+        "schedule": {
+            "title": "Programación",
+            "help": "Fuera de estas fechas no se muestra aunque esté activo. Vacío: sin límite.",
+            "starts": "Empieza",
+            "ends": "Termina",
+            "site": "Sitio",
+            "priority": "Prioridad",
+            "priorityHelp": "Si dos widgets coinciden, aparece primero el de número más bajo.",
+            "timezone": "Hora de {{tz}}."
+        },
+        "preview": {
+            "title": "Vista previa",
+            "aria": "Vista previa del widget {{kind}}",
+            "variant": "Variante de la vista previa",
+            "state": "Momento de la vista previa",
+            "device": "Dispositivo de la vista previa",
+            "states": {
+                "form": "Formulario",
+                "step2": "Segundo paso",
+                "success": "Éxito",
+                "quiz": "Preguntas"
+            },
+            "thanks": "¡Gracias!",
+            "product": "Producto {{n}}",
+            "question": "Pregunta {{n}} de {{total}}",
+            "nextIs": "Siguiente: {{text}}",
+            "note": "Aproximación: en tu tienda usa la tipografía del sitio. El código del cupón es de ejemplo."
+        },
+        "stats": {
+            "range": "Periodo",
+            "lastDays_one": "Último día",
+            "lastDays_other": "Últimos {{count}} días",
+            "attribution": "Ingresos: pedidos pagados de contactos captados por el widget en los 7 días anteriores.",
+            "views": "Vistas",
+            "visitors": "{{value}} visitantes",
+            "submissions": "Envíos",
+            "newContacts": "{{value}} contactos nuevos",
+            "newShort": "Nuevos",
+            "submitRate": "Tasa de envío",
+            "submitRateHelp": "Envíos divididos entre vistas.",
+            "orders": "Pedidos atribuidos",
+            "buyers": "{{value}} compradores",
+            "conversion": "Conversión a compra",
+            "conversionHelp": "Personas que compraron después de dejar sus datos, entre todas las que los dejaron.",
+            "revenue": "Ingresos atribuidos",
+            "revenueHelp": "Total pagado menos reembolsos, en la moneda del espacio de trabajo.",
+            "daily": "Envíos por día",
+            "dailyHelp": "Cuántas personas dejaron sus datos cada día.",
+            "day": "Día",
+            "variants": "Por variante",
+            "variantsHelp": "Compara la tasa de envío de cada variante.",
+            "variant": "Variante",
+            "winner": "Ganadora",
+            "ab": {
+                "significant": "La variante {{leader}} convierte {{lift}} más que la {{other}}, con {{confidence}} de confianza.",
+                "notYet": "Todavía no hay una diferencia clara (confianza {{confidence}}). Deja correr la prueba.",
+                "needData": "Hacen falta al menos 100 vistas por variante para comparar."
+            },
+            "captures": "Últimas capturas",
+            "capturesHelp": "Las 50 más recientes.",
+            "noCaptures": "Todavía nadie ha dejado sus datos en este widget.",
+            "contact": "Contacto",
+            "result": "Cupón o premio",
+            "when": "Fecha",
+            "known": "Ya era contacto",
+            "hidden": "Oculto para tu rol",
+            "unnamed": "Sin nombre"
+        }
+    }
+}

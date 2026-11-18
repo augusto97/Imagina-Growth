@@ -45,8 +45,9 @@ final class TrackerConfig {
 				}
 			}
 		}
-		$roles = $settings['excluded_roles'] ?? null;
-		$mode  = (string) ( $remote['consent']['mode'] ?? 'auto' );
+		$roles  = $settings['excluded_roles'] ?? null;
+		$mode   = (string) ( $remote['consent']['mode'] ?? 'auto' );
+		$onsite = is_array( $remote['onsite'] ?? null ) ? $remote['onsite'] : array();
 		Connection::update_state(
 			array(
 				'trk' => array(
@@ -60,6 +61,8 @@ final class TrackerConfig {
 						'enabled' => (bool) $settings['wa_ref'] && array() !== $settings['wa_numbers'],
 						'format'  => (string) $settings['wa_format'],
 						'numbers' => array_values( (array) $settings['wa_numbers'] ),
+						// El widget de WhatsApp del hub usa la referencia aunque no haya números locales.
+						'widgets' => (bool) $settings['wa_ref'],
 					),
 					'cd'    => (string) $settings['cookie_domain'],
 					'cur'   => (string) ( $remote['workspace']['currency'] ?? '' ),
@@ -67,9 +70,43 @@ final class TrackerConfig {
 					'cm'    => in_array( $mode, array( 'strict', 'informed' ), true ) ? $mode : 'auto',
 					'forms' => (bool) $settings['forms'],
 					'roles' => null === $roles ? null : array_values( (array) $roles ),
+					'ons'   => self::onsite( $settings, $onsite ),
 				),
 			)
 		);
+	}
+
+	/**
+	 * Elementos en el sitio activos (connector/CLAUDE.md §10): el ajuste local y, para lo
+	 * que depende de un módulo del hub, `onsite` de `/v1/s/config` (`loyalty`, `wallet`,
+	 * `product_watch`). Sin esa señal del hub, puntos, recompensas y saldo quedan apagados
+	 * para no reservar espacio que nadie va a llenar.
+	 *
+	 * @param array<string, mixed> $settings Ajustes locales.
+	 * @param array<string, mixed> $onsite   Módulos activos según el hub.
+	 * @return array<string, bool>
+	 */
+	public static function onsite( array $settings, array $onsite ): array {
+		$loyalty = ! empty( $onsite['loyalty'] );
+		$watch   = $onsite['product_watch'] ?? true;
+		return array(
+			'bis'    => (bool) $settings['bis'] && (bool) $watch,
+			'pd'     => (bool) $settings['price_drop'] && (bool) $watch,
+			'points' => (bool) $settings['points'] && $loyalty,
+			'rw'     => (bool) $settings['rewards'] && $loyalty,
+			'wallet' => (bool) $settings['wallet'] && ! empty( $onsite['wallet'] ),
+			'top'    => (bool) $settings['top_banner'],
+		);
+	}
+
+	/**
+	 * ¿Está activo un elemento en el sitio? (sin consultas: viene de `igr_state`).
+	 *
+	 * @param string $key bis, pd, points, rw, wallet o top.
+	 */
+	public static function on( string $key ): bool {
+		$trk = self::get();
+		return null !== $trk && ! empty( $trk['on'] ) && '' !== ( $trk['wu'] ?? '' ) && ! empty( $trk['ons'][ $key ] );
 	}
 
 	/**

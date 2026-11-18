@@ -4,7 +4,10 @@ import { HUB, php, wp } from './store';
 /** Borra los pedidos de prueba (devolviendo el stock) para no alterar la tienda demo. */
 export function cleanup(): string {
     return php(
-        'global $wpdb; $n = 0; foreach ($wpdb->get_col("SELECT id FROM {$wpdb->prefix}wc_orders WHERE billing_email LIKE \'e2e-%@example.com\'") as $id) { $o = wc_get_order((int) $id); if ($o) { wc_increase_stock_levels($o); $o->delete(true); $n++; } } echo $n;',
+        'global $wpdb; $n = 0; foreach ($wpdb->get_col("SELECT id FROM {$wpdb->prefix}wc_orders WHERE billing_email LIKE \'e2e-%@example.com\'") as $id) { $o = wc_get_order((int) $id); if ($o) { wc_increase_stock_levels($o); $o->delete(true); $n++; } }' +
+            // Cupones de saldo que creó el hub simulado (Fase 3) y reglas de reescritura sin «Mis recompensas».
+            ' foreach (get_posts(array("post_type" => "shop_coupon", "meta_key" => "igr_coupon", "numberposts" => -1, "post_status" => "any")) as $c) { wp_delete_post($c->ID, true); }' +
+            ' ImaginaGrowth\\Connector\\Onsite\\Account::sync_rewrite(); echo $n;',
     );
 }
 

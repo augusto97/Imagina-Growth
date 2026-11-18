@@ -1,0 +1,278 @@
+{
+    "onsiteCommerce": {
+        "nav": {
+            "label": "Comercio en el sitio",
+            "back": "En el sitio",
+            "recommendations": "Recomendaciones",
+            "watches": "Avisos de stock y precio",
+            "banners": "Banners"
+        },
+        "pagination": "Página {{page}} de {{pages}}",
+        "card": {
+            "rating": "{{avg}} ({{count}})"
+        },
+        "stock": {
+            "in": "Con stock",
+            "out": "Agotado"
+        },
+        "channel": {
+            "whatsapp": "WhatsApp",
+            "email": "Correo",
+            "sms": "SMS"
+        },
+        "picker": {
+            "placeholder": "Busca por nombre, SKU o ID",
+            "empty": "Sin productos que coincidan",
+            "clear": "Quitar producto",
+            "sold_one": "{{count}} vendido en 90 días",
+            "sold_other": "{{count}} vendidos en 90 días"
+        },
+        "kinds": {
+            "para_ti": {
+                "name": "Para ti",
+                "logic": "Según lo que la persona compró, metió al carrito y vio. Nunca repite lo que ya compró."
+            },
+            "bought_together": {
+                "name": "Comprados juntos frecuentemente",
+                "logic": "Productos que tus clientes compran en el mismo pedido que el de la ficha."
+            },
+            "recently_viewed": {
+                "name": "Vistos recientemente",
+                "logic": "Lo último que vio el visitante, en cualquiera de sus dispositivos conocidos."
+            },
+            "best_sellers_category": {
+                "name": "Más vendidos de esta categoría",
+                "logic": "Unidades vendidas en los últimos 90 días en la categoría de la página."
+            },
+            "trending": {
+                "name": "Tendencia esta semana",
+                "logic": "Lo que más subió en ventas esta semana frente a las cuatro anteriores."
+            },
+            "complete_cart": {
+                "name": "Completa tu compra",
+                "logic": "En el carrito: lo que se suele comprar junto con lo que ya lleva."
+            }
+        },
+        "reco": {
+            "title": "Recomendaciones",
+            "description": "Bloques de productos que se cargan después de la página: no tocan la caché ni frenan el sitio.",
+            "site": "Sitio",
+            "noSite": {
+                "title": "Conecta tu tienda para recomendar productos",
+                "description": "Las recomendaciones usan el catálogo y los pedidos de WooCommerce. Conecta un sitio en Sitios."
+            },
+            "stats": {
+                "inStock": "Productos con stock",
+                "ofTotal": "{{n}} de {{total}}",
+                "withSales": "Con ventas en {{days}} días",
+                "trending": "En tendencia",
+                "rules": "Reglas de «comprados juntos»",
+                "rulesValue": "{{rules}} en {{products}} productos",
+                "updated": "Popularidad actualizada {{when}}",
+                "never": "Todavía no se ha calculado",
+                "rebuild": "Recalcular ahora",
+                "rebuildQueued": "Recalculando en segundo plano. Tarda unos minutos."
+            },
+            "blocks": {
+                "title": "Bloques",
+                "help": "Inserta cada bloque con su shortcode, el bloque de Gutenberg o el widget de Elementor. Apagar uno lo oculta en el sitio sin quitarlo de la página.",
+                "personal": "Personal",
+                "shared": "Igual para todos",
+                "on": "Activo",
+                "off": "Apagado",
+                "copy": "Copiar {{code}}"
+            },
+            "preview": {
+                "title": "Vista previa",
+                "help": "Mira qué vería alguien con un producto, un carrito o un contacto real de tu tienda.",
+                "kind": "Bloque",
+                "product": "Producto de la ficha",
+                "productOptional": "Producto (opcional, para tomar su categoría)",
+                "cart": "Productos en el carrito",
+                "contact": "Contacto",
+                "contactPlaceholder": "Busca por nombre, correo o teléfono",
+                "noContacts": "Tu rol no permite ver contactos: prueba con otro bloque.",
+                "nothingNeeded": "Este bloque es igual para todos los visitantes.",
+                "fallback": "Sin datos suficientes para este caso: se muestran los más vendidos.",
+                "need": {
+                    "product": "Elige un producto para ver la recomendación.",
+                    "category": "Elige un producto para ver la recomendación.",
+                    "cart": "Agrega al menos un producto al carrito.",
+                    "contact": "Elige un contacto para ver su recomendación."
+                },
+                "empty": {
+                    "para_ti": "No hay productos con stock para recomendarle a esta persona.",
+                    "bought_together": "Todavía no hay productos con stock que se compren con este.",
+                    "recently_viewed": "Esta persona no ha visto productos en los últimos 90 días, o ya no tienen stock. En el sitio el bloque no se muestra.",
+                    "best_sellers_category": "No hay productos con stock en esta categoría.",
+                    "trending": "No hay productos con stock para mostrar.",
+                    "complete_cart": "No hay productos con stock para completar este carrito."
+                }
+            },
+            "rules": {
+                "title": "Comprados juntos",
+                "help": "Pares de productos que aparecen en al menos {{min}} pedidos pagados de los últimos {{days}} días y se compran juntos más de lo que dicta el azar. Se recalculan cada noche.",
+                "filter": "Filtrar por producto",
+                "empty": "Todavía no hay pares con {{min}} pedidos o más. Con más ventas aparecerán aquí.",
+                "product": "Si compran",
+                "related": "también compran",
+                "pairOrders": "Pedidos juntos",
+                "confidence": "Confianza",
+                "lift": "Lift",
+                "liftValue": "{{value}}×"
+            }
+        },
+        "watchKind": {
+            "back_in_stock": "Avísame cuando vuelva",
+            "price_drop": "Avísame si baja"
+        },
+        "watchStatus": {
+            "active": "Esperando",
+            "notified": "Avisado",
+            "cancelled": "Cancelado"
+        },
+        "reason": {
+            "frequency_cap": "Ya se le avisó de este producto hace poco",
+            "no_template": "Falta elegir la plantilla del canal",
+            "no_channel": "Ningún canal disponible",
+            "no_consent": "Sin consentimiento en ese canal",
+            "unsubscribed": "Se dio de baja",
+            "suppressed": "Dirección suprimida",
+            "outside_hours": "Fuera del horario legal",
+            "sunday": "Domingo: se aplazó",
+            "holiday": "Festivo: se aplazó",
+            "frequency_day": "Ya recibió un mensaje hoy",
+            "frequency_week": "Llegó al tope de la semana",
+            "channel_unavailable": "El canal no está conectado",
+            "expired": "Venció sin poder avisar",
+            "product_gone": "El producto ya no existe",
+            "cancelled_by_team": "Cancelado por el equipo",
+            "disabled": "Los avisos están apagados"
+        },
+        "watches": {
+            "title": "Avisos de stock y precio",
+            "description": "Quien pide «avísame» en la ficha recibe un mensaje cuando el producto vuelve o baja de precio, respetando su consentimiento, el horario legal y la frecuencia.",
+            "range": "Periodo",
+            "lastDays_one": "Último día",
+            "lastDays_other": "Últimos {{count}} días",
+            "empty": {
+                "title": "Todavía nadie ha pedido un aviso",
+                "description": "El botón «Avísame cuando vuelva» aparece solo en los productos agotados, y «Avísame si baja» donde lo pongas con el bloque o el shortcode [igr_bis]."
+            },
+            "kpi": {
+                "active": "Esperando aviso",
+                "activeSplit": "{{stock}} por stock · {{price}} por precio",
+                "notified": "Avisos enviados",
+                "notifiedTotal_one": "{{count}} en total",
+                "notifiedTotal_other": "{{count}} en total",
+                "buyers": "Compraron después",
+                "rate": "{{rate}} de los avisados",
+                "noRate": "Sin avisos en el periodo",
+                "revenue": "Ventas después del aviso",
+                "revenueHelp_one": "{{count}} pedido del producto en los {{days}} días siguientes",
+                "revenueHelp_other": "{{count}} pedidos del producto en los {{days}} días siguientes"
+            },
+            "chart": {
+                "title": "Por semana",
+                "help": "Suscripciones nuevas y avisos enviados, de lunes a domingo.",
+                "created": "Suscripciones",
+                "notified": "Avisos enviados",
+                "week": "Semana",
+                "weekOf": "Semana del {{date}}",
+                "asTable": "Ver tabla",
+                "asChart": "Ver gráfico"
+            },
+            "top": {
+                "title": "Lo que más esperan",
+                "help": "Productos con más personas esperando. Reponer estos primero vende más.",
+                "empty": "Nadie está esperando productos ahora.",
+                "product": "Producto"
+            },
+            "list": {
+                "title": "Suscripciones",
+                "status": "Estado",
+                "kind": "Tipo",
+                "allStatuses": "Todos los estados",
+                "allKinds": "Todos los tipos",
+                "date": "Fecha",
+                "contact": "Contacto",
+                "noName": "Sin nombre",
+                "empty": "No hay suscripciones con estos filtros.",
+                "cancel": "Cancelar",
+                "notifiedAt": "Avisado el {{date}}",
+                "retry": "{{why}}. Se reintenta el {{date}}"
+            },
+            "settings": {
+                "title": "Ajustes de los avisos",
+                "help": "El aviso se trata como mensaje de marketing: solo sale con consentimiento del canal, dentro del horario legal y sin pasar el límite de frecuencia. A una persona no se le avisa del mismo producto más de una vez por semana.",
+                "enabled": "Avisos activos",
+                "channels": "Canales, en este orden de preferencia",
+                "template": "Aviso",
+                "templateFor": "Plantilla de {{kind}} por {{channel}}",
+                "library": "La de la biblioteca",
+                "none": "Elige una plantilla",
+                "whatsappNote": "Para WhatsApp elige una plantilla aprobada por Meta. Si un canal no tiene plantilla, se usa el siguiente que la persona haya autorizado."
+            }
+        },
+        "banners": {
+            "title": "Banners personalizados",
+            "description": "Un mensaje arriba de la página o en Mi cuenta según quién visita: VIP con puntos, carrito pendiente, en riesgo o un segmento.",
+            "new": "Nuevo banner",
+            "edit": "Editar banner",
+            "delete": "Eliminar banner",
+            "deleteConfirm": "¿Eliminar el banner «{{name}}»?",
+            "deleted": "Banner eliminado",
+            "saved": "Banner guardado",
+            "live": "Activo",
+            "paused": "En pausa",
+            "hidden": "No se muestra",
+            "withSession": "Con sesión",
+            "withoutSession": "Sin sesión",
+            "preview": "Vista previa (con datos de ejemplo)",
+            "audienceSegment": "Segmento «{{name}}»",
+            "formHelp": "Gana el primer banner activo, por prioridad, cuya audiencia incluye a la persona. El nombre y los puntos solo se muestran con sesión iniciada.",
+            "empty": {
+                "title": "Todavía no tienes banners",
+                "description": "Saluda a tus clientes VIP con sus puntos, recuerda el carrito pendiente o invita a volver a quien está en riesgo."
+            },
+            "placement": {
+                "top": "Arriba de la página",
+                "account": "Mi cuenta"
+            },
+            "audience": {
+                "points": "Tiene puntos por usar",
+                "pending_cart": "Carrito pendiente",
+                "at_risk": "Cliente en riesgo",
+                "segment": "Un segmento"
+            },
+            "audienceHelp": {
+                "pending_cart": "Carrito sin pagar de los últimos 7 días. Sin sesión, solo cuenta el del mismo navegador. El botón restaura el carrito si no pones un enlace.",
+                "at_risk": "Clientes RFM «En riesgo» y «No podemos perderlos»."
+            },
+            "style": {
+                "brand": "Marca",
+                "info": "Información",
+                "success": "Éxito",
+                "warning": "Aviso"
+            },
+            "field": {
+                "name": "Nombre interno",
+                "audience": "Para quién",
+                "segment": "Segmento",
+                "chooseSegment": "Elige un segmento",
+                "minPoints": "Puntos mínimos",
+                "text": "Texto con sesión",
+                "textHelp": "Puedes usar {{nombre}}, {{puntos}} y {{carrito_items}}.",
+                "textPublic": "Texto sin sesión",
+                "textPublicHelp": "Se ve en páginas que no saben quién es la persona. Sin texto, el banner no se muestra sin sesión.",
+                "publicLeak": "El texto sin sesión no puede llevar {{nombre}} ni {{puntos}}.",
+                "cta": "Botón",
+                "url": "Enlace del botón",
+                "placement": "Dónde",
+                "style": "Estilo",
+                "priority": "Prioridad (menor gana)",
+                "status": "Estado"
+            }
+        }
+    }
+}

@@ -1,4 +1,4 @@
-import { ArrowLeft, FileDown, GitMerge, Gift, MoreHorizontal, Trash2, UserX } from 'lucide-react';
+import { ArrowLeft, FileDown, GitMerge, MoreHorizontal, Trash2, UserX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
@@ -13,6 +13,7 @@ import { toast } from '@/stores/toast';
 import { ConfirmDeleteDialog } from '@/features/privacy/ConfirmDeleteDialog';
 import { ExportDialog } from '@/features/privacy/ExportDialog';
 import { useRunDataRequest } from '@/features/privacy/api';
+import { ContactLoyaltyTab } from '@/features/loyalty/ContactLoyaltyTab';
 import { useContactAbilities } from '../abilities';
 import { useContactProfile } from '../api';
 import { errorMessage } from '../errors';
@@ -155,7 +156,7 @@ export function ProfilePage() {
                         <MessagesTab contactId={p.id} />
                     </TabsContent>
                     <TabsContent value="fidelizacion">
-                        <EmptyState icon={Gift} title={t('contacts.loyalty.title')} description={t('contacts.loyalty.description')} />
+                        <ContactLoyaltyTab contactId={p.id} />
                     </TabsContent>
                     <TabsContent value="datos">
                         <DataTab key={p.id} profile={p} />

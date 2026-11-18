@@ -191,8 +191,28 @@ final class GraphValidator
             NodeTypes::UPDATE_ATTRIBUTE => $this->attributeConfig($id, $c),
             NodeTypes::NOTIFY_TEAM => $this->notifyConfig($id, $c, $workspaceId),
             NodeTypes::WEBHOOK => $this->webhookConfig($id, $c),
+            NodeTypes::GIVE_POINTS => $this->givePointsConfig($id, $c),
+            NodeTypes::GIVE_WALLET => $this->giveWalletConfig($id, $c),
             default => null,
         };
+    }
+
+    /** @param array<string, mixed> $c */
+    private function givePointsConfig(string $id, array $c): void
+    {
+        $points = $c['points'] ?? null;
+        if (! is_numeric($points) || (int) $points != $points || (int) $points < 1 || (int) $points > 100000) {
+            $this->add($id, __('Indica cuántos puntos dar (entre 1 y 100.000).'));
+        }
+    }
+
+    /** @param array<string, mixed> $c */
+    private function giveWalletConfig(string $id, array $c): void
+    {
+        $amount = $c['amount'] ?? null;
+        if (! is_numeric($amount) || (float) $amount <= 0 || (float) $amount > 100000000) {
+            $this->add($id, __('Indica el monto de saldo a favor que se da.'));
+        }
     }
 
     /** @param array<string, mixed> $c */

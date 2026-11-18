@@ -57,13 +57,15 @@ export interface Touch {
     click_ids?: Record<string, string>;
     referrer?: string;
     landing?: string;
+    /** v4: `?ref=` de un enlace de referido o de afiliado. */
+    referral_code?: string;
     at?: number;
 }
 
 export type Props = Record<string, unknown>;
 
 export interface Envelope {
-    schema_version: 2;
+    schema_version: 4;
     event_id: string;
     event: string;
     occurred_at: string;

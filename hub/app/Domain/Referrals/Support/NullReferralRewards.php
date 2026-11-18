@@ -10,7 +10,7 @@ use App\Domain\Referrals\Contracts\ReferralRewards;
 /** Hasta que M14 registre el programa real: sin regalo. */
 final class NullReferralRewards implements ReferralRewards
 {
-    public function onFriendCaptured(string $contactId, string $code, ?string $anonymousId, bool $wasKnown): ?CouponIssued
+    public function onFriendCaptured(string $contactId, string $code, ?string $anonymousId, bool $wasKnown, ?string $siteId = null, ?string $ip = null): ?CouponIssued
     {
         return null;
     }

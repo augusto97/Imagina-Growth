@@ -23,6 +23,7 @@ import {
     ListTodo,
 } from 'lucide-react';
 import type { TFunction } from 'i18next';
+import { formatNumber } from '@/lib/format';
 import type { FlowOptions, GraphNode, Trigger } from './types';
 
 /* Catálogo de nodos de modulos.md M09 para el constructor. Las ramas y la validación son del servidor (NodeTypes). */
@@ -64,8 +65,8 @@ export const NODE_META: Record<string, NodeMeta> = {
     notify_team: { icon: Bell, category: 'action', branches: [null, 'failed'], defaults: () => ({ channel: 'email', to_owners: true, recipients: [], message: '', template_key: 'team_alert' }) },
     webhook: { icon: Webhook, category: 'action', branches: [null, 'failed'], defaults: () => ({ url: '' }) },
     exit: { icon: Flag, category: 'control', branches: [], defaults: () => ({}) },
-    give_points: { icon: Award, category: 'action', phase: 3, branches: [null], defaults: () => ({}) },
-    give_wallet: { icon: Wallet, category: 'action', phase: 3, branches: [null], defaults: () => ({}) },
+    give_points: { icon: Award, category: 'action', branches: [null], defaults: () => ({ points: 100 }) },
+    give_wallet: { icon: Wallet, category: 'action', branches: [null], defaults: () => ({ amount: '10000' }) },
     assign_agent: { icon: UserCheck, category: 'action', phase: 4, branches: [null], defaults: () => ({}) },
     lead_stage: { icon: Briefcase, category: 'action', phase: 5, branches: [null], defaults: () => ({}) },
     crm_task: { icon: ListTodo, category: 'action', phase: 5, branches: [null], defaults: () => ({}) },
@@ -169,6 +170,10 @@ export function summarize(t: TFunction, node: GraphNode, options: FlowOptions | 
             return s(c.message) || t('flows.summary.noMessage');
         case 'webhook':
             return s(c.url) || t('flows.summary.noUrl');
+        case 'give_points':
+            return num(c.points, 0) > 0 ? t('loyalty.flowNode.summaryPoints', { points: num(c.points, 0) }) : t('loyalty.flowNode.missing');
+        case 'give_wallet':
+            return Number(s(c.amount)) > 0 ? t('loyalty.flowNode.summaryWallet', { amount: formatNumber(Number(s(c.amount))) }) : t('loyalty.flowNode.missing');
         case 'exit':
             return t('flows.summary.exit');
         default:

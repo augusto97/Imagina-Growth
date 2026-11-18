@@ -106,6 +106,7 @@ export function FilterRows({ value, onChange, disabled }: { value: Filter[]; onC
 
 export function NodePanel({ node, options, issues, readOnly, webhookSecret, onChange, onDelete }: Props) {
     const { t } = useTranslation();
+    const { workspace } = useWorkspace();
     const c = node.config;
     const set = (patch: Config) => onChange({ ...c, ...patch });
     const meta = metaOf(node.type);
@@ -360,6 +361,20 @@ export function NodePanel({ node, options, issues, readOnly, webhookSecret, onCh
                             <Textarea id={id('message')} className="igr:min-h-20" maxLength={500} value={str(c.message)} disabled={readOnly} onChange={(e) => set({ message: e.target.value })} />
                         </Field>
                     </>
+                );
+                break;
+            case 'give_points':
+                body = (
+                    <Field label={t('loyalty.flowNode.points')} htmlFor={id('points')} help={t('loyalty.flowNode.pointsHelp')}>
+                        <Input id={id('points')} type="number" min={1} max={100000} className="igr:w-32" value={str(c.points, '')} disabled={readOnly} onChange={(e) => set({ points: Math.max(0, Math.min(100000, Math.round(Number(e.target.value) || 0))) })} />
+                    </Field>
+                );
+                break;
+            case 'give_wallet':
+                body = (
+                    <Field label={t('loyalty.flowNode.amount', { currency: workspace.currency })} htmlFor={id('amount')} help={t('loyalty.flowNode.amountHelp')}>
+                        <Input id={id('amount')} inputMode="decimal" className="igr:w-36" value={str(c.amount)} disabled={readOnly} onChange={(e) => set({ amount: e.target.value.replace(',', '.').replace(/[^0-9.]/g, '') })} />
+                    </Field>
                 );
                 break;
             case 'webhook':

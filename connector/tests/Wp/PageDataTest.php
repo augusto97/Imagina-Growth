@@ -280,6 +280,7 @@ final class PageDataTest extends WpTestCase {
 				'enabled' => true,
 				'format'  => '{text} (ref: {token})',
 				'numbers' => array( '573001234567' ),
+				'widgets' => true,
 			),
 			$config['waRef']
 		);

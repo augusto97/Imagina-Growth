@@ -36,6 +36,12 @@ export interface HubState {
     bad_tokens: number;
     survey_answers: { survey_id: string; order_id: string; answer: string; anonymous_id: string | null }[];
     events: Record<string, number>;
+    submits: { widget_id: string; kind: string; variant: string | null; step: number | null; anonymous_id: string | null; contact: string; fields: string[]; consents: Record<string, boolean>; answers: Record<string, string> | null; referral_code: string | null }[];
+    watches: { product_id: string; kind: string; channel: string; consents: Record<string, boolean>; anonymous_id: string | null }[];
+    redeems: { ref: string; reward_id: string; points: number }[];
+    shares: { ref: string; channel: string }[];
+    wallet_redeems: { request: { customer_ref: string; cart_total: string; currency: string; cart_token?: string }; coupon_status: number; code: string }[];
+    public_requests: { path: string; query: Record<string, string> }[];
 }
 
 export async function hub(): Promise<HubState> {

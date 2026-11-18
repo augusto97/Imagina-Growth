@@ -156,6 +156,11 @@ final class RequestContext {
 		if ( array() !== $clicks ) {
 			$out['click_ids'] = $clicks;
 		}
+		// v4: código de referido o de afiliado (`?ref=`) que el tracker guardó en el toque.
+		$ref = $touch['referral_code'] ?? null;
+		if ( is_string( $ref ) && 1 === preg_match( '/^[A-Za-z0-9_-]{3,32}$/', $ref ) ) {
+			$out['referral_code'] = $ref;
+		}
 		foreach ( array( 'referrer', 'landing' ) as $k ) {
 			$v = $touch[ $k ] ?? null;
 			if ( is_string( $v ) && '' !== $v ) {

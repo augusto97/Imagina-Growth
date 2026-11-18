@@ -21,7 +21,7 @@ export function reset(): void {
     localStorage.clear();
     sessionStorage.clear();
     const w = window as unknown as Record<string, unknown>;
-    for (const k of ['igr', 'igrConfig', 'igrPage', 'igrUser', 'igrOrder', 'wp_has_consent', '__igrWidgets']) delete w[k];
+    for (const k of ['igr', 'igrConfig', 'igrPage', 'igrUser', 'igrOrder', 'wp_has_consent', '__igrWidgets', '__igrW']) delete w[k];
     document.head.innerHTML = '';
     document.body.innerHTML = '';
 }

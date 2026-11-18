@@ -425,6 +425,29 @@
   - Exportación para pagos (manuales en la v1).
 - Reportes: ingresos por referidos y afiliados, costo de adquisición por referido y la mejor campaña de cada creador.
 
+**Cómo funciona (Fase 3):**
+- **Programa:** uno por espacio de trabajo (borrador, activo o en pausa).
+  - Regalo del amigo: cupón de primera compra de un solo uso, solo con su correo (`AMIGO-…`).
+  - Recompensa de quien refiere: puntos (requiere el programa de M13 activo), saldo a favor o cupón (`GRACIAS-…`).
+  - Reglas: compra mínima, límite de recompensas al mes por cliente, periodo de devolución (15 días por defecto), calificar al completarse o al pagarse, revisión manual de sospechosos y el texto para compartir con `{regalo}`, `{tienda}`, `{enlace}` y `{codigo}`.
+- **Código:** se crea la primera vez que se pide (en «Mis recompensas» o al compartir). Son hasta 4 letras del nombre más 3 caracteres al azar (`ANA7K2`), único entre clientes y afiliados del espacio de trabajo.
+- **Estados del referido:** `signed_up` (dejó sus datos con el código) → `ordered` (primera compra pagada, atribuida en el paso 3 de AttributeOrder) → `qualified` (completada y pasó el periodo de devolución; emite `referral.converted`) → `rewarded`.
+  - Pasa a `rejected` si el pedido se cancela o reembolsa, si no llega a la compra mínima o si quien refiere ya llegó a su límite del mes.
+  - Si el amigo llegó solo con el enlace y compró sin dejar sus datos, el referido se crea al atribuir el pedido.
+  - Una persona solo se puede referir una vez y solo cuenta su primera compra.
+- **Antifraude:**
+  - Autorreferido (mismo contacto, correo o teléfono): ni regalo ni referido.
+  - Señales que mandan a revisión: mismo dispositivo (`anonymous_id`), misma IP (con hash, 30 días) y mismo destinatario del pedido (nombre y ciudad con hash: el contrato del pedido no trae la dirección de la calle).
+  - En revisión, el amigo conserva su regalo y la recompensa espera la decisión del equipo.
+  - Las huellas se guardan solo como HMAC en `referral_fingerprints`.
+- **Afiliados:** sus cupones (los crea el comerciante en WooCommerce, o el hub con `coupon.create` de hasta 1.000 usos) y su enlace `?ref=CODIGO`.
+  - Atribución: cupón de afiliado > cupón de amigo > `referral_code` del último contacto > referido ya registrado. Nunca a los dos.
+  - Comisión porcentual sobre el neto (productos sin envío ni impuestos) o el total, o fija por pedido.
+  - Estados: `pending` → `approved` (pasado el periodo de devolución) → `paid` (exportación CSV y «marcar pagadas»), o `void` si se cancela o reembolsa antes de pagarse.
+  - Panel del creador `/creadores/{token}`: enlace mágico de 30 días que llega a su correo como mensaje transaccional. Enviar uno nuevo invalida el anterior, y si vence la persona pide otro, que solo llega a su correo registrado. Muestra sus ventas, comisiones por estado, enlaces, cupones, material, campañas y pedidos, sin datos de los compradores.
+- **Permisos:** ver, `viewDashboards`. Configurar, revisar y administrar afiliados, `manageMarketing`. El correo del afiliado, `viewAllContacts`. Datos de pago, pagos y exportación, `viewPaymentData`.
+- `igr:referrals:qualify` (cada hora) califica, recompensa y aprueba comisiones.
+
 ---
 
 ## M15 — Reseñas, NPS y prueba social · Fase 3

@@ -15,6 +15,11 @@ final class NullLoyaltyLedger implements LoyaltyLedger
         return false;
     }
 
+    public function rulePoints(string $reason): int
+    {
+        return 0;
+    }
+
     public function earnPoints(string $contactId, int $points, string $reason, string $idempotencyKey, ?string $refType = null, ?string $refId = null, bool $pending = false): ?string
     {
         return null;

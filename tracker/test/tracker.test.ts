@@ -17,7 +17,7 @@ describe('tracker', () => {
         expect(events.map((e) => e.event)).toEqual(['page.viewed', 'product.viewed']);
         for (const e of events) expect(contractErrors(e)).toEqual([]);
         const [pv] = events;
-        expect(pv?.schema_version).toBe(2);
+        expect(pv?.schema_version).toBe(4);
         expect(pv?.source).toMatchObject({ type: 'browser', site_id: 'st_01JD3QG7Y2V8K6N4M5P9R0S1T2', sdk: 'tracker/0.1.0' });
         expect(pv?.identity['anonymous_id']).toMatch(/^[0-9a-f-]{36}$/);
         expect(pv?.context['utm']).toEqual({ source: 'facebook', medium: 'paid_social' });
@@ -120,5 +120,74 @@ describe('tracker', () => {
         await settle();
         for (const body of b.bodies) expect((JSON.parse(body) as { events: unknown[] }).events.length).toBeLessThanOrEqual(20);
         expect(b.events().filter((e) => e.event === 'custom.n')).toHaveLength(45);
+    });
+
+    it('v4: guarda el código de referido en _igr_src y lo manda en context.referral_code del aterrizaje', async () => {
+        setUrl('https://tienda.co/?ref=ANA7K2&utm_source=whatsapp');
+        const b = beacons();
+        await boot();
+        await settle();
+        const pv = b.events().find((e) => e.event === 'page.viewed');
+        expect(pv?.context['referral_code']).toBe('ANA7K2');
+        expect((pv?.context['last_touch'] as Record<string, unknown>)['referral_code']).toBe('ANA7K2');
+        expect((pv?.context['first_touch'] as Record<string, unknown>)['referral_code']).toBe('ANA7K2');
+        expect(contractErrors(pv)).toEqual([]);
+        // El código no es un dato del visitante: la URL queda como está (otros plugins de afiliados también leen ?ref=).
+        expect(location.href).toBe('https://tienda.co/?ref=ANA7K2&utm_source=whatsapp');
+        const src = JSON.parse(decodeURIComponent(document.cookie.match(/_igr_src=([^;]*)/)?.[1] ?? '{}')) as { l?: { referral_code?: string } };
+        expect(src.l?.referral_code).toBe('ANA7K2');
+
+        // En la página siguiente ya no va en el contexto, pero sigue en el último contacto.
+        setUrl('https://tienda.co/tienda/', 'https://tienda.co/?ref=ANA7K2');
+        delete (window as unknown as Record<string, unknown>)['igr'];
+        const b2 = beacons();
+        await boot();
+        await settle();
+        const next = b2.events().find((e) => e.event === 'page.viewed');
+        expect(next?.context['referral_code']).toBeUndefined();
+        expect((next?.context['last_touch'] as Record<string, unknown>)['referral_code']).toBe('ANA7K2');
+    });
+
+    it('ignora un ?ref= con formato inválido', async () => {
+        setUrl('https://tienda.co/?ref=<script>');
+        const b = beacons();
+        await boot();
+        await settle();
+        const pv = b.events().find((e) => e.event === 'page.viewed');
+        expect(pv?.context['referral_code']).toBeUndefined();
+        expect(contractErrors(pv)).toEqual([]);
+    });
+
+    it('pide widgets.json con el tipo de página y la ruta, y carga el runtime solo si hay widgets o slots', async () => {
+        const fetchMock = vi.fn((url: string) => Promise.resolve(new Response(JSON.stringify({ widgets: url.includes('tienda') ? [{ id: 'wg_1', kind: 'popup' }] : [] }), { status: 200 })));
+        vi.stubGlobal('fetch', fetchMock);
+        beacons();
+        setUrl('https://tienda.co/tienda/');
+        await boot({ widgetsUrl: 'https://hub.test/p/pk_x/widgets.json', widgetsJs: 'https://tienda.co/a/igr-widgets.js?ver=1' }, { type: 'category' });
+        await settle();
+        await new Promise((r) => setTimeout(r, 20));
+        expect(fetchMock.mock.calls[0]?.[0]).toBe('https://hub.test/p/pk_x/widgets.json?page_type=category&path=%2Ftienda%2F');
+        expect(document.head.querySelector('script[src*="igr-widgets.js"]')).not.toBeNull();
+
+        // Sin widgets ni slots no se carga nada.
+        reset();
+        vi.stubGlobal('fetch', fetchMock);
+        beacons();
+        setUrl('https://tienda.co/contacto/');
+        await boot({ widgetsUrl: 'https://hub.test/p/pk_x/widgets.json', widgetsJs: 'https://tienda.co/a/igr-widgets.js?ver=1' }, { type: 'landing' });
+        await settle();
+        await new Promise((r) => setTimeout(r, 20));
+        expect(document.head.querySelector('script[src*="igr-widgets.js"]')).toBeNull();
+
+        // Nunca en el checkout.
+        reset();
+        fetchMock.mockClear();
+        vi.stubGlobal('fetch', fetchMock);
+        beacons();
+        setUrl('https://tienda.co/checkout/');
+        await boot({ widgetsUrl: 'https://hub.test/p/pk_x/widgets.json', widgetsJs: 'https://tienda.co/a/igr-widgets.js?ver=1' }, { type: 'checkout' });
+        await settle();
+        expect(fetchMock.mock.calls.filter((c) => String(c[0]).includes('widgets.json'))).toHaveLength(0);
+        vi.unstubAllGlobals();
     });
 });
