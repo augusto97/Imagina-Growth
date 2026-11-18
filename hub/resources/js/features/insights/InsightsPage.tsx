@@ -70,7 +70,7 @@ export function InsightsPage() {
                         ))}
                     </TabsList>
                 </Tabs>
-                <Select aria-label={t('insights.filters.category')} value={category} onChange={(e) => setParam('categoria', e.target.value)} className="igr:w-44">
+                <Select aria-label={t('insights.filters.category')} value={category} onChange={(e) => setParam('categoria', e.target.value)} className="igr:w-52">
                     <option value="">{t('insights.filters.allCategories')}</option>
                     {CATEGORIES.map((c) => (
                         <option key={c} value={c}>
@@ -78,7 +78,7 @@ export function InsightsPage() {
                         </option>
                     ))}
                 </Select>
-                <Select aria-label={t('insights.filters.severity')} value={severity} onChange={(e) => setParam('severidad', e.target.value)} className="igr:w-40">
+                <Select aria-label={t('insights.filters.severity')} value={severity} onChange={(e) => setParam('severidad', e.target.value)} className="igr:w-52">
                     <option value="">{t('insights.filters.allSeverities')}</option>
                     {SEVERITIES.map((s) => (
                         <option key={s} value={s}>

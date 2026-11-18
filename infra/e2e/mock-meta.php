@@ -1,8 +1,9 @@
 <?php
 /*
- * Graph API de Meta simulada para la prueba de la Fase 1 (php -S 127.0.0.1:8091 mock-meta.php).
- * Guarda cada POST /{version}/{dataset_id}/events en META_LOG (una línea JSON por petición)
- * y responde como la Conversions API. GET /_log devuelve lo recibido.
+ * Graph API de Meta simulada (php -S 127.0.0.1:8091 mock-meta.php): la Conversions API de la
+ * Fase 1 (POST /{version}/{dataset_id}/events) y, desde la Fase 4, los mensajes de WhatsApp
+ * (POST /{version}/{phone_number_id}/messages). Guarda cada petición en META_LOG (una línea JSON)
+ * y GET /_log devuelve lo recibido.
  */
 declare(strict_types=1);
 
@@ -38,6 +39,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && preg_match('#^/v[\d.]+/(\d+
         'body' => $body,
     ], JSON_UNESCAPED_SLASHES)."\n", FILE_APPEND | LOCK_EX);
     echo json_encode(['events_received' => count((array) ($body['data'] ?? [])), 'messages' => [], 'fbtrace_id' => 'E2E'.bin2hex(random_bytes(4))]);
+
+    return;
+}
+// Fase 4: mensajes de WhatsApp de la Cloud API (POST /{version}/{phone_number_id}/messages).
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && preg_match('#^/v[\d.]+/(\d+)/(messages|marketing_messages)$#', $path, $m) === 1) {
+    $body = json_decode((string) file_get_contents('php://input'), true) ?: [];
+    $wamid = 'wamid.E2E'.bin2hex(random_bytes(6));
+    file_put_contents($log, json_encode([
+        'kind' => 'whatsapp', 'phone_number_id' => $m[1], 'path' => $m[2], 'wamid' => $wamid,
+        'authorized' => str_starts_with($_SERVER['HTTP_AUTHORIZATION'] ?? '', 'Bearer '),
+        'body' => $body,
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)."\n", FILE_APPEND | LOCK_EX);
+    echo json_encode(['messaging_product' => 'whatsapp', 'contacts' => [['wa_id' => (string) ($body['to'] ?? '')]], 'messages' => [['id' => $wamid]]]);
 
     return;
 }

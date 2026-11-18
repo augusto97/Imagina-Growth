@@ -72,9 +72,9 @@ final class FirstPurchaseStalledDetector implements Detector
     private function medianDaysToSecond(Workspace $workspace): array
     {
         $days = DB::table('orders as o2')
-            ->join('orders as o1', fn ($j) => $j->on('o1.contact_id', '=', 'o2.contact_id')->where('o1.order_index', 1))
+            ->join('orders as o1', fn ($j) => $j->on('o1.contact_id', '=', 'o2.contact_id')->where('o1.order_index', 1)->where('o1.workspace_id', $workspace->id))
             ->where('o2.workspace_id', $workspace->id)->where('o2.order_index', 2)->whereNotNull('o2.contact_id')
-            ->limit(5000)->pluck(DB::raw('DATEDIFF(o2.created_at, o1.created_at)'))->map(fn ($d) => (float) $d)->all();
+            ->selectRaw('DATEDIFF(o2.created_at, o1.created_at) AS d')->limit(5000)->pluck('d')->map(fn ($d) => (float) $d)->all();
         if (count($days) < 30) {
             return [45, count($days)];
         }

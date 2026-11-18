@@ -135,6 +135,19 @@ it('#9 propone el flujo de segunda compra para clientes de un pedido estancados'
         ->and($i->recommended_action['payload']['library_key'])->toBe('second_purchase');
 })->with(['positivo' => true, 'negativo' => false]);
 
+it('#9 usa la mediana propia de días hasta la segunda compra cuando hay 30 casos o más', function () {
+    for ($k = 0; $k < 30; $k++) {
+        $cid = strtoupper((string) Str::ulid());
+        insightsOrder($this, ['contact_id' => $cid, 'order_index' => 1, 'created_at' => now()->subDays(100)]);
+        insightsOrder($this, ['contact_id' => $cid, 'order_index' => 2, 'created_at' => now()->subDays(80)]);
+    }
+    for ($k = 0; $k < 12; $k++) {
+        insightsContact($this, ['orders_count' => 1, 'aov_ws' => 90000, 'first_order_at' => now()->subDays(25)]);
+    }
+    $i = insightsFound($this, 'first_purchase_stalled');
+    expect($i)->not->toBeNull()->and($i->facts['median_days_to_second'])->toBe(20)->and($i->facts['pairs'])->toBe(30);
+});
+
 it('#10 avisa cuando el 10 % de los clientes concentra la mayoría de las ventas', function (bool $positive) {
     for ($k = 0; $k < 50; $k++) {
         insightsOrder($this, ['contact_id' => strtoupper((string) Str::ulid()), 'total_ws' => ($positive && $k < 5) ? 1000000 : 10000, 'created_at' => now()->subDays(20)]);
