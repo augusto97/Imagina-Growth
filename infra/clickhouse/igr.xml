@@ -1,0 +1,13 @@
+<!-- Ajustes de ClickHouse para Imagina Growth: inserciones asíncronas y logs moderados. -->
+<clickhouse>
+    <logger>
+        <level>warning</level>
+    </logger>
+    <profiles>
+        <default>
+            <async_insert>1</async_insert>
+            <wait_for_async_insert>1</wait_for_async_insert>
+            <max_execution_time>30</max_execution_time>
+        </default>
+    </profiles>
+</clickhouse>

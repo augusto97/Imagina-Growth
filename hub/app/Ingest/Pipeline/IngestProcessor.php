@@ -50,14 +50,50 @@ final class IngestProcessor
     ) {}
 
     /**
+     * Todo el lote va en una transacción de MariaDB (un solo commit) y cada
+     * evento en un savepoint: un evento con datos inválidos se rechaza sin
+     * tumbar el lote. Un error transitorio (conexión, bloqueo) revierte el lote
+     * completo y lanza la excepción: el worker no confirma esas entradas y se
+     * reintentan.
+     *
      * @param  list<IngestEntry>  $entries
      */
-    public function process(array $entries, int $maxAttempts = 5): BatchOutcome
+    public function process(array $entries): BatchOutcome
+    {
+        DB::beginTransaction();
+        try {
+            [$out, $recalculate, $touchedSites] = $this->processInTransaction($entries);
+            DB::commit();
+        } catch (Throwable $e) {
+            DB::rollBack(0);
+            throw $e;
+        }
+
+        // Después del commit: contadores del contacto (un job por contacto y lote, debounce de 5 s).
+        foreach ($recalculate as $workspaceId => $contacts) {
+            foreach (array_keys($contacts) as $contactId) {
+                RecalculateContactStats::debounce($workspaceId, $contactId);
+            }
+        }
+        foreach ($touchedSites as $siteId => $ms) {
+            Site::withoutWorkspaceScope()->whereKey($siteId)->update(['last_event_at' => CarbonImmutable::createFromTimestampMs($ms)]);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<IngestEntry>  $entries
+     * @return array{0: BatchOutcome, 1: array<string, array<string, true>>, 2: array<string, int>}
+     */
+    private function processInTransaction(array $entries): array
     {
         $out = new BatchOutcome;
         $redis = $this->stream->connection();
         $seenInBatch = [];
         $touchedSites = [];
+        /** @var array<string, array<string, true>> espacio de trabajo => contactos con pedidos en el lote */
+        $recalculate = [];
 
         foreach ($entries as $entry) {
             $envelope = json_decode($entry->json, true);
@@ -101,21 +137,19 @@ final class IngestProcessor
             }
 
             try {
-                $result = $this->current->run($workspace, fn () => $this->handle($workspace, $site, $entry, $envelope));
+                // Savepoint por evento.
+                $result = DB::transaction(fn () => $this->current->run($workspace, fn () => $this->handle($workspace, $site, $entry, $envelope)));
             } catch (Throwable $e) {
-                $attempts = (int) $redis->command('incr', ['ingest:attempts:'.$entry->streamId]);
-                $redis->command('expire', ['ingest:attempts:'.$entry->streamId, 86400]);
                 Log::warning('igr.ingest.event_failed', [
-                    'event_id' => $eventId, 'event' => $envelope['event'], 'attempt' => $attempts,
+                    'event_id' => $eventId, 'event' => $envelope['event'], 'transient' => $this->isTransient($e),
                     'error' => Pii::scrub(mb_substr($e->getMessage(), 0, 300)),
                 ]);
-                if ($attempts >= $maxAttempts || ! $this->isTransient($e)) {
-                    $this->reject($entry, $envelope, 'processing', mb_substr($e->getMessage(), 0, 500));
-                    $out->ackIds[] = $entry->streamId;
-                    $out->rejected++;
-                } else {
-                    $out->retryIds[] = $entry->streamId;
+                if ($this->isTransient($e)) {
+                    throw $e;
                 }
+                $this->reject($entry, $envelope, 'processing', mb_substr($e->getMessage(), 0, 500));
+                $out->ackIds[] = $entry->streamId;
+                $out->rejected++;
 
                 continue;
             }
@@ -129,18 +163,17 @@ final class IngestProcessor
             $out->ackIds[] = $entry->streamId;
             $out->processed++;
             $touchedSites[$site->id] = $entry->receivedMs;
+            if ($result['recalculate'] !== null) {
+                $recalculate[$workspace->id][$result['recalculate']] = true;
+            }
         }
 
-        foreach ($touchedSites as $siteId => $ms) {
-            Site::withoutWorkspaceScope()->whereKey($siteId)->update(['last_event_at' => CarbonImmutable::createFromTimestampMs($ms)]);
-        }
-
-        return $out;
+        return [$out, $recalculate, $touchedSites];
     }
 
     /**
      * @param  array<string, mixed>  $envelope
-     * @return array{row: array<string, mixed>, identity_row: array<string, mixed>|null}
+     * @return array{row: array<string, mixed>, identity_row: array<string, mixed>|null, recalculate: string|null}
      */
     private function handle(Workspace $workspace, Site $site, IngestEntry $entry, array $envelope): array
     {
@@ -168,17 +201,12 @@ final class IngestProcessor
         }
 
         // 9. Proyección en MariaDB.
-        DB::transaction(function () use ($workspace, $site, $envelope, $event, $contactId): void {
-            if (str_starts_with($event, 'order.')) {
-                $this->orders->project($workspace, $site, $envelope, $contactId);
-            } elseif (str_starts_with($event, 'catalog.')) {
-                $this->catalog->project($workspace, $site, $envelope);
-            } elseif (str_starts_with($event, 'site.')) {
-                $this->siteHealth->project($site, $envelope);
-            }
-        });
-        if ($contactId !== null && str_starts_with($event, 'order.')) {
-            RecalculateContactStats::debounce($workspace->id, $contactId);
+        if (str_starts_with($event, 'order.')) {
+            $this->orders->project($workspace, $site, $envelope, $contactId);
+        } elseif (str_starts_with($event, 'catalog.')) {
+            $this->catalog->project($workspace, $site, $envelope);
+        } elseif (str_starts_with($event, 'site.')) {
+            $this->siteHealth->project($site, $envelope);
         }
 
         // 10. Evento de dominio (TriggerRouter en las fases 1 y 2). La importación no dispara nada.
@@ -195,7 +223,11 @@ final class IngestProcessor
             'ua' => $entry->ua,
         ], $contactId);
 
-        return ['row' => $row, 'identity_row' => $identityRow];
+        return [
+            'row' => $row,
+            'identity_row' => $identityRow,
+            'recalculate' => $contactId !== null && str_starts_with($event, 'order.') ? $contactId : null,
+        ];
     }
 
     private function isTransient(Throwable $e): bool

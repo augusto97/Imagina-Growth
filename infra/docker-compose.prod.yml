@@ -1,0 +1,110 @@
+# Producción del hub en el VPS de Hetzner dedicado (hub/CLAUDE.md §18).
+#   docker compose -f infra/docker-compose.prod.yml --env-file /srv/igr/.env up -d
+# Despliegue sin caída: build → php artisan migrate --force → horizon:terminate (infra/README.md).
+
+name: imagina-growth
+
+x-hub: &hub
+  image: ${IGR_IMAGE:-imagina-growth/hub:latest}
+  env_file: ${IGR_ENV_FILE:-/srv/igr/.env}
+  restart: unless-stopped
+  depends_on:
+    mariadb: { condition: service_healthy }
+    redis: { condition: service_healthy }
+    clickhouse: { condition: service_healthy }
+  volumes:
+    - storage:/app/storage
+
+services:
+  # Panel, API y SPA.
+  app:
+    <<: *hub
+    command: ["frankenphp", "php-server", "--listen", ":8080", "--root", "public/"]
+
+  # Endpoints de ingesta (/v1/b, /v1/s): misma imagen, réplicas aparte para que el panel no compita con la ingesta.
+  ingest:
+    <<: *hub
+    command: ["frankenphp", "php-server", "--listen", ":8080", "--root", "public/"]
+    deploy:
+      replicas: 2
+
+  # Un worker de ingesta por shard (IGR_INGEST_SHARDS=4).
+  ingest-worker-0: { <<: *hub, command: ["php", "artisan", "igr:ingest:work", "--shard=0"] }
+  ingest-worker-1: { <<: *hub, command: ["php", "artisan", "igr:ingest:work", "--shard=1"] }
+  ingest-worker-2: { <<: *hub, command: ["php", "artisan", "igr:ingest:work", "--shard=2"] }
+  ingest-worker-3: { <<: *hub, command: ["php", "artisan", "igr:ingest:work", "--shard=3"] }
+
+  horizon:
+    <<: *hub
+    command: ["php", "artisan", "horizon"]
+
+  scheduler:
+    <<: *hub
+    command: ["php", "artisan", "schedule:work"]
+
+  # reverb (Fase 2: bandeja y «En este momento») y ml (Fase 4) se agregan con su fase.
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      IGR_ACME_EMAIL: ${IGR_ACME_EMAIL:-ops@imagina.cloud}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [app, ingest]
+
+  mariadb:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?falta DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_DATABASE:-igr}
+      MARIADB_USER: ${DB_USERNAME:-igr}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?falta DB_PASSWORD}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--log-bin=mariadb-bin", "--binlog-expire-logs-seconds=1209600", "--innodb-buffer-pool-size=4G"]
+    volumes: ["mariadb:/var/lib/mysql", "backups:/backups"]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      retries: 30
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.8
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DATABASE:-igr}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USERNAME:-igr}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?falta CLICKHOUSE_PASSWORD}
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+    volumes:
+      - clickhouse:/var/lib/clickhouse
+      - ./clickhouse/igr.xml:/etc/clickhouse-server/config.d/igr.xml:ro
+      - ./clickhouse/backups.xml:/etc/clickhouse-server/config.d/backups.xml:ro
+      - backups:/backups
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8123/ping"]
+      interval: 10s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes: ["redis:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 30
+
+volumes:
+  storage:
+  mariadb:
+  clickhouse:
+  redis:
+  backups:
+  caddy_data:
+  caddy_config:

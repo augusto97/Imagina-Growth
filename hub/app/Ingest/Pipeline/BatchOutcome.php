@@ -19,9 +19,6 @@ final class BatchOutcome
     /** @var list<string> IDs del stream que se confirman (XACK) después de escribir */
     public array $ackIds = [];
 
-    /** @var list<string> IDs del stream que quedan pendientes para reintentar */
-    public array $retryIds = [];
-
     public int $processed = 0;
 
     public int $duplicates = 0;

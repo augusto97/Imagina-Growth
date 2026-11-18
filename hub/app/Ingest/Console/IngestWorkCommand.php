@@ -77,6 +77,7 @@ final class IngestWorkCommand extends Command
         }
 
         $totals = ['processed' => 0, 'duplicates' => 0, 'rejected' => 0];
+        $failures = 0;
         while (! $this->stop && microtime(true) < $deadline) {
             $readAny = false;
             foreach ($shards as $shard) {
@@ -89,7 +90,19 @@ final class IngestWorkCommand extends Command
                     continue;
                 }
                 $readAny = true;
-                $outcome = $processor->process($entries);
+                try {
+                    $outcome = $processor->process($entries);
+                } catch (Throwable $e) {
+                    // Lote revertido y sin confirmar: se reclamará y reintentará.
+                    Log::error('igr.ingest.batch_failed', ['shard' => $shard, 'entries' => count($entries), 'error' => mb_substr($e->getMessage(), 0, 300)]);
+                    $this->error('Lote revertido; se reintentará: '.mb_substr($e->getMessage(), 0, 200));
+                    if ($once && ++$failures >= 5) {
+                        return self::FAILURE;
+                    }
+                    sleep(1);
+
+                    continue;
+                }
                 $this->buffer($shard, $outcome);
                 foreach ($totals as $k => $v) {
                     $totals[$k] = $v + $outcome->{$k};

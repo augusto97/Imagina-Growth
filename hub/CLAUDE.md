@@ -14,11 +14,13 @@ Recibir y validar eventos, resolver identidades, guardar en ClickHouse y MariaDB
 - PHP 8.4, Laravel 13, MariaDB 11, ClickHouse 25.x, Redis 7.
 - **Laravel:** Horizon (colas), Reverb (WebSockets), Sanctum (autenticación de la SPA y tokens de la API), Pennant (feature flags por plan), Scout no (la búsqueda es propia), Laravel AI SDK (Anthropic), Laravel MCP.
 - **Terceros (verifica la versión vigente al instalar):**
-  - `spatie/laravel-data` (DTOs) y `spatie/laravel-activitylog` (auditoría).
+  - `spatie/laravel-data` (DTOs). La auditoría usa la tabla propia `audit_logs` de `modelo-de-datos.md` §1 (acción `RecordAuditLog`, cambios enmascarados e IP con hash) en lugar de `spatie/laravel-activitylog`, porque su esquema no coincide con el del modelo de datos.
+  - Autenticación de la SPA: Laravel Fortify (rutas JSON bajo `/auth`, 2FA TOTP con códigos de recuperación) sobre la sesión de Sanctum.
+  - Validación de JSON Schema: `opis/json-schema` (draft 2020-12), con los esquemas compilados una vez por proceso.
   - `giggsey/libphonenumber-for-php` (E.164).
   - `keepsuit/liquid` (plantillas Liquid en sandbox).
   - `matomo/device-detector` (user agent) y `geoip2/geoip2` con la base GeoLite2 de MaxMind (geo por IP; la IP se descarta después).
-  - Un cliente de ClickHouse para PHP (por ejemplo `smi2/phpclickhouse`) envuelto en `App\Analytics\Ch`.
+  - Cliente de ClickHouse: `App\Analytics\Ch`, un cliente propio y mínimo sobre la interfaz HTTP nativa (parámetros `{nombre:Tipo}` enlazados, sin SQL concatenado). Se eligió en lugar de `smi2/phpclickhouse` para controlar del todo el candado de `workspace_id`.
   - `aws/aws-sdk-php` (SES y SNS), `league/csv`, `spatie/laravel-pdf` (reporte mensual), `dedoc/scramble` (OpenAPI).
   - `ramsey/uuid` (UUID v5 y v7).
 - **Calidad:** Pest, Larastan nivel 8, Pint, Rector.
@@ -70,8 +72,8 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
       2. validar el sobre (barato) y el tamaño
       3. XADD al Redis Stream  ingest:{shard}   → 202
                     │
-       IngestWorker (consumer group, procesos de Horizon dedicados)
-      4. dedupe: SET NX evt:{event_id} con TTL 7 días (Redis)
+       IngestWorker (consumer group; `php artisan igr:ingest:work --shard=N`, un proceso por shard)
+      4. dedupe: ws:{id}:evt:{event_id} en Redis con TTL 7 días
       5. validar el esquema del evento (JSON Schema compilado en caché)
       6. enriquecer: geo (y descartar la IP), dispositivo, canal (§2 de inteligencia), moneda → ws
       7. identidad: IdentityResolver (caché Redis del mapa anónimo→contacto; crea o une contactos)
@@ -81,6 +83,8 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 ```
 
 - **Particionado por `workspace_id`** en shards del stream para mantener el orden por contacto.
+- **Implementación (Fase 0):** el worker no corre dentro de Horizon (Horizon solo supervisa colas de jobs, no consumidores de Streams): son procesos propios supervisados por Docker, uno por shard. Cada lote va en **una transacción de MariaDB con un savepoint por evento**: un evento con datos inválidos se rechaza sin tumbar el lote, y un error transitorio revierte el lote completo, que se reintenta. La clave de dedupe y el `XACK` se escriben **después** de que ClickHouse confirma la inserción, así un fallo a mitad de camino nunca pierde eventos (entrega «al menos una vez» con escrituras idempotentes). Los contadores del contacto se recalculan con un job por contacto y lote.
+- **Rendimiento medido** (un proceso, MariaDB y ClickHouse locales): ~117 eventos/s por shard con 6 consultas por evento. El objetivo de carga de §17 (500 eventos/s) se reparte entre shards; la prueba con k6 queda para la Fase 1.
 - Los eventos `source.type=import` saltan el paso 10 (no disparan nada).
 - Los errores de esquema van a la tabla `ingest_rejections` (muestra de 7 días) y se ven en el panel del sitio.
 - **Proyección de pedidos:** `order.*` hace *upsert* en `orders` y `order_items` por (site_id, external_id). Recalcula los contadores del contacto en un job con *debounce* (5 s) por contacto.

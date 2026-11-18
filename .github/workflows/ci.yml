@@ -1,0 +1,64 @@
+# CI del monorepo (CLAUDE.md §6): nada entra a main en rojo.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hub-backend:
+    name: Hub · Pest, Larastan, Pint
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: hub
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: igr_test
+          MARIADB_USER: igr
+          MARIADB_PASSWORD: igr
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+      clickhouse:
+        image: clickhouse/clickhouse-server:25.8
+        env:
+          CLICKHOUSE_SKIP_USER_SETUP: "1"
+        ports: ["8123:8123"]
+        options: >-
+          --ulimit nofile=262144:262144
+          --health-cmd="wget -qO- http://127.0.0.1:8123/ping"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: --health-cmd="redis-cli ping" --health-interval=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: pdo_mysql, redis, intl, zip, pcntl, sodium
+          coverage: none
+          tools: composer:v2
+      - name: Caché de Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ hashFiles('hub/composer.lock') }}
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Pint
+        run: vendor/bin/pint --test
+      - name: Larastan (nivel 8)
+        run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+      - name: Pest (unidad, contrato, integración y tenancy)
+        run: vendor/bin/pest --ci

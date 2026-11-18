@@ -73,12 +73,14 @@ final class IdentityResolver
                 // Solo anónimo y desconocido: no se crea contacto (es un visitante sin identificar).
                 return ['contact' => null, 'created' => false, 'linked_anonymous' => false];
             }
-            $contact = Contact::query()->create([
+            // Se guarda una sola vez, con el perfil completo, al final de updateProfile().
+            $contact = new Contact([
                 'workspace_id' => $workspace->id,
                 'lifecycle_stage' => 'lead',
                 'first_seen_at' => $seenAt,
                 'last_seen_at' => $seenAt,
             ]);
+            $contact->setAttribute('id', $contact->newUniqueId());
             $created = true;
         } else {
             $contact = Contact::query()->find($contactId);
@@ -88,8 +90,11 @@ final class IdentityResolver
         }
 
         $linkedAnonymous = false;
+        /** @var array<string, string> $owners tipo|valor => contacto dueño */
+        $owners = [];
         foreach ($identifiers as $i) {
             $found = $existing->get($i['type'].'|'.$i['value']);
+            $owners[$i['type'].'|'.$i['value']] = $found !== null ? $found->contact_id : $contact->id;
             if ($found === null) {
                 ContactIdentity::query()->create([
                     'workspace_id' => $workspace->id,
@@ -101,12 +106,13 @@ final class IdentityResolver
                     'last_seen_at' => $seenAt,
                 ]);
                 $linkedAnonymous = $linkedAnonymous || $i['type'] === 'anonymous_id';
-            } elseif ($found->contact_id === $contact->id && ($found->last_seen_at === null || $found->last_seen_at->lt($seenAt))) {
+            } elseif ($found->contact_id === $contact->id && ($found->last_seen_at === null || $found->last_seen_at->lt($seenAt->subHour()))) {
+                // Con resolución de una hora basta; así no se escribe en cada evento.
                 $found->forceFill(['last_seen_at' => $seenAt])->save();
             }
         }
 
-        $this->updateProfile($contact, $workspace, $in, $seenAt);
+        $this->updateProfile($contact, $workspace, $in, $seenAt, $owners);
 
         return ['contact' => $contact, 'created' => $created, 'linked_anonymous' => $linkedAnonymous];
     }
@@ -134,7 +140,10 @@ final class IdentityResolver
         return $out;
     }
 
-    private function updateProfile(Contact $contact, Workspace $workspace, IdentityInput $in, CarbonInterface $seenAt): void
+    /**
+     * @param  array<string, string>  $owners  dueño de cada identificador de este evento (tipo|valor => contacto)
+     */
+    private function updateProfile(Contact $contact, Workspace $workspace, IdentityInput $in, CarbonInterface $seenAt, array $owners): void
     {
         $set = function (string $field, ?string $value) use ($contact, $in): void {
             if ($value !== null && ($in->overwriteProfile || $contact->getAttribute($field) === null || $contact->getAttribute($field) === '')) {
@@ -144,9 +153,9 @@ final class IdentityResolver
 
         if ($in->email !== null && filter_var($in->email, FILTER_VALIDATE_EMAIL)) {
             $bidx = BlindIndex::email($workspace->id, $in->email);
-            if ($contact->email_bidx === null || $in->overwriteProfile) {
-                // Solo si el correo no es de otro contacto (el identificador ya quedó asociado arriba o no existía).
-                $owner = ContactIdentity::query()->where('type', 'email_hash')->where('value', $bidx)->value('contact_id');
+            if ($contact->email_bidx !== $bidx && ($contact->email_bidx === null || $in->overwriteProfile)) {
+                // Solo si el correo no es de otro contacto.
+                $owner = $owners['email_hash|'.$bidx] ?? null;
                 if ($owner === null || $owner === $contact->id) {
                     $contact->email = BlindIndex::normalizeEmail($in->email);
                     $contact->email_bidx = $bidx;
@@ -154,9 +163,10 @@ final class IdentityResolver
             }
         }
         $e164 = Phone::toE164($in->phone, $in->country ?? $workspace->setting('default_phone_country', $workspace->country));
-        if ($e164 !== null && ($contact->phone_bidx === null || $in->overwriteProfile)) {
-            $bidx = BlindIndex::phone($workspace->id, $e164);
-            $owner = ContactIdentity::query()->where('type', 'phone_hash')->where('value', $bidx)->value('contact_id');
+        $phoneBidx = $e164 !== null ? BlindIndex::phone($workspace->id, $e164) : null;
+        if ($e164 !== null && $phoneBidx !== $contact->phone_bidx && ($contact->phone_bidx === null || $in->overwriteProfile)) {
+            $bidx = (string) $phoneBidx;
+            $owner = $owners['phone_hash|'.$bidx] ?? null;
             if ($owner === null || $owner === $contact->id) {
                 $contact->phone = $e164;
                 $contact->phone_bidx = $bidx;
@@ -169,16 +179,16 @@ final class IdentityResolver
         $set('country', $in->country !== null && strlen($in->country) === 2 ? strtoupper($in->country) : null);
         $set('locale', $in->locale !== null ? mb_substr($in->locale, 0, 10) : null);
 
-        if ($contact->first_name !== null) {
+        if ($contact->first_name !== null && ($contact->isDirty('first_name') || $contact->isDirty('last_name') || $contact->name_prefix_bidx === null)) {
             $contact->name_prefix_bidx = self::namePrefixes($workspace->id, $contact->first_name.' '.($contact->last_name ?? ''));
         }
         if ($contact->first_seen_at === null || $contact->first_seen_at->gt($seenAt)) {
             $contact->first_seen_at = $seenAt;
         }
-        if ($contact->last_seen_at === null || $contact->last_seen_at->lt($seenAt)) {
+        if ($contact->last_seen_at === null || $contact->last_seen_at->lt($seenAt->subHour())) {
             $contact->last_seen_at = $seenAt;
         }
-        if ($contact->isDirty()) {
+        if (! $contact->exists || $contact->isDirty()) {
             $contact->save();
         }
     }

@@ -21,6 +21,9 @@ use Illuminate\Support\Str;
  */
 final class OrderProjector
 {
+    /** @var array<string, array<string, string>> sitio => (id externo => id interno) de productos ya vistos */
+    private array $productIds = [];
+
     public function __construct(private readonly FxConverter $fx) {}
 
     /**
@@ -75,8 +78,18 @@ final class OrderProjector
         $externalId = (string) $o['order_id'];
         $modifiedAt = isset($o['modified_at']) && is_string($o['modified_at']) ? CarbonImmutable::parse($o['modified_at'])->utc() : $occurredAt;
 
+        // La misma foto (con los mismos ajustes del sitio) no se vuelve a escribir.
+        $hash = md5((string) json_encode([$o, $settings['paid_statuses'], $settings['cod_gateways'], $settings['cod_paid_statuses'], $workspace->currency]));
+
         /** @var Order|null $existing */
         $existing = Order::query()->where('site_id', $site->id)->where('external_id', $externalId)->first();
+        if ($existing !== null && $existing->snapshot_hash === $hash) {
+            if ($existing->contact_id === null && $contactId !== null) {
+                $existing->forceFill(['contact_id' => $contactId])->save();
+            }
+
+            return $existing;
+        }
         if ($existing !== null && $existing->updated_at !== null && $existing->updated_at->gt($modifiedAt)) {
             // Foto vieja: solo completa el contacto si faltaba.
             if ($existing->contact_id === null && $contactId !== null) {
@@ -161,6 +174,7 @@ final class OrderProjector
             'created_at' => $createdAt,
             'updated_at' => $modifiedAt,
             'projected_at' => now(),
+            'snapshot_hash' => $hash,
         ];
 
         return DB::transaction(function () use ($existing, $attributes, $items, $workspace, $site): Order {
@@ -192,7 +206,15 @@ final class OrderProjector
                 $externalIds[] = (string) $item['variation_id'];
             }
         }
-        $products = Product::query()->where('site_id', $site->id)->whereIn('external_id', array_unique($externalIds))->pluck('id', 'external_id');
+        $known = $this->productIds[$site->id] ?? [];
+        $missing = array_values(array_diff(array_unique($externalIds), array_keys($known)));
+        if ($missing !== []) {
+            foreach (Product::query()->where('site_id', $site->id)->whereIn('external_id', $missing)->pluck('id', 'external_id') as $ext => $id) {
+                $known[(string) $ext] = (string) $id;
+            }
+            $this->productIds[$site->id] = count($known) > 50_000 ? [] : $known;
+        }
+        $products = collect($known);
 
         $rows = [];
         foreach ($items as $item) {

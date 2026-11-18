@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Connector\CaddyAskController;
 use App\Http\Controllers\Connector\SiteApiController;
+use App\Http\Controllers\HealthController;
 use App\Http\Middleware\VerifySiteSignature;
 use App\Ingest\Http\BrowserIngestController;
 use App\Ingest\Http\ServerIngestController;
@@ -20,3 +22,9 @@ Route::middleware(VerifySiteSignature::class)->prefix('v1/s')->group(function ()
     Route::get('catalog/hashes', [SiteApiController::class, 'catalogHashes']);
     Route::put('backfill', [SiteApiController::class, 'backfill']);
 });
+
+// Interno: Caddy lo consulta antes de emitir TLS bajo demanda (infra/Caddyfile).
+Route::get('internal/caddy/ask', CaddyAskController::class);
+
+// Salud para Better Stack (hub/CLAUDE.md §16).
+Route::get('health', HealthController::class);
