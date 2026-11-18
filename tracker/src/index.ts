@@ -304,11 +304,13 @@ function pixels(): void {
     loadScript(cfg.pixelsJs);
 }
 
-function identify(token: unknown, method = 'login'): void {
+/** Una vez por sesión del navegador y por cliente (cada página firma un token nuevo para el mismo `ref`). */
+function identify(token: unknown, key?: string): void {
     if (!consent.analytics || typeof token !== 'string' || !/^[A-Za-z0-9_-]+\.[0-9a-f]{64}$/.test(token)) return;
-    if (store('s', '_igr_idf') === token) return;
-    store('s', '_igr_idf', token);
-    track('identify', { method, token });
+    const k = key || token;
+    if (store('s', '_igr_idf') === k) return;
+    store('s', '_igr_idf', k);
+    track('identify', { method: 'login', token });
 }
 
 function startIds(): void {
@@ -375,7 +377,8 @@ function main(): void {
     const pre = q.splice(0, q.length);
     for (const cmd of pre) if (Array.isArray(cmd) && cmd[0] === 'consent') safe(command)(cmd);
     pageView();
-    identify(W.igrUser?.token);
+    if (link) track('identify', { method: 'link_token' }); // el enlace viaja en identity.link_token
+    identify(W.igrUser?.token, W.igrUser?.ref);
     for (const cmd of pre) if (!Array.isArray(cmd) || cmd[0] !== 'consent') safe(command)(cmd);
     q.push = (...cmds: Cmd[]): number => {
         for (const cmd of cmds) safe(command)(cmd);

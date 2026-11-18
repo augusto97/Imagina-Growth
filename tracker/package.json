@@ -9,7 +9,8 @@
         "check:size": "node scripts/check.mjs",
         "typecheck": "tsc --noEmit",
         "test": "vitest run",
-        "check": "npm run typecheck && npm run test && npm run build && npm run check:size"
+        "check": "npm run typecheck && npm run test && npm run build && npm run check:size",
+        "e2e": "playwright test"
     },
     "devDependencies": {
         "@playwright/test": "^1.63.0",

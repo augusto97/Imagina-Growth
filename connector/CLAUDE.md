@@ -93,7 +93,7 @@ imagina-growth-connector/
 
 | Plugin | Hook |
 |---|---|
-| Contact Form 7 | `wpcf7_mail_sent` + `WPCF7_Submission::get_instance()->get_posted_data()` |
+| Contact Form 7 | `wpcf7_submit` con estado `mail_sent` o `mail_failed` (el lead existe aunque falle el correo de aviso) + `WPCF7_Submission::get_instance()->get_posted_data()` |
 | WPForms | `wpforms_process_complete` |
 | Gravity Forms | `gform_after_submission` |
 | Fluent Forms | `fluentform/submission_inserted` (v5+), `fluentform_submission_inserted` (versiones anteriores) |
@@ -233,6 +233,8 @@ Menú «Imagina Growth» con estas pestañas:
   vendor/bin/phpunit -c phpunit-wp.xml.dist
   ```
 - **PHPCS:** `vendor/bin/phpcs` (WordPress-Extra, `phpcs.xml.dist`). Cuidado con `phpcbf`: `CapitalPDangit` cambia el valor del contrato `'wordpress'` por `'WordPress'`; esas líneas llevan `phpcs:ignore`.
+- **Plugins de formularios en la suite de WordPress:** si `contact-form-7` y `wpforms-lite` están instalados junto a WooCommerce (`WC_PLUGIN_DIR/..`), el arranque los carga y `FormsTest` hace envíos reales con cada uno; si faltan, esas pruebas se saltan (`IGR_TESTS_NO_FORMS=1` los ignora).
+- **Navegador de punta a punta (Playwright):** desde `tracker/`, `IGR_E2E_WP_DIR=/ruta/wordpress IGR_E2E_WP_CLI="wp --allow-root" npm run e2e -- --trace off`. Levanta la tienda (8080) y el hub simulado (8090), conecta el sitio, prueba vistas, `_igr`, WhatsApp, banner, encuesta, `identify` y el píxel de compra, y al final lo desconecta.
 - **Hub simulado** para probar de punta a punta sin el hub real: `MOCK_HUB_DATA=/tmp/mockhub php -S 127.0.0.1:8090 tests/fixtures/mock-hub.php`. Valida cada evento contra los esquemas y expone `GET /_state` (eventos, pedidos por estado, conciliación recibida) y `POST /_reset`.
 - **Recorrido local:** `IGR_HUB_URL=http://127.0.0.1:8090 wp igr connect IGR-XXXX-XXXX-XXXX`, `wp igr backfill --now --flush --delay=0`, `wp igr status`, `wp igr flush --all`, `wp igr disconnect --wipe`. `wp igr demo-store` (solo con `WP_ENVIRONMENT_TYPE=local`) crea la tienda de prueba.
 - **Objetos JSON vacíos:** `identity`, `context`, `properties`, `order.meta`, `billing`, `shipping`… deben viajar como `{}`. Usa `Json::obj()` o `new \stdClass()` y valida siempre el JSON exacto del outbox (decodificarlo como arreglo convierte `{}` en `[]`).

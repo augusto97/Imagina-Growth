@@ -250,14 +250,16 @@ El resto de comandos de `connector/CLAUDE.md` §8 se agregan en su fase.
 
 ## 7. Datos en la página (connector → tracker)
 
+**Modo de consentimiento efectivo:** lo decide el plugin según el sitio (`cumplimiento.md` §3.3): **estricto** si hay un banner de cookies (WP Consent API, Complianz, CookieYes, Cookiebot o el banner propio), **informado** si no hay ninguno. El `consent.mode` del hub es la preferencia del espacio de trabajo **[pendiente de decidir: ver CHANGELOG de la Fase 1]**. Los errores del tracker llegan como `custom.tracker_error` en una muestra del 1%.
+
 Nunca dependen del visitante en páginas cacheables (`connector/CLAUDE.md` §9).
 
 | Variable | Dónde | Contenido |
 |---|---|---|
-| `window.igrConfig` | todas | `{ siteKey: "pk_…", endpoint: "<ingest_browser>", consentMode: "strict", consent: {analytics, marketing, source}, cookieDomain, pingUrl: "/?igr_ping=1", waRef: {enabled, format: "{text} (ref: {token})", numbers: ["573001234567"]}, widgetsUrl: "<hub>/p/pk_…/widgets.json", earlyCapture: false }` |
+| `window.igrConfig` | todas | `{ siteKey: "pk_…", siteId: "st_…", platform: "woocommerce", currency: "COP", endpoint: "<ingest_browser>", consentMode: "strict", consent: {analytics, marketing, source}, cookieDomain, pingUrl: "/?igr_ping=1", waRef: {enabled, format: "{text} (ref: {token})", numbers: ["573001234567"]}, widgetsUrl: "<hub>/p/pk_…/widgets.json", widgetsJs, pixelsJs, pixels: {meta, tiktok, google}, banner, earlyCapture: false }`. `siteId` y `platform` llenan `source` de cada evento; `widgetsJs`, `pixelsJs` y `banner` son los paquetes que se cargan solo cuando hacen falta |
 | `window.igrPage` | todas | `{ type: "product", objectId: "88", product: {id, sku, name, price, currency, categories: ["12"], inStock} }` |
 | `window.igrUser` | **solo** páginas no cacheables (Mi cuenta, checkout, gracias) con sesión | `{ ref: "wc:77", token }` |
-| `window.igrOrder` | página de gracias | `{ eventId, orderId: "1234", value: "282000.00", currency: "COP", token }` |
+| `window.igrOrder` | página de gracias | `{ eventId, orderId: "1234", value: "282000.00", currency: "COP", paid: true, token }`. El píxel de compra del navegador solo se dispara con `paid: true`; un pedido pendiente (PSE, contraentrega) lo cuenta después el servidor al pagarse |
 
 ### 7.1 Tokens firmados
 
@@ -299,5 +301,5 @@ Configuración de los widgets activos para ese tipo de página. Cacheable en CDN
 { "order_token": "<igrOrder.token>", "answer": "instagram", "other": null, "anonymous_id": "c3b0f4a2-…" }
 ```
 
-Respuesta `202 {"ok": true}`. `422` si el token no es válido o la opción no existe; `409` si ese pedido ya respondió. El hub guarda la respuesta, la asocia al pedido y al contacto, llena `contacts.hdyhau` y emite `survey.answered`.
+`answer` es la clave de una opción, o `"otro"` (con `other`, texto libre de hasta 300 caracteres) si la encuesta permite «Otro». Respuesta `202 {"ok": true}`. `422` si el token no es válido o la opción no existe; `409` si ese pedido ya respondió. El hub guarda la respuesta, la asocia al pedido y al contacto, llena `contacts.hdyhau` y emite `survey.answered`.
 

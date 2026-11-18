@@ -122,15 +122,92 @@ jobs:
           coverage: none
           tools: composer:v2
       - run: composer install --no-interaction --prefer-dist --no-progress
-      - name: WordPress y WooCommerce para la suite de integración
+      - name: WordPress, WooCommerce y plugins de formularios para la suite de integración
         run: |
           mkdir -p /tmp/wordpress
           curl -sSL https://wordpress.org/latest.tar.gz | tar -xz -C /tmp/wordpress --strip-components=1
-          curl -sSL -o /tmp/wc.zip https://downloads.wordpress.org/plugin/woocommerce.latest-stable.zip
-          unzip -q /tmp/wc.zip -d /tmp/wordpress/wp-content/plugins/
+          for p in woocommerce contact-form-7 wpforms-lite; do
+            curl -sSL -o /tmp/$p.zip https://downloads.wordpress.org/plugin/$p.latest-stable.zip
+            unzip -q /tmp/$p.zip -d /tmp/wordpress/wp-content/plugins/
+          done
       - name: PHPCS (WordPress-Extra)
         run: vendor/bin/phpcs -q
       - name: Unitarias
         run: vendor/bin/phpunit
       - name: WordPress + WooCommerce (contrato contra hub/resources/schemas/events)
         run: vendor/bin/phpunit -c phpunit-wp.xml.dist
+
+  tracker:
+    name: Tracker · TypeScript, Vitest, tamaño (≤ 6 KB gzip) y paquetes
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: tracker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: tracker/package-lock.json
+      - run: npm ci
+      - name: Tipos, pruebas, build y límite de tamaño (sin eval ni new Function)
+        run: npm run check
+      - name: Los paquetes compilados del connector están al día
+        run: git diff --exit-code -- ../connector/assets
+
+  tracker-e2e:
+    name: Tracker · Playwright contra WooCommerce real y hub simulado
+    runs-on: ubuntu-24.04
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: wp_igr
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      WP_DIR: /tmp/wordpress
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mysqli, sodium, zip, intl
+          coverage: none
+          tools: composer:v2, wp-cli
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: tracker/package-lock.json
+      - name: Connector (dependencias de producción)
+        working-directory: connector
+        run: composer install --no-interaction --prefer-dist --no-progress --no-dev
+      - name: Tienda WooCommerce de prueba con el connector
+        run: |
+          mkdir -p "$WP_DIR"
+          wp core download --path="$WP_DIR" --locale=es_CO --allow-root
+          wp config create --path="$WP_DIR" --dbname=wp_igr --dbuser=root --dbpass=root --dbhost=127.0.0.1:3306 --allow-root \
+            --extra-php <<'PHP'
+          define( 'WP_ENVIRONMENT_TYPE', 'local' );
+          PHP
+          wp core install --path="$WP_DIR" --url=http://127.0.0.1:8080 --title="Tienda E2E" --admin_user=admin --admin_password=admin --admin_email=admin@example.com --skip-email --allow-root
+          wp plugin install woocommerce --activate --path="$WP_DIR" --allow-root
+          ln -s "$GITHUB_WORKSPACE/connector" "$WP_DIR/wp-content/plugins/imagina-growth-connector"
+          wp plugin activate imagina-growth-connector --path="$WP_DIR" --allow-root
+          wp igr demo-store --customers=40 --orders=80 --months=3 --path="$WP_DIR" --allow-root
+      - name: Navegador
+        working-directory: tracker
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Pruebas de punta a punta
+        working-directory: tracker
+        env:
+          IGR_E2E_WP_DIR: /tmp/wordpress
+          IGR_E2E_WP_CLI: wp --allow-root
+        run: npm run e2e -- --trace off

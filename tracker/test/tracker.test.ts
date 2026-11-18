@@ -62,6 +62,10 @@ describe('tracker', () => {
         const pv = b.events()[0];
         expect(pv?.identity['link_token']).toBe('lt_ABC123');
         expect((pv?.context['page'] as { url: string }).url).not.toContain('_igr');
+        const idf = b.events().find((e) => e.event === 'identify');
+        expect(idf?.properties).toEqual({ method: 'link_token' });
+        expect(idf?.identity['link_token']).toBe('lt_ABC123');
+        expect(contractErrors(idf)).toEqual([]);
     });
 
     it('identifica con el token de igrUser una vez por sesión', async () => {

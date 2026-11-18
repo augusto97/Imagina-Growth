@@ -1,6 +1,13 @@
 /* Conecta la tienda al hub simulado y la deja desconectada al terminar. */
 import { HUB, php, wp } from './store';
 
+/** Borra los pedidos de prueba (devolviendo el stock) para no alterar la tienda demo. */
+export function cleanup(): string {
+    return php(
+        'global $wpdb; $n = 0; foreach ($wpdb->get_col("SELECT id FROM {$wpdb->prefix}wc_orders WHERE billing_email LIKE \'e2e-%@example.com\'") as $id) { $o = wc_get_order((int) $id); if ($o) { wc_increase_stock_levels($o); $o->delete(true); $n++; } } echo $n;',
+    );
+}
+
 export default async function setup(): Promise<() => Promise<void>> {
     await fetch(HUB + '/_reset', { method: 'POST' });
     try {
@@ -8,6 +15,9 @@ export default async function setup(): Promise<() => Promise<void>> {
     } catch {
         /* ya estaba desconectada */
     }
+    // El modo «Próximamente» de WooCommerce oculta la tienda a los visitantes: se apaga durante la prueba.
+    const comingSoon = wp('option', 'get', 'woocommerce_coming_soon');
+    wp('option', 'update', 'woocommerce_coming_soon', 'no');
     wp('igr', 'connect', 'IGR-E2E0-TEST-0001');
     // La importación histórica no hace falta aquí: 10.000 pedidos solo harían lento al hub simulado.
     php('ImaginaGrowth\\Connector\\Backfill\\Runner::pause(true); as_unschedule_all_actions("igr_backfill_step");');
@@ -21,5 +31,7 @@ export default async function setup(): Promise<() => Promise<void>> {
         } catch {
             /* nada que hacer */
         }
+        wp('option', 'update', 'woocommerce_coming_soon', comingSoon || 'no');
+        cleanup();
     };
 }

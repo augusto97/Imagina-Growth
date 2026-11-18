@@ -33,6 +33,8 @@ export default defineConfig({
             command: `php -S 127.0.0.1:8090 ${join(import.meta.dirname, '../connector/tests/fixtures/mock-hub.php')}`,
             url: 'http://127.0.0.1:8090/_state',
             reuseExistingServer: false,
+            stdout: 'ignore',
+            stderr: 'ignore',
             env: { MOCK_HUB_DATA: data },
         },
         {
@@ -40,6 +42,8 @@ export default defineConfig({
             url: 'http://127.0.0.1:8080/wp-login.php',
             reuseExistingServer: false,
             timeout: 60_000,
+            stdout: 'ignore',
+            stderr: 'ignore',
             env: { IGR_HUB_URL: 'http://127.0.0.1:8090', PHP_CLI_SERVER_WORKERS: '4' },
         },
     ],

@@ -363,8 +363,8 @@ if ( 'POST' === $method && '/v1/b' === $path ) {
 		$state['seen'][ $event_id ] = 1;
 		$name                       = (string) $event['event'];
 		$state['events'][ $name ]   = ( $state['events'][ $name ] ?? 0 ) + 1;
-		if ( 'identify' === $name ) {
-			$payload = $token( $event['properties']['token'] ?? null );
+		if ( 'identify' === $name && isset( $event['properties']['token'] ) ) {
+			$payload = $token( $event['properties']['token'] );
 			if ( null === $payload ) {
 				++$state['bad_tokens'];
 			} else {

@@ -71,4 +71,5 @@ La cola funciona aunque el script todavía no haya cargado.
 
 - Vitest para la lógica (sesiones, fuentes, normalización de clics, consentimiento).
 - Playwright contra la tienda de prueba: vistas, clics a WhatsApp con token, enlace con `_igr`, consentimiento denegado o concedido, Safari (WebKit) con renovación de cookie.
+- Comandos: `npm run check` (tipos, Vitest, compilación y tamaño) y `npm run e2e -- --trace off` con `IGR_E2E_WP_DIR` (WordPress con WooCommerce y el connector) e `IGR_E2E_WP_CLI` (cómo correr WP-CLI); ver `connector/CLAUDE.md` §14.1.
 - **CI:** tamaño gzip, que no haya `eval` ni `new Function`, y compatibilidad con una CSP estricta (sin inline: la configuración la inyecta el connector con `wp_add_inline_script` y admite nonce).
