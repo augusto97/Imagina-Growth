@@ -19,7 +19,9 @@
 # Meta, Google y WhatsApp son simuladores locales (mock-meta.php): se prueba lo que hace el hub, no la
 # respuesta de las plataformas reales. Sin clave de Anthropic: el resumen del reporte usa la plantilla sin IA.
 #
-# Variables: WP_CORP_DIR=/ruta/wordpress-corporativo (sin WooCommerce, con Contact Form 7 y el plugin)
+# Variables: WP_CORP_DIR=/ruta/wordpress-corporativo (sin WooCommerce, con Contact Form 7 y el plugin; su wp-config.php
+#   lleva WP_ENVIRONMENT_TYPE=local y `define('IGR_HUB_URL', getenv('IGR_HUB_URL') ?: …)` como la tienda de prueba, y las
+#   páginas /servicios/, /valoracion/ (formulario 5 de CF7 con casillas de novedades) y /agenda/ ([igr_booking]))
 #   HUB_PORT=8010  CORP_PORT=8081  LOGS=/carpeta  DB_ROOT="docker exec igr-mariadb mariadb -uroot -proot"
 set -euo pipefail
 E2E=$(cd "$(dirname "$0")" && pwd)
