@@ -255,6 +255,16 @@ return [
             'tries' => 1,
             'timeout' => 30,
         ],
+        // Llamadas a modelos (hub/CLAUDE.md §15: ai, 2 workers): clasificador de entrantes,
+        // agente de ventas, resúmenes y analista. Más tiempo por el bucle de herramientas.
+        'supervisor-ai' => [
+            'connection' => 'redis',
+            'queue' => ['ai'],
+            'balance' => 'simple',
+            'maxProcesses' => 2,
+            'tries' => 3,
+            'timeout' => 120,
+        ],
     ],
 
     'environments' => [
