@@ -256,6 +256,17 @@ El tracker agrega al texto prellenado de los enlaces de WhatsApp un token corto,
 
 Según la especificación de Meta y Google, se aplica SHA-256 en minúsculas y sin espacios. El correo se recorta y pasa a minúsculas. El teléfono va en E.164 sin `+` (con `libphonenumber` y el país del espacio de trabajo por defecto). Nombre y apellido van en minúsculas, sin tildes según la plataforma. La ciudad va en minúsculas y sin espacios. El estado o departamento usa el código ISO. El país usa ISO-2 en minúsculas.
 
+**Diferencias por plataforma (implementadas en `App\Domain\Measurement`):**
+
+| Dato | Meta | Google (GA4 / Data Manager) | TikTok |
+|---|---|---|---|
+| Teléfono | E.164 **sin** `+` | E.164 **con** `+` | E.164 **con** `+` |
+| Nombres | minúsculas, **conserva** tildes (UTF-8) | minúsculas, sin tildes | minúsculas, sin tildes |
+| Departamento | sufijo ISO 3166-2 en minúsculas (`CO-CAL` → `cal`) | igual | igual |
+| `external_id` | SHA-256 del ID del contacto | igual | igual |
+
+**[verificar]** con cuentas reales antes del lanzamiento: versiones de API, nombres de campos de Data Manager, nombres de evento de TikTok (`CompletePayment`, `SubmitForm`, `Pageview`) y los eventos que acepta Meta para mensajes de negocio.
+
 **Deduplicación con el píxel:** el `event_id` de la compra se comparte con el navegador mediante una variable inline en la página de gracias (no es dato personal), para que el píxel y la conversión desde el servidor usen el mismo ID.
 
 ---

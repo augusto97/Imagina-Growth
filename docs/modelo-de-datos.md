@@ -213,6 +213,8 @@ CREATE TABLE conversion_deliveries (
 ) ENGINE = MergeTree PARTITION BY toYYYYMM(delivered_at) ORDER BY (workspace_id, delivered_at);
 ```
 
+`conversion_deliveries` suma (migración `0201`): `destination_id`, `target` (endpoint), `conversion` (evento estándar de la plataforma), `source_event`, `error_code`, `final` (1 = resultado definitivo) y `test` (1 = modo de prueba). `events` tiene índices bloom en `contact_id` y `anonymous_id` (migración `0006`) para el perfil 360.
+
 **Reglas para ClickHouse**
 - Toda consulta pasa por `App\Analytics\Ch::forWorkspace($ws)`, que inyecta `workspace_id` y no permite consultas sin él.
 - Las inserciones usan `async_insert=1, wait_for_async_insert=1` o lotes desde el worker (cada 1 s o cada 5.000 filas).

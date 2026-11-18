@@ -161,7 +161,7 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 ## 9. Atribución
 
 - Cuando llega `order.paid`, el job `AttributeOrder`:
-  1. Calcula los canales de primer y último contacto con las sesiones de ClickHouse del contacto o anónimo (30 días antes del pedido).
+  1. Calcula los canales de primer y último contacto con las sesiones de ClickHouse del contacto o anónimo (30 días antes del pedido; el último contacto es el último **no directo**). **Respaldo** cuando no hay datos del tracker (por ejemplo, los 24 meses importados): primero las pistas del propio pedido (`context.last_touch`/`first_touch` de la cookie `_igr_src`), luego la atribución nativa de WooCommerce (`wc_attribution`: `utm` → canal por las reglas de `inteligencia.md` §2, `organic` → búsqueda orgánica, `referral` → referido, `typein` → directo; `admin` y `mobile_app` quedan sin canal). `igr:attribution:backfill` lo corre para los pedidos importados.
   2. Busca **mensajes con clic** en la ventana (5 días por defecto). Si no hay, busca lecturas o aperturas sin MPP dentro de 1 día (si está activo). Gana el más reciente → `attributed_message_id`, `flow_id` o `campaign_id`.
   3. Revisa el cupón de referido o afiliado y la cookie de referido → `attributed_referral_id` o `attributed_affiliate_id`.
   4. Revisa el widget que capturó al contacto en los últimos 7 días (atribución de captación).

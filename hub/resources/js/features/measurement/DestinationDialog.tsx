@@ -66,7 +66,7 @@ export function DestinationDialog({ destination, events, onClose }: { destinatio
 
     return (
         <Dialog open onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="igr:max-w-2xl">
+            <DialogContent className="igr:max-h-[84vh] igr:max-w-2xl igr:overflow-y-auto">
                 <form onSubmit={submit} className="igr:space-y-5">
                     <DialogHeader>
                         <DialogTitle>{destination === null ? t('measurement.form.newTitle') : t('measurement.form.editTitle')}</DialogTitle>

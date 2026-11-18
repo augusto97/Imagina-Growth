@@ -32,7 +32,7 @@ export function QualityTab() {
         <div className="igr:space-y-3">
             <div className="igr:flex igr:items-center igr:justify-between igr:gap-2">
                 <p className="igr:text-xs igr:text-muted-foreground">{t('measurement.quality.help')}</p>
-                <Select aria-label={t('measurement.filters.period')} className="igr:w-36" value={days} onChange={(e) => setDays(Number(e.target.value))}>
+                <Select aria-label={t('measurement.filters.period')} className="igr:w-auto" value={days} onChange={(e) => setDays(Number(e.target.value))}>
                     {[7, 30, 90].map((d) => (
                         <option key={d} value={d}>
                             {t('measurement.filters.lastDays', { count: d })}

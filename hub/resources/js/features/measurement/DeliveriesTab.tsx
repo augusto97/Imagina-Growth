@@ -26,7 +26,7 @@ export function DeliveriesTab() {
     return (
         <div className="igr:space-y-3">
             <div className="igr:flex igr:flex-wrap igr:gap-2">
-                <Select aria-label={t('measurement.filters.platform')} className="igr:w-40" value={filters.platform} onChange={(e) => set({ platform: e.target.value as Platform | '' })}>
+                <Select aria-label={t('measurement.filters.platform')} className="igr:w-auto" value={filters.platform} onChange={(e) => set({ platform: e.target.value as Platform | '' })}>
                     <option value="">{t('measurement.filters.allPlatforms')}</option>
                     {(['meta', 'google', 'tiktok'] as const).map((p) => (
                         <option key={p} value={p}>
@@ -34,7 +34,7 @@ export function DeliveriesTab() {
                         </option>
                     ))}
                 </Select>
-                <Select aria-label={t('measurement.filters.status')} className="igr:w-40" value={filters.status} onChange={(e) => set({ status: e.target.value as DeliveryStatus | '' })}>
+                <Select aria-label={t('measurement.filters.status')} className="igr:w-auto" value={filters.status} onChange={(e) => set({ status: e.target.value as DeliveryStatus | '' })}>
                     <option value="">{t('measurement.filters.allStatuses')}</option>
                     {(['delivered', 'retrying', 'failed', 'skipped'] as const).map((s) => (
                         <option key={s} value={s}>
@@ -42,7 +42,7 @@ export function DeliveriesTab() {
                         </option>
                     ))}
                 </Select>
-                <Select aria-label={t('measurement.filters.destination')} className="igr:w-48" value={filters.destination} onChange={(e) => set({ destination: e.target.value })}>
+                <Select aria-label={t('measurement.filters.destination')} className="igr:w-auto igr:max-w-64" value={filters.destination} onChange={(e) => set({ destination: e.target.value })}>
                     <option value="">{t('measurement.filters.allDestinations')}</option>
                     {(destinations.data?.destinations ?? []).map((d) => (
                         <option key={d.id} value={d.id}>
@@ -50,7 +50,7 @@ export function DeliveriesTab() {
                         </option>
                     ))}
                 </Select>
-                <Select aria-label={t('measurement.filters.period')} className="igr:w-36" value={filters.days} onChange={(e) => set({ days: Number(e.target.value) })}>
+                <Select aria-label={t('measurement.filters.period')} className="igr:w-auto" value={filters.days} onChange={(e) => set({ days: Number(e.target.value) })}>
                     {[1, 7, 30, 90].map((d) => (
                         <option key={d} value={d}>
                             {t('measurement.filters.lastDays', { count: d })}
