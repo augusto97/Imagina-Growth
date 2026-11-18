@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/message.unsubscribed.json",
+  "title": "message.unsubscribed",
+  "description": "Generado en el hub: el contacto se dio de baja desde el mensaje.",
+  "type": "object",
+  "required": [
+    "message_id",
+    "channel",
+    "kind",
+    "source_type"
+  ],
+  "properties": {
+    "message_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "channel": {
+      "enum": [
+        "email",
+        "whatsapp",
+        "sms"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "marketing",
+        "utility",
+        "transactional",
+        "service",
+        "authentication"
+      ]
+    },
+    "source_type": {
+      "enum": [
+        "flow",
+        "campaign",
+        "inbox",
+        "api",
+        "system"
+      ]
+    },
+    "source_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "flow_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "campaign_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "template_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "provider": {
+      "type": "string",
+      "maxLength": 20
+    },
+    "scope": {
+      "enum": [
+        "channel",
+        "all"
+      ]
+    },
+    "via": {
+      "enum": [
+        "link",
+        "one_click",
+        "keyword",
+        "preference_center",
+        "complaint"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "message_id": "msg_01JD",
+      "channel": "whatsapp",
+      "kind": "marketing",
+      "source_type": "flow",
+      "source_id": "fl_01JD",
+      "flow_id": "fl_01JD",
+      "template_id": "tpl_01JD",
+      "provider": "meta_cloud",
+      "scope": "channel",
+      "via": "one_click"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "message_id": "msg_01JD",
+      "channel": "fax",
+      "kind": "marketing",
+      "source_type": "flow"
+    }
+  ]
+}

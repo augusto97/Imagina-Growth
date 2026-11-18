@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/whatsapp.inbound.json",
+  "title": "whatsapp.inbound",
+  "description": "Generado en el hub: llegó un mensaje de WhatsApp del contacto (sin el texto). Trae el anuncio de clic a WhatsApp y el token del sitio si existen (eventos.md §6.3).",
+  "type": "object",
+  "required": [
+    "message_id",
+    "type"
+  ],
+  "properties": {
+    "message_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "channel_account_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "type": {
+      "enum": [
+        "text",
+        "button",
+        "interactive",
+        "image",
+        "audio",
+        "video",
+        "document",
+        "sticker",
+        "location",
+        "contacts",
+        "reaction",
+        "other"
+      ]
+    },
+    "button_payload": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "keyword": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "wa_ref": {
+      "type": "string",
+      "maxLength": 16
+    },
+    "ctwa_clid": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "referral_source_type": {
+      "type": "string",
+      "maxLength": 20
+    },
+    "referral_source_id": {
+      "type": "string",
+      "maxLength": 60
+    },
+    "provider": {
+      "type": "string",
+      "maxLength": 20
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "message_id": "msg_01JE",
+      "channel_account_id": "cha_01JD",
+      "type": "text",
+      "wa_ref": "K7Q2",
+      "ctwa_clid": "ARAkLkA8rmlFeiCktEJQ",
+      "referral_source_type": "ad",
+      "referral_source_id": "120210000000000000",
+      "provider": "meta_cloud"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "message_id": "msg_01JE",
+      "type": "telegram"
+    }
+  ]
+}

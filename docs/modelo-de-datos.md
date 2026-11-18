@@ -236,3 +236,22 @@ Se agregaron en `2026_11_19_000100_create_phase1_tables` junto con las tablas de
 | `insights` | `fingerprint`, `dismissed_at` | no repetir un hallazgo descartado durante 30 días salvo que empeore (`inteligencia.md` §5) |
 | `report_deliveries` (nueva) | id, workspace_id, kind (`weekly`, `monthly`), period_start, period_end, facts, recipients, delivered_at | registro de los informes enviados al dueño (M05) |
 
+## 12. Tablas y columnas de la Fase 2
+
+Migración `2026_11_20_000100_create_phase2_tables`. Diferencias con §3 a §5, con su motivo:
+- `carts`: `order_id` (el pedido que lo cerró, convertido o recuperado) además de `recovered_order_id` (solo si se recuperó tras abandonarse), `items_count` y `subtotal_ws` (moneda del espacio de trabajo, para sumar entre sitios).
+- `coupons_issued`: `rules` (mínimo, productos, categorías, uso individual), `redeemed_at` y `last_error`; estado `pending` mientras el sitio lo crea y `failed` si no pudo.
+- `channel_accounts`: `identity` (dominio o número visible, no secreto), `last_error` y `risk_accepted_at`/`risk_accepted_by` (Zender: el `owner` aceptó el aviso de riesgo, cumplimiento.md §5.2).
+- `templates`: `editor_state` (el proyecto de GrapesJS para volver a editar), `library_key`, `status` y `created_by`.
+- `wa_templates`: `rejected_reason`.
+- `messages`: `flow_id` y `campaign_id` (para la atribución sin unir con `source_id`), `idempotency_key` única por espacio de trabajo (un reintento nunca reenvía), `policy_reason` y `deferred_until` (lo que dijo SendPolicy), `error_code` y `payload` cifrado (asunto y vista previa para auditoría). **Sin partición mensual por ahora**: MariaDB exige la clave de partición en cada clave única y aquí son ULID; la purga a los 13 meses la hace un job.
+- `flow_runs`: `trigger_key` única por flujo (el mismo evento nunca crea dos runs) y `waiting_for` (el evento que espera un nodo «esperar hasta»).
+- `flow_run_steps`: `attempt` (intento lógico) en la clave única (run_id, node_id, attempt). Sin partición mensual, por el mismo motivo que `messages`.
+- `flows`: `exclusions`, `holdout_pct`, `test_recipients` y `activated_at` como columnas propias en lugar de dentro de `trigger`.
+- `campaigns`: `ab_config`, `winner_variant`, `started_at` y `finished_at`.
+- Nuevas:
+  - `campaign_recipients`: un destinatario por campaña, con variante, grupo de control, estado y mensaje. Sirve para el envío por lotes, la idempotencia y el incremento.
+  - `contact_preferences`: temas y frecuencia del centro de preferencias.
+  - `holiday_overrides`: excepciones de festivos que edita el admin de la plataforma (cumplimiento.md §4.2).
+  - `conversations`: se adelanta de la Fase 4 porque la ventana de 24 h de WhatsApp la necesita SendPolicy.
+

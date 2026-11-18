@@ -174,6 +174,8 @@ Convenciones: `objeto.acción` en inglés y en pasado. Montos en la moneda del p
 
 Los que ya tienen esquema (Fase 1): `survey.answered` (`survey_id`, `kind`, `answer`, `other?`, `score?`, `order_id?`), `segment.entered` / `segment.exited` (`segment_id`, `segment_name`, `is_system`), `consent.granted` / `consent.revoked` (`channel`, `purpose`, `source`, `legal_text_version?`) y `conversion.delivered` (`platform`, `status`, `source_event_id`, `conversion`). **Ningún sitio puede enviarlos**: el hub los rechaza con `unknown_event` en `/v1/s` y `/v1/b`.
 
+Los de la Fase 2 (v3): `cart.abandoned` (`cart_id`, `cart_token`, `items[]`, `subtotal`, `currency`, `items_count`, `checkout_started`, `minutes_inactive`, `restore_url`), `message.*` (`message_id`, `channel`, `kind`, `source_type`, `source_id?`, `flow_id?`, `campaign_id?`, `template_id?`, `provider?`, más `is_mpp` en `opened`, `url` y `link_code` en `clicked`, `button_payload` o `keyword` en `replied`, `reason` y `error_code` en `failed`, `bounce_type` en `bounced`, `scope` y `via` en `unsubscribed`), `whatsapp.inbound` (`message_id`, `type`, `button_payload?`, `keyword?`, `wa_ref?`, `ctwa_clid?`, `referral_source_type?`, `referral_source_id?`; **nunca el texto**), `flow.entered` y `flow.exited` (`flow_id`, `run_id`, `version`, `is_holdout`, `reason` al salir). Los mensajes y las respuestas no guardan su texto en ClickHouse.
+
 Lista completa: `cart.abandoned` (lo marca el job de carritos), `message.queued`, `message.sent`, `message.delivered`, `message.read` (WhatsApp), `message.opened` (correo, con `is_mpp` para las aperturas automáticas de Apple), `message.clicked`, `message.replied`, `message.failed`, `message.bounced`, `message.complained`, `message.unsubscribed`, `whatsapp.inbound` (con `referral` y `ctwa_clid` si viene de un anuncio de clic a WhatsApp, y `wa_ref` si trae token), `consent.granted`, `consent.revoked`, `segment.entered`, `segment.exited`, `points.earned`, `points.redeemed`, `points.expired`, `tier.changed`, `wallet.credited`, `wallet.debited`, `referral.shared`, `referral.converted`, `review.requested`, `review.collected`, `nps.answered`, `survey.answered`, `product_watch.created`, `product_watch.notified`, `flow.entered`, `flow.exited`, `conversion.delivered` (a una plataforma de anuncios).
 
 ---
@@ -277,6 +279,7 @@ Según la especificación de Meta y Google, se aplica SHA-256 en minúsculas y s
 |---|---|---|
 | 1 | 2026-11-18 | Contrato inicial (cierre de la Fase 0). |
 | 2 | 2026-11-19 | `identify.token` (token firmado de `window.igrUser`). Esquemas de los eventos del hub de §4.6 que se usan en la Fase 1. Solo agrega campos opcionales: un evento v1 sigue siendo válido. |
+| 3 | 2026-11-20 | Fase 2. `order.cart_token` (el carrito del que salió el pedido) y `cart.updated.restored_from` (carrito restaurado desde un enlace). Esquemas de los eventos del hub de la Fase 2: `cart.abandoned`, `message.*` (11), `whatsapp.inbound`, `flow.entered` y `flow.exited`. Los sitios siguen enviando v2 hasta actualizar el plugin; un evento v2 sigue siendo válido. |
 
 **Regla de identidad para el navegador (v2):** en eventos con `source.type = browser`, el hub **ignora** `identity.customer_ref` salvo en un `identify` con `token` válido. Así nadie puede atribuirse la identidad de otro cliente desde el navegador.
 

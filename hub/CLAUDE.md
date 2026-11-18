@@ -156,7 +156,17 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
   4. Reescribir los enlaces.
   5. Encolar en `messages:{channel}` con *rate limit* por cuenta.
   6. Llamar al driver y registrar en `messages`.
-- **Enlaces rastreados:** `https://go.<dominio>/c/{code}` → registra el clic → redirige agregando `utm_*` y `_igr={token}` (identifica en el sitio, ver `eventos.md` §6.2). Los códigos son aleatorios de 8 caracteres, no secuenciales.
+- **Contratos internos (Fase 2):**
+  - `App\Domain\Messaging\Contracts\MessageDispatcher::dispatch(OutboundMessage): DispatchResult`. Los estados son `queued`, `deferred(until, reason)`, `denied(reason)` y `duplicate(message_id)`. Un aplazamiento **no crea mensaje**: quien llamó vuelve a llamar con la **misma** `idempotencyKey` en `until`. Las claves son `run:{run_id}:{node_id}:{attempt}` y `campaign:{campaign_id}:{contact_id}`. `FakeMessageDispatcher::install()` es el doble para las pruebas.
+  - `App\Domain\Consent\Policy\SendPolicy`:
+    - `check()` revisa sin reservar (vista previa y revisión de cumplimiento).
+    - `checkAndReserve()` reserva el cupo de frecuencia de forma atómica en Redis; la usa el despachador.
+    - `release()` devuelve el cupo si el envío no llegó al proveedor.
+    - `windowAllows()` la usa el job de envío justo antes de llamar al proveedor.
+    - `LegalWindow` da la franja por país en la hora local del contacto, con el final exclusivo.
+  - `App\Domain\Templates\Contracts\TemplateRenderer::render(templateId, RenderContext): RenderedMessage` (Liquid en sandbox).
+  - `App\Domain\Commerce\Contracts\CouponIssuer::issue(CouponSpec): CouponIssued` (comando `coupon.create`) y `CartRestoreLink::for(Cart)` (api-connector.md §6.1).
+- **Enlaces rastreados:** `https://go.<dominio>/c/{code}` → registra el clic → redirige agregando `utm_source=igr`, `utm_medium={canal}`, `utm_campaign={flujo o campaña}` y `_igr={code}` (identifica en el sitio, ver `eventos.md` §6.2). Los códigos son aleatorios de 8 caracteres, no secuenciales. El `_igr` es el propio código del enlace: el hub lo resuelve con `tracked_links` para vincular el `anonymous_id` con el contacto del mensaje, solo para analítica y atribución, sin fusionar perfiles.
 - **Webhooks entrantes:** Meta (verificación `X-Hub-Signature-256`), SES por SNS (verificación de firma), Zender (secreto compartido). Se actualizan los estados y se emiten los eventos `message.*` y `whatsapp.inbound`.
 - **Palabras de baja** en WhatsApp y SMS: «baja», «no más», «stop», «cancelar suscripción», «no me escriban» y variantes, más el clasificador de IA (Fase 4). Revocan el consentimiento y responden con una confirmación.
 

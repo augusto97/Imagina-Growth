@@ -56,7 +56,7 @@ final class HubEvents
         $now = (int) floor(microtime(true) * 1000);
         foreach ($items as $item) {
             $event = $item['event'];
-            if (! in_array($event, SchemaRegistry::HUB_ONLY, true)) {
+            if (! SchemaRegistry::isHubOnly($event)) {
                 throw new InvalidArgumentException("{$event} no es un evento del hub.");
             }
             $error = $this->schemas->validateProperties($event, json_decode((string) json_encode((object) $item['properties'])));

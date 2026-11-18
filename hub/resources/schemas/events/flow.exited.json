@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/flow.exited.json",
+  "title": "flow.exited",
+  "description": "Generado en el hub: el contacto salió de un flujo y por qué.",
+  "type": "object",
+  "required": [
+    "flow_id",
+    "run_id",
+    "reason"
+  ],
+  "properties": {
+    "flow_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "flow_name": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "run_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "is_holdout": {
+      "type": "boolean"
+    },
+    "reason": {
+      "enum": [
+        "completed",
+        "goal_reached",
+        "exit_node",
+        "filter",
+        "unsubscribed",
+        "manual",
+        "failed",
+        "flow_paused"
+      ]
+    },
+    "goal_event": {
+      "type": "string",
+      "maxLength": 64
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "flow_id": "fl_01JD",
+      "run_id": "run_01JD",
+      "reason": "goal_reached",
+      "goal_event": "order.paid",
+      "is_holdout": false
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "flow_id": "fl_01JD",
+      "run_id": "run_01JD",
+      "reason": "aburrido"
+    }
+  ]
+}

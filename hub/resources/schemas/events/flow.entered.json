@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/flow.entered.json",
+  "title": "flow.entered",
+  "description": "Generado en el hub: el contacto entró a un flujo (incluye a los del grupo de control).",
+  "type": "object",
+  "required": [
+    "flow_id",
+    "run_id"
+  ],
+  "properties": {
+    "flow_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "flow_name": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "run_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "is_holdout": {
+      "type": "boolean"
+    },
+    "trigger": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "template_key": {
+      "type": "string",
+      "maxLength": 64
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "flow_id": "fl_01JD",
+      "flow_name": "Carrito abandonado",
+      "version": 3,
+      "run_id": "run_01JD",
+      "is_holdout": false,
+      "trigger": "cart.abandoned",
+      "template_key": "abandoned_cart"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "flow_name": "x"
+    }
+  ]
+}

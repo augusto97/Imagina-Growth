@@ -354,6 +354,10 @@
         "meta": {
           "type": "object",
           "maxProperties": 50
+        },
+        "cart_token": {
+          "$ref": "#/$defs/cart_token",
+          "description": "v3: el carrito del que salió el pedido (para marcarlo convertido o recuperado)."
         }
       },
       "additionalProperties": false

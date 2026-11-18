@@ -6,6 +6,8 @@ namespace App\Support\Holidays;
 
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\DB;
+use Throwable;
 
 /**
  * Festivos por país (docs/cumplimiento.md §4.2 y §6). Los usa SendPolicy
@@ -65,6 +67,15 @@ final class Holidays
                     $out[(string) $country][(int) $year][(string) $date] = is_string($name) ? $name : null;
                 }
             }
+        }
+        // Tabla de excepciones que edita el admin de la plataforma (cumplimiento.md §4.2): manda sobre la configuración.
+        try {
+            foreach (DB::table('holiday_overrides')->get(['country', 'date', 'is_holiday', 'name']) as $row) {
+                $date = substr((string) $row->date, 0, 10);
+                $out[strtoupper((string) $row->country)][(int) substr($date, 0, 4)][$date] = $row->is_holiday ? (string) ($row->name ?: __('Festivo')) : null;
+            }
+        } catch (Throwable) {
+            // Sin base de datos (p. ej. pruebas unitarias): solo la configuración.
         }
 
         return $out;

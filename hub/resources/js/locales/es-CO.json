@@ -229,7 +229,9 @@
         "security": "Seguridad",
         "comingSoon": "Próximamente: llega en la fase {{phase}}",
         "consent": "Consentimiento",
-        "survey": "Encuesta"
+        "survey": "Encuesta",
+        "templates": "Plantillas",
+        "channels": "Canales"
     },
     "command": {
         "title": "Paleta de comandos",

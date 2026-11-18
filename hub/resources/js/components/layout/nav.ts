@@ -2,6 +2,7 @@ import {
     BarChart3,
     Building2,
     ClipboardList,
+    FileText,
     Gift,
     Globe,
     Home,
@@ -13,6 +14,7 @@ import {
     MessageSquareQuote,
     MousePointerClick,
     Plug,
+    RadioTower,
     Ruler,
     Settings2,
     Share2,
@@ -33,14 +35,15 @@ export interface NavItem {
     shortcut?: string;       // tecla después de «g»
 }
 
-/** Navegación completa de hub/CLAUDE.md §14. Activas las fases 0 y 1. */
+/** Navegación completa de hub/CLAUDE.md §14. Activas las fases 0 a 2. */
 export const MAIN_NAV: NavItem[] = [
     { key: 'home', to: '', icon: Home, ability: 'viewDashboards', shortcut: 'h' },
     { key: 'contacts', to: 'contactos', icon: Users, ability: 'viewAssignedContacts', shortcut: 'c' },
     { key: 'segments', to: 'segmentos', icon: Shapes, ability: 'viewAllContacts', shortcut: 'n' },
     { key: 'analytics', to: 'analitica', icon: BarChart3, ability: 'viewDashboards', shortcut: 'a' },
-    { key: 'flows', icon: Workflow, phase: 2 },
-    { key: 'campaigns', icon: Megaphone, phase: 2 },
+    { key: 'flows', to: 'flujos', icon: Workflow, ability: 'viewDashboards', shortcut: 'f' },
+    { key: 'campaigns', to: 'campanas', icon: Megaphone, ability: 'viewDashboards', shortcut: 'p' },
+    { key: 'templates', to: 'plantillas', icon: FileText, ability: 'viewDashboards', shortcut: 't' },
     { key: 'inbox', icon: Inbox, phase: 4 },
     { key: 'onsite', icon: MousePointerClick, phase: 3 },
     { key: 'loyalty', icon: Gift, phase: 3 },
@@ -54,6 +57,7 @@ export const SETTINGS_NAV: NavItem[] = [
     { key: 'sites', to: 'sitios', icon: Plug, ability: 'viewSites', shortcut: 's' },
     { key: 'team', to: 'equipo', icon: UsersRound, ability: 'viewWorkspace', shortcut: 'e' },
     { key: 'workspace', to: 'ajustes', icon: Settings2, ability: 'viewWorkspace' },
+    { key: 'channels', to: 'canales', icon: RadioTower, ability: 'viewWorkspace' },
     { key: 'consent', to: 'consentimiento', icon: ShieldCheck, ability: 'viewWorkspace' },
     { key: 'survey', to: 'encuesta', icon: MessageCircleQuestion, ability: 'viewDashboards' },
     { key: 'audit', to: 'auditoria', icon: ClipboardList, ability: 'viewAuditLog' },

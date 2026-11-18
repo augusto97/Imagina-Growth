@@ -34,6 +34,11 @@
     },
     "currency": {
       "$ref": "_defs.json#/$defs/currency"
+    },
+    "restored_from": {
+      "type": "string",
+      "maxLength": 40,
+      "description": "v3: ID del carrito del hub restaurado desde un enlace (api-connector.md §6.1)."
     }
   },
   "additionalProperties": false,

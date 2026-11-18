@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/message.clicked.json",
+  "title": "message.clicked",
+  "description": "Generado en el hub: clic en un enlace rastreado.",
+  "type": "object",
+  "required": [
+    "message_id",
+    "channel",
+    "kind",
+    "source_type"
+  ],
+  "properties": {
+    "message_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "channel": {
+      "enum": [
+        "email",
+        "whatsapp",
+        "sms"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "marketing",
+        "utility",
+        "transactional",
+        "service",
+        "authentication"
+      ]
+    },
+    "source_type": {
+      "enum": [
+        "flow",
+        "campaign",
+        "inbox",
+        "api",
+        "system"
+      ]
+    },
+    "source_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "flow_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "campaign_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "template_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "provider": {
+      "type": "string",
+      "maxLength": 20
+    },
+    "url": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "link_code": {
+      "type": "string",
+      "maxLength": 16
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "message_id": "msg_01JD",
+      "channel": "whatsapp",
+      "kind": "marketing",
+      "source_type": "flow",
+      "source_id": "fl_01JD",
+      "flow_id": "fl_01JD",
+      "template_id": "tpl_01JD",
+      "provider": "meta_cloud",
+      "url": "https://tienda.co/carrito",
+      "link_code": "K7Q2Z9XA"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "message_id": "msg_01JD",
+      "channel": "fax",
+      "kind": "marketing",
+      "source_type": "flow"
+    }
+  ]
+}

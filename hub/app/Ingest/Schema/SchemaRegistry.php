@@ -19,8 +19,11 @@ final class SchemaRegistry
     /** Eventos que solo genera el hub (eventos.md §4.6): ningún sitio puede enviarlos. */
     public const HUB_ONLY = [
         'survey.answered', 'segment.entered', 'segment.exited', 'consent.granted', 'consent.revoked',
-        'conversion.delivered', 'cart.abandoned', 'lead.created',
+        'conversion.delivered', 'cart.abandoned', 'lead.created', 'whatsapp.inbound',
     ];
+
+    /** Prefijos de eventos que solo genera el hub (eventos.md §4.6). */
+    public const HUB_ONLY_PREFIXES = ['message.', 'flow.'];
 
     private Validator $validator;
 
@@ -49,8 +52,22 @@ final class SchemaRegistry
     /** ¿Lo puede enviar un sitio por /v1/s o /v1/b? */
     public function isIngestible(string $event): bool
     {
-        return $this->isKnownEvent($event) && ! in_array($event, self::HUB_ONLY, true)
-            && ! str_starts_with($event, 'message.') && ! str_starts_with($event, 'flow.');
+        return $this->isKnownEvent($event) && ! self::isHubOnly($event);
+    }
+
+    /** ¿Lo genera solo el hub? Ningún sitio lo puede enviar. */
+    public static function isHubOnly(string $event): bool
+    {
+        if (in_array($event, self::HUB_ONLY, true)) {
+            return true;
+        }
+        foreach (self::HUB_ONLY_PREFIXES as $prefix) {
+            if (str_starts_with($event, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return list<string> */

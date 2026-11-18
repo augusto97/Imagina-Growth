@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/cart.abandoned.json",
+  "title": "cart.abandoned",
+  "description": "Generado en el hub: el carrito de un contacto conocido lleva N minutos sin actividad (hub/CLAUDE.md §5).",
+  "type": "object",
+  "required": [
+    "cart_id",
+    "cart_token",
+    "subtotal",
+    "currency",
+    "items_count"
+  ],
+  "properties": {
+    "cart_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "cart_token": {
+      "$ref": "_defs.json#/$defs/cart_token"
+    },
+    "items": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "required": [
+          "product_id",
+          "qty"
+        ],
+        "properties": {
+          "product_id": {
+            "$ref": "_defs.json#/$defs/external_id"
+          },
+          "variation_id": {
+            "$ref": "_defs.json#/$defs/external_id_or_null"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "qty": {
+            "type": "number",
+            "minimum": 0
+          },
+          "price": {
+            "$ref": "_defs.json#/$defs/money"
+          },
+          "image_url": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "permalink": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "subtotal": {
+      "$ref": "_defs.json#/$defs/money"
+    },
+    "currency": {
+      "$ref": "_defs.json#/$defs/currency"
+    },
+    "items_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "checkout_started": {
+      "type": "boolean"
+    },
+    "minutes_inactive": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "restore_url": {
+      "type": "string",
+      "maxLength": 2000
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "cart_id": "crt_01JD",
+      "cart_token": "c_8f2a9d",
+      "items": [
+        {
+          "product_id": "88",
+          "qty": 2,
+          "name": "Pintura Azul 1 galón",
+          "price": "141000.00"
+        }
+      ],
+      "subtotal": "282000.00",
+      "currency": "COP",
+      "items_count": 2,
+      "checkout_started": true,
+      "minutes_inactive": 47,
+      "restore_url": "https://tienda.co/?igr_cart=eyJ.abc"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "cart_id": "crt_01JD",
+      "cart_token": "c_8f2a9d",
+      "subtotal": "282000.00",
+      "currency": "COP"
+    }
+  ]
+}

@@ -16,7 +16,8 @@
     "schema_version": {
       "enum": [
         1,
-        2
+        2,
+        3
       ],
       "description": "Versión del contrato. El hub acepta 1 y 2; la 2 solo agrega campos opcionales (eventos.md §8)."
     },

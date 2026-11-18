@@ -246,7 +246,33 @@ Lo llaman los *exporters* y *erasers* de WordPress (`connector/CLAUDE.md` §11) 
 | `backfill.start` | `{"from": "YYYY-MM-DD"?, "restart": bool}` | `{"queued": true}` |
 | `secret.rotate` | `{"secret": "sk_..."}` | `{"rotated": true}`. El plugin guarda el nuevo como actual y el anterior 24 h. El hub firma este comando con el secreto **anterior** |
 
+| Comando (Fase 2) | `args` | `data` |
+|---|---|---|
+| `coupon.create` | `{"code": "VUELVE-7K2Q", "kind": "percent\|fixed_cart\|fixed_product\|free_shipping", "amount": "10.00", "expires_at": "YYYY-MM-DD"?, "usage_limit": 1, "email_restrictions": ["ana@…"]?, "individual_use": true, "minimum_amount": "100000.00"?, "product_ids": ["88"]?, "category_ids": ["12"]?, "free_shipping": false, "description": "Flujo «Carrito abandonado»"}` | `{"coupon_id": "991", "code": "VUELVE-7K2Q"}`. Si el código ya existe con los mismos datos, devuelve el mismo (idempotente); si existe distinto, `409 coupon_exists` |
+| `coupon.disable` | `{"code": "VUELVE-7K2Q"}` | `{"disabled": true}` (queda en borrador) |
+| `order.add_note` | `{"order_id": "1234", "note": "Pedido recuperado por Imagina Growth", "customer_note": false}` | `{"note_id": "77"}` |
+| `product.lookup` | `{"ids": ["88"]?, "search": "pintura"?, "limit": 10}` | `{"products": [{"id", "name", "sku", "price", "regular_price", "sale_price", "stock_status", "stock_qty", "url", "image", "variations": []}]}` con stock y precio **en vivo** |
+| `order.status` | `{"number": "1234", "email": "…"? , "phone": "…"?}` (debe coincidir uno) | `{"status", "status_label", "total", "currency", "created_at", "tracking"?}` o `404 not_found` |
+
 El resto de comandos de `connector/CLAUDE.md` §8 se agregan en su fase.
+
+### 6.1 Enlace de carrito restaurable (Fase 2)
+
+El hub arma `https://tienda.co/?igr_cart=<payload>.<firma>` con el formato de los tokens de §7.1: `payload` es base64url de un JSON y la firma es `hex(HMAC-SHA256(secreto_del_sitio, payload))`.
+
+```json
+{ "site": "st_…", "cart": "crt_…", "items": [{"product_id": "88", "variation_id": null, "qty": 2}], "coupon": "VUELVE-7K2Q", "mode": "replace", "exp": 1795000000 }
+```
+
+En `template_redirect`, el plugin:
+1. Verifica la firma con el secreto actual o el anterior, y el vencimiento. Si algo falla, redirige a la tienda sin error visible.
+2. Vacía el carrito (`replace`) o le suma los ítems (`merge`). Omite los productos que ya no existen o no tienen stock.
+3. Aplica el cupón si lo hay.
+4. Redirige al checkout conservando `_igr` y los `utm_*` de la URL.
+
+**No hace ninguna llamada al hub** en esa petición, y el nuevo carrito guarda `cart` (el ID del hub) en la sesión para enviarlo como `restored_from` en `cart.updated`.
+
+El pedido que sale de ese checkout lleva `order.cart_token` (v3), con lo que el hub marca el carrito como recuperado.
 
 ## 7. Datos en la página (connector → tracker)
 

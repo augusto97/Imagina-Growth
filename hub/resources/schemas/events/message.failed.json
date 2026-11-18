@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/message.failed.json",
+  "title": "message.failed",
+  "description": "Generado en el hub: el envío falló de forma definitiva.",
+  "type": "object",
+  "required": [
+    "message_id",
+    "channel",
+    "kind",
+    "source_type"
+  ],
+  "properties": {
+    "message_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "channel": {
+      "enum": [
+        "email",
+        "whatsapp",
+        "sms"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "marketing",
+        "utility",
+        "transactional",
+        "service",
+        "authentication"
+      ]
+    },
+    "source_type": {
+      "enum": [
+        "flow",
+        "campaign",
+        "inbox",
+        "api",
+        "system"
+      ]
+    },
+    "source_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "flow_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "campaign_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "template_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "provider": {
+      "type": "string",
+      "maxLength": 20
+    },
+    "reason": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "error_code": {
+      "type": "string",
+      "maxLength": 40
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "message_id": "msg_01JD",
+      "channel": "whatsapp",
+      "kind": "marketing",
+      "source_type": "flow",
+      "source_id": "fl_01JD",
+      "flow_id": "fl_01JD",
+      "template_id": "tpl_01JD",
+      "provider": "meta_cloud",
+      "reason": "Número sin WhatsApp",
+      "error_code": "131026"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "message_id": "msg_01JD",
+      "channel": "fax",
+      "kind": "marketing",
+      "source_type": "flow"
+    }
+  ]
+}
