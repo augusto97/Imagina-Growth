@@ -1,5 +1,75 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-18 — Cierre de la Fase 4 (Inteligencia avanzada e IA)
+
+### Criterio «Listo cuando» (medido con `infra/e2e/fase4.sh`)
+
+El recorrido usa un hub aislado (`igr_e2e4`) con la tienda demo sembrada (3.660 clientes y 10.000 pedidos), el servicio de predicciones (`hub/ml`), la tienda WooCommerce real conectada y una API de WhatsApp simulada. **No hay clave de Anthropic en este entorno:** el hub habló con un **simulador de la API de Anthropic** con guion (`infra/e2e/mock-anthropic.php`), por el mismo SDK y la misma `AiGateway` que en producción. Eso prueba los controles del hub y el camino de herramientas; la prueba con el modelo real (`php artisan igr:agent:eval`) queda pendiente de `IGR_ANTHROPIC_API_KEY`.
+
+| Criterio | Resultado |
+|---|---|
+| Las predicciones se validan contra un periodo de reserva y la app muestra su precisión | **Sí.** Reserva de 90 días. CLV (BG/NBD × Gamma-Gamma): 634 compras predichas frente a 729 reales (−13,0 %), correlación por cliente 0,65, ingreso −11,5 % → «Alta». Abandono: AUC 0,67 → «Media». Próxima compra: el 13,8 % compró a 15 días o menos de la fecha esperada (error mediano 65 días) → «Baja». La página `inteligencia/predicciones` muestra cada modelo con «qué tan confiable es», el gráfico predicho contra real por decil y la distribución de P(activo). Propensión: «datos insuficientes» (33.689 sesiones al mes de 50.000) |
+| Ninguna cifra de un texto de IA falta en los hechos (prueba automática) | **Sí.** `NumberValidator` y `NarrativeWriter` en el analista, «Pregúntale», los resúmenes, el copiloto y el contenido, y `ReplyGuard` en el agente. 54 pruebas automáticas (Ai, Intelligence, Agent, Copilot). En el recorrido, el analista que citó los hechos quedó con `source = ai`; con una cifra inventada ($987.654.321) se regeneró una vez y terminó en la plantilla sin IA, sin que la cifra llegara al informe. «Pregúntale» respondió «vendiste $215.286.200», validado contra el resultado de la consulta |
+| El agente resuelve preguntas de catálogo sin inventar precios ni stock | **Sí, con el modelo simulado.** WooCommerce tenía «Pintura para Cielos Blanca Galón» a $58.900 con 163 unidades; el agente llamó `search_products` y `get_product` (comando firmado `product.lookup`) y envió «…cuesta $58.900 y tenemos 163 unidades disponibles». Con un precio inventado ($71.900) no se envió nada: el turno pasó a una persona con `unverified_numbers`. Una pregunta fuera del negocio no usó herramientas y recibió la negativa acotada. «Quiero comprarlo» armó el carrito restaurable, y la bandeja creó el enlace de pago de WooCommerce con el producto |
+
+### Qué se entregó
+- **Base:** `AiGateway` sobre el SDK oficial de Anthropic para PHP (Sonnet 5.5 para análisis, copiloto y agente; Haiku 5.5 para clasificar y resumir), caché del system, salidas estructuradas, herramientas estrictas, respaldo del servidor ante rechazos, costo en `ai_usage` y tope mensual; `NumberValidator`, `NarrativeWriter` y `PiiScrubber`; contratos de la bandeja (`ConversationAgent`, `InboundClassifier`, `InboundMessageReceived`); permisos `useInbox`, `manageInbox` y `useAi`.
+- **Predicciones (M17):** servicio Python `hub/ml` (FastAPI) con BG/NBD, MBG/NBD y Gamma-Gamma en numpy y scipy, validación con reserva; próxima compra por mediana de categoría, P(activo), compras esperadas, CLV a 12 meses, bandas de abandono, afinidad por categoría y marca, siguiente producto, rango de precio, mejor hora dentro de la ventana legal y puntaje de interacción.
+- **Hallazgos:** los 20 detectores de `inteligencia.md` §5.1 (21 a 23 de servicios, en la Fase 5), impacto con la fórmula y supuestos editables, vigencia, regla de descarte y «Hacer ahora» en un clic.
+- **Analista y datos:** analista de los lunes con 3 acciones; «Pregúntale a tus datos» con una sola herramienta sobre la capa semántica; resúmenes de perfil y de reseñas; clasificador de entrantes y moderador de reseñas con IA.
+- **Copiloto:** propuestas de campaña y de flujo validadas (segmento, horario legal, plantillas aprobadas, costo y cumplimiento) que solo crean borradores; redactor de asuntos, variantes y textos de WhatsApp con el tono de la marca.
+- **Bandeja (M11):** WhatsApp multiagente con asignación, ventana de 24 h, notas, respuestas rápidas, venta desde el chat (producto en vivo, carrito, enlace de pago, cupón), métricas, PWA con notificaciones push (VAPID) y tiempo real con Laravel Reverb.
+- **Agente de ventas:** herramientas con precio y stock siempre en vivo, cifras validadas en código contra lo que devolvieron, modos asistido y automático, traspaso, registro y revisión de cada turno.
+- **Connector:** comando `order.create_payment_link`.
+
+### Errores que encontró la integración y el recorrido (corregidos con prueba)
+- **El agente bloqueaba preguntas nuevas tras una «BAJA» anterior:** las reglas miraban los entrantes unidos del historial. Además dependía de si caían en el mismo segundo, por eso la prueba fallaba a veces.
+- **El validador leía las URL como cifras:** un enlace de carrito o de pago contaba como un número sin respaldo.
+- **El abandono con BG/NBD simple daba AUC 0,21:** trata a quien compró una vez como activo. El servicio ajusta también MBG/NBD y se queda con el que mejor predice la reserva.
+- **Detector 9 (primera compra estancada):** la consulta de la mediana fallaba con datos reales.
+- **Los segmentos confirmaban transacciones abiertas:** `DROP TABLE` en MariaDB hacía commit; ahora es `DROP TEMPORARY TABLE`.
+- **La cola `ai` no tenía trabajador en Horizon:** el clasificador, el agente y los resúmenes nunca habrían corrido.
+- **El rol agente no veía ningún contacto:** ahora ve los de sus conversaciones asignadas.
+- **Faltaba el comando del enlace de pago en el connector.**
+- **Las pruebas de contrato fallaban en una base nueva** y dejaban filas entre pruebas.
+
+### Pruebas al cierre
+- **Hub:** 767 pruebas Pest (Larastan nivel 8 sin errores, Pint limpio) y 141 de Vitest en la SPA.
+- **Servicio `hub/ml`:** 8 pruebas de pytest.
+- **Connector:** 15 unitarias y 80 de WordPress; PHPCS 0 errores y 22 advertencias.
+- **Tracker:** sin cambios desde la Fase 3 (56 de Vitest y 19 de Playwright).
+- **Recorrido:** `infra/e2e/fase4.sh` en verde en dos corridas limpias.
+
+### Cambios a la especificación (con su motivo, en el mismo commit que el código)
+- **SDK oficial de Anthropic para PHP en lugar de Laravel AI SDK:** es el que documenta Anthropic y trae salidas estructuradas, herramientas estrictas, caché de prompts y respaldo ante rechazos. La clave es propia del hub (`IGR_ANTHROPIC_API_KEY`) y nunca se leen las `ANTHROPIC_*` del sistema.
+- **Predicciones en numpy y scipy, no `lifetimes`:** se eligió el modelo (BG/NBD o MBG/NBD) que mejor predice la reserva.
+- **Bandeja:** la intención se calcula por palabras al llegar y la de IA va en cola, para no llamar al modelo dentro del webhook de Meta. Una baja detectada por IA solo revoca con confianza de 0,8 o más; por debajo marca la conversación para revisión humana.
+- **«Agregar al tablero»** fija la consulta en la página de Inteligencia, porque los tableros de analítica son fijos.
+- **El informe semanal sale por correo:** por WhatsApp necesita una plantilla aprobada y el teléfono del dueño.
+
+### Pendiente y desviaciones conocidas
+- **[verificar] con el modelo real:** `php artisan igr:agent:eval --workspace=ws_…` (10 preguntas sobre la tienda conectada) y el resto de las funciones de IA, cuando se configure `IGR_ANTHROPIC_API_KEY`.
+- **Predicciones:**
+  - La imagen Docker del servicio `ml` no se construyó aquí; corrió con uvicorn.
+  - Las bandas de abandono cayeron a los cortes fijos (0,3 y 0,7) con los datos de demo.
+  - La propensión no se construyó: está detrás de su umbral.
+  - El parámetro `a` de MBG/NBD quedó en su mínimo. [verificar] con datos reales.
+- **Hallazgos:**
+  - El 11 compara solo el valor a 180 días (falta el gasto en anuncios por canal).
+  - El 7 necesita los Web Vitals de Imagina Turbo.
+  - El 13 no detecta la variante «ventas creciendo rápido».
+  - El 16, [verificar] el código de bloqueo de WhatsApp.
+- **Bandeja:**
+  - Los adjuntos guardan solo los metadatos (falta descargarlos de Meta).
+  - La barra lateral de la app no se adapta al celular (la bandeja ocupa toda la pantalla).
+  - No hay satisfacción por conversación.
+- **Copiloto:**
+  - Las campañas aún no adjuntan un cupón por persona.
+  - `WhatsAppTemplateRules` está marcado [verificar] frente a las reglas vigentes de Meta.
+- **Manual:**
+  - El recorrido grabado de la fase.
+  - Widgets de Elementor sin probar (desde la Fase 3).
+
 ## 2026-11-18 — Cierre de la Fase 3 (Captación y fidelización)
 
 ### Criterio «Listo cuando» (medido con `infra/e2e/fase3.sh`)
