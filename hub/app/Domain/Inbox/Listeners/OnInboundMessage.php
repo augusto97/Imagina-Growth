@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Domain\Inbox\Listeners;
 
 use App\Domain\Inbox\Actions\AssignConversation;
-use App\Domain\Inbox\Contracts\InboundClassifier;
 use App\Domain\Inbox\Events\InboundMessageReceived;
 use App\Domain\Inbox\Jobs\RunConversationAgent;
 use App\Domain\Inbox\Models\ConversationEvent;
 use App\Domain\Inbox\Models\MessageAttachment;
 use App\Domain\Inbox\Push\PushNotifier;
 use App\Domain\Inbox\Realtime\InboxUpdated;
+use App\Domain\Inbox\Support\HeuristicInboundClassifier;
 use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Messaging\Models\Message;
 use App\Domain\Workspaces\Models\Workspace;
@@ -23,12 +23,16 @@ use Illuminate\Support\Facades\DB;
  * cerrada, intención del mensaje, adjuntos, asignación automática, aviso en
  * tiempo real y push a quien la atiende, y el agente de IA si la conversación lo
  * tiene encendido (cola `ai`).
+ *
+ * Corre dentro del webhook de Meta, así que la intención sale de las palabras
+ * clave (`HeuristicInboundClassifier`, sin llamar al modelo): sirve para las reglas
+ * de asignación. Después, `ClassifyInboundMessage` (en cola) la afina con IA.
  */
 final class OnInboundMessage
 {
     public function __construct(
         private readonly CurrentWorkspace $current,
-        private readonly InboundClassifier $classifier,
+        private readonly HeuristicInboundClassifier $classifier,
         private readonly AssignConversation $assign,
         private readonly PushNotifier $push,
     ) {}

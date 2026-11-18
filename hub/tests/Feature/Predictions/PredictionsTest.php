@@ -4,6 +4,7 @@ use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Campaigns\Support\SendSchedule;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Intelligence\Predictions\Actions\RunPredictions;
+use App\Domain\Intelligence\Predictions\Actions\TrainLifetimeModels;
 use App\Domain\Intelligence\Predictions\Jobs\RunPredictionsJob;
 use App\Domain\Intelligence\Predictions\Models\PredictionRun;
 use App\Domain\Intelligence\Predictions\Support\BestHour;
@@ -262,4 +263,15 @@ it('API: ver con viewDashboards, recalcular y crear segmentos con manageMarketin
         $this->actingAs($this->owner)->postJson("{$this->api}/segments", ['preset' => $preset])->assertCreated()->assertJsonStructure(['id', 'name']);
     }
     $this->actingAs($this->owner)->postJson("{$this->api}/segments", ['preset' => 'otro'])->assertUnprocessable();
+});
+
+it('calibra las bandas de abandono con lo que de verdad volvió a comprar en la reserva', function () {
+    $d = fn (int $i, float $max, float $rate) => ['decile' => $i, 'customers' => 100, 'p_alive_min' => $max - 0.05, 'p_alive_max' => $max, 'active_rate' => $rate];
+    // Tasa general 0,2: los dos primeros deciles (≤ 0,1) son «alto» y el tercero (< 0,2) «medio».
+    [$high, $medium, $calibrated] = TrainLifetimeModels::bands([
+        $d(1, 0.2, 0.05), $d(2, 0.4, 0.1), $d(3, 0.5, 0.15), $d(4, 0.7, 0.25), $d(5, 0.9, 0.45),
+    ]);
+    expect($calibrated)->toBeTrue()->and($high)->toEqualWithDelta(0.4, 0.001)->and($medium)->toEqualWithDelta(0.5, 0.001);
+    // Si el decil más bajo vuelve más que el promedio, no hay calibración y quedan los cortes de la configuración.
+    expect(TrainLifetimeModels::bands([$d(1, 0.3, 0.5), $d(2, 0.5, 0.1), $d(3, 0.7, 0.1), $d(4, 0.9, 0.1)]))->toBe([0.3, 0.7, false]);
 });

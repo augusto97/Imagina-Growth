@@ -212,13 +212,13 @@ export function CampaignProposalView({ draft, onChange, editable }: { draft: Cam
 }
 
 /** Clave de i18n y parámetros para describir el disparador de un flujo propuesto. */
-export function triggerLabel(trigger: Record<string, unknown>): [string, Record<string, string | undefined>] {
+export function triggerLabel(trigger: Record<string, unknown>, segmentName?: string | null): [string, Record<string, string | undefined>] {
     const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
     switch (trigger.type) {
         case 'event':
             return ['copilot.trigger.event', { event: str(trigger.event) }];
         case 'segment':
-            return ['copilot.trigger.segment', { segment: str(trigger.segment_id) ?? str(trigger.system_key), on: str(trigger.on) ?? 'entered' }];
+            return ['copilot.trigger.segment', { segment: segmentName ?? str(trigger.segment_id) ?? str(trigger.system_key), on: str(trigger.on) ?? 'entered' }];
         case 'date':
             return ['copilot.trigger.date', { attribute: str(trigger.attribute) }];
         default:
@@ -229,7 +229,7 @@ export function triggerLabel(trigger: Record<string, unknown>): [string, Record<
 export function FlowProposalView({ draft }: { draft: FlowDraft }) {
     const { t } = useTranslation();
     const p = draft.proposal;
-    const [key, params] = triggerLabel(p.trigger);
+    const [key, params] = triggerLabel(p.trigger, p.trigger_segment);
     const triggerText = t(key, { ...params, on: params.on !== undefined ? t(`copilot.trigger.on.${params.on}`) : undefined });
 
     return (

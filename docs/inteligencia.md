@@ -145,6 +145,20 @@ Suma con decaimiento: visita al sitio, clic en un mensaje, lectura en WhatsApp, 
 - **IA opcional:** clasifica el mensaje del formulario (intención, urgencia, presupuesto mencionado) y suma o resta hasta 20 puntos, con la razón visible.
 - Umbrales «frío», «tibio» y «caliente» configurables. Un lead caliente avisa al vendedor al instante.
 
+### 4.10 Estado (Fase 4)
+
+- **Servicio `hub/ml`** (FastAPI, numpy y scipy, sin `lifetimes`, que ya no se mantiene): ajusta BG/NBD **y** su versión modificada MBG/NBD (en la clásica, quien compró una sola vez siempre está «activo»; en la modificada también puede irse) y se queda con la que mejor predice el periodo de reserva; Gamma-Gamma para el valor por compra (promedio de las compras repetidas). Compras agrupadas por día; unidades en semanas.
+- **`igr:predictions:train`** (domingos; `--nightly` cada noche sin reentrenar; `--only=` por paso; `--queue`): ajusta con la historia hasta hace 90 días, compara con lo que pasó, vuelve a ajustar con todo y escribe `p_alive`, `expected_orders_90d/365d`, `churn_risk = 1 − P(activo)`, `churn_band`, `predicted_clv_12m_ws` y `predictions_at`. Cada modelo deja su corrida en `prediction_runs` con la precisión; si el servicio no responde, las predicciones anteriores se quedan.
+- **Bandas de abandono calibradas** con la reserva: de los deciles de P(activo), «alto» los que volvieron a comprar a la mitad de la tasa general o menos y «medio» los que quedaron por debajo de la tasa general. Si el decil más bajo vuelve más que el promedio (no ordena), se usan los cortes 0,3 y 0,7 de `config/igr-predictions.php`.
+- **Sin datos suficientes** (umbrales de este documento) la corrida queda `insufficient_data` con el motivo, el perfil muestra «Datos insuficientes: …» y el abandono usa la heurística de §4.2 (días sin comprar frente al intervalo esperado de §4.1).
+- **Próxima compra (§4.1)** con la categoría principal (la más comprada) y la del primer pedido; se valida con el mismo cálculo hecho hace 90 días (cuántos de los que compraron lo hicieron a 15 días o menos de la fecha esperada, error mediano).
+- **Afinidad (§4.5)** con vistas y carritos de ClickHouse (anónimos vinculados por `identity_map`), compras y reseñas de 4 o 5 estrellas, vida media de 30 días, top 5 en `category_affinity` (`[{category_id, score}]`, lo que lee el motor de recomendaciones) y `brand_affinity`. **Siguiente producto** en `product_transitions` (producto y categoría, soporte mínimo 3); «comprados juntos» sigue en `product_associations` (M16).
+- **Rango de precio (§4.6)** contra los terciles del catálogo; `coupon_orders_ratio` lo mantiene `RecalculateContactStats`.
+- **Mejor hora y canal (§4.7)**: lecturas, clics, respuestas y compras en la zona del contacto, con vida media de 60 días; solo horas de la ventana legal de lunes a viernes. `BestHour::forContact()` da la del contacto o la mejor del negocio por canal; las campañas «a la mejor hora» la usan cuando el contacto no tiene una.
+- **Interacción (§4.8)**: visitas, aperturas sin MPP, lecturas, clics, respuestas y compras con vida media de 30 días; `100 × (1 − e^(−suma/15))`.
+- **Propensión (§4.4)**: el modelo no está activo; la corrida dice por qué (umbrales o «todavía no está activo»).
+- **Medido con la tienda demo** (3.660 clientes, 10.000 pedidos, reserva de 90 días): MBG/NBD elegido; predijo 634 compras y hubo 727 (−12,7 %, correlación 0,65 por cliente); ingresos −10,7 %; AUC de P(activo) 0,67 (BG/NBD clásico: 0,21). Próxima compra: 13,9 % a 15 días o menos, error mediano de 65 días (confiabilidad baja con estos datos sintéticos).
+
 ---
 
 ## 5. Motor de hallazgos

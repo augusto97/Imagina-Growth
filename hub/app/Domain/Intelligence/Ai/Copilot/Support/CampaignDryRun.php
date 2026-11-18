@@ -33,7 +33,7 @@ final class CampaignDryRun
 
     /**
      * @param  array<string, mixed>  $definition
-     * @return list<string>
+     * @return array<int, string>
      */
     private function members(Workspace $workspace, array $definition): array
     {

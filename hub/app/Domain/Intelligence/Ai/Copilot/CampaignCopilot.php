@@ -490,7 +490,7 @@ final class CampaignCopilot
         $at = LegalWindow::nextOpen($country, $wanted->utc(), $tz);
         if ($reason !== null) {
             $local = CarbonImmutable::instance($at)->setTimezone($tz);
-            $note = (string) __('Se movió al :when porque la hora propuesta cae en :reason.', [
+            $note = (string) __('Se movió al :when (:reason).', [
                 'when' => Fmt::dateTime($local),
                 'reason' => mb_strtolower(PolicyDecision::label($reason)),
             ]);

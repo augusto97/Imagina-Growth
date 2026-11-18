@@ -43,3 +43,16 @@ def aggregate(predicted: np.ndarray, actual: np.ndarray) -> dict[str, float | No
         "mae": round(float(np.abs(predicted - actual).mean()), 4) if predicted.size else None,
         "correlation": None if (c := corr(predicted, actual)) is None else round(c, 4),
     }
+
+
+def alive_calibration(alive: np.ndarray, active: np.ndarray, groups: int = 10) -> list[dict[str, float]]:
+    """P(activo) de menor a mayor en deciles, con la proporción que de verdad volvió a comprar
+    en la reserva: con esto el hub calibra las bandas de abandono de cada espacio de trabajo."""
+    order = np.argsort(alive, kind="stable")
+    out = []
+    for i, idx in enumerate(np.array_split(order, groups)):
+        if idx.size == 0:
+            continue
+        out.append({"decile": i + 1, "customers": int(idx.size), "p_alive_min": round(float(alive[idx].min()), 4),
+                    "p_alive_max": round(float(alive[idx].max()), 4), "active_rate": round(float(active[idx].mean()), 4)})
+    return out

@@ -9,7 +9,7 @@ from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from .models import expected_purchases, expected_value, fit_bgnbd, fit_gamma_gamma, p_alive
-from .validation import aggregate, auc, deciles
+from .validation import aggregate, alive_calibration, auc, deciles
 
 app = FastAPI(title="Imagina Growth ML", version="1.0.0")
 
@@ -92,6 +92,7 @@ def fit(req: FitRequest, x_igr_ml_token: str | None = Header(default=None)) -> d
             "churn_auc": None if churn_auc is None else round(churn_auc, 4),
             "purchase_auc": None if purchase_auc is None else round(purchase_auc, 4),
             "active_in_holdout_pct": round(float((act > 0).mean() * 100), 2),
+            "alive_by_decile": alive_calibration(alive, (act > 0).astype(float)),
             "candidates": {v: {"error_pct": c[3]["error_pct"], "churn_auc": None if c[4] is None else round(c[4], 4)} for v, c in candidates.items()},
         }
         try:

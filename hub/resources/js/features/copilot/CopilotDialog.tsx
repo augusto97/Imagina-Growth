@@ -15,7 +15,7 @@ import { CampaignProposalView, FlowProposalView } from './ProposalViews';
 import type { Draft } from './types';
 
 /** «Crear con IA» en Campañas y Flujos: pedido → propuesta revisable → borrador (nunca envía ni activa). */
-export function CreateWithAiButton({ kind }: { kind: 'campaign' | 'flow' }) {
+export function CreateWithAiButton({ kind, label }: { kind: 'campaign' | 'flow'; label?: string }) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const canUse = useCan('useAi');
@@ -26,7 +26,7 @@ export function CreateWithAiButton({ kind }: { kind: 'campaign' | 'flow' }) {
         <>
             <Button variant="outline" onClick={() => setOpen(true)}>
                 <Sparkles />
-                {t('copilot.createWithAi')}
+                {label ?? t('copilot.createWithAi')}
             </Button>
             {open ? <CopilotDialog kind={kind} onClose={() => setOpen(false)} /> : null}
         </>

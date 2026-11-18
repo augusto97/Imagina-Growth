@@ -40,7 +40,7 @@ final class PredictionsOverview
             'ml_configured' => $this->ml->configured(),
             'coverage' => [
                 'contacts' => $base()->count(),
-                'customers' => $base()->where('orders_count', '>', 0)->count(),
+                'customers' => DB::table('orders')->where('workspace_id', $workspace->id)->where('is_paid', true)->whereNotNull('contact_id')->distinct()->count('contact_id'),
                 'with_clv' => $base()->whereNotNull('predicted_clv_12m_ws')->count(),
                 'with_churn' => $base()->whereNotNull('churn_band')->count(),
                 'with_next_order' => $base()->whereNotNull('expected_next_order_at')->count(),

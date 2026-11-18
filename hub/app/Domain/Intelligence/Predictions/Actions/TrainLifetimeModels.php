@@ -81,8 +81,8 @@ final class TrainLifetimeModels
             return ['status' => 'failed', 'reason' => $e->getMessage()];
         }
 
-        $high = (float) config('igr-predictions.churn_bands.high_below', 0.3);
-        $medium = (float) config('igr-predictions.churn_bands.medium_below', 0.7);
+        $v = is_array($result['validation'] ?? null) ? $result['validation'] : [];
+        [$high, $medium, $calibrated] = self::bands((array) ($v['alive_by_decile'] ?? []));
         $rows = [];
         $bands = ['low' => 0, 'medium' => 0, 'high' => 0];
         $at = now()->toDateTimeString();
@@ -102,13 +102,14 @@ final class TrainLifetimeModels
         }
         Bulk::contacts($workspace->id, $rows);
 
-        $v = is_array($result['validation'] ?? null) ? $result['validation'] : [];
         $params = (array) ($result['params'] ?? []);
         PredictionRun::record($workspace->id, 'churn', 'completed', [
             'customers' => count($rows), 'holdout_days' => $holdoutDays,
             'auc' => $v['churn_auc'] ?? null, 'active_in_holdout_pct' => $v['active_in_holdout_pct'] ?? null,
             'calibration_customers' => $v['customers'] ?? null, 'bands' => $bands,
-        ], ['bgnbd' => $params['bgnbd'] ?? null, 'bands' => ['high_below' => $high, 'medium_below' => $medium]]);
+            'purchase_auc' => $v['purchase_auc'] ?? null, 'alive_by_decile' => $v['alive_by_decile'] ?? [],
+        ], ['bgnbd' => $params['bgnbd'] ?? null, 'model' => $v['model'] ?? null, 'candidates' => $v['candidates'] ?? null,
+            'bands' => ['high_below' => $high, 'medium_below' => $medium, 'calibrated' => $calibrated]]);
         PredictionRun::record($workspace->id, 'clv', 'completed', [
             'customers' => count($rows), 'holdout_days' => $holdoutDays,
             'purchases' => $v['purchases'] ?? null, 'purchases_by_decile' => $v['purchases_by_decile'] ?? [],
@@ -117,5 +118,50 @@ final class TrainLifetimeModels
         ], $params);
 
         return ['status' => 'completed'];
+    }
+
+    /**
+     * Bandas de abandono calibradas con la reserva (inteligencia.md §4.2): de los
+     * deciles de P(activo), de menor a mayor, «alto» son los que volvieron a comprar
+     * a la mitad de la tasa general o menos, y «medio» los que quedaron por debajo
+     * de la tasa general. Sin calibración, los cortes de `igr-predictions.churn_bands`.
+     *
+     * @param  array<int, mixed>  $deciles
+     * @return array{0: float, 1: float, 2: bool}
+     */
+    public static function bands(array $deciles): array
+    {
+        $high = (float) config('igr-predictions.churn_bands.high_below', 0.3);
+        $medium = (float) config('igr-predictions.churn_bands.medium_below', 0.7);
+        $rows = array_values(array_filter($deciles, fn ($d) => is_array($d) && isset($d['active_rate'], $d['p_alive_max'], $d['customers'])));
+        $total = array_sum(array_column($rows, 'customers'));
+        if (count($rows) < 4 || $total === 0) {
+            return [$high, $medium, false];
+        }
+        $rate = array_sum(array_map(fn (array $d) => $d['active_rate'] * $d['customers'], $rows)) / $total;
+        if ($rate <= 0) {
+            return [$high, $medium, false];
+        }
+        $calHigh = null;
+        $calMedium = null;
+        $highOpen = true;
+        foreach ($rows as $d) {
+            $r = (float) $d['active_rate'];
+            if ($r >= $rate) {
+                break;
+            }
+            if ($highOpen && $r <= $rate / 2) {
+                $calHigh = (float) $d['p_alive_max'];
+            } else {
+                $highOpen = false;
+            }
+            $calMedium = (float) $d['p_alive_max'];
+        }
+        if ($calMedium === null) {
+            return [$high, $medium, false];
+        }
+
+        // «Por debajo de» excluye el corte: se suma un poco para incluir el decil completo.
+        return [$calHigh !== null ? $calHigh + 0.00005 : 0.0, $calMedium + 0.00005, true];
     }
 }

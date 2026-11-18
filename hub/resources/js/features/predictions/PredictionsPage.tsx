@@ -144,7 +144,7 @@ function ModelCard({ run, compact = false }: { run: ModelRun; compact?: boolean 
                         <Badge variant={RELIABILITY_VARIANT[run.reliability]}>{t(`predictions.reliability.${run.reliability}`)}</Badge>
                     </p>
                 ) : null}
-                {facts ? <p>{t(`predictions.facts.${facts.key}`, { ...facts.values, count: facts.values.predicted ?? 0 })}</p> : null}
+                {facts ? <p>{t(`predictions.facts.${facts.key}`, formatFacts(facts.values, workspace.locale))}</p> : null}
                 {run.status === 'completed' && !facts ? <p className="igr:text-muted-foreground">{t(`predictions.models.${run.key}.done`, { ...summaryValues(run) })}</p> : null}
                 {run.status === 'heuristic' ? <p className="igr:text-muted-foreground">{t('predictions.heuristicHelp')}</p> : null}
                 {run.reason && run.status !== 'heuristic' ? <p className="igr:text-muted-foreground">{run.reason}</p> : null}
@@ -154,6 +154,12 @@ function ModelCard({ run, compact = false }: { run: ModelRun; compact?: boolean 
             </CardContent>
         </Card>
     );
+}
+
+/** Cifras de confiabilidad con el formato del país (13,9 en es-CO), máximo un decimal. */
+function formatFacts(values: Record<string, number>, locale: string): Record<string, string> {
+    const fmt = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
+    return Object.fromEntries(Object.entries(values).map(([k, v]) => [k, fmt.format(v)]));
 }
 
 function summaryValues(run: ModelRun): Record<string, number | string> {

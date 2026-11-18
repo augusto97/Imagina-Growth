@@ -31,8 +31,8 @@ export function CopilotPage() {
                 description={t('copilot.page.description')}
                 actions={
                     <div className="igr:flex igr:gap-2">
-                        <CreateWithAiButton kind="flow" />
-                        <CreateWithAiButton kind="campaign" />
+                        <CreateWithAiButton kind="flow" label={t('copilot.page.newFlow')} />
+                        <CreateWithAiButton kind="campaign" label={t('copilot.page.newCampaign')} />
                     </div>
                 }
             />

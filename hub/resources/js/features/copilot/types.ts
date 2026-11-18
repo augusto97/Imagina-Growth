@@ -38,6 +38,7 @@ export interface FlowProposal {
     name: string;
     description: string | null;
     trigger: Record<string, unknown>;
+    trigger_segment: string | null;
     goal: { event: string } | null;
     reentry_policy: { mode: string; days?: number };
     steps: { id: string; type: string; label: string }[];

@@ -23,6 +23,7 @@ use App\Domain\Intelligence\Ai\Data\AiRequest;
 use App\Domain\Intelligence\Ai\Data\AiResult;
 use App\Domain\Intelligence\Ai\Exceptions\AiUnavailable;
 use App\Domain\Intelligence\Ai\Support\NarrativeWriter;
+use App\Domain\Segments\Models\Segment;
 use App\Domain\Templates\Library\TemplateLibrary;
 use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
@@ -227,11 +228,21 @@ final class FlowCopilot
             'name' => mb_substr(trim((string) ($raw['name'] ?? '')) ?: __('Flujo del copiloto'), 0, 150),
             'description' => is_string($raw['description'] ?? null) ? mb_substr($raw['description'], 0, 480) : null,
             'trigger' => $settings['trigger'] ?? (is_array($trigger) ? $trigger : ['type' => null]),
+            'trigger_segment' => isset($settings['trigger']['segment_id']) ? Segment::findByPublicId((string) $settings['trigger']['segment_id'])?->name : null,
             'goal' => $settings['goal'] ?? null,
             'reentry_policy' => $settings['reentry_policy'] ?? ['mode' => 'once'],
             'graph' => $clean,
             'pending_whatsapp' => $pendingWhatsapp,
         ], $problems, array_values(array_unique($warnings))];
+    }
+
+    private static function unit(string $unit, int $n): string
+    {
+        return match ($unit) {
+            'minutes' => $n === 1 ? __('minuto') : __('minutos'),
+            'hours' => $n === 1 ? __('hora') : __('horas'),
+            default => $n === 1 ? __('día') : __('días'),
+        };
     }
 
     /**
@@ -247,12 +258,10 @@ final class FlowCopilot
             $c = (array) ($node['config'] ?? []);
             $label = match ((string) $node['type']) {
                 NodeTypes::TRIGGER => __('Entra al flujo'),
-                NodeTypes::WAIT => __('Espera :n :unit', ['n' => $c['duration']['value'] ?? '?', 'unit' => match ((string) ($c['duration']['unit'] ?? 'days')) {
-                    'minutes' => __('minutos'), 'hours' => __('horas'), default => __('días'),
-                }]),
+                NodeTypes::WAIT => __('Espera :n :unit', ['n' => $c['duration']['value'] ?? '?', 'unit' => self::unit((string) ($c['duration']['unit'] ?? 'days'), (int) ($c['duration']['value'] ?? 0))]),
                 NodeTypes::WAIT_EVENT => __('Espera el evento :event', ['event' => (string) ($c['event'] ?? '')]),
                 NodeTypes::CONDITION => __('Condición'),
-                NodeTypes::CHANNEL_SPLIT => __('Elige canal: :list', ['list' => implode(', ', (array) ($c['channels'] ?? []))]),
+                NodeTypes::CHANNEL_SPLIT => __('Elige canal en este orden: :list', ['list' => implode(', ', array_map(fn ($ch) => CampaignCopilot::channelLabel((string) $ch), (array) ($c['channels'] ?? [])))]),
                 NodeTypes::AB_SPLIT => __('Prueba A/B'),
                 NodeTypes::SEND_WHATSAPP => __('Envía WhatsApp (:t)', ['t' => (string) ($c['template_key'] ?? $c['template_id'] ?? '?')]),
                 NodeTypes::SEND_EMAIL => __('Envía correo (:t)', ['t' => (string) ($c['template_key'] ?? $c['template_id'] ?? '?')]),

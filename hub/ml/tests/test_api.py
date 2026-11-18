@@ -40,6 +40,7 @@ def test_ajusta_valida_con_reserva_y_predice(monkeypatch):
     assert v["customers"] == 600 and v["holdout_days"] == 90
     assert {"predicted_total", "actual_total", "error_pct", "mae", "correlation"} <= set(v["purchases"])
     assert len(v["purchases_by_decile"]) == 10 and v["churn_auc"] is not None
+    assert len(v["alive_by_decile"]) == 10 and v["alive_by_decile"][0]["p_alive_max"] <= v["alive_by_decile"][-1]["p_alive_min"]
     assert v["model"] in ("bgnbd", "mbgnbd") and set(v["candidates"]) == {"bgnbd", "mbgnbd"}
     assert data["params"]["bgnbd"]["variant"] == v["model"]
     p = data["predictions"][0]
