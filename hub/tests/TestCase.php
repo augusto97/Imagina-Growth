@@ -30,7 +30,7 @@ abstract class TestCase extends BaseTestCase
     }
 
     /** Persona con 2FA confirmada (obligatoria para owner y admin). */
-    protected function userWith2fa(array $attributes = []): User
+    public function userWith2fa(array $attributes = []): User
     {
         return User::factory()->create($attributes + [
             'two_factor_secret' => encrypt('JBSWY3DPEHPK3PXP'),
@@ -39,12 +39,12 @@ abstract class TestCase extends BaseTestCase
         ]);
     }
 
-    protected function workspaceFor(User $owner, string $name = 'Pinturas La 14', string $currency = 'COP'): Workspace
+    public function workspaceFor(User $owner, string $name = 'Pinturas La 14', string $currency = 'COP'): Workspace
     {
         return app(CreateWorkspace::class)->handle($owner, new WorkspaceData(name: $name, currency: $currency));
     }
 
-    protected function addMember(Workspace $ws, WorkspaceRole $role, bool $twoFactor = false): User
+    public function addMember(Workspace $ws, WorkspaceRole $role, bool $twoFactor = false): User
     {
         $user = $twoFactor ? $this->userWith2fa() : User::factory()->create();
         $ws->users()->attach($user->id, ['role' => $role->value]);
@@ -52,7 +52,7 @@ abstract class TestCase extends BaseTestCase
         return $user;
     }
 
-    protected function connectedSite(Workspace $ws, string $host = 'tienda.co'): array
+    public function connectedSite(Workspace $ws, string $host = 'tienda.co'): array
     {
         $secret = SiteKeys::secret();
         $site = app(CurrentWorkspace::class)->run($ws, fn () => Site::query()->create([
@@ -130,7 +130,7 @@ abstract class TestCase extends BaseTestCase
     }
 
     /** POST /v1/s firmado y comprimido como lo hace el connector. */
-    protected function postSigned(Site $site, string $secret, array $events, ?int $timestamp = null, bool $gzip = true): TestResponse
+    public function postSigned(Site $site, string $secret, array $events, ?int $timestamp = null, bool $gzip = true): TestResponse
     {
         $json = json_encode(['sent_at' => now()->toIso8601String(), 'events' => $events]);
         $body = $gzip ? gzencode($json) : $json;
@@ -146,7 +146,7 @@ abstract class TestCase extends BaseTestCase
         return $this->call('POST', '/v1/s', [], [], [], $this->transformHeadersToServerVars($headers), $body);
     }
 
-    protected function signedJson(string $method, string $uri, Site $site, string $secret, ?array $payload = null): TestResponse
+    public function signedJson(string $method, string $uri, Site $site, string $secret, ?array $payload = null): TestResponse
     {
         $body = $payload === null ? '' : json_encode($payload);
         $headers = [
@@ -160,7 +160,7 @@ abstract class TestCase extends BaseTestCase
     }
 
     /** Prepara ClickHouse (igr_test) y vacía Redis de ingesta. */
-    protected function useIngestInfrastructure(): void
+    public function useIngestInfrastructure(): void
     {
         if (! self::$clickhouseReady) {
             app(ClickHouseMigrator::class)->fresh();
@@ -171,13 +171,13 @@ abstract class TestCase extends BaseTestCase
         app(IngestStream::class)->connection()->command('flushdb');
     }
 
-    protected function runWorker(): void
+    public function runWorker(): void
     {
         $this->artisan('igr:ingest:work', ['--once' => true])->assertSuccessful();
     }
 
     /** @return list<array<string, mixed>> */
-    protected function chRows(Workspace $ws, string $sql, array $params = []): array
+    public function chRows(Workspace $ws, string $sql, array $params = []): array
     {
         return Ch::forWorkspace($ws)->select($sql, $params);
     }

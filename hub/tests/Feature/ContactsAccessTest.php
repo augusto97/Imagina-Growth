@@ -38,5 +38,5 @@ it('el resumen de inicio cuenta pedidos, ventas y eventos', function () {
         ->assertJsonPath('orders.paid', 1)
         ->assertJsonPath('revenue_ws', '282000.00')
         ->assertJsonPath('contacts.customers', 1)
-        ->assertJsonPath('events_24h', 1);
+        ->assertJsonPath('events_24h', 2);  // order.paid + consent.granted (correo) del pedido de ejemplo
 });

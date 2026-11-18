@@ -40,6 +40,24 @@ final class ChWorkspaceQuery
         return $row === null ? null : reset($row);
     }
 
+    /**
+     * Escritura atada al espacio de trabajo (INSERT … SELECT, DELETE). Misma
+     * regla que select(): el SQL debe filtrar por {workspace_id:UInt32}.
+     *
+     * @param  array<string, scalar|null>  $params
+     * @param  array<string, scalar>  $settings  ajustes de ClickHouse para esta consulta
+     */
+    public function execute(string $sql, array $params = [], array $settings = []): void
+    {
+        if (! str_contains($sql, '{workspace_id:UInt32}')) {
+            throw new InvalidArgumentException('Toda consulta a ClickHouse debe filtrar por {workspace_id:UInt32}.');
+        }
+        if (array_key_exists('workspace_id', $params)) {
+            throw new InvalidArgumentException('workspace_id no se pasa como parámetro: lo inyecta Ch::forWorkspace().');
+        }
+        $this->ch->executeWithParams($sql, ['workspace_id' => $this->workspaceChId] + $params, $settings);
+    }
+
     public function workspaceChId(): int
     {
         return $this->workspaceChId;

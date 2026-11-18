@@ -6,6 +6,7 @@ namespace App\Ingest\Pipeline;
 
 use App\Domain\Commerce\Projectors\CatalogProjector;
 use App\Domain\Commerce\Projectors\OrderProjector;
+use App\Domain\Consent\Actions\ProjectConsents;
 use App\Domain\Contacts\Jobs\RecalculateContactStats;
 use App\Domain\Identity\IdentityInput;
 use App\Domain\Identity\IdentityResolver;
@@ -48,6 +49,7 @@ final class IngestProcessor
         private readonly SiteHealthProjector $siteHealth,
         private readonly CurrentWorkspace $current,
         private readonly IngestStream $stream,
+        private readonly ProjectConsents $consents,
     ) {}
 
     /**
@@ -79,9 +81,15 @@ final class IngestProcessor
         foreach ($touchedSites as $siteId => $ms) {
             Site::withoutWorkspaceScope()->whereKey($siteId)->update(['last_event_at' => CarbonImmutable::createFromTimestampMs($ms)]);
         }
-        // 10. Eventos de dominio, solo con los datos ya confirmados.
+        // 10. Eventos de dominio, solo con los datos ya confirmados. Un listener que falla
+        // no puede frenar la ingesta ni hacer reprocesar un lote ya confirmado.
         foreach ($domainEvents as $domainEvent) {
-            event($domainEvent);
+            try {
+                event($domainEvent);
+            } catch (Throwable $e) {
+                report($e);
+                Log::error('igr.ingest.listener_failed', ['event' => $domainEvent->event, 'event_id' => $domainEvent->eventId, 'error' => Pii::scrub(mb_substr($e->getMessage(), 0, 300))]);
+            }
         }
 
         return $out;
@@ -226,6 +234,18 @@ final class IngestProcessor
             $this->catalog->project($workspace, $site, $envelope);
         } elseif (str_starts_with($event, 'site.')) {
             $this->siteHealth->project($site, $envelope);
+        }
+
+        // Consentimientos con evidencia (checkout y formularios). La importación histórica no
+        // crea consentimiento: el origen se declara al importar (cumplimiento.md §3.1).
+        if ($contactId !== null && ! $isImport && (str_starts_with($event, 'order.') || $event === 'form.submitted')) {
+            $this->consents->project(
+                $workspace,
+                $contactId,
+                $envelope,
+                ($envelope['context']['ip'] ?? null) ?: ($entry->ip !== '' ? $entry->ip : null),
+                ($envelope['context']['user_agent'] ?? null) ?: ($entry->ua !== '' ? $entry->ua : null),
+            );
         }
 
         // 10. Evento de dominio: se publica después del commit. La importación no dispara nada.

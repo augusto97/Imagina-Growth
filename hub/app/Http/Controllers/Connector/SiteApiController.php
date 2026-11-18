@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Connector;
 
 use App\Domain\Commerce\Models\Product;
 use App\Domain\Commerce\Models\ProductCategory;
+use App\Domain\Consent\Actions\ConsentTexts;
 use App\Domain\Sites\Actions\UpdateBackfillState;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Models\Workspace;
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class SiteApiController
 {
-    public function __construct(private readonly CurrentWorkspace $current) {}
+    public function __construct(private readonly CurrentWorkspace $current, private readonly ConsentTexts $consentTexts) {}
 
     /** GET /v1/s/config */
     public function config(Request $request): JsonResponse
@@ -40,7 +41,11 @@ final class SiteApiController
                 'locale' => $ws->locale,
             ],
             'settings' => $site->effectiveSettings() + ['early_capture' => (bool) $ws->setting('early_capture', false)],
-            'consent' => ['mode' => $ws->setting('consent_mode', 'strict'), 'texts' => []],
+            'consent' => [
+                'mode' => $ws->setting('consent_mode', 'strict'),
+                'privacy_policy_url' => $ws->getAttribute('privacy_policy_url'),
+                'texts' => $this->consentTexts->current($ws),
+            ],
             'measurement' => $this->measurement(),
             'min_plugin_version' => config('igr.min_plugin_version'),
         ]);

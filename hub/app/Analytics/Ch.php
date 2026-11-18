@@ -103,6 +103,22 @@ final class Ch
         return $rows;
     }
 
+    /**
+     * Uso interno: lo llama ChWorkspaceQuery::execute() para INSERT … SELECT y
+     * DELETE con el parámetro de workspace ya enlazado. No devuelve filas.
+     *
+     * @param  array<string, scalar|null>  $params
+     * @param  array<string, scalar>  $settings
+     */
+    public function executeWithParams(string $sql, array $params, array $settings = []): void
+    {
+        $qs = $settings;
+        foreach ($params as $name => $value) {
+            $qs['param_'.$name] = $value === null ? '\N' : (is_bool($value) ? (int) $value : $value);
+        }
+        $this->request($sql, $qs);
+    }
+
     public function ping(): bool
     {
         try {

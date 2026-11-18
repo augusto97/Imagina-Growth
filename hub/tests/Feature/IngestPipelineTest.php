@@ -65,7 +65,7 @@ it('proyecta el pedido, crea el contacto y escribe en ClickHouse sin datos perso
     });
 
     $rows = $this->chRows($this->ws, 'SELECT event, contact_id, channel, click_id_kind, toDecimalString(revenue, 2) AS revenue, city, toJSONString(properties) AS props FROM events WHERE workspace_id = {workspace_id:UInt32} ORDER BY occurred_at, event');
-    expect(collect($rows)->pluck('event')->sort()->values()->all())->toBe(['catalog.product_upserted', 'order.created', 'order.paid']);
+    expect(collect($rows)->pluck('event')->sort()->values()->all())->toBe(['catalog.product_upserted', 'consent.granted', 'order.created', 'order.paid']);
     $paidRow = collect($rows)->firstWhere('event', 'order.paid');
     $createdRow = collect($rows)->firstWhere('event', 'order.created');
     expect($paidRow['revenue'])->toBe('282000.00')
@@ -87,7 +87,7 @@ it('es idempotente: el mismo event_id dos veces se guarda una sola vez', functio
     $this->postSigned($this->site, $this->secret, [$paid])->assertJsonPath('accepted', 1);
     $this->runWorker();
 
-    expect((int) $this->chRows($this->ws, 'SELECT count() AS c FROM events WHERE workspace_id = {workspace_id:UInt32}')[0]['c'])->toBe(1)
+    expect((int) $this->chRows($this->ws, "SELECT count() AS c FROM events WHERE workspace_id = {workspace_id:UInt32} AND event = 'order.paid'")[0]['c'])->toBe(1)
         ->and(inWs($this, fn () => Order::query()->count()))->toBe(1);
 });
 
@@ -134,7 +134,8 @@ it('la importación histórica no dispara eventos de dominio; el tráfico en viv
     $this->postSigned($this->site, $this->secret, [$import, $live]);
     $this->runWorker();
 
-    Event::assertDispatchedTimes(EventIngested::class, 1);
+    // Solo el pedido en vivo; el importado no dispara nada (los consent.granted del hub son aparte).
+    expect(collect(Event::dispatched(EventIngested::class))->filter(fn ($args) => $args[0]->event === 'order.paid')->count())->toBe(1);
     expect(inWs($this, fn () => Order::query()->count()))->toBe(2);
 });
 
@@ -161,4 +162,12 @@ it('actualiza la salud del sitio con site.heartbeat', function () {
     $this->runWorker();
     $site = $this->site->fresh();
     expect($site->getAttribute('wc_version'))->toBe('9.5.0')->and($site->health['outbox_pending'])->toBe(3)->and($site->last_event_at)->not->toBeNull();
+});
+
+it('un listener que falla no frena la ingesta ni hace reprocesar el lote', function () {
+    \Illuminate\Support\Facades\Event::listen(\App\Ingest\Events\EventIngested::class, fn () => throw new RuntimeException('listener roto'));
+    $this->postSigned($this->site, $this->secret, [$this->envelope($this->site, 'order.paid', ['order' => $this->orderSnapshot()])]);
+    $this->runWorker();
+    expect(inWs($this, fn () => Order::query()->count()))->toBe(1)
+        ->and((int) $this->chRows($this->ws, "SELECT count() AS c FROM events WHERE workspace_id = {workspace_id:UInt32} AND event = 'order.paid'")[0]['c'])->toBe(1);
 });

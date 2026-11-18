@@ -105,7 +105,7 @@ it('ClickHouse solo se consulta con el filtro de workspace y no mezcla datos', f
         $ws = $this->{$k}['ws'];
         $ids = collect(Ch::forWorkspace($ws)->select('SELECT DISTINCT workspace_id FROM events WHERE workspace_id = {workspace_id:UInt32}'))->pluck('workspace_id')->all();
         expect($ids)->toBe([$ws->ch_id]);
-        expect((int) Ch::forWorkspace($ws)->value('SELECT count() FROM events WHERE workspace_id = {workspace_id:UInt32}'))->toBe(3);
+        expect((int) Ch::forWorkspace($ws)->value("SELECT count() FROM events WHERE workspace_id = {workspace_id:UInt32} AND source_type != 'hub'"))->toBe(3);
     }
 });
 

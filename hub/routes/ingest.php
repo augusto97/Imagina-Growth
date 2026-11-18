@@ -1,5 +1,7 @@
 <?php
 
+use App\Domain\Privacy\Http\SitePrivacyController;
+use App\Domain\Surveys\Http\PublicWidgetsController;
 use App\Http\Controllers\Connector\CaddyAskController;
 use App\Http\Controllers\Connector\SiteApiController;
 use App\Http\Controllers\HealthController;
@@ -21,6 +23,7 @@ Route::middleware(VerifySiteSignature::class)->prefix('v1/s')->group(function ()
     Route::get('config', [SiteApiController::class, 'config']);
     Route::get('catalog/hashes', [SiteApiController::class, 'catalogHashes']);
     Route::put('backfill', [SiteApiController::class, 'backfill']);
+    Route::post('privacy/requests', SitePrivacyController::class);
 });
 
 // Interno: Caddy lo consulta antes de emitir TLS bajo demanda (infra/Caddyfile).
@@ -28,3 +31,8 @@ Route::get('internal/caddy/ask', CaddyAskController::class);
 
 // Salud para Better Stack (hub/CLAUDE.md §16).
 Route::get('health', HealthController::class);
+
+// Widgets públicos del sitio (api-connector.md §8).
+Route::get('p/{publicKey}/widgets.json', [PublicWidgetsController::class, 'widgets']);
+Route::post('p/{publicKey}/surveys/{surveyId}/answers', [PublicWidgetsController::class, 'answer']);
+Route::options('p/{publicKey}/{any}', [PublicWidgetsController::class, 'preflight'])->where('any', '.*');
