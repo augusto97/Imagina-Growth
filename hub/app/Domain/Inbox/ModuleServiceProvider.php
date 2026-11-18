@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domain\Inbox;
 
+use App\Domain\Inbox\Console\VapidKeysCommand;
 use App\Domain\Inbox\Contracts\ConversationAgent;
 use App\Domain\Inbox\Contracts\InboundClassifier;
 use App\Domain\Inbox\Events\InboundMessageReceived;
 use App\Domain\Inbox\Listeners\OnInboundMessage;
 use App\Domain\Inbox\Push\LogPushNotifier;
 use App\Domain\Inbox\Push\PushNotifier;
+use App\Domain\Inbox\Push\WebPushNotifier;
 use App\Domain\Inbox\Support\NullConversationAgent;
 use App\Domain\Intelligence\Ai\Features\Classifiers\AiInboundClassifier;
 use App\Domain\Intelligence\Ai\Features\Classifiers\ClassifyInboundMessage;
@@ -24,12 +26,16 @@ final class ModuleServiceProvider extends ServiceProvider
         $this->app->bindIf(ConversationAgent::class, NullConversationAgent::class);
         // Fase 4 (fork N): con IA disponible clasifica Claude Haiku; si no, las palabras clave.
         $this->app->bindIf(InboundClassifier::class, AiInboundClassifier::class);
-        $this->app->bindIf(PushNotifier::class, LogPushNotifier::class);
+        // Web Push real con llaves VAPID; sin llaves, solo se registra en el log.
+        $this->app->bindIf(PushNotifier::class, fn () => WebPushNotifier::configured() ? new WebPushNotifier : new LogPushNotifier);
     }
 
     public function boot(): void
     {
         Event::listen(InboundMessageReceived::class, OnInboundMessage::class);
         Event::listen(InboundMessageReceived::class, ClassifyInboundMessage::class);
+        if ($this->app->runningInConsole()) {
+            $this->commands([VapidKeysCommand::class]);
+        }
     }
 }

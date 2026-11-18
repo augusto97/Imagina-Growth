@@ -5,7 +5,7 @@
 ARG PHP_VERSION=8.4
 
 FROM dunglas/frankenphp:1-php${PHP_VERSION}-bookworm AS base
-RUN install-php-extensions pdo_mysql redis intl zip pcntl opcache sockets gd exif \
+RUN install-php-extensions pdo_mysql redis intl zip pcntl opcache sockets gd exif gmp bcmath \
  && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 COPY infra/docker/hub/php.ini $PHP_INI_DIR/conf.d/zz-igr.ini
 WORKDIR /app

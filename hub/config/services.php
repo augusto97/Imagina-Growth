@@ -22,6 +22,13 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
+    // Notificaciones push de la PWA de la bandeja (M11). Llaves con `php artisan igr:push:vapid`.
+    'webpush' => [
+        'public_key' => env('IGR_PUSH_VAPID_PUBLIC_KEY'),
+        'private_key' => env('IGR_PUSH_VAPID_PRIVATE_KEY'),
+        'subject' => env('IGR_PUSH_VAPID_SUBJECT', 'mailto:soporte@imagina.cloud'),
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
