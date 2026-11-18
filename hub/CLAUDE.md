@@ -235,7 +235,7 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 - **API pública `/api/v1`:** tokens de Sanctum por espacio de trabajo con alcances (`contacts:read`, `events:write`, `segments:read`, `campaigns:write`…), límites por plan y OpenAPI con Scramble.
 - **API interna de la SPA:** `/api/w/{workspace}/...`, con sesión de Sanctum.
 - **API del connector** (firmada con HMAC, ver `connector/CLAUDE.md` §4): `POST /api/connect/exchange` (handshake), `GET /v1/s/catalog/hashes` (conciliación), `POST /v1/s/wallet/redeem` (canje de saldo en el checkout) y `GET /v1/s/config` (textos de consentimiento, estados pagados y ajustes del sitio).
-- **Endpoints públicos de widgets:** `/p/{site_public_key}/widgets.json` (configuración, en caché de CDN 5 min) y `/p/{site}/reco?aid=…&ctx=…` (recomendaciones, en caché 60 s por contexto).
+- **Endpoints públicos de widgets:** `/p/{site_public_key}/widgets.json` (configuración, en caché de CDN 5 min) y `/p/{site}/reco?kind=…&product_id=…&cart=…&aid=…` (recomendaciones: caché pública de 60 s para los tipos no personales y privada para los personales; api-connector.md §8.3).
 - **Webhooks salientes:** firmados con HMAC, con reintentos y un registro visible.
 - **MCP** (`laravel/mcp`): herramientas de lectura `get_kpis`, `run_metric_query`, `list_segments`, `get_contact_summary` y `list_insights`, y de escritura `draft_campaign` y `draft_segment`, que crean **borradores** que alguien debe aprobar en la app. Autenticación OAuth o token por espacio de trabajo.
 - **Reverb:** canales privados `workspace.{id}.inbox` y `workspace.{id}.live` (eventos en vivo para el tablero «En este momento»).

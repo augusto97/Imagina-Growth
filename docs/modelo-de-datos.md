@@ -257,32 +257,51 @@ Migración `2026_11_20_000100_create_phase2_tables`. Diferencias con §3 a §5, 
 
 ## 13. Tablas y columnas de la Fase 3
 
-Migración `2026_11_21_000100_create_phase3_tables`. Diferencias con §6 y §7, con su motivo:
+La base es la migración `2026_11_21_000100_create_phase3_tables`; cada módulo agrega lo suyo en su rango (`1xxxxx` captación, `2xxxxx` fidelización, `3xxxxx` referidos, `4xxxxx` reseñas, `5xxxxx` comercio en el sitio y audiencias). Diferencias con §6 y §7, con su motivo:
+
+**Captación (M12)**
 - `onsite_widgets`: `name`, `priority`, `coupon_config` (el regalo del widget, o los premios de la ruleta con sus probabilidades, que nunca llegan al navegador), `starts_at`/`ends_at` y `created_by`. `site_id` es opcional: sin sitio, el widget aplica a todos los del espacio de trabajo.
-- Nuevas:
-  - `widget_captures`: quién dejó sus datos en qué widget y variante, con el cupón y las respuestas del quiz. Sirve para las estadísticas, el «un cupón por persona» y la atribución de captación (hub/CLAUDE.md §9, paso 4). `was_known` separa a quien ya era contacto. `updated_at` (migración `2026_11_21_100100`) es el último paso o reenvío; `captured_at` queda como la primera captura.
-- `orders.attributed_widget_id` y `attributed_widget_variant` (migración `2026_11_21_100100`): el widget y la variante del paso 4 de la atribución; los leen las estadísticas del widget.
-  - `loyalty_rewards`: el catálogo de canje (cupón fijo o porcentual, envío gratis, producto gratis o saldo) con su costo en puntos.
+- `widget_captures` (nueva): quién dejó sus datos en qué widget y variante, con el cupón y las respuestas del quiz. Sirve para las estadísticas, el «un cupón por persona» y la atribución de captación (hub/CLAUDE.md §9, paso 4). `was_known` separa a quien ya era contacto. `updated_at` (`2026_11_21_100100`) es el último paso o reenvío; `captured_at` queda como la primera captura.
+- `orders.attributed_widget_id` y `attributed_widget_variant` (`2026_11_21_100100`): el widget y la variante del paso 4 de la atribución; los leen las estadísticas del widget.
+
+**Fidelización (M13)**
 - `loyalty_programs`: uno por espacio de trabajo, con `wallet_rules` (cashback y vencimiento del saldo).
 - `loyalty_tiers`: `wc_role`, el rol de WooCommerce del nivel para los precios VIP con el comando `customer.set_tier`.
+- `loyalty_rewards`: el catálogo de canje (cupón fijo o porcentual, envío gratis, producto gratis o saldo) con su costo en puntos.
 - `loyalty_ledger`:
   - Solo inserción: confirmar, revertir o vencer agrega una entrada nueva enlazada con `parent_id`.
   - `delta` y `balance_after` son decimales para servir a puntos (enteros) y a billetera (dinero, con `currency`).
   - `idempotency_key` es única: nunca se acredita dos veces lo mismo.
+- `loyalty_settlements` (nueva, `2026_11_21_200100`): cuándo se confirman los puntos pendientes de una referencia (pedido completado + días de devolución). Como el libro es solo de inserción, la fecha prevista vive aquí y un job la revisa cada 15 minutos.
+- `contacts.points_expiring` y `points_expiring_at` (`2026_11_21_200100`): cuántos puntos vencen y cuándo es el próximo vencimiento. Los usa el disparador por fecha del flujo 15 «Puntos por vencer».
+
+**Referidos y afiliados (M14)**
 - `referral_programs`: uno por espacio de trabajo, con `share_text`.
 - `referrals`:
   - `friend_coupon_id`, `reward_ledger_id` y `review_status` (revisión manual de los sospechosos).
   - Único (workspace_id, friend_contact_id): una persona solo puede ser referida una vez.
-- `affiliates`: `email` cifrado con índice ciego, para el enlace mágico del panel del creador.
-- `affiliate_conversions`: `via` (cupón o enlace), `approved_at` y `paid_at`.
+  - `2026_11_21_300100`: `site_id`, `ordered_at`, `order_amount_ws`, `qualifies_at` (pedido completado + días de devolución), `rewarded_at`, `reward` y `reward_cost_ws` (la recompensa entregada y su costo) y `rejected_reason`.
+- `affiliates`: `email` cifrado con índice ciego, para el enlace mágico del panel del creador; `material`, y `portal_nonce`/`portal_sent_at` (`2026_11_21_300100`: cambiar el nonce invalida los enlaces anteriores).
+- `affiliate_conversions`: `via` (cupón o enlace), `approved_at` y `paid_at`; `qualifies_at` y `void_reason` (`2026_11_21_300100`).
+- `contacts.referral_code`: único por espacio de trabajo (`2026_11_21_300100`). Se crea la primera vez que se pide.
+- `referral_fingerprints` (nueva, `2026_11_21_300100`): HMAC (con la clave del índice ciego) de la IP y del destinatario de envío de quienes refieren, para las señales de fraude. Nunca guarda el dato en claro.
+
+**Reseñas y NPS (M15)**
 - `reviews`:
   - `product_id` es el interno y `external_product_id` el de la tienda (null = reseña de la tienda).
   - `author_name` es lo que se publica (nombre e inicial).
-  - Columnas de moderación y respuesta.
-  - `media` con la ruta, la URL, el tipo y la miniatura.
-- `review_requests`: `scheduled_for` y `message_id`. Único por pedido.
-- `product_watches`: `site_id`, `external_product_id`, `channel` y `message_id`.
-- Nuevas en M16 y M06:
-  - `product_associations`: las reglas de «comprados juntos» (soporte, confianza y *lift*), que calcula un job nocturno.
-  - `audience_syncs` y `audience_members`: la sincronización de un segmento con un destino de anuncios y el último conjunto enviado, para mandar solo las altas y bajas.
+  - Columnas de moderación y respuesta; `media` con la ruta, la URL, el tipo y la miniatura.
+  - `2026_11_21_400100`: `request_id`, `published_at`, `reject_reason`, `external_reply_id`, `sync_status`/`sync_error` (la publicación en WooCommerce) e `import_key` (CSV y Judge.me no se duplican).
+- `review_requests`: `scheduled_for` y `message_id`, único por pedido; `site_id`, `kind` (clase legal del mensaje: marketing por defecto, cumplimiento.md §4.1), `skip_reason`, `attempts` y `expires_at` (`2026_11_21_400100`).
+- `survey_requests` (nueva, `2026_11_21_400100`): los envíos de NPS y CSAT por pedido.
+- `survey_responses.comment` (`2026_11_21_400100`): el comentario libre del NPS, cifrado porque puede tener datos personales.
 
+**Comercio en el sitio y audiencias (M16 y M06)**
+- `product_watches`: `site_id`, `external_product_id`, `channel` y `message_id`; `price_at_subscribe`, `notified_price`, `next_attempt_at`, `attempts` y `last_reason` (`2026_11_21_500100`: un aviso aplazado por la política de envío se reintenta a la hora que esta indica).
+- `product_associations` (nueva): las reglas de «comprados juntos» (soporte, confianza y *lift*), que calcula un job nocturno.
+- `products.purchases_7d`, `purchases_90d`, `trend_score` y `stats_computed_at` (`2026_11_21_500100`): ventas por ventana y tendencia para las recomendaciones (`views_30d` y `purchases_30d` ya existían y ahora se llenan).
+- `commerce_settings` (nueva, `2026_11_21_500100`): ajustes de recomendaciones y avisos por espacio de trabajo.
+- `onsite_banners` (nueva, `2026_11_21_500100`): banners por audiencia (segmento, puntos, carrito pendiente, en riesgo). No van en `onsite_widgets` porque se resuelven por visitante en `/banner`, sin caché; `text` puede usar nombre y puntos solo con token, `text_public` nunca.
+- `audience_syncs` y `audience_members` (nuevas): la sincronización de un segmento con un destino de anuncios y el último conjunto enviado, para mandar solo las altas y bajas. `2026_11_21_500100`: `purpose` (público, exclusión o semilla de similares), `last_added`, `last_removed`, `skipped_no_consent`, `last_attempt_at` y `created_by` en las sincronizaciones; `identifiers` (los hashes enviados, cifrados) en los miembros, para sacar a alguien aunque cambie o se borre su perfil.
+
+**Supresión (cumplimiento.md §9):** al borrar un contacto se borran sus mensajes, conversaciones, recorridos de flujos, destinatarios de campañas, preferencias, libro de puntos, referidos, huellas, solicitudes de reseña y NPS, avisos y capturas; se desvinculan los carritos, cupones, afiliados y reseñas publicadas (sin nombre del autor), y sale de las audiencias con los hashes guardados.
