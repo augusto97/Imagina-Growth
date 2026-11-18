@@ -42,21 +42,30 @@ Todos los servicios `growth-*` tienen `PartOf=growth.target` y `WantedBy=growth.
 
 ```
 /opt/growth/                          root:root 0755
-  releases/<versión>/                 growth   una carpeta por versión (sin la «v»: 0.2.0)
-  current -> releases/<versión>       growth   symlink a la versión activa
-  shared/                             growth
+  releases/<versión>/                 root     una carpeta por versión (sin la «v»: 0.2.0), solo lectura para growth
+  current -> releases/<versión>       root     symlink a la versión activa
+  shared/                             growth   lo único que growth puede escribir
     .env                              0600     configuración y secretos (nunca en el repo)
     storage/                          Laravel storage: app/, framework/{cache,sessions,views}, logs/
     state/                            pedido, estado e historial del actualizador (§5)
     backups/pre-update/               copia de MariaDB antes de cada actualización (se conservan 5)
     tmp/                              descargas en curso
     cache/uv/  python/                caché de uv y Pythons administrados por uv
+/usr/local/lib/growth/                root:root 0755  scripts que corren como root (copiados de la versión verificada)
+  bin/growth-update  bin/growth-update-dispatch  bin/growth-env
+  backup/growth-backup-{mariadb,clickhouse,verify}  backup/growth-backup-lib.sh
 /etc/growth/                          root:root 0755
   updater.conf                        0644     repositorio y URL de la API de releases (§5)
   release-signing.pub.pem             0644     llave pública ed25519 que valida las versiones
   backup.conf                         0600     remoto de rclone, retención y heartbeats de Better Stack (§6)
-/var/lib/growth-backups/{mariadb,clickhouse}   copias nocturnas antes de subirlas
+/var/lib/growth-backups/              root 0711    copias nocturnas antes de subirlas
+  mariadb/                            root 0700
+  clickhouse/                         clickhouse 0700 (disco `backups` de ClickHouse)
 ```
+
+**Regla de seguridad:** root nunca ejecuta nada de una ruta que `growth` pueda escribir. Las versiones son de
+root y de solo lectura para la app; los scripts de root viven en `/usr/local/lib/growth/` y se reemplazan solo
+con los de una versión verificada (firma y sha256) que pasó el health-check.
 
 En cada versión: `hub/.env -> /opt/growth/shared/.env`, `hub/storage -> /opt/growth/shared/storage` y
 `hub/public/storage -> /opt/growth/shared/storage/app/public`.
@@ -85,6 +94,7 @@ hub/                        Laravel listo para correr: app, bootstrap (cache vac
                             autoloader optimizado). Sin tests, node_modules, resources/js ni storage
 hub/ml/                     app/, pyproject.toml y uv.lock (el entorno se crea en el servidor con uv sync --frozen)
 bin/                        scripts del servidor (infra/bin)
+backup/                     copias y su verificación (infra/backup), se instalan en /usr/local/lib/growth/backup
 systemd/                    unidades (infra/systemd)
 config/                     plantillas de configuración (infra/config)
 caddy/Caddyfile             plantilla del Caddyfile (infra/caddy)
@@ -133,9 +143,10 @@ cifrados y los índices ciegos ya guardados no se pueden leer).
    actualización en curso, responde 409. La app **no** actualiza nada.
 3. **Despachar:** `growth-update.path` (root) vigila ese archivo y arranca `growth-update-dispatch.service`
    (root, oneshot): valida la versión (`^[0-9]+\.[0-9]+\.[0-9]+$`), mueve el pedido a
-   `update-request.processing.json` y lanza `systemd-run --unit=growth-update-<id> --collect` con el script
-   `growth-update` **de la versión actual** (`/opt/growth/current/bin/growth-update <versión>`). Al correr en su
-   propia unidad transitoria, reiniciar `growth.target` no lo mata.
+   `update-request.processing.json` y lanza `systemd-run --unit=growth-update-<id> --collect
+   /usr/local/lib/growth/bin/growth-update <versión>` (el script de root instalado desde la última versión
+   verificada, nunca uno de `current/` ni de `shared/`). Al correr en su propia unidad transitoria, reiniciar
+   `growth.target` no lo mata.
 4. **Actualizar** (`growth-update`, root; lo que toca la app corre como `growth` con `runuser`), en este orden:
    1. candado `flock /run/lock/growth-update.lock` (si está tomado, termina sin hacer nada);
    2. **preflight:** espacio libre ≥ 3 × `unpacked_bytes` + tamaño de la base, e inodos ≥ 2 × `files`, en
@@ -156,7 +167,9 @@ cifrados y los índices ciegos ya guardados no se pueden leer).
    9. **health-check** (§4) hasta `GROWTH_HEALTH_TIMEOUT` segundos (120). Si falla: vuelve el symlink a la
       versión anterior y reinicia otra vez en el mismo orden. Las migraciones no se revierten (son compatibles);
       la copia queda para restaurar a mano;
-   10. **limpieza:** deja 3 versiones (nunca borra `current` ni la anterior), 5 copias previas y borra
+   10. **scripts de root:** con el health-check bien, instala los `bin/growth-update*`, `bin/growth-env` y
+       `backup/*` de la versión nueva en `/usr/local/lib/growth/` (atómico). Si volvió atrás, deja los anteriores;
+   11. **limpieza:** deja 3 versiones (nunca borra `current` ni la anterior), 5 copias previas y borra
        `*.partial` y descargas viejas de `shared/tmp`.
    Si falla en cualquier paso antes del cambio, borra el zip y la carpeta a medio extraer y deja `current` como
    estaba.
@@ -198,10 +211,18 @@ comprometida no puede instalar un zip ajeno.
 - `growth-backup-verify.timer` (domingos 05:00 UTC): restaura la última copia de MariaDB en una instancia
   temporal (otro datadir y puerto) y la de ClickHouse en una base temporal (`RESTORE … AS growth_restore_check`),
   compara conteos y borra todo al terminar.
+- Los scripts de copias corren como root desde `/usr/local/lib/growth/backup/` y leen `/etc/growth/backup.conf` y
+  `shared/.env` con un lector dotenv propio en bash (`growth-backup-lib.sh`), no con `source` ni con código de la
+  versión. Para ClickHouse usan el usuario del `.env` (o `CLICKHOUSE_BACKUP_USER/PASSWORD` si existe), con
+  `GRANT BACKUP ON igr.*` y permisos sobre `growth_restore_check.*`. MariaDB con `log-bin` (punto en el tiempo) y
+  root por `unix_socket`.
 - `growth-monitor.timer` (cada minuto): `artisan growth:monitor` mide el atraso de los streams de Redis, la cola
   pendiente de Horizon y la salud, y avisa a los heartbeats de Better Stack solo si todo está bien (si un
   heartbeat no llega, Better Stack alerta). Cada copia y la prueba de restauración también avisan a su heartbeat
   (y a `/fail` si fallan). Los heartbeats van en `/etc/growth/backup.conf` y en `shared/.env`, nunca en el repo.
+- **Better Stack:** monitores de uptime sobre `https://<dominio>/health/ready` y `/health` (ingesta), y seis
+  heartbeats: salud, streams y colas (cada minuto), copia de MariaDB y de ClickHouse (diarias) y verificación
+  (semanal). Pasos en `infra/backup/README.md`.
 
 ## 7. Instalación (`install.sh`)
 

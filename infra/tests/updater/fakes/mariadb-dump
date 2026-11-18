@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+echo "mariadb-dump ${*: -1}" >>"$FAKE/calls.log"
+[[ -n ${FAKE_DUMP_FAIL:-} ]] && exit 2
+grep -q '^password=' "${1#--defaults-extra-file=}" || exit 3
+echo "-- copia falsa"

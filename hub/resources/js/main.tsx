@@ -7,6 +7,7 @@ import { RouterProvider } from 'react-router';
 import { queryClient } from '@/app/queryClient';
 import { router } from '@/app/router';
 import { Toaster } from '@/components/ui/toaster';
+import { installDeployRecovery } from '@/lib/deployRecovery';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { applyTheme, useUi } from '@/stores/ui';
 
@@ -24,6 +25,9 @@ function ThemeSync() {
     }, [theme]);
     return null;
 }
+
+// Pestañas abiertas durante una actualización: recargar una vez si falta un archivo de la versión anterior.
+installDeployRecovery();
 
 // El tema se aplica antes del primer render para no mostrar un destello claro en modo oscuro.
 applyTheme(useUi.getState().theme);

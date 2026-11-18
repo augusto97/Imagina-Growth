@@ -1,0 +1,11 @@
+# Todos los días a las 03:45:00 UTC; si el servidor estaba apagado a esa hora, corre al arrancar (Persistent).
+[Unit]
+Description=Imagina Growth · horario de la copia de ClickHouse (BACKUP nativo, completa o incremental) al Storage Box
+
+[Timer]
+OnCalendar=*-*-* 03:45:00 UTC
+Persistent=true
+RandomizedDelaySec=0
+
+[Install]
+WantedBy=timers.target

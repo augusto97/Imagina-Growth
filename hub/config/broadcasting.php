@@ -42,6 +42,13 @@ return [
                 'scheme' => env('REVERB_SCHEME', 'https'),
                 'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
             ],
+            // Lo que la SPA necesita para conectarse desde el navegador (públicos; se inyectan en el HTML en
+            // tiempo de ejecución, porque el paquete de versión se compila sin saber el servidor: docs/despliegue.md).
+            'public' => [
+                'host' => env('IGR_REVERB_PUBLIC_HOST') ?: (parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?: 'localhost'),
+                'port' => (int) env('IGR_REVERB_PUBLIC_PORT', 443),
+                'scheme' => env('IGR_REVERB_PUBLIC_SCHEME', 'https'),
+            ],
             'client_options' => [
                 // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
             ],

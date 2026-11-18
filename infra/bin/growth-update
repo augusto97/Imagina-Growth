@@ -1,0 +1,530 @@
+#!/usr/bin/env bash
+# growth-update — instala o actualiza Imagina Growth desde GitHub Releases (docs/despliegue.md §5).
+#
+#   growth-update <versión>              actualización (la lanza growth-update-dispatch con systemd-run)
+#   growth-update --install <versión>    primera instalación (la llama install.sh)
+#
+# Corre como root en su propia unidad transitoria: reiniciar growth.target no lo mata. Lo que toca la app
+# (artisan, uv) corre como el usuario «growth». Nunca carga un .env con `source`: lee con growth-env.
+# Cada comando externo se puede reemplazar por variable de entorno (las pruebas usan versiones falsas).
+set -Eeuo pipefail
+umask 022
+
+GROWTH_ROOT=${GROWTH_ROOT:-/opt/growth}
+GROWTH_ETC=${GROWTH_ETC:-/etc/growth}
+GROWTH_USER=${GROWTH_USER:-growth}
+SYSTEMD_UNIT_DIR=${SYSTEMD_UNIT_DIR:-/etc/systemd/system}
+LOCK_FILE=${GROWTH_LOCK_FILE:-/run/lock/growth-update.lock}
+HEALTH_BASE=${GROWTH_HEALTH_BASE:-http://127.0.0.1}
+APP_PORT=${GROWTH_APP_PORT:-8080}
+INGEST_API_INSTANCES=${GROWTH_INGEST_API_INSTANCES:-1 2}
+INGEST_WORKERS=${GROWTH_INGEST_WORKERS:-1 2 3 4}
+KEEP_RELEASES=${GROWTH_KEEP_RELEASES:-3}
+KEEP_BACKUPS=${GROWTH_KEEP_BACKUPS:-5}
+
+SYSTEMCTL=${SYSTEMCTL:-systemctl}
+CURL=${CURL:-curl}
+PHP=${PHP:-/usr/local/bin/growth-php}
+UV=${UV:-uv}
+MARIADB_DUMP=${MARIADB_DUMP:-mariadb-dump}
+MARIADB=${MARIADB:-mariadb}
+OPENSSL=${OPENSSL:-openssl}
+RUNUSER=${RUNUSER:-runuser}
+CHOWN=${CHOWN:-chown}
+ZSTD=${ZSTD:-zstd}
+UNZIP=${UNZIP:-unzip}
+DF=${DF:-df}
+SLEEP=${SLEEP:-sleep}
+SHA256SUM=${SHA256SUM:-sha256sum}
+
+SHARED="$GROWTH_ROOT/shared"
+STATE_DIR="$SHARED/state"
+STATUS_FILE="$STATE_DIR/update-status.json"
+HISTORY_FILE="$STATE_DIR/update-history.jsonl"
+PROCESSING_FILE="$STATE_DIR/update-request.processing.json"
+STEPS=(preflight download verify extract caches backup migrate switch restart health prune)
+
+MODE=update
+if [[ ${1:-} == --install ]]; then
+    MODE=install
+    shift
+fi
+VERSION=${1:-}
+if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "Uso: growth-update [--install] X.Y.Z" >&2
+    exit 2
+fi
+
+log() { printf '[growth-update %s] %s\n' "$(date -u +%H:%M:%S)" "$*" >&2; }
+now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+# ── Configuración segura (sin `source`) ─────────────────────────────────────────────
+
+# Lee KEY=valor de un archivo sencillo de root (updater.conf): sin expansión, sin comandos.
+conf_get() {
+    local file=$1 key=$2 default=${3:-} line value=""
+    if [[ -f $file ]]; then
+        while IFS= read -r line || [[ -n $line ]]; do
+            line=${line%$'\r'}
+            [[ $line =~ ^[[:space:]]*(export[[:space:]]+)?${key}[[:space:]]*=[[:space:]]*(.*)$ ]] || continue
+            value=${BASH_REMATCH[2]}
+            if [[ $value =~ ^\"(.*)\"[[:space:]]*(#.*)?$ ]] || [[ $value =~ ^\'(.*)\'[[:space:]]*(#.*)?$ ]]; then
+                value=${BASH_REMATCH[1]}
+            else
+                value=${value%%[[:space:]]#*}
+                value=${value%"${value##*[![:space:]]}"}
+            fi
+            break
+        done <"$file"
+    fi
+    printf '%s' "${value:-$default}"
+}
+
+REPO=$(conf_get "$GROWTH_ETC/updater.conf" GROWTH_UPDATE_REPO augusto97/Imagina-Growth)
+API=$(conf_get "$GROWTH_ETC/updater.conf" GROWTH_UPDATE_API https://api.github.com)
+API=${API%/}
+HEALTH_TIMEOUT=$(conf_get "$GROWTH_ETC/updater.conf" GROWTH_HEALTH_TIMEOUT 120)
+[[ $HEALTH_TIMEOUT =~ ^[0-9]+$ ]] || HEALTH_TIMEOUT=120
+PUBKEY="$GROWTH_ETC/release-signing.pub.pem"
+[[ $REPO =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo "GROWTH_UPDATE_REPO inválido en updater.conf" >&2; exit 2; }
+
+# ── Estado para el panel (docs/despliegue.md §5) ───────────────────────────────────
+
+json_write() { # escribe $2 en $1 de forma atómica (rename reemplaza un symlink, no lo sigue)
+    local target=$1 content=$2 tmp
+    mkdir -p "$(dirname "$target")"
+    tmp=$(mktemp "$(dirname "$target")/.tmp.XXXXXX")
+    printf '%s\n' "$content" >"$tmp"
+    chmod 0644 "$tmp"
+    "$CHOWN" "$GROWTH_USER:$GROWTH_USER" "$tmp" 2>/dev/null || true
+    mv -f "$tmp" "$target"
+}
+
+STATUS='{}'
+status_init() {
+    local id=${GROWTH_UPDATE_ID:-} by=${GROWTH_UPDATE_REQUESTED_BY:-}
+    if [[ -f $PROCESSING_FILE && ! -L $PROCESSING_FILE ]]; then
+        id=$(jq -r '.id // empty' "$PROCESSING_FILE" 2>/dev/null || true)
+        by=$(jq -r '.requested_by // empty' "$PROCESSING_FILE" 2>/dev/null || true)
+    fi
+    [[ $id =~ ^upd_[A-Za-z0-9]{6,40}$ ]] || id="upd_$(date -u +%Y%m%d%H%M%S)$RANDOM"
+    STATUS=$(jq -n --arg id "$id" --arg from "$FROM" --arg to "$VERSION" --arg by "$by" --arg mode "$MODE" --arg at "$(now)" \
+        '{id: $id, from: (if $from == "" then null else $from end), to: $to, requested_by: (if $by == "" then null else $by end),
+          mode: $mode, state: "running", step: null, steps: [], started_at: $at, finished_at: null, error: null}')
+    local s
+    for s in "${STEPS[@]}"; do
+        STATUS=$(jq --arg k "$s" '.steps += [{key: $k, status: "pending", started_at: null, finished_at: null, message: null}]' <<<"$STATUS")
+    done
+    json_write "$STATUS_FILE" "$STATUS"
+}
+
+step_set() { # step_set <key> <status> [mensaje]
+    local key=$1 st=$2 msg=${3:-} at
+    at=$(now)
+    if ! jq -e --arg k "$key" '.steps | any(.key == $k)' <<<"$STATUS" >/dev/null; then
+        STATUS=$(jq --arg k "$key" '.steps += [{key: $k, status: "pending", started_at: null, finished_at: null, message: null}]' <<<"$STATUS")
+    fi
+    STATUS=$(jq --arg k "$key" --arg s "$st" --arg m "$msg" --arg at "$at" '
+        .step = $k
+        | .steps |= map(if .key == $k then
+            .status = $s
+            | (if $s == "running" then .started_at = $at else . end)
+            | (if ($s == "done" or $s == "failed" or $s == "skipped") then .finished_at = $at else . end)
+            | (if $m != "" then .message = $m else . end)
+          else . end)' <<<"$STATUS")
+    json_write "$STATUS_FILE" "$STATUS"
+}
+
+status_finish() { # status_finish <state> [error]
+    local state=$1 err=${2:-}
+    STATUS=$(jq --arg s "$state" --arg e "$err" --arg at "$(now)" \
+        '.state = $s | .finished_at = $at | .error = (if $e == "" then null else $e end)' <<<"$STATUS")
+    json_write "$STATUS_FILE" "$STATUS"
+    [[ -L $HISTORY_FILE ]] && rm -f "$HISTORY_FILE"
+    jq -c . <<<"$STATUS" >>"$HISTORY_FILE"
+    "$CHOWN" "$GROWTH_USER:$GROWTH_USER" "$HISTORY_FILE" 2>/dev/null || true
+    rm -f "$PROCESSING_FILE"
+}
+
+# ── Utilidades ───────────────────────────────────────────────────────────────────
+
+as_growth() { "$RUNUSER" -u "$GROWTH_USER" -- "$@"; }
+ENV_TOOL="$GROWTH_ROOT/current/bin/growth-env"
+env_get() { "$PHP" "$ENV_TOOL" get "$1" "$SHARED/.env" 2>/dev/null || true; }
+artisan() { # artisan <carpeta hub> <comando…>
+    local hub=$1
+    shift
+    (cd "$hub" && as_growth "$PHP" artisan "$@" --no-interaction)
+}
+human() { awk -v b="$1" 'BEGIN { printf "%.1f GB", b / 1073741824 }'; }
+
+current_version() {
+    if [[ -L $GROWTH_ROOT/current ]]; then
+        basename "$(readlink "$GROWTH_ROOT/current")"
+    fi
+}
+
+switch_to() { # cambio atómico del symlink current
+    local target=$1 tmp="$GROWTH_ROOT/.current.$$"
+    ln -sfn "releases/$target" "$tmp"
+    mv -T "$tmp" "$GROWTH_ROOT/current"
+}
+
+health_version() { # imprime la versión si /health/ready responde ok
+    local port=$1 body
+    body=$("$CURL" -fsS --max-time 5 "$HEALTH_BASE:$port/health/ready" 2>/dev/null) || return 1
+    jq -er 'select(.status == "ok") | .version' <<<"$body" 2>/dev/null
+}
+
+wait_health() { # wait_health <puerto> <versión> <segundos>
+    local port=$1 want=$2 timeout=$3 tries got
+    tries=$(((timeout + 1) / 2))
+    ((tries < 1)) && tries=1
+    while ((tries-- > 0)); do
+        got=$(health_version "$port" || true)
+        [[ $got == "$want" ]] && return 0
+        "$SLEEP" 2
+    done
+    return 1
+}
+
+rolling_restart() { # rolling_restart <versión esperada>; código 1 si una réplica de ingesta no queda sana
+    local want=$1 i
+    for i in $INGEST_API_INSTANCES; do
+        "$SYSTEMCTL" restart "growth-ingest-api@$i.service"
+        wait_health $((APP_PORT + i)) "$want" "$HEALTH_TIMEOUT" || return 1
+    done
+    for i in $INGEST_WORKERS; do
+        "$SYSTEMCTL" restart "growth-ingest@$i.service" # SIGTERM: el worker termina su lote
+    done
+    "$SYSTEMCTL" restart growth-horizon.service          # SIGTERM: Horizon termina los trabajos en curso
+    "$SYSTEMCTL" restart growth-scheduler.service
+    "$SYSTEMCTL" restart growth-reverb.service
+    "$SYSTEMCTL" restart growth-ml.service
+    "$SYSTEMCTL" restart growth-app.service              # Caddy reintenta mientras arranca
+}
+
+all_healthy() { # all_healthy <versión> <segundos>
+    local want=$1 timeout=$2 i
+    wait_health "$APP_PORT" "$want" "$timeout" || return 1
+    for i in $INGEST_API_INSTANCES; do
+        wait_health $((APP_PORT + i)) "$want" "$timeout" || return 1
+    done
+}
+
+install_units() { # copia las unidades growth* de la versión si cambiaron; nunca toca nada más
+    local dir=$1 f name changed=0
+    [[ -d $dir ]] || return 0
+    for f in "$dir"/growth*; do
+        [[ -f $f ]] || continue
+        name=$(basename "$f")
+        [[ $name =~ ^growth[A-Za-z0-9@._-]*\.(service|target|path|timer)$ ]] || continue
+        if ! cmp -s "$f" "$SYSTEMD_UNIT_DIR/$name"; then
+            install -m 0644 "$f" "$SYSTEMD_UNIT_DIR/$name"
+            changed=1
+        fi
+    done
+    if ((changed)); then
+        "$SYSTEMCTL" daemon-reload
+    fi
+}
+
+prune() {
+    local cur prev keep=() d v n=0 count=0
+    cur=$(current_version)
+    prev=${FROM:-}
+    # Versiones: la actual y la anterior siempre se quedan; el resto, las más nuevas hasta KEEP_RELEASES.
+    while IFS= read -r v; do
+        [[ -n $v ]] || continue
+        if [[ $v == "$cur" || $v == "$prev" ]]; then
+            keep+=("$v")
+        fi
+    done < <(find "$GROWTH_ROOT/releases" -mindepth 1 -maxdepth 1 -type d ! -name '*.partial' -printf '%f\n' | sort -V -r)
+    count=${#keep[@]}
+    while IFS= read -r v; do
+        [[ -n $v ]] || continue
+        [[ " ${keep[*]} " == *" $v "* ]] && continue
+        if ((count < KEEP_RELEASES)); then
+            keep+=("$v")
+            count=$((count + 1))
+        else
+            log "Borro la versión $v"
+            rm -rf -- "${GROWTH_ROOT:?}/releases/$v"
+        fi
+    done < <(find "$GROWTH_ROOT/releases" -mindepth 1 -maxdepth 1 -type d ! -name '*.partial' -printf '%f\n' | sort -V -r)
+    # Carpetas a medio extraer de intentos anteriores.
+    find "$GROWTH_ROOT/releases" -mindepth 1 -maxdepth 1 -name '*.partial' -exec rm -rf -- {} +
+    # Copias previas: las KEEP_BACKUPS más recientes.
+    while IFS= read -r d; do
+        n=$((n + 1))
+        ((n > KEEP_BACKUPS)) && rm -f -- "$d"
+    done < <(find "$SHARED/backups/pre-update" -maxdepth 1 -type f -name '*.sql.zst' -printf '%T@ %p\n' 2>/dev/null | sort -rn | cut -d' ' -f2-)
+    # Descargas que quedaron de intentos viejos.
+    find "$SHARED/tmp" -mindepth 1 -maxdepth 1 -name 'update-*' -mmin +60 -exec rm -rf -- {} + 2>/dev/null || true
+}
+
+# ── Errores: antes del cambio se borra lo descargado; después se vuelve atrás ────────
+
+MAIN_PID=$$
+PHASE=before
+TMP=""
+PARTIAL=""
+CURRENT_STEP=""
+FROM=""
+
+cleanup_partial() {
+    [[ -n $TMP && -d $TMP ]] && rm -rf -- "$TMP"
+    [[ -n $PARTIAL && -d $PARTIAL ]] && rm -rf -- "$PARTIAL"
+    if [[ $PHASE == before && -n ${NEW_DIR:-} && -d $NEW_DIR && $(current_version) != "$VERSION" ]]; then
+        rm -rf -- "$NEW_DIR"
+    fi
+    return 0
+}
+
+fail() { # fail <mensaje>: termina sin cambiar la versión activa
+    local msg=$1
+    log "ERROR: $msg"
+    [[ -n $CURRENT_STEP ]] && step_set "$CURRENT_STEP" failed "$msg"
+    cleanup_partial
+    status_finish failed "$msg"
+    exit 1
+}
+
+rollback() { # rollback <mensaje>: después del cambio, vuelve a la versión anterior
+    local msg=$1
+    log "Vuelvo a la versión anterior: $msg"
+    [[ -n $CURRENT_STEP ]] && step_set "$CURRENT_STEP" failed "$msg"
+    if [[ -z $FROM ]]; then
+        cleanup_partial
+        status_finish failed "$msg"
+        exit 1
+    fi
+    step_set rollback running
+    switch_to "$FROM"
+    install_units "$GROWTH_ROOT/releases/$FROM/systemd"
+    rolling_restart "$FROM" || log "La versión $FROM tampoco respondió en la réplica de ingesta; sigo con el resto."
+    if all_healthy "$FROM" "$HEALTH_TIMEOUT"; then
+        step_set rollback "done" "Volvió a la versión $FROM."
+    else
+        step_set rollback failed "La versión $FROM no respondió después de volver; revisa journalctl -u 'growth-*'."
+    fi
+    [[ -n $TMP && -d $TMP ]] && rm -rf -- "$TMP"
+    status_finish rolled_back "$msg"
+    exit 1
+}
+
+on_error() {
+    local code=$? line=$1
+    # Dentro de una subshell o de $(…) solo se sale: el manejo lo hace el proceso principal.
+    [[ $BASHPID != "$MAIN_PID" ]] && exit "$code"
+    trap - ERR
+    local msg="Falló el paso ${CURRENT_STEP:-?} (línea $line, código $code)."
+    if [[ $PHASE == after ]]; then
+        rollback "$msg"
+    fi
+    fail "$msg"
+}
+
+begin() { CURRENT_STEP=$1; step_set "$1" running; log "Paso: $1"; }
+done_step() { step_set "$CURRENT_STEP" "done" "${1:-}"; }
+
+# ── Programa ───────────────────────────────────────────────────────────────────────
+
+mkdir -p "$STATE_DIR" "$SHARED/tmp" "$SHARED/backups/pre-update" "$GROWTH_ROOT/releases" "$(dirname "$LOCK_FILE")"
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+    log "Ya hay una actualización en curso; no hago nada."
+    exit 0
+fi
+
+FROM=$(current_version || true)
+if [[ $MODE == update && -z $FROM ]]; then
+    echo "No hay una versión instalada: usa growth-update --install." >&2
+    exit 2
+fi
+status_init
+trap 'on_error $LINENO' ERR
+
+if [[ $MODE == update && $FROM == "$VERSION" ]]; then
+    CURRENT_STEP=preflight
+    fail "La versión $VERSION ya es la instalada."
+fi
+
+TMP="$SHARED/tmp/update-$VERSION-$$"
+NEW_DIR="$GROWTH_ROOT/releases/$VERSION"
+PARTIAL="$NEW_DIR.partial"
+mkdir -p "$TMP"
+ZIP="growth-$VERSION.zip"
+
+# 1. Preflight: espacio e inodos antes de bajar el zip.
+db_cnf_quote() { sed 's/\\/\\\\/g; s/"/\\"/g'; }
+write_db_cnf() { # credenciales de MariaDB en un archivo 0600 (nunca en la línea de comandos)
+    DB_CNF="$TMP/db.cnf"
+    (
+        umask 077
+        local host port
+        host=$(env_get DB_HOST)
+        port=$(env_get DB_PORT | tr -dc '0-9')
+        printf '[client]\nhost="%s"\nport=%s\nuser="%s"\npassword="%s"\n' \
+            "$(printf '%s' "${host:-127.0.0.1}" | db_cnf_quote)" "${port:-3306}" \
+            "$(env_get DB_USERNAME | db_cnf_quote)" "$(env_get DB_PASSWORD | db_cnf_quote)" >"$DB_CNF"
+    )
+}
+db_size() {
+    local db
+    db=$(env_get DB_DATABASE)
+    "$MARIADB" --defaults-extra-file="$DB_CNF" -N -B -e \
+        "SELECT COALESCE(SUM(data_length + index_length), 0) FROM information_schema.tables WHERE table_schema = '${db//\'/}'"
+}
+
+begin preflight
+[[ -f $PUBKEY ]] || fail "Falta la llave pública $PUBKEY: sin ella no se puede verificar la versión."
+RELEASE_JSON=$("$CURL" -fsSL --retry 3 -H 'Accept: application/vnd.github+json' "$API/repos/$REPO/releases/tags/v$VERSION") \
+    || fail "No se encontró el release v$VERSION en $REPO."
+asset_url() { jq -er --arg n "$1" '.assets[] | select(.name == $n) | .browser_download_url' <<<"$RELEASE_JSON"; }
+URL_ZIP=$(asset_url "$ZIP") || fail "El release no trae $ZIP."
+URL_SHA=$(asset_url "$ZIP.sha256") || fail "El release no trae $ZIP.sha256."
+URL_SIG=$(asset_url "$ZIP.sha256.sig") || fail "El release no trae la firma $ZIP.sha256.sig."
+URL_META=$(asset_url release.json) || fail "El release no trae release.json."
+"$CURL" -fsSL --retry 3 -o "$TMP/release.json" "$URL_META" || fail "No se pudo descargar release.json."
+UNPACKED=$(jq -er '.unpacked_bytes | numbers' "$TMP/release.json") || fail "release.json no dice cuánto ocupa la versión."
+FILES=$(jq -er '.files | numbers' "$TMP/release.json") || fail "release.json no dice cuántos archivos trae la versión."
+DB_BYTES=0
+if [[ $MODE == update ]]; then
+    write_db_cnf
+    DB_BYTES=$(db_size 2>/dev/null | tr -dc '0-9' || true)
+    DB_BYTES=${DB_BYTES:-0}
+fi
+NEED_BYTES=$((3 * UNPACKED + DB_BYTES))
+NEED_INODES=$((2 * FILES))
+FREE_BYTES=$("$DF" -B1 --output=avail "$GROWTH_ROOT" | tail -n1 | tr -dc '0-9')
+FREE_INODES=$("$DF" --output=iavail "$GROWTH_ROOT" | tail -n1 | tr -dc '0-9')
+if ((FREE_BYTES < NEED_BYTES)); then
+    fail "Espacio insuficiente en $GROWTH_ROOT: hacen falta $(human "$NEED_BYTES") y hay $(human "$FREE_BYTES") libres. No se descargó nada."
+fi
+if ((FREE_INODES < NEED_INODES)); then
+    fail "Inodos insuficientes en $GROWTH_ROOT: hacen falta $NEED_INODES y quedan $FREE_INODES. No se descargó nada."
+fi
+done_step "Libres: $(human "$FREE_BYTES"), $FREE_INODES inodos."
+
+# 2. Descargar.
+begin download
+"$CURL" -fsSL --retry 3 -o "$TMP/$ZIP" "$URL_ZIP" || fail "No se pudo descargar $ZIP."
+"$CURL" -fsSL --retry 3 -o "$TMP/$ZIP.sha256" "$URL_SHA" || fail "No se pudo descargar $ZIP.sha256."
+"$CURL" -fsSL --retry 3 -o "$TMP/$ZIP.sha256.sig" "$URL_SIG" || fail "No se pudo descargar la firma."
+done_step
+
+# 3. Verificar: primero la firma del .sha256 con la llave de /etc/growth, después el zip.
+begin verify
+"$OPENSSL" pkeyutl -verify -rawin -pubin -inkey "$PUBKEY" -sigfile "$TMP/$ZIP.sha256.sig" -in "$TMP/$ZIP.sha256" >/dev/null 2>&1 \
+    || fail "La firma de la versión $VERSION no es válida: no se instala."
+read -r WANT_SHA WANT_NAME <"$TMP/$ZIP.sha256" || true
+WANT_NAME=${WANT_NAME#\*}
+[[ $WANT_NAME == "$ZIP" && $WANT_SHA =~ ^[0-9a-f]{64}$ ]] || fail "El archivo .sha256 no corresponde a $ZIP."
+GOT_SHA=$("$SHA256SUM" "$TMP/$ZIP" | cut -d' ' -f1)
+[[ $GOT_SHA == "$WANT_SHA" ]] || fail "El sha256 del zip no coincide: el archivo llegó dañado o fue alterado."
+done_step
+
+# 4. Extraer, enlazar shared/, entorno de Python y reparación del .env.
+begin extract
+rm -rf -- "$PARTIAL"
+mkdir -p "$PARTIAL"
+"$UNZIP" -q "$TMP/$ZIP" -d "$PARTIAL" || fail "El zip está dañado: no se pudo extraer."
+[[ $(tr -d '[:space:]' <"$PARTIAL/VERSION" 2>/dev/null) == "$VERSION" ]] || fail "El zip no trae la versión $VERSION (archivo VERSION)."
+[[ -f $PARTIAL/hub/artisan && -f $PARTIAL/bin/growth-update ]] || fail "El zip no trae el hub completo."
+if [[ -d $NEW_DIR ]]; then
+    [[ $FROM == "$VERSION" ]] && fail "La versión $VERSION está activa; no la reemplazo."
+    rm -rf -- "$NEW_DIR"
+fi
+mkdir -p "$SHARED/storage/app/public" "$SHARED/storage/framework/cache/data" "$SHARED/storage/framework/sessions" \
+    "$SHARED/storage/framework/views" "$SHARED/storage/logs" "$SHARED/cache/uv" "$SHARED/python"
+rm -rf -- "$PARTIAL/hub/storage" "$PARTIAL/hub/.env" "$PARTIAL/hub/public/storage"
+mkdir -p "$PARTIAL/hub/public"
+ln -s "$SHARED/.env" "$PARTIAL/hub/.env"
+ln -s "$SHARED/storage" "$PARTIAL/hub/storage"
+ln -s "$SHARED/storage/app/public" "$PARTIAL/hub/public/storage"
+mkdir -p "$PARTIAL/hub/bootstrap/cache"
+mv -T "$PARTIAL" "$NEW_DIR"
+PARTIAL=""
+ENV_TOOL="$NEW_DIR/bin/growth-env"
+REPAIR_ARGS=(repair "$NEW_DIR/release.json" "$SHARED/.env")
+[[ $MODE == install ]] && REPAIR_ARGS+=(--install)
+if ! REPAIR_OUT=$("$PHP" "$NEW_DIR/bin/growth-env" "${REPAIR_ARGS[@]}" 2>&1); then
+    fail "No se pudo reparar el .env: ${REPAIR_OUT//$'\n'/ }"
+fi
+"$CHOWN" -R "$GROWTH_USER:$GROWTH_USER" "$NEW_DIR" "$SHARED/storage" "$SHARED/cache" "$SHARED/python"
+if [[ -f $NEW_DIR/hub/ml/uv.lock ]]; then
+    (cd "$NEW_DIR/hub/ml" && as_growth env HOME="$SHARED" UV_CACHE_DIR="$SHARED/cache/uv" UV_PYTHON_INSTALL_DIR="$SHARED/python" \
+        UV_PROJECT_ENVIRONMENT="$NEW_DIR/hub/ml/.venv" "$UV" sync --frozen --no-dev --quiet) \
+        || fail "No se pudo preparar el entorno de Python del servicio de predicciones (uv sync)."
+fi
+done_step "${REPAIR_OUT//$'\n'/ }"
+
+# 5. Cachés de Laravel con la versión nueva.
+begin caches
+artisan "$NEW_DIR/hub" config:cache
+artisan "$NEW_DIR/hub" route:cache
+artisan "$NEW_DIR/hub" view:cache
+artisan "$NEW_DIR/hub" event:cache
+done_step
+
+# 6. Copia de MariaDB antes de migrar.
+begin backup
+write_db_cnf
+DB_NAME=$(env_get DB_DATABASE)
+TABLES=$("$MARIADB" --defaults-extra-file="$DB_CNF" -N -B -e \
+    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '${DB_NAME//\'/}'" 2>/dev/null || echo "?")
+if [[ $MODE == install && $TABLES == 0 ]]; then
+    step_set backup skipped "La base está vacía: no hace falta copia."
+else
+    BACKUP="$SHARED/backups/pre-update/${FROM:-nueva}-to-$VERSION-$(date -u +%Y%m%dT%H%M%SZ).sql.zst"
+    set -o pipefail
+    if ! "$MARIADB_DUMP" --defaults-extra-file="$DB_CNF" --single-transaction --quick --routines --triggers --events "$DB_NAME" \
+        | "$ZSTD" -q -T0 -o "$BACKUP"; then
+        rm -f -- "$BACKUP"
+        fail "No se pudo copiar MariaDB: no se migra sin copia."
+    fi
+    chmod 0600 "$BACKUP"
+    done_step "$(basename "$BACKUP")"
+fi
+rm -f -- "$DB_CNF"
+
+# 7. Migraciones (compatibles con la versión anterior) antes del cambio.
+begin migrate
+artisan "$NEW_DIR/hub" migrate --force
+artisan "$NEW_DIR/hub" igr:clickhouse:migrate
+done_step
+
+# 8. Cambio atómico del symlink y reinicio sin cortes.
+begin switch
+PHASE=after
+switch_to "$VERSION"
+install_units "$NEW_DIR/systemd"
+done_step "current → $VERSION"
+
+begin restart
+if [[ $MODE == install ]]; then
+    "$SYSTEMCTL" restart growth.target
+elif ! rolling_restart "$VERSION"; then
+    rollback "Una réplica de ingesta no respondió con la versión $VERSION después de reiniciar."
+fi
+done_step
+
+# 9. Health-check de todas las piezas con la versión nueva.
+begin health
+if ! all_healthy "$VERSION" "$HEALTH_TIMEOUT"; then
+    rollback "El health-check de la versión $VERSION falló (/health/ready en el panel o la ingesta)."
+fi
+done_step
+PHASE="done"
+
+# 10. Limpieza: 3 versiones, 5 copias y descargas.
+begin prune
+rm -rf -- "$TMP"
+TMP=""
+prune
+done_step
+
+trap - ERR
+status_finish succeeded
+log "Listo: versión $VERSION activa."

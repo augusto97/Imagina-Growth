@@ -1,0 +1,27 @@
+# Vigilancia (docs/despliegue.md §6): dependencias, atraso de los streams de Redis, Horizon y colas. Avisa a los
+# heartbeats de Better Stack solo de lo que está bien; si algo falla, el heartbeat no llega y Better Stack alerta.
+[Unit]
+Description=Imagina Growth · vigilancia y heartbeats de Better Stack
+After=network-online.target mariadb.service clickhouse-server.service redis-server@queue.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/growth-php /opt/growth/current/hub/artisan growth:monitor --ping
+User=growth
+Group=growth
+WorkingDirectory=/opt/growth/current/hub
+TimeoutStartSec=50
+# Sale con error cuando algo está degradado: no es una falla del servicio, ya quedó en el JSON del journal.
+SuccessExitStatus=1
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/growth/shared
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+SyslogIdentifier=%N

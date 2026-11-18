@@ -1,0 +1,37 @@
+# Réplica %i de la ingesta /v1/* y /p/* (FrankenPHP en 127.0.0.1:808%i). Caddy reparte entre las réplicas.
+[Unit]
+Description=Imagina Growth · ingesta (réplica %i)
+After=network-online.target mariadb.service clickhouse-server.service redis-server@queue.service redis-server@cache.service
+Wants=network-online.target
+PartOf=growth.target
+StartLimitIntervalSec=300
+StartLimitBurst=20
+
+[Service]
+Type=notify
+Environment=XDG_CONFIG_HOME=%S/growth/%N XDG_DATA_HOME=%S/growth/%N
+StateDirectory=growth/%N
+ExecStart=/opt/growth/current/bin/growth-ingest-api %i
+TimeoutStopSec=30
+NotifyAccess=all
+User=growth
+Group=growth
+WorkingDirectory=/opt/growth/current/hub
+Restart=always
+RestartSec=2
+# Endurecimiento: el código es de solo lectura; solo se escribe en shared/ (storage, estado, caché).
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/growth/shared
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LimitNOFILE=65535
+SyslogIdentifier=%N
+
+[Install]
+WantedBy=growth.target

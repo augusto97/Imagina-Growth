@@ -25,7 +25,7 @@
 #   D. Panel: predicciones, «Pregúntale», informes, la bandeja con la conversación y la revisión del agente.
 #
 # Variables: WP="wp --allow-root --path=/ruta/wp"  WP_DIR=/ruta/wp  (obligatorias)
-#   ML_PYTHON=/ruta/venv/bin/python (con hub/ml/requirements.txt)  HUB_PORT=8010  LOGS=/carpeta
+#   ML_PYTHON=/ruta/hub/ml/.venv/bin/python (entorno de hub/ml: uv sync --frozen)  HUB_PORT=8010  LOGS=/carpeta
 #   DB_ROOT="sudo mariadb"
 set -euo pipefail
 E2E=$(cd "$(dirname "$0")" && pwd)

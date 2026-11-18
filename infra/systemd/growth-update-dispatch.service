@@ -1,0 +1,9 @@
+# Valida el pedido del panel y lanza la actualización en una unidad transitoria propia (systemd-run),
+# para que reiniciar growth.target no la mate. Corre como root: la app nunca actualiza por sí misma.
+[Unit]
+Description=Imagina Growth · despachar la actualización
+ConditionPathExists=/opt/growth/current/bin/growth-update-dispatch
+
+[Service]
+Type=oneshot
+ExecStart=/opt/growth/current/bin/growth-update-dispatch

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+if [[ "$*" == *iavail* ]]; then
+    printf 'IFree\n%s\n' "${FAKE_FREE_INODES:-1000000}"
+else
+    printf 'Avail\n%s\n' "${FAKE_FREE_BYTES:-100000000000}"
+fi

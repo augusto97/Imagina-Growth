@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# curl falso: API de releases, descargas y /health/ready leídos de $FAKE (ver lib.sh).
+set -uo pipefail
+out="" url=""
+while (($#)); do
+    case $1 in
+        -o) out=$2; shift 2 ;;
+        -H|--max-time|--retry) shift 2 ;;
+        -*) shift ;;
+        *) url=$1; shift ;;
+    esac
+done
+echo "curl $url" >>"$FAKE/calls.log"
+emit() { if [[ -n $out ]]; then cat >"$out"; else cat; fi; }
+case $url in
+    */repos/*/releases/tags/v*)
+        tag=${url##*/tags/}
+        dir="$FAKE/releases/$tag"
+        [[ -d $dir ]] || exit 22
+        jq -n --arg tag "$tag" '{tag_name: $tag, assets: []}' >"$FAKE/.rel.json"
+        for f in "$dir"/*; do
+            n=$(basename "$f")
+            jq --arg n "$n" --arg u "http://fake.test/dl/$tag/$n" '.assets += [{name: $n, browser_download_url: $u}]' "$FAKE/.rel.json" >"$FAKE/.rel2.json"
+            mv "$FAKE/.rel2.json" "$FAKE/.rel.json"
+        done
+        emit <"$FAKE/.rel.json"
+        ;;
+    http://fake.test/dl/*)
+        rest=${url#http://fake.test/dl/}
+        f="$FAKE/releases/$rest"
+        [[ -f $f ]] || exit 22
+        echo "download ${rest#*/}" >>"$FAKE/calls.log"
+        emit <"$f"
+        ;;
+    */health/ready)
+        port=${url##*:}; port=${port%%/*}
+        version=$(tr -d '[:space:]' <"$GROWTH_ROOT/current/VERSION" 2>/dev/null || true)
+        # health-fail: líneas «versión puerto» (o «versión *») que deben fallar.
+        if [[ -f $FAKE/health-fail ]] && grep -qE "^$version ($port|\*)$" "$FAKE/health-fail"; then
+            exit 22
+        fi
+        printf '{"status":"ok","version":"%s","checks":{}}' "$version" | emit
+        ;;
+    *) exit 22 ;;
+esac

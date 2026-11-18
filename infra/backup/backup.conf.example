@@ -1,0 +1,27 @@
+# /etc/growth/backup.conf (docs/despliegue.md §6). root:root 0600.
+# install.sh lo copia desde aquí solo si no existe; después se edita a mano en el servidor.
+# Formato dotenv. Los scripts lo leen con un lector propio (nunca con `source`): los valores no se expanden.
+# Nunca subas este archivo con valores reales al repositorio.
+
+# Remoto de rclone donde quedan las copias: el remoto cifrado (crypt) sobre el Storage Box, más una carpeta.
+# Ver infra/backup/README.md para crearlo con `rclone config`.
+GROWTH_BACKUP_REMOTE=storagebox-crypt:growth
+
+# Días que se conservan las copias en el remoto (las completas de ClickHouse, 7 días más).
+GROWTH_BACKUP_KEEP_DAYS=30
+# Días que se conservan las copias de MariaDB en el servidor (para restaurar rápido).
+GROWTH_BACKUP_LOCAL_DAYS=2
+
+# Prueba de restauración: 1 = baja la última copia del remoto (prueba el camino completo); 0 = usa la local.
+GROWTH_VERIFY_FROM_REMOTE=1
+
+# Usuario de ClickHouse para BACKUP y RESTORE. Vacío: se usa el de la app (.env). Necesita BACKUP sobre la
+# base y CREATE/DROP DATABASE, CREATE TABLE, INSERT y SELECT sobre growth_restore_check.
+CLICKHOUSE_BACKUP_USER=
+CLICKHOUSE_BACKUP_PASSWORD=
+
+# Heartbeats de Better Stack (Uptime → Heartbeats). Uno por tarea; si la tarea no avisa a tiempo, Better Stack
+# alerta, y si falla avisa a <url>/fail. Vacíos: no se avisa.
+BETTERSTACK_HEARTBEAT_BACKUP_MARIADB=
+BETTERSTACK_HEARTBEAT_BACKUP_CLICKHOUSE=
+BETTERSTACK_HEARTBEAT_BACKUP_VERIFY=

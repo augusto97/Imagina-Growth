@@ -1,0 +1,4 @@
+<!-- Solo escucha en la máquina: la app y los scripts se conectan por 127.0.0.1. -->
+<clickhouse>
+    <listen_host>127.0.0.1</listen_host>
+</clickhouse>

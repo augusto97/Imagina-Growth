@@ -1,0 +1,38 @@
+# Instancia de Redis con su propio archivo /etc/redis/redis-%i.conf (redis-server@queue y redis-server@cache).
+# El paquete oficial de Redis (packages.redis.io) trae solo una instancia; esta plantilla imita su unidad.
+[Unit]
+Description=Redis (%i)
+After=network.target
+Documentation=https://redis.io/docs/
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/redis-server /etc/redis/redis-%i.conf --supervised systemd --daemonize no
+ExecStop=/bin/kill -s TERM $MAINPID
+TimeoutStopSec=0
+Restart=always
+User=redis
+Group=redis
+RuntimeDirectory=redis-%i
+RuntimeDirectoryMode=2755
+UMask=007
+PrivateTmp=yes
+LimitNOFILE=65535
+PrivateDevices=yes
+ProtectHome=yes
+ReadOnlyDirectories=/
+ReadWriteDirectories=-/var/lib/redis-%i
+ReadWriteDirectories=-/run/redis-%i
+NoNewPrivileges=true
+CapabilityBoundingSet=CAP_SETGID CAP_SETUID CAP_SYS_RESOURCE
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryDenyWriteExecute=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictNamespaces=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

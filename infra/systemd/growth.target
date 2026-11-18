@@ -1,0 +1,11 @@
+# Todos los procesos del hub de Imagina Growth (docs/despliegue.md §1).
+#   systemctl start|stop|restart growth.target
+[Unit]
+Description=Imagina Growth (hub)
+Wants=growth-app.service growth-ingest-api@1.service growth-ingest-api@2.service
+Wants=growth-ingest@1.service growth-ingest@2.service growth-ingest@3.service growth-ingest@4.service
+Wants=growth-horizon.service growth-reverb.service growth-scheduler.service growth-ml.service
+After=network-online.target mariadb.service clickhouse-server.service redis-server@queue.service redis-server@cache.service
+
+[Install]
+WantedBy=multi-user.target

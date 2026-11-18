@@ -1,0 +1,101 @@
+# Publicación de una versión (docs/despliegue.md §3): al publicar un release con tag vX.Y.Z,
+# arma el paquete, lo firma con ed25519 y sube los assets que usan install.sh y el actualizador.
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Paquete firmado de la versión
+    runs-on: ubuntu-24.04
+    env:
+      TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: El tag coincide con VERSION
+        run: |
+          VERSION=$(tr -d '[:space:]' < VERSION)
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::El tag «$TAG» no tiene la forma vX.Y.Z"; exit 1
+          fi
+          if [ "${TAG#v}" != "$VERSION" ]; then
+            echo "::error::El tag $TAG no coincide con el archivo VERSION ($VERSION). Sube VERSION y vuelve a publicar."; exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: La llave de firma existe
+        env:
+          GROWTH_RELEASE_SIGNING_KEY: ${{ secrets.GROWTH_RELEASE_SIGNING_KEY }}
+        run: |
+          if [ -z "$GROWTH_RELEASE_SIGNING_KEY" ]; then
+            echo "::error::Falta el secreto GROWTH_RELEASE_SIGNING_KEY (llave privada ed25519 en PEM). Créala con infra/release/keygen.sh."; exit 1
+          fi
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: pdo_mysql, redis, intl, zip, pcntl, sodium, gd, exif, gmp, bcmath
+          coverage: none
+          tools: composer:v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: hub/package-lock.json
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      - name: El uv.lock del ML está al día
+        working-directory: hub/ml
+        run: uv lock --check
+
+      - name: Llave pública (derivada de la privada)
+        env:
+          GROWTH_RELEASE_SIGNING_KEY: ${{ secrets.GROWTH_RELEASE_SIGNING_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$GROWTH_RELEASE_SIGNING_KEY" > "$RUNNER_TEMP/signing.pem"
+          openssl pkey -in "$RUNNER_TEMP/signing.pem" -pubout -out "$RUNNER_TEMP/release-signing.pub.pem"
+          rm -f "$RUNNER_TEMP/signing.pem"
+
+      - name: Armar el paquete
+        env:
+          GROWTH_COMMIT: ${{ github.sha }}
+        run: GROWTH_RELEASE_PUBKEY_FILE="$RUNNER_TEMP/release-signing.pub.pem" infra/release/build.sh "$VERSION" dist
+
+      - name: Firmar y verificar
+        env:
+          GROWTH_RELEASE_SIGNING_KEY: ${{ secrets.GROWTH_RELEASE_SIGNING_KEY }}
+        run: |
+          infra/release/sign.sh "dist/growth-$VERSION.zip.sha256"
+          infra/release/verify.sh "dist/growth-$VERSION.zip" "dist/growth-$VERSION.zip.sha256" \
+            "dist/growth-$VERSION.zip.sha256.sig" "$RUNNER_TEMP/release-signing.pub.pem"
+
+      - name: Subir los assets al release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          assets=(
+            "dist/growth-$VERSION.zip"
+            "dist/growth-$VERSION.zip.sha256"
+            "dist/growth-$VERSION.zip.sha256.sig"
+            "dist/release.json"
+            "dist/release-signing.pub.pem"
+            "dist/install.sh"
+          )
+          for f in "${assets[@]}"; do
+            [ -f "$f" ] || { echo "::error::Falta $f en el paquete"; exit 1; }
+          done
+          gh release upload "$TAG" "${assets[@]}" --clobber

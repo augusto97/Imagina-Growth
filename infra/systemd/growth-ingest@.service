@@ -1,0 +1,36 @@
+# Worker de ingesta %i: lee el stream de Redis del shard %i − 1. Con SIGTERM termina el lote y sale.
+[Unit]
+Description=Imagina Growth · worker de ingesta %i
+After=network-online.target mariadb.service clickhouse-server.service redis-server@queue.service redis-server@cache.service
+Wants=network-online.target
+PartOf=growth.target
+StartLimitIntervalSec=300
+StartLimitBurst=20
+
+[Service]
+Type=exec
+ExecStart=/opt/growth/current/bin/growth-ingest-worker %i
+KillSignal=SIGTERM
+KillMode=mixed
+TimeoutStopSec=120
+User=growth
+Group=growth
+WorkingDirectory=/opt/growth/current/hub
+Restart=always
+RestartSec=2
+# Endurecimiento: el código es de solo lectura; solo se escribe en shared/ (storage, estado, caché).
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/growth/shared
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LimitNOFILE=65535
+SyslogIdentifier=%N
+
+[Install]
+WantedBy=growth.target

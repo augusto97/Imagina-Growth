@@ -2,10 +2,12 @@ import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { api } from '@/lib/api';
+import { reverbConfig } from '@/lib/runtime';
 
 /*
- * Tiempo real con Reverb (hub/CLAUDE.md §13). Solo se conecta si el build trae
- * VITE_REVERB_APP_KEY; si no, o si se cae la conexión, las pantallas siguen
+ * Tiempo real con Reverb (hub/CLAUDE.md §13). Solo se conecta si el servidor dio la clave
+ * pública de Reverb (`window.igrRuntime`, o VITE_REVERB_* en desarrollo); si no, o si se cae
+ * la conexión, las pantallas siguen
  * consultando cada pocos segundos. Los canales privados se autorizan con la sesión
  * de Sanctum en /api/broadcasting/auth (el cliente `api` pone el XSRF).
  */
@@ -22,7 +24,7 @@ function setConnected(value: boolean): void {
 }
 
 export function realtimeConfigured(): boolean {
-    return typeof import.meta.env.VITE_REVERB_APP_KEY === 'string' && import.meta.env.VITE_REVERB_APP_KEY !== '';
+    return reverbConfig() !== null;
 }
 
 /** ¿Hay conexión viva con Reverb? (para alargar la consulta periódica). */
@@ -46,20 +48,19 @@ export function pollInterval(fastMs: number, slowMs = 30_000): number {
 }
 
 function client(): Echo<'reverb'> | null {
-    if (!realtimeConfigured()) {
+    const config = reverbConfig();
+    if (config === null) {
         return null;
     }
     if (echo === null) {
-        const scheme = (import.meta.env.VITE_REVERB_SCHEME as string | undefined) ?? 'https';
-        const port = Number(import.meta.env.VITE_REVERB_PORT ?? (scheme === 'https' ? 443 : 80));
         echo = new Echo({
             broadcaster: 'reverb',
             Pusher,
-            key: import.meta.env.VITE_REVERB_APP_KEY as string,
-            wsHost: (import.meta.env.VITE_REVERB_HOST as string | undefined) ?? window.location.hostname,
-            wsPort: port,
-            wssPort: port,
-            forceTLS: scheme === 'https',
+            key: config.key,
+            wsHost: config.host,
+            wsPort: config.port,
+            wssPort: config.port,
+            forceTLS: config.scheme === 'https',
             enabledTransports: ['ws', 'wss'],
             authorizer: (channel: { name: string }) => ({
                 authorize: (socketId: string, callback: (error: Error | null, data: { auth: string } | null) => void) => {

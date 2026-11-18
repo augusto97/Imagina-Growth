@@ -1,0 +1,212 @@
+#!/usr/bin/env bash
+# Prueba de restauración (docs/despliegue.md §6): una copia que nunca se restauró no es una copia.
+#
+# - MariaDB: baja la última copia del remoto (o usa la local), la levanta en una instancia temporal de
+#   mariadbd (otro datadir, 127.0.0.1:3307, su propio socket) y compara la cantidad de tablas y los conteos
+#   de las tablas clave con el manifiesto (tienen que quedar entre el antes y el después de la copia).
+# - ClickHouse: restaura la última copia en la base temporal growth_restore_check (RESTORE … AS …) y
+#   compara la cantidad de tablas y de eventos con su manifiesto.
+#
+# Siempre limpia al terminar, también si falla: apaga la instancia temporal, borra su datadir, borra la base
+# temporal y lo que haya bajado. Avisa al heartbeat de Better Stack (o a /fail).
+# Corre como root desde growth-backup-verify.service (domingos 05:00 UTC).
+set -Eeuo pipefail
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=growth-backup-lib.sh
+. "$(dirname "$(readlink -f "$0")")/growth-backup-lib.sh"
+
+HEARTBEAT=$(conf BETTERSTACK_HEARTBEAT_BACKUP_VERIFY)
+REMOTE=$(conf GROWTH_BACKUP_REMOTE)
+FROM_REMOTE=$(conf GROWTH_VERIFY_FROM_REMOTE 1)
+CLIENT=${CLICKHOUSE_CLIENT:-clickhouse-client}
+MARIADBD=${MARIADBD:-mariadbd}
+MYSQL_USER=${GROWTH_MYSQL_USER:-mysql}
+CH_OWNER=${GROWTH_CLICKHOUSE_OWNER:-clickhouse}
+PORT=${GROWTH_VERIFY_PORT:-3307}
+CH_DB=$(appenv CLICKHOUSE_DATABASE igr)
+CH_USER=$(conf CLICKHOUSE_BACKUP_USER)
+CH_PASS=$(conf CLICKHOUSE_BACKUP_PASSWORD)
+if [ -z "$CH_USER" ]; then
+    CH_USER=$(appenv CLICKHOUSE_USERNAME default)
+    CH_PASS=$(appenv CLICKHOUSE_PASSWORD)
+fi
+CH_HOST=$(conf CLICKHOUSE_BACKUP_HOST 127.0.0.1)
+CH_PORT=$(conf CLICKHOUSE_BACKUP_PORT 9000)
+CH_TARGET=growth_restore_check
+MDB=$GROWTH_BACKUP_DIR/mariadb
+CDB=$GROWTH_BACKUP_DIR/clickhouse
+RC=$GROWTH_BACKUP_DIR/restore-check
+SOCK=$RC/mariadbd.sock
+MPID=""
+CFG=""
+CH_TOUCHED=0
+DOWNLOADED=()
+FAILURES=()
+
+finish() {
+    local code=$1 i
+    # Instancia temporal de MariaDB.
+    if [ -n "$MPID" ] && kill -0 "$MPID" 2>/dev/null; then
+        mariadb-admin --socket="$SOCK" shutdown >/dev/null 2>&1 || kill "$MPID" 2>/dev/null || true
+        for i in $(seq 1 60); do
+            kill -0 "$MPID" 2>/dev/null || break
+            sleep 1
+        done
+        kill -9 "$MPID" 2>/dev/null || true
+    fi
+    # Base temporal de ClickHouse y copias bajadas solo para la prueba.
+    if [ "$CH_TOUCHED" -eq 1 ] && [ -n "$CFG" ]; then
+        "$CLIENT" --config-file "$CFG" --query "DROP DATABASE IF EXISTS \`$CH_TARGET\` SYNC" >/dev/null 2>&1 || true
+    fi
+    for i in "${DOWNLOADED[@]}"; do rm -f "$i"; done
+    rm -rf "$RC"
+    [ -n "$CFG" ] && rm -f "$CFG"
+    if [ "$code" -ne 0 ]; then
+        log "La prueba de restauración falló (código $code)."
+        heartbeat "$HEARTBEAT" fail
+    fi
+}
+trap 'finish $?' EXIT
+
+# Valor numérico de una sección del manifiesto: manifest_value ARCHIVO before|after CLAVE
+manifest_value() {
+    sed -n 's/.*"'"$2"'":{\([^}]*\)}.*/\1/p' "$1" | tr ',' '\n' | sed -n 's/^"'"$3"'":\([0-9][0-9]*\)$/\1/p' | head -n 1
+}
+manifest_keys() {
+    sed -n 's/.*"before":{\([^}]*\)}.*/\1/p' "$1" | tr ',' '\n' | sed -n 's/^"\([A-Za-z0-9_]*\)":.*$/\1/p'
+}
+# Compara un conteo restaurado con el rango del manifiesto y anota la diferencia.
+check_count() {
+    local label=$1 manifest=$2 key=$3 restored=$4 before after
+    before=$(manifest_value "$manifest" before "$key")
+    after=$(manifest_value "$manifest" after "$key")
+    if [ -z "$before" ] || [ -z "$after" ] || [ -z "$restored" ]; then
+        FAILURES+=("$label $key: sin datos para comparar")
+    elif in_range "$restored" "$before" "$after"; then
+        log "$label $key: $restored (esperado entre $before y $after) ✓"
+    else
+        FAILURES+=("$label $key: $restored, se esperaba entre $before y $after")
+    fi
+}
+# Nombre más nuevo de una lista «full-AAAAMMDD…» / «incr-AAAAMMDD…» (por fecha, no por el prefijo).
+newest() {
+    sed -n 's/^\(full\|incr\)-\(.*\)$/\2 &/p' | sort | tail -n 1 | cut -d' ' -f2
+}
+
+if [ "$FROM_REMOTE" = "1" ]; then
+    [ -n "$REMOTE" ] || die "falta GROWTH_BACKUP_REMOTE en $GROWTH_BACKUP_CONF"
+    require rclone
+fi
+require mariadb mariadb-admin "$MARIADBD" tar zstd "$CLIENT" curl
+rm -rf "$RC"
+mkdir -p "$RC" "$MDB" "$CDB"
+chmod 0711 "$GROWTH_BACKUP_DIR"
+chmod 0700 "$RC"
+
+# ── MariaDB ────────────────────────────────────────────────────────────────────
+if [ "$FROM_REMOTE" = "1" ]; then
+    ARCHIVE=$(rclone lsf "$REMOTE/mariadb" --include '*.tar.zst' | sort | tail -n 1)
+    [ -n "$ARCHIVE" ] || die "no hay copias de MariaDB en el remoto"
+    rclone copyto "$REMOTE/mariadb/$ARCHIVE" "$RC/$ARCHIVE"
+    rclone copyto "$REMOTE/mariadb/${ARCHIVE%.tar.zst}.manifest.json" "$RC/${ARCHIVE%.tar.zst}.manifest.json"
+    SRC=$RC
+else
+    ARCHIVE=$(find "$MDB" -maxdepth 1 -type f -name '*.tar.zst' -printf '%f\n' | sort | tail -n 1)
+    [ -n "$ARCHIVE" ] || die "no hay copias locales de MariaDB"
+    SRC=$MDB
+fi
+MANIFEST=$SRC/${ARCHIVE%.tar.zst}.manifest.json
+[ -f "$MANIFEST" ] || die "la copia $ARCHIVE no tiene manifiesto"
+log "MariaDB: restaurando $ARCHIVE en una instancia temporal (127.0.0.1:$PORT)."
+mkdir -p "$RC/data"
+tar -C "$RC/data" --strip-components=1 -I zstd -xf "$SRC/$ARCHIVE"
+if [ "$MYSQL_USER" != "-" ]; then chown -R "$MYSQL_USER:$MYSQL_USER" "$RC"; fi
+MARGS=(--no-defaults --datadir="$RC/data" --socket="$SOCK" --pid-file="$RC/mariadbd.pid" --port="$PORT"
+    --bind-address=127.0.0.1 --skip-log-bin --innodb-buffer-pool-size=256M --log-error="$RC/mariadbd.err")
+if [ "$MYSQL_USER" != "-" ]; then MARGS+=(--user="$MYSQL_USER"); fi
+"$MARIADBD" "${MARGS[@]}" >/dev/null 2>&1 &
+MPID=$!
+# El datadir temporal se borra al terminar: si no arranca, el motivo se muestra antes.
+show_mariadbd_log() {
+    if [ -s "$RC/mariadbd.err" ]; then
+        log "Últimas líneas del log de la instancia temporal:" >&2
+        tail -n 20 "$RC/mariadbd.err" >&2
+    fi
+}
+for _ in $(seq 1 120); do
+    if mariadb-admin --socket="$SOCK" ping >/dev/null 2>&1; then break; fi
+    if ! kill -0 "$MPID" 2>/dev/null; then
+        show_mariadbd_log
+        die "la instancia temporal de MariaDB no arrancó"
+    fi
+    sleep 1
+done
+if ! mariadb-admin --socket="$SOCK" ping >/dev/null 2>&1; then
+    show_mariadbd_log
+    die "la instancia temporal de MariaDB no respondió a tiempo"
+fi
+
+DB=$(sed -n 's/.*"database":"\([A-Za-z0-9_]*\)".*/\1/p' "$MANIFEST")
+[ -n "$DB" ] || die "el manifiesto no dice la base"
+msql() { mariadb --socket="$SOCK" --batch --skip-column-names -e "$1"; }
+for key in $(manifest_keys "$MANIFEST"); do
+    if [ "$key" = "tables" ]; then
+        n=$(int_or_empty "$(msql "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '$DB'")")
+    else
+        n=$(int_or_empty "$(msql "SELECT COUNT(*) FROM \`$DB\`.\`$key\`" 2>/dev/null || true)")
+    fi
+    check_count MariaDB "$MANIFEST" "$key" "$n"
+done
+mariadb-admin --socket="$SOCK" shutdown >/dev/null 2>&1 || true
+for _ in $(seq 1 60); do
+    kill -0 "$MPID" 2>/dev/null || break
+    sleep 1
+done
+MPID=""
+rm -rf "$RC/data"
+
+# ── ClickHouse ─────────────────────────────────────────────────────────────────
+CFG=$(ch_config "$CH_HOST" "$CH_PORT" "$CH_USER" "$CH_PASS")
+ch() { "$CLIENT" --config-file "$CFG" --query "$1"; }
+
+# Baja un archivo del remoto al disco `backups` si no está; lo anota para borrarlo al terminar.
+fetch_ch() {
+    local name=$1
+    [ -f "$CDB/$name" ] && return 0
+    rclone copyto "$REMOTE/clickhouse/$name" "$CDB/$name"
+    DOWNLOADED+=("$CDB/$name")
+    if [ "$CH_OWNER" != "-" ]; then chown "$CH_OWNER:$CH_OWNER" "$CDB/$name"; fi
+}
+if [ "$FROM_REMOTE" = "1" ]; then
+    LATEST=$(rclone lsf "$REMOTE/clickhouse" --include '*.zip' | newest)
+else
+    LATEST=$(find "$CDB" -maxdepth 1 -type f -name '*.zip' -printf '%f\n' | newest)
+fi
+[ -n "$LATEST" ] || die "no hay copias de ClickHouse"
+CMANIFEST=${LATEST%.zip}.manifest.json
+if [ "$FROM_REMOTE" = "1" ]; then
+    fetch_ch "$LATEST"
+    fetch_ch "$CMANIFEST"
+    BASE_NAME=$(sed -n 's/.*"base":"\([^"]*\)".*/\1/p' "$CDB/$CMANIFEST")
+    if [ -n "$BASE_NAME" ]; then fetch_ch "$BASE_NAME"; fi
+fi
+[ -f "$CDB/$CMANIFEST" ] || die "la copia $LATEST no tiene manifiesto"
+log "ClickHouse: restaurando $LATEST en la base temporal $CH_TARGET."
+CH_TOUCHED=1
+ch "DROP DATABASE IF EXISTS \`$CH_TARGET\` SYNC" >/dev/null
+ch "RESTORE DATABASE \`$CH_DB\` AS \`$CH_TARGET\` FROM Disk('backups', '$LATEST')" >/dev/null
+for key in $(manifest_keys "$CDB/$CMANIFEST"); do
+    case $key in
+        tables) n=$(int_or_empty "$(ch "SELECT count() FROM system.tables WHERE database = '$CH_TARGET' AND NOT is_temporary")") ;;
+        events) n=$(int_or_empty "$(ch "SELECT count() FROM \`$CH_TARGET\`.events")") ;;
+        *) continue ;;
+    esac
+    check_count ClickHouse "$CDB/$CMANIFEST" "$key" "$n"
+done
+
+if [ "${#FAILURES[@]}" -gt 0 ]; then
+    for f in "${FAILURES[@]}"; do log "✗ $f" >&2; done
+    die "la restauración no coincide con lo que se copió"
+fi
+heartbeat "$HEARTBEAT"
+log "Prueba de restauración correcta: MariaDB ($ARCHIVE) y ClickHouse ($LATEST)."

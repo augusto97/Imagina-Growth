@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# growth-update-dispatch — toma el pedido de actualización que dejó el panel y lanza growth-update en su
+# propia unidad transitoria (docs/despliegue.md §5, paso 3). Lo arranca growth-update.path como root.
+#
+# El pedido lo escribe la app (usuario growth): se trata como dato no confiable. Solo se acepta una
+# versión X.Y.Z y un id upd_…; cualquier otra cosa se rechaza y queda como actualización fallida.
+set -Eeuo pipefail
+umask 022
+
+GROWTH_ROOT=${GROWTH_ROOT:-/opt/growth}
+GROWTH_USER=${GROWTH_USER:-growth}
+SYSTEMD_RUN=${SYSTEMD_RUN:-systemd-run}
+CHOWN=${CHOWN:-chown}
+LOCK_FILE=${GROWTH_LOCK_FILE:-/run/lock/growth-update.lock}
+MAX_BYTES=4096
+
+STATE_DIR="$GROWTH_ROOT/shared/state"
+REQUEST="$STATE_DIR/update-request.json"
+PROCESSING="$STATE_DIR/update-request.processing.json"
+STATUS_FILE="$STATE_DIR/update-status.json"
+
+log() { printf '[growth-update-dispatch] %s\n' "$*" >&2; }
+now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+write_status() { # write_status <json>: temporal + rename (no sigue symlinks)
+    local tmp
+    tmp=$(mktemp "$STATE_DIR/.tmp.XXXXXX")
+    printf '%s\n' "$1" >"$tmp"
+    chmod 0644 "$tmp"
+    "$CHOWN" "$GROWTH_USER:$GROWTH_USER" "$tmp" 2>/dev/null || true
+    mv -f "$tmp" "$STATUS_FILE"
+}
+
+reject() { # reject <motivo> [id]
+    local reason=$1 id=${2:-}
+    log "Pedido rechazado: $reason"
+    rm -f -- "$REQUEST"
+    write_status "$(jq -n --arg id "$id" --arg e "Pedido de actualización rechazado: $reason" --arg at "$(now)" \
+        '{id: (if $id == "" then null else $id end), from: null, to: null, requested_by: null, state: "failed",
+          step: null, steps: [], started_at: $at, finished_at: $at, error: $e}')"
+    exit 0
+}
+
+[[ -e $REQUEST || -L $REQUEST ]] || exit 0
+[[ -L $REQUEST || ! -f $REQUEST ]] && reject "no es un archivo normal"
+
+# Si hay una actualización corriendo, el pedido se descarta: el panel no debió aceptarlo.
+if [[ -f $PROCESSING ]] && ! flock -n "$LOCK_FILE" true 2>/dev/null; then
+    log "Ya hay una actualización en curso; descarto el pedido nuevo."
+    rm -f -- "$REQUEST"
+    exit 0
+fi
+
+size=$(stat -c %s "$REQUEST")
+((size <= MAX_BYTES)) || reject "demasiado grande"
+json=$(cat -- "$REQUEST")
+jq -e 'type == "object"' >/dev/null 2>&1 <<<"$json" || reject "no es JSON válido"
+version=$(jq -r '.version | strings' <<<"$json")
+id=$(jq -r '.id | strings' <<<"$json")
+by=$(jq -r '.requested_by | strings' <<<"$json")
+safe_id=""
+[[ $id =~ ^upd_[A-Za-z0-9]{6,40}$ ]] && safe_id=$id
+[[ -n $safe_id ]] || reject "id inválido"
+[[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || reject "versión inválida" "$safe_id"
+[[ $by =~ ^[A-Za-z0-9_]{1,64}$ ]] || reject "solicitante inválido" "$safe_id"
+[[ -x $GROWTH_ROOT/current/bin/growth-update ]] || reject "no hay una versión instalada con growth-update" "$safe_id"
+
+current=""
+if [[ -L $GROWTH_ROOT/current ]]; then
+    current=$(basename "$(readlink "$GROWTH_ROOT/current")")
+fi
+
+# Pedido validado: se reescribe limpio (no se copia lo que mandó la app) y se marca en proceso.
+clean=$(jq -n --arg v "$version" --arg id "$safe_id" --arg by "$by" --arg at "$(now)" \
+    '{version: $v, id: $id, requested_by: $by, accepted_at: $at}')
+tmp=$(mktemp "$STATE_DIR/.tmp.XXXXXX")
+printf '%s\n' "$clean" >"$tmp"
+mv -f "$tmp" "$PROCESSING"
+rm -f -- "$REQUEST"
+write_status "$(jq -n --arg id "$safe_id" --arg from "$current" --arg to "$version" --arg by "$by" --arg at "$(now)" \
+    '{id: $id, from: (if $from == "" then null else $from end), to: $to, requested_by: $by, state: "queued",
+      step: null, steps: [], started_at: $at, finished_at: null, error: null}')"
+
+log "Lanzo growth-update $version ($safe_id)."
+exec "$SYSTEMD_RUN" --unit="growth-update-${safe_id#upd_}" --collect --property=Type=exec \
+    --description="Imagina Growth: actualización a $version" \
+    --setenv=GROWTH_UPDATE_ID="$safe_id" --setenv=GROWTH_UPDATE_REQUESTED_BY="$by" \
+    "$GROWTH_ROOT/current/bin/growth-update" "$version"

@@ -1,0 +1,68 @@
+{
+    "platform": {
+        "tabs": {
+            "updates": "Actualizaciones"
+        },
+        "updates": {
+            "versionTitle": "Versión de la plataforma",
+            "checkedAt": "Última revisión: {{date}}",
+            "neverChecked": "Todavía no se ha revisado si hay versiones nuevas.",
+            "current": "Instalada",
+            "latest": "Última publicada",
+            "new": "Nueva",
+            "checkError": "No se pudo revisar GitHub: {{error}}",
+            "noNotes": "Esta versión no trae notas.",
+            "upToDate": "La plataforma está al día.",
+            "install": "Instalar {{version}}",
+            "checkNow": "Buscar ahora",
+            "busy": "Hay una actualización en curso.",
+            "howItWorks": "El servidor revisa el espacio, verifica la firma, copia la base, migra y reinicia sin cortes. Si la versión nueva no responde, vuelve sola a la anterior.",
+            "inProgress": "Actualización en curso",
+            "lastRun": "Última actualización",
+            "fromTo": "{{from}} → {{to}}",
+            "noRuns": "Todavía no se ha instalado ninguna versión desde el panel.",
+            "requested": "Pedido enviado: el servidor va a instalar la versión {{version}}.",
+            "progress": "Avance de la actualización",
+            "history": "Historial",
+            "noHistory": "Sin actualizaciones todavía.",
+            "when": "Fecha",
+            "versions": "Versiones",
+            "result": "Resultado",
+            "detail": "Detalle",
+            "password": "Tu contraseña",
+            "confirmTitle": "¿Instalar la versión {{version}}?",
+            "confirmBody": "El panel puede no responder unos segundos mientras reinicia. Antes de migrar se hace una copia de la base, y si la versión nueva falla el health-check se vuelve sola a la anterior.",
+            "confirm": "Instalar",
+            "cancel": "Cancelar",
+            "requestedToast": "Pedido enviado: instalando la versión {{version}}",
+            "states": {
+                "succeeded": "La versión {{version}} quedó instalada.",
+                "failed": "No se instaló la versión {{version}}: la plataforma sigue como estaba.",
+                "rolled_back": "La versión {{version}} falló y se volvió a la versión anterior ({{from}}).",
+                "queued": "En cola",
+                "running": "Instalando"
+            },
+            "badges": {
+                "succeeded": "Instalada",
+                "failed": "Falló",
+                "rolled_back": "Se volvió a la anterior",
+                "queued": "En cola",
+                "running": "Instalando"
+            },
+            "steps": {
+                "preflight": "Revisar espacio en disco e inodos",
+                "download": "Descargar la versión",
+                "verify": "Verificar la firma y el sha256",
+                "extract": "Extraer y enlazar los datos compartidos",
+                "caches": "Preparar las cachés de configuración, rutas y vistas",
+                "backup": "Copiar la base de datos",
+                "migrate": "Migrar MariaDB y ClickHouse",
+                "switch": "Activar la versión nueva",
+                "restart": "Reiniciar sin cortes",
+                "health": "Revisar que todo responda",
+                "prune": "Limpiar versiones viejas",
+                "rollback": "Volver a la versión anterior"
+            }
+        }
+    }
+}

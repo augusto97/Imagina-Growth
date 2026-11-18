@@ -1,0 +1,10 @@
+# Vigila el pedido de actualización que deja el panel (docs/despliegue.md §5) y arranca el despachador.
+[Unit]
+Description=Imagina Growth · pedido de actualización
+
+[Path]
+PathExists=/opt/growth/shared/state/update-request.json
+Unit=growth-update-dispatch.service
+
+[Install]
+WantedBy=multi-user.target

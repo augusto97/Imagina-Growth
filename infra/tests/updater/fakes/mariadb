@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Responde a las consultas de tamaño y de cantidad de tablas.
+q="${*: -1}"
+case $q in
+    *data_length*) echo "${FAKE_DB_BYTES:-1048576}" ;;
+    *COUNT\(\*\)*) echo "${FAKE_DB_TABLES:-42}" ;;
+esac

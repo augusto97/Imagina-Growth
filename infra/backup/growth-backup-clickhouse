@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Copia diaria de ClickHouse (docs/despliegue.md §6) con el BACKUP nativo: completa los domingos (o si no
+# hay ninguna completa) e incremental los demás días, sobre la última completa. Se sube con rclone al
+# remoto cifrado del Storage Box y avisa al heartbeat de Better Stack (o a /fail si falla).
+#
+# Corre como root desde growth-backup-clickhouse.service (03:45 UTC). El disco `backups` de ClickHouse
+# apunta a $GROWTH_BACKUP_DIR/clickhouse (config.d del servidor). Credenciales: CLICKHOUSE_BACKUP_USER y
+# CLICKHOUSE_BACKUP_PASSWORD de /etc/growth/backup.conf si están; si no, las de la app (.env). Van en un
+# archivo temporal 0600, nunca en la línea de comandos.
+set -Eeuo pipefail
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=growth-backup-lib.sh
+. "$(dirname "$(readlink -f "$0")")/growth-backup-lib.sh"
+
+HEARTBEAT=$(conf BETTERSTACK_HEARTBEAT_BACKUP_CLICKHOUSE)
+REMOTE=$(conf GROWTH_BACKUP_REMOTE)
+KEEP_DAYS=$(conf GROWTH_BACKUP_KEEP_DAYS 30)
+CLIENT=${CLICKHOUSE_CLIENT:-clickhouse-client}
+DB=$(appenv CLICKHOUSE_DATABASE igr)
+CH_USER=$(conf CLICKHOUSE_BACKUP_USER)
+CH_PASS=$(conf CLICKHOUSE_BACKUP_PASSWORD)
+if [ -z "$CH_USER" ]; then
+    CH_USER=$(appenv CLICKHOUSE_USERNAME default)
+    CH_PASS=$(appenv CLICKHOUSE_PASSWORD)
+fi
+CH_HOST=$(conf CLICKHOUSE_BACKUP_HOST 127.0.0.1)
+CH_PORT=$(conf CLICKHOUSE_BACKUP_PORT 9000)
+BASE=$GROWTH_BACKUP_DIR/clickhouse
+TODAY=$(date -u +%Y%m%d)
+NAME=""
+CFG=""
+
+finish() {
+    local code=$1
+    [ -n "$CFG" ] && rm -f "$CFG"
+    [ "$code" -eq 0 ] && return 0
+    log "La copia de ClickHouse falló (código $code)."
+    # Un BACKUP a medias deja un zip incompleto: no sirve y confundiría a la siguiente incremental.
+    if [ -n "$NAME" ]; then rm -f "$BASE/$NAME" "$BASE/${NAME%.zip}.manifest.json"; fi
+    heartbeat "$HEARTBEAT" fail
+}
+trap 'finish $?' EXIT
+
+[ -n "$REMOTE" ] || die "falta GROWTH_BACKUP_REMOTE en $GROWTH_BACKUP_CONF"
+[[ $DB =~ ^[A-Za-z0-9_]+$ ]] || die "nombre de base inválido"
+if ! [[ $KEEP_DAYS =~ ^[0-9]+$ ]]; then die "retención inválida"; fi
+require "$CLIENT" rclone curl
+mkdir -p "$BASE"
+
+CFG=$(ch_config "$CH_HOST" "$CH_PORT" "$CH_USER" "$CH_PASS")
+ch() { "$CLIENT" --config-file "$CFG" --query "$1"; }
+
+counts() {
+    local events tables
+    tables=$(int_or_empty "$(ch "SELECT count() FROM system.tables WHERE database = '$DB' AND NOT is_temporary")")
+    events=$(int_or_empty "$(ch "SELECT count() FROM \`$DB\`.events")")
+    printf '{"tables":%s,"events":%s}' "${tables:-0}" "${events:-0}"
+}
+
+LATEST_FULL=$(find "$BASE" -maxdepth 1 -type f -name 'full-*.zip' -printf '%f\n' | sort | tail -n 1)
+# Día de la semana (1 = lunes … 7 = domingo); GROWTH_BACKUP_DOW lo fija en las pruebas.
+DOW=${GROWTH_BACKUP_DOW:-$(date -u +%u)}
+if [ "$DOW" = "7" ] || [ -z "$LATEST_FULL" ]; then
+    KIND=full
+    NAME=full-$TODAY.zip
+else
+    KIND=incr
+    NAME=incr-$TODAY.zip
+fi
+# Si ya corrió hoy (un reintento a mano), no pisa la copia anterior.
+if [ -e "$BASE/$NAME" ]; then NAME=${NAME%.zip}-$(date -u +%H%M%S).zip; fi
+
+log "Copia $KIND de ClickHouse: $NAME (base $DB)."
+BEFORE=$(counts)
+if [ "$KIND" = full ]; then
+    ch "BACKUP DATABASE \`$DB\` TO Disk('backups', '$NAME')" >/dev/null
+    BASE_NAME=""
+else
+    ch "BACKUP DATABASE \`$DB\` TO Disk('backups', '$NAME') SETTINGS base_backup = Disk('backups', '$LATEST_FULL')" >/dev/null
+    BASE_NAME=$LATEST_FULL
+fi
+AFTER=$(counts)
+printf '{"backup":"%s","kind":"%s","base":"%s","database":"%s","before":%s,"after":%s}\n' \
+    "$NAME" "$KIND" "$BASE_NAME" "$DB" "$BEFORE" "$AFTER" >"$BASE/${NAME%.zip}.manifest.json"
+log "Copia lista: $NAME ($(du -h "$BASE/$NAME" | cut -f1))."
+
+rclone copy "$BASE" "$REMOTE/clickhouse" --include "$NAME" --include "${NAME%.zip}.manifest.json" ${BASE_NAME:+--include "$BASE_NAME"}
+log "Subida a $REMOTE/clickhouse."
+
+# Retención local: incrementales de más de 8 días y completas de más de 15, pero nunca la última completa
+# (las incrementales de la semana dependen de ella).
+NEWEST_FULL=$(find "$BASE" -maxdepth 1 -type f -name 'full-*.zip' -printf '%f\n' | sort | tail -n 1)
+find "$BASE" -maxdepth 1 -type f \( -name 'incr-*.zip' -o -name 'incr-*.manifest.json' \) -mmin +$((8 * 1440)) -delete
+find "$BASE" -maxdepth 1 -type f \( -name 'full-*.zip' -o -name 'full-*.manifest.json' \) -mmin +$((15 * 1440)) \
+    ! -name "$NEWEST_FULL" ! -name "${NEWEST_FULL%.zip}.manifest.json" -delete
+# En el remoto, las completas viven una semana más que las incrementales: una incremental necesita su base.
+rclone delete "$REMOTE/clickhouse" --min-age "${KEEP_DAYS}d" --include 'incr-*'
+rclone delete "$REMOTE/clickhouse" --min-age "$((KEEP_DAYS + 7))d" --include 'full-*'
+
+heartbeat "$HEARTBEAT"
+log "ClickHouse: copia $NAME lista."

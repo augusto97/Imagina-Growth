@@ -1,0 +1,21 @@
+# FrankenPHP de cada proceso web del hub (growth-app y growth-ingest-api@N). Escucha solo en la máquina;
+# delante está el Caddy del sistema (/etc/caddy/Caddyfile), que pone el TLS. El puerto llega en GROWTH_PORT.
+{
+	admin off
+	auto_https off
+	persist_config off
+	frankenphp
+	servers {
+		trusted_proxies static 127.0.0.1/32 ::1/128
+	}
+	log {
+		output stderr
+		level WARN
+	}
+}
+
+http://:{$GROWTH_PORT} {
+	bind 127.0.0.1
+	root * /opt/growth/current/hub/public
+	php_server
+}

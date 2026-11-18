@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Servicio de predicciones: uvicorn del entorno de uv de esta versión, en 127.0.0.1:8095.
+# El token se lee del .env con un lector dotenv (nunca con `source`: un valor como
+# `MAIL_FROM_NAME=Nombre <correo>` sin comillas rompería bash).
+set -euo pipefail
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+ENV_FILE=${GROWTH_ENV_FILE:-/opt/growth/shared/.env}
+
+env_get() {
+    if [ -x "$ROOT/bin/growth-env" ]; then
+        "$ROOT/bin/growth-env" get "$1" "$ENV_FILE"
+    else
+        # shellcheck disable=SC2016 # es código PHP, no variables de bash
+        /usr/local/bin/growth-php -r '
+            require $argv[1]."/hub/vendor/autoload.php";
+            $vars = Dotenv\Dotenv::parse((string) file_get_contents($argv[2]));
+            echo $vars[$argv[3]] ?? "";' "$ROOT" "$ENV_FILE" "$1"
+    fi
+}
+
+token=$(env_get IGR_ML_TOKEN)
+[ -n "$token" ] || { echo "Falta IGR_ML_TOKEN en $ENV_FILE" >&2; exit 1; }
+cd "$ROOT/hub/ml"
+IGR_ML_TOKEN=$token exec "$ROOT/hub/ml/.venv/bin/uvicorn" app.main:app --host 127.0.0.1 --port 8095 --workers 2

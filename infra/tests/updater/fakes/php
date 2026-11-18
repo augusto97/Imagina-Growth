@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# PHP falso: artisan se registra (y puede fallar a pedido); growth-env corre con el PHP real.
+if [[ ${1:-} == artisan ]]; then
+    shift
+    echo "artisan $* (${PWD#"$GROWTH_ROOT"/})" >>"$FAKE/calls.log"
+    if [[ -n ${FAKE_ARTISAN_FAIL:-} && "$*" == *"$FAKE_ARTISAN_FAIL"* ]]; then
+        exit 1
+    fi
+    exit 0
+fi
+exec php "$@"

@@ -1,0 +1,14 @@
+# MariaDB para Imagina Growth (/etc/mysql/mariadb.conf.d/90-growth.cnf). Lo instala infra/install.sh;
+# __BUFFER_POOL__ se calcula al instalar (~25 % de la memoria).
+[mariadbd]
+bind-address = 127.0.0.1
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+# Binlogs para recuperar a un punto en el tiempo (las copias de infra/backup los guardan).
+server-id = 1
+log-bin = mariadb-bin
+binlog-format = ROW
+binlog-expire-logs-seconds = 1209600
+innodb-buffer-pool-size = __BUFFER_POOL__
+innodb-flush-log-at-trx-commit = 1
+max-connections = 400

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# runuser -u growth -- cmd…: corre el comando como el usuario actual.
+[[ $1 == -u ]] && shift 2
+[[ ${1:-} == -- ]] && shift
+exec "$@"

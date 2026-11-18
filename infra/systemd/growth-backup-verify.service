@@ -1,0 +1,20 @@
+# Prueba de restauración (docs/despliegue.md §6): restaura la última copia de MariaDB en una instancia temporal
+# (127.0.0.1:3307) y la de ClickHouse en la base growth_restore_check, compara con el manifiesto y borra todo.
+[Unit]
+Description=Imagina Growth · prueba de restauración de las copias
+After=network-online.target mariadb.service clickhouse-server.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/growth/backup/growth-backup-verify
+Nice=15
+IOSchedulingClass=idle
+TimeoutStartSec=8h
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+SyslogIdentifier=%N

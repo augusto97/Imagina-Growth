@@ -1,0 +1,37 @@
+# Panel, API, SPA, webhooks y páginas públicas (FrankenPHP en 127.0.0.1:8080).
+[Unit]
+Description=Imagina Growth · panel y API
+After=network-online.target mariadb.service clickhouse-server.service redis-server@queue.service redis-server@cache.service
+Wants=network-online.target
+PartOf=growth.target
+StartLimitIntervalSec=300
+StartLimitBurst=20
+
+[Service]
+Type=notify
+Environment=GROWTH_PORT=8080 XDG_CONFIG_HOME=%S/growth/%N XDG_DATA_HOME=%S/growth/%N
+# Caddy interno de FrankenPHP: su configuración y datos en /var/lib/growth/<unidad> (escribible pese a ProtectSystem).
+StateDirectory=growth/%N
+ExecStart=/usr/bin/frankenphp run --config /opt/growth/current/config/frankenphp/Caddyfile
+TimeoutStopSec=30
+User=growth
+Group=growth
+WorkingDirectory=/opt/growth/current/hub
+Restart=always
+RestartSec=2
+# Endurecimiento: el código es de solo lectura; solo se escribe en shared/ (storage, estado, caché).
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/growth/shared
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LimitNOFILE=65535
+SyslogIdentifier=%N
+
+[Install]
+WantedBy=growth.target

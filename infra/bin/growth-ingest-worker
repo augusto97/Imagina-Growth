@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Worker de ingesta N: lee el stream del shard N − 1 (growth-ingest@1 → shard 0). Con SIGTERM termina el lote.
+set -euo pipefail
+n=${1:?falta el número de worker}
+[[ $n =~ ^[1-9][0-9]?$ ]] || { echo "Worker inválido: $n" >&2; exit 2; }
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+exec /usr/local/bin/growth-php "$ROOT/hub/artisan" igr:ingest:work --shard=$((n - 1))

@@ -1,0 +1,296 @@
+#!/usr/bin/env php
+<?php
+
+/*
+ * growth-env — lee y repara el `.env` del hub sin `source` (docs/despliegue.md §3 y §5).
+ *
+ *   growth-env get KEY [archivo]                      imprime el valor (código 1 si no existe)
+ *   growth-env list [archivo]                         imprime los nombres (nunca los valores)
+ *   growth-env repair release.json [archivo] [--install]
+ *                                                     agrega las variables que falten con su valor por
+ *                                                     defecto; genera los secretos que falten. En una
+ *                                                     actualización (sin --install) nunca genera APP_KEY,
+ *                                                     IGR_BLIND_INDEX_KEY ni las claves de las bases: si
+ *                                                     faltan, sale con código 3 y la actualización se detiene
+ *   growth-env check [archivo]                        avisa si Laravel no podría leer el archivo (código 4)
+ *
+ * El archivo por defecto es $GROWTH_ENV_FILE o /opt/growth/shared/.env. No depende de Laravel: corre antes
+ * de que la versión arranque. El lector sigue las reglas de dotenv (comillas, `export`, comentarios,
+ * valores de varias líneas, ${VAR}, CRLF) y tolera lo que rompe a bash, como `MAIL_FROM_NAME=Nombre <correo>`
+ * sin comillas. Si un nombre aparece dos veces vale el primero, como en Laravel (repositorio inmutable).
+ * Nunca imprime secretos en los mensajes.
+ */
+
+declare(strict_types=1);
+
+const NEVER_REGENERATE = ['APP_KEY', 'IGR_BLIND_INDEX_KEY', 'DB_PASSWORD', 'CLICKHOUSE_PASSWORD'];
+
+/**
+ * @return array{0: array<string, string>, 1: list<array{line: int, error: string}>}
+ */
+function growth_env_parse(string $content): array
+{
+    $content = preg_replace('/^\xEF\xBB\xBF/', '', $content) ?? $content; // BOM
+    $lines = preg_split('/\r\n|\n|\r/', $content) ?: [];
+    $values = [];
+    $errors = [];
+    $count = count($lines);
+    for ($i = 0; $i < $count; $i++) {
+        $line = $lines[$i];
+        $trimmed = ltrim($line);
+        if ($trimmed === '' || str_starts_with($trimmed, '#')) {
+            continue;
+        }
+        if (preg_match('/^export\s+/', $trimmed) === 1) {
+            $trimmed = (string) preg_replace('/^export\s+/', '', $trimmed);
+        }
+        if (preg_match('/^([A-Za-z_][A-Za-z0-9_.]*)\s*=\s*(.*)$/s', $trimmed, $m) !== 1) {
+            $errors[] = ['line' => $i + 1, 'error' => 'no es NOMBRE=valor'];
+            continue;
+        }
+        $name = $m[1];
+        $rest = $m[2];
+        $value = '';
+        $quote = $rest !== '' ? $rest[0] : '';
+        if ($quote === '"' || $quote === "'") {
+            // Comillas: el valor puede seguir en las líneas siguientes hasta la comilla de cierre.
+            $buffer = substr($rest, 1);
+            $start = $i;
+            while (true) {
+                $end = growth_env_closing($buffer, $quote);
+                if ($end !== null) {
+                    $raw = substr($buffer, 0, $end);
+                    $after = trim(substr($buffer, $end + 1));
+                    if ($after !== '' && ! str_starts_with($after, '#')) {
+                        $errors[] = ['line' => $start + 1, 'error' => 'texto después de la comilla de cierre'];
+                    }
+                    break;
+                }
+                if ($i + 1 >= $count) {
+                    $errors[] = ['line' => $start + 1, 'error' => 'comilla sin cerrar'];
+                    $raw = $buffer;
+                    break;
+                }
+                $i++;
+                $buffer .= "\n".$lines[$i];
+            }
+            $value = $quote === '"' ? growth_env_unescape($raw, $values) : $raw;
+        } else {
+            // Sin comillas: hasta un « #» (comentario) o el final; se tolera el espacio que dotenv rechaza.
+            $value = trim((string) preg_replace('/\s+#.*$/', '', $rest));
+            if (preg_match('/\s/', $value) === 1) {
+                $errors[] = ['line' => $i + 1, 'error' => 'valor con espacios sin comillas (Laravel no lo acepta)'];
+            }
+            $value = growth_env_expand($value, $values);
+        }
+        if (! array_key_exists($name, $values)) {
+            $values[$name] = $value;
+        }
+    }
+
+    return [$values, $errors];
+}
+
+/** Posición de la comilla de cierre (sin escapar en las dobles) o null. */
+function growth_env_closing(string $buffer, string $quote): ?int
+{
+    $length = strlen($buffer);
+    for ($p = 0; $p < $length; $p++) {
+        if ($quote === '"' && $buffer[$p] === '\\') {
+            $p++;
+
+            continue;
+        }
+        if ($buffer[$p] === $quote) {
+            return $p;
+        }
+    }
+
+    return null;
+}
+
+/** @param array<string, string> $known */
+function growth_env_unescape(string $raw, array $known): string
+{
+    $out = '';
+    $length = strlen($raw);
+    for ($p = 0; $p < $length; $p++) {
+        $c = $raw[$p];
+        if ($c === '\\' && $p + 1 < $length) {
+            $next = $raw[++$p];
+            $out .= match ($next) {
+                'n' => "\n", 'r' => "\r", 't' => "\t", '"' => '"', '\\' => '\\', '$' => "\0DOLLAR\0",
+                default => '\\'.$next,
+            };
+
+            continue;
+        }
+        $out .= $c;
+    }
+
+    return str_replace("\0DOLLAR\0", '$', growth_env_expand($out, $known));
+}
+
+/** ${VAR} con las variables ya leídas (como dotenv); una variable desconocida queda vacía. @param array<string, string> $known */
+function growth_env_expand(string $value, array $known): string
+{
+    return (string) preg_replace_callback('/\$\{([A-Za-z_][A-Za-z0-9_.]*)\}/', fn (array $m) => $known[$m[1]] ?? (getenv($m[1]) !== false ? (string) getenv($m[1]) : ''), $value);
+}
+
+/** Un valor listo para el archivo: sin comillas si es simple; si no, entre comillas dobles y escapado. */
+function growth_env_quote(string $value): string
+{
+    if ($value === '' || preg_match('/^[A-Za-z0-9_.:\/@+\-,]+$/', $value) === 1) {
+        return $value;
+    }
+
+    return '"'.str_replace(['\\', '"', '$', "\n"], ['\\\\', '\\"', '\\$', '\\n'], $value).'"';
+}
+
+function growth_env_secret(string $format): ?string
+{
+    return match ($format) {
+        'hex32', '' => bin2hex(random_bytes(32)),
+        'base64_32' => base64_encode(random_bytes(32)),
+        'laravel_key' => 'base64:'.base64_encode(random_bytes(32)),
+        default => null,
+    };
+}
+
+function growth_env_fail(string $message, int $code): never
+{
+    fwrite(STDERR, 'growth-env: '.$message."\n");
+    exit($code);
+}
+
+function growth_env_read(string $file): string
+{
+    if (! is_file($file)) {
+        growth_env_fail("no existe {$file}", 2);
+    }
+    $content = file_get_contents($file);
+    if ($content === false) {
+        growth_env_fail("no se pudo leer {$file}", 2);
+    }
+
+    return $content;
+}
+
+/** Escribe con un temporal en la misma carpeta y rename, con el modo y el dueño del archivo original. */
+function growth_env_write(string $file, string $content): void
+{
+    $dir = dirname($file);
+    $mode = is_file($file) ? (fileperms($file) & 0777) : 0600;
+    $owner = is_file($file) ? fileowner($file) : false;
+    $group = is_file($file) ? filegroup($file) : false;
+    $tmp = tempnam($dir, '.env.');
+    if ($tmp === false || file_put_contents($tmp, $content) === false) {
+        growth_env_fail("no se pudo escribir en {$dir}", 2);
+    }
+    chmod($tmp, $mode);
+    if (function_exists('posix_geteuid') && posix_geteuid() === 0 && $owner !== false && $group !== false) {
+        chown($tmp, $owner);
+        chgrp($tmp, $group);
+    }
+    if (! rename($tmp, $file)) {
+        @unlink($tmp);
+        growth_env_fail("no se pudo reemplazar {$file}", 2);
+    }
+}
+
+/** @param list<string> $argv */
+function growth_env_main(array $argv): int
+{
+    $command = $argv[1] ?? '';
+    $default = getenv('GROWTH_ENV_FILE') ?: '/opt/growth/shared/.env';
+
+    switch ($command) {
+        case 'get':
+            $key = $argv[2] ?? growth_env_fail('falta el nombre de la variable', 2);
+            [$values] = growth_env_parse(growth_env_read($argv[3] ?? $default));
+            if (! array_key_exists($key, $values)) {
+                return 1;
+            }
+            fwrite(STDOUT, $values[$key]);
+
+            return 0;
+
+        case 'list':
+            [$values] = growth_env_parse(growth_env_read($argv[2] ?? $default));
+            foreach (array_keys($values) as $name) {
+                fwrite(STDOUT, $name."\n");
+            }
+
+            return 0;
+
+        case 'check':
+            [, $errors] = growth_env_parse(growth_env_read($argv[2] ?? $default));
+            foreach ($errors as $e) {
+                fwrite(STDERR, "línea {$e['line']}: {$e['error']}\n");
+            }
+
+            return $errors === [] ? 0 : 4;
+
+        case 'repair':
+            $args = array_values(array_filter(array_slice($argv, 2), fn ($a) => $a !== '--install'));
+            $install = in_array('--install', $argv, true);
+            $manifest = $args[0] ?? growth_env_fail('falta release.json', 2);
+            $file = $args[1] ?? $default;
+            $release = json_decode((string) @file_get_contents($manifest), true);
+            if (! is_array($release) || ! is_array($release['env'] ?? null)) {
+                growth_env_fail("{$manifest} no trae la lista «env»", 2);
+            }
+            $content = is_file($file) ? growth_env_read($file) : '';
+            [$values] = growth_env_parse($content);
+            $added = [];
+            $blocked = [];
+            foreach ($release['env'] as $var) {
+                $name = (string) ($var['name'] ?? '');
+                if (preg_match('/^[A-Za-z_][A-Za-z0-9_.]*$/', $name) !== 1 || array_key_exists($name, $values) || isset($added[$name])) {
+                    continue;
+                }
+                $secret = (bool) ($var['secret'] ?? false);
+                $never = in_array($name, NEVER_REGENERATE, true) || (bool) ($var['never_regenerate'] ?? false);
+                if ($secret && $never && ! $install) {
+                    $blocked[] = $name;
+
+                    continue;
+                }
+                if ($secret) {
+                    $value = growth_env_secret((string) ($var['generate'] ?? ($name === 'APP_KEY' ? 'laravel_key' : 'hex32')));
+                    if ($value === null) {
+                        $value = ''; // formato que no se puede generar aquí (p. ej. llaves VAPID): queda vacío
+                    }
+                } else {
+                    $value = is_scalar($var['default'] ?? null) ? (string) $var['default'] : '';
+                }
+                $added[$name] = $value;
+            }
+            if ($blocked !== []) {
+                growth_env_fail('faltan '.implode(', ', $blocked).' en el .env y no se pueden generar en una actualización: '
+                    .'sin ellas los datos cifrados o las bases quedan inaccesibles. Restaura el valor original y vuelve a intentar.', 3);
+            }
+            if ($added === []) {
+                fwrite(STDOUT, "El .env ya tiene todas las variables.\n");
+
+                return 0;
+            }
+            $block = rtrim($content, "\r\n");
+            $block .= ($block === '' ? '' : "\n\n").'# Agregadas por growth-env repair (versión '.preg_replace('/[^0-9A-Za-z.+-]/', '', (string) ($release['version'] ?? '?')).', '.gmdate('Y-m-d').")\n";
+            foreach ($added as $name => $value) {
+                $block .= $name.'='.growth_env_quote($value)."\n";
+            }
+            growth_env_write($file, $block);
+            fwrite(STDOUT, 'Agregadas: '.implode(', ', array_keys($added))."\n");
+
+            return 0;
+    }
+
+    fwrite(STDERR, "Uso: growth-env get KEY [archivo] | list [archivo] | check [archivo] | repair release.json [archivo] [--install]\n");
+
+    return 2;
+}
+
+if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === realpath(__FILE__)) {
+    exit(growth_env_main($argv));
+}

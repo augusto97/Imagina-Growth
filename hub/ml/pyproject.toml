@@ -1,0 +1,27 @@
+# Servicio de predicciones de Imagina Growth (hub/CLAUDE.md §3, inteligencia.md §4.2–4.3).
+# Se instala con uv: `uv sync --frozen` (en el servidor, `--no-dev`), a partir de uv.lock.
+[project]
+name = "imagina-growth-ml"
+version = "0.0.0"
+description = "Predicciones de Imagina Growth: BG/NBD, MBG/NBD y Gamma-Gamma"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy==2.3.4",
+    "scipy==1.16.3",
+    "fastapi==0.121.0",
+    "uvicorn==0.38.0",
+    "pydantic==2.12.4",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==8.4.2",
+    "httpx==0.28.1",
+]
+
+[tool.uv]
+# Es una aplicación, no un paquete: uv solo crea el entorno con sus dependencias.
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

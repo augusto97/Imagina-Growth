@@ -1,0 +1,607 @@
+#!/usr/bin/env bash
+# Instalador de Imagina Growth para un servidor Ubuntu 24.04 limpio (docs/despliegue.md §7).
+#
+#   curl -fsSL https://github.com/augusto97/Imagina-Growth/releases/latest/download/install.sh \
+#     | sudo bash -s -- --domain growth.ejemplo.com --email ops@ejemplo.com
+#
+# Opciones:
+#   --domain D          dominio del panel (la ingesta queda en in.D y los enlaces en go.D). Obligatorio la
+#                       primera vez; después se toma del APP_URL del .env.
+#   --email E           correo para Let's Encrypt (opcional).
+#   --version X.Y.Z     versión a instalar (por defecto, la última publicada).
+#   --repo O/R          repositorio de GitHub (por defecto augusto97/Imagina-Growth).
+#   --releases-api URL  API de releases (por defecto https://api.github.com; las pruebas usan un simulador).
+#   --pubkey ARCHIVO    llave pública ed25519 (PEM) que valida las versiones. Por defecto, la que el CI
+#                       incrusta en este archivo al publicar cada versión (entre las marcas GROWTH_PUBKEY).
+#   --skip-firewall     no tocar ufw.
+#   --no-release        prepara el servidor sin instalar una versión de la app.
+#
+# Idempotente: correrlo otra vez no pisa el .env, ni las bases, ni el Caddyfile, ni los datos; solo agrega lo
+# que falte. Si ya hay una versión instalada, no instala otra (las actualizaciones se hacen desde el panel).
+set -euo pipefail
+umask 022
+
+GROWTH_ROOT=/opt/growth
+SHARED=$GROWTH_ROOT/shared
+ENV_FILE=$SHARED/.env
+ETC_DIR=/etc/growth
+BACKUP_DIR=/var/lib/growth-backups
+
+DOMAIN=""
+EMAIL=""
+VERSION=latest
+VERSION_GIVEN=0
+REPO=augusto97/Imagina-Growth
+REPO_GIVEN=0
+API=https://api.github.com
+API_GIVEN=0
+PUBKEY_FILE=""
+SKIP_FIREWALL=0
+NO_RELEASE=0
+
+# La llave pública de las versiones. El workflow de release reemplaza el marcador por el PEM.
+EMBEDDED_PUBKEY=$(cat <<'GROWTH_PUBKEY'
+__GROWTH_RELEASE_PUBKEY__
+GROWTH_PUBKEY
+)
+
+log() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
+info() { printf '    %s\n' "$*"; }
+warn() { printf '\033[33m[aviso]\033[0m %s\n' "$*" >&2; }
+die() { printf '\033[31m[error]\033[0m %s\n' "$*" >&2; exit 1; }
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --domain) DOMAIN=${2:?}; shift 2 ;;
+        --email) EMAIL=${2:?}; shift 2 ;;
+        --version) VERSION=${2#v}; VERSION_GIVEN=1; shift 2 ;;
+        --repo) REPO=${2:?}; REPO_GIVEN=1; shift 2 ;;
+        --releases-api) API=${2%/}; API_GIVEN=1; shift 2 ;;
+        --pubkey) PUBKEY_FILE=${2:?}; shift 2 ;;
+        --skip-firewall) SKIP_FIREWALL=1; shift ;;
+        --no-release) NO_RELEASE=1; shift ;;
+        -h|--help) sed -n 2,24p "$0" 2>/dev/null || true; exit 0 ;;
+        *) die "Opción desconocida: $1" ;;
+    esac
+done
+
+[ "$(id -u)" -eq 0 ] || die "Corre el instalador como root (sudo)."
+# Datos del sistema sin `source` (/etc/os-release define VERSION y pisaría la nuestra).
+os_field() { grep -E "^$1=" /etc/os-release 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"'; }
+OS_ID=$(os_field ID)
+OS_VERSION_ID=$(os_field VERSION_ID)
+OS_CODENAME=$(os_field VERSION_CODENAME)
+if [ "$OS_ID" != ubuntu ] || [ "$OS_VERSION_ID" != 24.04 ]; then
+    warn "Probado en Ubuntu 24.04; este servidor es $(os_field PRETTY_NAME)."
+fi
+if [ "$VERSION" != latest ] && ! [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    die "Versión inválida: $VERSION (formato X.Y.Z)."
+fi
+ARCH=$(dpkg --print-architecture)
+export DEBIAN_FRONTEND=noninteractive
+APT=(apt-get -y -q -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
+WORK=$(mktemp -d /tmp/growth-install.XXXXXX)
+trap 'rm -rf "$WORK"' EXIT
+
+# ── Utilidades ──────────────────────────────────────────────────────────
+
+# Copia SRC a DEST solo si cambió. Devuelve 0 si escribió (cambió) y 1 si ya estaba igual.
+put_file() {
+    local src=$1 dest=$2 mode=${3:-0644} owner=${4:-root:root}
+    if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
+        chmod "$mode" "$dest"; chown "$owner" "$dest"
+        return 1
+    fi
+    install -D -m "$mode" -o "${owner%%:*}" -g "${owner##*:}" "$src" "$dest"
+    return 0
+}
+
+# Escribe el contenido de stdin en DEST solo si cambió (mismo retorno que put_file).
+put_content() {
+    local tmp
+    tmp=$(mktemp "$WORK/put.XXXXXX")
+    cat >"$tmp"
+    put_file "$tmp" "$@"
+}
+
+rand_hex() { openssl rand -hex "${1:-24}"; }
+rand_b64key() { printf 'base64:%s' "$(openssl rand -base64 32)"; }
+rand_alnum() { tr -dc 'a-z0-9' </dev/urandom | head -c "${1:-20}"; }
+
+# Lee una variable del .env sin `source` (un valor como `Nombre <correo>` rompería bash). Solo se usa
+# para valores que escribe este instalador (sin comillas internas ni saltos de línea).
+env_get() {
+    local key=$1 line
+    [ -f "$ENV_FILE" ] || return 0
+    line=$(grep -E "^${key}=" "$ENV_FILE" | tail -n 1 || true)
+    line=${line#"$key"=}
+    line=${line%$'\r'}
+    if [[ $line == \"*\" ]] || [[ $line == \'*\' ]]; then line=${line:1:${#line}-2}; fi
+    printf '%s' "$line"
+}
+
+env_has() { [ -f "$ENV_FILE" ] && grep -qE "^${1}=" "$ENV_FILE"; }
+
+# Agrega KEY=VALUE al .env solo si KEY no existe. Nunca reemplaza un valor existente.
+ENV_ADDED=()
+env_add() {
+    local key=$1 value=$2
+    env_has "$key" && return 0
+    if [[ $value =~ [[:space:]\#\"\'\$\<\>] ]]; then
+        value="\"${value//\"/\\\"}\""
+    fi
+    printf '%s=%s\n' "$key" "$value" >>"$ENV_FILE"
+    ENV_ADDED+=("$key")
+}
+
+wait_for() { # descripción comando...
+    local what=$1; shift
+    for _ in $(seq 1 60); do
+        "$@" >/dev/null 2>&1 && return 0
+        sleep 1
+    done
+    die "No responde: $what"
+}
+
+UNITS_CHANGED=0
+SERVICE_RESTART=()
+
+# ── 1. Plantillas (del repositorio o de la versión publicada) ───────────
+
+SCRIPT_DIR=""
+if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+    SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+fi
+TPL=""
+if [ -n "$SCRIPT_DIR" ] && [ -d "$SCRIPT_DIR/config/php" ] && [ -d "$SCRIPT_DIR/systemd" ] && [ -d "$SCRIPT_DIR/caddy" ]; then
+    TPL=$SCRIPT_DIR
+fi
+
+# La llave pública: --pubkey, la incrustada por el CI o la que ya está instalada.
+PUBKEY_PEM=""
+if [ -n "$PUBKEY_FILE" ]; then
+    [ -f "$PUBKEY_FILE" ] || die "No existe la llave $PUBKEY_FILE."
+    PUBKEY_PEM=$(cat "$PUBKEY_FILE")
+elif [[ $EMBEDDED_PUBKEY == *"BEGIN PUBLIC KEY"* ]]; then
+    PUBKEY_PEM=$EMBEDDED_PUBKEY
+elif [ -f "$ETC_DIR/release-signing.pub.pem" ]; then
+    PUBKEY_PEM=$(cat "$ETC_DIR/release-signing.pub.pem")
+fi
+
+REL_VERSION=""
+REL_DIR=""
+api_get() { curl -fsSL --retry 3 -H 'Accept: application/vnd.github+json' "$1"; }
+
+# Descarga zip, .sha256 y .sig de la versión pedida, valida la firma y el sha256, y deja todo en $REL_DIR.
+fetch_release() {
+    [ -n "$REL_DIR" ] && return 0
+    [ -n "$PUBKEY_PEM" ] || die "No hay llave pública para validar la versión (usa --pubkey)."
+    command -v jq >/dev/null || "${APT[@]}" install jq >/dev/null
+    local rel url name
+    if [ "$VERSION" = latest ]; then
+        rel=$(api_get "$API/repos/$REPO/releases/latest") || die "No se pudo consultar la última versión en $API ($REPO)."
+    else
+        rel=$(api_get "$API/repos/$REPO/releases/tags/v$VERSION") || die "No existe la versión v$VERSION en $REPO."
+    fi
+    REL_VERSION=$(jq -r '.tag_name' <<<"$rel")
+    REL_VERSION=${REL_VERSION#v}
+    [[ $REL_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "Tag de versión inválido: $REL_VERSION"
+    REL_DIR=$WORK/release
+    mkdir -p "$REL_DIR"
+    for name in "growth-$REL_VERSION.zip" "growth-$REL_VERSION.zip.sha256" "growth-$REL_VERSION.zip.sha256.sig"; do
+        url=$(jq -r --arg n "$name" '.assets[] | select(.name == $n) | .browser_download_url' <<<"$rel")
+        if [ -z "$url" ] || [ "$url" = null ]; then die "La versión $REL_VERSION no trae $name."; fi
+        curl -fsSL --retry 3 -o "$REL_DIR/$name" "$url"
+    done
+    printf '%s\n' "$PUBKEY_PEM" >"$WORK/release-signing.pub.pem"
+    openssl pkeyutl -verify -pubin -inkey "$WORK/release-signing.pub.pem" -rawin \
+        -in "$REL_DIR/growth-$REL_VERSION.zip.sha256" -sigfile "$REL_DIR/growth-$REL_VERSION.zip.sha256.sig" >/dev/null \
+        || die "La firma de growth-$REL_VERSION.zip no es válida."
+    (cd "$REL_DIR" && sha256sum --check --status "growth-$REL_VERSION.zip.sha256") || die "El sha256 de growth-$REL_VERSION.zip no coincide."
+    info "Versión $REL_VERSION descargada; firma y sha256 válidos."
+}
+
+# ── 2. Paquetes base y repositorios oficiales ───────────────────────────
+
+log "Paquetes base"
+"${APT[@]}" update >/dev/null
+"${APT[@]}" install ca-certificates curl gnupg openssl unzip jq zstd ufw rclone python3 python3-venv procps >/dev/null
+
+if [ -z "$TPL" ]; then
+    fetch_release
+    unzip -q "$REL_DIR/growth-$REL_VERSION.zip" 'config/*' 'systemd/*' 'caddy/*' 'bin/*' -d "$WORK/tpl"
+    TPL=$WORK/tpl
+fi
+info "Plantillas: $TPL"
+
+log "Repositorios oficiales"
+install -d -m 0755 /etc/apt/keyrings
+add_key() { # url destino dearmor(0/1)
+    [ -s "$2" ] && return 0
+    if [ "$3" = 1 ]; then curl -fsSL "$1" | gpg --dearmor -o "$2" --yes; else curl -fsSL "$1" -o "$2"; fi
+    chmod 0644 "$2"
+}
+# MariaDB 11.4 (script oficial de configuración del repositorio).
+if ! grep -qs "11.4" /etc/apt/sources.list.d/mariadb.sources /etc/apt/sources.list.d/mariadb.list; then
+    curl -fsSL https://r.mariadb.com/downloads/mariadb_repo_setup -o "$WORK/mariadb_repo_setup"
+    bash "$WORK/mariadb_repo_setup" --mariadb-server-version=mariadb-11.4 --skip-maxscale --skip-tools >/dev/null
+fi
+# ClickHouse 25.8 (LTS), fijado a 25.8.*.
+add_key https://packages.clickhouse.com/rpm/lts/repodata/repomd.xml.key /etc/apt/keyrings/clickhouse.gpg 1
+put_content /etc/apt/sources.list.d/clickhouse.list <<EOF || true
+deb [signed-by=/etc/apt/keyrings/clickhouse.gpg arch=$ARCH] https://packages.clickhouse.com/deb stable main
+EOF
+put_content /etc/apt/preferences.d/growth-clickhouse <<'EOF' || true
+Package: clickhouse-server clickhouse-client clickhouse-common-static clickhouse-keeper
+Pin: version 25.8.*
+Pin-Priority: 1001
+EOF
+# Redis 7 (repositorio oficial de Redis, fijado a 7.4.*; trae Redis 8 por defecto).
+add_key https://packages.redis.io/gpg /etc/apt/keyrings/redis.gpg 1
+put_content /etc/apt/sources.list.d/redis.list <<EOF || true
+deb [signed-by=/etc/apt/keyrings/redis.gpg] https://packages.redis.io/deb ${OS_CODENAME:-noble} main
+EOF
+put_content /etc/apt/preferences.d/growth-redis <<'EOF' || true
+Package: redis redis-server redis-tools
+Pin: version 6:7.4.*
+Pin-Priority: 1001
+EOF
+# FrankenPHP y PHP 8.4 ZTS (repositorio oficial de FrankenPHP para Debian y Ubuntu, línea 84).
+add_key https://pkg.henderkes.com/api/packages/84/debian/repository.key /etc/apt/keyrings/static-php84.asc 0
+put_content /etc/apt/sources.list.d/static-php84.list <<'EOF' || true
+deb [signed-by=/etc/apt/keyrings/static-php84.asc] https://pkg.henderkes.com/api/packages/84/debian php-zts main
+EOF
+# Caddy (repositorio oficial).
+add_key https://dl.cloudsmith.io/public/caddy/stable/gpg.key /etc/apt/keyrings/caddy-stable.gpg 1
+put_content /etc/apt/sources.list.d/caddy-stable.list <<'EOF' || true
+deb [signed-by=/etc/apt/keyrings/caddy-stable.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main
+EOF
+
+log "Paquetes: MariaDB, ClickHouse, Redis, FrankenPHP con PHP 8.4, Caddy"
+"${APT[@]}" update >/dev/null
+"${APT[@]}" install mariadb-server mariadb-client mariadb-backup \
+    clickhouse-server clickhouse-client \
+    redis-server redis-tools \
+    frankenphp php-zts-cli php-zts-pdo-mysql php-zts-mysqlnd php-zts-redis php-zts-intl php-zts-zip \
+    php-zts-gd php-zts-gmp php-zts-bcmath \
+    caddy >/dev/null
+# Los servicios que traen los paquetes y que no usamos: FrankenPHP propio (tomaría el 80 y el 443) y el
+# Redis de una sola instancia (usamos redis-server@queue y redis-server@cache).
+for unit in frankenphp.service redis-server.service; do
+    systemctl disable --now "$unit" >/dev/null 2>&1 || true
+    systemctl mask "$unit" >/dev/null 2>&1 || true
+done
+info "MariaDB $(mariadb --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1) · ClickHouse $(clickhouse-server --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1) · Redis $(redis-server --version | grep -oE 'v=[0-9.]+' | cut -d= -f2) · $(frankenphp version | cut -d' ' -f1-4) · Caddy $(caddy version | cut -d' ' -f1)"
+
+log "uv (Python para el servicio de predicciones)"
+if ! command -v uv >/dev/null 2>&1; then
+    if ! curl -fsSL https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 INSTALLER_NO_MODIFY_PATH=1 sh >/dev/null 2>&1; then
+        # Respaldo: la misma herramienta publicada por Astral en PyPI, en un entorno aparte.
+        warn "El instalador de Astral no respondió; se instala uv desde PyPI."
+        python3 -m venv /usr/local/lib/growth-uv
+        /usr/local/lib/growth-uv/bin/pip install --quiet uv
+        ln -sfn /usr/local/lib/growth-uv/bin/uv /usr/local/bin/uv
+    fi
+fi
+info "$(uv --version)"
+
+log "PHP de línea de comandos"
+PHP_BIN=/usr/bin/php-zts
+[ -x "$PHP_BIN" ] || die "No se encontró $PHP_BIN (paquete php-zts-cli)."
+ln -sfn "$PHP_BIN" /usr/local/bin/growth-php
+put_file "$TPL/config/php/90-growth.ini" /etc/php-zts/conf.d/90-growth.ini || true
+missing=""
+for ext in pdo_mysql redis intl zip pcntl 'Zend OPcache' sockets gd exif gmp bcmath sodium; do
+    growth-php -m | grep -qx "$ext" || missing="$missing $ext"
+done
+[ -z "$missing" ] || die "Faltan extensiones de PHP:$missing"
+info "$(growth-php -v | head -1)"
+
+# ── 3. Usuario y estructura ─────────────────────────────────────────────
+
+log "Usuario growth y estructura en $GROWTH_ROOT"
+if ! id growth >/dev/null 2>&1; then
+    useradd --system --user-group --home-dir "$SHARED" --no-create-home --shell /usr/sbin/nologin growth
+fi
+install -d -m 0755 -o root -g root "$GROWTH_ROOT" "$ETC_DIR"
+install -d -m 0755 -o growth -g growth "$GROWTH_ROOT/releases" "$SHARED"
+for d in storage storage/app storage/app/public storage/app/private storage/framework storage/framework/cache \
+    storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs \
+    state backups backups/pre-update tmp cache cache/uv python run; do
+    install -d -m 0750 -o growth -g growth "$SHARED/$d"
+done
+install -d -m 0750 -o root -g root "$BACKUP_DIR" "$BACKUP_DIR/mariadb"
+
+# ── 4. Configuración de la app (.env) ───────────────────────────────────
+
+log "Configuración de la app ($ENV_FILE)"
+if [ -z "$DOMAIN" ]; then
+    url=$(env_get APP_URL)
+    DOMAIN=${url#*://}
+    DOMAIN=${DOMAIN%%/*}
+fi
+[ -n "$DOMAIN" ] || die "Falta --domain (la primera vez es obligatorio)."
+[[ $DOMAIN =~ ^[A-Za-z0-9.-]+$ ]] || die "Dominio inválido: $DOMAIN"
+NEW_ENV=0
+if [ ! -f "$ENV_FILE" ]; then
+    install -m 0600 -o growth -g growth /dev/null "$ENV_FILE"
+    printf '# Configuración de Imagina Growth. La creó infra/install.sh; no se versiona. docs/despliegue.md §2.\n' >"$ENV_FILE"
+    NEW_ENV=1
+fi
+vapid_pair() {
+    # VAPID (P-256): la pública es el punto sin comprimir (65 bytes) y la privada el escalar (32 bytes), en base64url.
+    local pem=$WORK/vapid.pem
+    openssl ecparam -name prime256v1 -genkey -noout -out "$pem" 2>/dev/null
+    VAPID_PUBLIC=$(openssl ec -in "$pem" -pubout -outform DER 2>/dev/null | tail -c 65 | base64 -w0 | tr '+/' '-_' | tr -d '=')
+    VAPID_PRIVATE=$(openssl ec -in "$pem" -outform DER 2>/dev/null | head -c 39 | tail -c 32 | base64 -w0 | tr '+/' '-_' | tr -d '=')
+}
+env_add APP_NAME "Imagina Growth"
+env_add APP_ENV production
+env_has APP_KEY || env_add APP_KEY "$(rand_b64key)"
+env_add APP_DEBUG false
+env_add APP_URL "https://$DOMAIN"
+env_add APP_LOCALE es
+env_add APP_FALLBACK_LOCALE es
+env_add APP_FAKER_LOCALE es_CO
+env_add IGR_APP_URL "https://$DOMAIN"
+env_add IGR_INGEST_URL "https://in.$DOMAIN"
+env_add IGR_LINKS_URL "https://go.$DOMAIN"
+env_has IGR_BLIND_INDEX_KEY || env_add IGR_BLIND_INDEX_KEY "$(rand_b64key)"
+env_add IGR_REQUIRE_2FA true
+env_add IGR_INGEST_SHARDS 4
+env_add BCRYPT_ROUNDS 12
+env_add LOG_CHANNEL stack
+env_add LOG_STACK stderr
+env_add LOG_LEVEL info
+env_add DB_CONNECTION mariadb
+env_add DB_HOST 127.0.0.1
+env_add DB_PORT 3306
+env_add DB_DATABASE igr
+env_add DB_USERNAME igr
+env_has DB_PASSWORD || env_add DB_PASSWORD "$(rand_hex 24)"
+env_add CLICKHOUSE_URL http://127.0.0.1:8123
+env_add CLICKHOUSE_DATABASE igr
+env_add CLICKHOUSE_USERNAME igr
+env_has CLICKHOUSE_PASSWORD || env_add CLICKHOUSE_PASSWORD "$(rand_hex 24)"
+env_add SESSION_DRIVER redis
+env_add SESSION_LIFETIME 120
+env_add SESSION_ENCRYPT true
+env_add SESSION_PATH /
+env_add SESSION_DOMAIN null
+env_add SESSION_SECURE_COOKIE true
+env_add SANCTUM_STATEFUL_DOMAINS "$DOMAIN"
+env_add BROADCAST_CONNECTION reverb
+env_has REVERB_APP_ID || env_add REVERB_APP_ID "$((100000 + RANDOM * 30 % 900000))"
+env_has REVERB_APP_KEY || env_add REVERB_APP_KEY "$(rand_alnum 20)"
+env_has REVERB_APP_SECRET || env_add REVERB_APP_SECRET "$(rand_alnum 32)"
+env_add REVERB_SERVER_HOST 127.0.0.1
+env_add REVERB_SERVER_PORT 8085
+env_add REVERB_HOST 127.0.0.1
+env_add REVERB_PORT 8085
+env_add REVERB_SCHEME http
+env_add FILESYSTEM_DISK local
+env_add QUEUE_CONNECTION redis
+env_add CACHE_STORE redis
+env_add REDIS_CLIENT phpredis
+env_add REDIS_HOST 127.0.0.1
+env_add REDIS_PORT 6379
+env_has REDIS_PASSWORD || env_add REDIS_PASSWORD "$(rand_hex 24)"
+env_add REDIS_CACHE_HOST 127.0.0.1
+env_add REDIS_CACHE_PORT 6380
+env_add MAIL_MAILER log
+env_add MAIL_FROM_ADDRESS "hola@$DOMAIN"
+env_add MAIL_FROM_NAME "Imagina Growth"
+env_add IGR_ML_URL http://127.0.0.1:8095
+env_has IGR_ML_TOKEN || env_add IGR_ML_TOKEN "$(rand_hex 32)"
+if ! env_has IGR_PUSH_VAPID_PUBLIC_KEY || ! env_has IGR_PUSH_VAPID_PRIVATE_KEY; then
+    vapid_pair
+    env_add IGR_PUSH_VAPID_PUBLIC_KEY "$VAPID_PUBLIC"
+    env_add IGR_PUSH_VAPID_PRIVATE_KEY "$VAPID_PRIVATE"
+fi
+env_add IGR_ANTHROPIC_API_KEY ""
+env_add GROWTH_UPDATE_REPO "$REPO"
+env_add GROWTH_UPDATE_API "$API"
+chown growth:growth "$ENV_FILE"
+chmod 0600 "$ENV_FILE"
+if [ "$NEW_ENV" = 1 ]; then
+    info "Creado con secretos nuevos."
+elif [ ${#ENV_ADDED[@]} -gt 0 ]; then
+    info "Se agregaron variables que faltaban: ${ENV_ADDED[*]}"
+else
+    info "Sin cambios."
+fi
+
+MEM_MB=$(awk '/MemTotal/ {print int($2 / 1024)}' /proc/meminfo)
+
+# ── 5. MariaDB ──────────────────────────────────────────────────────────
+
+log "MariaDB"
+POOL_MB=$((MEM_MB / 4)); [ "$POOL_MB" -lt 128 ] && POOL_MB=128
+if sed "s/__BUFFER_POOL__/${POOL_MB}M/" "$TPL/config/mariadb/90-growth.cnf" | put_content /etc/mysql/mariadb.conf.d/90-growth.cnf; then
+    SERVICE_RESTART+=(mariadb)
+fi
+systemctl enable mariadb >/dev/null 2>&1
+if [[ " ${SERVICE_RESTART[*]} " == *" mariadb "* ]] && systemctl is-active --quiet mariadb; then
+    systemctl restart mariadb
+else
+    systemctl start mariadb
+fi
+wait_for MariaDB mariadb-admin ping
+DB_PASS=$(env_get DB_PASSWORD)
+mariadb <<SQL
+CREATE DATABASE IF NOT EXISTS igr CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'igr'@'localhost' IDENTIFIED BY '$DB_PASS';
+CREATE USER IF NOT EXISTS 'igr'@'127.0.0.1' IDENTIFIED BY '$DB_PASS';
+GRANT ALL PRIVILEGES ON igr.* TO 'igr'@'localhost';
+GRANT ALL PRIVILEGES ON igr.* TO 'igr'@'127.0.0.1';
+SQL
+if ! MYSQL_PWD=$DB_PASS mariadb -h 127.0.0.1 -u igr igr -e 'SELECT 1' >/dev/null 2>&1; then
+    # El usuario ya existía con otra contraseña (p. ej. se borró el .env): manda el .env.
+    warn "La contraseña de MariaDB no coincidía con el .env; se actualizó."
+    mariadb -e "ALTER USER 'igr'@'localhost' IDENTIFIED BY '$DB_PASS'; ALTER USER 'igr'@'127.0.0.1' IDENTIFIED BY '$DB_PASS';"
+fi
+info "Base igr y usuario igr listos (innodb_buffer_pool_size=${POOL_MB}M)."
+
+# ── 6. ClickHouse ───────────────────────────────────────────────────────
+
+log "ClickHouse"
+install -d -m 0750 -o clickhouse -g clickhouse "$BACKUP_DIR/clickhouse"
+CH_CHANGED=0
+put_file "$TPL/config/clickhouse/igr.xml" /etc/clickhouse-server/config.d/igr.xml 0644 root:clickhouse && CH_CHANGED=1
+put_file "$TPL/config/clickhouse/growth-listen.xml" /etc/clickhouse-server/config.d/growth-listen.xml 0644 root:clickhouse && CH_CHANGED=1
+put_file "$TPL/config/clickhouse/growth-backups.xml" /etc/clickhouse-server/config.d/growth-backups.xml 0644 root:clickhouse && CH_CHANGED=1
+if [ ! -s "$ETC_DIR/clickhouse-default.pass" ]; then
+    install -m 0600 /dev/null "$ETC_DIR/clickhouse-default.pass"
+    rand_hex 24 >"$ETC_DIR/clickhouse-default.pass"
+fi
+CH_PASS=$(env_get CLICKHOUSE_PASSWORD)
+IGR_SHA=$(printf '%s' "$CH_PASS" | sha256sum | cut -d' ' -f1)
+DEFAULT_SHA=$(tr -d '\n' <"$ETC_DIR/clickhouse-default.pass" | sha256sum | cut -d' ' -f1)
+# Las contraseñas de ClickHouse cambian aquí con el .env; el archivo es solo legible por ClickHouse.
+sed -e "s/__IGR_SHA256__/$IGR_SHA/" -e "s/__DEFAULT_SHA256__/$DEFAULT_SHA/" "$TPL/config/clickhouse/growth-users.xml" \
+    | put_content /etc/clickhouse-server/users.d/growth-users.xml 0640 root:clickhouse && CH_CHANGED=1
+systemctl enable clickhouse-server >/dev/null 2>&1
+if [ "$CH_CHANGED" = 1 ] && systemctl is-active --quiet clickhouse-server; then
+    systemctl restart clickhouse-server
+else
+    systemctl start clickhouse-server
+fi
+wait_for ClickHouse curl -fsS http://127.0.0.1:8123/ping
+ch_query() { curl -fsS -u "igr:$CH_PASS" http://127.0.0.1:8123/ --data-binary "$1"; }
+wait_for "ClickHouse (usuario igr)" ch_query 'SELECT 1'
+ch_query 'CREATE DATABASE IF NOT EXISTS igr' >/dev/null
+info "Base igr y usuario igr listos."
+
+# ── 7. Redis: colas y caché ─────────────────────────────────────────────
+
+log "Redis (colas en 6379 y caché en 6380)"
+REDIS_PASS=$(env_get REDIS_PASSWORD)
+CACHE_MB=$((MEM_MB / 10)); [ "$CACHE_MB" -lt 64 ] && CACHE_MB=64
+install -d -m 0750 -o redis -g redis /var/lib/redis-queue /var/lib/redis-cache
+put_file "$TPL/systemd/redis-server@.service" /etc/systemd/system/redis-server@.service && UNITS_CHANGED=1
+[ "$UNITS_CHANGED" = 1 ] && systemctl daemon-reload
+for inst in queue cache; do
+    if sed -e "s/__REDIS_PASSWORD__/$REDIS_PASS/" -e "s/__MAXMEMORY__/${CACHE_MB}mb/" "$TPL/config/redis/redis-$inst.conf" \
+        | put_content "/etc/redis/redis-$inst.conf" 0640 root:redis; then
+        systemctl enable "redis-server@$inst" >/dev/null 2>&1
+        systemctl restart "redis-server@$inst"
+    else
+        systemctl enable --now "redis-server@$inst" >/dev/null 2>&1
+    fi
+done
+for port in 6379 6380; do
+    wait_for "Redis $port" env REDISCLI_AUTH="$REDIS_PASS" redis-cli -p "$port" ping
+done
+info "Colas: $(REDISCLI_AUTH=$REDIS_PASS redis-cli -p 6379 config get maxmemory-policy | tail -1) + AOF · caché: $(REDISCLI_AUTH=$REDIS_PASS redis-cli -p 6380 config get maxmemory-policy | tail -1) (${CACHE_MB} MB)"
+
+# ── 8. Actualizador: repositorio y llave ────────────────────────────────
+
+log "Actualizador ($ETC_DIR)"
+if [ ! -f "$ETC_DIR/updater.conf" ] || [ "$REPO_GIVEN" = 1 ] || [ "$API_GIVEN" = 1 ]; then
+    cur_timeout=120
+    if [ -f "$ETC_DIR/updater.conf" ]; then
+        cur_timeout=$(grep -E '^GROWTH_HEALTH_TIMEOUT=' "$ETC_DIR/updater.conf" | cut -d= -f2 || true)
+        [ "$REPO_GIVEN" = 1 ] || REPO=$(grep -E '^GROWTH_UPDATE_REPO=' "$ETC_DIR/updater.conf" | cut -d= -f2)
+        [ "$API_GIVEN" = 1 ] || API=$(grep -E '^GROWTH_UPDATE_API=' "$ETC_DIR/updater.conf" | cut -d= -f2)
+    fi
+    put_content "$ETC_DIR/updater.conf" 0644 root:root <<EOF || true
+# Repositorio y API de las versiones de Imagina Growth. Solo root lo puede cambiar: el actualizador descarga
+# con estos valores y valida con release-signing.pub.pem (docs/despliegue.md §5).
+GROWTH_UPDATE_REPO=$REPO
+GROWTH_UPDATE_API=$API
+GROWTH_HEALTH_TIMEOUT=${cur_timeout:-120}
+EOF
+fi
+if [ -n "$PUBKEY_PEM" ]; then
+    if [ -f "$ETC_DIR/release-signing.pub.pem" ] && ! printf '%s\n' "$PUBKEY_PEM" | cmp -s - "$ETC_DIR/release-signing.pub.pem" && [ -z "$PUBKEY_FILE" ]; then
+        warn "La llave pública instalada es distinta de la de este instalador; se conserva la instalada (usa --pubkey para cambiarla)."
+    else
+        printf '%s\n' "$PUBKEY_PEM" | put_content "$ETC_DIR/release-signing.pub.pem" 0644 root:root || true
+    fi
+    openssl pkey -pubin -in "$ETC_DIR/release-signing.pub.pem" -noout 2>/dev/null || die "La llave pública no es válida."
+    info "Llave pública de las versiones instalada."
+else
+    warn "Sin llave pública: el actualizador no podrá validar versiones hasta instalar $ETC_DIR/release-signing.pub.pem."
+fi
+
+# ── 9. Servicios de systemd ─────────────────────────────────────────────
+
+log "Servicios de systemd"
+for f in "$TPL"/systemd/growth*; do
+    put_file "$f" "/etc/systemd/system/$(basename "$f")" && UNITS_CHANGED=1
+done
+systemctl daemon-reload
+systemctl enable --now growth-update.path >/dev/null 2>&1
+# growth.target se habilita al final, cuando hay una versión instalada (sin ella los servicios no arrancan).
+info "Unidades instaladas; growth-update.path habilitado."
+
+# ── 10. Caddy ───────────────────────────────────────────────────────────
+
+log "Caddy"
+EMAIL_LINE=""
+[ -n "$EMAIL" ] && EMAIL_LINE="email $EMAIL"
+sed -e "s/__DOMAIN__/$DOMAIN/g" -e "s/__EMAIL_LINE__/$EMAIL_LINE/" "$TPL/caddy/Caddyfile" >"$WORK/Caddyfile"
+caddy fmt --overwrite "$WORK/Caddyfile" >/dev/null 2>&1 || true
+CADDY_DEST=/etc/caddy/Caddyfile
+if [ ! -f "$CADDY_DEST" ] || grep -q 'root \* /usr/share/caddy' "$CADDY_DEST"; then
+    caddy validate --adapter caddyfile --config "$WORK/Caddyfile" >/dev/null 2>&1 || die "El Caddyfile generado no es válido."
+    install -m 0644 "$WORK/Caddyfile" "$CADDY_DEST"
+    systemctl enable caddy >/dev/null 2>&1
+    systemctl restart caddy
+    info "Caddyfile instalado para $DOMAIN, in.$DOMAIN y go.$DOMAIN."
+elif ! cmp -s "$WORK/Caddyfile" "$CADDY_DEST"; then
+    install -m 0644 "$WORK/Caddyfile" "$CADDY_DEST.growth.new"
+    warn "Ya hay un $CADDY_DEST propio; no se toca. La versión sugerida quedó en $CADDY_DEST.growth.new."
+    systemctl enable --now caddy >/dev/null 2>&1
+else
+    systemctl enable --now caddy >/dev/null 2>&1
+    info "Sin cambios."
+fi
+
+# ── 11. Firewall ────────────────────────────────────────────────────────
+
+if [ "$SKIP_FIREWALL" = 1 ]; then
+    log "Firewall: omitido (--skip-firewall)"
+else
+    log "Firewall (ufw)"
+    ssh_ports=$( (command -v sshd >/dev/null && sshd -T 2>/dev/null | awk '$1 == "port" {print $2}') || true)
+    [ -n "$ssh_ports" ] || ssh_ports=22
+    for p in $ssh_ports; do ufw allow "$p/tcp" >/dev/null; done
+    ufw allow 80/tcp >/dev/null
+    ufw allow 443/tcp >/dev/null
+    ufw allow 443/udp >/dev/null
+    ufw default deny incoming >/dev/null
+    ufw default allow outgoing >/dev/null
+    ufw --force enable >/dev/null
+    info "Abiertos: SSH ($(echo "$ssh_ports" | tr '\n' ' ' | xargs)), 80/tcp, 443/tcp y 443/udp."
+fi
+
+# ── 12. La app ──────────────────────────────────────────────────────────
+
+if [ "$NO_RELEASE" = 1 ]; then
+    log "La app: omitida (--no-release)"
+elif [ -L "$GROWTH_ROOT/current" ]; then
+    log "La app"
+    info "Ya está instalada la versión $(basename "$(readlink -f "$GROWTH_ROOT/current")"); las actualizaciones se hacen desde el panel."
+    [ "$VERSION_GIVEN" = 1 ] && warn "Se ignora --version: el instalador no reemplaza una versión instalada."
+else
+    log "La app"
+    fetch_release
+    unzip -q -o "$REL_DIR/growth-$REL_VERSION.zip" 'bin/growth-update' -d "$WORK/updater"
+    chmod +x "$WORK/updater/bin/growth-update"
+    # El actualizador vuelve a validar y hace la instalación completa (docs/despliegue.md §5, modo --install).
+    GROWTH_ASSETS_DIR="$REL_DIR" "$WORK/updater/bin/growth-update" --install "$REL_VERSION"
+fi
+
+if [ -L "$GROWTH_ROOT/current" ]; then
+    systemctl enable growth.target >/dev/null 2>&1
+    # Copias y vigilancia (infra/backup, infra/monitor): solo con una versión instalada.
+    for t in /etc/systemd/system/growth-*.timer; do
+        [ -e "$t" ] && systemctl enable --now "$(basename "$t")" >/dev/null 2>&1
+    done
+fi
+
+log "Listo"
+info "Panel: https://$DOMAIN · ingesta: https://in.$DOMAIN · enlaces: https://go.$DOMAIN"
+info "Configuración: $ENV_FILE (solo el usuario growth) · actualizador: $ETC_DIR/updater.conf"
+info "Copias a la Storage Box: configura rclone y $ETC_DIR/backup.conf (infra/backup)."

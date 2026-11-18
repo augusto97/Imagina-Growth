@@ -33,6 +33,7 @@ import {
     useSetBillingStatus,
     useSetFeature,
 } from './api';
+import { UpdatesTab } from './UpdatesTab';
 
 const STATUSES: BillingStatus[] = ['trial', 'active', 'grace', 'suspended'];
 
@@ -53,6 +54,7 @@ export function PlatformPage() {
                 <TabsList>
                     <TabsTrigger value="accounts">{t('platform.tabs.accounts')}</TabsTrigger>
                     <TabsTrigger value="health">{t('platform.tabs.health')}</TabsTrigger>
+                    <TabsTrigger value="updates">{t('platform.tabs.updates')}</TabsTrigger>
                     <TabsTrigger value="invoices">{t('platform.tabs.invoices')}</TabsTrigger>
                     <TabsTrigger value="requests">
                         {t('platform.tabs.requests')}
@@ -61,6 +63,9 @@ export function PlatformPage() {
                 </TabsList>
                 <TabsContent value="health" className="igr:mt-4">
                     <HealthTab />
+                </TabsContent>
+                <TabsContent value="updates" className="igr:mt-4">
+                    <UpdatesTab />
                 </TabsContent>
                 {overview.isError ? (
                     <ErrorState error={overview.error} onRetry={() => void overview.refetch()} />

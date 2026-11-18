@@ -137,6 +137,71 @@ jobs:
       - name: WordPress + WooCommerce (contrato contra hub/resources/schemas/events)
         run: vendor/bin/phpunit -c phpunit-wp.xml.dist
 
+  ml:
+    name: ML · pytest (uv)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: hub/ml
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: hub/ml/uv.lock
+      - name: Entorno desde uv.lock (falla si el lockfile no está al día)
+        run: uv sync --frozen
+      - name: Pruebas
+        run: uv run --frozen pytest -q
+
+  release-package:
+    name: Paquete de versión (armado, firma y verificación)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: pdo_mysql, redis, intl, zip, pcntl, sodium, gd, exif, gmp, bcmath
+          coverage: none
+          tools: composer:v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: hub/package-lock.json
+      - name: Scripts de empaquetado (shellcheck)
+        run: shellcheck infra/release/*.sh infra/tests/release/*.sh
+      - name: Armar, firmar con una llave de usar y tirar, verificar y revisar el contenido
+        run: infra/tests/release/build_test.sh
+
+  updater-scripts:
+    name: Actualizador · arnés con deployer falso y shellcheck
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Herramientas (jq, zstd, zip, unzip, shellcheck, PHP CLI)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q jq zstd zip unzip shellcheck php-cli
+      - name: shellcheck de los scripts del servidor y del arnés
+        run: shellcheck -x infra/bin/growth-update infra/bin/growth-update-dispatch infra/tests/updater/run.sh infra/tests/updater/lib.sh infra/tests/updater/fakes/*
+      - name: growth-env (sintaxis de PHP)
+        run: php -l infra/bin/growth-env
+      - name: Escenarios del actualizador (actualiza, vuelve atrás, sin espacio, zip roto, candado, despacho, .env)
+        run: bash infra/tests/updater/run.sh
+
+  backup-scripts:
+    name: Copias · scripts de respaldo, prueba de restauración y shellcheck
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        run: shellcheck -x infra/backup/growth-backup-* infra/tests/backup/*.sh
+      - name: Copias y restauración con comandos falsos
+        run: bash infra/tests/backup/run.sh
+
   tracker:
     name: Tracker · TypeScript, Vitest, tamaño (≤ 6 KB gzip) y paquetes
     runs-on: ubuntu-24.04

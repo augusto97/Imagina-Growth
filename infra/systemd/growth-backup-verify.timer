@@ -1,0 +1,10 @@
+# Los domingos a las 05:00 UTC, después de las copias del día.
+[Unit]
+Description=Imagina Growth · horario de la prueba de restauración
+
+[Timer]
+OnCalendar=Sun *-*-* 05:00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

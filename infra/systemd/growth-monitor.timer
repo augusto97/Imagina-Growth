@@ -1,0 +1,11 @@
+# Cada minuto, desde dos minutos después de arrancar.
+[Unit]
+Description=Imagina Growth · horario de la vigilancia
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
