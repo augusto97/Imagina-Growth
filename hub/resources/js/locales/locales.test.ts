@@ -21,7 +21,7 @@ function sourceFiles(dir: string): string[] {
     });
 }
 
-const base = new Set(flatten(esCO as Tree));
+const base = new Set(flatten(esCO));
 const root = join(__dirname, '..');
 
 describe('traducciones', () => {
@@ -41,7 +41,7 @@ describe('traducciones', () => {
     });
 
     it('es-MX y es-VE solo sobrescriben claves que existen en es-CO', () => {
-        for (const keys of [flatten(esMX as Tree), flatten(esVE as Tree)]) {
+        for (const keys of [flatten(esMX), flatten(esVE)]) {
             expect(keys.filter((k) => !base.has(k))).toEqual([]);
         }
     });

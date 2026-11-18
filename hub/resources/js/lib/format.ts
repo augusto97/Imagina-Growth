@@ -1,5 +1,19 @@
 /** Formatos según la moneda y la configuración regional del espacio de trabajo (hub/CLAUDE.md §14). */
 
+/**
+ * Convierte una fecha de la API. Las fechas sin zona (p. ej. «2026-11-18 02:05:00»,
+ * que salen tal cual de la base) están en UTC: el hub guarda todo en UTC.
+ */
+export function parseApiDate(value: string): Date {
+    if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(value)) {
+        return new Date(`${value.replace(' ', 'T')}Z`);
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return new Date(`${value}T12:00:00Z`);
+    }
+    return new Date(value);
+}
+
 const ZERO_DECIMAL = new Set(['COP', 'CLP', 'PYG', 'JPY', 'VES']);
 
 export function formatMoney(value: string | number | null | undefined, currency: string, locale = 'es-CO'): string {
@@ -29,7 +43,7 @@ export function formatDateTime(iso: string | null | undefined, locale = 'es-CO',
     if (!iso) {
         return '—';
     }
-    const date = new Date(iso);
+    const date = parseApiDate(iso);
     if (Number.isNaN(date.getTime())) {
         return '—';
     }
@@ -40,7 +54,7 @@ export function formatDate(iso: string | null | undefined, locale = 'es-CO', tim
     if (!iso) {
         return '—';
     }
-    const date = new Date(iso.length === 10 ? `${iso}T12:00:00Z` : iso);
+    const date = parseApiDate(iso);
     if (Number.isNaN(date.getTime())) {
         return '—';
     }
@@ -52,7 +66,7 @@ export function formatRelative(iso: string | null | undefined, locale = 'es-CO',
     if (!iso) {
         return '—';
     }
-    const then = new Date(iso).getTime();
+    const then = parseApiDate(iso).getTime();
     if (Number.isNaN(then)) {
         return '—';
     }

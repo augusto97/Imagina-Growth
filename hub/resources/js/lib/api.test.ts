@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api, ApiError, isApiError, toApiError } from './api';
 
+function urlOf(input: RequestInfo | URL): string {
+    return typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+}
+
 function jsonResponse(status: number, body: unknown): Response {
     return new Response(body === null ? null : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 }
@@ -20,7 +24,7 @@ describe('api client', () => {
 
     it('pide la cookie CSRF antes del primer POST y envía X-XSRF-TOKEN', async () => {
         fetchMock.mockImplementation((input) => {
-            if (String(input) === '/sanctum/csrf-cookie') {
+            if (urlOf(input) === '/sanctum/csrf-cookie') {
                 document.cookie = 'XSRF-TOKEN=abc%3D123; path=/';
                 return Promise.resolve(new Response(null, { status: 204 }));
             }
@@ -42,7 +46,7 @@ describe('api client', () => {
         document.cookie = 'XSRF-TOKEN=viejo; path=/';
         let calls = 0;
         fetchMock.mockImplementation((input) => {
-            if (String(input) === '/sanctum/csrf-cookie') {
+            if (urlOf(input) === '/sanctum/csrf-cookie') {
                 document.cookie = 'XSRF-TOKEN=nuevo; path=/';
                 return Promise.resolve(new Response(null, { status: 204 }));
             }

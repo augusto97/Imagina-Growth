@@ -25,6 +25,9 @@ function ThemeSync() {
     return null;
 }
 
+// El tema se aplica antes del primer render para no mostrar un destello claro en modo oscuro.
+applyTheme(useUi.getState().theme);
+
 const root = document.getElementById('root');
 if (root) {
     createRoot(root).render(

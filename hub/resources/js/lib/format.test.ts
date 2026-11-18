@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { formatDate, formatDateTime, formatMoney, formatNumber, formatRelative } from './format';
 
-const nbsp = (s: string) => s.replace(/ | /g, ' ');
+const SPACES = new RegExp('[' + String.fromCharCode(160, 8239) + ']', 'g');
+const nbsp = (s: string) => s.replace(SPACES, ' ');
 
 describe('formatos', () => {
     it('muestra COP sin decimales y MXN con dos', () => {
@@ -23,5 +24,7 @@ describe('formatos', () => {
         expect(formatRelative('2026-11-18T11:55:00Z', 'es-CO', now)).toBe('hace 5 minutos');
         expect(formatRelative('2026-11-15T12:00:00Z', 'es-CO', now)).toBe('hace 3 días');
         expect(formatRelative(undefined)).toBe('—');
+        // Fechas sin zona de la base: son UTC, no la hora local del navegador.
+        expect(formatRelative('2026-11-18 11:00:00', 'es-CO', now)).toBe('hace 1 hora');
     });
 });

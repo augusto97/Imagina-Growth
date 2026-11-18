@@ -18,6 +18,21 @@ export default defineConfig({
             '@': fileURLToPath(new URL('./resources/js', import.meta.url)),
         },
     },
+    build: {
+        rolldownOptions: {
+            output: {
+                // Dependencias estables en chunks propios: cambian poco y quedan en caché del navegador.
+                codeSplitting: {
+                    groups: [
+                        { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
+                        { name: 'data', test: /node_modules[\\/](@tanstack|react-router|zustand|i18next|react-i18next)[\\/]/ },
+                        { name: 'ui', test: /node_modules[\\/](@radix-ui|cmdk|lucide-react|@floating-ui|tailwind-merge|clsx|class-variance-authority)[\\/]/ },
+                        { name: 'forms', test: /node_modules[\\/](zod|react-hook-form|@hookform)[\\/]/ },
+                    ],
+                },
+            },
+        },
+    },
     server: {
         watch: {
             ignored: ['**/storage/framework/views/**'],

@@ -62,3 +62,26 @@ jobs:
         run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress
       - name: Pest (unidad, contrato, integración y tenancy)
         run: vendor/bin/pest --ci
+
+  hub-frontend:
+    name: Hub · SPA (TypeScript, ESLint, Vitest, build)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: hub
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: hub/package-lock.json
+      - run: npm ci
+      - name: TypeScript strict
+        run: npm run typecheck
+      - name: ESLint
+        run: npm run lint
+      - name: Vitest
+        run: npm run test
+      - name: Build
+        run: npm run build

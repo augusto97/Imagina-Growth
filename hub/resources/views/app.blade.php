@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" class="h-full">
+<html lang="es-CO">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,7 +7,7 @@
     <title>Imagina Growth</title>
     @vite(['resources/css/app.css', 'resources/js/main.tsx'])
 </head>
-<body class="h-full">
-    <div id="root" class="h-full"></div>
+<body>
+    <div id="root"></div>
 </body>
 </html>

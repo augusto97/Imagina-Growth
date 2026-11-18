@@ -57,6 +57,8 @@ function ConnectCodeBody({ workspaceId, onConnected }: { workspaceId: string; on
             return;
         }
         if ([...current].some((id) => !baseline.current?.has(id))) {
+            // Se actualiza la línea base para avisar una sola vez aunque el efecto se repita.
+            baseline.current = current;
             toast.success(t('sites.connectedToast'));
             void qc.invalidateQueries({ queryKey: keys.sites(workspaceId) });
             onConnected();
