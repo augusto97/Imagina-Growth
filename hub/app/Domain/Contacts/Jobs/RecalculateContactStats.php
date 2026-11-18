@@ -10,7 +10,7 @@ use App\Support\Money\Decimal;
 use App\Support\Tenancy\SetWorkspaceContext;
 use App\Support\Tenancy\WorkspaceAware;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -19,8 +19,12 @@ use Illuminate\Support\Facades\DB;
 /**
  * Recalcula los contadores de compra del contacto y el n.º de compra de cada
  * pedido (hub/CLAUDE.md §5: job con debounce de 5 s por contacto).
+ *
+ * Único hasta que empieza a procesarse: mientras espera, los pedidos nuevos del
+ * mismo contacto no encolan otro; si llegan mientras corre, sí encolan uno
+ * nuevo, así ningún pedido queda sin contar.
  */
-final class RecalculateContactStats implements ShouldBeUnique, ShouldQueue, WorkspaceAware
+final class RecalculateContactStats implements ShouldBeUniqueUntilProcessing, ShouldQueue, WorkspaceAware
 {
     use Dispatchable, InteractsWithQueue, Queueable;
 
