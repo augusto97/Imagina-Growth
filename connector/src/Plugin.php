@@ -21,6 +21,13 @@ use ImaginaGrowth\Connector\Collectors\SiteCollector;
 use ImaginaGrowth\Connector\Commands\CommandsController;
 use ImaginaGrowth\Connector\Connection\Connection;
 use ImaginaGrowth\Connector\Connection\RemoteConfig;
+use ImaginaGrowth\Connector\Collectors\Forms\FormCollector;
+use ImaginaGrowth\Connector\Consent\CheckoutConsent;
+use ImaginaGrowth\Connector\Privacy\PrivacyTools;
+use ImaginaGrowth\Connector\Tracking\Optimizers;
+use ImaginaGrowth\Connector\Tracking\PageData;
+use ImaginaGrowth\Connector\Tracking\Ping;
+use ImaginaGrowth\Connector\Tracking\TrackerConfig;
 use ImaginaGrowth\Connector\Outbox\Flusher;
 use ImaginaGrowth\Connector\Outbox\Outbox;
 
@@ -99,10 +106,20 @@ final class Plugin {
 		SiteCollector::register();
 		CustomerCollector::register();
 		ReviewCollector::register();
+		FormCollector::register();
+		PrivacyTools::register();
+		// Navegador: tracker, ping de la cookie y exclusiones en los optimizadores.
+		if ( null === TrackerConfig::get() ) {
+			add_action( 'admin_init', array( TrackerConfig::class, 'rebuild' ) );
+		}
+		Ping::register();
+		PageData::register();
+		Optimizers::register();
 		$woo = static function (): void {
 			OrderCollector::register();
 			CartCollector::register();
 			CatalogCollector::register();
+			CheckoutConsent::register();
 			add_action( 'woocommerce_thankyou', array( CartCollector::class, 'reset_token' ), 5, 0 );
 		};
 		// WooCommerce suele cargar después (orden alfabético), pero no siempre.

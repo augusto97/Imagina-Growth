@@ -1,0 +1,183 @@
+{
+    "measurement": {
+        "title": "Medición",
+        "description": "Conversiones desde el servidor hacia Meta, Google y TikTok, con la calidad de la señal y el gasto de tus campañas.",
+        "tabs": {
+            "destinos": "Destinos",
+            "entregas": "Entregas",
+            "calidad": "Calidad de la señal",
+            "gasto": "Gasto en anuncios"
+        },
+        "platform": {
+            "meta": "Meta (Facebook e Instagram)",
+            "google": "Google (Analytics y Ads)",
+            "tiktok": "TikTok"
+        },
+        "mode": {
+            "server_only": {
+                "short": "Solo servidor",
+                "title": "Solo servidor",
+                "help": "Enviamos las conversiones desde nuestro servidor. No hay píxel en el sitio."
+            },
+            "with_pixel": {
+                "short": "Con píxel existente",
+                "title": "Con un píxel que ya tienes",
+                "help": "Ya usas otro píxel (por ejemplo PixelYourSite). La compra se deduplica si ese plugin usa el ID de evento de Imagina Growth."
+            },
+            "full": {
+                "short": "Completo",
+                "title": "Completo (recomendado)",
+                "help": "Nuestro script carga el píxel con tu consentimiento y comparte el ID de cada evento con el servidor: la plataforma deduplica todo."
+            }
+        },
+        "status": {
+            "delivered": "Entregada",
+            "retrying": "Reintentando",
+            "failed": "Falló",
+            "skipped": "Omitida"
+        },
+        "empty": {
+            "title": "Conecta tu primera plataforma de anuncios",
+            "description": "Envía las compras, carritos y leads desde el servidor para que Meta, Google y TikTok optimicen tus anuncios con datos completos, aunque el navegador bloquee el píxel."
+        },
+        "destinations": {
+            "add": "Agregar destino",
+            "paused": "En pausa",
+            "testMode": "Modo de prueba",
+            "noEndpoints": "Faltan credenciales para enviar conversiones",
+            "spendOn": "importa el gasto",
+            "lastDelivered": "Última entrega {{when}}",
+            "neverDelivered": "Todavía no ha enviado conversiones",
+            "events_one": "{{count}} evento",
+            "events_other": "{{count}} eventos",
+            "edit": "Editar destino",
+            "delete": "Eliminar",
+            "deleteTitle": "¿Eliminar este destino?",
+            "deleteHelp": "Dejarán de enviarse conversiones a esta plataforma. El historial de entregas se conserva.",
+            "deleted": "Destino eliminado"
+        },
+        "endpoint": {
+            "meta_capi": "Conversions API",
+            "ga4": "GA4 Measurement Protocol",
+            "google_data_manager": "Conversiones mejoradas (Data Manager)",
+            "tiktok_events": "Events API"
+        },
+        "events": {
+            "page_viewed": "Vista de página",
+            "product_viewed": "Vista de producto",
+            "cart_item_added": "Agregó al carrito",
+            "checkout_started": "Inició el pago",
+            "order_paid": "Compra",
+            "form_submitted": "Formulario enviado (lead)",
+            "customer_registered": "Registro de cliente"
+        },
+        "test": {
+            "action": "Probar conexión",
+            "ok": "La conexión funciona",
+            "failed": "La conexión falló"
+        },
+        "form": {
+            "created": "Destino agregado",
+            "saved": "Cambios guardados",
+            "newTitle": "Nuevo destino",
+            "editTitle": "Editar destino",
+            "help": "Las credenciales se guardan cifradas y nunca se vuelven a mostrar completas.",
+            "platform": "Plataforma",
+            "name": "Nombre",
+            "mode": "Modo",
+            "group": {
+                "conversions": "Conversiones",
+                "google_ads": "Google Ads (conversiones mejoradas)",
+                "spend": "Importar el gasto (opcional)"
+            },
+            "groupHelp": {
+                "meta_conversions": "ID del conjunto de datos (píxel) y un token de usuario del sistema del Administrador de eventos.",
+                "meta_spend": "Cuenta publicitaria y un token con permiso ads_read para traer el gasto diario.",
+                "google_conversions": "ID de medición de GA4 (G-…) y un secreto de la API del Measurement Protocol.",
+                "google_google_ads": "Cuenta de Google Ads, acciones de conversión y la autorización OAuth para la Data Manager API.",
+                "google_spend": "Token de desarrollador de Google Ads para traer el gasto diario.",
+                "tiktok_conversions": "Código del píxel y token de acceso de la Events API.",
+                "tiktok_spend": "ID del anunciante y un token con acceso a los informes."
+            },
+            "keepSecret": "{{masked}} (déjalo vacío para conservarlo)",
+            "events": "Eventos que se envían",
+            "testCode": "Código de prueba",
+            "testCodeHelp": "Con un código de prueba (Meta y TikTok) los eventos aparecen en «Probar eventos» y en Google se validan sin registrarse.",
+            "pause": "Pausar este destino",
+            "submit": "Guardar destino"
+        },
+        "credential": {
+            "dataset_id": "ID del conjunto de datos (píxel)",
+            "access_token": "Token de acceso",
+            "ad_account_id": "ID de la cuenta publicitaria",
+            "ads_access_token": "Token para informes",
+            "measurement_id": "ID de medición (G-…)",
+            "api_secret": "Secreto de la API",
+            "ads_customer_id": "ID de cliente de Google Ads",
+            "ads_login_customer_id": "ID de la cuenta administradora (MCC)",
+            "conversion_action_purchase": "Acción de conversión: compra",
+            "conversion_action_lead": "Acción de conversión: lead",
+            "oauth_client_id": "ID de cliente OAuth",
+            "oauth_client_secret": "Secreto de cliente OAuth",
+            "oauth_refresh_token": "Token de actualización OAuth",
+            "ads_developer_token": "Token de desarrollador",
+            "pixel_code": "Código del píxel",
+            "advertiser_id": "ID del anunciante"
+        },
+        "filters": {
+            "platform": "Plataforma",
+            "allPlatforms": "Todas las plataformas",
+            "status": "Estado",
+            "allStatuses": "Todos los estados",
+            "destination": "Destino",
+            "allDestinations": "Todos los destinos",
+            "period": "Periodo",
+            "lastDays_one": "Último día",
+            "lastDays_other": "Últimos {{count}} días"
+        },
+        "deliveries": {
+            "emptyTitle": "Sin entregas en este periodo",
+            "emptyHelp": "Cuando lleguen compras, carritos o leads con consentimiento de marketing, verás aquí cada envío y su resultado.",
+            "when": "Fecha",
+            "destination": "Destino",
+            "conversion": "Conversión",
+            "status": "Estado",
+            "signal": "Datos coincidentes",
+            "detail": "Detalle",
+            "attempt": "Intento {{n}}"
+        },
+        "matchKey": {
+            "email": "correo",
+            "phone": "teléfono",
+            "external_id": "ID de cliente",
+            "click_id": "click ID",
+            "browser_id": "cookie del navegador",
+            "ip": "IP",
+            "name": "nombre",
+            "city": "ciudad"
+        },
+        "quality": {
+            "help": "Qué parte de las conversiones viajó con datos que la plataforma puede cruzar. Más datos = mejor optimización.",
+            "noData": "Todavía no hay entregas en este periodo.",
+            "email_rate": "Con correo",
+            "phone_rate": "Con teléfono",
+            "click_id_rate": "Con click ID",
+            "browser_id_rate": "Con cookie del navegador",
+            "external_id_rate": "Con ID de cliente",
+            "lastErrors": "Últimos errores"
+        },
+        "spend": {
+            "help": "Gasto importado cada día de tus cuentas publicitarias, por campaña.",
+            "emptyTitle": "Aún no hay gasto importado",
+            "emptyHelp": "Agrega la cuenta publicitaria y un token de informes en el destino para traer el gasto diario y calcular el ROAS.",
+            "clicks_one": "{{n}} clic",
+            "clicks_other": "{{n}} clics",
+            "campaigns": "Campañas",
+            "campaign": "Campaña",
+            "platform": "Plataforma",
+            "impressions": "Impresiones",
+            "clicksHeader": "Clics",
+            "spend": "Gasto"
+        }
+    }
+}

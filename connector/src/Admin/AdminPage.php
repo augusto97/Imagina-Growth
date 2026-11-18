@@ -15,12 +15,15 @@ declare(strict_types=1);
 namespace ImaginaGrowth\Connector\Admin;
 
 use ImaginaGrowth\Connector\Backfill\Runner;
+use ImaginaGrowth\Connector\Collectors\Forms\FormCollector;
 use ImaginaGrowth\Connector\Connection\Connection;
 use ImaginaGrowth\Connector\Connection\ConnectionManager;
+use ImaginaGrowth\Connector\Consent\ConsentState;
 use ImaginaGrowth\Connector\Diagnostics;
 use ImaginaGrowth\Connector\Outbox\Flusher;
 use ImaginaGrowth\Connector\Outbox\Outbox;
 use ImaginaGrowth\Connector\Scheduler;
+use ImaginaGrowth\Connector\Settings;
 
 /**
  * Menú «Imagina Growth» con las pestañas Estado, Diagnóstico y Avanzado.
@@ -36,7 +39,7 @@ final class AdminPage {
 	public static function register(): void {
 		add_action( 'admin_menu', array( self::class, 'menu' ) );
 		add_action( 'admin_init', array( self::class, 'maybe_handle_return' ) );
-		foreach ( array( 'connect', 'manual_code', 'disconnect', 'backfill', 'retry_dead', 'flush' ) as $action ) {
+		foreach ( array( 'connect', 'manual_code', 'disconnect', 'backfill', 'retry_dead', 'flush', 'settings' ) as $action ) {
 			add_action( 'admin_post_igr_' . $action, array( self::class, 'action_' . $action ) );
 		}
 	}
@@ -139,6 +142,38 @@ final class AdminPage {
 	}
 
 	/**
+	 * Guarda la pestaña «Datos».
+	 */
+	public static function action_settings(): void {
+		self::guard( 'igr_settings' );
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Verificado en guard().
+		$roles = isset( $_POST['igr_roles'] ) && is_array( $_POST['igr_roles'] ) ? array_map( 'sanitize_key', wp_unslash( $_POST['igr_roles'] ) ) : array();
+		Settings::save(
+			array(
+				'tracker'        => ! empty( $_POST['igr_tracker'] ),
+				'forms'          => ! empty( $_POST['igr_forms'] ),
+				'wa_ref'         => ! empty( $_POST['igr_wa_ref'] ),
+				'wa_numbers'     => isset( $_POST['igr_wa_numbers'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['igr_wa_numbers'] ) ) : '',
+				'wa_format'      => isset( $_POST['igr_wa_format'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['igr_wa_format'] ) ) : '',
+				'banner'         => ! empty( $_POST['igr_banner'] ),
+				'cookie_domain'  => isset( $_POST['igr_cookie_domain'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['igr_cookie_domain'] ) ) : '',
+				'excluded_roles' => empty( $_POST['igr_roles_custom'] ) ? null : $roles,
+			)
+		);
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'tab'        => 'data',
+					'igr_notice' => 'saved',
+				),
+				admin_url( 'admin.php?page=' . self::SLUG )
+			)
+		);
+		exit;
+	}
+
+	/**
 	 * Pinta la página.
 	 */
 	public static function render(): void {
@@ -152,6 +187,7 @@ final class AdminPage {
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 		$tabs = array(
 			'status'      => __( 'Estado', 'imagina-growth' ),
+			'data'        => __( 'Datos', 'imagina-growth' ),
 			'diagnostics' => __( 'Diagnóstico', 'imagina-growth' ),
 			'advanced'    => __( 'Avanzado', 'imagina-growth' ),
 		);
@@ -170,7 +206,9 @@ final class AdminPage {
 			);
 		}
 		echo '</nav><div style="max-width:960px;margin-top:16px">';
-		if ( 'diagnostics' === $tab ) {
+		if ( 'data' === $tab ) {
+			self::render_data();
+		} elseif ( 'diagnostics' === $tab ) {
 			self::render_diagnostics();
 		} elseif ( 'advanced' === $tab ) {
 			self::render_advanced();
@@ -308,6 +346,46 @@ final class AdminPage {
 	}
 
 	/**
+	 * Pestaña «Datos»: qué recoge el sitio.
+	 */
+	private static function render_data(): void {
+		$s       = Settings::all();
+		$banner  = ConsentState::banner();
+		$forms   = FormCollector::detected();
+		$custom  = null !== $s['excluded_roles'];
+		$checked = static fn( bool $on ): string => $on ? ' checked' : '';
+		$inner   = '<table class="form-table" role="presentation"><tbody>';
+		$inner  .= '<tr><th scope="row">' . esc_html__( 'Seguimiento en el navegador', 'imagina-growth' ) . '</th><td><label><input type="checkbox" name="igr_tracker" value="1"' . $checked( (bool) $s['tracker'] ) . '> ' . esc_html__( 'Cargar el script de seguimiento (máximo 6 KB) en las páginas del sitio', 'imagina-growth' ) . '</label></td></tr>';
+		$inner  .= '<tr><th scope="row">' . esc_html__( 'Roles que no se miden', 'imagina-growth' ) . '</th><td><label><input type="checkbox" name="igr_roles_custom" value="1"' . $checked( $custom ) . '> ' . esc_html__( 'Elegir aquí en lugar de usar los del panel de Imagina Growth', 'imagina-growth' ) . '</label><br>';
+		foreach ( wp_roles()->get_names() as $role => $name ) {
+			$on     = $custom && in_array( $role, (array) $s['excluded_roles'], true );
+			$inner .= '<label style="display:inline-block;margin:4px 12px 0 0"><input type="checkbox" name="igr_roles[]" value="' . esc_attr( (string) $role ) . '"' . $checked( $on ) . '> ' . esc_html( translate_user_role( (string) $name ) ) . '</label>';
+		}
+		$inner .= '</td></tr>';
+		$inner .= '<tr><th scope="row">' . esc_html__( 'Formularios', 'imagina-growth' ) . '</th><td><label><input type="checkbox" name="igr_forms" value="1"' . $checked( (bool) $s['forms'] ) . '> ' . esc_html__( 'Registrar los envíos de formularios como leads', 'imagina-growth' ) . '</label><p class="description">' . esc_html(
+			array() === $forms
+				? __( 'No se detectó ningún plugin de formularios compatible.', 'imagina-growth' )
+				/* translators: %s: lista de plugins de formularios. */
+				: sprintf( __( 'Detectados: %s.', 'imagina-growth' ), implode( ', ', $forms ) )
+		) . '</p></td></tr>';
+		$inner .= '<tr><th scope="row">' . esc_html__( 'Atribución de WhatsApp', 'imagina-growth' ) . '</th><td><label><input type="checkbox" name="igr_wa_ref" value="1"' . $checked( (bool) $s['wa_ref'] ) . '> ' . esc_html__( 'Agregar una referencia corta al mensaje de los enlaces de WhatsApp', 'imagina-growth' ) . '</label>';
+		$inner .= '<p><label>' . esc_html__( 'Números del negocio (con indicativo, separados por coma)', 'imagina-growth' ) . '<br><input type="text" class="regular-text" name="igr_wa_numbers" value="' . esc_attr( implode( ', ', (array) $s['wa_numbers'] ) ) . '" placeholder="573001234567"></label></p>';
+		$inner .= '<p><label>' . esc_html__( 'Formato del mensaje', 'imagina-growth' ) . '<br><input type="text" class="regular-text" name="igr_wa_format" value="' . esc_attr( (string) $s['wa_format'] ) . '"></label></p><p class="description">' . esc_html__( 'Debe contener {token}; {text} es el mensaje original.', 'imagina-growth' ) . '</p></td></tr>';
+		$inner .= '<tr><th scope="row">' . esc_html__( 'Consentimiento de cookies', 'imagina-growth' ) . '</th><td>';
+		if ( in_array( $banner, array( 'none', 'igr-banner' ), true ) ) {
+			$inner .= '<label><input type="checkbox" name="igr_banner" value="1"' . $checked( (bool) $s['banner'] ) . '> ' . esc_html__( 'Mostrar un aviso de cookies liviano de Imagina Growth', 'imagina-growth' ) . '</label><p class="description">' . esc_html__( 'Sin aviso, se mide la analítica y nunca se activan las cookies de anuncios.', 'imagina-growth' ) . '</p>';
+		} else {
+			$inner .= '<input type="hidden" name="igr_banner" value="' . ( $s['banner'] ? '1' : '' ) . '">';
+			/* translators: %s: plugin de cookies. */
+			$inner .= '<p>' . esc_html( sprintf( __( 'Se respeta la decisión del visitante en %s.', 'imagina-growth' ), $banner ) ) . '</p>';
+		}
+		$inner .= '</td></tr>';
+		$inner .= '<tr><th scope="row">' . esc_html__( 'Dominio de la cookie', 'imagina-growth' ) . '</th><td><input type="text" class="regular-text" name="igr_cookie_domain" value="' . esc_attr( (string) $s['cookie_domain'] ) . '" placeholder=".tienda.co"><p class="description">' . esc_html__( 'Solo si la tienda y el sitio usan subdominios distintos. Vacío = el dominio actual.', 'imagina-growth' ) . '</p></td></tr>';
+		$inner .= '</tbody></table><p><button class="button button-primary">' . esc_html__( 'Guardar', 'imagina-growth' ) . '</button></p>';
+		self::form( 'igr_settings', $inner );
+	}
+
+	/**
 	 * Pestaña Avanzado.
 	 */
 	private static function render_advanced(): void {
@@ -345,6 +423,7 @@ final class AdminPage {
 			'backfill'     => __( 'La importación histórica quedó en cola.', 'imagina-growth' ),
 			'retry'        => __( 'Los eventos fallidos se reintentarán en el próximo envío.', 'imagina-growth' ),
 			'flush'        => __( 'El envío quedó en cola.', 'imagina-growth' ),
+			'saved'        => __( 'Los ajustes se guardaron.', 'imagina-growth' ),
 		);
 		if ( isset( $messages[ $notice ] ) ) {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $messages[ $notice ] ) . '</p></div>';

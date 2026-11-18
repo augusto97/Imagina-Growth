@@ -1,0 +1,45 @@
+{
+    "client_id": "111222333.1731880000",
+    "timestamp_micros": 1794956700000000,
+    "user_data": {
+        "sha256_email_address": [
+            "52f5655387a4bdcb850a93ce7223979b4a360fa146c89c47d5d897d10a13f76e"
+        ],
+        "sha256_phone_number": [
+            "5b181b132cc2c1b40eb94df758a7b9048cbcd7581782bd3dd8d5a2f8aca96ad0"
+        ],
+        "address": [
+            {
+                "sha256_first_name": "24d4b96f58da6d4a8512313bbd02a28ebf0ca95dec6e4c86ef78ce7f01e788ac",
+                "sha256_last_name": "7fac0d0407d163311247ad4e99c8a02cda51b32a7d544507e1e4873c7e1befaf",
+                "city": "manizales",
+                "region": "cal",
+                "country": "CO"
+            }
+        ]
+    },
+    "events": [
+        {
+            "name": "purchase",
+            "params": {
+                "engagement_time_msec": 1,
+                "session_id": "s_1",
+                "page_location": "https://tienda.co/finalizar-compra/order-received/1234/",
+                "page_referrer": "https://l.facebook.com/",
+                "transaction_id": "1234",
+                "value": 282000,
+                "currency": "COP",
+                "items": [
+                    {
+                        "item_id": "91",
+                        "item_name": "Pintura Azul 1 galón",
+                        "price": 150000,
+                        "quantity": 2,
+                        "item_category": "12"
+                    }
+                ],
+                "igr_event_id": "0193a7b2-6c1e-7f3a-9a51-2f6d1c0e4b7a"
+            }
+        }
+    ]
+}

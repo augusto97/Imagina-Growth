@@ -112,6 +112,7 @@ final class RemoteConfig {
 		$data['fetched_at'] = time();
 		update_option( self::OPTION, $data, false );
 		self::$settings = null;
+		\ImaginaGrowth\Connector\Tracking\TrackerConfig::rebuild();
 		return true;
 	}
 

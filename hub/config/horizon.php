@@ -210,6 +210,15 @@ return [
             'timeout' => 60,
             'nice' => 0,
         ],
+        // Conversiones hacia anuncios (hub/CLAUDE.md §15: conversions:*, 2 workers).
+        'supervisor-conversions' => [
+            'connection' => 'redis',
+            'queue' => ['conversions:meta', 'conversions:google', 'conversions:tiktok'],
+            'balance' => 'simple',
+            'maxProcesses' => 2,
+            'tries' => 1,
+            'timeout' => 30,
+        ],
     ],
 
     'environments' => [

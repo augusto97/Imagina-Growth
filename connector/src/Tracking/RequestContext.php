@@ -40,10 +40,8 @@ final class RequestContext {
 			$identity['session_id'] = $sid;
 		}
 
-		$consent = self::consent();
-		if ( null !== $consent ) {
-			$context['consent'] = $consent;
-		}
+		$consent            = self::consent( $cookies );
+		$context['consent'] = $consent;
 
 		$src = self::source( self::cookie( $cookies, '_igr_src' ) );
 		if ( null !== $src['first'] ) {
@@ -60,7 +58,7 @@ final class RequestContext {
 		}
 
 		// Sin consentimiento de marketing no se leen las cookies de anuncios (tracker/CLAUDE.md §7).
-		if ( null === $consent || false !== $consent['marketing'] ) {
+		if ( $consent['marketing'] ) {
 			$ads = array();
 			$fbp = self::cookie( $cookies, '_fbp' );
 			if ( null !== $fbp && 1 === preg_match( '/^fb\.\d\.\d+\.[\w-]+$/', $fbp ) ) {
@@ -90,19 +88,14 @@ final class RequestContext {
 	}
 
 	/**
-	 * Consentimiento desde la WP Consent API, si existe.
+	 * Consentimiento del visitante: WP Consent API, banners conocidos, el banner
+	 * propio o el valor por defecto conservador (ConsentState).
 	 *
-	 * @return array{analytics:bool, marketing:bool, source:string}|null
+	 * @param array<string, mixed>|null $cookies Cookies.
+	 * @return array{analytics:bool, marketing:bool, source:string}
 	 */
-	public static function consent(): ?array {
-		if ( function_exists( 'wp_has_consent' ) ) {
-			return array(
-				'analytics' => (bool) wp_has_consent( 'statistics' ),
-				'marketing' => (bool) wp_has_consent( 'marketing' ),
-				'source'    => 'wp-consent-api',
-			);
-		}
-		return null;
+	public static function consent( ?array $cookies = null ): array {
+		return \ImaginaGrowth\Connector\Consent\ConsentState::from_request( $cookies );
 	}
 
 	/**

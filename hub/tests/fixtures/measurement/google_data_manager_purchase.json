@@ -1,0 +1,45 @@
+{
+    "destinations": [
+        {
+            "operatingAccount": {
+                "accountType": "GOOGLE_ADS",
+                "accountId": "1234567890"
+            },
+            "productDestinationId": "555"
+        }
+    ],
+    "encoding": "HEX",
+    "consent": {
+        "adUserData": "CONSENT_GRANTED",
+        "adPersonalization": "CONSENT_GRANTED"
+    },
+    "events": [
+        {
+            "transactionId": "1234",
+            "eventTimestamp": "2026-11-17T23:05:00Z",
+            "conversionValue": 282000,
+            "currency": "COP",
+            "eventSource": "WEB",
+            "userData": {
+                "userIdentifiers": [
+                    {
+                        "emailAddress": "52f5655387a4bdcb850a93ce7223979b4a360fa146c89c47d5d897d10a13f76e"
+                    },
+                    {
+                        "phoneNumber": "5b181b132cc2c1b40eb94df758a7b9048cbcd7581782bd3dd8d5a2f8aca96ad0"
+                    },
+                    {
+                        "address": {
+                            "givenName": "24d4b96f58da6d4a8512313bbd02a28ebf0ca95dec6e4c86ef78ce7f01e788ac",
+                            "familyName": "7fac0d0407d163311247ad4e99c8a02cda51b32a7d544507e1e4873c7e1befaf",
+                            "regionCode": "CO"
+                        }
+                    }
+                ]
+            },
+            "adIdentifiers": {
+                "gclid": "Cj0KCQ"
+            }
+        }
+    ]
+}

@@ -1,0 +1,32 @@
+{
+    "event": "CompletePayment",
+    "event_time": 1794956700,
+    "event_id": "0193a7b2-6c1e-7f3a-9a51-2f6d1c0e4b7a",
+    "user": {
+        "email": "52f5655387a4bdcb850a93ce7223979b4a360fa146c89c47d5d897d10a13f76e",
+        "phone": "5b181b132cc2c1b40eb94df758a7b9048cbcd7581782bd3dd8d5a2f8aca96ad0",
+        "external_id": "257df296002a93eaa6abbefb8d8ea9549775146258eb41ce55bbeb7f08a40217",
+        "ttclid": "E.C.P.tt",
+        "ttp": "ttp-cookie",
+        "ip": "190.24.1.10",
+        "user_agent": "Mozilla/5.0 (iPhone)"
+    },
+    "properties": {
+        "currency": "COP",
+        "value": 282000,
+        "content_type": "product",
+        "contents": [
+            {
+                "content_id": "91",
+                "content_name": "Pintura Azul 1 galón",
+                "quantity": 2,
+                "price": 150000
+            }
+        ],
+        "order_id": "1234"
+    },
+    "page": {
+        "url": "https://tienda.co/finalizar-compra/order-received/1234/",
+        "referrer": "https://l.facebook.com/"
+    }
+}

@@ -1,0 +1,23 @@
+{
+    "name": "@imagina-growth/tracker",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Script de seguimiento del navegador de Imagina Growth (≤ 6 KB gzip, sin dependencias).",
+    "type": "module",
+    "scripts": {
+        "build": "node scripts/build.mjs",
+        "check:size": "node scripts/check.mjs",
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run",
+        "check": "npm run typecheck && npm run test && npm run build && npm run check:size"
+    },
+    "devDependencies": {
+        "@types/node": "^22.20.5",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "esbuild": "^0.28.2",
+        "happy-dom": "^21.0.4",
+        "typescript": "~5.9",
+        "vitest": "^5.1.0"
+    }
+}

@@ -13,6 +13,11 @@ use App\Domain\Workspaces\Data\WorkspaceData;
 use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Ingest\IngestStream;
+use App\Analytics\Builders\KpiDailyBuilder;
+use App\Analytics\Builders\SessionsBuilder;
+use App\Domain\Intelligence\Insights\InsightEngine;
+use App\Domain\Intelligence\Rfm\RfmCalculator;
+use App\Support\Demo\DemoBrowsingWriter;
 use App\Support\Demo\DemoStoreGenerator;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
@@ -32,7 +37,9 @@ final class SeedDemoCommand extends Command
         {--orders=10000}
         {--months=24}
         {--seed=2026}
-        {--process : Procesa el stream al terminar y muestra la conciliación}';
+        {--browsing=direct : Navegación demo: direct (directo a ClickHouse) o none}
+        {--browsing-months=12 : Meses de navegación hacia atrás}
+        {--process : Procesa el stream al terminar, arma sesiones, KPI, RFM y hallazgos, y muestra la conciliación}';
 
     protected $description = 'Genera una tienda colombiana creíble (clientes, pedidos COP, festivos, PSE, Nequi, contraentrega) y la ingiere';
 
@@ -56,9 +63,12 @@ final class SeedDemoCommand extends Command
                 'public_key' => SiteKeys::publicKey(), 'secret' => SiteKeys::secret(), 'status' => Site::STATUS_CONNECTED,
                 'timezone' => $workspace->timezone, 'currency' => 'COP', 'connected_at' => now(),
             ]);
+            // ch_id es autoincremental fuera de la clave primaria: hay que leerlo de la base.
+            $site->refresh();
 
             $until = CarbonImmutable::now('America/Bogota')->startOfHour();
             $generator = new DemoStoreGenerator($site->publicId(), $until, (int) $this->option('months'), (int) $this->option('seed'));
+            $browsing = $this->option('browsing') === 'direct' ? $generator->withBrowsing((int) $this->option('browsing-months')) : null;
             $started = microtime(true);
             $buffer = [];
             $count = 0;
@@ -73,6 +83,12 @@ final class SeedDemoCommand extends Command
             $stream->push($site, $workspace->ch_id, $buffer);
             $count += count($buffer);
             $this->info(sprintf('%d eventos generados y encolados en %.1f s.', $count, microtime(true) - $started));
+
+            if ($browsing !== null) {
+                $started = microtime(true);
+                $rows = app(DemoBrowsingWriter::class)->write($workspace, $site, $browsing, $until->subMonths((int) $this->option('browsing-months'))->startOfDay());
+                $this->info(sprintf('%d eventos de navegación escritos directo en ClickHouse en %.1f s.', $rows, microtime(true) - $started));
+            }
 
             $from = $until->subMonths((int) $this->option('months'))->toDateString();
             $backfill->handle($site, [
@@ -91,6 +107,14 @@ final class SeedDemoCommand extends Command
             $started = microtime(true);
             Artisan::call('igr:ingest:work', ['--once' => true], $this->output);
             $this->info(sprintf('Ingesta procesada en %.1f s.', microtime(true) - $started));
+
+            $started = microtime(true);
+            $since = $until->subMonths(max((int) $this->option('months'), (int) $this->option('browsing-months')) + 1);
+            app(SessionsBuilder::class)->build($workspace, $since, CarbonImmutable::now()->addDay());
+            app(KpiDailyBuilder::class)->build($workspace, (int) $since->diffInDays(now()) + 2);
+            app(RfmCalculator::class)->run($workspace);
+            app(InsightEngine::class)->run($workspace);
+            $this->info(sprintf('Sesiones, KPI diarios, RFM y hallazgos listos en %.1f s.', microtime(true) - $started));
 
             $result = $reconciliation->handle($site->fresh() ?? $site);
             $this->table(['Estado', 'WooCommerce', 'Hub', 'Total WC', 'Total hub', 'OK'], array_map(fn ($r) => [

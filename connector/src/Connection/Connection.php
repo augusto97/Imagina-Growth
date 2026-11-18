@@ -163,6 +163,7 @@ final class Connection {
 		update_option( self::OPTION, $data, false );
 		self::$cache = $data;
 		self::update_state( array( 'site_id' => $data['site_id'] ) );
+		\ImaginaGrowth\Connector\Tracking\TrackerConfig::rebuild();
 	}
 
 	/**
@@ -187,7 +188,12 @@ final class Connection {
 		delete_option( self::OPTION );
 		delete_option( RemoteConfig::OPTION );
 		self::$cache = null;
-		self::update_state( array( 'site_id' => null ) );
+		self::update_state(
+			array(
+				'site_id' => null,
+				'trk'     => null,
+			)
+		);
 	}
 
 	/**

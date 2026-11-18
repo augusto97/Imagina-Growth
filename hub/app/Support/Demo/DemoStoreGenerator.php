@@ -27,6 +27,8 @@ final class DemoStoreGenerator
     /** @var list<array<string, mixed>> */
     private array $products = [];
 
+    private ?DemoBrowsingGenerator $browsing = null;
+
     /** @var array{orders_by_status: array<string, array{count: int, total: string}>, refunds: array{count: int, total: string}} */
     private array $reconciliation = ['orders_by_status' => [], 'refunds' => ['count' => 0, 'total' => '0.00']];
 
@@ -38,6 +40,23 @@ final class DemoStoreGenerator
     ) {}
 
     /**
+     * Activa la navegación demo: cada pedido dentro de la ventana de
+     * navegación tiene su sesión de compra con el mismo visitante y sesión.
+     */
+    public function withBrowsing(int $months = 12, float $conversionRate = 0.016): DemoBrowsingGenerator
+    {
+        $this->browsing = new DemoBrowsingGenerator($this->siteId, $this->until, [], $months, $this->seed, $conversionRate);
+
+        return $this->browsing;
+    }
+
+    /** @return list<array<string, mixed>> catálogo generado (después de recorrer events()) */
+    public function products(): array
+    {
+        return $this->products;
+    }
+
+    /**
      * @return \Generator<int, array<string, mixed>> sobres de evento
      */
     public function events(int $customers, int $orders): \Generator
@@ -46,6 +65,7 @@ final class DemoStoreGenerator
         $from = $this->until->subMonths($this->months)->startOfDay();
 
         yield from $this->catalog($from);
+        $this->browsing?->withProducts($this->products);
 
         // Clientes registrados con una propensión de compra muy desigual (la mayoría compra una vez).
         $people = [];
@@ -79,9 +99,12 @@ final class DemoStoreGenerator
             [$order, $refunds] = $this->order((string) $orderId, $buyer, $createdAt, $refundId);
             $refundId += count($refunds);
 
-            yield $this->envelope('order.created', "order:{$orderId}:created", $createdAt, ['order' => $order]);
+            // Con navegación: el pedido lleva el visitante, la sesión y el último contacto (cookies del connector).
+            $session = $this->browsing?->covers($createdAt) ? $this->browsing->purchaseSession($buyer, $order, $createdAt) : null;
+
+            yield $this->envelope('order.created', "order:{$orderId}:created", $createdAt, ['order' => $order], $session);
             if ($order['paid_at'] !== null) {
-                yield $this->envelope('order.paid', "order:{$orderId}:paid", CarbonImmutable::parse($order['paid_at']), ['order' => $order]);
+                yield $this->envelope('order.paid', "order:{$orderId}:paid", CarbonImmutable::parse($order['paid_at']), ['order' => $order], $session);
             }
             foreach ($refunds as $refund) {
                 yield $this->envelope('order.refunded', 'refund:'.$refund['refund_id'], CarbonImmutable::parse($refund['refunded_at']), $refund + ['order' => $order]);
@@ -135,7 +158,7 @@ final class DemoStoreGenerator
                         'popularity' => exp($this->gauss() * 0.9),
                     ];
                     $product['hash'] = substr(hash('sha256', json_encode($product) ?: ''), 0, 32);
-                    $this->products[] = $product;
+                    $this->products[] = $product + ['category_slug' => $slug, 'category_name' => $category];
                     $payload = $product;
                     unset($payload['popularity']);
                     yield $this->envelope('catalog.product_upserted', "product:{$productId}:{$product['hash']}", $from, $payload);
@@ -302,7 +325,7 @@ final class DemoStoreGenerator
      * @param  array<string, mixed>  $properties
      * @return array<string, mixed>
      */
-    private function envelope(string $event, string $key, CarbonImmutable $at, array $properties): array
+    private function envelope(string $event, string $key, CarbonImmutable $at, array $properties, ?array $session = null): array
     {
         return [
             'schema_version' => 1,
@@ -310,8 +333,8 @@ final class DemoStoreGenerator
             'event' => $event,
             'occurred_at' => $at->toIso8601String(),
             'source' => ['type' => 'import', 'platform' => 'woocommerce', 'site_id' => $this->siteId, 'sdk' => 'hub/seed-demo'],
-            'identity' => new \stdClass,
-            'context' => ['currency' => 'COP', 'locale' => 'es-CO'],
+            'identity' => $session['identity'] ?? new \stdClass,
+            'context' => $session['context'] ?? ['currency' => 'COP', 'locale' => 'es-CO'],
             'properties' => $properties,
         ];
     }

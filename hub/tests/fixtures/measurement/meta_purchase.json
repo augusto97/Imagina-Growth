@@ -1,0 +1,54 @@
+{
+    "event_name": "Purchase",
+    "event_time": 1794956700,
+    "event_id": "0193a7b2-6c1e-7f3a-9a51-2f6d1c0e4b7a",
+    "action_source": "website",
+    "event_source_url": "https://tienda.co/finalizar-compra/order-received/1234/",
+    "user_data": {
+        "em": [
+            "52f5655387a4bdcb850a93ce7223979b4a360fa146c89c47d5d897d10a13f76e"
+        ],
+        "ph": [
+            "173afe355201e7ed8e349c576f30ebd4be4314b65e1d87196ae5f75b21518172"
+        ],
+        "fn": [
+            "24d4b96f58da6d4a8512313bbd02a28ebf0ca95dec6e4c86ef78ce7f01e788ac"
+        ],
+        "ln": [
+            "7fac0d0407d163311247ad4e99c8a02cda51b32a7d544507e1e4873c7e1befaf"
+        ],
+        "ct": [
+            "61a88a7d9990007d0716e1eba421999e757e00dd8f9d7f5b92b0a9f6e4465518"
+        ],
+        "st": [
+            "f28c5d59eb1307e88ffc2943867931a33eaa9dbd2e246e40e60c1c12139bd960"
+        ],
+        "country": [
+            "c330ec504d82c24fcd10be978fa74b8a3185a8df719604a85443bb9ca279f5a2"
+        ],
+        "external_id": [
+            "257df296002a93eaa6abbefb8d8ea9549775146258eb41ce55bbeb7f08a40217"
+        ],
+        "client_ip_address": "190.24.1.10",
+        "client_user_agent": "Mozilla/5.0 (iPhone)",
+        "fbc": "fb.1.1794956700000.IwAR0abc",
+        "fbp": "fb.1.1731880000000.123456789"
+    },
+    "custom_data": {
+        "value": 282000,
+        "currency": "COP",
+        "content_type": "product",
+        "content_ids": [
+            "91"
+        ],
+        "contents": [
+            {
+                "id": "91",
+                "quantity": 2,
+                "item_price": 150000
+            }
+        ],
+        "num_items": 2,
+        "order_id": "1234"
+    }
+}
