@@ -170,7 +170,7 @@ export function Sidebar() {
     return (
         <aside className="igr:flex igr:h-full igr:w-60 igr:shrink-0 igr:flex-col igr:border-r igr:bg-sidebar">
             <div className="igr:flex igr:h-12 igr:items-center igr:px-4">
-                <Logo />
+                <Logo brand={workspace.branding ?? null} />
             </div>
             <div className="igr:px-2">
                 <WorkspaceSwitcher />

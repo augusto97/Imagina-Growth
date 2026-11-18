@@ -1,5 +1,5 @@
 import { Download, FileText, RefreshCw, Send, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -71,8 +71,8 @@ export function ClientReportsPage() {
                         </THead>
                         <TBody>
                             {reports.data.reports.map((r) => (
-                                <>
-                                    <TR key={r.id}>
+                                <Fragment key={r.id}>
+                                    <TR>
                                         <TD className="igr:font-medium igr:first-letter:uppercase">
                                             <button type="button" className="igr:hover:underline" onClick={() => toggle(r.id)} aria-expanded={open === r.id}>
                                                 {r.month || r.period}
@@ -108,7 +108,7 @@ export function ClientReportsPage() {
                                         </TD>
                                     </TR>
                                     {open === r.id ? (
-                                        <TR key={`${r.id}-summary`}>
+                                        <TR>
                                             <TD colSpan={5} className="igr:bg-muted/30">
                                                 <div className="igr:space-y-2 igr:py-1 igr:text-[13px] igr:whitespace-pre-line">
                                                     {summary[r.id]?.summary ?? <Skeleton className="igr:h-12 igr:w-full" />}
@@ -122,7 +122,7 @@ export function ClientReportsPage() {
                                             </TD>
                                         </TR>
                                     ) : null}
-                                </>
+                                </Fragment>
                             ))}
                         </TBody>
                     </Table>

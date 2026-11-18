@@ -45,6 +45,15 @@ export interface Workspace {
     role: WorkspaceRole | null;
     abilities: Ability[];
     requires_two_factor: boolean;
+    /** Marca que ve el panel en este espacio de trabajo (M22, marca blanca). */
+    branding?: WorkspaceBranding;
+}
+
+export interface WorkspaceBranding {
+    name: string;
+    logo_url: string | null;
+    primary_color: string | null;
+    white_label: boolean;
 }
 
 export interface Me {
