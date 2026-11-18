@@ -20,7 +20,7 @@ use Throwable;
  * - `emails`, `wa_marketing`, `wa_utility` (utilidad y autenticación), `wa_service`
  *   (servicio y transaccional) y `sms`: mensajes salientes enviados en el mes.
  * - `ai_tokens`: tokens de entrada y salida de `ai_usage`.
- * `api_requests` no se calcula aquí: lo suma el medidor de la API.
+ * `api_requests` no se calcula aquí: lo suma el medidor de la API (`ApiMeter`) y lo agrega ComputeUsage.
  */
 final class UsageCalculator
 {

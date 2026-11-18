@@ -35,7 +35,7 @@ it('con un token válido devuelve el espacio de trabajo, los alcances y el lími
         ->assertJsonPath('rate_limit.per_minute', 120)
         ->assertHeader('X-RateLimit-Limit', '120');
 
-    expect(ApiMeter::count($this->ws->id))->toBe(1)
+    expect(ApiMeter::count($this->ws))->toBe(1)
         ->and(ApiClient::withoutWorkspaceScope()->find($client->id)->last_used_at)->not->toBeNull();
 });
 

@@ -75,6 +75,20 @@ return [
         'timeout' => (int) env('CLICKHOUSE_TIMEOUT', 30),
     ],
 
+    // API pública y servidor MCP (M19): peticiones por minuto si el plan no fija `api_requests_per_minute`.
+    'api' => [
+        'per_minute' => (int) env('IGR_API_PER_MINUTE', 120),
+    ],
+
+    // Webhooks salientes (M19): se pausan tras N fallos seguidos. Las URLs privadas (localhost,
+    // redes internas) solo se aceptan en local y pruebas, salvo que se diga otra cosa.
+    'webhooks' => [
+        'pause_after_failures' => (int) env('IGR_WEBHOOKS_PAUSE_AFTER_FAILURES', 15),
+        'allow_private_urls' => env('IGR_WEBHOOKS_ALLOW_PRIVATE_URLS') !== null
+            ? (bool) env('IGR_WEBHOOKS_ALLOW_PRIVATE_URLS')
+            : in_array(env('APP_ENV', 'production'), ['local', 'testing'], true),
+    ],
+
     'roles' => [
         'workspace' => ['owner', 'admin', 'marketing', 'agent', 'viewer'],
         'account' => ['agency_owner', 'agency_member'],

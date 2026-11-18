@@ -115,8 +115,15 @@ it('consulta métricas de la capa semántica y los KPI del mes', function () {
         ->assertJsonPath('period.from', '2026-10-01')->assertJsonPath('period.to', '2026-10-31')->assertJsonStructure(['kpis' => ['revenue', 'orders', 'aov'], 'compare']);
 });
 
-it('las métricas web de Imagina Turbo esperan al evento page.vitals del contrato', function () {
+it('las métricas web de Imagina Turbo entran como page.vitals (contrato v5) a ClickHouse', function () {
+    $this->useIngestInfrastructure();
     [$token] = apiToken($this->ws, ['events:write']);
-    $this->postJson('/api/v1/vitals', ['page' => 'https://tienda.co/', 'lcp_ms' => 2100, 'inp_ms' => 180, 'cls' => 0.05], apiHeaders($token))
-        ->assertStatus(501)->assertJsonPath('error.code', 'vitals_not_enabled');
+    $this->postJson('/api/v1/vitals', ['page' => 'https://tienda.co/', 'lcp_ms' => 2100, 'inp_ms' => 180, 'cls' => 0.05, 'device' => 'mobile', 'samples' => 300], apiHeaders($token))
+        ->assertStatus(202)->assertJsonPath('accepted', 1);
+    $this->postJson('/api/v1/vitals', ['page' => 'https://tienda.co/', 'lcp_ms' => 2100, 'inp_ms' => 180, 'cls' => 0.05, 'device' => 'tv'], apiHeaders($token))
+        ->assertUnprocessable();
+
+    $this->runWorker();
+    $rows = $this->chRows($this->ws, "SELECT event, source_type, toInt64(properties.lcp_ms) AS lcp FROM events WHERE workspace_id = {workspace_id:UInt32}");
+    expect($rows)->toHaveCount(1)->and($rows[0]['event'])->toBe('page.vitals')->and($rows[0]['source_type'])->toBe('server')->and((int) $rows[0]['lcp'])->toBe(2100);
 });

@@ -39,7 +39,7 @@ final class IntegrationsController
         return new JsonResponse([
             'plan' => ['api' => $entitlements->allows($workspace, 'api'), 'mcp' => $entitlements->allows($workspace, 'mcp')],
             'rate_limit_per_minute' => $resolver->perMinute($workspace),
-            'requests_this_month' => ApiMeter::count($workspace->id),
+            'requests_this_month' => ApiMeter::count($workspace),
             'base_url' => $base.'/api/v1',
             'mcp_url' => $base.'/api/mcp',
             'docs_url' => $base.'/api/docs',

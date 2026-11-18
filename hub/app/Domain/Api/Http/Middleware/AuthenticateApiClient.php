@@ -32,7 +32,7 @@ final class AuthenticateApiClient
         $client = $result['client'];
         $request->attributes->set(ApiContext::ATTRIBUTE, $client);
         $this->current->set($result['workspace']);
-        ApiMeter::hit($client->workspace_id);
+        ApiMeter::hit($result['workspace']);
 
         return $next($request);
     }

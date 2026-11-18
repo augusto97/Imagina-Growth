@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/page.vitals.json",
+  "title": "page.vitals",
+  "description": "Métricas web reales de una página (p75 del periodo), enviadas por Imagina Turbo con la API pública (POST /api/v1/vitals). Sirven para cruzar la lentitud con la conversión.",
+  "type": "object",
+  "required": [
+    "page",
+    "lcp_ms",
+    "inp_ms",
+    "cls"
+  ],
+  "properties": {
+    "page": {
+      "type": "string",
+      "maxLength": 2048
+    },
+    "lcp_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 120000
+    },
+    "inp_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 120000
+    },
+    "cls": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "ttfb_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 120000
+    },
+    "device": {
+      "enum": [
+        "mobile",
+        "tablet",
+        "desktop"
+      ]
+    },
+    "samples": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "page": "https://tienda.example.co/producto/cafe-de-origen",
+      "lcp_ms": 2310,
+      "inp_ms": 180,
+      "cls": 0.04,
+      "ttfb_ms": 620,
+      "device": "mobile",
+      "samples": 412
+    },
+    {
+      "page": "https://clinica.example.co/valoracion",
+      "lcp_ms": 3900,
+      "inp_ms": 240,
+      "cls": 0.12
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "page": "https://tienda.example.co/",
+      "lcp_ms": 2310
+    },
+    {
+      "page": "https://tienda.example.co/",
+      "lcp_ms": -1,
+      "inp_ms": 100,
+      "cls": 0.1
+    },
+    {
+      "page": "https://tienda.example.co/",
+      "lcp_ms": 2000,
+      "inp_ms": 100,
+      "cls": 0.1,
+      "device": "tv"
+    }
+  ]
+}

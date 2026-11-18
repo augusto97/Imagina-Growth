@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Billing\Usage;
 
+use App\Domain\Api\Support\ApiMeter;
 use App\Domain\Workspaces\Models\Workspace;
 use Illuminate\Support\Facades\DB;
 
@@ -24,11 +25,12 @@ final class ComputeUsage
     public function handle(Workspace $workspace, ?string $period = null, bool $evaluate = true): array
     {
         $period ??= UsageCalculator::currentPeriod($workspace);
-        $values = $this->calculator->compute($workspace, $period);
+        // `api_requests` sale del medidor de la API pública y MCP (contador por mes en Redis).
+        $values = $this->calculator->compute($workspace, $period) + ['api_requests' => ApiMeter::count($workspace, $period)];
         DB::table('usage_counters')->upsert(
             [['workspace_id' => $workspace->id, 'period' => $period, 'computed_at' => now()] + $values],
             ['workspace_id', 'period'],
-            [...UsageCalculator::METRICS, 'computed_at'],
+            [...UsageCalculator::METRICS, 'api_requests', 'computed_at'],
         );
         if ($evaluate && $period === UsageCalculator::currentPeriod($workspace)) {
             $this->alerts->check($workspace, $period);
