@@ -328,3 +328,9 @@ La base es la migración `2026_11_22_000100_create_phase4_tables`; cada módulo 
 **Agente de ventas**
 - `ai_agent_settings` (una fila por espacio de trabajo): alcance del negocio, tono, políticas (envíos, cambios, medios de pago, horarios), reglas de traspaso y de descuentos (el agente nunca promete otros) y el límite de pasos.
 - `ai_agent_turns`: cada turno del agente con las herramientas que usó, la validación de sus cifras contra lo que devolvieron, el modelo, los tokens y la revisión humana.
+
+**Migraciones de los módulos**
+- `2026_11_22_100100` (predicciones): `prediction_runs.status` de 24 caracteres (`insufficient_data` no cabía) e índice por espacio de trabajo, modelo y fecha.
+- `2026_11_22_200100` (hallazgos): `insight_assumptions` (nueva), los supuestos editables del impacto por espacio de trabajo (los valores por defecto viven en `config/igr-insights.php`); `insights.valid_until` (vigencia de 7 días los nocturnos y 14 los semanales) e índice por huella.
+- `2026_11_22_500100` (bandeja): `conversations.opened_at` (inicio del ciclo actual, para la primera respuesta y la resolución) y `awaiting_since` (el primer entrante sin responder), e índice por persona asignada y estado.
+- `2026_11_22_600100` (agente): `ai_agent_turns.conversation_id` opcional (los turnos de «Probar el agente»), `is_test`, `handoff_reason` y `cart_id` (el carrito que armó el agente, para medir sus ventas).
