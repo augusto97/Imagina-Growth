@@ -16,6 +16,7 @@ import {
     Settings2,
     Share2,
     Shapes,
+    ShieldCheck,
     Users,
     UsersRound,
     Workflow,
@@ -31,12 +32,12 @@ export interface NavItem {
     shortcut?: string;       // tecla después de «g»
 }
 
-/** Navegación completa de hub/CLAUDE.md §14. Solo la Fase 0 está activa. */
+/** Navegación completa de hub/CLAUDE.md §14. Activas las fases 0 y 1. */
 export const MAIN_NAV: NavItem[] = [
     { key: 'home', to: '', icon: Home, ability: 'viewDashboards', shortcut: 'h' },
     { key: 'contacts', to: 'contactos', icon: Users, ability: 'viewAssignedContacts', shortcut: 'c' },
-    { key: 'segments', icon: Shapes, phase: 1 },
-    { key: 'analytics', icon: BarChart3, phase: 1 },
+    { key: 'segments', to: 'segmentos', icon: Shapes, ability: 'viewAllContacts', shortcut: 'n' },
+    { key: 'analytics', to: 'analitica', icon: BarChart3, ability: 'viewDashboards', shortcut: 'a' },
     { key: 'flows', icon: Workflow, phase: 2 },
     { key: 'campaigns', icon: Megaphone, phase: 2 },
     { key: 'inbox', icon: Inbox, phase: 4 },
@@ -44,14 +45,15 @@ export const MAIN_NAV: NavItem[] = [
     { key: 'loyalty', icon: Gift, phase: 3 },
     { key: 'referrals', icon: Share2, phase: 3 },
     { key: 'reviews', icon: MessageSquareQuote, phase: 3 },
-    { key: 'measurement', icon: Ruler, phase: 1 },
-    { key: 'insights', icon: Lightbulb, phase: 1 },
+    { key: 'measurement', to: 'medicion', icon: Ruler, ability: 'viewDashboards', shortcut: 'm' },
+    { key: 'insights', to: 'hallazgos', icon: Lightbulb, ability: 'viewDashboards', shortcut: 'i' },
 ];
 
 export const SETTINGS_NAV: NavItem[] = [
     { key: 'sites', to: 'sitios', icon: Plug, ability: 'viewSites', shortcut: 's' },
     { key: 'team', to: 'equipo', icon: UsersRound, ability: 'viewWorkspace', shortcut: 'e' },
     { key: 'workspace', to: 'ajustes', icon: Settings2, ability: 'viewWorkspace' },
+    { key: 'consent', to: 'consentimiento', icon: ShieldCheck, ability: 'viewWorkspace' },
     { key: 'audit', to: 'auditoria', icon: ClipboardList, ability: 'viewAuditLog' },
     { key: 'agency', icon: Building2, phase: 5 },
 ];

@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "event_id": "0193a7b2-6c1e-7f3a-9a51-2f6d1c0e4b7a",
   "event": "order.paid",
   "occurred_at": "2026-11-17T18:05:00.123-05:00",

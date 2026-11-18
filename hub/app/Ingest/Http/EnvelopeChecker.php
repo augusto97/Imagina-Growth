@@ -43,7 +43,7 @@ final class EnvelopeChecker
 
                 continue;
             }
-            if (! $this->schemas->isKnownEvent($event->event)) {
+            if (! $this->schemas->isIngestible($event->event)) {
                 $result->reject($eventId, 'unknown_event');
 
                 continue;

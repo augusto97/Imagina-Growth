@@ -62,7 +62,7 @@ final class IngestProcessor
     {
         DB::beginTransaction();
         try {
-            [$out, $recalculate, $touchedSites] = $this->processInTransaction($entries);
+            [$out, $recalculate, $touchedSites, $domainEvents] = $this->processInTransaction($entries);
             DB::commit();
         } catch (Throwable $e) {
             DB::rollBack(0);
@@ -78,13 +78,17 @@ final class IngestProcessor
         foreach ($touchedSites as $siteId => $ms) {
             Site::withoutWorkspaceScope()->whereKey($siteId)->update(['last_event_at' => CarbonImmutable::createFromTimestampMs($ms)]);
         }
+        // 10. Eventos de dominio, solo con los datos ya confirmados.
+        foreach ($domainEvents as $domainEvent) {
+            event($domainEvent);
+        }
 
         return $out;
     }
 
     /**
      * @param  list<IngestEntry>  $entries
-     * @return array{0: BatchOutcome, 1: array<string, array<string, true>>, 2: array<string, int>}
+     * @return array{0: BatchOutcome, 1: array<string, array<string, true>>, 2: array<string, int>, 3: list<EventIngested>}
      */
     private function processInTransaction(array $entries): array
     {
@@ -94,6 +98,8 @@ final class IngestProcessor
         $touchedSites = [];
         /** @var array<string, array<string, true>> espacio de trabajo => contactos con pedidos en el lote */
         $recalculate = [];
+        /** @var list<EventIngested> $domainEvents */
+        $domainEvents = [];
 
         foreach ($entries as $entry) {
             $envelope = json_decode($entry->json, true);
@@ -166,14 +172,17 @@ final class IngestProcessor
             if ($result['recalculate'] !== null) {
                 $recalculate[$workspace->id][$result['recalculate']] = true;
             }
+            if ($result['domain_event'] !== null) {
+                $domainEvents[] = $result['domain_event'];
+            }
         }
 
-        return [$out, $recalculate, $touchedSites];
+        return [$out, $recalculate, $touchedSites, $domainEvents];
     }
 
     /**
      * @param  array<string, mixed>  $envelope
-     * @return array{row: array<string, mixed>, identity_row: array<string, mixed>|null, recalculate: string|null}
+     * @return array{row: array<string, mixed>, identity_row: array<string, mixed>|null, recalculate: string|null, domain_event: EventIngested|null}
      */
     private function handle(Workspace $workspace, Site $site, IngestEntry $entry, array $envelope): array
     {
@@ -209,10 +218,17 @@ final class IngestProcessor
             $this->siteHealth->project($site, $envelope);
         }
 
-        // 10. Evento de dominio (TriggerRouter en las fases 1 y 2). La importación no dispara nada.
-        if (! $isImport) {
-            event(new EventIngested($workspace->id, $site->id, $event, (string) $envelope['event_id'], $contactId));
-        }
+        // 10. Evento de dominio: se publica después del commit. La importación no dispara nada.
+        $domainEvent = $isImport ? null : new EventIngested(
+            $workspace->id,
+            $site->id,
+            $event,
+            (string) $envelope['event_id'],
+            $contactId,
+            $envelope,
+            ($envelope['context']['ip'] ?? null) ?: ($entry->ip !== '' ? $entry->ip : null),
+            ($envelope['context']['user_agent'] ?? null) ?: ($entry->ua !== '' ? $entry->ua : null),
+        );
 
         // 6 y 8. Enriquecer y armar la fila de ClickHouse sin PII.
         $row = $this->mapper->map($envelope, [
@@ -227,6 +243,7 @@ final class IngestProcessor
             'row' => $row,
             'identity_row' => $identityRow,
             'recalculate' => $contactId !== null && str_starts_with($event, 'order.') ? $contactId : null,
+            'domain_event' => $domainEvent,
         ];
     }
 

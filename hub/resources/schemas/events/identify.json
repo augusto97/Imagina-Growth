@@ -15,17 +15,31 @@
         "link_token",
         "form"
       ]
+    },
+    "token": {
+      "type": "string",
+      "maxLength": 2048,
+      "pattern": "^[A-Za-z0-9_-]+\\.[0-9a-f]{64}$",
+      "description": "Token firmado por el sitio (window.igrUser.token, api-connector.md §7). Sin token válido, el hub no vincula al visitante con el cliente."
     }
   },
   "additionalProperties": false,
   "examples": [
     {
       "method": "login"
+    },
+    {
+      "method": "login",
+      "token": "eyJyZWYiOiJ3Yzo3NyJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     }
   ],
   "x-invalid-examples": [
     {
       "method": "magic"
+    },
+    {
+      "method": "login",
+      "token": "sin-firma"
     }
   ]
 }

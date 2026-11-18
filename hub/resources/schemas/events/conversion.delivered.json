@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/conversion.delivered.json",
+  "title": "conversion.delivered",
+  "description": "Generado en el hub: entrega de una conversión a una plataforma de anuncios.",
+  "type": "object",
+  "required": [
+    "platform",
+    "status",
+    "source_event_id"
+  ],
+  "properties": {
+    "platform": {
+      "enum": [
+        "meta",
+        "google",
+        "tiktok"
+      ]
+    },
+    "status": {
+      "enum": [
+        "delivered",
+        "failed",
+        "skipped"
+      ]
+    },
+    "source_event_id": {
+      "type": "string",
+      "maxLength": 36
+    },
+    "conversion": {
+      "type": "string",
+      "maxLength": 60
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "platform": "meta",
+      "status": "delivered",
+      "source_event_id": "0193a7b2-6c1e-7f3a-9a51-2f6d1c0e4b7a",
+      "conversion": "Purchase"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "platform": "x",
+      "status": "delivered",
+      "source_event_id": "1"
+    }
+  ]
+}

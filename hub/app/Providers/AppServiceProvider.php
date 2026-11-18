@@ -25,6 +25,15 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(CurrentWorkspace::class);
         $this->app->singleton(Ch::class, fn () => Ch::fromConfig());
         $this->app->singleton(SchemaRegistry::class, fn () => new SchemaRegistry((string) config('igr.ingest.schemas_path')));
+
+        // Cada módulo registra listeners, comandos y tareas programadas en su propio
+        // proveedor (app/Domain/<Módulo>/ModuleServiceProvider.php), sin tocar este archivo.
+        foreach (glob(app_path('Domain/*/ModuleServiceProvider.php')) ?: [] as $file) {
+            $class = 'App\\Domain\\'.basename(dirname($file)).'\\ModuleServiceProvider';
+            if (class_exists($class)) {
+                $this->app->register($class);
+            }
+        }
     }
 
     public function boot(): void

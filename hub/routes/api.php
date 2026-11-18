@@ -46,5 +46,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
         Route::get('contacts', [ContactController::class, 'index']);
         Route::get('audit-logs', AuditLogController::class);
+
+        // Cada módulo agrega sus rutas del espacio de trabajo en routes/api/<módulo>.php.
+        foreach (glob(__DIR__.'/api/*.php') ?: [] as $file) {
+            require $file;
+        }
     });
 });

@@ -16,6 +16,12 @@ final class SchemaRegistry
 {
     public const BASE_URI = 'https://growth.imagina.cloud/schemas/events/';
 
+    /** Eventos que solo genera el hub (eventos.md §4.6): ningún sitio puede enviarlos. */
+    public const HUB_ONLY = [
+        'survey.answered', 'segment.entered', 'segment.exited', 'consent.granted', 'consent.revoked',
+        'conversion.delivered', 'cart.abandoned', 'lead.created',
+    ];
+
     private Validator $validator;
 
     /** @var array<string, true> */
@@ -38,6 +44,13 @@ final class SchemaRegistry
     public function isKnownEvent(string $event): bool
     {
         return isset($this->known[$event]) || (str_starts_with($event, 'custom.') && strlen($event) > 7);
+    }
+
+    /** ¿Lo puede enviar un sitio por /v1/s o /v1/b? */
+    public function isIngestible(string $event): bool
+    {
+        return $this->isKnownEvent($event) && ! in_array($event, self::HUB_ONLY, true)
+            && ! str_starts_with($event, 'message.') && ! str_starts_with($event, 'flow.');
     }
 
     /** @return list<string> */

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/segment.entered.json",
+  "title": "segment.entered",
+  "description": "Generado en el hub: el contacto entró a un segmento.",
+  "type": "object",
+  "required": [
+    "segment_id"
+  ],
+  "properties": {
+    "segment_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "segment_name": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "is_system": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "segment_id": "sg_01JD",
+      "segment_name": "Campeones",
+      "is_system": true
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "segment_name": "x"
+    }
+  ]
+}

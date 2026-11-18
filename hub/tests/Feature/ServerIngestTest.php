@@ -60,6 +60,22 @@ it('rechaza evento por evento lo que no cumple el sobre', function () {
         ->and(collect($res->json('rejected'))->pluck('reason')->all())->toBe(['envelope', 'unknown_event', 'too_large', 'envelope']);
 });
 
+it('rechaza los eventos que solo genera el hub (eventos.md §4.6)', function () {
+    $events = [
+        $this->envelope($this->site, 'segment.entered', ['segment_id' => 'sg_1']),
+        $this->envelope($this->site, 'consent.granted', ['channel' => 'whatsapp', 'purpose' => 'marketing', 'source' => 'x']),
+    ];
+    $res = $this->postSigned($this->site, $this->secret, $events)->assertStatus(202);
+    expect($res->json('accepted'))->toBe(0)
+        ->and(collect($res->json('rejected'))->pluck('reason')->unique()->all())->toBe(['unknown_event']);
+});
+
+it('acepta eventos v1 y v2', function () {
+    $v1 = $this->envelope($this->site, 'identify', ['method' => 'login'], ['schema_version' => 1]);
+    $v2 = $this->envelope($this->site, 'identify', ['method' => 'login'], ['schema_version' => 2]);
+    $this->postSigned($this->site, $this->secret, [$v1, $v2])->assertJsonPath('accepted', 2);
+});
+
 it('no acepta lotes de más de 500 eventos ni sitios desconectados', function () {
     $events = array_fill(0, 501, $this->envelope($this->site, 'catalog.product_deleted', ['product_id' => '88']));
     $this->postSigned($this->site, $this->secret, $events)->assertStatus(413);

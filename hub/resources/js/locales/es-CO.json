@@ -227,7 +227,8 @@
         "workspaces": "Espacios de trabajo",
         "newWorkspace": "Nuevo espacio de trabajo",
         "security": "Seguridad",
-        "comingSoon": "Próximamente: llega en la fase {{phase}}"
+        "comingSoon": "Próximamente: llega en la fase {{phase}}",
+        "consent": "Consentimiento"
     },
     "command": {
         "title": "Paleta de comandos",

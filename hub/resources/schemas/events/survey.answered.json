@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/survey.answered.json",
+  "title": "survey.answered",
+  "description": "Generado en el hub: respuesta a una encuesta (hdyhau en la Fase 1).",
+  "type": "object",
+  "required": [
+    "survey_id",
+    "kind",
+    "answer"
+  ],
+  "properties": {
+    "survey_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "kind": {
+      "enum": [
+        "hdyhau",
+        "nps",
+        "csat",
+        "custom"
+      ]
+    },
+    "answer": {
+      "type": "string",
+      "maxLength": 120
+    },
+    "other": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 300
+    },
+    "score": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 10
+    },
+    "order_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 64
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "survey_id": "sv_01JD",
+      "kind": "hdyhau",
+      "answer": "instagram",
+      "other": null,
+      "order_id": "1234"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "survey_id": "sv_01JD",
+      "kind": "hdyhau"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/consent.granted.json",
+  "title": "consent.granted",
+  "description": "Generado en el hub: consentimiento otorgado (cumplimiento.md §3).",
+  "type": "object",
+  "required": [
+    "channel",
+    "purpose",
+    "source"
+  ],
+  "properties": {
+    "channel": {
+      "enum": [
+        "email",
+        "whatsapp",
+        "sms",
+        "push",
+        "ads"
+      ]
+    },
+    "purpose": {
+      "enum": [
+        "marketing",
+        "transactional"
+      ]
+    },
+    "source": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "legal_text_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 32
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "channel": "whatsapp",
+      "purpose": "marketing",
+      "source": "checkout",
+      "legal_text_version": "v1"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "channel": "fax",
+      "purpose": "marketing",
+      "source": "x"
+    }
+  ]
+}

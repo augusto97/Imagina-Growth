@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import { NotFoundPage, RequireAuth, RootRedirect, WorkspaceLayout } from '@/components/layout/guards';
 import { LoginPage } from '@/features/auth/LoginPage';
+import { moduleWorkspaceRoutes } from '@/app/modules';
 
 /*
  * Rutas de la SPA. Las públicas van en español; /connect la fija el plugin
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
                     { path: 'equipo', lazy: async () => ({ Component: (await import('@/features/team/TeamPage')).TeamPage }) },
                     { path: 'ajustes', lazy: async () => ({ Component: (await import('@/features/settings/WorkspaceSettingsPage')).WorkspaceSettingsPage }) },
                     { path: 'auditoria', lazy: async () => ({ Component: (await import('@/features/audit/AuditPage')).AuditPage }) },
+                    ...moduleWorkspaceRoutes,
                     { path: '*', element: <NotFoundPage /> },
                 ],
             },

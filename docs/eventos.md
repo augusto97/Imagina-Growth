@@ -1,7 +1,7 @@
 # Contrato de eventos y datos que se recogen
 
 > Fuente de verdad del dato. El hub valida cada evento contra su JSON Schema en `hub/resources/schemas/events/<evento>.json`. El connector y el tracker tienen pruebas de contrato contra esos mismos esquemas.
-> `schema_version` actual: **1**
+> `schema_version` actual: **2** (el hub acepta 1 y 2; ver §8)
 
 ---
 
@@ -119,7 +119,7 @@ Convenciones: `objeto.acción` en inglés y en pasado. Montos en la moneda del p
 | `cta.clicked` | clic en `tel:`, `mailto:`, `wa.me`, `api.whatsapp.com`, `whatsapp://`, descargas (pdf, doc, xls, zip) o un elemento con `data-igr-cta` | `kind` (`whatsapp`, `phone`, `email`, `download`, `custom`), `target`, `label`, `wa_ref?` (token de atribución, ver §6) |
 | `checkout.contact_captured` | se escribe un correo o teléfono válido en el checkout (con *debounce* y solo si el espacio de trabajo activa la captura temprana; ver `cumplimiento.md` §3) | `has_email`, `has_phone`. El dato viaja cifrado en un campo aparte, nunca en `properties` |
 | `widget.shown` / `widget.submitted` / `widget.closed` | popups, formularios, quiz y barras del hub | `widget_id`, `variant`, `kind` |
-| `identify` | llamada explícita (login detectado, enlace con `_igr`) | `method` (`login`, `link_token`, `form`) |
+| `identify` | llamada explícita (login detectado, enlace con `_igr`) | `method` (`login`, `link_token`, `form`), `token?` (v2: token firmado por el sitio, `api-connector.md` §7) |
 
 ### 4.2 Comercio (connector, servidor)
 
@@ -172,7 +172,9 @@ Convenciones: `objeto.acción` en inglés y en pasado. Montos en la moneda del p
 
 ### 4.6 Mensajería, consentimiento y relación (generados en el hub)
 
-`cart.abandoned` (lo marca el job de carritos), `message.queued`, `message.sent`, `message.delivered`, `message.read` (WhatsApp), `message.opened` (correo, con `is_mpp` para las aperturas automáticas de Apple), `message.clicked`, `message.replied`, `message.failed`, `message.bounced`, `message.complained`, `message.unsubscribed`, `whatsapp.inbound` (con `referral` y `ctwa_clid` si viene de un anuncio de clic a WhatsApp, y `wa_ref` si trae token), `consent.granted`, `consent.revoked`, `segment.entered`, `segment.exited`, `points.earned`, `points.redeemed`, `points.expired`, `tier.changed`, `wallet.credited`, `wallet.debited`, `referral.shared`, `referral.converted`, `review.requested`, `review.collected`, `nps.answered`, `survey.answered`, `product_watch.created`, `product_watch.notified`, `flow.entered`, `flow.exited`, `conversion.delivered` (a una plataforma de anuncios).
+Los que ya tienen esquema (Fase 1): `survey.answered` (`survey_id`, `kind`, `answer`, `other?`, `score?`, `order_id?`), `segment.entered` / `segment.exited` (`segment_id`, `segment_name`, `is_system`), `consent.granted` / `consent.revoked` (`channel`, `purpose`, `source`, `legal_text_version?`) y `conversion.delivered` (`platform`, `status`, `source_event_id`, `conversion`). **Ningún sitio puede enviarlos**: el hub los rechaza con `unknown_event` en `/v1/s` y `/v1/b`.
+
+Lista completa: `cart.abandoned` (lo marca el job de carritos), `message.queued`, `message.sent`, `message.delivered`, `message.read` (WhatsApp), `message.opened` (correo, con `is_mpp` para las aperturas automáticas de Apple), `message.clicked`, `message.replied`, `message.failed`, `message.bounced`, `message.complained`, `message.unsubscribed`, `whatsapp.inbound` (con `referral` y `ctwa_clid` si viene de un anuncio de clic a WhatsApp, y `wa_ref` si trae token), `consent.granted`, `consent.revoked`, `segment.entered`, `segment.exited`, `points.earned`, `points.redeemed`, `points.expired`, `tier.changed`, `wallet.credited`, `wallet.debited`, `referral.shared`, `referral.converted`, `review.requested`, `review.collected`, `nps.answered`, `survey.answered`, `product_watch.created`, `product_watch.notified`, `flow.entered`, `flow.exited`, `conversion.delivered` (a una plataforma de anuncios).
 
 ---
 
@@ -255,3 +257,15 @@ El tracker agrega al texto prellenado de los enlaces de WhatsApp un token corto,
 Según la especificación de Meta y Google, se aplica SHA-256 en minúsculas y sin espacios. El correo se recorta y pasa a minúsculas. El teléfono va en E.164 sin `+` (con `libphonenumber` y el país del espacio de trabajo por defecto). Nombre y apellido van en minúsculas, sin tildes según la plataforma. La ciudad va en minúsculas y sin espacios. El estado o departamento usa el código ISO. El país usa ISO-2 en minúsculas.
 
 **Deduplicación con el píxel:** el `event_id` de la compra se comparte con el navegador mediante una variable inline en la página de gracias (no es dato personal), para que el píxel y la conversión desde el servidor usen el mismo ID.
+
+---
+
+## 8. Versiones del contrato
+
+| Versión | Fecha | Cambios |
+|---|---|---|
+| 1 | 2026-11-18 | Contrato inicial (cierre de la Fase 0). |
+| 2 | 2026-11-19 | `identify.token` (token firmado de `window.igrUser`). Esquemas de los eventos del hub de §4.6 que se usan en la Fase 1. Solo agrega campos opcionales: un evento v1 sigue siendo válido. |
+
+**Regla de identidad para el navegador (v2):** en eventos con `source.type = browser`, el hub **ignora** `identity.customer_ref` salvo en un `identify` con `token` válido. Así nadie puede atribuirse la identidad de otro cliente desde el navegador.
+

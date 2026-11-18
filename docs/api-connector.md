@@ -165,7 +165,14 @@ Configuración que el plugin guarda en caché un día:
     "backfill_months": 24,
     "early_capture": false
   },
-  "consent": { "mode": "strict", "texts": [] },    // se llena en la Fase 2
+  "consent": {
+    "mode": "strict",                              // strict | informed (cumplimiento.md §3.3)
+    "privacy_policy_url": "https://tienda.co/privacidad",
+    "texts": [                                     // casillas del checkout y formularios, sin marcar (cumplimiento.md §3.1)
+      { "kind": "marketing_consent", "channel": "whatsapp", "version": "v1", "label": "Quiero recibir ofertas por WhatsApp…" },
+      { "kind": "marketing_consent", "channel": "email",    "version": "v1", "label": "Quiero recibir ofertas por correo…" }
+    ]
+  },
   "min_plugin_version": "0.1.0"
 }
 ```
@@ -223,3 +230,57 @@ El hub compara `reconciliation` con su tabla `orders` (por estado: número de pe
 | `secret.rotate` | `{"secret": "sk_..."}` | `{"rotated": true}`. El plugin guarda el nuevo como actual y el anterior 24 h. El hub firma este comando con el secreto **anterior** |
 
 El resto de comandos de `connector/CLAUDE.md` §8 se agregan en su fase.
+
+## 7. Datos en la página (connector → tracker)
+
+Nunca dependen del visitante en páginas cacheables (`connector/CLAUDE.md` §9).
+
+| Variable | Dónde | Contenido |
+|---|---|---|
+| `window.igrConfig` | todas | `{ siteKey: "pk_…", endpoint: "<ingest_browser>", consentMode: "strict", consent: {analytics, marketing, source}, cookieDomain, pingUrl: "/?igr_ping=1", waRef: {enabled, format: "{text} (ref: {token})", numbers: ["573001234567"]}, widgetsUrl: "<hub>/p/pk_…/widgets.json", earlyCapture: false }` |
+| `window.igrPage` | todas | `{ type: "product", objectId: "88", product: {id, sku, name, price, currency, categories: ["12"], inStock} }` |
+| `window.igrUser` | **solo** páginas no cacheables (Mi cuenta, checkout, gracias) con sesión | `{ ref: "wc:77", token }` |
+| `window.igrOrder` | página de gracias | `{ eventId, orderId: "1234", value: "282000.00", currency: "COP", token }` |
+
+### 7.1 Tokens firmados
+
+`token = <payload> "." <firma>` con `payload = base64url(JSON)` sin relleno y `firma = hex(HMAC-SHA256(secreto_del_sitio, payload))`.
+
+| Token | JSON del payload | Vence |
+|---|---|---|
+| `igrUser.token` | `{"ref":"wc:77","site":"st_…","exp":<unix>}` | 1 hora |
+| `igrOrder.token` | `{"order":"1234","site":"st_…","exp":<unix>}` | 24 horas |
+
+- El tracker envía `igrUser.token` en un evento `identify` (`properties: {method: "login", token}`); el hub lo verifica (firma con el secreto actual o el anterior durante la rotación, `site` y `exp`) y entonces vincula el `anonymous_id` con el cliente.
+- `igrOrder.eventId` es el `event_id` de `order.paid` (o de `order.created` si el pedido aún no se paga): el píxel del navegador lo usa como `eventID` para la deduplicación con la conversión desde el servidor (`eventos.md` §7).
+- `igrOrder.token` autoriza la respuesta a la encuesta de la página de gracias (§8).
+
+## 8. Endpoints públicos de widgets (tracker → hub)
+
+Sin firma; identifican al sitio por la clave pública. CORS abierto a los dominios del sitio.
+
+### 8.1 `GET /p/{public_key}/widgets.json?page_type=thankyou`
+
+Configuración de los widgets activos para ese tipo de página. Cacheable en CDN 5 minutos (`Cache-Control: public, max-age=300`). En la Fase 1 solo existe la encuesta «¿cómo nos conociste?» en la página de gracias:
+
+```jsonc
+{
+  "widgets": [{
+    "id": "sv_01JD…", "kind": "hdyhau_survey", "slot": "thankyou",
+    "title": "Una pregunta rápida", "question": "¿Cómo nos conociste?",
+    "options": [ { "key": "instagram", "label": "Instagram" }, { "key": "google", "label": "Google" }, { "key": "recomendacion", "label": "Me lo recomendaron" }, … ],
+    "allow_other": true, "other_label": "Otro", "thanks": "¡Gracias por contarnos!"
+  }]
+}
+```
+
+### 8.2 `POST /p/{public_key}/surveys/{survey_id}/answers`
+
+`Content-Type: text/plain;charset=UTF-8` (para `sendBeacon`) con cuerpo JSON:
+
+```json
+{ "order_token": "<igrOrder.token>", "answer": "instagram", "other": null, "anonymous_id": "c3b0f4a2-…" }
+```
+
+Respuesta `202 {"ok": true}`. `422` si el token no es válido o la opción no existe; `409` si ese pedido ya respondió. El hub guarda la respuesta, la asocia al pedido y al contacto, llena `contacts.hdyhau` y emite `survey.answered`.
+

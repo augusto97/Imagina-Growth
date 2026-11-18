@@ -21,7 +21,16 @@ function sourceFiles(dir: string): string[] {
     });
 }
 
-const base = new Set(flatten(esCO));
+function moduleTrees(locale: string): Tree[] {
+    const dir = join(__dirname, locale);
+    try {
+        return readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(readFileSync(join(dir, f), 'utf8')) as Tree);
+    } catch {
+        return [];
+    }
+}
+
+const base = new Set([...flatten(esCO), ...moduleTrees('es-CO').flatMap((t) => flatten(t))]);
 const root = join(__dirname, '..');
 
 describe('traducciones', () => {
@@ -41,7 +50,7 @@ describe('traducciones', () => {
     });
 
     it('es-MX y es-VE solo sobrescriben claves que existen en es-CO', () => {
-        for (const keys of [flatten(esMX), flatten(esVE)]) {
+        for (const keys of [flatten(esMX), flatten(esVE), ...moduleTrees('es-MX').map((t) => flatten(t)), ...moduleTrees('es-VE').map((t) => flatten(t))]) {
             expect(keys.filter((k) => !base.has(k))).toEqual([]);
         }
     });

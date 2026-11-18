@@ -217,3 +217,20 @@ CREATE TABLE conversion_deliveries (
 - Toda consulta pasa por `App\Analytics\Ch::forWorkspace($ws)`, que inyecta `workspace_id` y no permite consultas sin él.
 - Las inserciones usan `async_insert=1, wait_for_async_insert=1` o lotes desde el worker (cada 1 s o cada 5.000 filas).
 - Para borrar a un contacto (habeas data) se usa `DELETE FROM events WHERE workspace_id = ? AND (contact_id = ? OR anonymous_id IN (...))` (lightweight delete) y se registra en `data_requests`.
+
+---
+
+## 11. Columnas agregadas al implementar la Fase 1
+
+Se agregaron en `2026_11_19_000100_create_phase1_tables` junto con las tablas de §2, §3, §5, §6, §7 y §9:
+
+| Tabla | Columna | Para qué |
+|---|---|---|
+| `contacts` | `rfm_computed_at` | cuándo se calculó el RFM (el job nocturno lo actualiza) |
+| `custom_attribute_defs` | `is_sensitive` | un atributo sensible no se usa en segmentos de marketing (`cumplimiento.md` §2) |
+| `legal_texts` | `channel` | el texto de consentimiento es por canal (WhatsApp, correo) |
+| `segments` | `system_key`, `channel_counts`, `created_by`, `deleted_at` | segmentos de la biblioteca, conteo por canal disponible y borrado lógico |
+| `ad_destinations` | `name`, `mode` (`server_only`, `with_pixel`, `full`), `test_event_code`, `last_delivered_at` | modos de M06 y modo de prueba de Meta |
+| `insights` | `fingerprint`, `dismissed_at` | no repetir un hallazgo descartado durante 30 días salvo que empeore (`inteligencia.md` §5) |
+| `report_deliveries` (nueva) | id, workspace_id, kind (`weekly`, `monthly`), period_start, period_end, facts, recipients, delivered_at | registro de los informes enviados al dueño (M05) |
+
