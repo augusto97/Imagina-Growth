@@ -8,6 +8,8 @@ use App\Support\Holidays\Holidays;
 use App\Support\Money\Decimal;
 use Carbon\CarbonImmutable;
 use Ramsey\Uuid\Uuid;
+use Random\Engine\Mt19937;
+use Random\Randomizer;
 
 /**
  * Genera una tienda colombiana creíble como eventos del contrato v1
@@ -29,6 +31,8 @@ final class DemoStoreGenerator
 
     private ?DemoBrowsingGenerator $browsing = null;
 
+    private Randomizer $rng;
+
     /** @var array{orders_by_status: array<string, array{count: int, total: string}>, refunds: array{count: int, total: string}} */
     private array $reconciliation = ['orders_by_status' => [], 'refunds' => ['count' => 0, 'total' => '0.00']];
 
@@ -37,7 +41,9 @@ final class DemoStoreGenerator
         private readonly CarbonImmutable $until,
         private readonly int $months = 24,
         private readonly int $seed = 2026,
-    ) {}
+    ) {
+        $this->rng = new Randomizer(new Mt19937($seed));
+    }
 
     /**
      * Activa la navegación demo: cada pedido dentro de la ventana de
@@ -61,7 +67,9 @@ final class DemoStoreGenerator
      */
     public function events(int $customers, int $orders): \Generator
     {
-        mt_srand($this->seed);
+        // Motor propio: el código que corre entre un evento y otro (la cola, Redis)
+        // no consume números de esta secuencia, así que el resultado es determinista.
+        $this->rng = new Randomizer(new Mt19937($this->seed));
         $from = $this->until->subMonths($this->months)->startOfDay();
 
         yield from $this->catalog($from);
@@ -81,13 +89,13 @@ final class DemoStoreGenerator
         $guestSeq = 1;
         foreach ($dates as $createdAt) {
             $orderId++;
-            if (mt_rand(1, 100) <= 27) {
+            if ($this->rng->getInt(1, 100) <= 27) {
                 $buyer = $this->person(100000 + $guestSeq++, false);
             } else {
                 $buyer = $people[$this->pick($weights)];
                 if (! isset($registered[$buyer['ref']])) {
                     $registered[$buyer['ref']] = true;
-                    yield $this->envelope('customer.registered', 'customer:'.substr($buyer['ref'], 3).':registered', $createdAt->subMinutes(mt_rand(5, 600)), [
+                    yield $this->envelope('customer.registered', 'customer:'.substr($buyer['ref'], 3).':registered', $createdAt->subMinutes($this->rng->getInt(5, 600)), [
                         'customer_ref' => $buyer['ref'],
                         'first_name' => $buyer['first_name'], 'last_name' => $buyer['last_name'],
                         'email' => $buyer['email'], 'phone' => $buyer['phone'], 'marketing_optin' => null,
@@ -142,9 +150,9 @@ final class DemoStoreGenerator
                 'category_id' => (string) $catId, 'parent_id' => null, 'name' => $category, 'slug' => $slug,
             ]);
             foreach ($def['items'] as $item) {
-                foreach (array_slice($def['brands'], 0, mt_rand(1, 2)) as $brand) {
+                foreach (array_slice($def['brands'], 0, $this->rng->getInt(1, 2)) as $brand) {
                     $productId++;
-                    $price = (int) (round(mt_rand($def['min'], $def['max']) / 100) * 100);
+                    $price = (int) (round($this->rng->getInt($def['min'], $def['max']) / 100) * 100);
                     $product = [
                         'product_id' => (string) $productId, 'parent_id' => null, 'type' => 'simple',
                         'sku' => strtoupper(substr($this->slug($brand), 0, 3)).'-'.$productId,
@@ -152,8 +160,8 @@ final class DemoStoreGenerator
                         'permalink' => 'https://demo.tienda.co/producto/'.$this->slug("{$item} {$brand}").'/',
                         'image_url' => null, 'category_ids' => [(string) $catId], 'brand' => $brand,
                         'price' => $price.'.00', 'regular_price' => $price.'.00', 'sale_price' => null,
-                        'stock_status' => mt_rand(1, 100) <= 92 ? 'instock' : 'outofstock', 'stock_qty' => mt_rand(0, 120),
-                        'rating_avg' => round(mt_rand(36, 50) / 10, 1), 'rating_count' => mt_rand(0, 80),
+                        'stock_status' => $this->rng->getInt(1, 100) <= 92 ? 'instock' : 'outofstock', 'stock_qty' => $this->rng->getInt(0, 120),
+                        'rating_avg' => round($this->rng->getInt(36, 50) / 10, 1), 'rating_count' => $this->rng->getInt(0, 80),
                         'status' => 'publish', 'cost' => (int) round($price * 0.62).'.00', 'currency' => 'COP',
                         'popularity' => exp($this->gauss() * 0.9),
                     ];
@@ -197,9 +205,9 @@ final class DemoStoreGenerator
         for ($i = 0; $i < $count; $i++) {
             $day = $days[$this->pick($weights)];
             $hour = $this->pick([1, 1, 1, 1, 1, 1, 2, 4, 6, 7, 8, 8, 8, 7, 7, 8, 8, 8, 9, 10, 10, 8, 5, 2]);
-            $at = $day->setTime($hour, mt_rand(0, 59), mt_rand(0, 59));
+            $at = $day->setTime($hour, $this->rng->getInt(0, 59), $this->rng->getInt(0, 59));
             // Nunca después del corte: el plugin no ve pedidos del futuro.
-            $dates[] = $at->greaterThan($this->until) ? $this->until->subMinutes(mt_rand(10, 600)) : $at;
+            $dates[] = $at->greaterThan($this->until) ? $this->until->subMinutes($this->rng->getInt(10, 600)) : $at;
         }
         usort($dates, fn ($a, $b) => $a <=> $b);
 
@@ -233,17 +241,17 @@ final class DemoStoreGenerator
         }
         $coupons = [];
         $discount = 0;
-        if (mt_rand(1, 100) <= 18) {
+        if ($this->rng->getInt(1, 100) <= 18) {
             $isBlackFriday = $createdAt->month === 11 && $createdAt->day >= 20;
-            $coupons[] = $isBlackFriday ? 'BLACKFRIDAY20' : (mt_rand(0, 1) === 1 ? 'BIENVENIDA10' : 'PRIMA15');
+            $coupons[] = $isBlackFriday ? 'BLACKFRIDAY20' : ($this->rng->getInt(0, 1) === 1 ? 'BIENVENIDA10' : 'PRIMA15');
             $pct = $isBlackFriday ? 20 : (str_starts_with($coupons[0], 'PRIMA') ? 15 : 10);
             $discount = (int) round($subtotal * $pct / 100 / 100) * 100;
         }
-        $shipping = $subtotal - $discount >= 250000 ? 0 : [9900, 12000, 15000, 18000][mt_rand(0, 3)];
+        $shipping = $subtotal - $discount >= 250000 ? 0 : [9900, 12000, 15000, 18000][$this->rng->getInt(0, 3)];
         $total = $subtotal - $discount + $shipping;
 
         // Estado actual del pedido según el medio de pago.
-        $roll = mt_rand(1, 1000);
+        $roll = $this->rng->getInt(1, 1000);
         $recent = $createdAt->greaterThan($this->until->subDays(4));
         if ($gateway === 'cod') {
             $status = $recent ? ($roll <= 600 ? 'processing' : 'pending') : ($roll <= 840 ? 'completed' : 'cancelled');
@@ -261,22 +269,22 @@ final class DemoStoreGenerator
         }
 
         $paidAt = null;
-        $modifiedAt = $createdAt->addMinutes(mt_rand(1, 30));
+        $modifiedAt = $createdAt->addMinutes($this->rng->getInt(1, 30));
         if (in_array($status, ['processing', 'completed', 'refunded'], true) && ! ($gateway === 'cod' && $status === 'processing')) {
-            $paidAt = $gateway === 'cod' ? $createdAt->addDays(mt_rand(2, 5))->setTime(mt_rand(9, 17), mt_rand(0, 59))
-                : ($gateway === 'bacs' ? $createdAt->addHours(mt_rand(2, 30)) : $createdAt->addMinutes(mt_rand(1, 8)));
-            $modifiedAt = $status === 'processing' ? $paidAt : $paidAt->addDays(mt_rand(1, 6));
+            $paidAt = $gateway === 'cod' ? $createdAt->addDays($this->rng->getInt(2, 5))->setTime($this->rng->getInt(9, 17), $this->rng->getInt(0, 59))
+                : ($gateway === 'bacs' ? $createdAt->addHours($this->rng->getInt(2, 30)) : $createdAt->addMinutes($this->rng->getInt(1, 8)));
+            $modifiedAt = $status === 'processing' ? $paidAt : $paidAt->addDays($this->rng->getInt(1, 6));
         } elseif (in_array($status, ['cancelled', 'failed'], true)) {
-            $modifiedAt = $createdAt->addHours(mt_rand(1, 72));
+            $modifiedAt = $createdAt->addHours($this->rng->getInt(1, 72));
         }
         $paidAt = $paidAt !== null && $paidAt->greaterThan($this->until) ? $this->until->subMinutes(5) : $paidAt;
         $modifiedAt = $modifiedAt->greaterThan($this->until) ? $this->until->subMinutes(1) : $modifiedAt;
 
         $refunds = [];
         $refunded = 0;
-        if ($status === 'refunded' || ($status === 'completed' && mt_rand(1, 100) <= 2)) {
+        if ($status === 'refunded' || ($status === 'completed' && $this->rng->getInt(1, 100) <= 2)) {
             $amount = $status === 'refunded' ? $total : (int) $items[0]['unit_price'];
-            $refundedAt = ($paidAt ?? $createdAt)->addDays(mt_rand(1, 10));
+            $refundedAt = ($paidAt ?? $createdAt)->addDays($this->rng->getInt(1, 10));
             $refundedAt = $refundedAt->greaterThan($this->until) ? $this->until->subMinutes(2) : $refundedAt;
             $modifiedAt = $refundedAt->greaterThan($modifiedAt) ? $refundedAt : $modifiedAt;
             $refunded = $amount;
@@ -307,10 +315,10 @@ final class DemoStoreGenerator
     /** @return array<string, mixed> */
     private function person(int $n, bool $registered): array
     {
-        $first = ColombiaData::FIRST_NAMES[mt_rand(0, count(ColombiaData::FIRST_NAMES) - 1)];
-        $last = ColombiaData::LAST_NAMES[mt_rand(0, count(ColombiaData::LAST_NAMES) - 1)];
+        $first = ColombiaData::FIRST_NAMES[$this->rng->getInt(0, count(ColombiaData::FIRST_NAMES) - 1)];
+        $last = ColombiaData::LAST_NAMES[$this->rng->getInt(0, count(ColombiaData::LAST_NAMES) - 1)];
         $city = ColombiaData::CITIES[$this->pick(array_column(ColombiaData::CITIES, 2))];
-        $mobile = '3'.[0, 1, 2, 5][mt_rand(0, 3)].mt_rand(0, 9).str_pad((string) mt_rand(0, 9999999), 7, '0', STR_PAD_LEFT);
+        $mobile = '3'.[0, 1, 2, 5][$this->rng->getInt(0, 3)].$this->rng->getInt(0, 9).str_pad((string) $this->rng->getInt(0, 9999999), 7, '0', STR_PAD_LEFT);
 
         return [
             'ref' => $registered ? 'wc:'.$n : null,
@@ -344,7 +352,7 @@ final class DemoStoreGenerator
     private function pick(array $weights): int
     {
         $sum = array_sum($weights);
-        $r = mt_rand() / mt_getrandmax() * $sum;
+        $r = $this->rng->nextFloat() * $sum;
         foreach ($weights as $i => $w) {
             $r -= $w;
             if ($r <= 0) {
@@ -357,8 +365,8 @@ final class DemoStoreGenerator
 
     private function gauss(): float
     {
-        $u = max(1e-9, mt_rand() / mt_getrandmax());
-        $v = mt_rand() / mt_getrandmax();
+        $u = max(1e-9, $this->rng->nextFloat());
+        $v = $this->rng->nextFloat();
 
         return sqrt(-2 * log($u)) * cos(2 * M_PI * $v);
     }
