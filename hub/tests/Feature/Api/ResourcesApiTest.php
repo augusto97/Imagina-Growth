@@ -124,6 +124,6 @@ it('las métricas web de Imagina Turbo entran como page.vitals (contrato v5) a C
         ->assertUnprocessable();
 
     $this->runWorker();
-    $rows = $this->chRows($this->ws, "SELECT event, source_type, toInt64(properties.lcp_ms) AS lcp FROM events WHERE workspace_id = {workspace_id:UInt32}");
+    $rows = $this->chRows($this->ws, 'SELECT event, source_type, toInt64(properties.lcp_ms) AS lcp FROM events WHERE workspace_id = {workspace_id:UInt32}');
     expect($rows)->toHaveCount(1)->and($rows[0]['event'])->toBe('page.vitals')->and($rows[0]['source_type'])->toBe('server')->and((int) $rows[0]['lcp'])->toBe(2100);
 });

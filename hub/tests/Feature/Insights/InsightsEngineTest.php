@@ -210,7 +210,7 @@ it('expone los hallazgos por API con filtros, resumen, ajustes y permisos', func
     $id = $res->json('data.0.id');
     $this->actingAs($this->owner)->getJson("{$url}/{$id}")->assertOk()->assertJsonPath('status', 'seen');
     $settings = $this->actingAs($this->owner)->getJson("{$url}/settings")->assertOk();
-    expect($settings->json('detectors'))->toHaveCount(23)->and(collect($settings->json('detectors'))->where('enabled', false)->pluck('number')->all())->toBe([21, 22, 23])
+    expect($settings->json('detectors'))->toHaveCount(23)->and(collect($settings->json('detectors'))->where('enabled', false)->pluck('number')->all())->toBe([])
         ->and(collect($settings->json('assumptions'))->pluck('key'))->toContain('cart_recovery_rate');
     $viewer = $this->addMember($this->ws, WorkspaceRole::Viewer);
     $this->actingAs($viewer)->getJson($url)->assertOk();

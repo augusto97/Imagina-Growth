@@ -219,12 +219,18 @@ export function useAgencyBranding(ws: string) {
     return useQuery({ queryKey: keys.branding(ws), queryFn: ({ signal }) => api.get<{ accounts: AgencyBrandingAccount[] }>(`${base(ws)}/branding`, signal) });
 }
 
+/** La marca sale en el menú lateral desde /me y el espacio de trabajo: se recargan los dos. */
+function refreshBranding(qc: ReturnType<typeof useQueryClient>, ws: string): void {
+    void qc.invalidateQueries({ queryKey: ['ws', ws] });
+    void qc.invalidateQueries({ queryKey: ['me'] });
+}
+
 export function useUpdateBranding(ws: string) {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: ({ account, body }: { account: string; body: Omit<BrandingForm, 'logo_url'> }) =>
             api.put<{ ok: boolean }>(`${base(ws)}/branding/${encodeURIComponent(account)}`, body),
-        onSuccess: () => void qc.invalidateQueries({ queryKey: ['ws', ws] }),
+        onSuccess: () => refreshBranding(qc, ws),
     });
 }
 
@@ -236,7 +242,7 @@ export function useUploadLogo(ws: string) {
             form.append('logo', file);
             return postMultipart<{ logo_url: string }>(`${base(ws)}/branding/${encodeURIComponent(account)}/logo`, form);
         },
-        onSuccess: () => void qc.invalidateQueries({ queryKey: keys.branding(ws) }),
+        onSuccess: () => refreshBranding(qc, ws),
     });
 }
 
@@ -244,7 +250,7 @@ export function useDeleteLogo(ws: string) {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (account: string) => api.delete<{ ok: boolean }>(`${base(ws)}/branding/${encodeURIComponent(account)}/logo`),
-        onSuccess: () => void qc.invalidateQueries({ queryKey: keys.branding(ws) }),
+        onSuccess: () => refreshBranding(qc, ws),
     });
 }
 

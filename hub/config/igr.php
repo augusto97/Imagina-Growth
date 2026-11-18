@@ -89,6 +89,11 @@ return [
             : in_array(env('APP_ENV', 'production'), ['local', 'testing'], true),
     ],
 
+    // Dominios propios de las agencias (M22): el CNAME al que deben apuntar el panel, los enlaces y la página de reservas.
+    'custom_domains' => [
+        'cname_target' => env('IGR_CUSTOM_DOMAINS_CNAME', 'domains.growth.imagina.cloud'),
+    ],
+
     'roles' => [
         'workspace' => ['owner', 'admin', 'marketing', 'agent', 'viewer'],
         'account' => ['agency_owner', 'agency_member'],

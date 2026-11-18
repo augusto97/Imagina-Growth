@@ -47,7 +47,9 @@ Sirve cualquier MariaDB 11, ClickHouse 25.x y Redis 7. Ajusta `hub/.env` y corre
    IGR_IMAGE=imagina-growth/hub:<sha> docker compose -f infra/docker-compose.prod.yml up -d
    docker compose -f infra/docker-compose.prod.yml exec app php artisan migrate --force      # migraciones compatibles hacia atrás
    docker compose -f infra/docker-compose.prod.yml exec app php artisan igr:clickhouse:migrate
+   docker compose -f infra/docker-compose.prod.yml exec app php artisan storage:link           # logos de marca blanca (disco public); una sola vez
    docker compose -f infra/docker-compose.prod.yml exec horizon php artisan horizon:terminate
    ```
-4. Cron del host: `mariadb-backup.sh` (03:15 UTC) y `clickhouse-backup.sh` (03:45 UTC). Simulacro de restauración cada mes (`backup/RESTAURACION.md`).
-5. Better Stack revisa `https://in.growth.imagina.cloud/health` (MariaDB, ClickHouse, Redis y retraso del stream).
+4. DNS: `domains.growth.imagina.cloud` (o `IGR_CUSTOM_DOMAINS_CNAME`) apunta al VPS; las agencias crean un CNAME de su panel, enlaces o página de reservas hacia él y lo verifican en Agencia → Marca.
+5. Cron del host: `mariadb-backup.sh` (03:15 UTC) y `clickhouse-backup.sh` (03:45 UTC). Simulacro de restauración cada mes (`backup/RESTAURACION.md`).
+6. Better Stack revisa `https://in.growth.imagina.cloud/health` (MariaDB, ClickHouse, Redis y retraso del stream).

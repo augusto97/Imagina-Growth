@@ -25,7 +25,7 @@
     <p style="margin:0 0 20px;color:#6b7280;font-size:13px;">{{ __('El PDF completo va adjunto.') }}</p>
 </td></tr>
 <tr><td style="padding:14px 28px 22px;border-top:1px solid #f3f4f6;color:#9ca3af;font-size:12px;">
-    {{ $brand->name }}@if (! $brand->whiteLabel) · {{ __('con Imagina Growth') }}@endif
+    {{ $brand->name }}@if (! $brand->whiteLabel && $brand->name !== 'Imagina Growth') · {{ __('con Imagina Growth') }}@endif
     @if ($brand->supportEmail) · {{ $brand->supportEmail }}@endif
 </td></tr>
 </table>

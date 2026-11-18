@@ -48,7 +48,7 @@
 </head>
 <body>
 <div class="footer">
-    {{ __('Preparado por :brand', ['brand' => $brand->name]) }}@if (! $brand->whiteLabel) · {{ __('con Imagina Growth') }}@endif
+    {{ __('Preparado por :brand', ['brand' => $brand->name]) }}@if (! $brand->whiteLabel && $brand->name !== 'Imagina Growth') · {{ __('con Imagina Growth') }}@endif
     @if ($brand->supportEmail) · {{ $brand->supportEmail }}@endif
     · {{ __('Ventas atribuidas: cada pedido cuenta una sola vez, en el módulo que lo explica primero.') }}
 </div>

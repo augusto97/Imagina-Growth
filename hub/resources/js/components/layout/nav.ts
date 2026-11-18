@@ -4,6 +4,7 @@ import {
     CalendarDays,
     ClipboardList,
     CreditCard,
+    FileChartColumn,
     FileText,
     Gift,
     Globe,
@@ -41,7 +42,7 @@ export interface NavItem {
     shortcut?: string;       // tecla después de «g»
 }
 
-/** Navegación completa de hub/CLAUDE.md §14. Activas las fases 0 a 3. */
+/** Navegación completa de hub/CLAUDE.md §14. Activas las fases 0 a 5. */
 export const MAIN_NAV: NavItem[] = [
     { key: 'home', to: '', icon: Home, ability: 'viewDashboards', shortcut: 'h' },
     { key: 'contacts', to: 'contactos', icon: Users, ability: 'viewAssignedContacts', shortcut: 'c' },
@@ -60,6 +61,7 @@ export const MAIN_NAV: NavItem[] = [
     { key: 'measurement', to: 'medicion', icon: Ruler, ability: 'viewDashboards', shortcut: 'm' },
     { key: 'insights', to: 'hallazgos', icon: Lightbulb, ability: 'viewDashboards', shortcut: 'i' },
     { key: 'intelligence', to: 'inteligencia', icon: Sparkles, ability: 'viewDashboards', shortcut: 'k' },
+    { key: 'reports', to: 'reportes', icon: FileChartColumn, ability: 'viewDashboards', shortcut: 'o' },
 ];
 
 export const SETTINGS_NAV: NavItem[] = [

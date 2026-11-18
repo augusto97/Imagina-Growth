@@ -57,7 +57,8 @@ go.growth.imagina.cloud {
 	reverse_proxy app:8080
 }
 
-# Dominios de los clientes: t.cliente.com (seguimiento) y enlaces o centro de preferencias propios.
+# Dominios de los clientes: t.cliente.com (seguimiento), enlaces, centro de preferencias, página de
+# reservas y el panel de marca blanca de una agencia (M22). El «ask» solo autoriza dominios verificados.
 https:// {
 	import common
 	tls {
@@ -65,5 +66,8 @@ https:// {
 	}
 	@ingest path /v1/* /p/*
 	reverse_proxy @ingest ingest:8080
+	# Panel de marca blanca: la bandeja en tiempo real también necesita Reverb.
+	@reverb path /app/* /apps/*
+	reverse_proxy @reverb reverb:8080
 	reverse_proxy app:8080
 }
