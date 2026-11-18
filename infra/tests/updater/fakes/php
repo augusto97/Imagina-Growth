@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# PHP falso: artisan se registra (y puede fallar a pedido); growth-env corre con el PHP real.
-if [[ ${1:-} == artisan ]]; then
+# PHP falso: registra quién lo corre (root o growth, vía runuser) y qué. artisan se registra (y puede fallar
+# a pedido); cualquier otro script corre con el PHP real.
+first=${1:-}
+if [[ $first == artisan ]]; then
+    echo "php as=${FAKE_AS:-root} artisan $PWD" >>"$FAKE/calls.log"
     shift
     echo "artisan $* (${PWD#"$GROWTH_ROOT"/})" >>"$FAKE/calls.log"
     if [[ -n ${FAKE_ARTISAN_FAIL:-} && "$*" == *"$FAKE_ARTISAN_FAIL"* ]]; then
@@ -8,4 +11,5 @@ if [[ ${1:-} == artisan ]]; then
     fi
     exit 0
 fi
+echo "php as=${FAKE_AS:-root} $first" >>"$FAKE/calls.log"
 exec php "$@"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Ayudas del arnés del actualizador (infra/tests/updater/run.sh): un /opt/growth falso en una carpeta
 # temporal, releases firmados con una llave ed25519 de un solo uso y comandos falsos que registran todo.
-# shellcheck disable=SC2034,SC2015  # variables usadas por run.sh; «A && ok || bad» es la forma de las aserciones
+# shellcheck disable=SC2034,SC2015,SC2016  # variables usadas por run.sh; «A && ok || bad» es la forma de las aserciones; las trampas llevan $FAKE literal
 set -uo pipefail
 
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -29,11 +29,15 @@ setup_world() {
     WORLD=$(mktemp -d)
     export FAKE="$WORLD/fake" GROWTH_ROOT="$WORLD/opt/growth" GROWTH_ETC="$WORLD/etc/growth"
     export SYSTEMD_UNIT_DIR="$WORLD/etc/systemd/system" GROWTH_LOCK_FILE="$WORLD/run/growth-update.lock"
+    export GROWTH_LIB_DIR="$WORLD/usr/local/lib/growth"
     export SYSTEMCTL="$HERE/fakes/systemctl" SYSTEMD_RUN="$HERE/fakes/systemd-run" CURL="$HERE/fakes/curl" PHP="$HERE/fakes/php"
     export UV="$HERE/fakes/uv" MARIADB="$HERE/fakes/mariadb" MARIADB_DUMP="$HERE/fakes/mariadb-dump" RUNUSER="$HERE/fakes/runuser"
     export CHOWN="$HERE/fakes/chown" DF="$HERE/fakes/df" SLEEP="$HERE/fakes/sleep"
     unset FAKE_FREE_BYTES FAKE_FREE_INODES FAKE_ARTISAN_FAIL FAKE_DUMP_FAIL FAKE_DB_TABLES
     mkdir -p "$FAKE/releases" "$GROWTH_ROOT/releases" "$GROWTH_ROOT/shared/state" "$GROWTH_ETC" "$SYSTEMD_UNIT_DIR" "$(dirname "$GROWTH_LOCK_FILE")"
+    # Lo que deja install.sh: los scripts de root en /usr/local/lib/growth (los reales del repositorio).
+    mkdir -p "$GROWTH_LIB_DIR/bin" "$GROWTH_LIB_DIR/backup"
+    install -m 0755 "$BIN/growth-update" "$BIN/growth-update-dispatch" "$BIN/growth-env" "$GROWTH_LIB_DIR/bin/"
     : >"$FAKE/calls.log"
     openssl genpkey -algorithm ed25519 -out "$FAKE/signing.pem" 2>/dev/null
     openssl pkey -in "$FAKE/signing.pem" -pubout -out "$GROWTH_ETC/release-signing.pub.pem" 2>/dev/null
@@ -60,11 +64,16 @@ teardown_world() { rm -rf "$WORLD"; }
 make_release() {
     local v=$1 variant=${2:-ok}
     local src="$WORLD/src-$v" dir="$FAKE/releases/v$v" zip="growth-$v.zip"
-    mkdir -p "$src/hub/ml" "$src/hub/bootstrap" "$src/hub/public/build" "$src/bin" "$src/systemd" "$dir"
+    mkdir -p "$src/hub/ml" "$src/hub/bootstrap" "$src/hub/public/build" "$src/bin" "$src/backup" "$src/systemd" "$dir"
     echo "$v" >"$src/VERSION"
     echo "<?php // artisan falso $v" >"$src/hub/artisan"
     echo "# uv.lock falso" >"$src/hub/ml/uv.lock"
-    cp "$BIN/growth-update" "$BIN/growth-env" "$src/bin/"
+    # Trampas: si root ejecuta algo de la versión (en vez de su copia en /usr/local/lib/growth), queda anotado.
+    local trap
+    for trap in bin/growth-update bin/growth-update-dispatch bin/growth-env backup/growth-backup-mariadb backup/growth-backup-lib.sh; do
+        printf '#!/usr/bin/env bash\n# TRAMPA %s %s\necho "TRAMPA %s" >>"$FAKE/calls.log"\n' "$trap" "$v" "$trap" >"$src/$trap"
+        chmod 0755 "$src/$trap"
+    done
     printf '[Unit]\nDescription=growth-app %s\n' "$v" >"$src/systemd/growth-app.service"
     printf '[Unit]\nDescription=growth.target\n' >"$src/systemd/growth.target"
     local unpacked=1000000 files=200
@@ -101,4 +110,22 @@ install_release() {
     ln -sfn "releases/$v" "$GROWTH_ROOT/current"
 }
 
-run_update() { "$BIN/growth-update" "$@" >"$FAKE/out.log" 2>&1; echo $?; }
+run_update() { "$GROWTH_LIB_DIR/bin/growth-update" "$@" >"$FAKE/out.log" 2>&1; echo $?; }
+
+# Root nunca ejecuta nada de releases/ ni de shared/ salvo con runuser -u growth.
+assert_no_root_exec() {
+    local c
+    c=$(calls)
+    assert_not_contains "$c" "TRAMPA" "root ejecutó un script de la versión"
+    if grep -E '^php as=root .*(/releases/|/shared/)' "$FAKE/calls.log" >/dev/null 2>&1; then
+        bad "root ejecutó PHP de releases/ o shared/: $(grep -E '^php as=root .*(/releases/|/shared/)' "$FAKE/calls.log" | head -2 | tr '\n' ' ')"
+    else
+        ok
+    fi
+    if grep -E '^(uv|php) as=root' "$FAKE/calls.log" | grep -qE 'artisan|^uv'; then
+        bad "artisan o uv corrieron como root"
+    else
+        ok
+    fi
+}
+lib_is_original() { cmp -s "$GROWTH_LIB_DIR/bin/growth-update" "$BIN/growth-update" && cmp -s "$GROWTH_LIB_DIR/bin/growth-env" "$BIN/growth-env"; }

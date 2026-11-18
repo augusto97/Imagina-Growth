@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # growth-update-dispatch — toma el pedido de actualización que dejó el panel y lanza growth-update en su
-# propia unidad transitoria (docs/despliegue.md §5, paso 3). Lo arranca growth-update.path como root.
+# propia unidad transitoria (docs/despliegue.md §5, paso 3). Lo arranca growth-update.path como root; vive en
+# /usr/local/lib/growth/bin y lanza el growth-update de esa misma carpeta (nunca uno de releases/ o shared/).
 #
 # El pedido lo escribe la app (usuario growth): se trata como dato no confiable. Solo se acepta una
 # versión X.Y.Z y un id upd_…; cualquier otra cosa se rechaza y queda como actualización fallida.
@@ -9,6 +10,7 @@ umask 022
 
 GROWTH_ROOT=${GROWTH_ROOT:-/opt/growth}
 GROWTH_USER=${GROWTH_USER:-growth}
+LIB_DIR=${GROWTH_LIB_DIR:-/usr/local/lib/growth}
 SYSTEMD_RUN=${SYSTEMD_RUN:-systemd-run}
 CHOWN=${CHOWN:-chown}
 LOCK_FILE=${GROWTH_LOCK_FILE:-/run/lock/growth-update.lock}
@@ -63,7 +65,7 @@ safe_id=""
 [[ -n $safe_id ]] || reject "id inválido"
 [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || reject "versión inválida" "$safe_id"
 [[ $by =~ ^[A-Za-z0-9_]{1,64}$ ]] || reject "solicitante inválido" "$safe_id"
-[[ -x $GROWTH_ROOT/current/bin/growth-update ]] || reject "no hay una versión instalada con growth-update" "$safe_id"
+[[ -x $LIB_DIR/bin/growth-update ]] || reject "falta $LIB_DIR/bin/growth-update" "$safe_id"
 
 current=""
 if [[ -L $GROWTH_ROOT/current ]]; then
@@ -85,4 +87,4 @@ log "Lanzo growth-update $version ($safe_id)."
 exec "$SYSTEMD_RUN" --unit="growth-update-${safe_id#upd_}" --collect --property=Type=exec \
     --description="Imagina Growth: actualización a $version" \
     --setenv=GROWTH_UPDATE_ID="$safe_id" --setenv=GROWTH_UPDATE_REQUESTED_BY="$by" \
-    "$GROWTH_ROOT/current/bin/growth-update" "$version"
+    "$LIB_DIR/bin/growth-update" "$version"

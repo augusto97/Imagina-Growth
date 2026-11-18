@@ -37,7 +37,26 @@ test_update_ok() {
     assert_contains "$c" "artisan event:cache" "event:cache"
     assert_contains "$c" "artisan migrate --force --no-interaction (releases/0.2.0/hub)" "migraciones de MariaDB"
     assert_contains "$c" "artisan igr:clickhouse:migrate" "migraciones de ClickHouse"
-    assert_contains "$c" "uv sync --frozen --no-dev --quiet (releases/0.2.0/hub/ml)" "uv sync"
+    assert_contains "$c" "uv as=growth sync --frozen --no-dev --quiet (releases/0.2.0/hub/ml) env=shared/venvs/0.2.0" "uv sync como growth, entorno en shared/"
+    assert_eq "$(readlink "$GROWTH_ROOT/releases/0.2.0/hub/ml/.venv")" "$GROWTH_ROOT/shared/venvs/0.2.0" ".venv apunta a shared/venvs"
+    # releases/ es de root: solo bootstrap/cache se presta a growth para las cachés y vuelve a root.
+    assert_contains "$c" "chown -R -h root:root $GROWTH_ROOT/releases/0.2.0.partial" "la versión queda de root"
+    assert_contains "$c" "chown growth:growth $GROWTH_ROOT/releases/0.2.0/hub/bootstrap/cache" "bootstrap/cache prestado a growth"
+    assert_contains "$c" "chown -R -h root:root $GROWTH_ROOT/releases/0.2.0/hub/bootstrap/cache" "bootstrap/cache vuelve a root"
+    local lent
+    lent=$(grep -E "^chown .*growth:growth .*/releases/" "$FAKE/calls.log" | grep -vc "/hub/bootstrap/cache$" || true)
+    assert_eq "$lent" 0 "nada más de releases/ pasa a growth"
+    line_cache_back=$(grep -n "chown -R -h root:root .*bootstrap/cache" "$FAKE/calls.log" | cut -d: -f1)
+    line_migrate_first=$(grep -n "artisan migrate" "$FAKE/calls.log" | cut -d: -f1)
+    ((line_cache_back < line_migrate_first)) && ok || bad "bootstrap/cache vuelve a root antes de migrar"
+    assert_no_root_exec
+    # Scripts de root de la versión verificada, instalados después del health-check.
+    assert_contains "$(cat "$GROWTH_LIB_DIR/bin/growth-update")" "TRAMPA bin/growth-update 0.2.0" "growth-update nuevo instalado"
+    assert_contains "$(cat "$GROWTH_LIB_DIR/bin/growth-update-dispatch")" "0.2.0" "dispatch nuevo instalado"
+    assert_contains "$(cat "$GROWTH_LIB_DIR/bin/growth-env")" "0.2.0" "growth-env nuevo instalado"
+    assert_contains "$(cat "$GROWTH_LIB_DIR/backup/growth-backup-mariadb")" "0.2.0" "copias nuevas instaladas"
+    assert_eq "$(stat -c %a "$GROWTH_LIB_DIR/bin/growth-update")" 755 "modo 0755"
+    assert_eq "$(find "$GROWTH_LIB_DIR" -name '.inst.*' | wc -l)" 0 "sin temporales en la carpeta de scripts"
     assert_contains "$c" "mariadb-dump igr" "copia de MariaDB"
     assert_contains "$c" "systemctl daemon-reload" "unidades nuevas"
     # Orden: copia y migraciones antes del cambio; el cambio antes de los reinicios.
@@ -78,6 +97,8 @@ test_health_fails_rollback() {
     assert_eq "$(restarts)" "$EXPECTED_RESTARTS $EXPECTED_RESTARTS" "reinició dos veces en el mismo orden"
     assert_contains "$(status .error)" "health-check" "mensaje"
     assert_contains "$(cat "$SYSTEMD_UNIT_DIR/growth-app.service")" "growth-app 0.1.0" "volvieron las unidades de la anterior"
+    lib_is_original && ok || bad "después de volver atrás quedan los scripts de root anteriores"
+    assert_no_root_exec
     assert_eq "$(wc -l <"$GROWTH_ROOT/shared/state/update-history.jsonl")" 1 "una línea de historial"
     teardown_world
 }
@@ -133,6 +154,8 @@ check_nothing_left() {
     assert_eq "$(find "$GROWTH_ROOT/shared/tmp" -mindepth 1 | wc -l)" 0 "sin zip ni restos en tmp"
     assert_not_contains "$(calls)" "systemctl restart" "no reinició nada"
     [[ ${1:-} == migrated ]] || assert_not_contains "$(calls)" "artisan migrate" "no migró"
+    lib_is_original && ok || bad "los scripts de root no cambiaron"
+    assert_no_root_exec
 }
 
 test_bad_packages() {
@@ -222,6 +245,8 @@ test_first_install() {
     assert_eq "$(status '.steps[] | select(.key == "backup") | .status')" skipped "sin copia de una base vacía"
     assert_eq "$(restarts)" "growth.target" "arranca growth.target"
     assert_contains "$(cat "$GROWTH_ROOT/shared/.env")" "IGR_ML_TOKEN=" "secreto nuevo generado"
+    assert_contains "$(cat "$GROWTH_LIB_DIR/bin/growth-update")" "TRAMPA bin/growth-update 0.1.0" "--install instala los scripts de root"
+    assert_no_root_exec
     teardown_world
 
     setup_world "actualizar sin versión instalada"
@@ -243,7 +268,8 @@ test_dispatch() {
     assert_eq "$(status .state)" queued "estado en cola"
     assert_eq "$(status .from)" 0.1.0 "desde"
     assert_contains "$(calls)" "systemd-run --unit=growth-update-A1b2C3d4 --collect --property=Type=exec" "unidad transitoria"
-    assert_contains "$(calls)" "$GROWTH_ROOT/current/bin/growth-update 0.2.0" "script de la versión actual"
+    assert_contains "$(calls)" "$GROWTH_LIB_DIR/bin/growth-update 0.2.0" "growth-update de /usr/local/lib/growth"
+    assert_not_contains "$(calls)" "current/bin" "nunca uno de la versión"
     teardown_world
 
     local bad

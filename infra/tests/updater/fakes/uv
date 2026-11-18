@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-echo "uv $* (${PWD#"$GROWTH_ROOT"/})" >>"$FAKE/calls.log"
+echo "uv as=${FAKE_AS:-root} $* (${PWD#"$GROWTH_ROOT"/}) env=${UV_PROJECT_ENVIRONMENT#"$GROWTH_ROOT"/}" >>"$FAKE/calls.log"

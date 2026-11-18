@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# runuser -u growth -- cmd…: corre el comando como el usuario actual.
+# runuser -u growth -- cmd…: corre el comando como el usuario actual, marcado como «growth» para las aserciones.
 [[ $1 == -u ]] && shift 2
 [[ ${1:-} == -- ]] && shift
+export FAKE_AS=growth
 exec "$@"

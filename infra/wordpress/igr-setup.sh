@@ -1,6 +1,7 @@
 #!/bin/sh
-# Instala WordPress + WooCommerce + el connector y genera la tienda demo.
-#   docker compose -f infra/docker-compose.yml run --rm wpcli igr-setup [pedidos] [clientes]
+# Instala WordPress + WooCommerce + el connector y genera la tienda demo (desarrollo local, infra/dev/README.md).
+# Se corre con WP-CLI en la carpeta de WordPress (o con WP_CLI_PATH apuntando a ella):
+#   cd /ruta/wordpress && sh /ruta/Imagina-Growth/infra/wordpress/igr-setup.sh [pedidos] [clientes]
 set -e
 ORDERS=${1:-10000}
 CUSTOMERS=${2:-2000}

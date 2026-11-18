@@ -4,14 +4,18 @@
 #   growth-update <versión>              actualización (la lanza growth-update-dispatch con systemd-run)
 #   growth-update --install <versión>    primera instalación (la llama install.sh)
 #
-# Corre como root en su propia unidad transitoria: reiniciar growth.target no lo mata. Lo que toca la app
-# (artisan, uv) corre como el usuario «growth». Nunca carga un .env con `source`: lee con growth-env.
+# Corre como root en su propia unidad transitoria: reiniciar growth.target no lo mata. Vive en
+# /usr/local/lib/growth/bin (root) y **nunca ejecuta como root nada de una ruta que «growth» pueda escribir**:
+# releases/ es de root (solo lectura para growth); artisan y uv corren como «growth» con runuser; el .env se
+# lee con el growth-env de /usr/local/lib/growth, nunca con `source`. Después de una actualización sana
+# instala los scripts verificados de la versión nueva (bin/ y backup/) en /usr/local/lib/growth.
 # Cada comando externo se puede reemplazar por variable de entorno (las pruebas usan versiones falsas).
 set -Eeuo pipefail
 umask 022
 
 GROWTH_ROOT=${GROWTH_ROOT:-/opt/growth}
 GROWTH_ETC=${GROWTH_ETC:-/etc/growth}
+LIB_DIR=${GROWTH_LIB_DIR:-/usr/local/lib/growth}
 GROWTH_USER=${GROWTH_USER:-growth}
 SYSTEMD_UNIT_DIR=${SYSTEMD_UNIT_DIR:-/etc/systemd/system}
 LOCK_FILE=${GROWTH_LOCK_FILE:-/run/lock/growth-update.lock}
@@ -149,7 +153,7 @@ status_finish() { # status_finish <state> [error]
 # ── Utilidades ───────────────────────────────────────────────────────────────────
 
 as_growth() { "$RUNUSER" -u "$GROWTH_USER" -- "$@"; }
-ENV_TOOL="$GROWTH_ROOT/current/bin/growth-env"
+ENV_TOOL="$LIB_DIR/bin/growth-env"
 env_get() { "$PHP" "$ENV_TOOL" get "$1" "$SHARED/.env" 2>/dev/null || true; }
 artisan() { # artisan <carpeta hub> <comando…>
     local hub=$1
@@ -229,6 +233,35 @@ install_units() { # copia las unidades growth* de la versión si cambiaron; nunc
     fi
 }
 
+lock_down() { # deja una carpeta de la versión en manos de root y solo de lectura para los demás
+    "$CHOWN" -R -h root:root "$1"
+    chmod -R u+rwX,go+rX,go-w "$1"
+}
+
+place() { # place <origen> <destino>: copia atómica, root:root 0755
+    local tmp
+    tmp=$(mktemp "$(dirname "$2")/.inst.XXXXXX")
+    install -m 0755 "$1" "$tmp"
+    "$CHOWN" root:root "$tmp"
+    mv -f "$tmp" "$2"
+}
+
+install_lib_scripts() { # los scripts de root de la versión ya verificada y sana → /usr/local/lib/growth
+    local src=$1 name f
+    mkdir -p "$LIB_DIR/bin" "$LIB_DIR/backup"
+    for name in growth-update growth-update-dispatch growth-env; do
+        if [[ -f $src/bin/$name && ! -L $src/bin/$name ]]; then
+            place "$src/bin/$name" "$LIB_DIR/bin/$name"
+        fi
+    done
+    for f in "$src"/backup/*; do
+        [[ -f $f && ! -L $f ]] || continue
+        name=$(basename "$f")
+        [[ $name =~ ^[A-Za-z0-9._-]+$ ]] || continue
+        place "$f" "$LIB_DIR/backup/$name"
+    done
+}
+
 prune() {
     local cur prev keep=() d v n=0 count=0
     cur=$(current_version)
@@ -249,9 +282,14 @@ prune() {
             count=$((count + 1))
         else
             log "Borro la versión $v"
-            rm -rf -- "${GROWTH_ROOT:?}/releases/$v"
+            rm -rf -- "${GROWTH_ROOT:?}/releases/$v" "${SHARED:?}/venvs/$v"
         fi
     done < <(find "$GROWTH_ROOT/releases" -mindepth 1 -maxdepth 1 -type d ! -name '*.partial' -printf '%f\n' | sort -V -r)
+    # Entornos de Python de versiones que ya no están.
+    for d in "$SHARED"/venvs/*; do
+        [[ -d $d ]] || continue
+        [[ -d $GROWTH_ROOT/releases/$(basename "$d") ]] || rm -rf -- "$d"
+    done
     # Carpetas a medio extraer de intentos anteriores.
     find "$GROWTH_ROOT/releases" -mindepth 1 -maxdepth 1 -name '*.partial' -exec rm -rf -- {} +
     # Copias previas: las KEEP_BACKUPS más recientes.
@@ -430,6 +468,7 @@ begin extract
 rm -rf -- "$PARTIAL"
 mkdir -p "$PARTIAL"
 "$UNZIP" -q "$TMP/$ZIP" -d "$PARTIAL" || fail "El zip está dañado: no se pudo extraer."
+lock_down "$PARTIAL"
 [[ $(tr -d '[:space:]' <"$PARTIAL/VERSION" 2>/dev/null) == "$VERSION" ]] || fail "El zip no trae la versión $VERSION (archivo VERSION)."
 [[ -f $PARTIAL/hub/artisan && -f $PARTIAL/bin/growth-update ]] || fail "El zip no trae el hub completo."
 if [[ -d $NEW_DIR ]]; then
@@ -437,35 +476,45 @@ if [[ -d $NEW_DIR ]]; then
     rm -rf -- "$NEW_DIR"
 fi
 mkdir -p "$SHARED/storage/app/public" "$SHARED/storage/framework/cache/data" "$SHARED/storage/framework/sessions" \
-    "$SHARED/storage/framework/views" "$SHARED/storage/logs" "$SHARED/cache/uv" "$SHARED/python"
+    "$SHARED/storage/framework/views" "$SHARED/storage/logs" "$SHARED/cache/uv" "$SHARED/python" "$SHARED/venvs"
 rm -rf -- "$PARTIAL/hub/storage" "$PARTIAL/hub/.env" "$PARTIAL/hub/public/storage"
 mkdir -p "$PARTIAL/hub/public"
 ln -s "$SHARED/.env" "$PARTIAL/hub/.env"
 ln -s "$SHARED/storage" "$PARTIAL/hub/storage"
 ln -s "$SHARED/storage/app/public" "$PARTIAL/hub/public/storage"
 mkdir -p "$PARTIAL/hub/bootstrap/cache"
+# El entorno de Python lo arma «growth» fuera de la versión (que es de root): hub/ml/.venv apunta allí.
+if [[ -d $PARTIAL/hub/ml ]]; then
+    rm -rf -- "$PARTIAL/hub/ml/.venv" "${SHARED:?}/venvs/$VERSION"
+    ln -s "$SHARED/venvs/$VERSION" "$PARTIAL/hub/ml/.venv"
+fi
 mv -T "$PARTIAL" "$NEW_DIR"
 PARTIAL=""
-ENV_TOOL="$NEW_DIR/bin/growth-env"
 REPAIR_ARGS=(repair "$NEW_DIR/release.json" "$SHARED/.env")
 [[ $MODE == install ]] && REPAIR_ARGS+=(--install)
-if ! REPAIR_OUT=$("$PHP" "$NEW_DIR/bin/growth-env" "${REPAIR_ARGS[@]}" 2>&1); then
+if ! REPAIR_OUT=$("$PHP" "$ENV_TOOL" "${REPAIR_ARGS[@]}" 2>&1); then
     fail "No se pudo reparar el .env: ${REPAIR_OUT//$'\n'/ }"
 fi
-"$CHOWN" -R "$GROWTH_USER:$GROWTH_USER" "$NEW_DIR" "$SHARED/storage" "$SHARED/cache" "$SHARED/python"
+"$CHOWN" -R "$GROWTH_USER:$GROWTH_USER" "$SHARED/storage" "$SHARED/cache" "$SHARED/python" "$SHARED/venvs"
 if [[ -f $NEW_DIR/hub/ml/uv.lock ]]; then
     (cd "$NEW_DIR/hub/ml" && as_growth env HOME="$SHARED" UV_CACHE_DIR="$SHARED/cache/uv" UV_PYTHON_INSTALL_DIR="$SHARED/python" \
-        UV_PROJECT_ENVIRONMENT="$NEW_DIR/hub/ml/.venv" "$UV" sync --frozen --no-dev --quiet) \
+        UV_PROJECT_ENVIRONMENT="$SHARED/venvs/$VERSION" "$UV" sync --frozen --no-dev --quiet) \
         || fail "No se pudo preparar el entorno de Python del servicio de predicciones (uv sync)."
 fi
 done_step "${REPAIR_OUT//$'\n'/ }"
 
 # 5. Cachés de Laravel con la versión nueva.
 begin caches
+# bootstrap/cache se presta a «growth» solo mientras arma las cachés (y los manifiestos de paquetes);
+# después vuelve a root, sin symlinks ni nada que no sea un archivo normal, y solo de lectura para growth.
+CACHE_DIR="$NEW_DIR/hub/bootstrap/cache"
+"$CHOWN" "$GROWTH_USER:$GROWTH_USER" "$CACHE_DIR"
 artisan "$NEW_DIR/hub" config:cache
 artisan "$NEW_DIR/hub" route:cache
 artisan "$NEW_DIR/hub" view:cache
 artisan "$NEW_DIR/hub" event:cache
+find "$CACHE_DIR" -mindepth 1 ! -type f -exec rm -rf -- {} +
+lock_down "$CACHE_DIR"
 done_step
 
 # 6. Copia de MariaDB antes de migrar.
@@ -517,6 +566,7 @@ if ! all_healthy "$VERSION" "$HEALTH_TIMEOUT"; then
 fi
 done_step
 PHASE="done"
+install_lib_scripts "$NEW_DIR"
 
 # 10. Limpieza: 3 versiones, 5 copias y descargas.
 begin prune

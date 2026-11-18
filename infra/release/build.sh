@@ -5,7 +5,7 @@
 #
 # Deja en la carpeta de salida (por defecto ./dist):
 #   growth-<v>.zip          el paquete: VERSION, release.json, hub/ (con vendor y la SPA construida),
-#                           hub/ml (pyproject.toml y uv.lock), bin/, systemd/, config/, caddy/ e install.sh
+#                           hub/ml (pyproject.toml y uv.lock), bin/, backup/, systemd/, config/, caddy/ e install.sh
 #   growth-<v>.zip.sha256   «<sha256>  growth-<v>.zip»
 #   release.json            el mismo de adentro del zip
 #   install.sh              si existe infra/install.sh
@@ -111,6 +111,7 @@ copy_dir() {
     fi
 }
 copy_dir bin bin
+copy_dir backup backup
 copy_dir systemd systemd
 copy_dir config config
 copy_dir caddy caddy
@@ -120,7 +121,14 @@ if [ -f "$ROOT/infra/install.sh" ]; then
 else
     warn "infra/install.sh no existe: el paquete sale sin install.sh"
 fi
-[ -d "$STAGE/bin" ] && find "$STAGE/bin" -type f -exec chmod 0755 {} +
+# Las guías de las copias se quedan en el repositorio; en el servidor solo van los scripts y el ejemplo de configuración.
+rm -f "$STAGE/backup/README.md" "$STAGE/backup/RESTAURACION.md"
+# Scripts ejecutables (el zip guarda los permisos de Unix y unzip los restaura).
+for d in bin backup; do
+    if [ -d "$STAGE/$d" ]; then
+        find "$STAGE/$d" -type f ! -name '*.example' ! -name '*.md' -exec chmod 0755 {} +
+    fi
+done
 if [ -n "${GROWTH_RELEASE_PUBKEY_FILE:-}" ]; then
     [ -f "$GROWTH_RELEASE_PUBKEY_FILE" ] || { echo "No existe $GROWTH_RELEASE_PUBKEY_FILE" >&2; exit 2; }
     cp "$GROWTH_RELEASE_PUBKEY_FILE" "$STAGE/release-signing.pub.pem"

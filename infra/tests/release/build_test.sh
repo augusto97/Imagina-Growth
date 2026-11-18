@@ -63,6 +63,10 @@ has hub/resources/views/app.blade.php
 has hub/database/clickhouse/0001_events.sql
 has hub/bootstrap/app.php
 has release-signing.pub.pem
+for f in growth-backup-mariadb growth-backup-clickhouse growth-backup-verify growth-backup-lib.sh; do
+    if [ -f "$ROOT/infra/backup/$f" ]; then has "backup/$f"; fi
+done
+lacks '^backup/(README|RESTAURACION)\.md$'
 lacks '(^|/)node_modules/'
 lacks '^hub/tests/'
 lacks '^hub/ml/tests/'
@@ -73,6 +77,17 @@ lacks '^hub/vendor/(pestphp|phpunit|larastan|laravel/pint)/'
 lacks '^hub/bootstrap/cache/(config|routes-v7|events)\.php$'
 lacks '\.venv/'
 
+# Los scripts de bin/ y backup/ quedan ejecutables dentro del zip (unzip restaura los permisos).
+zipinfo "$ZIP" 'bin/*' 'backup/*' 2>/dev/null | awk '$1 ~ /^-/ {print $1, $NF}' > "$T/perms.txt" || true
+scripts=$(awk '$2 !~ /\.(example|md)$/' "$T/perms.txt" | wc -l)
+noexec=$(awk '$2 !~ /\.(example|md)$/ && $1 !~ /^-rwx/' "$T/perms.txt")
+if [ "$scripts" -eq 0 ]; then
+    pass "sin scripts en bin/ ni backup/ todavía (los aportan otras piezas)"
+elif [ -z "$noexec" ]; then
+    pass "$scripts scripts de bin/ y backup/ ejecutables en el zip"
+else
+    fail "scripts sin permiso de ejecución: $noexec"
+fi
 unzip -p "$ZIP" VERSION > "$T/VERSION"
 if [ "$(cat "$T/VERSION")" = "$VERSION" ]; then pass "VERSION dice $VERSION"; else fail "VERSION dice $(cat "$T/VERSION")"; fi
 unzip -p "$ZIP" release.json > "$T/release.json"

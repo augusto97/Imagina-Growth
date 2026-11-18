@@ -51,6 +51,7 @@ Todos los servicios `growth-*` tienen `PartOf=growth.target` y `WantedBy=growth.
     backups/pre-update/               copia de MariaDB antes de cada actualización (se conservan 5)
     tmp/                              descargas en curso
     cache/uv/  python/                caché de uv y Pythons administrados por uv
+    venvs/<versión>/                  entorno de Python del ML de cada versión (`hub/ml/.venv` apunta aquí)
 /usr/local/lib/growth/                root:root 0755  scripts que corren como root (copiados de la versión verificada)
   bin/growth-update  bin/growth-update-dispatch  bin/growth-env
   backup/growth-backup-{mariadb,clickhouse,verify}  backup/growth-backup-lib.sh
@@ -118,10 +119,15 @@ install.sh                  el instalador
 }
 ```
 
-`env` lista **todas** las variables que la versión necesita, con su valor por defecto seguro. `secret: true`
-significa que se genera (32 bytes aleatorios) solo si falta; nunca se regeneran `APP_KEY` ni
-`IGR_BLIND_INDEX_KEY` en una actualización: si faltan, la actualización se detiene (sin ellos los datos
-cifrados y los índices ciegos ya guardados no se pueden leer).
+`env` lista **todas** las variables que la versión necesita, con su valor por defecto seguro
+(`growth-env repair` agrega las que falten sin tocar las que ya existen). Campos de cada entrada:
+
+- `secret: true`: se genera solo si falta, con el formato de `generate`: `hex32` (por defecto), `base64_32` o
+  `laravel_key` (`base64:` + 32 bytes, el de `APP_KEY`). Con `generate: null` (las llaves VAPID) queda vacía y la
+  genera `install.sh` en la primera instalación.
+- `never_regenerate: true` (`APP_KEY`, `IGR_BLIND_INDEX_KEY`, `DB_PASSWORD`, `CLICKHOUSE_PASSWORD`,
+  `REDIS_PASSWORD`): en una actualización nunca se generan; si faltan, la actualización se detiene (sin ellas los
+  datos cifrados, los índices ciegos y las conexiones ya configuradas dejan de funcionar).
 
 ## 4. Salud y versión
 
@@ -201,6 +207,12 @@ GROWTH_HEALTH_TIMEOUT=120
 La app usa `GROWTH_UPDATE_REPO` y `GROWTH_UPDATE_API` del `.env` solo para **mostrar** la versión nueva; el
 script descarga con lo que dice `updater.conf` (root) y valida con la llave de `/etc/growth`, así una app
 comprometida no puede instalar un zip ajeno.
+
+**En la app** (`app/Domain/Updates`, `config/growth.php`): `GROWTH_STATE_PATH` (por defecto
+`/opt/growth/shared/state`; una ruta relativa se resuelve desde la raíz del hub), `GROWTH_UPDATE_REPO` y
+`GROWTH_UPDATE_API`. Rutas del panel: `GET /api/platform/updates`, `POST /api/platform/updates/check` y
+`POST /api/platform/updates/install {version, password}` (422 con la contraseña equivocada o una versión que no es
+la última; 409 si ya hay un pedido o una actualización en curso).
 
 ## 6. Copias y vigilancia
 

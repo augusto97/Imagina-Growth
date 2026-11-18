@@ -26,8 +26,10 @@ SHARED=$GROWTH_ROOT/shared
 ENV_FILE=$SHARED/.env
 ETC_DIR=/etc/growth
 BACKUP_DIR=/var/lib/growth-backups
+LIB_DIR=/usr/local/lib/growth
 
 DOMAIN=""
+DOMAIN_GIVEN=0
 EMAIL=""
 VERSION=latest
 VERSION_GIVEN=0
@@ -52,8 +54,8 @@ die() { printf '\033[31m[error]\033[0m %s\n' "$*" >&2; exit 1; }
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        --domain) DOMAIN=${2:?}; shift 2 ;;
-        --email) EMAIL=${2:?}; shift 2 ;;
+        --domain) DOMAIN=${2:?}; DOMAIN_GIVEN=1; shift 2 ;;
+        --email) EMAIL=${2:?}; DOMAIN_GIVEN=1; shift 2 ;;
         --version) VERSION=${2#v}; VERSION_GIVEN=1; shift 2 ;;
         --repo) REPO=${2:?}; REPO_GIVEN=1; shift 2 ;;
         --releases-api) API=${2%/}; API_GIVEN=1; shift 2 ;;
@@ -209,7 +211,7 @@ log "Paquetes base"
 
 if [ -z "$TPL" ]; then
     fetch_release
-    unzip -q "$REL_DIR/growth-$REL_VERSION.zip" 'config/*' 'systemd/*' 'caddy/*' 'bin/*' -d "$WORK/tpl"
+    unzip -q "$REL_DIR/growth-$REL_VERSION.zip" 'config/*' 'systemd/*' 'caddy/*' 'bin/*' 'backup/*' -d "$WORK/tpl"
     TPL=$WORK/tpl
 fi
 info "Plantillas: $TPL"
@@ -303,14 +305,35 @@ log "Usuario growth y estructura en $GROWTH_ROOT"
 if ! id growth >/dev/null 2>&1; then
     useradd --system --user-group --home-dir "$SHARED" --no-create-home --shell /usr/sbin/nologin growth
 fi
-install -d -m 0755 -o root -g root "$GROWTH_ROOT" "$ETC_DIR"
-install -d -m 0755 -o growth -g growth "$GROWTH_ROOT/releases" "$SHARED"
+# Las versiones son de root y de solo lectura para la app; solo shared/ es del usuario growth.
+install -d -m 0755 -o root -g root "$GROWTH_ROOT" "$GROWTH_ROOT/releases" "$ETC_DIR" "$LIB_DIR" "$LIB_DIR/bin" "$LIB_DIR/backup"
+install -d -m 0755 -o growth -g growth "$SHARED"
 for d in storage storage/app storage/app/public storage/app/private storage/framework storage/framework/cache \
     storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs \
     state backups backups/pre-update tmp cache cache/uv python run; do
     install -d -m 0750 -o growth -g growth "$SHARED/$d"
 done
-install -d -m 0750 -o root -g root "$BACKUP_DIR" "$BACKUP_DIR/mariadb"
+install -d -m 0711 -o root -g root "$BACKUP_DIR"
+install -d -m 0700 -o root -g root "$BACKUP_DIR/mariadb"
+
+# Scripts que corren como root (actualizador y copias): nunca desde una ruta que growth pueda escribir.
+install_root_scripts() { # carpeta de origen (raíz del repo infra/ o del zip verificado)
+    local src=$1 f n=0
+    for f in growth-update growth-update-dispatch growth-env; do
+        [ -f "$src/bin/$f" ] || continue
+        put_file "$src/bin/$f" "$LIB_DIR/bin/$f" 0755 root:root || true
+        n=$((n + 1))
+    done
+    if [ -d "$src/backup" ]; then
+        for f in "$src"/backup/growth-backup-*; do
+            [ -f "$f" ] || continue
+            put_file "$f" "$LIB_DIR/backup/$(basename "$f")" 0755 root:root || true
+        done
+    fi
+    [ "$n" = 3 ] || warn "Faltan scripts del actualizador en $src/bin ($n de 3)."
+}
+install_root_scripts "$TPL"
+info "Scripts de root en $LIB_DIR (bin y backup)."
 
 # ── 4. Configuración de la app (.env) ───────────────────────────────────
 
@@ -445,7 +468,7 @@ info "Base igr y usuario igr listos (innodb_buffer_pool_size=${POOL_MB}M)."
 # ── 6. ClickHouse ───────────────────────────────────────────────────────
 
 log "ClickHouse"
-install -d -m 0750 -o clickhouse -g clickhouse "$BACKUP_DIR/clickhouse"
+install -d -m 0700 -o clickhouse -g clickhouse "$BACKUP_DIR/clickhouse"
 CH_CHANGED=0
 put_file "$TPL/config/clickhouse/igr.xml" /etc/clickhouse-server/config.d/igr.xml 0644 root:clickhouse && CH_CHANGED=1
 put_file "$TPL/config/clickhouse/growth-listen.xml" /etc/clickhouse-server/config.d/growth-listen.xml 0644 root:clickhouse && CH_CHANGED=1
@@ -523,6 +546,11 @@ if [ -n "$PUBKEY_PEM" ]; then
 else
     warn "Sin llave pública: el actualizador no podrá validar versiones hasta instalar $ETC_DIR/release-signing.pub.pem."
 fi
+# Copias (infra/backup): la configuración es del administrador; solo se crea si falta.
+if [ ! -f "$ETC_DIR/backup.conf" ] && [ -f "$TPL/backup/backup.conf.example" ]; then
+    install -m 0600 -o root -g root "$TPL/backup/backup.conf.example" "$ETC_DIR/backup.conf"
+    info "Creado $ETC_DIR/backup.conf (completa el remoto de rclone y los heartbeats)."
+fi
 
 # ── 9. Servicios de systemd ─────────────────────────────────────────────
 
@@ -549,13 +577,13 @@ if [ ! -f "$CADDY_DEST" ] || grep -q 'root \* /usr/share/caddy' "$CADDY_DEST"; t
     systemctl enable caddy >/dev/null 2>&1
     systemctl restart caddy
     info "Caddyfile instalado para $DOMAIN, in.$DOMAIN y go.$DOMAIN."
-elif ! cmp -s "$WORK/Caddyfile" "$CADDY_DEST"; then
+elif [ "$DOMAIN_GIVEN" = 1 ] && ! cmp -s "$WORK/Caddyfile" "$CADDY_DEST"; then
     install -m 0644 "$WORK/Caddyfile" "$CADDY_DEST.growth.new"
-    warn "Ya hay un $CADDY_DEST propio; no se toca. La versión sugerida quedó en $CADDY_DEST.growth.new."
+    warn "Ya hay un $CADDY_DEST; no se toca. La versión para --domain/--email quedó en $CADDY_DEST.growth.new."
     systemctl enable --now caddy >/dev/null 2>&1
 else
     systemctl enable --now caddy >/dev/null 2>&1
-    info "Sin cambios."
+    info "Sin cambios (el Caddyfile instalado es del administrador)."
 fi
 
 # ── 11. Firewall ────────────────────────────────────────────────────────
@@ -587,18 +615,22 @@ elif [ -L "$GROWTH_ROOT/current" ]; then
 else
     log "La app"
     fetch_release
-    unzip -q -o "$REL_DIR/growth-$REL_VERSION.zip" 'bin/growth-update' -d "$WORK/updater"
-    chmod +x "$WORK/updater/bin/growth-update"
+    # Los scripts de root salen del zip ya verificado (firma y sha256) de la versión que se instala.
+    unzip -q -o "$REL_DIR/growth-$REL_VERSION.zip" 'bin/*' 'backup/*' -d "$WORK/rel-scripts"
+    install_root_scripts "$WORK/rel-scripts"
+    [ -x "$LIB_DIR/bin/growth-update" ] || die "La versión $REL_VERSION no trae bin/growth-update."
     # El actualizador vuelve a validar y hace la instalación completa (docs/despliegue.md §5, modo --install).
-    GROWTH_ASSETS_DIR="$REL_DIR" "$WORK/updater/bin/growth-update" --install "$REL_VERSION"
+    GROWTH_ASSETS_DIR="$REL_DIR" "$LIB_DIR/bin/growth-update" --install "$REL_VERSION"
 fi
 
+# Copias nocturnas y su verificación: corren desde los scripts de root, haya o no una versión instalada.
+for t in growth-backup-mariadb.timer growth-backup-clickhouse.timer growth-backup-verify.timer; do
+    [ -e "/etc/systemd/system/$t" ] && systemctl enable --now "$t" >/dev/null 2>&1
+done
 if [ -L "$GROWTH_ROOT/current" ]; then
     systemctl enable growth.target >/dev/null 2>&1
-    # Copias y vigilancia (infra/backup, infra/monitor): solo con una versión instalada.
-    for t in /etc/systemd/system/growth-*.timer; do
-        [ -e "$t" ] && systemctl enable --now "$(basename "$t")" >/dev/null 2>&1
-    done
+    # La vigilancia usa la app (artisan growth:monitor): solo con una versión instalada.
+    [ -e /etc/systemd/system/growth-monitor.timer ] && systemctl enable --now growth-monitor.timer >/dev/null 2>&1
 fi
 
 log "Listo"
