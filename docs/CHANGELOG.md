@@ -1,5 +1,127 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-18 — Cierre de la Fase 2 (Mensajería y automatizaciones)
+
+### Criterio «Listo cuando» (medido con `infra/e2e/fase2.sh`)
+
+El recorrido usa la tienda demo (WooCommerce 11.3) conectada a un hub aislado, con correo por SMTP hacia un buzón local y el flujo «Carrito abandonado» de la biblioteca activado en un clic. Las esperas del flujo (1 h, 4 h y 24 h) se publicaron en 1 minuto desde el constructor, como lo haría la comerciante, para correr la prueba en tiempo real.
+
+Marta compra por primera vez y acepta recibir correos. Vuelve con las mismas cookies, arma un carrito, entra al checkout y se va. El job de carritos lo marca abandonado; `--at` simula los 45 minutos. El flujo le envía el correo «Marta, dejaste algo en tu carrito». Ella lo abre en otro dispositivo, la tienda le restaura el carrito y paga con tarjeta.
+
+| Criterio | Resultado |
+|---|---|
+| El flujo de carrito abandonado recupera pedidos en la tienda de prueba de punta a punta | **Sí.** El carrito quedó `recovered` con el pedido nuevo: `restored_from` une el carrito del enlace con el abandonado. El run salió por la meta (`goal_reached`), con un paso por nodo. El correo salió por SMTP con baja en un clic (RFC 8058) y se registró el clic del enlace rastreado. ClickHouse tiene `cart.abandoned`, `flow.entered`, `message.queued`, `message.sent`, `message.clicked` y `flow.exited` |
+| Ningún mensaje de marketing sale un domingo, un festivo o fuera de horario en Colombia (con prueba automática) | **Sí.** Hay cuatro capas de prueba, detalladas debajo de la tabla |
+| Cada pedido recuperado aparece atribuido | **Sí.** `attributed_message_id` apunta al correo y `attributed_flow_id` al flujo. El canal del último toque es `igr_email` |
+
+Las cuatro capas de prueba de la ventana legal:
+- **`SendPolicyColombiaTest`** (19 pruebas):
+  - De lunes a viernes, de 7:00 a 18:59; desde las 19:00 se aplaza.
+  - El sábado se aplaza a partir de las 15:00; a las 15:01, al lunes.
+  - Domingos.
+  - Festivos fijos, trasladados por la Ley Emiliani y de Pascua.
+  - Cambio de día.
+  - Frecuencia de 1 al día sumando canales, con dos reservas simultáneas.
+  - Excepciones de festivos.
+- **Ventana justo antes de enviar:** el job vuelve a mirar la ventana antes de llamar al proveedor.
+- **Flujos y campañas:** en sus pruebas, un paso del domingo a las 10:00 sale el lunes a las 7:00 y un reintento nunca reenvía.
+- **El recorrido:** domingo, 8 de diciembre y sábado a las 15:01 en Bogotá se aplazan.
+
+**La ventana legal y la hora del recorrido:** el recorrido corrió a la 1:30 de Bogotá, con la ventana cerrada. Por eso la zona horaria de Marta se fijó en una donde estuviera abierta (`fase2-hub.php reloj`): con la de Bogotá, el correo habría salido a las 7:00.
+
+### Qué se entregó
+- **Base de la fase:**
+  - Contrato v3: `order.cart_token`, `cart.updated.restored_from` y los esquemas de `cart.abandoned`, los 11 `message.*`, `whatsapp.inbound` y `flow.entered`/`flow.exited`.
+  - 18 tablas nuevas.
+  - **SendPolicy**: ventana legal por país, festivos con excepciones editables (`igr:holidays`), frecuencia atómica en Redis, consentimiento, supresión, registros de exclusión, cuenta del canal y ventana de 24 h de WhatsApp.
+  - Interfaces compartidas: despachador, renderizador, emisor de cupones y enlace de carrito.
+- **Carritos y cupones:**
+  - Proyección de carritos y abandono con `cart.abandoned`, que trae los productos y el enlace de restauración firmado.
+  - Recuperación o conversión al llegar el pedido.
+  - Cupones del hub creados en el sitio y redimidos.
+  - El `_igr` de un enlace vincula el navegador con el contacto, sin fusionar perfiles.
+- **M07 Canales:**
+  - Correo: SES, con el asistente DKIM/SPF/DMARC y el calentamiento, o SMTP.
+  - WhatsApp: oficial (Embedded Signup o conexión manual), con plantillas creadas en Meta desde la app; o Zender, con el riesgo aceptado, topes fijos y sin marketing.
+  - SMS por Twilio.
+  - El despachador es idempotente y devuelve el cupo de frecuencia si el envío no llega al proveedor.
+  - Webhooks con firma verificada.
+  - Palabras de baja por WhatsApp; baja en un clic y centro de preferencias.
+  - Supresión e importación del RNE y el REPEP.
+  - Atribución por mensaje y la pestaña «Mensajes» del perfil.
+- **M08 Plantillas:**
+  - Liquid en sandbox, con revisiones: un correo de marketing sin enlace de baja no puede quedar listo.
+  - Editor de correo GrapesJS + MJML con bloques dinámicos.
+  - Biblioteca de 29 correos y 7 SMS por industria.
+- **M09 Flujos:**
+  - Disparadores por evento, segmento, fecha, umbral, webhook o a mano.
+  - Nodos de espera, condición, A/B, canal, envío, cupón, etiqueta, atributo, aviso al equipo y webhook.
+  - Metas, grupo de control, versionado, analítica por nodo con incremento y modo prueba.
+  - Constructor con React Flow.
+  - Biblioteca: 11 flujos funcionan hoy; 9 quedan marcados para su fase (3 o 5).
+- **M10 Campañas:**
+  - Asistente de 5 pasos con la revisión de cumplimiento y el costo estimado.
+  - Envío por lotes idempotente.
+  - A/B con ganadora automática, grupo de control e incremento.
+  - Calendario comercial de Colombia, México y Venezuela.
+- **Connector:**
+  - Comandos `coupon.create`, `coupon.disable`, `order.add_note`, `product.lookup` y `order.status`.
+  - Carrito restaurable (`?igr_cart=`) sin llamadas al hub.
+  - `cart_token` en el pedido, con el contrato v3.
+- **Consentimiento:** el modo de cookies se elige en el panel (decisión posterior al cierre de la Fase 1, ver abajo).
+
+### Errores que encontró el recorrido (corregidos con prueba)
+- **Carrito recuperado:** el enlace de recuperación arma un carrito nuevo en WooCommerce. Antes el pedido cerraba ese carrito nuevo como convertido y el abandonado nunca quedaba recuperado. Ahora `carts.restored_from_id` los une.
+- **Atribución en el mismo segundo:** WooCommerce guarda la fecha del pedido sin milisegundos. La visita que llegó desde el correo en ese mismo segundo quedaba fuera, y el pedido caía al canal de una visita anterior. Ahora cuenta hasta el final de ese segundo.
+- **Imagen rota en el correo:** un producto sin imagen dejaba `<img src="">`, porque `item.imagen != ""` se cumple con el valor nulo.
+- **Integración entre forks:** funciones auxiliares de las pruebas con el mismo nombre (abortaban la suite completa) y la variable `campana` de las campañas en las plantillas.
+
+### Pruebas al cierre
+- **Hub:** 441 pruebas de Pest, Larastan nivel 8 sin errores y Pint.
+- **SPA:** 90 pruebas de Vitest, TypeScript estricto, ESLint y build.
+- **Tracker:** 22 pruebas de Vitest y 11 de Playwright. Pesa 5.629 B gzip.
+- **Connector:** 15 pruebas unitarias y 67 con WordPress y WooCommerce reales. PHPCS sin errores.
+
+### Cambios a la especificación (con su motivo, en el mismo commit que el código)
+- `eventos.md` §4.6 y §8: contrato v3.
+- `api-connector.md`:
+  - §6: los comandos de la Fase 2, con sus errores.
+  - §6.1: el enlace de carrito restaurable.
+  - §5.1 y §7: el modo de consentimiento elegido en el panel.
+- `modelo-de-datos.md` §12: las tablas de la Fase 2 y sus diferencias. `messages` y `flow_run_steps` quedan sin partición mensual por las claves ULID, y la purga la hace un job.
+- `cumplimiento.md`:
+  - §3.3: los tres modos de cookies.
+  - §5 y §8: notas de implementación de WhatsApp y correo.
+- `modulos.md`: M04 estado medido, y notas de implementación de M07, M08, M09 y M10.
+- `hub/CLAUDE.md`:
+  - §6: segmentos.
+  - §7: flujos.
+  - §8: contratos internos, enlaces rastreados y `_igr`.
+  - §15: colas `flows`, `messages:*` y `redis-long`.
+
+### Decisiones pendientes del producto
+- **Frecuencia frente al carrito abandonado.** Con el tope colombiano de 1 mensaje comercial al día sumando canales (cumplimiento.md §4.2, **[validar]**), el segundo toque del flujo (correo a las 4 h) se aplaza al día siguiente: no se pierde, pero llega tarde. Hay que decidir si los flujos de recuperación tienen su propio tope o si cambia el valor por defecto.
+- **Plantillas de WhatsApp y la biblioteca.** Meta debe aprobar cada plantilla, así que la biblioteca no trae plantillas de WhatsApp listas. Si la tienda tiene WhatsApp activo, la comerciante elige la plantilla aprobada en «Personalizar» antes de activar el flujo; sin WhatsApp, el flujo se activa solo con correo.
+- **Carrito y checkout abandonados al mismo tiempo.** Los flujos 2 y 3 no se excluyen por defecto, así que una persona puede entrar a los dos.
+
+### Pendiente y desviaciones conocidas
+- **Por verificar con cuentas reales:**
+  - Meta: la ruta `/marketing_messages`, la versión de la API, Embedded Signup, que una plantilla creada desde la app quede aprobada y los nombres de los niveles de límite.
+  - SES: el conjunto de configuración y SNS, y que un correo pase la revisión de Gmail con DKIM alineado. Es el criterio de M07.
+  - La detección de aperturas automáticas de Apple.
+  - El formato de Zender y la firma de Twilio.
+  - Las tarifas de WhatsApp: valores de la tabla de julio de 2025, de memoria.
+  - Las fechas variables del calendario comercial.
+- **WhatsApp de punta a punta:** el recorrido usó solo correo. El envío por WhatsApp está cubierto por pruebas con el proveedor simulado.
+- **Los 20 flujos de M09:** 11 funcionan; los de fidelización, reseñas, NPS, referidos, avisos de stock, citas, leads y renovaciones llegan con sus módulos (Fases 3 y 5).
+- **Otros pendientes:**
+  - El driver de Infobip.
+  - Avisarle a la dueña cuando baja la calidad del número; hoy solo se registra, y la política ya frena el marketing.
+  - Subir la imagen o el video de encabezado de una plantilla de WhatsApp.
+  - Las variaciones «cualquiera» en el carrito restaurado.
+  - `order.status` con plugins de numeración secuencial.
+- **Arrastrados de fases anteriores:** el recorrido manual grabado (lo graba el equipo), la prueba de carga con k6 y `caddy validate`.
+
 ## 2026-11-18 — Cierre de la Fase 1 (Conocer al cliente)
 
 ### Criterio «Listo cuando» (medido con `infra/e2e/fase1.sh`)
