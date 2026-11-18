@@ -1,9 +1,14 @@
 <?php
 
+use App\Domain\Contacts\Http\ImportController;
 use App\Domain\Contacts\Http\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 // Perfil 360 (M03). La lista sigue en ContactController (routes/api.php).
+Route::post('contacts/imports/preview', [ImportController::class, 'preview']);
+Route::post('contacts/imports', [ImportController::class, 'store']);
+Route::get('contacts/imports', [ImportController::class, 'index']);
+Route::get('contacts/imports/{import}', [ImportController::class, 'show']);
 Route::get('contacts/{contact}', [ProfileController::class, 'show']);
 Route::patch('contacts/{contact}', [ProfileController::class, 'update']);
 Route::get('contacts/{contact}/timeline', [ProfileController::class, 'timeline']);

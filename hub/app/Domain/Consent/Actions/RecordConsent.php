@@ -8,6 +8,7 @@ use App\Domain\Consent\Models\ConsentEvent;
 use App\Domain\Consent\Models\ContactConsent;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Ingest\HubEvents;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -55,7 +56,7 @@ final class RecordConsent
                 return false;
             }
             if ($authoritative && $last !== null && $last->greaterThanOrEqualTo($at)) {
-                $at = \Carbon\CarbonImmutable::instance($last)->addSecond();
+                $at = CarbonImmutable::instance($last)->addSecond();
             }
         }
 

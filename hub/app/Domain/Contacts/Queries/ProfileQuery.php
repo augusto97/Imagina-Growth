@@ -213,7 +213,11 @@ final class ProfileQuery
         ];
     }
 
-    /** Afinidad por categoría, marca y producto: compras (MariaDB) y vistas (ClickHouse). @return array<string, mixed> */
+    /**
+     * Afinidad por categoría, marca y producto: compras (MariaDB) y vistas (ClickHouse).
+     *
+     * @return array<string, mixed>
+     */
     public function products(Workspace $workspace, Contact $contact): array
     {
         $ids = ExportContactData::contactIds($contact);
