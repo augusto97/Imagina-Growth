@@ -45,7 +45,7 @@ final class MetaCapiTarget implements ConversionTarget
             'event_name' => (string) config('igr-measurement.events')[$input->event]['meta'],
             'event_time' => $input->occurredAt,
             'event_id' => $input->eventId,
-            'action_source' => 'website',
+            'action_source' => (string) (config('igr-measurement.events')[$input->event]['meta_action_source'] ?? 'website'),
             'event_source_url' => $input->sourceUrl,
             'user_data' => $this->userData($input),
             'custom_data' => $this->customData($input),

@@ -158,6 +158,8 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 | Correo | `SesDriver`, `SmtpDriver` |
 | WhatsApp | `MetaCloudDriver` (con la ruta `/marketing_messages` para marketing), `ZenderDriver` (con topes fijos y bloqueo de marketing masivo), `InfobipDriver` (pendiente) |
 | SMS | `TwilioSmsDriver` |
+| Messenger (Fase 5) | `MetaMessengerDriver` (`meta_messenger`; base `MetaSocialDriver`): Send API de la página, `RESPONSE` dentro de 24 h y `MESSAGE_TAG` + `HUMAN_AGENT` solo para personas hasta 7 días |
+| Instagram (Fase 5) | `MetaInstagramDriver` (`meta_instagram`): Instagram Direct con inicio de sesión de Facebook, solo dentro de 24 h, sin etiquetas |
 
 - **Todo envío pasa por `MessageDispatcher`:**
   1. Resolver el canal y la cuenta.
@@ -276,7 +278,7 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 | `projections` | upserts en MariaDB, contadores | 4 |
 | `triggers` | flujos y segmentos en tiempo real | 4 |
 | `flows` | `AdvanceFlowRun` | 4 |
-| `messages:email`, `messages:whatsapp`, `messages:sms` | envíos con rate limit | 2 a 4 c/u |
+| `messages:email`, `messages:whatsapp`, `messages:sms`, `messages:messenger`, `messages:instagram` | envíos con rate limit | 2 a 4 c/u |
 | `conversions:*` | anuncios | 2 |
 | `analytics` | jobs pesados nocturnos | 2 |
 | `ai` | llamadas a modelos | 2 |

@@ -33,6 +33,7 @@ return [
         'review_moderator' => ['model' => 'claude-haiku-5-5', 'effort' => 'low', 'max_tokens' => 512],
         'profile_summary' => ['model' => 'claude-haiku-5-5', 'effort' => 'low', 'max_tokens' => 800],
         'review_summary' => ['model' => 'claude-haiku-5-5', 'effort' => 'low', 'max_tokens' => 800],
+        'monthly_report' => ['model' => 'claude-sonnet-5-5', 'effort' => 'low', 'max_tokens' => 2000], // M22
     ],
 
     // USD por millón de tokens (cache_write = 1,25 × entrada, el TTL de 5 minutos).

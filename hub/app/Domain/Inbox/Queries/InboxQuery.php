@@ -13,8 +13,11 @@ use App\Domain\Contacts\Models\ContactIdentity;
 use App\Domain\Inbox\Models\ConversationEvent;
 use App\Domain\Inbox\Models\ConversationNote;
 use App\Domain\Inbox\Models\MessageAttachment;
+use App\Domain\Messaging\Enums\Channel;
+use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Messaging\Models\Message;
+use App\Domain\Messaging\Support\ConversationWindow;
 use App\Domain\Privacy\Actions\ExportContactData;
 use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
@@ -36,7 +39,7 @@ use Throwable;
 final class InboxQuery
 {
     /**
-     * @param  array{view?: string|null, status?: string|null, label?: string|null, intent?: string|null, q?: string|null, before?: string|null}  $f
+     * @param  array{view?: string|null, status?: string|null, label?: string|null, intent?: string|null, q?: string|null, before?: string|null, channel?: string|null}  $f
      * @return array{data: list<array<string, mixed>>, next_before: string|null, counts: array<string, int>}
      */
     public function list(Workspace $workspace, string $userId, bool $seesAll, array $f, int $limit = 30): array
@@ -58,6 +61,9 @@ final class InboxQuery
         }
         if (($f['intent'] ?? null) !== null && $f['intent'] !== '') {
             $query->where('intent', (string) $f['intent']);
+        }
+        if (($f['channel'] ?? null) !== null && $f['channel'] !== '') {
+            $query->whereIn('channel_account_id', ChannelAccount::query()->where('channel', (string) $f['channel'])->select('id'));
         }
         $q = trim((string) ($f['q'] ?? ''));
         if ($q !== '') {
@@ -117,6 +123,7 @@ final class InboxQuery
                     'template' => is_array($payload['wa'] ?? null) ? (string) ($payload['wa']['name'] ?? '') : null,
                     'status' => $m->status,
                     'author' => $author === null ? null : ($author === 'ai' ? ['kind' => 'ai', 'name' => __('Asistente IA')] : ['kind' => 'user', 'name' => $names[$author] ?? __('Equipo')]),
+                    'media_url' => is_string($payload['media']['url'] ?? null) ? (string) $payload['media']['url'] : null,
                     'attachments' => ($attachments->get($m->id) ?? collect())->map(fn (MessageAttachment $a) => ['kind' => $a->kind, 'mime' => $a->mime, 'caption' => $a->caption])->values()->all(),
                     'failed_reason' => $m->getAttribute('failed_reason'),
                     'at' => ($m->getAttribute('sent_at') ?? $m->queued_at ?? $m->created_at)?->toIso8601String(),
@@ -149,7 +156,7 @@ final class InboxQuery
         return [
             'contact' => [
                 'id' => $contact->publicId(),
-                'name' => self::name($contact),
+                'name' => self::name($contact, $this->accountChannel($c->channel_account_id)),
                 'phone' => is_string($contact->phone) ? Pii::maskPhone($contact->phone) : null,
                 'city' => $contact->getAttribute('city'),
                 'lifecycle_stage' => $contact->getAttribute('lifecycle_stage'),
@@ -170,7 +177,8 @@ final class InboxQuery
             'segments' => $segments,
             'last_product_viewed' => $this->lastViewed($workspace, $ids),
             'origin' => [
-                'ad' => isset($originPayload['ctwa_clid']) || isset($originPayload['referral_source']),
+                // Una respuesta a una historia de Instagram no es un anuncio (Fase 5).
+                'ad' => isset($originPayload['ctwa_clid']) || (isset($originPayload['referral_source']) && $originPayload['referral_source'] !== 'story'),
                 'source' => $originPayload['referral_source'] ?? null,
                 'first_source' => $contact->getAttribute('first_source'),
             ],
@@ -184,10 +192,15 @@ final class InboxQuery
     private function summary(Conversation $c, ?Contact $contact, array $users): array
     {
         $window = $c->window_expires_at;
+        $channel = $this->accountChannel($c->channel_account_id);
+        $state = ConversationWindow::state($channel, $window, $c->last_inbound_at);
 
         return [
             'id' => $c->publicId(),
-            'contact' => $contact === null ? null : ['id' => $contact->publicId(), 'name' => self::name($contact)],
+            'contact' => $contact === null ? null : ['id' => $contact->publicId(), 'name' => self::name($contact, $channel)],
+            'channel' => $channel->value,
+            'window_state' => $state,
+            'human_agent_until' => $state === ConversationWindow::HUMAN_AGENT ? $c->last_inbound_at?->copy()->addDays(ConversationWindow::HUMAN_AGENT_DAYS)->toIso8601String() : null,
             'status' => $c->status,
             'assignee' => $c->assignee_id !== null ? ['id' => PrefixedId::encode(User::ID_PREFIX, $c->assignee_id), 'name' => $users[$c->assignee_id] ?? null] : null,
             'labels' => array_values((array) $c->labels),
@@ -269,11 +282,27 @@ final class InboxQuery
         return is_array($row) ? ['product_id' => (string) $row['product_id'], 'name' => (string) $row['name'], 'at' => (string) $row['at']] : null;
     }
 
-    public static function name(Contact $contact): string
+    public static function name(Contact $contact, ?Channel $channel = null): string
     {
         $name = trim(((string) $contact->first_name).' '.((string) $contact->last_name));
+        if ($name === '' && ! is_string($contact->phone) && $channel !== null && $channel->isSocial()) {
+            return $channel === Channel::Instagram ? __('Cliente de Instagram') : __('Cliente de Messenger');
+        }
 
         return $name !== '' ? $name : (is_string($contact->phone) ? Pii::maskPhone($contact->phone) : __('Sin nombre'));
+    }
+
+    /** @var array<string, Channel> */
+    private array $channels = [];
+
+    /** Canal de la cuenta de la conversación (WhatsApp, Messenger o Instagram), con caché por consulta. */
+    private function accountChannel(string $accountId): Channel
+    {
+        if (! isset($this->channels[$accountId])) {
+            $this->channels[$accountId] = ChannelAccount::query()->find($accountId)->channel ?? Channel::WhatsApp;
+        }
+
+        return $this->channels[$accountId];
     }
 
     private static function iso(mixed $value): ?string

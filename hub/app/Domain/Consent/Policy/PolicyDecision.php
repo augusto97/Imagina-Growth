@@ -52,6 +52,12 @@ final class PolicyDecision
 
     public const OUTSIDE_24H_WINDOW = 'outside_24h_window';
 
+    /** Messenger e Instagram (Fase 5): Meta no permite marketing por mensaje directo. */
+    public const CHANNEL_NO_MARKETING = 'channel_no_marketing';
+
+    /** Messenger: pasaron más de 7 días desde el último mensaje del cliente (ni `HUMAN_AGENT` alcanza). */
+    public const OUTSIDE_HUMAN_AGENT_WINDOW = 'outside_human_agent_window';
+
     private function __construct(
         public readonly string $decision,
         public readonly ?string $reason = null,

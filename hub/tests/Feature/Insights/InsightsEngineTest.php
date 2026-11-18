@@ -183,7 +183,7 @@ it('los semanales corren los lunes o si nunca corrieron; la vigencia vencida exp
     insightsRun($this, null, $tuesday, false);
     $runs = InsightEngine::runs($this->ws);
     expect($runs['concentration']['status'])->toBe('ok')->and($runs['slow_pages']['status'])->toBe('skipped')
-        ->and($runs['slow_pages']['reason'])->toContain('Web Vitals')->and($runs['leads_unanswered']['status'])->toBe('disabled');
+        ->and($runs['slow_pages']['reason'])->toContain('Web Vitals')->and($runs['leads_unanswered']['status'])->toBe('ok');
 
     // Un día después (miércoles) los semanales no corren otra vez.
     $at = $runs['concentration']['at'];

@@ -1,0 +1,134 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Bookings\Actions;
+
+use App\Domain\Bookings\Http\Public\PublicBooking;
+use App\Domain\Bookings\Models\Appointment;
+use App\Domain\Bookings\Models\BookingService;
+use App\Domain\Bookings\Support\BookingSettings;
+use App\Domain\Contacts\Models\Contact;
+use App\Domain\Messaging\Contracts\MessageDispatcher;
+use App\Domain\Messaging\Data\DispatchResult;
+use App\Domain\Messaging\Data\OutboundMessage;
+use App\Domain\Messaging\Enums\Channel;
+use App\Domain\Messaging\Enums\MessageKind;
+use App\Domain\Templates\Models\Template;
+use App\Domain\Workspaces\Contracts\Branding;
+use App\Domain\Workspaces\Models\Workspace;
+use Carbon\CarbonImmutable;
+use Throwable;
+
+/**
+ * Mensajes de la cita (M18): confirmación, recordatorios (24 h y 2 h), cambio y
+ * cancelación. No son publicidad (cumplimiento.md §4.1): la confirmación, el cambio
+ * y la cancelación son transaccionales y los recordatorios de utilidad; no piden
+ * consentimiento de marketing ni esperan la ventana legal, pero sí respetan la
+ * supresión. Por WhatsApp solo con una plantilla de utilidad aprobada elegida en los
+ * ajustes (fuera de la ventana de 24 h no hay texto libre); si no, por correo.
+ * Clave de idempotencia: `appt:{cita}:{tipo}:{inicio}`, así un cambio de hora vuelve
+ * a avisar.
+ */
+final class AppointmentNotifier
+{
+    public const KINDS = ['confirmation', 'reminder_24', 'reminder_2', 'rescheduled', 'cancelled'];
+
+    public function __construct(private readonly MessageDispatcher $dispatcher, private readonly Branding $branding) {}
+
+    /** Un aviso que falla no deshace la cita: se reporta y sigue. */
+    public function send(Workspace $workspace, Appointment $appointment, string $kind): ?DispatchResult
+    {
+        try {
+            return $this->deliver($workspace, $appointment, $kind);
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
+    }
+
+    private function deliver(Workspace $workspace, Appointment $appointment, string $kind): ?DispatchResult
+    {
+        $contact = Contact::query()->find($appointment->contact_id);
+        $service = BookingService::query()->find($appointment->service_id);
+        if ($contact === null || $service === null) {
+            return null;
+        }
+        $settings = BookingSettings::for($workspace);
+        $messageKind = str_starts_with($kind, 'reminder') ? MessageKind::Utility : MessageKind::Transactional;
+        $vars = self::vars($workspace, $appointment, $service);
+        $key = 'appt:'.$appointment->id.':'.$kind.':'.CarbonImmutable::instance($appointment->starts_at)->getTimestamp();
+        $templateKey = str_starts_with($kind, 'reminder') ? 'reminder' : $kind;
+        $waTemplate = ($settings['whatsapp_templates'][$templateKey] ?? null);
+        $template = is_string($waTemplate) ? Template::findByPublicId($waTemplate) : null;
+
+        if ($template !== null && $contact->phone !== null) {
+            $result = $this->dispatcher->dispatch(new OutboundMessage(
+                workspaceId: $workspace->id, contactId: $contact->id, channel: Channel::WhatsApp, kind: MessageKind::Utility,
+                sourceType: 'system', sourceId: $appointment->publicId(), templateId: $template->id, context: ['cita' => $vars], idempotencyKey: $key.':wa',
+            ));
+            if ($result->sent()) {
+                return $result;
+            }
+        }
+        if ($contact->email === null) {
+            return null;
+        }
+        [$subject, $text, $html] = $this->email($workspace, $kind, $vars);
+
+        return $this->dispatcher->dispatch(new OutboundMessage(
+            workspaceId: $workspace->id, contactId: $contact->id, channel: Channel::Email, kind: $messageKind, sourceType: 'system',
+            sourceId: $appointment->publicId(), context: ['cita' => $vars, 'subject' => $subject, 'text' => $text, 'html' => $html],
+            idempotencyKey: $key.':email',
+        ));
+    }
+
+    /** @return array<string, string> variables `cita.*` de las plantillas */
+    public static function vars(Workspace $workspace, Appointment $appointment, BookingService $service): array
+    {
+        $tz = $workspace->timezone ?: 'America/Bogota';
+        $start = PublicBooking::es(CarbonImmutable::instance($appointment->starts_at)->setTimezone($tz));
+
+        return [
+            'servicio' => $service->name,
+            'fecha' => $start->isoFormat('dddd D [de] MMMM'),
+            'hora' => $start->format('g:i a'),
+            'duracion' => (string) $service->duration_min,
+            'lugar' => __('booking.location.'.$service->location),
+            'enlace' => BookingSettings::manageUrl($workspace, (string) $appointment->manage_token),
+            'calendario' => BookingSettings::manageUrl($workspace, (string) $appointment->manage_token).'/calendario.ics',
+        ];
+    }
+
+    /**
+     * @param  array<string, string>  $v
+     * @return array{0: string, 1: string, 2: string}
+     */
+    private function email(Workspace $workspace, string $kind, array $v): array
+    {
+        $brand = $this->branding->for($workspace);
+        $business = (string) ($workspace->getAttribute('legal_name') ?: $workspace->name);
+        [$subject, $lead] = match ($kind) {
+            'confirmation' => [__('Tu cita quedó agendada: :servicio', ['servicio' => $v['servicio']]), __('Te esperamos.')],
+            'reminder_24' => [__('Mañana es tu cita: :servicio', ['servicio' => $v['servicio']]), __('Te recordamos tu cita.')],
+            'reminder_2' => [__('Tu cita es en 2 horas: :servicio', ['servicio' => $v['servicio']]), __('Te recordamos tu cita.')],
+            'rescheduled' => [__('Tu cita cambió de hora: :servicio', ['servicio' => $v['servicio']]), __('Esta es la nueva hora.')],
+            default => [__('Tu cita fue cancelada: :servicio', ['servicio' => $v['servicio']]), __('Cancelamos tu cita.')],
+        };
+        $when = __(':fecha a las :hora (:lugar)', ['fecha' => $v['fecha'], 'hora' => $v['hora'], 'lugar' => $v['lugar']]);
+        $action = $kind === 'cancelled' ? __('Agendar otra cita') : __('Ver, reprogramar o cancelar');
+        $text = $lead."\n\n".$v['servicio']."\n".$when."\n\n".$action.': '.$v['enlace']."\n\n".$business;
+        $color = $brand->primaryColor;
+        $html = '<div style="font-family:Inter,Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#111827">'
+            .'<p style="font-size:13px;color:#6B7280;margin:0 0 16px">'.e($business).'</p>'
+            .'<h1 style="font-size:20px;margin:0 0 8px">'.e($lead).'</h1>'
+            .'<p style="font-size:16px;font-weight:600;margin:16px 0 4px">'.e($v['servicio']).'</p>'
+            .'<p style="font-size:15px;margin:0 0 20px">'.e($when).'</p>'
+            .'<p style="margin:24px 0"><a href="'.e($v['enlace']).'" style="background:'.e($color).';color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">'.e($action).'</a></p>'
+            .($kind !== 'cancelled' ? '<p style="font-size:13px"><a href="'.e($v['calendario']).'">'.e(__('Agregar a mi calendario')).'</a></p>' : '')
+            .'</div>';
+
+        return [$subject, $text, $html];
+    }
+}

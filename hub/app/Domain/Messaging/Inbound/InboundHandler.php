@@ -13,11 +13,13 @@ use App\Domain\Messaging\Contracts\MessageDispatcher;
 use App\Domain\Messaging\Data\OutboundMessage;
 use App\Domain\Messaging\Enums\Channel;
 use App\Domain\Messaging\Enums\MessageKind;
+use App\Domain\Messaging\Jobs\FetchSocialProfile;
 use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Messaging\Models\Message;
 use App\Domain\Messaging\Sending\UnsubscribeService;
 use App\Domain\Messaging\Support\MessageEvents;
+use App\Domain\Messaging\Support\SocialIdentity;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Ingest\HubEvents;
 use App\Support\Phone\Phone;
@@ -30,10 +32,11 @@ use libphonenumber\PhoneNumberUtil;
 use Throwable;
 
 /**
- * Mensaje entrante de WhatsApp o SMS (hub/CLAUDE.md §8):
+ * Mensaje entrante de WhatsApp, SMS, Messenger o Instagram (hub/CLAUDE.md §8):
  *
- * - Busca al contacto por el teléfono (índice ciego) o lo crea.
- * - Abre la ventana de 24 h de la conversación.
+ * - Busca al contacto por el teléfono (índice ciego) o, en Messenger e Instagram,
+ *   por su PSID/IGSID en la página (SocialIdentity), o lo crea.
+ * - Abre la ventana de 24 h de la conversación (WhatsApp, Messenger, Instagram).
  * - Marca como respondido el mensaje al que contesta, con el botón tocado
  *   («Confirmo», «Cancelar»), para que los flujos lo puedan esperar.
  * - Si trae el token del sitio (`ref: K7Q2`, eventos.md §6.3), vincula el número
@@ -58,11 +61,18 @@ final class InboundHandler
             if (Message::query()->where('provider_message_id', $in->providerMessageId)->where('direction', 'in')->exists()) {
                 return null; // el proveedor reintentó el webhook
             }
-            $e164 = Phone::toE164($in->from, strtoupper((string) ($workspace->country ?: 'CO')));
-            if ($e164 === null) {
+            if ($account->channel->isSocial()) {
+                $contact = $this->socialContact($workspace, $account, $in->from);
+            } else {
+                $e164 = Phone::toE164($in->from, strtoupper((string) ($workspace->country ?: 'CO')));
+                if ($e164 === null) {
+                    return null;
+                }
+                $contact = $this->contact($workspace, $e164);
+            }
+            if ($contact === null) {
                 return null;
             }
-            $contact = $this->contact($workspace, $e164);
             $message = Message::query()->create([
                 'workspace_id' => $workspace->id,
                 'contact_id' => $contact->id,
@@ -75,11 +85,12 @@ final class InboundHandler
                 'source_type' => 'inbox',
                 'status' => 'received',
                 'payload' => array_filter(['type' => $in->type, 'text' => $in->text ?? $in->caption, 'button_payload' => $in->buttonPayload, 'context_id' => $in->contextMessageId,
-                    'media' => $in->mediaId !== null ? array_filter(['id' => $in->mediaId, 'mime' => $in->mediaMime]) : null,
-                    'ctwa_clid' => $in->ctwaClid, 'referral_source' => $in->referralSourceType], fn ($v) => $v !== null),
+                    'media' => $in->mediaId !== null || $in->mediaUrl !== null ? array_filter(['id' => $in->mediaId, 'url' => $in->mediaUrl, 'mime' => $in->mediaMime]) : null,
+                    'ctwa_clid' => $in->ctwaClid, 'referral_source' => $in->referralSourceType,
+                    'referral_id' => $account->channel->isSocial() ? $in->referralSourceId : null], fn ($v) => $v !== null),
                 'queued_at' => $in->at,
             ]);
-            if ($account->channel === Channel::WhatsApp) {
+            if ($account->channel->isConversational()) {
                 $conversation = Conversation::query()->firstOrNew(['channel_account_id' => $account->id, 'contact_id' => $contact->id]);
                 $conversation->fill(['workspace_id' => $workspace->id, 'status' => 'open', 'last_inbound_at' => $in->at, 'window_expires_at' => $in->at->addDay()])->save();
                 $message->forceFill(['conversation_id' => $conversation->id])->save();
@@ -133,6 +144,42 @@ final class InboundHandler
                 'type' => 'phone_hash', 'value' => $bidx, 'first_seen_at' => now(), 'last_seen_at' => now(),
             ]);
         }
+
+        return $contact;
+    }
+
+    /**
+     * Contacto de Messenger o Instagram por su PSID/IGSID en la página (M11). Si es
+     * nuevo, se crea como lead y su nombre se pide después a la API de perfil.
+     */
+    private function socialContact(Workspace $workspace, ChannelAccount $account, string $senderId): ?Contact
+    {
+        $type = SocialIdentity::type($account->channel);
+        if ($type === null || $senderId === '' || $account->external_id === null || strlen($senderId) > 64) {
+            return null;
+        }
+        $value = SocialIdentity::value($account, $senderId);
+        $owner = ContactIdentity::query()->where('type', $type)->where('value', $value)->value('contact_id');
+        $contact = is_string($owner) ? Contact::query()->find($owner) : null;
+        for ($hops = 0; $contact !== null && is_string($contact->getAttribute('merged_into_id')) && $hops < 5; $hops++) {
+            $contact = Contact::query()->find($contact->getAttribute('merged_into_id'));
+        }
+        if ($contact !== null) {
+            ContactIdentity::query()->where('type', $type)->where('value', $value)->update(['last_seen_at' => now()]);
+
+            return $contact;
+        }
+        $contact = Contact::query()->create([
+            'workspace_id' => $workspace->id,
+            'lifecycle_stage' => 'lead',
+            'first_seen_at' => now(),
+            'last_seen_at' => now(),
+        ]);
+        ContactIdentity::query()->insertOrIgnore([
+            'id' => strtoupper((string) Str::ulid()), 'workspace_id' => $workspace->id, 'contact_id' => $contact->id,
+            'type' => $type, 'value' => $value, 'first_seen_at' => now(), 'last_seen_at' => now(),
+        ]);
+        FetchSocialProfile::dispatch($workspace->id, $account->id, $contact->id, $senderId)->afterCommit();
 
         return $contact;
     }

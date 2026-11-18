@@ -108,6 +108,14 @@ export interface LoyaltyCondition {
     value?: Scalar | Scalar[] | null;
 }
 
+/** Leads (Fase 5): tiene un lead (abierto) o alguno de sus leads cumple la condición. */
+export interface LeadCondition {
+    type: 'lead';
+    field: string;
+    operator: string;
+    value?: Scalar | Scalar[] | null;
+}
+
 export interface SegmentRefCondition {
     type: 'segment';
     segment_id: string;
@@ -125,7 +133,8 @@ export type Condition =
     | SegmentRefCondition
     | MessagingCondition
     | EngagementCondition
-    | LoyaltyCondition;
+    | LoyaltyCondition
+    | LeadCondition;
 
 export interface Group {
     op: 'and' | 'or';
@@ -222,6 +231,7 @@ export interface SegmentOptions {
     engagement_days: number;
     flows: { id: string; name: string }[];
     campaigns: { id: string; name: string }[];
+    lead_fields: FieldOption[];
     loyalty_fields: FieldOption[];
     loyalty_tiers: { id: string; name: string; rank: number }[];
 }

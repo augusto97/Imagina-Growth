@@ -11,8 +11,10 @@ use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Webhook de la app de Meta (WhatsApp Cloud API): verificación de la
- * suscripción (GET) y eventos firmados con X-Hub-Signature-256 (POST).
+ * Webhook de la app de Meta: verificación de la suscripción (GET) y eventos
+ * firmados con X-Hub-Signature-256 (POST). El campo `object` dice de dónde vienen:
+ * `whatsapp_business_account` (Cloud API), `page` (Messenger) o `instagram`
+ * (Instagram Direct, Fase 5).
  */
 final class MetaWebhookController
 {
@@ -33,7 +35,12 @@ final class MetaWebhookController
 
             return response('', 403);
         }
-        $processor->apply($drivers->for('meta_cloud')->handleWebhook($request, null), ['meta_cloud']);
+        $provider = match ($request->input('object')) {
+            'page' => 'meta_messenger',
+            'instagram' => 'meta_instagram',
+            default => 'meta_cloud',
+        };
+        $processor->apply($drivers->for($provider)->handleWebhook($request, null), [$provider]);
 
         return response('EVENT_RECEIVED', 200);
     }

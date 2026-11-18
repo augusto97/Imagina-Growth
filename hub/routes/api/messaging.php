@@ -2,6 +2,7 @@
 
 use App\Domain\Messaging\Http\Api\ChannelController;
 use App\Domain\Messaging\Http\Api\ContactMessagesController;
+use App\Domain\Messaging\Http\Api\SocialChannelController;
 use App\Domain\Messaging\Http\Api\SuppressionController;
 use App\Domain\Messaging\Http\Api\WaTemplateController;
 use Illuminate\Support\Facades\Route;
@@ -13,6 +14,8 @@ Route::post('channels/whatsapp/embedded-signup', [ChannelController::class, 'emb
 Route::post('channels/whatsapp/manual', [ChannelController::class, 'whatsappManual']);
 Route::post('channels/whatsapp/zender', [ChannelController::class, 'zender']);
 Route::post('channels/sms/twilio', [ChannelController::class, 'twilio']);
+Route::post('channels/messenger', [SocialChannelController::class, 'messenger']);
+Route::post('channels/instagram', [SocialChannelController::class, 'instagram']);
 Route::get('channels/{channel}/dns', [ChannelController::class, 'dns']);
 Route::post('channels/{channel}/sync', [ChannelController::class, 'sync']);
 Route::post('channels/{channel}/test', [ChannelController::class, 'test']);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyQuickReply, formatDuration, formatLeft, matchQuickReplies, parseLabels, quickReplyQuery, windowLeft } from './lib';
+import { applyQuickReply, composerMode, formatDuration, formatLeft, matchQuickReplies, parseLabels, quickReplyQuery, windowLeft } from './lib';
 
 const envio = {
     id: 'qr_1',
@@ -45,5 +45,29 @@ describe('bandeja', () => {
 
     it('etiquetas sin vacías ni repetidas', () => {
         expect(parseLabels(' vip, mayorista,,vip ')).toEqual(['vip', 'mayorista']);
+    });
+});
+
+describe('composerMode (Messenger e Instagram, Fase 5)', () => {
+    const now = new Date('2026-11-17T15:00:00Z');
+    const inWindow = '2026-11-17T20:00:00Z';
+    const past = '2026-11-16T15:00:00Z';
+
+    it('dentro de la ventana se escribe libre en los tres canales', () => {
+        for (const channel of ['whatsapp', 'messenger', 'instagram'] as const) {
+            expect(composerMode({ channel, window_state: 'open', window_expires_at: inWindow }, now)).toBe('free');
+        }
+    });
+
+    it('fuera de la ventana: plantilla en WhatsApp, solo una persona en Messenger y nada en Instagram', () => {
+        expect(composerMode({ channel: 'whatsapp', window_state: 'closed', window_expires_at: past }, now)).toBe('template');
+        expect(composerMode({ channel: 'messenger', window_state: 'human_agent', window_expires_at: past }, now)).toBe('human');
+        expect(composerMode({ channel: 'messenger', window_state: 'closed', window_expires_at: past }, now)).toBe('none');
+        expect(composerMode({ channel: 'instagram', window_state: 'closed', window_expires_at: past }, now)).toBe('none');
+    });
+
+    it('si la ventana vence con la pantalla abierta, cambia sin esperar al servidor', () => {
+        expect(composerMode({ channel: 'messenger', window_state: 'open', window_expires_at: past }, now)).toBe('human');
+        expect(composerMode({ channel: 'instagram', window_state: 'open', window_expires_at: past }, now)).toBe('none');
     });
 });

@@ -7,13 +7,16 @@ import { isApiError } from '@/lib/api';
 import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
 import { useConversationActions, useQuickReplies } from './api';
-import { applyQuickReply, matchQuickReplies, newClientId, quickReplyQuery, windowLeft } from './lib';
+import { applyQuickReply, composerMode, matchQuickReplies, newClientId, quickReplyQuery } from './lib';
 import { CouponDialog, ProductDialog, TemplateDialog } from './SellDialogs';
 import type { ConversationDetail, SendBody, SendResult } from './types';
 
 type Dialog = 'template' | 'product' | 'coupon' | null;
 
-/** Editor: texto libre dentro de la ventana, `/atajo` para respuestas rápidas, plantilla, producto, carrito o enlace de pago, cupón y sugerencia de la IA. */
+/**
+ * Editor: texto libre dentro de la ventana, `/atajo` para respuestas rápidas, plantilla (solo WhatsApp), producto,
+ * carrito o enlace de pago, cupón y sugerencia de la IA. En Messenger, pasadas 24 h, solo una persona escribe (HUMAN_AGENT).
+ */
 export function Composer({ c }: { c: ConversationDetail }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
@@ -22,7 +25,10 @@ export function Composer({ c }: { c: ConversationDetail }) {
     const [text, setText] = useState('');
     const [dialog, setDialog] = useState<Dialog>(null);
     const [highlight, setHighlight] = useState(0);
-    const open = windowLeft(c.window_expires_at) > 0;
+    const mode = composerMode(c);
+    const open = mode === 'free';
+    const canType = mode === 'free' || mode === 'human';
+    const help = mode === 'human' ? 'humanAgentHelp' : mode === 'none' ? `closedHelp_${c.channel}` : mode === 'template' ? 'closedHelp' : null;
     const query = quickReplyQuery(text);
     const matches = query !== null ? matchQuickReplies(replies.data?.data ?? [], query) : [];
 
@@ -50,7 +56,11 @@ export function Composer({ c }: { c: ConversationDetail }) {
 
     return (
         <div className="igr:border-t igr:bg-background igr:p-2.5">
-            {!open ? <p className="igr:mb-2 igr:rounded-md igr:bg-warning/10 igr:px-2.5 igr:py-1.5 igr:text-xs igr:text-warning">{t('inbox.window.closedHelp')}</p> : null}
+            {help ? (
+                <p className="igr:mb-2 igr:rounded-md igr:bg-warning/10 igr:px-2.5 igr:py-1.5 igr:text-xs igr:text-warning">
+                    {t(`inbox.window.${help}`, { until: c.human_agent_until ? new Date(c.human_agent_until).toLocaleDateString(workspace.locale) : '' })}
+                </p>
+            ) : null}
             <div className="igr:relative">
                 {matches.length > 0 ? (
                     <ul
@@ -80,9 +90,9 @@ export function Composer({ c }: { c: ConversationDetail }) {
                 <textarea
                     id="inbox-composer"
                     rows={2}
-                    disabled={!open}
+                    disabled={!canType}
                     className="igr:w-full igr:resize-none igr:rounded-md igr:border igr:bg-background igr:px-3 igr:py-2 igr:text-[13px] igr:outline-none igr:focus-visible:ring-2 igr:focus-visible:ring-ring igr:disabled:opacity-60"
-                    placeholder={open ? t('inbox.composer.placeholder') : t('inbox.composer.placeholderClosed')}
+                    placeholder={canType ? t('inbox.composer.placeholder') : t(mode === 'none' ? 'inbox.composer.placeholderNone' : 'inbox.composer.placeholderClosed')}
                     value={text}
                     onChange={(e) => {
                         setText(e.target.value);
@@ -104,15 +114,17 @@ export function Composer({ c }: { c: ConversationDetail }) {
                 />
             </div>
             <div className="igr:mt-1.5 igr:flex igr:flex-wrap igr:items-center igr:gap-1">
-                <Button size="sm" variant="ghost" onClick={() => setDialog('template')}>
-                    <FileText aria-hidden />
-                    {t('inbox.composer.template')}
-                </Button>
-                <Button size="sm" variant="ghost" disabled={!open} onClick={() => setDialog('product')}>
+                {c.channel === 'whatsapp' ? (
+                    <Button size="sm" variant="ghost" onClick={() => setDialog('template')}>
+                        <FileText aria-hidden />
+                        {t('inbox.composer.template')}
+                    </Button>
+                ) : null}
+                <Button size="sm" variant="ghost" disabled={!canType} onClick={() => setDialog('product')}>
                     <Package aria-hidden />
                     {t('inbox.composer.product')}
                 </Button>
-                <Button size="sm" variant="ghost" disabled={!open} onClick={() => setDialog('coupon')}>
+                <Button size="sm" variant="ghost" disabled={!canType} onClick={() => setDialog('coupon')}>
                     <TicketPercent aria-hidden />
                     {t('inbox.composer.coupon')}
                 </Button>
@@ -122,7 +134,7 @@ export function Composer({ c }: { c: ConversationDetail }) {
                 </Button>
                 <span className="igr:flex-1" />
                 <span className="igr:hidden igr:text-[11px] igr:text-muted-foreground igr:2xl:inline">{t('inbox.composer.hint')}</span>
-                <Button size="sm" disabled={!open || text.trim() === ''} loading={actions.send.isPending} onClick={sendText}>
+                <Button size="sm" disabled={!canType || text.trim() === ''} loading={actions.send.isPending} onClick={sendText}>
                     <Send aria-hidden />
                     {t('inbox.composer.send')}
                 </Button>

@@ -1,4 +1,4 @@
-import { Gift, MessageSquare, MousePointerClick, Plus, Shapes, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Trash2, UserRound, X } from 'lucide-react';
+import { Gift, MessageSquare, MousePointerClick, Plus, Shapes, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Target, Trash2, UserRound, X } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import type { LucideIcon } from 'lucide-react';
 import { useId } from 'react';
@@ -17,6 +17,7 @@ import type {
     EventCondition,
     EventFilter,
     FieldOption,
+    LeadCondition,
     LoyaltyCondition,
     MessageAction,
     MessageChannel,
@@ -41,6 +42,7 @@ export const TYPE_ICONS: Record<ConditionType, LucideIcon> = {
     segment: Shapes,
     messaging: MessageSquare,
     loyalty: Gift,
+    lead: Target,
 };
 
 /** Predicciones que llegan con la Fase 4: se pueden usar, pero hoy no tienen datos. */
@@ -99,6 +101,8 @@ function Body({ condition: c, onChange }: { condition: Condition; onChange: (c: 
             return c.action === 'engagement' ? <EngagementEditor c={c} onChange={onChange} /> : <MessagingEditor c={c} onChange={onChange} />;
         case 'loyalty':
             return <LoyaltyEditor c={c} onChange={onChange} />;
+        case 'lead':
+            return <LeadEditor c={c} onChange={onChange} />;
     }
 }
 
@@ -552,6 +556,27 @@ function LoyaltyEditor({ c, onChange }: { c: LoyaltyCondition; onChange: (c: Con
         <>
             <SimpleSelect value={c.field} label={t('segments.builder.field')} disabled={readOnly} onChange={changeField} options={options.loyalty_fields.map((f) => ({ value: f.key, label: t(`segments.fields.${f.key}`) }))} />
             {body}
+        </>
+    );
+}
+
+function LeadEditor({ c, onChange }: { c: LeadCondition; onChange: (c: Condition) => void }) {
+    const { t } = useTranslation();
+    const { options, readOnly } = useBuilder();
+    const option = options.lead_fields.find((f) => f.key === c.field);
+
+    const changeField = (key: string) => {
+        const next = options.lead_fields.find((f) => f.key === key);
+        if (next) {
+            const op = firstOperator(next);
+            onChange({ type: 'lead', field: key, operator: op, value: defaultValue(next.type, op) });
+        }
+    };
+
+    return (
+        <>
+            <SimpleSelect value={c.field} label={t('segments.builder.field')} disabled={readOnly} onChange={changeField} options={options.lead_fields.map((f) => ({ value: f.key, label: t(`segments.leadFields.${f.key}`) }))} />
+            {option ? <OperatorValue field={c.field} option={option} operator={c.operator} value={c.value} onChange={(next) => onChange({ ...c, ...next })} /> : null}
         </>
     );
 }

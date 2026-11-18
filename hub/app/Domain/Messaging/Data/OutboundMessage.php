@@ -40,5 +40,6 @@ final class OutboundMessage
         public readonly ?string $to = null,
         public readonly bool $isTest = false,
         public readonly ?CarbonImmutable $notBefore = null,
+        public readonly bool $humanAgent = false, // Fase 5: respuesta escrita por una persona de la bandeja (HUMAN_AGENT de Messenger)
     ) {}
 }

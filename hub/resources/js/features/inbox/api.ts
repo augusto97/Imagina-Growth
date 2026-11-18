@@ -2,22 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { wsPath } from '@/api/queries';
 import { api } from '@/lib/api';
 import { pollInterval } from '@/lib/realtime';
-import type {
-    ContactPanelData,
-    ConversationDetail,
-    ConversationList,
-    ConversationStatus,
-    AiMode,
-    InboxAgent,
-    InboxMetrics,
-    InboxProduct,
-    InboxSettings,
-    InboxTemplate,
-    InboxView,
-    QuickReply,
-    SendBody,
-    SendResult,
-} from './types';
+import type { AiMode, ContactPanelData, ConversationDetail, ConversationList, ConversationStatus, InboxAgent, InboxChannel, InboxMetrics, InboxProduct, InboxSettings, InboxTemplate, InboxView, QuickReply, SendBody, SendResult } from './types';
 
 /* Bandeja (M11). La lista y el chat abiertos se consultan cada 5 s; con Reverb conectado, cada 30 s (los cambios llegan por el canal). */
 
@@ -29,6 +14,7 @@ export interface ListFilters {
     q: string;
     label: string;
     intent: string;
+    channel: InboxChannel | '';
 }
 
 export const inboxKeys = {
@@ -51,6 +37,7 @@ export function listQuery(f: ListFilters): string {
     if (f.q.trim() !== '') p.set('q', f.q.trim());
     if (f.label !== '') p.set('label', f.label);
     if (f.intent !== '') p.set('intent', f.intent);
+    if (f.channel !== '') p.set('channel', f.channel);
     return `?${p.toString()}`;
 }
 

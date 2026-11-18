@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Messaging\Channels;
 
 use App\Domain\Messaging\Channels\Drivers\MetaCloudDriver;
+use App\Domain\Messaging\Channels\Drivers\MetaInstagramDriver;
+use App\Domain\Messaging\Channels\Drivers\MetaMessengerDriver;
 use App\Domain\Messaging\Channels\Drivers\SesDriver;
 use App\Domain\Messaging\Channels\Drivers\SmtpDriver;
 use App\Domain\Messaging\Channels\Drivers\TwilioSmsDriver;
@@ -20,10 +22,12 @@ final class DriverRegistry
         'meta_cloud' => MetaCloudDriver::class,
         'zender' => ZenderDriver::class,
         'twilio' => TwilioSmsDriver::class,
+        'meta_messenger' => MetaMessengerDriver::class,
+        'meta_instagram' => MetaInstagramDriver::class,
     ];
 
     /** @var array<string, string> proveedor → canal */
-    public const CHANNEL = ['ses' => 'email', 'smtp' => 'email', 'meta_cloud' => 'whatsapp', 'zender' => 'whatsapp', 'twilio' => 'sms'];
+    public const CHANNEL = ['ses' => 'email', 'smtp' => 'email', 'meta_cloud' => 'whatsapp', 'zender' => 'whatsapp', 'twilio' => 'sms', 'meta_messenger' => 'messenger', 'meta_instagram' => 'instagram'];
 
     public function for(string $provider): ChannelDriver
     {

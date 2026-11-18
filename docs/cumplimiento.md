@@ -113,6 +113,13 @@ La ley aplica a los mensajes **comerciales o publicitarios** por SMS, mensajerí
 - **IA en WhatsApp:** desde el 15 de enero de 2026 Meta prohíbe los asistentes de IA de propósito general en la plataforma empresarial. Los agentes limitados a la operación del negocio (ventas, soporte, citas, pedidos) están permitidos. El agente de M11 debe quedarse **siempre dentro del alcance del negocio**, por diseño y por prompt.
 - **Calidad del número:** se monitorea. Si baja a «media», se frenan las campañas de marketing de ese número y se avisa.
 
+### 5.1.1 Messenger e Instagram Direct (Fase 5)
+- **Solo conversaciones.** Meta no permite mensajes promocionales por Messenger ni por Instagram Direct desde la plataforma de mensajería: `SendPolicy` niega todo marketing en estos canales (`channel_no_marketing`) y no hay plantillas.
+- **Ventana de 24 h** desde el último mensaje del cliente para responder **[verificar]** la política vigente de Meta.
+- **Messenger, etiqueta `HUMAN_AGENT`:** entre 24 h y 7 días después del último mensaje, solo una persona del equipo puede responder un asunto del cliente. La IA y los envíos automáticos nunca la usan; la bandeja la pone sola cuando escribe una persona **[verificar]** que la app tenga aprobada la función de agente humano.
+- **Instagram:** fuera de la ventana no sale nada hasta que el cliente vuelva a escribir (la bandeja muestra «Ventana cerrada»).
+- Estos mensajes no tienen costo de Meta. Las palabras de baja («baja», «STOP») se procesan igual que en WhatsApp.
+
 ### 5.2 Zender (no oficial)
 - Usa WhatsApp Web, que **no está autorizado** por los términos de WhatsApp para automatizar, así que el número puede ser **bloqueado**.
 - En el producto queda limitado a conversaciones 1:1 y mensajes transaccionales de bajo volumen, con topes fijos por hora y por día (30 y 200, definidos por la plataforma en `config/igr-messaging.php`; el cliente no los puede subir), y **sin campañas ni flujos masivos de marketing** (el driver rechaza todo mensaje de marketing).

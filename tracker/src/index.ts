@@ -20,6 +20,7 @@ interface IgrWindow {
     igrOrder?: OrderData;
     igr?: Cmd[] & { __igr?: boolean; on?: (fn: Listener) => void; consent?: () => Consent; flush?: () => void };
     __igrWidgets?: unknown;
+    clarity?: (...a: unknown[]) => void;
 }
 
 const W = window as unknown as IgrWindow;
@@ -331,6 +332,19 @@ function startIds(): void {
     sid = s.id;
     entry = s.entry;
     ping(a.created);
+    clarity();
+}
+
+/**
+ * Microsoft Clarity (modulos.md M19): si el sitio lo tiene, la grabación lleva el ID del
+ * navegador como ID personalizado y etiqueta, y el perfil del contacto la abre. Solo con
+ * consentimiento de analítica; nunca correo, teléfono ni el ID del contacto.
+ */
+function clarity(): void {
+    const c = W.clarity;
+    if (!consent.analytics || !aid || typeof c !== 'function') return;
+    c('identify', aid, sid);
+    c('set', 'igr_aid', aid);
 }
 
 function applyConsent(next: Consent): void {
@@ -414,6 +428,7 @@ function main(): void {
             engagement();
             widgets();
             pixels();
+            clarity(); // por si Clarity cargó después del tracker
         }),
     );
 }

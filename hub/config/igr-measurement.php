@@ -20,6 +20,10 @@ return [
         'order.paid' => ['meta' => 'Purchase', 'google' => 'purchase', 'tiktok' => 'CompletePayment', 'default' => true],
         'form.submitted' => ['meta' => 'Lead', 'google' => 'generate_lead', 'tiktok' => 'SubmitForm', 'default' => true],
         'customer.registered' => ['meta' => 'CompleteRegistration', 'google' => 'sign_up', 'tiktok' => 'CompleteRegistration', 'default' => true],
+        // Conversión offline de un lead ganado (M18): la envía SendLeadConversion, no el
+        // ConversionRouter (es un evento del hub). Meta con action_source system_generated y
+        // Google Ads por Data Manager (acción «lead ganado», eventSource OTHER). [verificar] nombres.
+        'lead.won' => ['meta' => 'Purchase', 'google' => 'close_convert_lead', 'default' => true, 'offline' => true, 'meta_action_source' => 'system_generated', 'google_event_source' => 'OTHER'],
     ],
 
     // Conversions API for Business Messaging solo acepta estos nombres [verificar con la lista vigente de Meta].

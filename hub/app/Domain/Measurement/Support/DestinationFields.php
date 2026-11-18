@@ -18,7 +18,7 @@ final class DestinationFields
         'google' => [
             'measurement_id' => false, 'api_secret' => true,
             'ads_customer_id' => false, 'ads_login_customer_id' => false,
-            'conversion_action_purchase' => false, 'conversion_action_lead' => false,
+            'conversion_action_purchase' => false, 'conversion_action_lead' => false, 'conversion_action_lead_won' => false,
             'oauth_client_id' => false, 'oauth_client_secret' => true, 'oauth_refresh_token' => true,
             'ads_developer_token' => true,
         ],

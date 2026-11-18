@@ -13,7 +13,7 @@ import { ChipsInput, NumberInput, SimpleSelect, ToggleChips } from './inputs';
 const NO_VALUE = ['is_set', 'is_not_set', 'this_month', 'is_true', 'is_false'];
 const MULTI = ['in', 'not_in', 'contains_any', 'contains_all', 'not_contains'];
 const DAYS = ['within_last_days', 'more_than_days_ago', 'within_next_days'];
-const MONEY_FIELDS = ['total_spent', 'aov', 'predicted_clv_12m', 'wallet_balance'];
+const MONEY_FIELDS = ['total_spent', 'aov', 'predicted_clv_12m', 'wallet_balance', 'value'];
 
 type Value = Scalar | Scalar[] | null | undefined;
 

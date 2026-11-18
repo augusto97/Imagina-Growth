@@ -1,0 +1,96 @@
+{
+    "platform": {
+        "title": "Plataforma",
+        "description": "Panel interno del equipo: cuentas, planes, cobro y salud técnica.",
+        "forbidden": "Esta sección es solo del equipo de la plataforma",
+        "forbiddenHelp": "Si necesitas cambiar tu plan, ve a «Plan y facturación».",
+        "saved": "Cambio guardado",
+        "tabs": {
+            "accounts": "Cuentas",
+            "health": "Salud",
+            "invoices": "Facturas",
+            "requests": "Pedidos de plan"
+        },
+        "accounts": {
+            "empty": "Todavía no hay cuentas.",
+            "account": "Cuenta",
+            "plan": "Plan",
+            "status": "Cobro",
+            "usage": "Uso del mes",
+            "invoices": "Facturas abiertas",
+            "actions": "Acciones",
+            "noPlan": "Sin plan",
+            "internal": "interno",
+            "graceUntil": "Gracia hasta el {{date}}",
+            "overdue_one": "{{count}} vencida",
+            "overdue_other": "{{count}} vencidas",
+            "workspaces_one": "{{count}} espacio de trabajo",
+            "workspaces_other": "{{count}} espacios de trabajo",
+            "ai": "IA este mes"
+        },
+        "features": {
+            "plan": "{{module}}: según el plan",
+            "on": "{{module}}: activado",
+            "off": "{{module}}: apagado"
+        },
+        "health": {
+            "ingest": "Ingesta por shard",
+            "ingestHelp": "Mensajes en cola y retraso del más antiguo sin procesar. Aviso desde 60 s, crítico desde 5 min.",
+            "shard": "Shard",
+            "length": "En el stream",
+            "pending": "Pendientes",
+            "lag": "Retraso",
+            "state": "Estado",
+            "seconds": "{{n}} s",
+            "unavailable": "No se pudo consultar ahora.",
+            "rejections": "Eventos rechazados por motivo",
+            "failedDeliveries": "Mensajes fallidos por proveedor",
+            "conversionFailures": "Conversiones no entregadas",
+            "noProvider": "sin proveedor",
+            "last24h": "Últimas 24 horas",
+            "none": "Nada que reportar.",
+            "aiCost": "Costo de IA del mes por espacio de trabajo",
+            "aiCostHelp": "Contra el presupuesto de IA de su plan.",
+            "workspace": "Espacio de trabajo",
+            "cost": "Costo",
+            "budget": "Presupuesto",
+            "used": "Usado",
+            "lagState": {
+                "ok": "Al día",
+                "warning": "Lento",
+                "critical": "Atascado"
+            }
+        },
+        "invoices": {
+            "empty": "Todavía no hay facturas.",
+            "emptyHelp": "Créalas desde la pestaña Cuentas.",
+            "create": "Facturar",
+            "createFor": "Nueva factura para {{account}}",
+            "createHelp": "Las líneas vienen del plan de la cuenta. El total lo calcula el servidor.",
+            "period": "Periodo (AAAA-MM)",
+            "currency": "Moneda",
+            "concept": "Concepto",
+            "quantity": "Cantidad",
+            "unitPrice": "Valor unitario",
+            "addLine": "Agregar línea",
+            "totalIs": "Total: {{total}}",
+            "saveDraft": "Guardar borrador",
+            "issueAndSend": "Emitir y enviar",
+            "created": "Factura guardada como borrador",
+            "createdSent": "Factura emitida y enviada",
+            "send": "Enviar",
+            "resend": "Reenviar",
+            "markPaid": "Marcar pagada",
+            "void": "Anular"
+        },
+        "requests": {
+            "empty": "No hay pedidos de cambio de plan pendientes.",
+            "change": "Cambio",
+            "fromTo": "{{from}} → {{to}}",
+            "note": "Nota",
+            "date": "Fecha",
+            "apply": "Aplicar",
+            "reject": "Rechazar"
+        }
+    }
+}

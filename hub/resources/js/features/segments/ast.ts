@@ -34,6 +34,8 @@ export function defaultCondition(type: ConditionType): Condition {
             return { type: 'messaging', action: 'clicked', channel: 'any', kind: 'marketing', operator: 'ever', window: { kind: 'last_days', days: 30 } };
         case 'loyalty':
             return { type: 'loyalty', field: 'points_balance', operator: 'gte', value: 500 };
+        case 'lead':
+            return { type: 'lead', field: 'has_open_lead', operator: 'is_true' };
     }
 }
 
@@ -117,6 +119,7 @@ export function isComplete(c: Condition): boolean {
         case 'messaging':
             return c.action === 'engagement' ? hasValue(c.operator, c.value) : true;
         case 'loyalty':
+        case 'lead':
             return hasValue(c.operator, c.value);
         default:
             return true;

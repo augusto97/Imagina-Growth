@@ -78,6 +78,14 @@ export function describeCondition(t: TFunction, c: Condition, names: Record<stri
             }
             return t(`segments.op.${c.operator}`, { field, value: list(c.value, c.operator === 'between' ? t('segments.join.between') : ', ') });
         }
+        case 'lead': {
+            if (c.field === 'has_open_lead' || c.field === 'has_lead') {
+                return t(`segments.describe.${c.field}_${c.operator}`);
+            }
+            const field = t(`segments.leadFields.${c.field}`, { defaultValue: c.field });
+            const values = Array.isArray(c.value) ? c.value.map((v) => t(`segments.enum.${c.field}.${String(v)}`, { defaultValue: String(v) })) : c.value;
+            return t('segments.describe.leadWith', { condition: t(`segments.op.${c.operator}`, { field, value: list(values, c.operator === 'between' ? t('segments.join.between') : ', ') }) });
+        }
     }
 }
 

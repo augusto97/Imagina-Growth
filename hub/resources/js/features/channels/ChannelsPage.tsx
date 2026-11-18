@@ -1,4 +1,4 @@
-import { FileText, Mail, MessageCircle, Phone, Plus } from 'lucide-react';
+import { Camera, FileText, Mail, MessageCircle, MessagesSquare, Phone, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
@@ -10,17 +10,26 @@ import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { AccountCard } from './AccountCard';
 import { type ChannelAccount, type ChannelKind, useChannels } from './api';
 import { EmailDialog } from './dialogs/EmailDialog';
+import { SocialDialog } from './dialogs/SocialDialog';
 import { TestSendDialog } from './dialogs/TestSendDialog';
 import { TwilioDialog } from './dialogs/TwilioDialog';
 import { WhatsAppDialog } from './dialogs/WhatsAppDialog';
 import { ZenderDialog } from './dialogs/ZenderDialog';
 import { SuppressionsTab } from './SuppressionsTab';
 
-const TABS = ['email', 'whatsapp', 'sms', 'suppressions'] as const;
+const TABS = ['email', 'whatsapp', 'messenger', 'instagram', 'sms', 'suppressions'] as const;
 type Tab = (typeof TABS)[number];
-const ICONS = { email: Mail, whatsapp: MessageCircle, sms: Phone } as const;
+const ICONS = { email: Mail, whatsapp: MessageCircle, sms: Phone, messenger: MessagesSquare, instagram: Camera } as const;
+const CHANNELS = ['email', 'whatsapp', 'messenger', 'instagram', 'sms'] as const;
+const CONNECT_LABEL = {
+    email: 'channels.actions.connectEmail',
+    whatsapp: 'channels.actions.connectWhatsApp',
+    messenger: 'channels.actions.connectMessenger',
+    instagram: 'channels.actions.connectInstagram',
+    sms: 'channels.actions.connectSms',
+} as const;
 
-/** Configuración → Canales (M07). */
+/** Configuración → Canales (M07; Messenger e Instagram en la Fase 5). */
 export function ChannelsPage() {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
@@ -29,12 +38,12 @@ export function ChannelsPage() {
     const channels = useChannels(workspace.id);
     const [params, setParams] = useSearchParams();
     const tab: Tab = TABS.find((x) => x === params.get('tab')) ?? 'email';
-    const [dialog, setDialog] = useState<'email' | 'whatsapp' | 'zender' | 'sms' | null>(null);
+    const [dialog, setDialog] = useState<'email' | 'whatsapp' | 'zender' | 'sms' | 'messenger' | 'instagram' | null>(null);
     const [dnsFor, setDnsFor] = useState<ChannelAccount | null>(null);
     const [testFor, setTestFor] = useState<ChannelAccount | null>(null);
 
     const accounts = (kind: ChannelKind) => (channels.data?.data ?? []).filter((a) => a.channel === kind);
-    const connect = (kind: ChannelKind) => (kind === 'email' ? 'email' : kind === 'whatsapp' ? 'whatsapp' : 'sms');
+    const connect = (kind: ChannelKind) => kind;
 
     return (
         <div>
@@ -47,7 +56,7 @@ export function ChannelsPage() {
                         </TabsTrigger>
                     ))}
                 </TabsList>
-                {(['email', 'whatsapp', 'sms'] as const).map((kind) => {
+                {CHANNELS.map((kind) => {
                     const list = accounts(kind);
                     const Icon = ICONS[kind];
                     return (
@@ -64,7 +73,7 @@ export function ChannelsPage() {
                                 {canManage && list.length > 0 && (
                                     <Button onClick={() => setDialog(connect(kind))}>
                                         <Plus />
-                                        {t(kind === 'email' ? 'channels.actions.connectEmail' : kind === 'whatsapp' ? 'channels.actions.connectWhatsApp' : 'channels.actions.connectSms')}
+                                        {t(CONNECT_LABEL[kind])}
                                     </Button>
                                 )}
                             </div>
@@ -84,7 +93,7 @@ export function ChannelsPage() {
                                         canManage ? (
                                             <Button onClick={() => setDialog(connect(kind))}>
                                                 <Plus />
-                                                {t(kind === 'email' ? 'channels.actions.connectEmail' : kind === 'whatsapp' ? 'channels.actions.connectWhatsApp' : 'channels.actions.connectSms')}
+                                                {t(CONNECT_LABEL[kind])}
                                             </Button>
                                         ) : undefined
                                     }
@@ -115,6 +124,8 @@ export function ChannelsPage() {
             <WhatsAppDialog open={dialog === 'whatsapp'} meta={channels.data?.meta} onClose={() => setDialog(null)} onZender={() => setDialog('zender')} />
             <ZenderDialog open={dialog === 'zender'} caps={channels.data?.meta.zender_caps ?? { hourly: 30, daily: 200 }} onClose={() => setDialog(null)} />
             <TwilioDialog open={dialog === 'sms'} onClose={() => setDialog(null)} />
+            <SocialDialog kind="messenger" open={dialog === 'messenger'} onClose={() => setDialog(null)} />
+            <SocialDialog kind="instagram" open={dialog === 'instagram'} onClose={() => setDialog(null)} />
             <TestSendDialog account={testFor} onClose={() => setTestFor(null)} />
         </div>
     );

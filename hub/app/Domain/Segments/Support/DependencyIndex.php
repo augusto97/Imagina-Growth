@@ -77,6 +77,9 @@ final class DependencyIndex
             if ((str_starts_with($event, 'message.') || $event === 'whatsapp.inbound') && in_array('messaging', $kinds, true)) {
                 return true;
             }
+            if (str_starts_with($event, 'lead.') && in_array('lead', $kinds, true)) {
+                return true;
+            }
             if (self::isLoyaltyEvent($event) && in_array('loyalty', $kinds, true)) {
                 return true;
             }

@@ -12,6 +12,8 @@ use App\Domain\Inbox\Contracts\ConversationAgent;
 use App\Domain\Inbox\Queries\InboxMetrics;
 use App\Domain\Inbox\Queries\InboxQuery;
 use App\Domain\Messaging\Data\DispatchResult;
+use App\Domain\Messaging\Enums\Channel;
+use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Templates\Models\Template;
 use App\Domain\Workspaces\Models\User;
@@ -44,6 +46,7 @@ final class InboxController
             'intent' => ['nullable', 'string', 'max:16'],
             'q' => ['nullable', 'string', 'max:120'],
             'before' => ['nullable', 'date'],
+            'channel' => ['nullable', Rule::in(['whatsapp', 'messenger', 'instagram'])],
         ]);
 
         return response()->json($this->query->list($this->current->get(), $this->userId($request), $this->seesAll(), $f));
@@ -90,7 +93,7 @@ final class InboxController
         return match ($result['status']) {
             DispatchResult::QUEUED, DispatchResult::DUPLICATE => response()->json($result, $result['status'] === DispatchResult::QUEUED ? 201 : 200),
             DispatchResult::DEFERRED => response()->json($result + ['message' => __('Por la hora legal del contacto, el mensaje no se puede enviar ahora. Intenta después de :at.', ['at' => (string) $result['until']])], 409),
-            default => response()->json($result + ['message' => self::denied((string) $result['reason'])], 422),
+            default => response()->json($result + ['message' => self::denied((string) $result['reason'], ChannelAccount::query()->find($c->channel_account_id)?->channel)], 422),
         };
     }
 
@@ -272,9 +275,25 @@ final class InboxController
         return array_values(array_unique($keys));
     }
 
-    private static function denied(string $reason): string
+    private static function denied(string $reason, ?Channel $channel = null): string
     {
+        if ($channel !== null && $channel->isSocial()) {
+            $name = $channel === Channel::Instagram ? 'Instagram' : 'Messenger';
+
+            return match ($reason) {
+                'outside_24h_window' => $channel === Channel::Messenger
+                    ? __('Pasaron más de 24 horas desde el último mensaje del cliente: en Messenger solo una persona del equipo puede responder, hasta 7 días después.')
+                    : __('Ventana cerrada: pasaron más de 24 horas desde el último mensaje del cliente. En Instagram solo puedes responder cuando vuelva a escribir.'),
+                'outside_human_agent_window' => __('Pasaron más de 7 días desde el último mensaje del cliente: en Messenger ya no se le puede escribir hasta que vuelva a hacerlo.'),
+                'channel_unavailable' => __('La cuenta de :channel no está activa.', ['channel' => $name]),
+                'no_address' => __('Este contacto no le ha escrito a esta cuenta de :channel.', ['channel' => $name]),
+                'unsubscribed', 'suppressed', 'excluded_registry' => __('Este contacto pidió no recibir más mensajes.'),
+                default => self::denied($reason),
+            };
+        }
+
         return match ($reason) {
+            'channel_no_marketing' => __('Messenger e Instagram no permiten mensajes de marketing.'),
             'outside_24h_window' => __('Pasaron más de 24 horas desde el último mensaje del cliente: solo puedes enviar una plantilla aprobada.'),
             'no_consent' => __('El contacto no aceptó mensajes de marketing por WhatsApp: usa una plantilla de utilidad.'),
             'unsubscribed', 'suppressed', 'excluded_registry' => __('Este número pidió no recibir más mensajes.'),

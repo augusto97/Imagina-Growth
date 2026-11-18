@@ -1,0 +1,130 @@
+{
+    "billing": {
+        "title": "Plan y facturación",
+        "description": "Tu plan, lo que llevas usado este mes y tus facturas.",
+        "refresh": "Actualizar uso",
+        "refreshed": "Uso actualizado",
+        "statusLabel": "Estado de la cuenta:",
+        "status": {
+            "trial": "En prueba",
+            "active": "Al día",
+            "grace": "Periodo de gracia",
+            "suspended": "Marketing en pausa"
+        },
+        "banner": {
+            "grace": {
+                "title": "Tu cuenta está en periodo de gracia",
+                "body": "Todo sigue funcionando hasta el {{date}}. Después se pausan los envíos de marketing y las importaciones nuevas. Cambia de plan o paga la factura pendiente para evitarlo."
+            },
+            "suspended": {
+                "title": "Pausamos los envíos de marketing",
+                "body": "Terminó el periodo de gracia. Los datos, la medición, la bandeja y los mensajes de servicio siguen funcionando. Cambia de plan o paga la factura pendiente para reactivar campañas, flujos de marketing e importaciones."
+            },
+            "trial": {
+                "title": "Tu prueba termina pronto",
+                "body": "La prueba termina el {{date}}. Elige un plan para seguir sin interrupciones."
+            }
+        },
+        "plan": {
+            "current": "Tu plan",
+            "none": "Sin plan",
+            "noneHelp": "Mientras no tengas plan, todos los módulos están activos.",
+            "perMonth": "al mes",
+            "included_orders_one": "{{n}} pedido al mes incluido",
+            "included_orders_other": "{{n}} pedidos al mes incluidos",
+            "included_contacts_one": "{{n}} contacto activo al mes incluido",
+            "included_contacts_other": "{{n}} contactos activos al mes incluidos"
+        },
+        "usage": {
+            "title": "Uso de este mes",
+            "description": "Periodo {{period}}",
+            "computedAt": "calculado {{at}}",
+            "noLimits": "Sin plan no hay límites que medir.",
+            "counts": "Otros conteos del mes"
+        },
+        "meter": {
+            "of": "{{value}} de {{limit}}",
+            "pct": "{{pct}} %",
+            "ok": "Dentro del plan",
+            "warning": "Cerca del límite (80 %)",
+            "critical": "Límite alcanzado"
+        },
+        "metric": {
+            "orders": "Pedidos",
+            "contacts": "Contactos activos",
+            "emails": "Correos enviados",
+            "wa_marketing": "WhatsApp de marketing",
+            "wa_utility": "WhatsApp de utilidad",
+            "wa_service": "WhatsApp de servicio",
+            "sms": "SMS",
+            "events": "Eventos registrados",
+            "ai_tokens": "Tokens de IA",
+            "ai_cost_usd": "Presupuesto de IA"
+        },
+        "limit": {
+            "emails": "Correos al mes",
+            "ai_budget_usd": "Presupuesto de IA al mes",
+            "users": "Personas del equipo",
+            "api_requests_per_minute": "Llamadas a la API por minuto"
+        },
+        "modules": {
+            "title": "Módulos",
+            "description": "Lo que incluye tu plan. Los que tienen candado se activan con otro plan.",
+            "active": "activo",
+            "inactive": "no incluido",
+            "forced": "Activado por el equipo"
+        },
+        "module": {
+            "onsite": "Formularios y popups",
+            "loyalty": "Puntos y niveles VIP",
+            "referrals": "Referidos y afiliados",
+            "reviews": "Reseñas y NPS",
+            "inbox": "Bandeja de WhatsApp",
+            "ai": "Analista con IA",
+            "ai_agent": "Agente de ventas con IA",
+            "services": "Leads y puntuación",
+            "bookings": "Agenda de citas",
+            "quotes": "Cotizador",
+            "api": "API pública y webhooks",
+            "mcp": "Servidor MCP",
+            "agency_reports": "Reportes de agencia",
+            "white_label": "Marca blanca"
+        },
+        "invoices": {
+            "title": "Facturas",
+            "empty": "Todavía no tienes facturas.",
+            "number": "Número",
+            "period": "Periodo",
+            "total": "Total",
+            "status": "Estado",
+            "due": "Vence",
+            "actions": "Acciones",
+            "pay": "Pagar",
+            "pdf": "PDF"
+        },
+        "invoiceStatus": {
+            "draft": "Borrador",
+            "sent": "Por pagar",
+            "paid": "Pagada",
+            "overdue": "Vencida",
+            "void": "Anulada"
+        },
+        "compare": {
+            "title": "Comparar planes",
+            "description": "Pide el cambio y el equipo lo confirma contigo. No se cobra nada automáticamente.",
+            "feature": "Característica",
+            "current": "Tu plan",
+            "price": "Precio al mes",
+            "included": "Incluido",
+            "notIncluded": "No incluido",
+            "request": "Pedir este plan",
+            "requested": "Pedido",
+            "pending": "Pediste el plan {{plan}}. El equipo te escribe para confirmarlo.",
+            "dialogTitle": "Pedir el plan {{plan}}",
+            "dialogBody": "Le avisamos al equipo. El cambio se aplica cuando lo confirmen contigo.",
+            "note": "Nota para el equipo (opcional)",
+            "send": "Enviar pedido",
+            "sent": "Pedido enviado"
+        }
+    }
+}

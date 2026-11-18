@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Spa\Concerns;
 
+use App\Domain\Agency\Support\AgencyAccess;
 use App\Domain\Sites\Models\Site;
+use App\Domain\Workspaces\Contracts\Branding;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
+use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
 
 /** Formas JSON compartidas por los controladores de la SPA (IDs con prefijo). */
@@ -29,9 +32,30 @@ final class Presenters
             'settings' => $ws->settings ?? [],
             'status' => $ws->status,
             'role' => $role?->value,
-            'abilities' => $role?->grantedAbilities() ?? [],
+            // M22: `viewAgency` llega por la cuenta de agencia, no por el rol.
+            'abilities' => $role === null ? [] : array_values(array_unique([...$role->grantedAbilities(), ...AgencyAccess::extraAbilities(self::user(), $ws)])),
+            'branding' => self::branding($ws),
             'requires_two_factor' => $role?->requiresTwoFactor() ?? false,
         ];
+    }
+
+    private static function user(): ?User
+    {
+        $user = auth()->user();
+
+        return $user instanceof User ? $user : null;
+    }
+
+    /**
+     * La marca que ve el panel en este espacio de trabajo (M22, marca blanca).
+     *
+     * @return array{name: string, logo_url: string|null, primary_color: string, white_label: bool}
+     */
+    public static function branding(Workspace $ws): array
+    {
+        $b = app(Branding::class)->for($ws);
+
+        return ['name' => $b->name, 'logo_url' => $b->logoUrl, 'primary_color' => $b->primaryColor, 'white_label' => $b->whiteLabel];
     }
 
     /** @return array<string, mixed> */

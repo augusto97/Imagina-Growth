@@ -13,7 +13,7 @@ use Carbon\CarbonImmutable;
 final class InboundMessage
 {
     public function __construct(
-        public readonly string $from,                  // E.164
+        public readonly string $from,                  // E.164; en Messenger e Instagram, el PSID o IGSID
         public readonly string $providerMessageId,
         public readonly string $type,                  // text | button | interactive | image | …
         public readonly CarbonImmutable $at,
@@ -28,5 +28,6 @@ final class InboundMessage
         public readonly ?string $mediaId = null,       // Fase 4: id del adjunto en el proveedor (imagen, audio, video, documento, sticker)
         public readonly ?string $mediaMime = null,
         public readonly ?string $caption = null,       // texto que acompaña al adjunto
+        public readonly ?string $mediaUrl = null,      // Fase 5: Messenger e Instagram mandan la URL del adjunto (caduca), no un id
     ) {}
 }

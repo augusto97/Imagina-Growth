@@ -1,0 +1,209 @@
+{
+    "agenda": {
+        "title": "Agenda",
+        "description": "Citas de tus clientes: servicios, horarios de cada persona, recordatorios y la página para reservar en línea.",
+        "openPage": "Ver página de reservas",
+        "edit": "Editar",
+        "setup": {
+            "title": "Configura tu agenda en dos pasos",
+            "body": "Crea los servicios que se pueden reservar y define el horario del negocio. Después comparte el enlace de reservas.",
+            "cta": "Crear un servicio"
+        },
+        "kpi": {
+            "upcoming": "Próximas citas",
+            "booked": "Citas en {{days}} días",
+            "completed": "Cumplidas",
+            "noShowRate": "No asistencia"
+        },
+        "tabs": {
+            "calendario": "Calendario",
+            "servicios": "Servicios",
+            "personas": "Personas y horarios",
+            "pagina": "Página de reservas"
+        },
+        "status": {
+            "booked": "Agendada",
+            "confirmed": "Confirmada",
+            "rescheduled": "Reprogramada",
+            "cancelled": "Cancelada",
+            "completed": "Cumplida",
+            "no_show": "No asistió"
+        },
+        "location": {
+            "onsite": "Presencial",
+            "online": "En línea",
+            "phone": "Por teléfono"
+        },
+        "channel": {
+            "whatsapp": "WhatsApp",
+            "email": "Correo",
+            "sms": "SMS"
+        },
+        "weekday": {
+            "1": "Lunes",
+            "2": "Martes",
+            "3": "Miércoles",
+            "4": "Jueves",
+            "5": "Viernes",
+            "6": "Sábado",
+            "7": "Domingo"
+        },
+        "calendar": {
+            "prev": "Anterior",
+            "next": "Siguiente",
+            "today": "Hoy",
+            "day": "Día",
+            "week": "Semana",
+            "staff": "Persona",
+            "allStaff": "Todas las personas",
+            "anyStaff": "Quien esté disponible",
+            "new": "Nueva cita",
+            "free": "Sin citas",
+            "emptyDay": "No hay citas este día",
+            "emptyHelp": "Las citas que agenden en tu página, en la bandeja o desde aquí aparecen en el calendario.",
+            "with": "Con {{name}}",
+            "actions": "Acciones de la cita",
+            "action": {
+                "confirm": "Marcar como confirmada",
+                "complete": "Marcar como cumplida",
+                "no-show": "No asistió",
+                "reschedule": "Reprogramar…",
+                "cancel": "Cancelar la cita"
+            },
+            "done": {
+                "confirm": "Cita confirmada.",
+                "complete": "Cita cumplida.",
+                "no-show": "Marcada como no asistió.",
+                "reschedule": "Cita reprogramada. Le avisamos a la persona.",
+                "cancel": "Cita cancelada. Le avisamos a la persona."
+            }
+        },
+        "book": {
+            "title": "Nueva cita",
+            "description": "Agenda una cita para un contacto. Le llega la confirmación con el enlace para cambiarla.",
+            "contact": "Contacto",
+            "searchPlaceholder": "Busca por nombre, correo o WhatsApp",
+            "change": "Cambiar",
+            "service": "Servicio",
+            "staff": "Persona",
+            "from": "Desde",
+            "tz": "Horas de {{tz}}",
+            "noSlots": "No hay horarios libres en esos 7 días. Prueba otra fecha.",
+            "notes": "Nota interna (opcional)",
+            "submit": "Agendar",
+            "done": "Cita agendada."
+        },
+        "reschedule": {
+            "title": "Reprogramar la cita",
+            "current": "{{service}} · ahora: {{time}}",
+            "noService": "El servicio de esta cita ya no existe.",
+            "notice": "La persona recibe un aviso con el nuevo horario.",
+            "submit": "Cambiar horario"
+        },
+        "services": {
+            "help": "Lo que tus clientes pueden reservar. El margen es el tiempo libre que queda después de cada cita.",
+            "new": "Nuevo servicio",
+            "edit": "Editar servicio",
+            "empty": "Todavía no hay servicios",
+            "emptyHelp": "Crea el primero, por ejemplo «Valoración inicial, 30 minutos».",
+            "name": "Servicio",
+            "descriptionLabel": "Descripción (opcional)",
+            "duration": "Duración",
+            "durationLabel": "Duración (minutos)",
+            "minutes": "{{n}} min",
+            "buffer": "Margen después (minutos)",
+            "price": "Precio",
+            "priceLabel": "Precio ({{currency}})",
+            "pricePlaceholder": "Sin precio",
+            "location": "Lugar",
+            "staff": "Atiende",
+            "anyone": "Cualquier persona",
+            "whoAttends": "¿Quién atiende?",
+            "whoAttendsHelp": "Sin marcar, lo atiende cualquier persona activa.",
+            "notice": "Anticipación mínima (horas)",
+            "ahead": "Reservas hasta (días)",
+            "activeLabel": "Se puede reservar",
+            "inactive": "Inactivo",
+            "saved": "Servicio guardado.",
+            "delete": "Eliminar servicio",
+            "deleteConfirm": "¿Eliminar «{{name}}»? Si tiene citas, solo se desactiva.",
+            "deleted": "Servicio eliminado."
+        },
+        "staff": {
+            "title": "Personas",
+            "add": "Agregar persona",
+            "business": "Horario del negocio",
+            "businessHelp": "Lo usan las personas sin horario propio y la agenda sin personas.",
+            "name": "Nombre",
+            "email": "Correo (opcional)",
+            "emailHelp": "Solo para identificarla en el equipo. Se guarda cifrado.",
+            "added": "Persona agregada.",
+            "remove": "Quitar persona",
+            "removeConfirm": "¿Quitar a {{name}} de la agenda? Sus citas se mantienen.",
+            "connect": "Conectar Google Calendar",
+            "disconnect": "Desconectar",
+            "googleConnected": "Google Calendar quedó conectado. Las citas se copian a su calendario y lo ocupado allí no se ofrece.",
+            "googleDisconnected": "Google Calendar desconectado.",
+            "googleCancelled": "No se conectó Google Calendar.",
+            "googleError": "Google no aceptó la conexión. Inténtalo de nuevo.",
+            "googleNotConfigured": "La conexión con Google Calendar no está configurada en este servidor."
+        },
+        "hours": {
+            "title": "Horario · {{name}}",
+            "usesBusiness": "Hoy usa el horario del negocio. Si guardas uno aquí, tendrá el suyo.",
+            "closed": "Cerrado",
+            "from": "Desde",
+            "to": "Hasta",
+            "addRange": "Franja",
+            "removeRange": "Quitar franja",
+            "exceptions": "Días especiales",
+            "exceptionsHelp": "Vacaciones, cierres o un horario distinto un día puntual.",
+            "closedDay": "Cerrado",
+            "exceptionDate": "Fecha",
+            "addException": "Agregar día",
+            "removeException": "Quitar día",
+            "holidays": "Los festivos del país del negocio se cierran solos.",
+            "save": "Guardar horario",
+            "saved": "Horario guardado.",
+            "error": {
+                "order": "{{day}}: la hora de cierre debe ser después de la de apertura.",
+                "overlap": "{{day}}: hay franjas que se cruzan."
+            }
+        },
+        "page": {
+            "settings": "Ajustes de la página",
+            "settingsHelp": "Lo que ve y llena la persona al reservar.",
+            "enabled": "Recibir reservas en línea",
+            "pageTitle": "Título",
+            "pageTitlePlaceholder": "Agenda tu cita con …",
+            "intro": "Texto de bienvenida (opcional)",
+            "askEmail": "Pedir correo",
+            "requireEmail": "Correo obligatorio",
+            "consents": "Casillas de consentimiento",
+            "consentsHelp": "Para recibir promociones. Van sin marcar y con el texto legal vigente; la confirmación y los recordatorios de la cita no las necesitan.",
+            "reminders": "Recordatorios",
+            "remindersHelp": "Mensajes de utilidad antes de la cita, con «Confirmo» y el enlace para reprogramar.",
+            "reminderN": "Recordatorio {{n}}",
+            "hoursBefore": "horas antes",
+            "autoNoShow": "Marcar «No asistió» 30 minutos después del final si nadie la marca como cumplida",
+            "waTemplates": "Plantillas de WhatsApp (utilidad)",
+            "waTemplatesHelp": "ID de plantillas de utilidad aprobadas. Sin plantilla, los avisos van por correo.",
+            "tpl": {
+                "confirmation": "Confirmación",
+                "reminder": "Recordatorio",
+                "rescheduled": "Cambio de hora",
+                "cancelled": "Cancelación"
+            },
+            "saved": "Ajustes guardados.",
+            "share": "Compartir",
+            "shareHelp": "Pon el enlace en tu Instagram, Google Business Profile y WhatsApp.",
+            "link": "Enlace de reservas",
+            "qr": "Código QR de la página de reservas",
+            "qrHelp": "Para el mostrador, tarjetas o volantes.",
+            "downloadQr": "Descargar QR",
+            "onSite": "Botón en tu sitio",
+            "onSiteHelp": "Con el plugin conectado, pega este shortcode en cualquier página.",
+            "domainHelp": "¿Quieres la página con tu propio dominio? Configúralo en Agencia → Dominios propios."
+        }
+    }
+}

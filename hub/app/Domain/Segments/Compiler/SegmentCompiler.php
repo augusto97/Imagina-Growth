@@ -115,6 +115,7 @@ final class SegmentCompiler
             'cart' => $this->cartCondition($q, $c, $ctx),
             'messaging' => ($c['action'] ?? '') === 'engagement' ? $this->engagement($q, $c) : $this->messaging($q, $c, $ctx),
             'loyalty' => $this->loyalty($q, $c, $ctx),
+            'lead' => $this->lead($q, $c, $ctx),
             default => $q->whereRaw('1 = 0'),
         };
     }
@@ -483,6 +484,37 @@ final class SegmentCompiler
             'was_referred' => $this->wasReferred($q, ($c['operator'] ?? 'is_true') === 'is_true'),
             default => $this->column($q, 'c.'.(Fields::LOYALTY_FIELDS[$field]['column'] ?? 'id'), 'number', $c, $ctx),
         };
+    }
+
+    /**
+     * Leads (M18): «tiene un lead abierto», «tiene algún lead» o «alguno de sus leads
+     * cumple la condición» (etapa, temperatura, puntaje, servicio, origen, fuente,
+     * valor o fechas).
+     *
+     * @param  array<string, mixed>  $c
+     */
+    private function lead(Builder $q, array $c, CompileContext $ctx): void
+    {
+        $field = (string) $c['field'];
+        $base = fn (Builder $s): Builder => $s->from('leads as l')->selectRaw('1')
+            ->whereColumn('l.workspace_id', 'c.workspace_id')
+            ->whereColumn('l.contact_id', 'c.id');
+        if ($field === 'has_open_lead' || $field === 'has_lead') {
+            $sub = fn (Builder $s) => $field === 'has_open_lead' ? $base($s)->whereNull('l.won_at')->whereNull('l.lost_at') : $base($s);
+            ($c['operator'] ?? 'is_true') === 'is_true' ? $q->whereExists($sub) : $q->whereNotExists($sub);
+
+            return;
+        }
+        $def = Fields::LEAD_FIELDS[$field] ?? null;
+        if ($def === null || ! isset($def['column'])) {
+            $q->whereRaw('1 = 0');
+
+            return;
+        }
+        $q->whereExists(function (Builder $s) use ($base, $def, $c, $ctx): void {
+            $base($s);
+            $this->column($s, 'l.'.$def['column'], $def['type'], $c, $ctx);
+        });
     }
 
     /** Llegó referido por alguien (cualquier estado del referido). */

@@ -18,8 +18,10 @@ use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Models\Message;
 use App\Domain\Messaging\Models\WaTemplate;
 use App\Domain\Messaging\Support\ContactLinkToken;
+use App\Domain\Messaging\Support\ConversationWindow;
 use App\Domain\Messaging\Support\LinkRewriter;
 use App\Domain\Messaging\Support\MessageEvents;
+use App\Domain\Messaging\Support\SocialIdentity;
 use App\Domain\Messaging\Support\WaTemplateText;
 use App\Domain\Templates\Contracts\TemplateRenderer;
 use App\Domain\Templates\Data\RenderContext;
@@ -76,12 +78,12 @@ final class DefaultMessageDispatcher implements MessageDispatcher
         if ($account === null || $account->channel !== $message->channel) {
             return DispatchResult::denied(PolicyDecision::CHANNEL_UNAVAILABLE);
         }
-        $to = $this->recipient($message, $contact, $workspace);
+        $to = $this->recipient($message, $contact, $workspace, $account);
         if ($to === null) {
             return DispatchResult::denied(PolicyDecision::NO_ADDRESS);
         }
 
-        $request = new PolicyRequest($workspace, $contact, $message->channel, $message->kind, $message->sourceType, $account, $now, $message->isTest, $message->to !== null);
+        $request = new PolicyRequest($workspace, $contact, $message->channel, $message->kind, $message->sourceType, $account, $now, $message->isTest, $message->to !== null, $message->humanAgent);
         $decision = $this->policy->checkAndReserve($request);
         if ($decision->deferred()) {
             return DispatchResult::deferred($decision->until ?? $now->addHour(), (string) $decision->reason);
@@ -123,6 +125,11 @@ final class DefaultMessageDispatcher implements MessageDispatcher
                     'test' => $message->isTest,
                     'attempts' => 0,
                 ];
+                // Messenger fuera de las 24 h: SendPolicy ya comprobó que lo escribe una persona y que no pasaron 7 días.
+                if ($message->channel === Channel::Messenger && $message->humanAgent && $contact !== null
+                    && ConversationWindow::forContact($workspace->id, $contact->id, $account, $now) === ConversationWindow::HUMAN_AGENT) {
+                    $payload['messaging_tag'] = ConversationWindow::HUMAN_AGENT_TAG;
+                }
                 $country = strtoupper((string) ($contact?->getAttribute('country') ?: $workspace->country ?: 'CO'));
                 $cost = $this->drivers->for($account->provider)->estimateCost($account, $country, $message->kind);
 
@@ -169,9 +176,14 @@ final class DefaultMessageDispatcher implements MessageDispatcher
         return DispatchResult::queued($model->id);
     }
 
-    /** Destino: el explícito (avisos y modo prueba) o el correo o teléfono del contacto. */
-    private function recipient(OutboundMessage $message, ?Contact $contact, Workspace $workspace): ?string
+    /** Destino: el explícito (avisos y modo prueba), el correo o teléfono del contacto, o su PSID/IGSID en la página. */
+    private function recipient(OutboundMessage $message, ?Contact $contact, Workspace $workspace, ChannelAccount $account): ?string
     {
+        if ($message->channel->isSocial()) {
+            $to = $message->to ?? ($contact !== null ? SocialIdentity::recipientFor($account, $contact->id) : null);
+
+            return is_string($to) && preg_match('/^\d{3,64}$/', $to) === 1 ? $to : null;
+        }
         $raw = $message->to ?? ($message->channel === Channel::Email ? $contact?->email : $contact?->phone);
         if (! is_string($raw) || trim($raw) === '') {
             return null;

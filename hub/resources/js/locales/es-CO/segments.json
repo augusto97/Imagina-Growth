@@ -219,7 +219,7 @@
             "segment": "Segmento",
             "messaging": "Mensajes",
             "loyalty": "Fidelización",
-            "lead": "Leads y citas"
+            "lead": "Leads"
         },
         "typeHelp": {
             "attribute": "Ciudad, departamento, etapa, etiquetas, cumpleaños…",
@@ -230,7 +230,8 @@
             "consent": "Quién acepta WhatsApp, correo o SMS",
             "segment": "Está (o no) en otro segmento",
             "messaging": "Recibió, abrió, leyó, hizo clic o respondió; interacción",
-            "loyalty": "Nivel VIP, puntos, saldo y referidos"
+            "loyalty": "Nivel VIP, puntos, saldo y referidos",
+            "lead": "Tiene un lead abierto, etapa, temperatura, puntaje, servicio o fuente"
         },
         "fields": {
             "city": "Ciudad",
@@ -412,7 +413,12 @@
             "tier_is_set": "Tiene nivel VIP",
             "tier_is_not_set": "No tiene nivel VIP",
             "referred_is_true": "Llegó referido por alguien",
-            "referred_is_false": "No llegó referido"
+            "referred_is_false": "No llegó referido",
+            "has_open_lead_is_true": "Tiene un lead abierto",
+            "has_open_lead_is_false": "No tiene un lead abierto",
+            "has_lead_is_true": "Ha sido lead",
+            "has_lead_is_false": "Nunca ha sido lead",
+            "leadWith": "Tiene un lead: {{condition}}"
         },
         "consent": {
             "granted": "Aceptó",
@@ -451,6 +457,19 @@
                 "low": "Económico",
                 "mid": "Medio",
                 "high": "Alto"
+            },
+            "temperature": {
+                "cold": "Frío",
+                "warm": "Tibio",
+                "hot": "Caliente"
+            },
+            "origin": {
+                "form": "Formulario",
+                "whatsapp": "WhatsApp",
+                "quote": "Cotizador",
+                "booking": "Agenda",
+                "manual": "Manual",
+                "api": "API"
             }
         },
         "props": {
@@ -537,6 +556,20 @@
             "at_least": "es al menos",
             "is_set": "tiene un nivel",
             "is_not_set": "no tiene nivel"
+        },
+        "leadFields": {
+            "has_open_lead": "Tiene un lead abierto",
+            "has_lead": "Ha sido lead alguna vez",
+            "stage": "Etapa del lead",
+            "temperature": "Temperatura del lead",
+            "score": "Puntaje del lead",
+            "service": "Servicio que pidió",
+            "origin": "Origen del lead",
+            "source": "Fuente del lead (canal)",
+            "value": "Valor del lead",
+            "created_at": "Fecha del lead",
+            "won_at": "Fecha en que se ganó",
+            "lost_at": "Fecha en que se perdió"
         }
     }
 }

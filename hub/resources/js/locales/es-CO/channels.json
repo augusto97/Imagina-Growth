@@ -1,10 +1,12 @@
 {
     "channels": {
         "title": "Canales",
-        "description": "Por dónde le hablas a tus clientes: correo, WhatsApp y SMS. Cada mensaje pasa por la política de envío (consentimiento, horario legal y frecuencia).",
+        "description": "Por dónde le hablas a tus clientes: correo, WhatsApp, Messenger, Instagram y SMS. Cada mensaje pasa por la política de envío (consentimiento, horario legal y frecuencia).",
         "tabs": {
             "email": "Correo",
             "whatsapp": "WhatsApp",
+            "messenger": "Messenger",
+            "instagram": "Instagram",
             "sms": "SMS",
             "suppressions": "Supresión"
         },
@@ -13,7 +15,9 @@
             "smtp": "SMTP",
             "meta_cloud": "WhatsApp oficial (Cloud API)",
             "zender": "WhatsApp no oficial (Zender)",
-            "twilio": "Twilio"
+            "twilio": "Twilio",
+            "meta_messenger": "Messenger (página de Facebook)",
+            "meta_instagram": "Instagram Direct"
         },
         "status": {
             "pending": "Pendiente",
@@ -50,6 +54,14 @@
             "sms": {
                 "title": "SMS (opcional)",
                 "description": "Para respaldo, códigos o clientes que lo prefieren. Necesitas una cuenta de Twilio."
+            },
+            "messenger": {
+                "title": "Conecta tu página de Facebook",
+                "description": "Responde los mensajes de Messenger desde la bandeja, con la misma app de Meta de tu WhatsApp. Messenger no cobra los mensajes."
+            },
+            "instagram": {
+                "title": "Conecta tu Instagram profesional",
+                "description": "Responde los mensajes directos, las respuestas a historias y las menciones desde la bandeja. La cuenta debe estar vinculada a tu página de Facebook."
             }
         },
         "actions": {
@@ -65,7 +77,10 @@
             "verifyDns": "Ver y verificar DNS",
             "disconnect": "Desconectar",
             "templates": "Plantillas de WhatsApp",
-            "more": "Más acciones"
+            "more": "Más acciones",
+            "connectMessenger": "Conectar Messenger",
+            "connectInstagram": "Conectar Instagram",
+            "check": "Comprobar conexión"
         },
         "toast": {
             "connected": "Canal conectado",
@@ -73,7 +88,8 @@
             "disconnected": "Canal desconectado",
             "synced": "Sincronizado: {{count}} plantillas",
             "testQueued": "Mensaje de prueba enviado",
-            "testNot": "La prueba no salió: {{reason}}"
+            "testNot": "La prueba no salió: {{reason}}",
+            "checked": "Conexión comprobada"
         },
         "disconnect": {
             "title": "¿Desconectar {{name}}?",
@@ -320,6 +336,24 @@
                 "system": "Sistema"
             },
             "cost": "Costo estimado ≈ {{cost}}"
+        },
+        "social": {
+            "fields": {
+                "page_id": "ID de la página de Facebook",
+                "ig_user_id": "ID de la cuenta de Instagram",
+                "page_access_token": "Token de acceso de la página (permanente)"
+            },
+            "messenger": {
+                "title": "Conectar Messenger",
+                "description": "Usa la misma app de Meta de tu WhatsApp. Crea un token permanente de la página con un usuario del sistema y pégalo aquí.",
+                "rules": "Solo conversaciones: respondes dentro de las 24 horas desde el último mensaje del cliente. Pasado ese plazo, solo una persona del equipo puede responder, hasta 7 días después. Nunca se envía marketing por Messenger."
+            },
+            "instagram": {
+                "title": "Conectar Instagram",
+                "description": "La cuenta profesional de Instagram debe estar vinculada a la página. Usa el token de esa página y el ID de la cuenta de Instagram.",
+                "rules": "Solo conversaciones: respondes dentro de las 24 horas desde el último mensaje del cliente. Después, la ventana se cierra hasta que vuelva a escribir. Nunca se envía marketing por Instagram."
+            },
+            "webhook": "En la app de Meta, suscribe el objeto «{{object}}» al webhook {{url}} con estos campos:"
         }
     }
 }

@@ -8,6 +8,8 @@ use App\Domain\Consent\Models\ContactConsent;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Messaging\Enums\Channel;
 use App\Domain\Messaging\Models\ChannelAccount;
+use App\Domain\Messaging\Support\ConversationWindow;
+use App\Domain\Messaging\Support\SocialIdentity;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
@@ -23,6 +25,8 @@ use Illuminate\Support\Facades\Redis;
  *    bloqueo: nada sale; baja o registro de exclusión: no sale marketing).
  * 3. Marketing: consentimiento `granted` del canal.
  * 4. WhatsApp de servicio: solo dentro de la ventana de 24 h de la conversación.
+ *    Messenger e Instagram (Fase 5): nunca marketing; todo mensaje dentro de la
+ *    ventana de 24 h, y en Messenger una persona hasta 7 días con HUMAN_AGENT.
  * 5. Marketing: ventana legal del país del contacto (LegalWindow) → se aplaza.
  * 6. Marketing: frecuencia (por día sumando canales, por semana, un canal por
  *    semana opcional y la preferencia del contacto) → se aplaza.
@@ -126,6 +130,9 @@ final class SendPolicy
         if ($commercial && $account->provider === ChannelAccount::ZENDER) {
             return PolicyDecision::deny(PolicyDecision::UNOFFICIAL_MARKETING);
         }
+        if ($commercial && $request->channel->isSocial()) {
+            return PolicyDecision::deny(PolicyDecision::CHANNEL_NO_MARKETING);
+        }
         if ($commercial && $request->channel === Channel::WhatsApp) {
             $quality = strtoupper((string) $account->quality_rating);
             if ($quality === 'RED' || ($quality === 'YELLOW' && $request->sourceType === 'campaign')) {
@@ -140,7 +147,11 @@ final class SendPolicy
 
         // 2. Contacto: dirección y supresión.
         $contact = $request->contact;
-        $bidx = $contact === null ? null : ($request->channel === Channel::Email ? $contact->email_bidx : $contact->phone_bidx);
+        $bidx = $contact === null ? null : match (true) {
+            $request->channel === Channel::Email => $contact->email_bidx,
+            $request->channel->isSocial() => self::socialBidx($request, $contact, $account),
+            default => $contact->phone_bidx,
+        };
         if ($contact === null || $bidx === null || $bidx === '') {
             return PolicyDecision::deny(PolicyDecision::NO_ADDRESS);
         }
@@ -171,6 +182,19 @@ final class SendPolicy
             }
         }
 
+        // 4b. Messenger e Instagram: todo mensaje va dentro de la ventana; en Messenger,
+        // una persona de la bandeja puede responder hasta 7 días con HUMAN_AGENT.
+        if ($request->channel->isSocial()) {
+            $state = ConversationWindow::forContact($request->workspace->id, $contact->id, $account, $request->at());
+            if ($state === ConversationWindow::HUMAN_AGENT && ! ($request->humanAgent && $request->kind->value === 'service')) {
+                return PolicyDecision::deny(PolicyDecision::OUTSIDE_24H_WINDOW);
+            }
+            if ($state === ConversationWindow::CLOSED) {
+                return PolicyDecision::deny($request->channel === Channel::Messenger && $request->humanAgent
+                    ? PolicyDecision::OUTSIDE_HUMAN_AGENT_WINDOW : PolicyDecision::OUTSIDE_24H_WINDOW);
+            }
+        }
+
         if (! $commercial) {
             return PolicyDecision::allow();
         }
@@ -183,6 +207,14 @@ final class SendPolicy
 
         // 6. Frecuencia.
         return $this->frequency($request, $reserve);
+    }
+
+    /** Índice de la identidad del contacto en la página (Messenger/Instagram) para las supresiones. */
+    private static function socialBidx(PolicyRequest $request, Contact $contact, ChannelAccount $account): ?string
+    {
+        $identity = SocialIdentity::identityFor($request->channel, $contact->id, $account);
+
+        return $identity === null ? null : SocialIdentity::bidx($request->workspace->id, $identity);
     }
 
     private function hasMarketingConsent(Contact $contact, Channel $channel): bool

@@ -21,7 +21,7 @@ final class ChannelAccountPresenter
         $webhook = match ($account->provider) {
             'zender' => ContactLinkToken::base().'/webhooks/zender/'.$account->publicId(),
             'twilio' => ContactLinkToken::base().'/webhooks/twilio/'.$account->publicId(),
-            'meta_cloud' => ContactLinkToken::base().'/webhooks/meta',
+            'meta_cloud', 'meta_messenger', 'meta_instagram' => ContactLinkToken::base().'/webhooks/meta',
             'ses' => ContactLinkToken::base().'/webhooks/ses',
             default => null,
         };
@@ -46,6 +46,13 @@ final class ChannelAccountPresenter
             'caps' => $account->provider === ChannelAccount::ZENDER ? ['hourly' => (int) config('igr-messaging.zender.hourly_cap'), 'daily' => (int) config('igr-messaging.zender.daily_cap')] : null,
             'capabilities' => app(DriverRegistry::class)->for($account->provider)->capabilities(),
             'webhook_url' => $webhook,
+            // Messenger e Instagram (Fase 5): qué suscribir en la app de Meta [verificar] los campos vigentes.
+            'webhook_subscription' => match ($account->provider) {
+                'meta_messenger' => ['object' => 'page', 'fields' => ['messages', 'messaging_postbacks', 'message_deliveries', 'message_reads', 'messaging_referrals']],
+                'meta_instagram' => ['object' => 'instagram', 'fields' => ['messages', 'messaging_postbacks', 'messaging_seen', 'messaging_referral']],
+                default => null,
+            },
+            'page_id' => $account->channel->isSocial() ? $account->credential('page_id') : null,
             'created_at' => $account->created_at?->toIso8601String(),
         ];
     }

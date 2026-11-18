@@ -26,5 +26,6 @@ final class OutgoingMessage
         public readonly ?string $waTemplateName = null,
         public readonly ?string $waLanguage = null,
         public readonly array $waComponents = [],
+        public readonly ?string $messagingTag = null, // Fase 5: Messenger fuera de la ventana de 24 h (`HUMAN_AGENT`, solo personas)
     ) {}
 }

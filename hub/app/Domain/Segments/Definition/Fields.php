@@ -132,6 +132,27 @@ final class Fields
         'was_referred' => ['type' => 'bool', 'operators' => ['is_true', 'is_false']],
     ];
 
+    /**
+     * Leads (Fase 5, M18): «tiene un lead que…». Las de sí/no miran si tiene alguno
+     * (o uno abierto); las demás, si alguno de sus leads cumple la condición.
+     *
+     * @var array<string, array{type: string, operators: list<string>, column?: string, values?: list<string>}>
+     */
+    public const LEAD_FIELDS = [
+        'has_open_lead' => ['type' => 'bool', 'operators' => ['is_true', 'is_false']],
+        'has_lead' => ['type' => 'bool', 'operators' => ['is_true', 'is_false']],
+        'stage' => ['type' => 'string', 'operators' => ['eq', 'neq', 'in', 'not_in'], 'column' => 'stage'],
+        'temperature' => ['type' => 'enum', 'operators' => ['eq', 'in', 'not_in'], 'column' => 'temperature', 'values' => ['cold', 'warm', 'hot']],
+        'score' => ['type' => 'number', 'operators' => self::LOYALTY_NUMBER_OPS, 'column' => 'score'],
+        'service' => ['type' => 'string', 'operators' => ['eq', 'contains', 'starts_with', 'in'], 'column' => 'service'],
+        'origin' => ['type' => 'enum', 'operators' => ['eq', 'in', 'not_in'], 'column' => 'origin', 'values' => ['form', 'whatsapp', 'quote', 'booking', 'manual', 'api']],
+        'source' => ['type' => 'string', 'operators' => ['eq', 'in', 'not_in'], 'column' => 'source->channel'],
+        'value' => ['type' => 'number', 'operators' => self::LOYALTY_NUMBER_OPS, 'column' => 'value_ws'],
+        'created_at' => ['type' => 'date', 'operators' => ['before', 'after', 'between', 'within_last_days', 'more_than_days_ago'], 'column' => 'created_at'],
+        'won_at' => ['type' => 'date', 'operators' => ['before', 'after', 'between', 'within_last_days', 'more_than_days_ago'], 'column' => 'won_at'],
+        'lost_at' => ['type' => 'date', 'operators' => ['before', 'after', 'between', 'within_last_days', 'more_than_days_ago'], 'column' => 'lost_at'],
+    ];
+
     /** Estados de un referido que ya cuentan como conversión (compra calificada). */
     public const REFERRAL_CONVERTED = ['qualified', 'rewarded'];
 

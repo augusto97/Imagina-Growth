@@ -60,6 +60,7 @@ final class SegmentOptionsController
                 ->map(fn (Flow $f) => ['id' => $f->publicId(), 'name' => (string) $f->name])->values(),
             'campaigns' => Campaign::query()->orderByDesc('created_at')->limit(200)->get(['id', 'name'])
                 ->map(fn (Campaign $c) => ['id' => $c->publicId(), 'name' => (string) $c->name])->values(),
+            'lead_fields' => collect(Fields::LEAD_FIELDS)->map(fn (array $def, string $key) => ['key' => $key, 'type' => $def['type'], 'operators' => $def['operators'], 'values' => $def['values'] ?? null])->values(),
             'loyalty_fields' => collect(Fields::LOYALTY_FIELDS)->map(fn (array $def, string $key) => ['key' => $key, 'type' => $def['type'], 'operators' => $def['operators'], 'values' => null])->values(),
             'loyalty_tiers' => LoyaltyTier::query()->orderBy('rank')->get(['id', 'name', 'rank'])
                 ->map(fn (LoyaltyTier $t) => ['id' => $t->publicId(), 'name' => (string) $t->name, 'rank' => (int) $t->rank])->values(),

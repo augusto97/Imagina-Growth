@@ -13,7 +13,8 @@ import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
 import { useConversation, useConversationActions, useInboxAgents } from './api';
 import { Composer } from './Composer';
-import { formatLeft, parseLabels, windowLeft } from './lib';
+import { ChannelIcon } from './ChannelIcon';
+import { composerMode, formatLeft, parseLabels, windowLeft } from './lib';
 import type { AiMode, ChatMessage, ConversationDetail, ConversationStatus } from './types';
 
 /** El chat de una conversación: cabecera con estado, asignación, IA y etiquetas; mensajes; notas internas; y el editor. */
@@ -87,8 +88,11 @@ function ChatHeader({
                     <ArrowLeft aria-hidden />
                 </Button>
                 <div className="igr:min-w-0 igr:flex-1">
-                    <h2 className="igr:truncate igr:text-sm igr:font-semibold">{c.contact?.name ?? t('inbox.unknownContact')}</h2>
-                    <WindowBadge expiresAt={c.window_expires_at} />
+                    <h2 className="igr:flex igr:items-center igr:gap-1.5 igr:truncate igr:text-sm igr:font-semibold">
+                        <ChannelIcon channel={c.channel} />
+                        <span className="igr:truncate">{c.contact?.name ?? t('inbox.unknownContact')}</span>
+                    </h2>
+                    <WindowBadge c={c} />
                 </div>
                 <Select
                     aria-label={t('inbox.chat.status')}
@@ -181,9 +185,11 @@ function AiModeSwitch({ value, onChange }: { value: AiMode; onChange: (mode: AiM
     );
 }
 
-/** Contador de la ventana de 24 h de WhatsApp: fuera de ella solo se permiten plantillas. */
-function WindowBadge({ expiresAt }: { expiresAt: string | null }) {
+/** Contador de la ventana de 24 h. Fuera de ella: plantillas (WhatsApp), solo una persona hasta 7 días (Messenger) o nada (Instagram). */
+function WindowBadge({ c }: { c: ConversationDetail }) {
+    const expiresAt = c.window_expires_at;
     const { t } = useTranslation();
+    const { workspace } = useWorkspace();
     const [now, setNow] = useState(() => new Date());
     useEffect(() => {
         const timer = window.setInterval(() => setNow(new Date()), 30_000);
@@ -191,7 +197,14 @@ function WindowBadge({ expiresAt }: { expiresAt: string | null }) {
     }, []);
     const left = windowLeft(expiresAt, now);
     if (left <= 0) {
-        return <p className="igr:text-[11px] igr:text-warning">{t('inbox.window.closed')}</p>;
+        const mode = composerMode(c, now);
+        return (
+            <p className="igr:text-[11px] igr:text-warning">
+                {mode === 'human'
+                    ? t('inbox.window.humanAgent', { until: c.human_agent_until ? new Date(c.human_agent_until).toLocaleDateString(workspace.locale, { day: 'numeric', month: 'short', timeZone: workspace.timezone }) : '' })
+                    : t(mode === 'none' ? 'inbox.window.closedSocial' : 'inbox.window.closed')}
+            </p>
+        );
     }
     const { hours, minutes } = formatLeft(left);
     return (
@@ -245,6 +258,14 @@ function Messages({ messages }: { messages: ChatMessage[] }) {
                                 })}
                             </p>
                         ))}
+                        {m.type === 'story_reply' || m.type === 'story_mention' || m.type === 'share' ? (
+                            <p className="igr:text-[11px] igr:italic igr:text-muted-foreground">{t(`inbox.attachment.${m.type}`)}</p>
+                        ) : null}
+                        {m.media_url ? (
+                            <a href={m.media_url} target="_blank" rel="noopener noreferrer nofollow" className="igr:text-[11px] igr:text-primary igr:underline">
+                                {t('inbox.chat.openAttachment')}
+                            </a>
+                        ) : null}
                         {m.text ? <p className="igr:whitespace-pre-wrap igr:break-words">{m.text}</p> : null}
                         <p className="igr:mt-1 igr:flex igr:items-center igr:justify-end igr:gap-1 igr:text-[10px] igr:text-muted-foreground">
                             {formatDateTime(m.at, workspace.locale, workspace.timezone)}

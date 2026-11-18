@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowUpRight, Eye, Mail, MessageCircle, MessageSquare, MousePointerClick, Phone, Reply } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Camera, Eye, Mail, MessageCircle, MessageSquare, MessagesSquare, MousePointerClick, Phone, Reply } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,7 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import { formatDateTime } from '@/lib/format';
 import { type ContactMessage, useContactMessages } from '@/features/channels/api';
 
-const CHANNEL_ICONS = { email: Mail, whatsapp: MessageCircle, sms: Phone } as const;
+const CHANNEL_ICONS = { email: Mail, whatsapp: MessageCircle, sms: Phone, messenger: MessagesSquare, instagram: Camera } as const;
 
 function tone(status: string): 'success' | 'warning' | 'destructive' | 'secondary' {
     if (status === 'read' || status === 'delivered' || status === 'received') return 'success';

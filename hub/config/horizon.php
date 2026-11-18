@@ -240,7 +240,7 @@ return [
         // Envíos por canal con límite por cuenta (messages:*, 2 a 4 workers por canal).
         'supervisor-messages' => [
             'connection' => 'redis',
-            'queue' => ['messages:whatsapp', 'messages:email', 'messages:sms'],
+            'queue' => ['messages:whatsapp', 'messages:email', 'messages:sms', 'messages:messenger', 'messages:instagram'],
             'balance' => 'auto',
             'maxProcesses' => 3,
             'tries' => 5,

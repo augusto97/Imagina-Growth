@@ -4,10 +4,17 @@ export type ConversationStatus = 'open' | 'pending' | 'closed';
 export type AiMode = 'off' | 'assist' | 'auto';
 export type InboxView = 'all' | 'mine' | 'unassigned' | 'ai';
 export type Intent = 'purchase' | 'support' | 'complaint' | 'optout' | 'other';
+/** Canal de la conversación (Messenger e Instagram desde la Fase 5). */
+export type InboxChannel = 'whatsapp' | 'messenger' | 'instagram';
+/** open: < 24 h; human_agent: Messenger, solo una persona hasta 7 días; closed: nada (o plantilla en WhatsApp). */
+export type WindowState = 'open' | 'human_agent' | 'closed';
 
 export interface ConversationSummary {
     id: string;
     contact: { id: string; name: string } | null;
+    channel: InboxChannel;
+    window_state: WindowState;
+    human_agent_until: string | null;
     status: ConversationStatus;
     assignee: { id: string; name: string | null } | null;
     labels: string[];
@@ -49,6 +56,8 @@ export interface ChatMessage {
         caption: string | null;
     }[];
     failed_reason: string | null;
+    /** Messenger e Instagram: URL del adjunto en Meta (caduca). */
+    media_url: string | null;
     at: string | null;
     delivered_at: string | null;
     read_at: string | null;

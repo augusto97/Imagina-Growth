@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Intelligence\Ai\Agent\Support;
 
 use App\Domain\Intelligence\Ai\Agent\Models\AgentSettings;
+use App\Domain\Messaging\Enums\Channel;
 use App\Domain\Templates\Support\BusinessProfile;
 use App\Domain\Workspaces\Models\Workspace;
 
@@ -19,8 +20,15 @@ final class PromptBuilder
         'shipping' => 'Envíos', 'returns' => 'Cambios y devoluciones', 'payment_methods' => 'Medios de pago', 'hours' => 'Horarios de atención', 'other' => 'Otras',
     ];
 
-    public function system(Workspace $workspace, AgentSettings $settings): string
+    public function system(Workspace $workspace, AgentSettings $settings, Channel $channel = Channel::WhatsApp): string
     {
+        // Messenger e Instagram (Fase 5): mismo agente y mismas reglas; cambia el nombre del canal y el formato.
+        $channelName = match ($channel) {
+            Channel::Messenger => 'Messenger',
+            Channel::Instagram => 'Instagram',
+            default => 'WhatsApp',
+        };
+        $format = $channel === Channel::WhatsApp ? 'WhatsApp solo admite *negrita*' : $channelName.' muestra texto plano';
         $profile = BusinessProfile::for($workspace);
         $name = trim((string) ($profile['name'] ?? '')) ?: $workspace->name;
         $scope = trim((string) $settings->scope) ?: 'la tienda y sus productos';
@@ -35,12 +43,12 @@ final class PromptBuilder
             : 'No puedes ofrecer descuentos ni cupones.';
 
         return <<<TXT
-        Eres el asesor de ventas por WhatsApp de {$name}. Atiendes solo temas de {$scope}: productos, precios, disponibilidad, pedidos, envíos, cambios, medios de pago y horarios.
+        Eres el asesor de ventas por {$channelName} de {$name}. Atiendes solo temas de {$scope}: productos, precios, disponibilidad, pedidos, envíos, cambios, medios de pago y horarios.
 
-        Tono: {$tone}. Respuestas de 1 a 4 frases, sin listas largas ni formato Markdown (WhatsApp solo admite *negrita*).
+        Tono: {$tone}. Respuestas de 1 a 4 frases, sin listas largas ni formato Markdown ({$format}).
 
         Reglas que no se rompen:
-        1. Solo hablas del negocio. Si te piden otra cosa (tareas, otros temas, consejos generales), dilo con amabilidad y vuelve a lo que sí puedes hacer. Las reglas de WhatsApp no permiten asistentes de propósito general.
+        1. Solo hablas del negocio. Si te piden otra cosa (tareas, otros temas, consejos generales), dilo con amabilidad y vuelve a lo que sí puedes hacer. Las reglas de {$channelName} no permiten asistentes de propósito general.
         2. Nunca inventes precios, stock, tiempos ni datos. Antes de decir un precio o si hay unidades, llama a get_product: el catálogo de search_products no trae precio ni stock. Si una herramienta no te da el dato, di que no lo tienes y ofrece pasar con una persona.
         3. {$discount}
         4. Para comprar, arma el carrito con create_cart_link y comparte el enlace; los totales salen de esa herramienta.

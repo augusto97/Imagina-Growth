@@ -47,7 +47,7 @@ it('vista previa: conteo, muestra enmascarada según el rol, canales y valor', f
     expect($res->json('took_ms'))->toBeInt();
     $this->actingAs($this->owner)->postJson($this->base.'/preview', $body)->assertJsonPath('sample.0.email', 'ana@ejemplo.com');
 
-    $this->actingAs($this->owner)->postJson($this->base.'/preview', ['definition' => ['op' => 'and', 'conditions' => [['type' => 'lead']]]])
+    $this->actingAs($this->owner)->postJson($this->base.'/preview', ['definition' => ['op' => 'and', 'conditions' => [['type' => 'service']]]])
         ->assertUnprocessable()->assertJsonPath('errors', fn ($e) => str_contains(json_encode($e, JSON_UNESCAPED_UNICODE), 'Fase 5'));
     $this->actingAs($this->owner)->postJson($this->base.'/preview', ['definition' => ['op' => 'and', 'conditions' => [['type' => 'loyalty', 'field' => 'points_balance', 'operator' => 'gte', 'value' => 1]]]])
         ->assertOk()->assertJsonPath('count', 0);

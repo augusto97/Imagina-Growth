@@ -9,10 +9,10 @@ import { isGroup } from '../types';
 import { ConditionEditor, TYPE_ICONS } from './ConditionEditor';
 import { errorsFor, useBuilder } from './context';
 
-const TYPES: ConditionType[] = ['attribute', 'purchase', 'event', 'cart', 'messaging', 'loyalty', 'prediction', 'consent', 'segment'];
+const TYPES: ConditionType[] = ['attribute', 'purchase', 'event', 'cart', 'messaging', 'loyalty', 'lead', 'prediction', 'consent', 'segment'];
 
 /** Condiciones que llegan en fases siguientes (se muestran, pero no se pueden usar todavía). */
-const LATER: { key: string; phase: number }[] = [{ key: 'lead', phase: 5 }];
+const LATER: { key: string; phase: number }[] = [];
 
 /**
  * Grupo con «todas» (y) o «cualquiera» (o), que se puede negar y anidar
@@ -140,8 +140,8 @@ export function AddConditionMenu({ onAdd, variant = 'outline' }: { onAdd: (type:
                         </DropdownMenuItem>
                     );
                 })}
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>{t('segments.builder.comingSoon')}</DropdownMenuLabel>
+                {LATER.length > 0 ? <DropdownMenuSeparator /> : null}
+                {LATER.length > 0 ? <DropdownMenuLabel>{t('segments.builder.comingSoon')}</DropdownMenuLabel> : null}
                 {LATER.map((l) => (
                     <DropdownMenuItem key={l.key} disabled>
                         <span className="igr:flex-1">{t(`segments.types.${l.key}`)}</span>

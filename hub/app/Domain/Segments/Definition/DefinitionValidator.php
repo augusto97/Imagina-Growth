@@ -129,7 +129,8 @@ final class DefinitionValidator
             'segment' => $this->segmentRef($c, $path, $self),
             'messaging' => $this->messaging($c, $path),
             'loyalty' => $this->loyalty($c, $path),
-            'service', 'lead' => $this->later($path, __('La segmentación por leads y citas llega en la Fase 5.')),
+            'lead' => $this->lead($c, $path),
+            'service' => $this->later($path, __('La segmentación por citas llega en la Fase 5 con la agenda.')),
             default => $this->later($this->join($path, 'type'), __('Tipo de condición desconocido.')),
         };
     }
@@ -458,6 +459,31 @@ final class DefinitionValidator
         }
 
         return ['type' => 'loyalty', 'field' => $field] + $this->operatorValue($c, $path, $def['type'], null);
+    }
+
+    /**
+     * Leads (Fase 5, M18): tiene un lead (abierto) o alguno de sus leads cumple la condición.
+     *
+     * @param  array<mixed>  $c
+     * @return array<string, mixed>
+     */
+    private function lead(array $c, string $path): array
+    {
+        $field = is_string($c['field'] ?? null) ? $c['field'] : '';
+        $def = Fields::LEAD_FIELDS[$field] ?? null;
+        if ($def === null) {
+            $this->fail($this->join($path, 'field'), __('Dato de leads desconocido.'));
+
+            return ['type' => 'lead'];
+        }
+        $op = $c['operator'] ?? null;
+        if (! is_string($op) || ! in_array($op, $def['operators'], true)) {
+            $this->fail($this->join($path, 'operator'), __('Operador inválido para este campo.'));
+
+            return ['type' => 'lead', 'field' => $field, 'operator' => $def['operators'][0]];
+        }
+
+        return ['type' => 'lead', 'field' => $field] + $this->operatorValue($c, $path, $def['type'], $def['values'] ?? null);
     }
 
     /** @return array{operator: string, value?: string|list<string>} */

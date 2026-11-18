@@ -10,20 +10,22 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import { cn } from '@/lib/cn';
 import { formatRelative } from '@/lib/format';
 import { type ListFilters, useConversations } from './api';
-import type { ConversationStatus, InboxView } from './types';
+import { ChannelIcon } from './ChannelIcon';
+import type { ConversationStatus, InboxChannel, InboxView } from './types';
 
 const VIEWS: InboxView[] = ['all', 'mine', 'unassigned', 'ai'];
 
-/** Lista de conversaciones con vistas (todas, mías, sin asignar, con IA), estado, intención y búsqueda. */
+/** Lista de conversaciones con vistas (todas, mías, sin asignar, con IA), estado, intención, canal y búsqueda. */
 export function ConversationListPane({ selected, onSelect }: { selected: string | undefined; onSelect: (id: string) => void }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const [view, setView] = useState<InboxView>('all');
     const [status, setStatus] = useState<ConversationStatus | 'all'>('open');
     const [intent, setIntent] = useState('');
+    const [channel, setChannel] = useState<InboxChannel | ''>('');
     const [search, setSearch] = useState('');
     const q = useDebounced(search, 300);
-    const filters: ListFilters = { view, status, q, label: '', intent };
+    const filters: ListFilters = { view, status, q, label: '', intent, channel };
     const list = useConversations(workspace.id, filters);
     const counts = list.data?.counts;
 
@@ -59,7 +61,7 @@ export function ConversationListPane({ selected, onSelect }: { selected: string 
                         </button>
                     ))}
                 </div>
-                <div className="igr:flex igr:gap-1.5">
+                <div className="igr:grid igr:grid-cols-2 igr:gap-1.5">
                     <Select
                         value={status}
                         onChange={(e) => setStatus(e.target.value as ConversationStatus | 'all')}
@@ -77,6 +79,14 @@ export function ConversationListPane({ selected, onSelect }: { selected: string 
                         {(['purchase', 'support', 'complaint', 'other'] as const).map((i) => (
                             <option key={i} value={i}>
                                 {t(`inbox.intent.${i}`)}
+                            </option>
+                        ))}
+                    </Select>
+                    <Select value={channel} onChange={(e) => setChannel(e.target.value as InboxChannel | '')} aria-label={t('inbox.list.channel')} className="igr:col-span-2 igr:h-7 igr:text-xs">
+                        <option value="">{t('inbox.list.anyChannel')}</option>
+                        {(['whatsapp', 'messenger', 'instagram'] as const).map((ch) => (
+                            <option key={ch} value={ch}>
+                                {t(`inbox.channel.${ch}`)}
                             </option>
                         ))}
                     </Select>
@@ -109,6 +119,7 @@ export function ConversationListPane({ selected, onSelect }: { selected: string 
                                     )}
                                 >
                                     <span className="igr:flex igr:items-center igr:gap-1.5">
+                                        <ChannelIcon channel={c.channel} />
                                         <span className={cn('igr:min-w-0 igr:flex-1 igr:truncate igr:text-[13px]', c.unread_count > 0 ? 'igr:font-semibold' : 'igr:font-medium')}>
                                             {c.contact?.name ?? t('inbox.unknownContact')}
                                         </span>

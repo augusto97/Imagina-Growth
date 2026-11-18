@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Messaging\Http\Api;
 
+use App\Domain\Messaging\Channels\DriverRegistry;
 use App\Domain\Messaging\Channels\Drivers\MetaCloudDriver;
+use App\Domain\Messaging\Channels\Drivers\MetaSocialDriver;
 use App\Domain\Messaging\Channels\Drivers\SesDriver;
 use App\Domain\Messaging\Contracts\MessageDispatcher;
 use App\Domain\Messaging\Data\OutboundMessage;
@@ -28,7 +30,8 @@ use RuntimeException;
 /**
  * Configuración → Canales (M07): cuentas de correo (SES con asistente de
  * dominio, o SMTP), WhatsApp oficial (Embedded Signup o manual), Zender (con
- * el aviso de riesgo que acepta el owner) y SMS (Twilio).
+ * el aviso de riesgo que acepta el owner) y SMS (Twilio). Messenger e Instagram
+ * se conectan en SocialChannelController (Fase 5).
  */
 final class ChannelController
 {
@@ -261,10 +264,15 @@ final class ChannelController
     }
 
     /** POST /api/w/{ws}/channels/{id}/sync — calidad del número y plantillas (WhatsApp oficial). */
-    public function sync(string $channel, MetaCloudDriver $meta): JsonResponse
+    public function sync(string $channel, MetaCloudDriver $meta, DriverRegistry $drivers): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
         $account = $this->find($channel);
+        $social = $drivers->for($account->provider);
+        if ($social instanceof MetaSocialDriver) {
+            // Messenger e Instagram: no hay plantillas; se vuelve a comprobar la conexión.
+            return response()->json(['data' => ChannelAccountPresenter::present(SocialChannelController::check($account, $social)), 'templates' => 0]);
+        }
         abort_unless($account->provider === 'meta_cloud', 422, __('Solo las cuentas de WhatsApp oficial tienen plantillas.'));
         try {
             $info = $meta->phoneInfo($account);

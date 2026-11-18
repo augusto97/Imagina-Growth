@@ -1,4 +1,4 @@
-import type { QuickReply } from './types';
+import type { ConversationSummary, QuickReply } from './types';
 
 /* Lógica pura de la bandeja (probada con Vitest). */
 
@@ -6,6 +6,20 @@ import type { QuickReply } from './types';
 export function windowLeft(expiresAt: string | null, now: Date = new Date()): number {
     if (!expiresAt) return 0;
     return Math.max(0, new Date(expiresAt).getTime() - now.getTime());
+}
+
+/**
+ * Qué se puede escribir en la conversación según el canal y la ventana (M11):
+ * - `free`: texto libre, productos, cupones y sugerencia de la IA.
+ * - `human`: Messenger entre 24 h y 7 días: solo una persona escribe (sin la sugerencia de la IA).
+ * - `template`: WhatsApp fuera de la ventana: solo plantillas aprobadas.
+ * - `none`: Messenger pasados 7 días o Instagram pasadas 24 h: nada hasta que el cliente vuelva a escribir.
+ */
+export function composerMode(c: Pick<ConversationSummary, 'channel' | 'window_state' | 'window_expires_at'>, now: Date = new Date()): 'free' | 'human' | 'template' | 'none' {
+    const state = c.window_state === 'open' && windowLeft(c.window_expires_at, now) <= 0 ? (c.channel === 'messenger' ? 'human_agent' : 'closed') : c.window_state;
+    if (state === 'open') return 'free';
+    if (state === 'human_agent') return 'human';
+    return c.channel === 'whatsapp' ? 'template' : 'none';
 }
 
 /** «23 h 05 min», «12 min», «menos de 1 min». */

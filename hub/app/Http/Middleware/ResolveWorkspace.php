@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Domain\Agency\Support\SupportSessions;
 use App\Domain\Workspaces\Enums\AccountRole;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Models\User;
@@ -16,7 +17,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Toma el espacio de trabajo de /api/w/{workspace}/..., verifica la membresía
  * (directa o como miembro de la agencia dueña de la cuenta) y exige 2FA a
- * owner y admin (modulos.md M01, hub/CLAUDE.md §4).
+ * owner y admin (modulos.md M01, hub/CLAUDE.md §4). Quien entra por la agencia
+ * sin ser miembro directo deja una sesión de soporte auditada (M22).
  */
 final class ResolveWorkspace
 {
@@ -31,7 +33,7 @@ final class ResolveWorkspace
             return response()->json(['error' => 'not_found'], 404);
         }
 
-        $role = self::roleFor($user, $workspace);
+        [$role, $direct] = self::membership($user, $workspace);
         if ($role === null) {
             // 404 y no 403: no se confirma que el espacio de trabajo existe.
             return response()->json(['error' => 'not_found'], 404);
@@ -45,18 +47,27 @@ final class ResolveWorkspace
 
         $this->current->set($workspace, $role);
         $request->route()?->forgetParameter('workspace');
+        if (! $direct) {
+            app(SupportSessions::class)->onAgencyAccess($user, $workspace, $request->ip());
+        }
 
         return $next($request);
     }
 
     public static function roleFor(User $user, Workspace $workspace): ?WorkspaceRole
     {
+        return self::membership($user, $workspace)[0];
+    }
+
+    /** @return array{0: WorkspaceRole|null, 1: bool} el rol y si es miembro directo */
+    public static function membership(User $user, Workspace $workspace): array
+    {
         $direct = $workspace->users()->whereKey($user->id)->first()?->pivot?->getAttribute('role');
         if (is_string($direct)) {
-            return WorkspaceRole::from($direct);
+            return [WorkspaceRole::from($direct), true];
         }
         $accountRole = $user->accounts()->whereKey($workspace->account_id)->first()?->pivot?->getAttribute('role');
 
-        return is_string($accountRole) ? WorkspaceRole::fromAccountRole(AccountRole::from($accountRole)) : null;
+        return [is_string($accountRole) ? WorkspaceRole::fromAccountRole(AccountRole::from($accountRole)) : null, false];
     }
 }

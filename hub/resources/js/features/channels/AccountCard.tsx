@@ -1,4 +1,4 @@
-import { CheckCircle2, Globe, Mail, MessageCircle, MoreHorizontal, Phone, ShieldAlert } from 'lucide-react';
+import { Camera, CheckCircle2, Globe, Mail, MessageCircle, MessagesSquare, MoreHorizontal, Phone, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,7 @@ import { toast } from '@/stores/toast';
 import { type ChannelAccount, useDisconnectChannel, useSyncChannel, useUpdateChannel } from './api';
 import { QualityBadge, StatusBadge } from './shared';
 
-const ICONS = { email: Mail, whatsapp: MessageCircle, sms: Phone } as const;
+const ICONS = { email: Mail, whatsapp: MessageCircle, sms: Phone, messenger: MessagesSquare, instagram: Camera } as const;
 
 export function AccountCard({ account, onTest, onDns }: { account: ChannelAccount; onTest: () => void; onDns: () => void }) {
     const { t } = useTranslation();
@@ -72,8 +72,20 @@ export function AccountCard({ account, onTest, onDns }: { account: ChannelAccoun
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            {account.status === 'active' && canMarketing && <DropdownMenuItem onSelect={onTest}>{t('channels.actions.test')}</DropdownMenuItem>}
+                            {account.status === 'active' && canMarketing && !account.webhook_subscription && <DropdownMenuItem onSelect={onTest}>{t('channels.actions.test')}</DropdownMenuItem>}
                             {account.channel === 'email' && account.provider === 'ses' && <DropdownMenuItem onSelect={onDns}>{t('channels.actions.verifyDns')}</DropdownMenuItem>}
+                            {account.webhook_subscription && canMarketing && (
+                                <DropdownMenuItem
+                                    onSelect={() =>
+                                        sync.mutate(account.id, {
+                                            onSuccess: () => toast.success(t('channels.toast.checked')),
+                                            onError: fail,
+                                        })
+                                    }
+                                >
+                                    {t('channels.actions.check')}
+                                </DropdownMenuItem>
+                            )}
                             {account.provider === 'meta_cloud' && canMarketing && (
                                 <DropdownMenuItem
                                     onSelect={() =>
@@ -129,6 +141,13 @@ export function AccountCard({ account, onTest, onDns }: { account: ChannelAccoun
                         {warmup.limit === null ? t('channels.warmupDone') : t('channels.warmup', { day: warmup.day, sent: formatNumber(warmup.sent_today), limit: formatNumber(warmup.limit) })}
                     </p>
                     {warmup.limit !== null && <Progress value={Math.min(100, (warmup.sent_today / Math.max(1, warmup.limit)) * 100)} label={t('channels.warmup', { day: warmup.day, sent: warmup.sent_today, limit: warmup.limit })} />}
+                </div>
+            )}
+            {account.webhook_subscription && (
+                <div className="igr:space-y-1 igr:rounded-md igr:bg-muted igr:p-2.5 igr:text-xs igr:text-muted-foreground">
+                    <p>{t('channels.social.webhook', { object: account.webhook_subscription.object, url: account.webhook_url ?? '' })}</p>
+                    <p className="igr:font-mono igr:text-[11px]">{account.webhook_subscription.fields.join(', ')}</p>
+                    <p>{t(account.channel === 'messenger' ? 'channels.social.messenger.rules' : 'channels.social.instagram.rules')}</p>
                 </div>
             )}
             {account.last_error && <p className="igr:rounded-md igr:bg-destructive/10 igr:p-2 igr:text-xs igr:text-destructive">{account.last_error}</p>}

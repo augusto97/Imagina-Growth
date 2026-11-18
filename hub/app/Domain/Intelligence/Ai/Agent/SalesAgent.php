@@ -128,7 +128,8 @@ final class SalesAgent implements ConversationAgent
             return $this->finish($turn, $started, $blocked);
         }
 
-        $request = new AiRequest($run->workspace->id, 'sales_agent', $this->prompts->system($run->workspace, $run->settings), $history);
+        $channel = $run->conversation !== null ? ChannelAccount::query()->find($run->conversation->channel_account_id)?->channel : null;
+        $request = new AiRequest($run->workspace->id, 'sales_agent', $this->prompts->system($run->workspace, $run->settings, $channel ?? Channel::WhatsApp), $history);
         $tools = $this->toolbox->for($run);
         $calls = [];
         $usage = ['in' => 0, 'out' => 0];
@@ -273,6 +274,7 @@ final class SalesAgent implements ConversationAgent
         }
         $account = ChannelAccount::query()->find($conversation->channel_account_id);
         $channel = $account !== null ? $account->channel : Channel::WhatsApp;
+        // Sin humanAgent: la IA nunca usa la etiqueta HUMAN_AGENT de Messenger (solo responde dentro de las 24 h).
         $result = $this->dispatcher->dispatch(new OutboundMessage(
             $run->workspace->id, $conversation->contact_id, $channel instanceof Channel ? $channel : Channel::from((string) $channel), MessageKind::Service, 'inbox',
             sourceId: $conversation->id, context: ['text' => $text], idempotencyKey: 'agent:'.$turn->id.$keySuffix,

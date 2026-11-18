@@ -26,7 +26,7 @@ use RuntimeException;
 final class DataManagerTarget implements ConversionTarget
 {
     /** Evento de Imagina Growth → clave de la acción de conversión en el config del destino. */
-    private const ACTIONS = ['order.paid' => 'conversion_action_purchase', 'form.submitted' => 'conversion_action_lead'];
+    private const ACTIONS = ['order.paid' => 'conversion_action_purchase', 'form.submitted' => 'conversion_action_lead', 'lead.won' => 'conversion_action_lead_won'];
 
     public function __construct(private readonly GoogleAccessToken $tokens) {}
 
@@ -73,7 +73,7 @@ final class DataManagerTarget implements ConversionTarget
             'eventTimestamp' => CarbonImmutable::createFromTimestamp($input->occurredAt)->utc()->format('Y-m-d\TH:i:s\Z'),
             'conversionValue' => $input->value !== null ? round((float) $input->value, 2) : null,
             'currency' => $input->value !== null ? $input->currency : null,
-            'eventSource' => 'WEB',
+            'eventSource' => (string) (config('igr-measurement.events')[$input->event]['google_event_source'] ?? 'WEB'),
             'userData' => $identifiers === [] ? null : ['userIdentifiers' => $identifiers],
             'adIdentifiers' => array_filter(['gclid' => $input->gclid, 'gbraid' => $input->gbraid, 'wbraid' => $input->wbraid]) ?: null,
         ], fn ($v) => $v !== null);

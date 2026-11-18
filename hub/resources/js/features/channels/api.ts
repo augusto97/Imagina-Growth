@@ -5,8 +5,8 @@ import { postMultipart } from '@/features/contacts/api';
 
 /* Canales de mensajería (M07). Rutas en hub/routes/api/messaging.php. */
 
-export type ChannelKind = 'email' | 'whatsapp' | 'sms';
-export type Provider = 'ses' | 'smtp' | 'meta_cloud' | 'zender' | 'twilio';
+export type ChannelKind = 'email' | 'whatsapp' | 'sms' | 'messenger' | 'instagram';
+export type Provider = 'ses' | 'smtp' | 'meta_cloud' | 'zender' | 'twilio' | 'meta_messenger' | 'meta_instagram';
 export type AccountStatus = 'pending' | 'active' | 'paused' | 'error' | 'disconnected';
 
 export interface ChannelAccount {
@@ -29,6 +29,9 @@ export interface ChannelAccount {
     caps: { hourly: number; daily: number } | null;
     capabilities: { marketing: boolean; templates: boolean; free_text: boolean; media: boolean; buttons: boolean; rate_per_second: number };
     webhook_url: string | null;
+    /** Messenger e Instagram (Fase 5): qué suscribir en la app de Meta. */
+    webhook_subscription?: { object: 'page' | 'instagram'; fields: string[] } | null;
+    page_id?: string | null;
     created_at: string | null;
 }
 
@@ -172,6 +175,17 @@ export const useConnectTwilio = (ws: string) =>
     useChannelMutation(ws, (body: { account_sid: string; auth_token: string; from?: string; messaging_service_sid?: string; display_name?: string }) =>
         api.post<{ data: ChannelAccount }>(`${wsPath(ws)}/channels/sms/twilio`, body),
     );
+
+export interface SocialConnectBody {
+    page_id: string;
+    page_access_token: string;
+    ig_user_id?: string;
+    display_name?: string;
+}
+
+/** Messenger (página) o Instagram (cuenta profesional vinculada a la página). */
+export const useConnectSocial = (ws: string, kind: 'messenger' | 'instagram') =>
+    useChannelMutation(ws, (body: SocialConnectBody) => api.post<{ data: ChannelAccount }>(`${wsPath(ws)}/channels/${kind}`, body));
 
 export const useUpdateChannel = (ws: string) =>
     useChannelMutation(ws, ({ id, ...body }: { id: string; display_name?: string; is_default?: boolean; status?: 'active' | 'paused'; from_name?: string; reply_to?: string | null }) =>

@@ -17,6 +17,7 @@ use App\Domain\Messaging\Data\DispatchResult;
 use App\Domain\Messaging\Data\OutboundMessage;
 use App\Domain\Messaging\Enums\Channel;
 use App\Domain\Messaging\Enums\MessageKind;
+use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Messaging\Models\Message;
 use App\Domain\Sites\Actions\SendSiteCommand;
@@ -33,8 +34,10 @@ use RuntimeException;
  * `inbox:{conversación}:{uuid del cliente}` (un doble clic o un reintento nunca
  * duplica):
  *
- * - `text`: mensaje libre (de servicio), solo con la ventana de 24 h abierta.
- * - `template`: plantilla aprobada de WhatsApp (utilidad o marketing según su
+ * - `text`: mensaje libre (de servicio), solo con la ventana de 24 h abierta. En
+ *   Messenger, una persona del equipo puede responder hasta 7 días después con la
+ *   etiqueta `HUMAN_AGENT`; en Instagram no hay nada fuera de la ventana (Fase 5).
+ * - `template`: solo WhatsApp. Plantilla aprobada (utilidad o marketing según su
  *   categoría); funciona también fuera de la ventana. Las variables que escribe el
  *   agente llegan a la plantilla como `bandeja.<clave>`.
  * - `product`: precio y stock **en vivo** (`product.lookup`) con el enlace.
@@ -62,6 +65,10 @@ final class SendInboxMessage
     public function handle(Conversation $conversation, array $input, string $actor): array
     {
         $type = (string) ($input['type'] ?? 'text');
+        $channel = ChannelAccount::query()->find($conversation->channel_account_id)->channel ?? Channel::WhatsApp;
+        if ($type === 'template' && $channel !== Channel::WhatsApp) {
+            throw new InvalidArgumentException(__('Las plantillas solo existen en WhatsApp: en :channel solo puedes responder mientras la ventana esté abierta.', ['channel' => $channel === Channel::Instagram ? 'Instagram' : 'Messenger']));
+        }
         $clientId = (string) ($input['client_id'] ?? Str::uuid());
         $key = 'inbox:'.$conversation->id.':'.$clientId;
         $existing = Message::query()->where('idempotency_key', $key)->first();
@@ -88,7 +95,7 @@ final class SendInboxMessage
         $result = $this->dispatcher->dispatch(new OutboundMessage(
             workspaceId: $conversation->workspace_id,
             contactId: $conversation->contact_id,
-            channel: Channel::WhatsApp,
+            channel: $channel,
             kind: $kind,
             sourceType: 'inbox',
             sourceId: $conversation->id,
@@ -96,6 +103,8 @@ final class SendInboxMessage
             context: $context,
             idempotencyKey: $key,
             channelAccountId: $conversation->channel_account_id,
+            // Una persona del equipo (no la IA ni el sistema): habilita HUMAN_AGENT en Messenger hasta 7 días.
+            humanAgent: ! in_array($actor, ['ai', 'system'], true),
         ));
 
         if ($result->sent() && $result->messageId !== null) {

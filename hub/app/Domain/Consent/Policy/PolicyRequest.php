@@ -27,6 +27,7 @@ final class PolicyRequest
         public readonly ?CarbonImmutable $at = null,
         public readonly bool $isTest = false,
         public readonly bool $hasExplicitRecipient = false,
+        public readonly bool $humanAgent = false, // Fase 5: lo escribe una persona de la bandeja (habilita HUMAN_AGENT en Messenger)
     ) {}
 
     public function at(): CarbonImmutable

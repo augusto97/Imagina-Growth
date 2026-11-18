@@ -129,6 +129,7 @@ final class SendMessageJob implements ShouldQueue, WorkspaceAware
             isset($payload['wa']['name']) ? (string) $payload['wa']['name'] : null,
             isset($payload['wa']['language']) ? (string) $payload['wa']['language'] : null,
             array_values((array) ($payload['wa']['components'] ?? [])),
+            isset($payload['messaging_tag']) ? (string) $payload['messaging_tag'] : null,
         ));
 
         if ($result->ok) {
