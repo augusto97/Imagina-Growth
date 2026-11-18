@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Domain\Consent\Actions;
 
 use App\Domain\Workspaces\Models\Workspace;
+use App\Support\Tenancy\RedisKey;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Consentimientos que llegan con los eventos (cumplimiento.md §3.1):
@@ -20,6 +22,41 @@ final class ProjectConsents
     private const KEYS = ['email_marketing' => 'email', 'whatsapp_marketing' => 'whatsapp', 'sms_marketing' => 'sms'];
 
     public function __construct(private readonly RecordConsent $record) {}
+
+    /**
+     * La decisión del banner de cookies (`context.consent.marketing`, con un banner o CMP
+     * real: `source` distinto de `none`) de un visitante identificado se guarda como su
+     * consentimiento `ads`: aceptar las cookies de marketing lo deja entrar a las audiencias
+     * de anuncios en modo estricto y rechazarlas lo saca (M06, cumplimiento.md §3.3)
+     * [validar con el abogado]. Solo se escribe cuando cambia: el último estado visto por
+     * contacto vive un día en Redis, así que un visitante que navega no escribe en cada página.
+     *
+     * @param  array<string, mixed>  $envelope
+     */
+    public function projectBanner(Workspace $workspace, string $contactId, array $envelope, ?string $userAgent): void
+    {
+        $banner = $envelope['context']['consent'] ?? null;
+        if (! is_array($banner) || ! is_bool($banner['marketing'] ?? null)) {
+            return;
+        }
+        $cmp = (string) ($banner['source'] ?? 'none');
+        if ($cmp === '' || $cmp === 'none') {
+            return;
+        }
+        $action = $banner['marketing'] ? 'granted' : 'revoked';
+        $key = RedisKey::for($workspace->id, 'adsc:'.$contactId);
+        if (Cache::get($key) === $action) {
+            return;
+        }
+        $this->record->handle($workspace, $contactId, 'ads', 'marketing', $action, 'banner:'.mb_substr($cmp, 0, 40), null,
+            CarbonImmutable::parse((string) $envelope['occurred_at'])->utc(), array_filter([
+                'event_id' => $envelope['event_id'] ?? null,
+                'event' => $envelope['event'] ?? null,
+                'page_url' => $envelope['context']['page']['url'] ?? null,
+                'ua_hash' => RecordConsent::evidenceHash($userAgent),
+            ], fn ($v) => $v !== null));
+        Cache::put($key, $action, now()->addDay());
+    }
 
     /**
      * @param  array<string, mixed>  $envelope

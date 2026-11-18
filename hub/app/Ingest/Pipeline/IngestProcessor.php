@@ -254,6 +254,11 @@ final class IngestProcessor
                 ($envelope['context']['user_agent'] ?? null) ?: ($entry->ua !== '' ? $entry->ua : null),
             );
         }
+        // La decisión del banner de cookies sobre marketing, de un visitante ya identificado,
+        // es su consentimiento para las audiencias de anuncios (canal `ads`).
+        if ($contactId !== null && ! $isImport && ($envelope['source']['type'] ?? null) === 'browser') {
+            $this->consents->projectBanner($workspace, $contactId, $envelope, ($envelope['context']['user_agent'] ?? null) ?: ($entry->ua !== '' ? $entry->ua : null));
+        }
 
         // 10. Evento de dominio: se publica después del commit. La importación no dispara nada.
         $domainEvent = $isImport ? null : new EventIngested(

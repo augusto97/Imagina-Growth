@@ -155,7 +155,7 @@ Venezuela no tiene una ley general de protección de datos personales equivalent
   1. Marcar el contacto y bloquear envíos.
   2. Borrado físico en MariaDB (contacto, identidades, mensajes, consentimientos excepto la evidencia mínima de la revocación).
   3. Borrado en ClickHouse por `contact_id` y sus `anonymous_id`.
-  4. Quitarlo de las audiencias de anuncios.
+  4. Quitarlo de las audiencias de anuncios, con los hashes que se le enviaron (las audiencias los guardan cifrados para esto).
   5. Opcionalmente, anonimizarlo en WooCommerce con las herramientas de privacidad de WordPress: el connector registra *exporters* y *erasers*, así que el flujo nativo de WordPress también llega al hub.
   6. Registro en `audit_logs`.
 - **Revocación:** inmediata en todo el sistema (< 1 min).
