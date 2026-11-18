@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Domain\Campaigns\Queries;
 
 use App\Analytics\Ch;
-use App\Domain\Campaigns\Actions\CampaignSender;
 use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Campaigns\Models\CampaignRecipient;
 use App\Domain\Workspaces\Models\Workspace;
@@ -28,8 +27,6 @@ use Throwable;
  */
 final class CampaignReport
 {
-    public function __construct(private readonly CampaignSender $sender) {}
-
     /** @return array<string, mixed> */
     public function handle(Workspace $workspace, Campaign $campaign): array
     {
@@ -82,7 +79,7 @@ final class CampaignReport
                 'click_rate' => $sent > 0 ? round($clicked / $sent, 4) : null,
             ],
             'revenue' => ['orders' => (int) ($orders->n ?? 0), 'total' => round((float) ($orders->revenue ?? 0), 2)],
-            'variants' => $this->sender->variantScores($campaign),
+            'variants' => VariantScores::for($campaign),
             'winner_variant' => $campaign->winner_variant,
             'uplift' => $this->uplift($workspace, $campaign),
         ];

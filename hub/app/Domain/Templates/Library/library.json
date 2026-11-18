@@ -1,0 +1,905 @@
+{
+  "version": 1,
+  "industries": [
+    "moda",
+    "belleza",
+    "ferreteria_pinturas",
+    "mascotas",
+    "alimentos",
+    "tecnologia",
+    "servicios_profesionales",
+    "salud_bienestar",
+    "educacion"
+  ],
+  "templates": [
+    {
+      "key": "welcome_1",
+      "name": "Bienvenida · regalo inmediato",
+      "flow": 1,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 1, al suscribirse: cupón inmediato.",
+      "blocks": [
+        "hero",
+        "coupon",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, aquí está tu regalo de bienvenida",
+          "preheader": "Tu cupón ya está activo: úsalo en tu primera compra.",
+          "headline": "¡Bienvenida a {{ tienda.nombre }}, {{ contacto.nombre | default: 'hola' }}!",
+          "intro": "Gracias por suscribirte. Para empezar, te regalamos un descuento en tu primera compra.",
+          "coupon_label": "Tu código de bienvenida",
+          "cta": "Ir a la tienda",
+          "cta_url": "{{ tienda.url }}"
+        },
+        "moda": {
+          "intro": "Gracias por suscribirte. Estrena con un descuento en tu primera compra: prendas nuevas cada semana."
+        },
+        "belleza": {
+          "intro": "Gracias por suscribirte. Consiéntete con un descuento en tu primera compra."
+        },
+        "ferreteria_pinturas": {
+          "intro": "Gracias por suscribirte. Tu próximo proyecto empieza con un descuento en tu primera compra."
+        },
+        "mascotas": {
+          "intro": "Gracias por suscribirte. Tu peludo también lo celebra: un descuento en tu primera compra."
+        },
+        "alimentos": {
+          "intro": "Gracias por suscribirte. Te regalamos un descuento para que pruebes nuestros productos."
+        },
+        "tecnologia": {
+          "intro": "Gracias por suscribirte. Estrena tecnología con un descuento en tu primera compra."
+        },
+        "servicios_profesionales": {
+          "headline": "Gracias por escribirnos, {{ contacto.nombre | default: 'hola' }}",
+          "intro": "Te contamos cómo trabajamos y te dejamos un beneficio para tu primera consulta.",
+          "coupon_label": "Tu beneficio de bienvenida",
+          "cta": "Conocer los servicios"
+        },
+        "salud_bienestar": {
+          "intro": "Gracias por suscribirte. Cuidarte empieza hoy, con un descuento en tu primera compra."
+        },
+        "educacion": {
+          "intro": "Gracias por suscribirte. Empieza a aprender con un descuento en tu primera inscripción.",
+          "cta": "Ver los cursos"
+        }
+      }
+    },
+    {
+      "key": "welcome_2",
+      "name": "Bienvenida · nuestra historia",
+      "flow": 1,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 1, día 2: historia de la marca.",
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Así nació {{ tienda.nombre }}",
+          "preheader": "Te contamos quiénes somos y qué nos hace diferentes.",
+          "headline": "{{ contacto.nombre | default: 'Hola' }}, te contamos quiénes somos",
+          "intro": "Detrás de cada pedido hay un equipo que cuida los detalles.",
+          "body": "Escribe aquí la historia de tu marca: cómo empezaron, qué los hace diferentes y por qué la gente vuelve. Las historias reales venden más que cualquier descuento.",
+          "cta": "Conocer más",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "welcome_3",
+      "name": "Bienvenida · más vendidos",
+      "flow": 1,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 1, día 5: más vendidos.",
+      "blocks": [
+        "hero",
+        "products:mas_vendidos",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Lo que más compran nuestros clientes",
+          "preheader": "Los favoritos de la tienda, por si no sabes por dónde empezar.",
+          "headline": "Los favoritos de nuestros clientes",
+          "intro": "{{ contacto.nombre | default: 'Hola' }}, si no sabes por dónde empezar, estos son los productos que más se llevan.",
+          "products_title": "Los más vendidos",
+          "cta": "Ver todo",
+          "cta_url": "{{ tienda.url }}"
+        },
+        "servicios_profesionales": {
+          "headline": "Lo que más nos piden",
+          "products_title": "Servicios más solicitados"
+        },
+        "educacion": {
+          "products_title": "Los cursos más elegidos"
+        }
+      }
+    },
+    {
+      "key": "abandoned_cart_1",
+      "name": "Carrito abandonado · recordatorio",
+      "flow": 2,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 2, a las 4 h: recordatorio con el carrito.",
+      "blocks": [
+        "hero",
+        "cart",
+        "button",
+        "whatsapp"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, dejaste algo en tu carrito",
+          "preheader": "Lo guardamos para ti: termina tu compra en un clic.",
+          "headline": "Dejaste algo en tu carrito",
+          "intro": "{{ contacto.nombre | default: 'Hola' }}, guardamos lo que elegiste para que termines tu compra cuando quieras.",
+          "cta": "Terminar mi compra",
+          "cta_url": "{{ carrito.url_restaurar | default: tienda.url }}"
+        },
+        "moda": {
+          "intro": "Las tallas se agotan rápido. Guardamos lo que elegiste para que termines tu compra."
+        },
+        "belleza": {
+          "intro": "Tu rutina te está esperando. Guardamos lo que elegiste para que termines tu compra."
+        },
+        "ferreteria_pinturas": {
+          "intro": "Tu proyecto quedó a mitad de camino. Guardamos los materiales que elegiste."
+        },
+        "mascotas": {
+          "intro": "Tu peludo te está esperando. Guardamos lo que elegiste para que termines tu compra."
+        },
+        "alimentos": {
+          "intro": "Tu pedido quedó listo para salir. Guardamos lo que elegiste."
+        },
+        "tecnologia": {
+          "intro": "El stock de estos equipos cambia rápido. Guardamos lo que elegiste."
+        },
+        "salud_bienestar": {
+          "intro": "Cuidarte no puede esperar. Guardamos lo que elegiste para que termines tu compra."
+        }
+      }
+    },
+    {
+      "key": "abandoned_cart_2",
+      "name": "Carrito abandonado · con incentivo",
+      "flow": 2,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 2, a las 24 h: incentivo opcional.",
+      "blocks": [
+        "hero",
+        "cart",
+        "coupon",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, te dejamos un descuento para tu carrito",
+          "preheader": "Tu carrito sigue guardado y ahora con un beneficio.",
+          "headline": "Tu carrito sigue esperando",
+          "intro": "Para que te animes, te dejamos un descuento. Es solo para ti y vence pronto.",
+          "coupon_label": "Tu código",
+          "cta": "Usar mi descuento",
+          "cta_url": "{{ carrito.url_restaurar | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "abandoned_checkout",
+      "name": "Checkout abandonado",
+      "flow": 3,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 3: checkout sin pedido en 30 min.",
+      "blocks": [
+        "hero",
+        "cart",
+        "button",
+        "whatsapp"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, te faltó un paso",
+          "preheader": "Tu pedido está casi listo: solo falta confirmar el pago.",
+          "headline": "Te faltó solo un paso",
+          "intro": "Empezaste a pagar y no terminaste. Si tuviste un problema con el pago, escríbenos y te ayudamos.",
+          "cta": "Terminar el pago",
+          "cta_url": "{{ carrito.url_restaurar | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "browse_abandonment",
+      "name": "Navegación abandonada",
+      "flow": 4,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 4: vio el mismo producto 2+ veces sin carrito.",
+      "blocks": [
+        "hero",
+        "product",
+        "products:para_ti",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ producto.nombre }} sigue disponible",
+          "preheader": "Lo estuviste mirando: aquí lo tienes, con otras opciones.",
+          "headline": "¿Te quedaste pensando?",
+          "intro": "{{ contacto.nombre | default: 'Hola' }}, vimos que te interesó este producto. Sigue disponible.",
+          "products_title": "También te puede gustar",
+          "cta": "Ver el producto",
+          "cta_url": "{{ producto.url | default: tienda.url }}"
+        },
+        "moda": {
+          "intro": "Vimos que te gustó esta prenda. Todavía hay tallas disponibles."
+        },
+        "tecnologia": {
+          "intro": "Vimos que estuviste comparando este equipo. Sigue disponible."
+        }
+      }
+    },
+    {
+      "key": "payment_pending_1",
+      "name": "Pago pendiente · recordatorio",
+      "flow": 5,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 5, a las 2 h. Ambiguo: marketing por defecto (cumplimiento.md §4.1).",
+      "blocks": [
+        "hero",
+        "order",
+        "button",
+        "whatsapp"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Tu pedido #{{ pedido.numero }} está esperando el pago",
+          "preheader": "Completa el pago para que lo despachemos.",
+          "headline": "Tu pedido está esperando el pago",
+          "intro": "{{ contacto.nombre | default: 'Hola' }}, recibimos tu pedido pero todavía no vemos el pago. Apenas se confirme, lo preparamos.",
+          "cta": "Pagar ahora",
+          "cta_url": "{{ pedido.url_pago | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "payment_pending_2",
+      "name": "Pago pendiente · antes de cancelar",
+      "flow": 5,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 5, a las 24 h: aviso antes de cancelar.",
+      "blocks": [
+        "hero",
+        "order",
+        "button",
+        "whatsapp"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Tu pedido #{{ pedido.numero }} se cancelará pronto",
+          "preheader": "Si todavía lo quieres, completa el pago hoy.",
+          "headline": "Tu pedido se cancelará pronto",
+          "intro": "No hemos recibido el pago. Si todavía lo quieres, complétalo hoy; si tuviste un problema, escríbenos.",
+          "cta": "Completar el pago",
+          "cta_url": "{{ pedido.url_pago | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "cod_confirm_email",
+      "name": "Confirmar contraentrega (respaldo por correo)",
+      "flow": 6,
+      "channel": "email",
+      "category": "utility",
+      "description": "Flujo 6: respaldo por correo de la plantilla de utilidad de WhatsApp.",
+      "blocks": [
+        "hero",
+        "order",
+        "whatsapp"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Confirma tu pedido #{{ pedido.numero }} contraentrega",
+          "preheader": "Respóndenos para despacharlo.",
+          "headline": "Confirma tu pedido contraentrega",
+          "intro": "{{ contacto.nombre | default: 'Hola' }}, para despachar tu pedido necesitamos que nos confirmes que lo recibirás y pagarás al llegar."
+        }
+      }
+    },
+    {
+      "key": "post_purchase",
+      "name": "Poscompra · gracias",
+      "flow": 7,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 7: order.completed.",
+      "blocks": [
+        "hero",
+        "text",
+        "products:para_ti"
+      ],
+      "copy": {
+        "default": {
+          "subject": "¡Gracias por tu compra, {{ contacto.nombre | default: 'Hola' }}!",
+          "preheader": "Algunos consejos para que lo disfrutes al máximo.",
+          "headline": "¡Gracias por tu compra!",
+          "intro": "Ya tienes tu pedido. Queremos que lo disfrutes al máximo.",
+          "body": "Escribe aquí consejos de uso o cuidado de tus productos. Un buen consejo reduce las devoluciones y genera confianza.",
+          "products_title": "Combina con"
+        },
+        "moda": {
+          "body": "Para que tus prendas duren más: lávalas al revés, en agua fría, y sécalas a la sombra."
+        },
+        "belleza": {
+          "body": "Para mejores resultados, aplica tus productos sobre la piel limpia y sé constante: los cambios se notan en 3 a 4 semanas."
+        },
+        "ferreteria_pinturas": {
+          "body": "Antes de pintar, limpia y lija la superficie, y aplica una base si es necesario. Dos manos delgadas rinden más que una gruesa."
+        },
+        "mascotas": {
+          "body": "Si cambiaste de alimento, haz la transición poco a poco durante 7 días, mezclándolo con el anterior."
+        },
+        "alimentos": {
+          "body": "Guarda tus productos en un lugar fresco y seco, y revisa las indicaciones de conservación una vez abiertos."
+        },
+        "tecnologia": {
+          "body": "Registra la garantía de tu equipo y guarda la factura. Si necesitas ayuda con la configuración, escríbenos."
+        },
+        "servicios_profesionales": {
+          "headline": "¡Gracias por confiar en nosotros!",
+          "body": "Te contaremos los siguientes pasos. Si tienes preguntas, responde este correo.",
+          "products_title": "Otros servicios"
+        },
+        "salud_bienestar": {
+          "body": "Sigue las indicaciones de uso y consulta a tu profesional de la salud si tienes dudas."
+        },
+        "educacion": {
+          "headline": "¡Gracias por inscribirte!",
+          "body": "Revisa tu correo para el acceso a la plataforma y aparta en tu agenda el tiempo de estudio.",
+          "products_title": "Cursos relacionados"
+        }
+      }
+    },
+    {
+      "key": "review_request",
+      "name": "Pedir reseña",
+      "flow": 8,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 8: entrega + N días. enlaces.resena termina en `?nota=` (el bloque agrega 5).",
+      "blocks": [
+        "hero",
+        "stars"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, ¿qué te pareció tu compra?",
+          "preheader": "Tu opinión ayuda a otros clientes a decidir.",
+          "headline": "¿Qué te pareció tu compra?",
+          "intro": "Cuéntanos en un minuto. Si subes una foto, te lo agradecemos con un regalo."
+        },
+        "servicios_profesionales": {
+          "headline": "¿Cómo te fue con nuestro servicio?"
+        },
+        "educacion": {
+          "headline": "¿Qué te pareció el curso?"
+        }
+      }
+    },
+    {
+      "key": "second_purchase",
+      "name": "Segunda compra",
+      "flow": 9,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 9: clientes con 1 pedido que superan el tiempo mediano a la segunda compra.",
+      "blocks": [
+        "hero",
+        "products:para_ti",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, elegimos esto para ti",
+          "preheader": "Según lo que compraste, creemos que te va a gustar.",
+          "headline": "Elegimos esto para ti",
+          "intro": "Según tu primera compra, creemos que esto te va a gustar.",
+          "products_title": "Recomendados para ti",
+          "cta": "Ver más",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "replenishment",
+      "name": "Reposición",
+      "flow": 10,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 10: fecha esperada de próxima compra − 5 días.",
+      "blocks": [
+        "hero",
+        "button",
+        "products:para_ti"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, ¿ya se te está acabando?",
+          "preheader": "Repite tu pedido en un clic.",
+          "headline": "¿Ya se te está acabando?",
+          "intro": "Por la fecha de tu última compra, calculamos que pronto vas a necesitar más. Repite tu pedido en un clic.",
+          "products_title": "También podrías necesitar",
+          "cta": "Repetir mi pedido",
+          "cta_url": "{{ carrito.url_restaurar | default: tienda.url }}"
+        },
+        "belleza": {
+          "headline": "¿Ya se está acabando tu producto?",
+          "intro": "Para no interrumpir tu rutina, repite tu pedido en un clic."
+        },
+        "mascotas": {
+          "headline": "¿Ya se está acabando el concentrado?",
+          "intro": "Que a tu peludo no le falte nada: repite tu pedido en un clic."
+        },
+        "alimentos": {
+          "headline": "¿Ya se te está acabando la despensa?"
+        },
+        "ferreteria_pinturas": {
+          "headline": "¿Necesitas más material?",
+          "intro": "Si tu proyecto sigue, repite tu pedido en un clic."
+        },
+        "salud_bienestar": {
+          "headline": "¿Ya se te está acabando?",
+          "intro": "Para que no interrumpas tu tratamiento, repite tu pedido en un clic."
+        }
+      }
+    },
+    {
+      "key": "winback_1",
+      "name": "Recuperación · te extrañamos",
+      "flow": 11,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 11: entra a «En riesgo» o «No podemos perderlos». Mensaje personal.",
+      "blocks": [
+        "hero",
+        "products:mas_vendidos",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, te extrañamos",
+          "preheader": "Mira lo nuevo desde tu última visita.",
+          "headline": "Te extrañamos",
+          "intro": "{{ contacto.nombre | default: 'Hola' }}, hace tiempo no te vemos. Esto es lo que más están comprando ahora.",
+          "products_title": "Lo más vendido",
+          "cta": "Ver novedades",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "winback_2",
+      "name": "Recuperación · con incentivo",
+      "flow": 11,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 11: incentivo escalonado según el CLV.",
+      "blocks": [
+        "hero",
+        "coupon",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, un regalo para que vuelvas",
+          "preheader": "Tienes un descuento esperándote.",
+          "headline": "Un regalo para que vuelvas",
+          "intro": "Queremos verte de nuevo. Te dejamos un descuento que vence pronto.",
+          "coupon_label": "Tu código",
+          "cta": "Usar mi descuento",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "vip_welcome",
+      "name": "VIP · nuevo nivel",
+      "flow": 12,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 12 (llega con fidelización, Fase 3).",
+      "blocks": [
+        "hero",
+        "points",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, ¡subiste de nivel!",
+          "preheader": "Ahora tienes beneficios exclusivos.",
+          "headline": "¡Subiste de nivel!",
+          "intro": "Gracias por tu fidelidad. Desde hoy tienes beneficios exclusivos y acceso anticipado a nuestras novedades.",
+          "cta": "Ver mis beneficios",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "birthday",
+      "name": "Cumpleaños",
+      "flow": 13,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 13: atributo birthday, a una hora legal.",
+      "blocks": [
+        "hero",
+        "coupon",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "¡Feliz cumpleaños, {{ contacto.nombre | default: 'Hola' }}!",
+          "preheader": "Te tenemos un regalo.",
+          "headline": "¡Feliz cumpleaños, {{ contacto.nombre | default: 'hola' }}!",
+          "intro": "Hoy es tu día y queremos celebrarlo contigo. Este regalo es para ti.",
+          "coupon_label": "Tu regalo de cumpleaños",
+          "cta": "Usar mi regalo",
+          "cta_url": "{{ tienda.url }}"
+        },
+        "mascotas": {
+          "intro": "Hoy es tu día. Celébralo con tu peludo: este regalo es para ustedes."
+        },
+        "belleza": {
+          "intro": "Hoy es tu día: consiéntete con este regalo."
+        }
+      }
+    },
+    {
+      "key": "back_in_stock",
+      "name": "Volvió el stock",
+      "flow": 14,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 14 (avisos de stock, Fase 3).",
+      "blocks": [
+        "hero",
+        "product",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "¡Volvió {{ producto.nombre }}!",
+          "preheader": "Te avisamos apenas llegó. Quedan pocas unidades.",
+          "headline": "¡Volvió lo que esperabas!",
+          "intro": "Te avisamos apenas llegó. Las unidades son limitadas.",
+          "cta": "Comprar ahora",
+          "cta_url": "{{ producto.url | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "price_drop",
+      "name": "Bajó de precio",
+      "flow": 14,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 14 (avisos de precio, Fase 3).",
+      "blocks": [
+        "hero",
+        "product",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ producto.nombre }} bajó de precio",
+          "preheader": "El producto que te interesó ahora cuesta menos.",
+          "headline": "Bajó de precio",
+          "intro": "El producto que te interesó ahora cuesta menos. Aprovecha antes de que cambie.",
+          "cta": "Ver el producto",
+          "cta_url": "{{ producto.url | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "points_expiring",
+      "name": "Puntos por vencer",
+      "flow": 15,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 15 (fidelización, Fase 3).",
+      "blocks": [
+        "hero",
+        "points",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, tus puntos vencen pronto",
+          "preheader": "Úsalos antes de que se pierdan.",
+          "headline": "Tus puntos vencen pronto",
+          "intro": "No dejes que se pierdan: úsalos en tu próxima compra.",
+          "cta": "Usar mis puntos",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "referral_invite",
+      "name": "Invitar a referir",
+      "flow": 16,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 16 (referidos, Fase 3).",
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, comparte y gana",
+          "preheader": "Invita a tus amigos y ganen los dos.",
+          "headline": "Comparte y ganen los dos",
+          "intro": "Si te gustó tu experiencia, invita a tus amigos. Ellos reciben un descuento y tú un regalo cuando compren.",
+          "body": "Comparte tu enlace por WhatsApp o redes sociales.",
+          "cta": "Compartir mi enlace",
+          "cta_url": "{{ enlaces.referido | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "nps_survey",
+      "name": "Encuesta NPS",
+      "flow": 17,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 17. enlaces.nps termina en `?nota=` (el bloque agrega el número).",
+      "blocks": [
+        "hero",
+        "nps"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, ¿nos recomendarías?",
+          "preheader": "Una pregunta, un clic.",
+          "headline": "¿Nos recomendarías?",
+          "intro": "Del 0 al 10, ¿qué tan probable es que recomiendes {{ tienda.nombre }} a un amigo?"
+        }
+      }
+    },
+    {
+      "key": "team_alert",
+      "name": "Aviso al equipo",
+      "flow": 17,
+      "channel": "email",
+      "category": "transactional",
+      "description": "Flujos 6, 17 y 18: aviso interno al dueño o al vendedor (variables `aviso.*`).",
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "[{{ tienda.nombre }}] {{ aviso.titulo | default: 'Aviso de Imagina Growth' }}",
+          "preheader": "{{ aviso.resumen }}",
+          "headline": "{{ aviso.titulo | default: 'Aviso de Imagina Growth' }}",
+          "intro": "{{ aviso.resumen }}",
+          "body": "{{ aviso.detalle }}",
+          "cta": "Ver en Imagina Growth",
+          "cta_url": "{{ aviso.url | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "lead_followup_1",
+      "name": "Lead de servicios · respuesta inmediata",
+      "flow": 18,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 18, al instante.",
+      "blocks": [
+        "hero",
+        "whatsapp"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Recibimos tu mensaje, {{ contacto.nombre | default: 'Hola' }}",
+          "preheader": "Te respondemos en breve.",
+          "headline": "Recibimos tu mensaje",
+          "intro": "Gracias por escribir a {{ tienda.nombre }}. Una persona del equipo te contactará muy pronto. Si es urgente, escríbenos por WhatsApp."
+        }
+      }
+    },
+    {
+      "key": "lead_followup_2",
+      "name": "Lead de servicios · seguimiento",
+      "flow": 18,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 18, segundo toque.",
+      "blocks": [
+        "hero",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, ¿pudimos ayudarte?",
+          "preheader": "Seguimos atentos a tu solicitud.",
+          "headline": "¿Pudimos ayudarte?",
+          "intro": "Queremos saber si ya resolvimos tu solicitud o si prefieres que te llamemos.",
+          "cta": "Agendar una llamada",
+          "cta_url": "{{ tienda.whatsapp_url | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "lead_followup_3",
+      "name": "Lead de servicios · último toque",
+      "flow": 18,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 18, tercer toque.",
+      "blocks": [
+        "hero",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, quedamos atentos",
+          "preheader": "Si más adelante lo necesitas, aquí estamos.",
+          "headline": "Quedamos atentos",
+          "intro": "No queremos insistir. Si más adelante necesitas ayuda, responde este correo o escríbenos.",
+          "cta": "Escribirnos",
+          "cta_url": "{{ tienda.whatsapp_url | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "appointment_reminder",
+      "name": "Recordatorio de cita",
+      "flow": 19,
+      "channel": "email",
+      "category": "transactional",
+      "description": "Flujo 19 (agenda, Fase 5). Transaccional [validar el caso de la cita, cumplimiento.md §4.1].",
+      "blocks": [
+        "hero",
+        "appointment",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Recordatorio: tu cita con {{ tienda.nombre }}",
+          "preheader": "Te esperamos. Si necesitas cambiarla, avísanos.",
+          "headline": "Te recordamos tu cita",
+          "intro": "{{ contacto.nombre | default: 'Hola' }}, te esperamos en la fecha y hora acordadas.",
+          "cta": "Reprogramar",
+          "cta_url": "{{ cita.url_reprogramar | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "renewal_reminder",
+      "name": "Renovación",
+      "flow": 20,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 20: fecha de renovación − 15 días.",
+      "blocks": [
+        "hero",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, tu plan está por renovarse",
+          "preheader": "Revisa tu renovación y aprovecha la oferta.",
+          "headline": "Tu renovación se acerca",
+          "intro": "Tu plan vence pronto. Renueva a tiempo para no perder tus beneficios.",
+          "cta": "Renovar",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "sms_abandoned_cart",
+      "name": "SMS · carrito abandonado",
+      "flow": 2,
+      "channel": "sms",
+      "category": "marketing",
+      "description": "",
+      "copy": {
+        "default": {
+          "text": "{{ tienda.nombre }}: dejaste productos en tu carrito. Terminalo aqui: {{ carrito.url_restaurar | default: tienda.url }} Responde BAJA para no recibir mas."
+        }
+      }
+    },
+    {
+      "key": "sms_payment_pending",
+      "name": "SMS · pago pendiente",
+      "flow": 5,
+      "channel": "sms",
+      "category": "marketing",
+      "description": "",
+      "copy": {
+        "default": {
+          "text": "{{ tienda.nombre }}: tu pedido #{{ pedido.numero }} espera el pago. Paga aqui: {{ pedido.url_pago | default: tienda.url }} Responde BAJA para no recibir mas."
+        }
+      }
+    },
+    {
+      "key": "sms_cod_confirm",
+      "name": "SMS · confirmar contraentrega",
+      "flow": 6,
+      "channel": "sms",
+      "category": "utility",
+      "description": "",
+      "copy": {
+        "default": {
+          "text": "{{ tienda.nombre }}: confirma tu pedido #{{ pedido.numero }} contraentrega respondiendo SI, o NO para cancelarlo."
+        }
+      }
+    },
+    {
+      "key": "sms_birthday",
+      "name": "SMS · cumpleaños",
+      "flow": 13,
+      "channel": "sms",
+      "category": "marketing",
+      "description": "",
+      "copy": {
+        "default": {
+          "text": "{{ tienda.nombre }}: feliz cumpleanos, {{ contacto.nombre | default: 'hola' }}! Tu regalo: {{ cupon.codigo }} Responde BAJA para no recibir mas."
+        }
+      }
+    },
+    {
+      "key": "sms_back_in_stock",
+      "name": "SMS · volvió el stock",
+      "flow": 14,
+      "channel": "sms",
+      "category": "marketing",
+      "description": "",
+      "copy": {
+        "default": {
+          "text": "{{ tienda.nombre }}: volvio {{ producto.nombre }}. Compralo aqui: {{ producto.url | default: tienda.url }} Responde BAJA para no recibir mas."
+        }
+      }
+    },
+    {
+      "key": "sms_winback",
+      "name": "SMS · te extrañamos",
+      "flow": 11,
+      "channel": "sms",
+      "category": "marketing",
+      "description": "",
+      "copy": {
+        "default": {
+          "text": "{{ tienda.nombre }}: te extranamos. Usa {{ cupon.codigo }} en tu proxima compra: {{ tienda.url }} Responde BAJA para no recibir mas."
+        }
+      }
+    },
+    {
+      "key": "sms_appointment_reminder",
+      "name": "SMS · recordatorio de cita",
+      "flow": 19,
+      "channel": "sms",
+      "category": "transactional",
+      "description": "",
+      "copy": {
+        "default": {
+          "text": "{{ tienda.nombre }}: te recordamos tu cita el {{ cita.fecha | fecha: 'corta' }} a las {{ cita.hora }}."
+        }
+      }
+    }
+  ]
+}

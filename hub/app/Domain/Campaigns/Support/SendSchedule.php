@@ -50,7 +50,7 @@ final class SendSchedule
         $hour = $campaign->send_mode === 'best_time' && $preferredHour !== null && $preferredHour >= 0 && $preferredHour <= 23 ? $preferredHour : (int) $wall->format('G');
         $minute = $campaign->send_mode === 'best_time' && $preferredHour !== null ? 0 : (int) $wall->format('i');
 
-        return CarbonImmutable::create((int) $wall->format('Y'), (int) $wall->format('n'), (int) $wall->format('j'), $hour, $minute, 0, $tz)->utc();
+        return (new CarbonImmutable(sprintf('%s %02d:%02d:00', $wall->format('Y-m-d'), $hour, $minute), $tz))->utc();
     }
 
     /** Hora de envío real: la planeada (o ya, si pasó) movida al siguiente momento permitido. */

@@ -73,7 +73,7 @@ final class CommercialCalendar
     public static function resolve(array $rule, int $year): CarbonImmutable
     {
         return match ($rule['type']) {
-            'fixed' => CarbonImmutable::create($year, (int) $rule['month'], (int) $rule['day']),
+            'fixed' => self::date($year, (int) $rule['month'], (int) $rule['day']),
             'nth' => self::nth($year, (int) $rule['month'], (int) $rule['n'], (int) $rule['dow']),
             // Viernes después del cuarto jueves de noviembre (el de Estados Unidos, que se adoptó en LATAM).
             'black_friday' => self::nth($year, 11, 4, 4)->addDays(1 + (int) ($rule['offset'] ?? 0)),
@@ -81,7 +81,7 @@ final class CommercialCalendar
             'buen_fin' => self::nth($year, 11, 3, 1)->subDays(3),
             // Último lunes de mayo, nueve días.
             'hot_sale' => self::nth($year, 5, -1, 1),
-            default => CarbonImmutable::create($year, 1, 1),
+            default => self::date($year, 1, 1),
         };
     }
 
@@ -89,18 +89,23 @@ final class CommercialCalendar
     private static function nth(int $year, int $month, int $n, int $dow): CarbonImmutable
     {
         if ($n < 0) {
-            $day = CarbonImmutable::create($year, $month, 1)->endOfMonth()->startOfDay();
+            $day = self::date($year, $month, 1)->endOfMonth()->startOfDay();
             while ($day->dayOfWeekIso !== $dow) {
                 $day = $day->subDay();
             }
 
             return $day;
         }
-        $day = CarbonImmutable::create($year, $month, 1);
+        $day = self::date($year, $month, 1);
         while ($day->dayOfWeekIso !== $dow) {
             $day = $day->addDay();
         }
 
         return $day->addWeeks($n - 1);
+    }
+
+    private static function date(int $year, int $month, int $day): CarbonImmutable
+    {
+        return new CarbonImmutable(sprintf('%04d-%02d-%02d', $year, $month, $day));
     }
 }

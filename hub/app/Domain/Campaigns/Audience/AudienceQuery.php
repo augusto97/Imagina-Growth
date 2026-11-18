@@ -63,7 +63,11 @@ final class AudienceQuery
         ];
     }
 
-    /** ¿Tiene a quién enviar? (al menos un segmento incluido o «todos los contactos»). */
+    /**
+     * ¿Tiene a quién enviar? (al menos un segmento incluido o «todos los contactos»).
+     *
+     * @param  array<string, mixed>  $audience
+     */
     public static function isDefined(array $audience): bool
     {
         return ! empty($audience['all_contacts']) || ! empty($audience['segments_include']);
@@ -102,6 +106,7 @@ final class AudienceQuery
         return $q;
     }
 
+    /** @param array<string, mixed> $audience */
     public function count(Workspace $workspace, array $audience): int
     {
         return $this->query($workspace, $audience)->count();

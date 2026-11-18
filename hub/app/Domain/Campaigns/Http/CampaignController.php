@@ -278,7 +278,7 @@ final class CampaignController
         $ws = $this->current->get();
         $year = (int) ($data['year'] ?? now()->setTimezone($ws->timezone ?: 'America/Bogota')->year);
         $country = (string) ($data['country'] ?? (in_array($ws->country, ['CO', 'MX', 'VE'], true) ? $ws->country : 'CO'));
-        $from = CarbonImmutable::create($year, 1, 1, 0, 0, 0, $ws->timezone ?: 'America/Bogota')->utc();
+        $from = (new CarbonImmutable(sprintf('%04d-01-01 00:00:00', $year), $ws->timezone ?: 'America/Bogota'))->utc();
         $campaigns = Campaign::query()->where(function ($q) use ($from) {
             $q->whereBetween('send_at', [$from, $from->addYear()])->orWhereBetween('started_at', [$from, $from->addYear()]);
         })->whereNotIn('status', [Campaign::CANCELLED])->get();

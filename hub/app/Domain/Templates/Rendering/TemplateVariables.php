@@ -25,9 +25,11 @@ final class TemplateVariables
     public function build(RenderContext $context, bool $escapeHtml): array
     {
         $vars = $context->vars;
+        // Sin contacto (vista previa con datos de ejemplo), se acepta un `contacto` de ejemplo.
+        $sampleContact = $context->contact === null && is_array($vars['contacto'] ?? null) ? $vars['contacto'] : [];
         unset($vars['contacto'], $vars['tienda'], $vars['recomendaciones']);
         $data = [
-            'contacto' => self::contact($context->contact),
+            'contacto' => array_replace(self::contact($context->contact), array_intersect_key($sampleContact, self::contact(null))),
             'tienda' => self::store($context->workspace),
         ] + $vars + ['enlaces' => []];
         if ($escapeHtml) {

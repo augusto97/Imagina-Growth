@@ -36,7 +36,7 @@ final class CampaignsTickCommand extends Command
             }
             $current->run($workspace, function () use ($workspace, $campaigns, $sender, $now): void {
                 foreach ($campaigns as $row) {
-                    $campaign = Campaign::query()->find($row->id);
+                    $campaign = Campaign::query()->find((string) $row->id);
                     if ($campaign === null) {
                         continue;
                     }

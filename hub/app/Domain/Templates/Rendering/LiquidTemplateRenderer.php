@@ -62,10 +62,12 @@ final class LiquidTemplateRenderer implements TemplateRenderer
             ? trim($this->sandbox->render((string) $template->body_text, $plain, $register, __('el texto del correo')))
             : HtmlToText::convert($renderedHtml);
 
+        $preheader = self::oneLine($this->sandbox->render((string) $template->preheader, $plain, $register, __('el preheader')));
+
         return new RenderedMessage(
             subject: self::oneLine($this->sandbox->render((string) $template->subject, $plain, $register, __('el asunto'))),
-            preheader: self::oneLine($this->sandbox->render((string) $template->preheader, $plain, $register, __('el preheader'))),
-            html: $renderedHtml,
+            preheader: $preheader,
+            html: self::withPreheader($renderedHtml, $preheader),
             text: $text,
         );
     }
@@ -99,6 +101,22 @@ final class LiquidTemplateRenderer implements TemplateRenderer
     private function plain(string $source, RenderContext $context, string $part): string
     {
         return trim($this->sandbox->render($source, $this->variables->build($context, false), $this->variables->register($context->workspace), $part));
+    }
+
+    /**
+     * El preheader va como texto oculto al inicio del cuerpo: es lo que muestra la
+     * bandeja junto al asunto. El relleno evita que se cuele el texto del correo.
+     */
+    public static function withPreheader(string $html, string $preheader): string
+    {
+        if ($preheader === '' || str_contains($html, 'data-igr-preheader')) {
+            return $html;
+        }
+        $div = '<div data-igr-preheader style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all">'
+            .htmlspecialchars($preheader, ENT_QUOTES, 'UTF-8').str_repeat('&#847;&zwnj;&nbsp;', 40).'</div>';
+        $out = preg_replace('/(<body\b[^>]*>)/i', '$1'.$div, $html, 1, $count);
+
+        return $count === 1 && is_string($out) ? $out : $div.$html;
     }
 
     private static function oneLine(string $value): string
