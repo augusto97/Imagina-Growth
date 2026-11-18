@@ -12,6 +12,7 @@ use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Endpoints firmados del sitio (api-connector.md §5). VerifySiteSignature ya
@@ -40,8 +41,31 @@ final class SiteApiController
             ],
             'settings' => $site->effectiveSettings() + ['early_capture' => (bool) $ws->setting('early_capture', false)],
             'consent' => ['mode' => $ws->setting('consent_mode', 'strict'), 'texts' => []],
+            'measurement' => $this->measurement(),
             'min_plugin_version' => config('igr.min_plugin_version'),
         ]);
+    }
+
+    /**
+     * Píxeles del modo «completo» (api-connector.md §5.1). El ID del píxel es
+     * público; los tokens de las APIs nunca salen del hub.
+     *
+     * @return array{mode: string, pixels: array<string, string>}
+     */
+    private function measurement(): array
+    {
+        $rows = DB::table('ad_destinations')
+            ->where('workspace_id', $this->current->id())
+            ->where('status', 'active')
+            ->where('mode', 'full')
+            ->whereNotNull('pixel_id')
+            ->get(['platform', 'pixel_id']);
+        $pixels = [];
+        foreach ($rows as $row) {
+            $pixels[(string) $row->platform] = (string) $row->pixel_id;
+        }
+
+        return ['mode' => $pixels === [] ? 'server_only' : 'full', 'pixels' => $pixels];
     }
 
     /** GET /v1/s/catalog/hashes?type=product|category&cursor=&limit= */

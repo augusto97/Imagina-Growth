@@ -173,9 +173,16 @@ Configuración que el plugin guarda en caché un día:
       { "kind": "marketing_consent", "channel": "email",    "version": "v1", "label": "Quiero recibir ofertas por correo…" }
     ]
   },
+  "measurement": {                                // M06: solo destinos activos en modo «completo»
+    "mode": "full",                                // server_only | with_pixel | full
+    "pixels": { "meta": "123456789012345", "tiktok": "C9ABCDEF12345", "google": "G-ABC123" }
+  },
   "min_plugin_version": "0.1.0"
 }
 ```
+
+- **`measurement.mode = full`:** el connector pasa `pixels` a `igrConfig.pixels` y el tracker carga los píxeles (solo con consentimiento de marketing) y dispara los eventos estándar con `eventID` igual al `event_id` del evento de Imagina Growth (en la compra, `igrOrder.eventId`). La conversión desde el servidor usa el mismo `event_id`: así Meta, TikTok y Google deduplican.
+- **`with_pixel`:** ya hay otro píxel (p. ej. PixelYourSite); solo se deduplica la compra si ese plugin usa `igrOrder.eventId`. **`server_only`:** sin píxel.
 
 ### 5.2 `GET /v1/s/catalog/hashes?type=product|category&cursor=&limit=1000`
 
@@ -209,6 +216,16 @@ Estado y progreso de la importación histórica. El plugin lo envía al empezar,
 ```
 
 El hub compara `reconciliation` con su tabla `orders` (por estado: número de pedidos y suma de `total`) y muestra la conciliación. Es la prueba del criterio de la Fase 0: **los conteos y la venta total coinciden al 100%**.
+
+### 5.4 `POST /v1/s/privacy/requests`
+
+Lo llaman los *exporters* y *erasers* de WordPress (`connector/CLAUDE.md` §11) para crear la solicitud equivalente en el hub (`cumplimiento.md` §9):
+
+```json
+{ "kind": "access", "email": "ana@ejemplo.com", "wp_request_id": 42 }
+```
+
+`kind`: `access` o `delete`. Respuesta `202 {"request_id": "dr_…", "status": "pending", "due_at": "…"}`. El hub busca al contacto por índice ciego y no confirma si existe.
 
 ## 6. Comandos del hub al sitio
 
