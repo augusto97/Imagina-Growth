@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ingest\Pipeline;
 
+use App\Domain\Commerce\Projectors\CartProjector;
 use App\Domain\Commerce\Projectors\CatalogProjector;
 use App\Domain\Commerce\Projectors\OrderProjector;
 use App\Domain\Consent\Actions\ProjectConsents;
@@ -45,6 +46,7 @@ final class IngestProcessor
         private readonly EventRowMapper $mapper,
         private readonly IdentityResolver $identity,
         private readonly OrderProjector $orders,
+        private readonly CartProjector $carts,
         private readonly CatalogProjector $catalog,
         private readonly SiteHealthProjector $siteHealth,
         private readonly CurrentWorkspace $current,
@@ -229,7 +231,12 @@ final class IngestProcessor
 
         // 9. Proyección en MariaDB.
         if (str_starts_with($event, 'order.')) {
-            $this->orders->project($workspace, $site, $envelope, $contactId);
+            $order = $this->orders->project($workspace, $site, $envelope, $contactId);
+            if ($order !== null && ! $isImport) {
+                $this->carts->onOrder($site, $order, $envelope);
+            }
+        } elseif (in_array($event, CartProjector::EVENTS, true)) {
+            $this->carts->project($workspace, $site, $envelope, $contactId);
         } elseif (str_starts_with($event, 'catalog.')) {
             $this->catalog->project($workspace, $site, $envelope);
         } elseif (str_starts_with($event, 'site.')) {

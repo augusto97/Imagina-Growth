@@ -29,7 +29,7 @@ final class SiteCouponIssuer implements CouponIssuer
     {
         $site = $spec->siteId !== null
             ? Site::query()->find($spec->siteId)
-            : Site::query()->where('status', 'active')->orderBy('created_at')->first();
+            : Site::query()->whereIn('status', [Site::STATUS_CONNECTED, Site::STATUS_DEGRADED])->orderBy('created_at')->first();
         if ($site === null) {
             throw new CouponIssueException(__('No hay un sitio conectado para crear el cupón.'));
         }

@@ -15,6 +15,7 @@ use App\Support\Pii\Pii;
 use App\Support\Tenancy\RedisKey;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -51,7 +52,13 @@ final class IdentityResolver
 
         // Solo anónimo (lo más común: vistas del tracker): caché Redis del mapa anónimo → contacto.
         if ($strong === []) {
-            return ['contact_id' => $this->contactForAnonymous($workspace, (string) $identifiers[0]['value']), 'created' => false, 'merged' => false, 'identity_map' => []];
+            $anonymous = (string) $identifiers[0]['value'];
+            $contactId = $this->contactForAnonymous($workspace, $anonymous);
+            if ($contactId === null && $in->linkToken !== null) {
+                return $this->linkFromMessage($workspace, $site, $anonymous, $in->linkToken, $seenAt) ?? $none;
+            }
+
+            return ['contact_id' => $contactId, 'created' => false, 'merged' => false, 'identity_map' => []];
         }
 
         $existing = ContactIdentity::query()
@@ -157,6 +164,36 @@ final class IdentityResolver
         }
 
         return ['contact_id' => $contact->id, 'created' => $created, 'merged' => $merged, 'identity_map' => array_values(array_unique($identityMap))];
+    }
+
+    /**
+     * `_igr` de un enlace rastreado (eventos.md §6.2): el navegador anónimo que llegó
+     * por el enlace de un mensaje queda vinculado al contacto del mensaje. Solo si
+     * ese navegador no tenía dueño: un enlace reenviado nunca une perfiles ni le
+     * quita el navegador a otro contacto; sirve para analítica y atribución.
+     *
+     * @return array{contact_id: string|null, created: bool, merged: bool, identity_map: list<string>}|null
+     */
+    private function linkFromMessage(Workspace $workspace, Site $site, string $anonymousId, string $code, CarbonInterface $seenAt): ?array
+    {
+        if (preg_match('/^[A-Za-z0-9_-]{6,32}$/', $code) !== 1) {
+            return null;
+        }
+        $owner = DB::table('tracked_links')->where('workspace_id', $workspace->id)->where('code', $code)->value('contact_id');
+        $owner = is_string($owner) ? $this->followMerges($owner) : null;
+        if ($owner === null) {
+            return null;
+        }
+        $created = ContactIdentity::query()->firstOrCreate(
+            ['workspace_id' => $workspace->id, 'type' => 'anonymous_id', 'value' => $anonymousId],
+            ['contact_id' => $owner, 'site_id' => $site->id, 'first_seen_at' => $seenAt, 'last_seen_at' => $seenAt],
+        );
+        if ($created->contact_id !== $owner) {
+            return null;
+        }
+        Cache::put(RedisKey::for($workspace->id, 'anon:'.$anonymousId), $owner, now()->addDay());
+
+        return ['contact_id' => $owner, 'created' => false, 'merged' => false, 'identity_map' => $created->wasRecentlyCreated ? [$anonymousId] : []];
     }
 
     /** Contacto de un anónimo, con caché de un día (5 minutos si no se conoce). */

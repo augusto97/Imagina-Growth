@@ -14,6 +14,7 @@ final class IdentityInput
         public ?string $email = null,
         public ?string $phone = null,          // tal como llegó; se normaliza a E.164
         public ?string $anonymousId = null,
+        public ?string $linkToken = null,       // `_igr` de un enlace rastreado (eventos.md §6.2, n.º 5)
         public ?string $firstName = null,
         public ?string $lastName = null,
         public ?string $city = null,
@@ -43,6 +44,7 @@ final class IdentityInput
             email: self::str($identity['email'] ?? null),
             phone: self::str($identity['phone'] ?? null),
             anonymousId: self::str($identity['anonymous_id'] ?? null),
+            linkToken: self::str($identity['link_token'] ?? null),
         );
 
         $order = $props['order'] ?? null;
