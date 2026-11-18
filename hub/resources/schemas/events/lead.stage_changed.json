@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/lead.stage_changed.json",
+  "title": "lead.stage_changed",
+  "description": "Generado en el hub: el lead cambió de etapa en el pipeline.",
+  "type": "object",
+  "required": [
+    "lead_id",
+    "from",
+    "to"
+  ],
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "from": {
+      "type": "string",
+      "maxLength": 32
+    },
+    "to": {
+      "type": "string",
+      "maxLength": 32
+    },
+    "by": {
+      "enum": [
+        "user",
+        "system",
+        "ai",
+        "api"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "lead_id": "ld_01JE",
+      "from": "new",
+      "to": "contacted",
+      "by": "user"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "lead_id": "ld_01JE",
+      "from": "new"
+    }
+  ]
+}

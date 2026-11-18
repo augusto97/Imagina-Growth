@@ -1,7 +1,9 @@
 import {
     BarChart3,
     Building2,
+    CalendarDays,
     ClipboardList,
+    CreditCard,
     FileText,
     Gift,
     Globe,
@@ -21,8 +23,10 @@ import {
     Shapes,
     ShieldCheck,
     Sparkles,
+    Target,
     Users,
     UsersRound,
+    Webhook,
     Workflow,
 } from 'lucide-react';
 import type { Ability } from '@/api/types';
@@ -46,6 +50,8 @@ export const MAIN_NAV: NavItem[] = [
     { key: 'campaigns', to: 'campanas', icon: Megaphone, ability: 'viewDashboards', shortcut: 'p' },
     { key: 'templates', to: 'plantillas', icon: FileText, ability: 'viewDashboards', shortcut: 't' },
     { key: 'inbox', to: 'bandeja', icon: Inbox, ability: 'useInbox', shortcut: 'b' },
+    { key: 'leads', to: 'leads', icon: Target, ability: 'useLeads', shortcut: 'd' },
+    { key: 'agenda', to: 'agenda', icon: CalendarDays, ability: 'useLeads', shortcut: 'g' },
     { key: 'onsite', to: 'en-el-sitio', icon: MousePointerClick, ability: 'viewDashboards', shortcut: 'w' },
     { key: 'loyalty', to: 'fidelizacion', icon: Gift, ability: 'viewDashboards', shortcut: 'l' },
     { key: 'referrals', to: 'referidos', icon: Share2, ability: 'viewDashboards', shortcut: 'r' },
@@ -62,8 +68,10 @@ export const SETTINGS_NAV: NavItem[] = [
     { key: 'channels', to: 'canales', icon: RadioTower, ability: 'viewWorkspace' },
     { key: 'consent', to: 'consentimiento', icon: ShieldCheck, ability: 'viewWorkspace' },
     { key: 'survey', to: 'encuesta', icon: MessageCircleQuestion, ability: 'viewDashboards' },
+    { key: 'integrations', to: 'integraciones', icon: Webhook, ability: 'manageApi' },
+    { key: 'billing', to: 'facturacion', icon: CreditCard, ability: 'manageBilling' },
     { key: 'audit', to: 'auditoria', icon: ClipboardList, ability: 'viewAuditLog' },
-    { key: 'agency', icon: Building2, phase: 5 },
+    { key: 'agency', to: 'agencia', icon: Building2, ability: 'viewAgency' },
 ];
 
 export const GLOBE_ICON = Globe;

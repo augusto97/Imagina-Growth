@@ -189,7 +189,16 @@ Los de la Fase 3 (v4):
 - `nps.answered`: `score` y `category`.
 - `product_watch.created` y `product_watch.notified`: `product_id` y `kind`.
 
-Lista completa: `cart.abandoned` (lo marca el job de carritos), `message.queued`, `message.sent`, `message.delivered`, `message.read` (WhatsApp), `message.opened` (correo, con `is_mpp` para las aperturas automáticas de Apple), `message.clicked`, `message.replied`, `message.failed`, `message.bounced`, `message.complained`, `message.unsubscribed`, `whatsapp.inbound` (con `referral` y `ctwa_clid` si viene de un anuncio de clic a WhatsApp, y `wa_ref` si trae token), `consent.granted`, `consent.revoked`, `segment.entered`, `segment.exited`, `points.earned`, `points.redeemed`, `points.expired`, `tier.changed`, `wallet.credited`, `wallet.debited`, `referral.shared`, `referral.converted`, `review.requested`, `review.collected`, `nps.answered`, `survey.answered`, `product_watch.created`, `product_watch.notified`, `flow.entered`, `flow.exited`, `conversion.delivered` (a una plataforma de anuncios).
+Los de la Fase 5 (v5), solo del hub (ningún sitio los puede enviar):
+- `lead.created`: `lead_id`, `origin` (form, whatsapp, quote, booking, manual o api), `service`, `score`, `temperature` (cold, warm o hot), `channel` y `form_id`.
+- `lead.stage_changed`: `lead_id`, `from`, `to` y `by` (user, system, ai o api).
+- `lead.won`: `lead_id`, `value`, `currency`, `days_to_win` y `service`. Es la **conversión offline** que va a Meta y a Google (M18).
+- `lead.lost`: `lead_id` y `reason`.
+- `appointment.booked`: `appointment_id`, `service_id`, `service_name`, `staff_id`, `starts_at`, `duration_min`, `location`, `channel` y `lead_id`.
+- `appointment.rescheduled`: `from_starts_at` y `starts_at`. `appointment.cancelled`: `by` y `reason`. `appointment.completed` y `appointment.no_show`.
+- `quote.requested`: `quote_id`, `calculator_id`, `calculator_name`, `estimate_min`, `estimate_max`, `currency` y `lead_id`.
+
+Lista completa: `cart.abandoned` (lo marca el job de carritos), `message.queued`, `message.sent`, `message.delivered`, `message.read` (WhatsApp), `message.opened` (correo, con `is_mpp` para las aperturas automáticas de Apple), `message.clicked`, `message.replied`, `message.failed`, `message.bounced`, `message.complained`, `message.unsubscribed`, `whatsapp.inbound` (con `referral` y `ctwa_clid` si viene de un anuncio de clic a WhatsApp, y `wa_ref` si trae token), `consent.granted`, `consent.revoked`, `segment.entered`, `segment.exited`, `points.earned`, `points.redeemed`, `points.expired`, `tier.changed`, `wallet.credited`, `wallet.debited`, `referral.shared`, `referral.converted`, `review.requested`, `review.collected`, `nps.answered`, `survey.answered`, `product_watch.created`, `product_watch.notified`, `flow.entered`, `flow.exited`, `lead.created`, `lead.stage_changed`, `lead.won`, `lead.lost`, `appointment.booked`, `appointment.rescheduled`, `appointment.cancelled`, `appointment.completed`, `appointment.no_show`, `quote.requested`, `conversion.delivered` (a una plataforma de anuncios).
 
 ---
 
@@ -294,6 +303,7 @@ Según la especificación de Meta y Google, se aplica SHA-256 en minúsculas y s
 | 2 | 2026-11-19 | `identify.token` (token firmado de `window.igrUser`). Esquemas de los eventos del hub de §4.6 que se usan en la Fase 1. Solo agrega campos opcionales: un evento v1 sigue siendo válido. |
 | 3 | 2026-11-20 | Fase 2. `order.cart_token` (el carrito del que salió el pedido) y `cart.updated.restored_from` (carrito restaurado desde un enlace). Esquemas de los eventos del hub de la Fase 2: `cart.abandoned`, `message.*` (11), `whatsapp.inbound`, `flow.entered` y `flow.exited`. Los sitios siguen enviando v2 hasta actualizar el plugin; un evento v2 sigue siendo válido. |
 | 4 | 2026-11-21 | Fase 3. `context.referral_code` y `referral_code` en el primer y el último contacto (`?ref=` de referidos y afiliados). Esquemas de los eventos del hub de la Fase 3: `points.earned`, `points.redeemed`, `points.expired`, `tier.changed`, `wallet.credited`, `wallet.debited`, `referral.shared`, `referral.converted`, `review.requested`, `review.collected`, `nps.answered`, `product_watch.created` y `product_watch.notified`. Un evento v3 sigue siendo válido. |
+| 5 | 2026-11-23 | Fase 5. Esquemas de los eventos del hub de servicios: `lead.created`, `lead.stage_changed`, `lead.won`, `lead.lost`, `appointment.booked`, `appointment.rescheduled`, `appointment.cancelled`, `appointment.completed`, `appointment.no_show` y `quote.requested`. Los sitios no envían nada nuevo: el connector y el tracker siguen en la 4, que sigue siendo válida. |
 
 **Regla de identidad para el navegador (v2):** en eventos con `source.type = browser`, el hub **ignora** `identity.customer_ref` salvo en un `identify` con `token` válido. Así nadie puede atribuirse la identidad de otro cliente desde el navegador.
 

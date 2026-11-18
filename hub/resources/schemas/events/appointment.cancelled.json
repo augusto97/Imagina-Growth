@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/appointment.cancelled.json",
+  "title": "appointment.cancelled",
+  "description": "Generado en el hub: se canceló la cita.",
+  "type": "object",
+  "required": [
+    "appointment_id"
+  ],
+  "properties": {
+    "appointment_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "by": {
+      "enum": [
+        "contact",
+        "staff",
+        "system"
+      ]
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 120
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "appointment_id": "ap_01JE",
+      "by": "contact",
+      "reason": null
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "appointment_id": "ap_01JE",
+      "by": "perro"
+    }
+  ]
+}

@@ -25,7 +25,7 @@ final class SchemaRegistry
     ];
 
     /** Prefijos de eventos que solo genera el hub (eventos.md §4.6). */
-    public const HUB_ONLY_PREFIXES = ['message.', 'flow.', 'points.', 'wallet.', 'product_watch.'];
+    public const HUB_ONLY_PREFIXES = ['message.', 'flow.', 'points.', 'wallet.', 'product_watch.', 'lead.', 'appointment.', 'quote.'];
 
     private Validator $validator;
 

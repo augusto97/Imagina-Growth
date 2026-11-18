@@ -18,9 +18,10 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "description": "Versión del contrato. El hub acepta 1 y 2; la 2 solo agrega campos opcionales (eventos.md §8)."
+      "description": "Versión del contrato (eventos.md §8). Cada versión solo agrega eventos o campos opcionales; el hub acepta todas."
     },
     "event_id": {
       "type": "string",

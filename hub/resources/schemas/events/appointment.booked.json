@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/appointment.booked.json",
+  "title": "appointment.booked",
+  "description": "Generado en el hub: se agendó una cita (página de reservas, bandeja, agente, panel o API).",
+  "type": "object",
+  "required": [
+    "appointment_id",
+    "service_id",
+    "starts_at",
+    "duration_min"
+  ],
+  "properties": {
+    "appointment_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "service_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "service_name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 160
+    },
+    "staff_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 40
+    },
+    "starts_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "duration_min": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 1440
+    },
+    "location": {
+      "enum": [
+        "onsite",
+        "online",
+        "phone"
+      ]
+    },
+    "channel": {
+      "enum": [
+        "page",
+        "inbox",
+        "agent",
+        "manual",
+        "api"
+      ]
+    },
+    "lead_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 40
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "appointment_id": "ap_01JE",
+      "service_id": "bs_01JE",
+      "service_name": "Valoración inicial",
+      "staff_id": "sf_01JE",
+      "starts_at": "2026-11-24T15:00:00Z",
+      "duration_min": 30,
+      "location": "online",
+      "channel": "page",
+      "lead_id": null
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "appointment_id": "ap_01JE",
+      "service_id": "bs_01JE",
+      "starts_at": "mañana",
+      "duration_min": 30
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/lead.lost.json",
+  "title": "lead.lost",
+  "description": "Generado en el hub: el lead se perdió.",
+  "type": "object",
+  "required": [
+    "lead_id"
+  ],
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 120
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "lead_id": "ld_01JE",
+      "reason": "Precio"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "reason": "Precio"
+    }
+  ]
+}

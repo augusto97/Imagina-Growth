@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/lead.created.json",
+  "title": "lead.created",
+  "description": "Generado en el hub: un formulario, un WhatsApp, una cotización, una cita, el panel o la API creó un lead.",
+  "type": "object",
+  "required": [
+    "lead_id",
+    "origin",
+    "score",
+    "temperature"
+  ],
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "origin": {
+      "enum": [
+        "form",
+        "whatsapp",
+        "quote",
+        "booking",
+        "manual",
+        "api"
+      ]
+    },
+    "service": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 160
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "temperature": {
+      "enum": [
+        "cold",
+        "warm",
+        "hot"
+      ]
+    },
+    "channel": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 32
+    },
+    "form_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 64
+    },
+    "value": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^-?\\d{1,15}(\\.\\d{1,2})?$"
+    },
+    "currency": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 3
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "lead_id": "ld_01JE",
+      "origin": "form",
+      "service": "Asesoría laboral",
+      "score": 55,
+      "temperature": "warm",
+      "channel": "paid_search",
+      "form_id": "cf7:12",
+      "value": null,
+      "currency": null
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "lead_id": "ld_01JE",
+      "origin": "fax",
+      "score": 10,
+      "temperature": "warm"
+    }
+  ]
+}

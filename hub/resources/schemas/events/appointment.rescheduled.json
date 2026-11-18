@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/appointment.rescheduled.json",
+  "title": "appointment.rescheduled",
+  "description": "Generado en el hub: la cita cambió de hora.",
+  "type": "object",
+  "required": [
+    "appointment_id",
+    "from_starts_at",
+    "starts_at"
+  ],
+  "properties": {
+    "appointment_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "from_starts_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "starts_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "by": {
+      "enum": [
+        "contact",
+        "staff",
+        "system"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "appointment_id": "ap_01JE",
+      "from_starts_at": "2026-11-24T15:00:00Z",
+      "starts_at": "2026-11-25T16:00:00Z",
+      "by": "contact"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "appointment_id": "ap_01JE"
+    }
+  ]
+}

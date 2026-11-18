@@ -334,3 +334,37 @@ La base es la migración `2026_11_22_000100_create_phase4_tables`; cada módulo 
 - `2026_11_22_200100` (hallazgos): `insight_assumptions` (nueva), los supuestos editables del impacto por espacio de trabajo (los valores por defecto viven en `config/igr-insights.php`); `insights.valid_until` (vigencia de 7 días los nocturnos y 14 los semanales) e índice por huella.
 - `2026_11_22_500100` (bandeja): `conversations.opened_at` (inicio del ciclo actual, para la primera respuesta y la resolución) y `awaiting_since` (el primer entrante sin responder), e índice por persona asignada y estado.
 - `2026_11_22_600100` (agente): `ai_agent_turns.conversation_id` opcional (los turnos de «Probar el agente»), `is_test`, `handoff_reason` y `cart_id` (el carrito que armó el agente, para medir sus ventas).
+
+## 15. Tablas y columnas de la Fase 5
+
+La base es la migración `2026_11_23_000100_create_phase5_tables` (más `2026_11_23_000050_create_features_table`, la tabla de Laravel Pennant); cada módulo agrega lo suyo en su rango (`1xxxxx` leads, `2xxxxx` agenda y cotizador, `3xxxxx` agencia y marca blanca, `4xxxxx` planes y facturación, `5xxxxx` API, MCP y webhooks, `6xxxxx` Instagram y Messenger). Diferencias con §8, con su motivo:
+
+**Leads (M18)**
+- `lead_pipelines`: las etapas son JSON con su tipo (`open`, `won`, `lost`), para pipelines propios además del simple.
+- `leads`: además de §8, `pipeline_id`, `site_id`, `service` (lo que pidió), `temperature` (frío, tibio o caliente), `score_reasons` (cada señal con sus puntos; la de IA con su razón visible), `origin` y `origin_ref` (formulario, WhatsApp, cotización, cita, panel o API: la entrada es idempotente por ese par), `first_response_at` y `external_crm_id` (Imagina CRM, Base o Proposals).
+- `lead_activities` (nueva): la historia del lead (creado, etapa, nota, puntaje, aviso, llamada, mensaje, vendedor).
+
+**Agenda y cotizador (M18)**
+- `booking_staff` (nueva): las personas que atienden, con o sin usuario del panel; `calendar` guarda cifrada la conexión con Google Calendar.
+- `booking_services`: `slug` (la página de reservas), `min_notice_hours`, `max_days_ahead` y `active`.
+- `booking_availability`: el día es ISO (1 = lunes); sin `staff_id`, es el horario del negocio.
+- `appointments`: `lead_id`, `channel` (página, bandeja, agente, panel o API), `manage_token` (reprogramar o cancelar desde el enlace) y `notes` cifradas.
+- `quote_calculators` y `quotes` (nuevas): el cotizador genérico y cada estimado que se pidió, con su rango de precio.
+
+**Agencia y marca blanca (M22)**
+- `account_branding` (nueva): nombre, logo, color, remitente y si oculta «Imagina Growth».
+- `custom_domains` (nueva): dominios propios del panel, de los enlaces, de la página de reservas o de seguimiento, con su verificación (los atiende Caddy con TLS bajo demanda).
+- `agency_templates` (nueva): las plantillas maestras de la agencia (flujos, segmentos, widgets, plantillas y campañas) en forma portable.
+- `monthly_reports` (nueva): el reporte mensual con marca (hechos, resumen, PDF y envío).
+- `support_sessions` (nueva): cada entrada de soporte o de la agencia a un espacio de trabajo, con su motivo; además queda en `audit_logs`.
+
+**Planes, uso y facturación (M21)**
+- `plans` (nueva): por pedidos al mes o contactos activos, con los módulos (Pennant) y los límites.
+- `usage_counters`: además de §9, `api_requests`, `computed_at` y `alerts_sent` (avisos al 80 % y al 100 %).
+- `billing_invoices` (nueva): la facturación manual o con enlace de pago de la v1.
+- `accounts.billing_status` (`trial`, `active`, `grace`, `suspended`), `trial_ends_at` y `grace_ends_at`: sin cortes bruscos.
+
+**API y webhooks (M19)**
+- `webhook_subscriptions`: además de §7, `consecutive_failures`, `last_success_at` y `created_by`.
+- `webhook_deliveries` (nueva): cada intento de entrega con su código, duración y siguiente intento (registro visible).
+- `api_clients` (nueva): los clientes de la API y del servidor MCP con sus alcances; los tokens son de Sanctum.

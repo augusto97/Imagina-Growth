@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/quote.requested.json",
+  "title": "quote.requested",
+  "description": "Generado en el hub: la persona pidió un precio estimado en el cotizador y dejó sus datos.",
+  "type": "object",
+  "required": [
+    "quote_id",
+    "calculator_id"
+  ],
+  "properties": {
+    "quote_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "calculator_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "calculator_name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 160
+    },
+    "estimate_min": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^-?\\d{1,15}(\\.\\d{1,2})?$"
+    },
+    "estimate_max": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^-?\\d{1,15}(\\.\\d{1,2})?$"
+    },
+    "currency": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 3
+    },
+    "lead_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 40
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "quote_id": "qt_01JE",
+      "calculator_id": "qc_01JE",
+      "calculator_name": "Pintura de fachada",
+      "estimate_min": "1800000.00",
+      "estimate_max": "2400000.00",
+      "currency": "COP",
+      "lead_id": "ld_01JE"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "quote_id": "qt_01JE"
+    }
+  ]
+}

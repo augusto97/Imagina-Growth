@@ -22,7 +22,11 @@ export type Ability =
     | 'viewAuditLog'
     | 'useInbox'
     | 'manageInbox'
-    | 'useAi';
+    | 'useAi'
+    | 'useLeads'
+    | 'manageServices'
+    | 'manageApi'
+    | 'viewAgency';
 
 export interface Workspace {
     id: string;

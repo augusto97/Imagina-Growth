@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/appointment.completed.json",
+  "title": "appointment.completed",
+  "description": "Generado en el hub: la cita se cumplió.",
+  "type": "object",
+  "required": [
+    "appointment_id"
+  ],
+  "properties": {
+    "appointment_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "service_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 40
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "appointment_id": "ap_01JE",
+      "service_id": "bs_01JE"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "service_id": "bs_01JE"
+    }
+  ]
+}

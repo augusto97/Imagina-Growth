@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/lead.won.json",
+  "title": "lead.won",
+  "description": "Generado en el hub: el lead se ganó (sirve de conversión offline hacia Meta y Google).",
+  "type": "object",
+  "required": [
+    "lead_id"
+  ],
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "value": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^-?\\d{1,15}(\\.\\d{1,2})?$"
+    },
+    "currency": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 3
+    },
+    "days_to_win": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "service": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 160
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "lead_id": "ld_01JE",
+      "value": "2500000.00",
+      "currency": "COP",
+      "days_to_win": 12,
+      "service": "Asesoría laboral"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "lead_id": "ld_01JE",
+      "value": "mucho"
+    }
+  ]
+}

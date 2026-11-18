@@ -42,6 +42,12 @@ enum WorkspaceRole: string
         'useInbox' => ['owner', 'admin', 'marketing', 'agent'],
         'manageInbox' => ['owner', 'admin'],
         'useAi' => ['owner', 'admin', 'marketing'],
+        // Fase 5: leads y agenda (M18), API e integraciones (M19) y agencia (M22). `viewAgency` se
+        // concede además a los miembros de la cuenta de agencia (account_user), fuera de este rol.
+        'useLeads' => ['owner', 'admin', 'marketing', 'agent'],
+        'manageServices' => ['owner', 'admin'],
+        'manageApi' => ['owner', 'admin'],
+        'viewAgency' => ['owner'],
     ];
 
     public function can(string $ability): bool
