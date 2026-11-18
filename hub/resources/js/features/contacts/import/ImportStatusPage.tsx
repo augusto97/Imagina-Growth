@@ -97,7 +97,7 @@ export function ImportStatusPage() {
                                 <ShieldCheck className="igr:mt-0.5 igr:size-4 igr:shrink-0 igr:text-success" />
                                 {t('contacts.import.status.consentDeclared', {
                                     channels: imp.consent.channels.map((c) => t(`contacts.consentChannels.${c}`)).join(', '),
-                                    date: formatDate(imp.consent.date, workspace.locale),
+                                    date: formatDate(imp.consent.date, workspace.locale, workspace.timezone),
                                     source: imp.consent.source,
                                 })}
                             </>

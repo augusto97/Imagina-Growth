@@ -15,6 +15,8 @@ const { chromium } = require('playwright');
 
 const BASE = process.env.STORE_URL || 'http://127.0.0.1:8080';
 const EMAIL = process.env.EMAIL || 'laura.gomez.e2e@example.com';
+// Un celular distinto en cada corrida: con el mismo, la identidad (correctamente) la uniría a la compradora anterior.
+const PHONE = process.env.PHONE || '310' + String(Date.now()).slice(-7);
 const SHOTS = process.env.SHOTS || '';
 
 /**
@@ -96,7 +98,7 @@ async function waitFor(fn, what, timeout = 15000) {
     await page.goto(BASE + '/checkout/');
     await ready(page);
     await flush(page);
-    const checkout = await page.evaluate(async (email) => {
+    const checkout = await page.evaluate(async ({ email, phone }) => {
         const r = await fetch('/wp-json/wc/store/v1/cart', { credentials: 'same-origin' });
         const nonce = r.headers.get('Nonce');
         const address = {
@@ -107,7 +109,7 @@ async function waitFor(fn, what, timeout = 15000) {
             state: 'CO-CAL',
             postcode: '170001',
             country: 'CO',
-            phone: '3001234567',
+            phone,
         };
         const res = await fetch('/wp-json/wc/store/v1/checkout', {
             method: 'POST',
@@ -123,7 +125,7 @@ async function waitFor(fn, what, timeout = 15000) {
         const body = await res.json();
         if (!res.ok) throw new Error('checkout ' + res.status + ' ' + JSON.stringify(body));
         return { orderId: String(body.order_id), redirect: body.payment_result.redirect_url, status: body.status };
-    }, EMAIL);
+    }, { email: EMAIL, phone: PHONE });
 
     // 4. Página de gracias: píxel de compra con el event_id de igrOrder y encuesta.
     await page.goto(checkout.redirect);

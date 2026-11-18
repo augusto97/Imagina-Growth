@@ -226,7 +226,7 @@ export function ContactsPage() {
                                     </TD>
                                     <TD className="igr:text-right igr:tabular-nums">{formatNumber(c.orders_count, workspace.locale)}</TD>
                                     <TD className="igr:whitespace-nowrap igr:text-right igr:tabular-nums">{formatMoney(c.revenue_total_ws, workspace.currency, workspace.locale)}</TD>
-                                    <TD className="igr:hidden igr:whitespace-nowrap igr:text-right igr:text-muted-foreground igr:lg:table-cell">{formatDate(c.last_order_at, workspace.locale)}</TD>
+                                    <TD className="igr:hidden igr:whitespace-nowrap igr:text-right igr:text-muted-foreground igr:lg:table-cell">{formatDate(c.last_order_at, workspace.locale, workspace.timezone)}</TD>
                                     <TD className="igr:hidden igr:text-muted-foreground igr:xl:table-cell">{answerLabel(survey.data, c.hdyhau) ?? '—'}</TD>
                                     <TD className="igr:hidden igr:xl:table-cell">
                                         <div className="igr:flex igr:max-w-48 igr:flex-wrap igr:gap-1">

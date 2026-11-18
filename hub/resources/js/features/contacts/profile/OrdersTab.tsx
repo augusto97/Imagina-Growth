@@ -80,7 +80,7 @@ export function OrdersTab({ contactId, enabled }: { contactId: string; enabled: 
                                             </Badge>
                                         )}
                                     </TD>
-                                    <TD className="igr:whitespace-nowrap igr:text-muted-foreground">{formatDate(o.created_at, workspace.locale)}</TD>
+                                    <TD className="igr:whitespace-nowrap igr:text-muted-foreground">{formatDate(o.created_at, workspace.locale, workspace.timezone)}</TD>
                                     <TD>
                                         <div className="igr:flex igr:flex-wrap igr:gap-1">
                                             <Badge variant={o.status === 'completed' ? 'success' : ['cancelled', 'failed', 'refunded'].includes(o.status) ? 'outline' : 'secondary'}>

@@ -252,7 +252,7 @@ export function TeamPage() {
                                             <li key={inv.id} className="igr:flex igr:items-center igr:gap-3 igr:py-2.5 igr:text-[13px]">
                                                 <span className="igr:flex-1">{inv.email}</span>
                                                 <Badge variant="outline">{t(`roles.${inv.role}`)}</Badge>
-                                                <span className="igr:text-xs igr:text-muted-foreground">{t('invitation.expires', { date: formatDate(inv.expires_at, workspace.locale) })}</span>
+                                                <span className="igr:text-xs igr:text-muted-foreground">{t('invitation.expires', { date: formatDate(inv.expires_at, workspace.locale, workspace.timezone) })}</span>
                                                 <Button variant="ghost" size="sm" onClick={() => revoke.mutate(inv.id)}>
                                                     {t('team.revoke')}
                                                 </Button>

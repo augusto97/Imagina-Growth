@@ -34,6 +34,7 @@ HUB="http://127.0.0.1:${HUB_PORT}"
 export APP_URL="$HUB" IGR_APP_URL="$HUB" IGR_INGEST_URL="$HUB"
 export DB_DATABASE=igr_e2e1 CLICKHOUSE_DATABASE=igr_e2e1 REDIS_INGEST_DB=13 REDIS_DB=14 REDIS_CACHE_DB=15
 export QUEUE_CONNECTION=redis CACHE_STORE=redis SESSION_DRIVER=database
+export SANCTUM_STATEFUL_DOMAINS="127.0.0.1:${HUB_PORT}"
 export IGR_META_GRAPH_URL="http://127.0.0.1:${META_PORT}"
 export MAIL_MAILER=smtp MAIL_HOST=127.0.0.1 MAIL_PORT="$SMTP_PORT" MAIL_SCHEME=smtp MAIL_USERNAME= MAIL_PASSWORD=
 export IGR_E2E_LOGS="$LOGS"
@@ -50,6 +51,8 @@ cleanup() {
     if [ -n "$STORE_STATE" ]; then
         $WP option update woocommerce_coming_soon "$STORE_STATE" >/dev/null 2>&1 || true
         $WP igr disconnect >/dev/null 2>&1 || true
+        # Ya desconectada: los pedidos de la prueba se borran (devolviendo el stock) sin dejar nada en el outbox.
+        $WP eval 'global $wpdb; foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM {$wpdb->prefix}wc_orders WHERE billing_email LIKE %s", "laura.gomez.%@example.com")) as $id) { $o = wc_get_order((int) $id); if ($o) { wc_increase_stock_levels($o); $o->delete(true); } }' >/dev/null 2>&1 || true
     fi
 }
 trap cleanup EXIT

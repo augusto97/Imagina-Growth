@@ -47,10 +47,20 @@ const ymd = (d) => d.toISOString().slice(0, 10);
     await page.fill('input[type=password]', OWNER_PASS);
     await page.click('button[type=submit]');
     await page.waitForURL(/verificacion/, { timeout: 15000 });
-    if (Date.now() % 30000 > 27000) await page.waitForTimeout(3500); // que el código no venza a mitad de camino
-    await page.locator('input').first().fill(totp(TOTP_SECRET));
-    await page.click('button[type=submit]');
-    await page.waitForURL((u) => !u.pathname.startsWith('/verificacion') && !u.pathname.startsWith('/login'), { timeout: 15000 });
+    const leftChallenge = (u) => !u.pathname.startsWith('/verificacion') && !u.pathname.startsWith('/login');
+    for (let attempt = 0; ; attempt++) {
+        if (Date.now() % 30000 > 27000) await page.waitForTimeout(3500); // que el código no venza a mitad de camino
+        await page.locator('input').first().fill(totp(TOTP_SECRET));
+        await page.click('button[type=submit]');
+        try {
+            await page.waitForURL(leftChallenge, { timeout: 8000 });
+            break;
+        } catch (e) {
+            // Un código ya usado no se acepta dos veces (Fortify): se espera la siguiente ventana de 30 s.
+            if (attempt > 0) throw e;
+            await page.waitForTimeout(30000 - (Date.now() % 30000) + 500);
+        }
+    }
 
     // 2. Tableros con un año de datos, sin caché (cada consulta con un rango distinto).
     const to = new Date();

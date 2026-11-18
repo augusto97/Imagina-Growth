@@ -60,8 +60,8 @@ export function IdentitiesTab({ contactId }: { contactId: string }) {
                                     <TD className="igr:font-medium">{r.label}</TD>
                                     <TD className="igr:font-mono igr:text-xs igr:text-muted-foreground">{r.display}</TD>
                                     <TD className="igr:hidden igr:text-muted-foreground igr:md:table-cell">{r.site ?? '—'}</TD>
-                                    <TD className="igr:whitespace-nowrap igr:text-muted-foreground">{formatDate(r.first_seen_at, workspace.locale)}</TD>
-                                    <TD className="igr:whitespace-nowrap igr:text-muted-foreground">{formatDate(r.last_seen_at, workspace.locale)}</TD>
+                                    <TD className="igr:whitespace-nowrap igr:text-muted-foreground">{formatDate(r.first_seen_at, workspace.locale, workspace.timezone)}</TD>
+                                    <TD className="igr:whitespace-nowrap igr:text-muted-foreground">{formatDate(r.last_seen_at, workspace.locale, workspace.timezone)}</TD>
                                 </TR>
                             ))}
                         </TBody>

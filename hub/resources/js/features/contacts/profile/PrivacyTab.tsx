@@ -86,7 +86,7 @@ export function PrivacyTab({ contactId, onExport, onDelete }: { contactId: strin
                                     </TD>
                                     <TD className="igr:hidden igr:text-muted-foreground igr:md:table-cell">{sourceText(c?.source)}</TD>
                                     <TD className="igr:hidden igr:font-mono igr:text-xs igr:text-muted-foreground igr:md:table-cell">{c?.version ?? '—'}</TD>
-                                    <TD className="igr:text-muted-foreground">{formatDate(granted ? c.granted_at : (c?.revoked_at ?? null), workspace.locale)}</TD>
+                                    <TD className="igr:text-muted-foreground">{formatDate(granted ? c.granted_at : (c?.revoked_at ?? null), workspace.locale, workspace.timezone)}</TD>
                                     <TD className="igr:text-right">
                                         {granted && can.edit && (
                                             <Button variant="outline" size="sm" onClick={() => setPending({ channel, action: 'revoked' })}>
@@ -170,7 +170,7 @@ export function PrivacyTab({ contactId, onExport, onDelete }: { contactId: strin
                                         </Button>
                                     ) : (
                                         <span className="igr:text-xs igr:text-muted-foreground">
-                                            {r.status === 'completed' ? '' : t('privacy.requests.dueOn', { date: formatDate(r.due_at, workspace.locale) })}
+                                            {r.status === 'completed' ? '' : t('privacy.requests.dueOn', { date: formatDate(r.due_at, workspace.locale, workspace.timezone) })}
                                         </span>
                                     )}
                                 </li>

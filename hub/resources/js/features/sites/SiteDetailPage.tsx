@@ -93,7 +93,7 @@ export function SiteDetailPage() {
                             </div>
                             <CardDescription>
                                 {site.backfill?.from
-                                    ? t('sites.backfill.since', { date: formatDate(site.backfill.from, locale) })
+                                    ? t('sites.backfill.since', { date: formatDate(site.backfill.from, locale, tz) })
                                     : t('sites.backfill.description')}
                                 {site.backfill?.finished_at ? ` · ${t('sites.backfill.finished', { when: formatDateTime(site.backfill.finished_at, locale, tz) })}` : ''}
                             </CardDescription>

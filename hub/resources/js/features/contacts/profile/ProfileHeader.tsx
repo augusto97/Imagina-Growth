@@ -72,7 +72,7 @@ export function ProfileHeader({ profile, actions }: { profile: ContactProfile; a
                                             ? t('contacts.consent.none', { channel: label })
                                             : t(status === 'granted' ? 'contacts.consent.grantedOn' : 'contacts.consent.revokedOn', {
                                                   channel: label,
-                                                  date: formatDate(consent?.at, workspace.locale),
+                                                  date: formatDate(consent?.at, workspace.locale, workspace.timezone),
                                               })
                                     }
                                 >
@@ -105,7 +105,7 @@ export function ProfileHeader({ profile, actions }: { profile: ContactProfile; a
                     )}
                 </Kpi>
                 <Kpi label={t('contacts.profile.nextOrder')} help={t('contacts.profile.nextOrderHelp')}>
-                    {profile.expected_next_order_at ? formatDate(profile.expected_next_order_at, workspace.locale) : <span className="igr:text-muted-foreground">—</span>}
+                    {profile.expected_next_order_at ? formatDate(profile.expected_next_order_at, workspace.locale, workspace.timezone) : <span className="igr:text-muted-foreground">—</span>}
                 </Kpi>
             </dl>
             <TagsEditor profile={profile} />

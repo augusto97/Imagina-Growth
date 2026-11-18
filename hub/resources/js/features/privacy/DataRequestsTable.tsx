@@ -84,13 +84,13 @@ export function DataRequestsTable({ requests, canExport, canDelete }: { requests
                                         <span className="igr:text-muted-foreground">{r.kind === 'delete' && r.status === 'completed' ? t('privacy.requests.erased') : t('privacy.requests.unknownPerson')}</span>
                                     )}
                                 </TD>
-                                <TD className="igr:text-muted-foreground">{formatDate(r.created_at, workspace.locale)}</TD>
+                                <TD className="igr:text-muted-foreground">{formatDate(r.created_at, workspace.locale, workspace.timezone)}</TD>
                                 <TD>
                                     {r.status === 'completed' ? (
-                                        <span className="igr:text-muted-foreground">{t('privacy.requests.doneOn', { date: formatDate(r.completed_at, workspace.locale) })}</span>
+                                        <span className="igr:text-muted-foreground">{t('privacy.requests.doneOn', { date: formatDate(r.completed_at, workspace.locale, workspace.timezone) })}</span>
                                     ) : (
                                         <span className={tone === 'overdue' ? 'igr:font-medium igr:text-destructive' : tone === 'soon' ? 'igr:font-medium igr:text-warning' : undefined}>
-                                            {formatDate(r.due_at, workspace.locale)}
+                                            {formatDate(r.due_at, workspace.locale, workspace.timezone)}
                                             {tone === 'overdue' && ` · ${t('privacy.requests.overdue')}`}
                                         </span>
                                     )}

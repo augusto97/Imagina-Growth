@@ -29,9 +29,9 @@ export function SummaryTab({ profile }: { profile: ContactProfile }) {
                 <Stat label={t('contacts.profile.stats.avgDays')}>
                     {avgDays !== null && Number.isFinite(avgDays) ? t('contacts.profile.stats.days', { count: Math.round(avgDays) }) : '—'}
                 </Stat>
-                <Stat label={t('contacts.profile.stats.firstOrder')}>{formatDate(s.first_order_at, locale)}</Stat>
+                <Stat label={t('contacts.profile.stats.firstOrder')}>{formatDate(s.first_order_at, locale, workspace.timezone)}</Stat>
                 <Stat label={t('contacts.profile.stats.lastOrder')} hint={s.last_order_at ? formatRelative(s.last_order_at, locale) : undefined}>
-                    {formatDate(s.last_order_at, locale)}
+                    {formatDate(s.last_order_at, locale, workspace.timezone)}
                 </Stat>
                 <Stat label={t('contacts.profile.stats.refunds')}>{formatNumber(s.refunds_count, locale)}</Stat>
                 <Stat label={t('contacts.profile.stats.coupons')}>{couponRatio !== null && Number.isFinite(couponRatio) ? formatPercent(couponRatio, locale) : '—'}</Stat>
@@ -52,7 +52,7 @@ export function SummaryTab({ profile }: { profile: ContactProfile }) {
                                 label: t('contacts.profile.origin.hdyhau'),
                                 value: answerLabel(survey.data, profile.hdyhau) ?? <span className="igr:text-muted-foreground">{t('contacts.profile.origin.noAnswer')}</span>,
                             },
-                            { label: t('contacts.profile.origin.firstSeen'), value: formatDate(profile.first_seen_at, locale) },
+                            { label: t('contacts.profile.origin.firstSeen'), value: formatDate(profile.first_seen_at, locale, workspace.timezone) },
                             { label: t('contacts.profile.origin.lastSeen'), value: profile.last_seen_at ? formatRelative(profile.last_seen_at, locale) : '—' },
                             ...(profile.merged_count > 0 ? [{ label: t('contacts.profile.origin.merged'), value: t('contacts.profile.origin.mergedCount', { count: profile.merged_count }) }] : []),
                         ]}
@@ -86,7 +86,7 @@ function TouchValue({ touch }: { touch: Touch | null }) {
         <span>
             {t(`contacts.channels.${touch.channel}`, { defaultValue: touch.channel })}
             {detail && <span className="igr:text-muted-foreground"> · {detail}</span>}
-            {touch.at && <span className="igr:text-muted-foreground"> · {formatDate(touch.at, workspace.locale)}</span>}
+            {touch.at && <span className="igr:text-muted-foreground"> · {formatDate(touch.at, workspace.locale, workspace.timezone)}</span>}
         </span>
     );
 }

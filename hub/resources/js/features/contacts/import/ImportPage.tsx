@@ -208,7 +208,7 @@ export function ImportPage() {
                                     <ShieldCheck className="igr:size-4 igr:text-success" />
                                     {t('contacts.import.confirm.consentDeclared', {
                                         channels: consent.channels.map((c) => t(`contacts.consentChannels.${c}`)).join(', '),
-                                        date: formatDate(consent.date, workspace.locale),
+                                        date: formatDate(consent.date, workspace.locale, workspace.timezone),
                                     })}
                                     <span className="igr:w-full igr:text-xs igr:text-muted-foreground">«{consent.source.trim()}»</span>
                                 </span>
@@ -513,7 +513,7 @@ function RecentImports() {
                             <TD className="igr:text-right igr:tabular-nums">{formatNumber(imp.totals.created, workspace.locale)}</TD>
                             <TD className="igr:text-right igr:tabular-nums">{formatNumber(imp.totals.updated, workspace.locale)}</TD>
                             <TD className="igr:text-right igr:tabular-nums">{formatNumber(imp.totals.invalid, workspace.locale)}</TD>
-                            <TD className="igr:text-muted-foreground">{formatDate(imp.created_at, workspace.locale)}</TD>
+                            <TD className="igr:text-muted-foreground">{formatDate(imp.created_at, workspace.locale, workspace.timezone)}</TD>
                         </TR>
                     ))}
                 </TBody>
