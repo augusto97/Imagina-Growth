@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { filterQuery } from './api';
-import { moveChannel, parseEmails, settingsPayload, settingsProblems, surveyCategory, surveyProblems, toggleChannel } from './logic';
+import { moveChannel, parseEmails, settingsPayload, settingsProblems, surveyCategory, surveyDraft, surveyProblems, toggleChannel } from './logic';
 import type { ReviewSettings, SurveySettings } from './types';
 
 const base: ReviewSettings = {
@@ -72,8 +72,7 @@ describe('encuestas', () => {
             id: 'sv_1', kind: 'csat', status: 'active', question: '¿Qué tal?', comment_label: '', thanks: 'Gracias', scale: { min: 1, max: 5 },
             after: 'completed', days: 3, channels: ['email'], email_template_id: null, whatsapp_template_id: null, sms_template_id: null, alert_threshold: 2, alert_emails: ['malo'],
         };
-        const { id: _i, kind: _k, scale: _s, ...draft } = s;
-        expect(surveyProblems(draft, 'csat')).toEqual(['csatTemplate', 'alertEmails']);
+        expect(surveyProblems(surveyDraft(s), 'csat')).toEqual(['csatTemplate', 'alertEmails']);
         expect(parseEmails('A@x.co, b@y.co\nA@x.co')).toEqual(['a@x.co', 'b@y.co']);
     });
 });

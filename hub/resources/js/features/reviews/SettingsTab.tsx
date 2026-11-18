@@ -14,7 +14,7 @@ import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
 import { useReviewSettings, useSaveReviewSettings } from './api';
 import { CHANNELS, moveChannel, settingsPayload, settingsProblems, toggleChannel } from './logic';
-import type { Channel, ReviewSettings, ReviewSettingsResponse } from './types';
+import type { ReviewSettings, ReviewSettingsResponse } from './types';
 
 /** Ajustes de reseñas: solicitud automática, moderación, Google y publicación en la tienda. */
 export function SettingsTab() {
@@ -164,10 +164,10 @@ function Editor({ data }: { data: ReviewSettingsResponse }) {
                                                     className="igr:mt-2"
                                                     aria-label={t('reviews.settings.templateFor', { channel: t(`reviews.channels.${c}`) })}
                                                     value={r[key] ?? ''}
-                                                    onChange={(e) => setReq({ [key]: e.target.value === '' ? null : e.target.value } as Partial<ReviewSettings['request']>)}
+                                                    onChange={(e) => setReq({ [key]: e.target.value === '' ? null : e.target.value })}
                                                 >
                                                     <option value="">{c === 'email' ? t('reviews.settings.libraryTemplate') : t('reviews.settings.chooseTemplate')}</option>
-                                                    {options.templates[c as Channel].map((tpl) => (
+                                                    {options.templates[c].map((tpl) => (
                                                         <option key={tpl.id} value={tpl.id}>
                                                             {tpl.name}
                                                         </option>

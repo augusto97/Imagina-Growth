@@ -3,7 +3,7 @@
  * contenedor (modal, esquina, barra o slot) accesible, campos con etiqueta, casillas
  * de consentimiento sin marcar con el texto y la versión del hub, envío y mensaje final.
  */
-import { copyButton, h, overlayHost, shadow, uid } from './dom';
+import { copyButton, h, loc, overlayHost, shadow, uid } from './dom';
 import type { ConsentText, Ctx, Field, Live, Step, SubmitResult } from './types';
 
 export const FORM_CSS =
@@ -116,7 +116,7 @@ function invalid(fd: Field, v: string): string | null {
 function fmtDate(iso?: string | null): string {
     if (!iso) return '';
     const d = new Date(iso);
-    return isNaN(d.getTime()) ? '' : d.toLocaleDateString(document.documentElement.lang || 'es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString(loc(), { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 /** Mensaje final: cupón con «Copiar», doble opt-in y productos del quiz. */
@@ -126,7 +126,7 @@ export function success(live: Live, x: Ctx, res: SubmitResult, products?: (res: 
     const exp = fmtDate(res.coupon?.expires_at);
     return h(
         'div',
-        { class: 'ok', role: 'status' },
+        { class: 'ok', role: 'status', tabindex: '-1' },
         res.prize ? h('h3', null, res.prize.label) : null,
         h('p', null, msg),
         code ? h('div', { class: 'cp' }, h('strong', null, code), copyButton(code)) : null,
@@ -252,7 +252,10 @@ export function capture(f: Frame, live: Live, x: Ctx, opts: { into?: HTMLElement
                     x.mark(live, 'submit');
                     x.track('widget.submitted', live);
                     const fin = (): void => {
-                        into.replaceChildren(...keep, success(live, x, got, opts.products));
+                        // El título se queda: el diálogo conserva su nombre accesible.
+                        const tid = f.box.getAttribute('data-title') ?? '';
+                        const title = live.content.title ? (opts.compact ? h('p', { id: tid }, h('strong', null, live.content.title)) : h('h2', { id: tid }, live.content.title)) : null;
+                        into.replaceChildren(...keep, ...(title ? [title] : []), success(live, x, got, opts.products));
                         (into.querySelector('[role=status]') as HTMLElement | null)?.focus?.();
                     };
                     if (opts.after) opts.after(got, fin);

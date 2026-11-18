@@ -59,12 +59,18 @@ export function collapse(slot: HTMLElement | null): void {
     }
 }
 
+/** Los widgets hablan español: el idioma de la página si es español; si no, es-CO. */
+export function loc(): string {
+    const l = document.documentElement.lang || '';
+    return /^es([-_]|$)/i.test(l) ? l.replace('_', '-') : 'es-CO';
+}
+
 /** Monto en la moneda de la tienda, sin decimales si no los tiene («$ 150.000»). */
 export function money(v: string | number | null | undefined, currency: string): string {
     const n = Number(v);
     if (v == null || v === '' || !isFinite(n)) return '';
     try {
-        return new Intl.NumberFormat(document.documentElement.lang || 'es-CO', { style: 'currency', currency: currency || 'COP', minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }).format(n);
+        return new Intl.NumberFormat(loc(), { style: 'currency', currency: currency || 'COP', minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }).format(n);
     } catch {
         return String(v);
     }

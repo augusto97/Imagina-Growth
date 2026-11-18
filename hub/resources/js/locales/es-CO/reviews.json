@@ -1,0 +1,398 @@
+{
+    "reviews": {
+        "title": "Reseñas",
+        "description": "Pide reseñas después de cada entrega, modéralas y publícalas en tu tienda. Mide la satisfacción con NPS y CSAT.",
+        "stars_one": "{{count}} estrella",
+        "stars_other": "{{count}} estrellas",
+        "tabs": {
+            "moderacion": "Por moderar",
+            "todas": "Todas",
+            "solicitudes": "Solicitudes",
+            "nps": "NPS y CSAT",
+            "ajustes": "Ajustes",
+            "importar": "Importar"
+        },
+        "summary": {
+            "avg": "Calificación promedio",
+            "published_one": "{{count}} reseña publicada",
+            "published_other": "{{count}} reseñas publicadas",
+            "pending": "Por moderar",
+            "flagged_one": "{{count}} con alertas del filtro",
+            "flagged_other": "{{count}} con alertas del filtro",
+            "withMedia": "Con foto o video",
+            "withMediaHelp": "Reseñas publicadas con al menos una foto o un video. Las reseñas con fotos convencen más.",
+            "completion": "Solicitudes respondidas",
+            "completionHelp": "Solicitudes con al menos una reseña sobre las enviadas en el periodo.",
+            "requests_one": "{{count}} enviada en {{days}} días",
+            "requests_other": "{{count}} enviadas en {{days}} días",
+            "distribution": "Calificaciones publicadas"
+        },
+        "status": {
+            "pending": "Pendiente",
+            "published": "Publicada",
+            "publishedStore": "Publicada en la tienda",
+            "rejected": "Rechazada",
+            "rejectedBecause": "Rechazada: {{reason}}"
+        },
+        "source": {
+            "request": "Por solicitud",
+            "widget": "Widget",
+            "import": "Importada",
+            "woocommerce": "WooCommerce"
+        },
+        "channels": {
+            "whatsapp": "WhatsApp",
+            "email": "Correo",
+            "sms": "SMS"
+        },
+        "flags": {
+            "offensive": "Lenguaje ofensivo",
+            "spam": "Posible spam",
+            "personal_data": "Datos personales"
+        },
+        "flagDetails": {
+            "words": "palabras",
+            "link": "enlace",
+            "phrase": "publicidad",
+            "repeated_chars": "texto repetido",
+            "all_caps": "mayúsculas",
+            "email": "correo",
+            "phone": "teléfono",
+            "document": "documento",
+            "address": "dirección"
+        },
+        "reasons": {
+            "offensive": "Lenguaje ofensivo",
+            "spam": "Spam o publicidad",
+            "personal_data": "Tiene datos personales",
+            "off_topic": "No habla del producto",
+            "duplicate": "Duplicada",
+            "other": "Otro motivo"
+        },
+        "card": {
+            "anonymous": "Cliente",
+            "verified": "Compra verificada",
+            "storeReview": "Reseña de la tienda",
+            "product": "Producto {{id}}",
+            "order": "Pedido #{{number}}",
+            "noText": "Sin comentario (solo la calificación).",
+            "media": "Fotos y videos",
+            "photo": "Foto {{n}}",
+            "video": "Video {{n}}",
+            "yourReply": "Tu respuesta",
+            "syncFailed": "No se pudo actualizar en la tienda: {{error}}",
+            "approve": "Aprobar",
+            "approved": "Reseña aprobada",
+            "reject": "Rechazar",
+            "rejected": "Reseña rechazada",
+            "reply": "Responder",
+            "editReply": "Editar respuesta",
+            "profile": "Ver perfil",
+            "select": "Seleccionar la reseña de {{author}}"
+        },
+        "reject": {
+            "title": "Rechazar la reseña",
+            "description": "Rechaza solo por el contenido. Una calificación baja no es motivo: ocultar las críticas engaña a tus clientes.",
+            "reason": "Motivo",
+            "onStore": "También se retirará de tu tienda (quedará pendiente en WooCommerce)."
+        },
+        "reply": {
+            "title": "Responder a {{author}}",
+            "description": "Tu respuesta se muestra debajo de la reseña en los widgets.",
+            "onStore": "Tu respuesta se publica debajo de la reseña en los widgets y en tu tienda.",
+            "label": "Respuesta",
+            "placeholder": "Gracias por tu compra y por contarnos tu experiencia…",
+            "save": "Guardar respuesta",
+            "saved": "Respuesta guardada"
+        },
+        "queue": {
+            "hint": "Las más antiguas primero. El filtro marca lenguaje ofensivo, spam y datos personales; tú decides.",
+            "bulk": "Acciones en lote",
+            "selectAll": "Seleccionar las {{count}}",
+            "approveSelected_one": "Aprobar {{count}}",
+            "approveSelected_other": "Aprobar {{count}}",
+            "rejectSelected_one": "Rechazar {{count}}",
+            "rejectSelected_other": "Rechazar {{count}}",
+            "bulkApproved_one": "{{count}} reseña aprobada",
+            "bulkApproved_other": "{{count}} reseñas aprobadas",
+            "bulkRejected_one": "{{count}} reseña rechazada",
+            "bulkRejected_other": "{{count}} reseñas rechazadas",
+            "emptyTitle": "No hay reseñas por moderar",
+            "emptyDescription": "Cuando lleguen reseñas nuevas que necesiten revisión, aparecerán aquí."
+        },
+        "filters": {
+            "label": "Filtros de reseñas",
+            "search": "Buscar en el texto o el autor",
+            "status": "Estado",
+            "anyStatus": "Cualquier estado",
+            "rating": "Calificación",
+            "anyRating": "Cualquier calificación",
+            "source": "Origen",
+            "anySource": "Cualquier origen",
+            "media": "Con foto o video",
+            "flagged": "Con alertas",
+            "count_one": "{{count}} reseña",
+            "count_other": "{{count}} reseñas",
+            "emptyTitle": "No hay reseñas con estos filtros",
+            "emptyDescription": "Prueba con otros filtros o espera a que lleguen las primeras reseñas."
+        },
+        "pager": {
+            "label": "Páginas",
+            "of": "Página {{page}} de {{pages}}"
+        },
+        "requests": {
+            "hint": "Una solicitud por pedido. Las que la política aplaza (horario legal, festivos, frecuencia) salen después.",
+            "status": "Estado",
+            "any": "Todas",
+            "order": "Pedido",
+            "channel": "Canal",
+            "scheduled": "Programada",
+            "sent": "Enviada",
+            "completed": "Respondida",
+            "products_one": "· {{count}} producto",
+            "products_other": "· {{count}} productos",
+            "statuses": {
+                "scheduled": "Programada",
+                "sent": "Enviada",
+                "completed": "Respondida",
+                "skipped": "Omitida",
+                "expired": "Vencida"
+            },
+            "reasons": {
+                "no_template": "falta la plantilla",
+                "no_consent": "sin consentimiento",
+                "no_address": "sin correo ni teléfono",
+                "channel_unavailable": "canal no conectado",
+                "already_reviewed": "ya reseñó",
+                "order_cancelled": "pedido cancelado",
+                "disabled": "solicitudes apagadas",
+                "suppressed": "en la lista de supresión",
+                "not_sent_in_time": "no salió a tiempo",
+                "no_channel": "sin canal"
+            },
+            "emptyTitle": "Aún no hay solicitudes",
+            "emptyDescription": "Activa la solicitud automática en Ajustes. Cada pedido entregado programará la suya."
+        },
+        "settings": {
+            "saved": "Ajustes guardados",
+            "readOnly": "Solo marketing o un administrador puede cambiar estos ajustes.",
+            "requestTitle": "Solicitud automática",
+            "requestDescription": "Después de la entrega (o del pago), le pedimos la reseña a cada cliente por el canal que prefieras.",
+            "enabled": "Pedir reseñas automáticamente",
+            "trigger": "Contar los días desde",
+            "triggers": {
+                "completed": "La entrega (pedido completado)",
+                "paid": "El pago"
+            },
+            "days": "Días de espera",
+            "daysUnit": "días",
+            "linkDays": "El enlace vale (días)",
+            "categoryDays": "Días por categoría",
+            "categoryDaysHelp": "Algunos productos se prueban más tarde. Si un pedido tiene varias categorías, gana la que más espera.",
+            "category": "Categoría {{n}}",
+            "categoryDaysFor": "Días de la categoría {{n}}",
+            "chooseCategory": "Elige una categoría",
+            "addCategory": "Agregar categoría",
+            "removeCategory": "Quitar la categoría {{n}}",
+            "channels": "Canales, en orden de preferencia",
+            "channelsHelp": "Si no podemos usar el primero (sin consentimiento o sin número), probamos el siguiente.",
+            "order": "{{n}}.º",
+            "moveUp": "Subir {{channel}}",
+            "moveDown": "Bajar {{channel}}",
+            "templateFor": "Plantilla de {{channel}}",
+            "chooseTemplate": "Elige la plantilla aprobada",
+            "libraryTemplate": "«Pedir reseña» de la biblioteca",
+            "skipReviewed": "No pedir lo que ya reseñó",
+            "skipReviewedHelp": "Si el cliente ya dejó reseña de todos los productos del pedido, no le escribimos.",
+            "kind": "Tipo de mensaje",
+            "kinds": {
+                "marketing": "Marketing (recomendado)",
+                "utility": "Utilidad (no comercial)"
+            },
+            "kindHelp": "La solicitud de reseña es comercial por defecto: respeta el horario legal, los festivos y el consentimiento.",
+            "reclassifyReason": "¿Por qué no es un mensaje comercial?",
+            "reclassifyOnlyAdmins": "Solo el dueño o un administrador puede reclasificarlo.",
+            "moderationTitle": "Moderación",
+            "moderationDescription": "Se modera por el contenido, nunca por la calificación.",
+            "modes": {
+                "manual": "Revisar todas antes de publicar",
+                "auto": "Publicar automáticamente las que pasan el filtro"
+            },
+            "modesHelp": {
+                "manual": "Cada reseña espera en «Por moderar».",
+                "auto": "Se publican al instante, con cualquier calificación. Las que tienen lenguaje ofensivo, spam o datos personales esperan tu revisión."
+            },
+            "publishToStore": "Publicar en WooCommerce",
+            "publishToStoreHelp": "Las aprobadas se crean como reseñas nativas con compra verificada y sus fotos, para que tu tema y Google las muestren.",
+            "replyAuthor": "Nombre con el que respondes",
+            "googleTitle": "Reseñas en Google",
+            "googleDescription": "Después de reseñar, ofrecemos dejar también la reseña en tu perfil de Google Business.",
+            "googleUrl": "Enlace para reseñar en Google",
+            "noGating": "Se ofrece a todos los clientes por igual, sin importar su calificación: filtrar a los satisfechos va contra las políticas de Google.",
+            "rewardsTitle": "Recompensa por reseña",
+            "rewardsActive": "Hoy das {{review}} puntos por reseña y {{media}} más si trae foto o video. Se confirman cuando la publicas.",
+            "rewardsInactive": "Activa el programa de fidelización para premiar las reseñas con puntos.",
+            "rewardsLink": "Configurar en Fidelización",
+            "howTitle": "Cómo funciona",
+            "how1": "El cliente recibe un mensaje con un enlace firmado, sin iniciar sesión.",
+            "how2": "Califica con un toque y, si quiere, escribe y sube fotos o un video.",
+            "how3": "La reseña llega a «Por moderar» (o se publica sola si pasa el filtro).",
+            "how4": "Las fotos se reducen y se les quitan los datos de ubicación antes de guardarlas.",
+            "how4NoPhotos": "Por ahora el servidor no puede procesar fotos; solo se aceptan videos.",
+            "problems": {
+                "noChannel": "Elige al menos un canal.",
+                "whatsappTemplate": "Elige la plantilla aprobada de WhatsApp o quita el canal.",
+                "smsTemplate": "Elige la plantilla de SMS o quita el canal.",
+                "reclassifyReason": "Explica en al menos 10 caracteres por qué no es un mensaje comercial.",
+                "reclassifyRole": "Solo el dueño o un administrador puede reclasificar el mensaje.",
+                "googleUrl": "Escribe el enlace completo, que empiece por https://.",
+                "days": "Los días van de 0 a 120.",
+                "categories": "Elige cada categoría una sola vez."
+            }
+        },
+        "surveys": {
+            "kind": "Encuesta",
+            "kinds": {
+                "nps": "NPS",
+                "csat": "CSAT"
+            },
+            "period": "Periodo",
+            "lastDays_one": "Último día",
+            "lastDays_other": "Últimos {{count}} días",
+            "score": {
+                "nps": "NPS",
+                "csat": "CSAT"
+            },
+            "scoreHint": {
+                "nps": "De −100 a +100",
+                "csat": "% de clientes satisfechos"
+            },
+            "scoreHelp": {
+                "nps": "% de promotores (9 y 10) menos % de detractores (0 a 6).",
+                "csat": "% de respuestas con 4 o 5 sobre el total."
+            },
+            "responses": "Respuestas",
+            "sent_one": "{{count}} encuesta enviada",
+            "sent_other": "{{count}} encuestas enviadas",
+            "rate": "Tasa de respuesta",
+            "rateHelp": "Encuestas respondidas sobre las enviadas en el periodo.",
+            "emptyTitle": "Todavía no hay respuestas",
+            "emptyDescription": "Activa la encuesta a la derecha. Saldrá sola después de cada entrega.",
+            "distribution": "Respuestas por nota",
+            "distributionHelp": {
+                "nps": "Promotores (9 y 10), pasivos (7 y 8) y detractores (0 a 6).",
+                "csat": "Satisfechos (4 y 5), neutrales (3) e insatisfechos (1 y 2)."
+            },
+            "trend": {
+                "nps": "NPS por semana",
+                "csat": "CSAT por semana"
+            },
+            "trendHelp": "Cada punto es una semana con al menos una respuesta.",
+            "weekOf": "Semana del {{date}}",
+            "scoreTitle": "Nota {{score}}",
+            "scoreCol": "Nota",
+            "categoryCol": "Categoría",
+            "showTable": "Ver tabla",
+            "showChart": "Ver gráfico",
+            "categories": {
+                "promoter": "Promotores",
+                "passive": "Pasivos",
+                "detractor": "Detractores",
+                "satisfied": "Satisfechos",
+                "neutral": "Neutrales",
+                "unsatisfied": "Insatisfechos"
+            },
+            "recent": "Respuestas recientes",
+            "settingsTitle": {
+                "nps": "Encuesta NPS",
+                "csat": "Encuesta CSAT"
+            },
+            "settingsDescription": {
+                "nps": "Del 0 al 10, ¿nos recomendarías? Avisa a los dueños cuando alguien da 6 o menos.",
+                "csat": "Del 1 al 5, ¿qué tan satisfecho quedaste? Avisa cuando alguien da 2 o menos."
+            },
+            "active": "Enviar esta encuesta después de cada pedido",
+            "question": "Pregunta",
+            "commentLabel": "Pregunta del comentario (opcional)",
+            "thanks": "Agradecimiento",
+            "after": "Contar los días desde",
+            "days": "Días de espera",
+            "channels": "Canales, en orden de preferencia",
+            "libraryTemplate": "«Encuesta NPS» de la biblioteca",
+            "threshold": {
+                "nps": "Avisar con una nota de hasta",
+                "csat": "Avisar con una nota de hasta"
+            },
+            "thresholdHelp": "Con esa nota o menos, avisamos a los dueños por correo y dejamos una tarea en el perfil del cliente. Usa −1 para no avisar.",
+            "alertEmails": "Avisar también a",
+            "alertEmailsHelp": "Correos separados por comas, además de los dueños.",
+            "noGating": "La encuesta no decide quién deja reseñas en Google: eso se ofrece a todos por igual.",
+            "saved": "Encuesta guardada",
+            "problems": {
+                "question": "Escribe la pregunta.",
+                "thanks": "Escribe el agradecimiento.",
+                "csatTemplate": "Elige la plantilla de correo del CSAT.",
+                "alertEmails": "Revisa los correos de aviso."
+            }
+        },
+        "import": {
+            "title": "Importar reseñas",
+            "description": "Trae tus reseñas de un CSV o de una exportación de Judge.me. Las de WooCommerce llegan solas al conectar la tienda.",
+            "format": "Formato",
+            "formats": {
+                "csv": "CSV propio",
+                "judgeme": "Exportación de Judge.me"
+            },
+            "site": "Sitio",
+            "firstSite": "El primer sitio conectado",
+            "file": "Archivo CSV",
+            "fileHelp": "Hasta 5.000 filas y 5 MB. Separado por comas o punto y coma.",
+            "submit": "Importar",
+            "done_one": "{{count}} reseña importada",
+            "done_other": "{{count}} reseñas importadas",
+            "result": "Nuevas: {{created}} · ya estaban: {{duplicates}} · filas: {{rows}}",
+            "rowError": "Fila {{row}}: {{message}}",
+            "columnsTitle": "Columnas que reconocemos",
+            "columnsDescription": "En español o en inglés. Solo la calificación es obligatoria.",
+            "columns": {
+                "product": {
+                    "name": "producto",
+                    "help": "ID, SKU o slug del producto (vacío = reseña de la tienda)."
+                },
+                "rating": {
+                    "name": "calificacion",
+                    "help": "De 1 a 5."
+                },
+                "title": {
+                    "name": "titulo",
+                    "help": "Opcional."
+                },
+                "body": {
+                    "name": "comentario",
+                    "help": "El texto de la reseña."
+                },
+                "author": {
+                    "name": "nombre",
+                    "help": "Se publica como «Ana R.»."
+                },
+                "email": {
+                    "name": "correo",
+                    "help": "Solo para unirla al cliente y marcar la compra verificada. No se guarda."
+                },
+                "date": {
+                    "name": "fecha",
+                    "help": "Fecha de la reseña."
+                },
+                "photos": {
+                    "name": "fotos",
+                    "help": "URLs https separadas por comas."
+                },
+                "reply": {
+                    "name": "respuesta",
+                    "help": "Tu respuesta, si la tenía."
+                }
+            },
+            "privacy": "Las reseñas importadas no se publican de nuevo en WooCommerce ni dan puntos."
+        }
+    }
+}

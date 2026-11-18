@@ -54,7 +54,8 @@ final class SyncTierToSite implements ShouldQueue, WorkspaceAware
     {
         $site = Site::query()->find($this->siteId);
         $tier = LoyaltyTier::query()->find($this->tierId);
-        if ($site === null || $tier === null || ! $site->isActive()) {
+        // Sin sitio activo o sin URL de comandos (aún no termina de conectarse) no hay a quién avisar.
+        if ($site === null || $tier === null || ! $site->isActive() || $site->commandsUrl() === null) {
             return;
         }
         // Si el nivel del contacto ya es otro, ese envío lo hace su propio job.

@@ -2,7 +2,7 @@ import { MessageSquareText } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -173,8 +173,12 @@ function Distribution({ report }: { report: SurveyReport }) {
     const theme = useChartTheme();
     const fmt = useFormatters();
     const [table, setTable] = useState(false);
+    // Una columna por categoría (apiladas): cada nota llena solo la de su categoría, así el color sigue a la categoría.
     const data = Object.entries(report.distribution)
-        .map(([score, count]) => ({ score: Number(score), count, category: surveyCategory(report.kind, Number(score)) }))
+        .map(([score, count]) => {
+            const category = surveyCategory(report.kind, Number(score));
+            return { score: Number(score), count, category, [category]: count };
+        })
         .sort((a, b) => a.score - b.score);
     const total = Math.max(1, report.responses);
     return (
@@ -229,11 +233,9 @@ function Distribution({ report }: { report: SurveyReport }) {
                                     );
                                 }}
                             />
-                            <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={36} isAnimationActive={false}>
-                                {data.map((d) => (
-                                    <Cell key={d.score} fill={categoryColor(theme, d.category)} />
-                                ))}
-                            </Bar>
+                            {CATEGORY_ORDER[report.kind].map((c) => (
+                                <Bar key={c} dataKey={c} stackId="score" fill={categoryColor(theme, c)} radius={[4, 4, 0, 0]} maxBarSize={36} isAnimationActive={false} />
+                            ))}
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
@@ -283,7 +285,6 @@ function Trend({ report }: { report: SurveyReport }) {
 }
 
 function SurveyForm({ kind }: { kind: SurveyKind }) {
-    const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const survey = useSurvey(workspace.id, kind);
     if (survey.isError) return <ErrorState error={survey.error} onRetry={() => void survey.refetch()} />;
@@ -374,7 +375,7 @@ function SurveyEditor({ kind, survey }: { kind: SurveyKind; survey: SurveySettin
                                         <Select
                                             aria-label={t('reviews.settings.templateFor', { channel: t(`reviews.channels.${c}`) })}
                                             value={draft[`${c}_template_id`] ?? ''}
-                                            onChange={(e) => set({ [`${c}_template_id`]: e.target.value === '' ? null : e.target.value } as Partial<SurveyDraft>)}
+                                            onChange={(e) => set({ [`${c}_template_id`]: e.target.value === '' ? null : e.target.value })}
                                         >
                                             <option value="">{c === 'email' && kind === 'nps' ? t('reviews.surveys.libraryTemplate') : t('reviews.settings.chooseTemplate')}</option>
                                             {(templates?.[c] ?? []).map((tpl) => (

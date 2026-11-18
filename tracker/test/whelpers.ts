@@ -66,7 +66,7 @@ export function overlay(kind: string): ShadowRoot {
     return host.shadowRoot;
 }
 
-export const tick = (ms = 5): Promise<void> => new Promise((r) => setTimeout(r, ms));
+export const tick = (ms = 20): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
 export function tracked(pushed: unknown[][]): string[] {
     return pushed.filter((c) => c[0] === 'track').map((c) => String(c[1]));

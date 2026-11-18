@@ -70,8 +70,20 @@ export const CATEGORY_ORDER: Record<SurveyKind, SurveyCategory[]> = {
 export type SurveyDraft = Omit<SurveySettings, 'id' | 'kind' | 'scale'>;
 
 export function surveyDraft(s: SurveySettings): SurveyDraft {
-    const { id: _id, kind: _kind, scale: _scale, ...rest } = s;
-    return { ...rest, alert_emails: [...rest.alert_emails], channels: [...rest.channels] };
+    return {
+        status: s.status,
+        question: s.question,
+        comment_label: s.comment_label,
+        thanks: s.thanks,
+        after: s.after,
+        days: s.days,
+        channels: [...s.channels],
+        email_template_id: s.email_template_id,
+        whatsapp_template_id: s.whatsapp_template_id,
+        sms_template_id: s.sms_template_id,
+        alert_threshold: s.alert_threshold,
+        alert_emails: [...s.alert_emails],
+    };
 }
 
 export function surveyProblems(d: SurveyDraft, kind: SurveyKind): string[] {

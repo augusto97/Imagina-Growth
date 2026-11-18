@@ -333,3 +333,18 @@ it('el doble opt-in deja el correo pendiente, envía la confirmación y la pági
     $this->get($path)->assertOk()->assertSee('ya estaba confirmada');
     $this->get("/p/{$this->key}/confirmar/abc.".str_repeat('0', 32))->assertNotFound()->assertSee('Este enlace ya no funciona');
 });
+
+it('no abre CORS a otros dominios ni deja usar un widget con la clave de otro espacio de trabajo', function () {
+    $w = onsiteWidget($this, 'popup');
+    $res = $this->call('GET', "/p/{$this->key}/widgets.json?page_type=home", [], [], [], ['HTTP_ORIGIN' => 'https://atacante.co'])->assertOk();
+    expect($res->headers->has('Access-Control-Allow-Origin'))->toBeFalse();
+    $this->call('OPTIONS', "/p/{$this->key}/widgets/{$w}/submit", [], [], [], ['HTTP_ORIGIN' => 'https://tienda.co'])
+        ->assertNoContent()->assertHeader('Access-Control-Allow-Origin', 'https://tienda.co');
+
+    $other = $this->workspaceFor($this->userWith2fa(), 'Otra tienda');
+    [$otherSite] = $this->connectedSite($other, 'otra-tienda.co');
+    $this->call('POST', "/p/{$otherSite->public_key}/widgets/{$w}/submit", [], [], [], ['CONTENT_TYPE' => 'text/plain', 'REMOTE_ADDR' => '10.9.9.9'],
+        json_encode(['anonymous_id' => 'x', 'fields' => ['phone' => '3001234567']]))->assertNotFound();
+    expect($this->getJson("/p/{$otherSite->public_key}/widgets.json?page_type=home")->json('widgets'))->toBe([]);
+    expect(DB::table('contacts')->count())->toBe(0);
+});

@@ -37,15 +37,42 @@
             "scheduled": "Programado"
         },
         "kinds": {
-            "popup": { "name": "Popup", "description": "Ventana al centro, en una esquina o a pantalla completa, con cupón." },
-            "embedded_form": { "name": "Formulario incrustado", "description": "Dentro de la página con el bloque, el shortcode o Elementor." },
-            "bar": { "name": "Barra superior", "description": "Una franja arriba o abajo con un mensaje y un campo." },
-            "spin_wheel": { "name": "Ruleta", "description": "Gira y gana: el premio lo sortea el hub con tus probabilidades." },
-            "teaser": { "name": "Teaser", "description": "Una pestaña discreta en la esquina que se abre al tocarla." },
-            "two_step": { "name": "Formulario en 2 pasos", "description": "Primero el correo y después, opcional, el WhatsApp." },
-            "quiz": { "name": "Quiz recomendador", "description": "Preguntas con lógica que terminan en productos recomendados." },
-            "wa_widget": { "name": "Widget de WhatsApp", "description": "Botón flotante que abre el chat con atribución." },
-            "referral_welcome": { "name": "Bienvenida del referido", "description": "Para quien llega con el enlace de un amigo: su regalo a cambio de sus datos." }
+            "popup": {
+                "name": "Popup",
+                "description": "Ventana al centro, en una esquina o a pantalla completa, con cupón."
+            },
+            "embedded_form": {
+                "name": "Formulario incrustado",
+                "description": "Dentro de la página con el bloque, el shortcode o Elementor."
+            },
+            "bar": {
+                "name": "Barra superior",
+                "description": "Una franja arriba o abajo con un mensaje y un campo."
+            },
+            "spin_wheel": {
+                "name": "Ruleta",
+                "description": "Gira y gana: el premio lo sortea el hub con tus probabilidades."
+            },
+            "teaser": {
+                "name": "Teaser",
+                "description": "Una pestaña discreta en la esquina que se abre al tocarla."
+            },
+            "two_step": {
+                "name": "Formulario en 2 pasos",
+                "description": "Primero el correo y después, opcional, el WhatsApp."
+            },
+            "quiz": {
+                "name": "Quiz recomendador",
+                "description": "Preguntas con lógica que terminan en productos recomendados."
+            },
+            "wa_widget": {
+                "name": "Widget de WhatsApp",
+                "description": "Botón flotante que abre el chat con atribución."
+            },
+            "referral_welcome": {
+                "name": "Bienvenida del referido",
+                "description": "Para quien llega con el enlace de un amigo: su regalo a cambio de sus datos."
+            }
         },
         "create": {
             "title": "Nuevo widget",
@@ -211,8 +238,7 @@
                 "typesHelp": "El checkout no está en la lista a propósito.",
                 "include": "Solo en estas rutas",
                 "exclude": "Nunca en estas rutas",
-                "patternHelp": "Una por línea. Usa * al final para incluir todo lo de abajo (/tienda/*).",
-                "checkout": "Durante el checkout nunca se muestra ningún widget."
+                "patternHelp": "Una por línea. Usa * al final para incluir todo lo de abajo (/tienda/*)."
             },
             "audience": {
                 "title": "A quién",

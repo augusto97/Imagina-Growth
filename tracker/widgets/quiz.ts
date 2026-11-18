@@ -21,6 +21,8 @@ function quiz(f: Frame, live: Live, x: Ctx): void {
     const answers: Record<string, string> = {};
     const path: string[] = [];
     const keep = Array.from(f.box.children).filter((n) => n.classList.contains('x'));
+    // El título se queda en cada paso: el diálogo o la sección conservan su nombre accesible.
+    const title = (): Node[] => (live.content.title ? [h('h2', { id: f.box.getAttribute('data-title') ?? '' }, live.content.title)] : []);
     const finish = (): void => {
         const c = live.content;
         if ((c.fields ?? []).length || (c.steps ?? []).length) {
@@ -29,7 +31,7 @@ function quiz(f: Frame, live: Live, x: Ctx): void {
             return;
         }
         const wait = h('p', { role: 'status' }, 'Buscando tu resultado…');
-        f.box.replaceChildren(...keep, wait);
+        f.box.replaceChildren(...keep, ...title(), wait);
         const body: Record<string, unknown> = { anonymous_id: x.aid(), variant: live.variant, page_url: x.pageUrl(), step: 1, fields: {}, consents: {}, answers };
         const ref = x.ref();
         if (ref) body['referral_code'] = ref;
@@ -38,7 +40,7 @@ function quiz(f: Frame, live: Live, x: Ctx): void {
                 f.submitted = true;
                 x.mark(live, 'submit');
                 x.track('widget.submitted', live);
-                f.box.replaceChildren(...keep, success(live, x, r.data ?? {}, products(x)));
+                f.box.replaceChildren(...keep, ...title(), success(live, x, r.data ?? {}, products(x)));
             } else wait.textContent = 'No pudimos mostrar tu resultado. Inténtalo de nuevo.';
         });
     };
@@ -66,7 +68,7 @@ function quiz(f: Frame, live: Live, x: Ctx): void {
             if (prev) delete answers[prev];
             ask(prev);
         });
-        const nodes = path.length ? [] : head(f, live.content.title, live.content.body, live.content.image ?? live.design.image);
+        const nodes = path.length ? title() : head(f, live.content.title, live.content.body, live.content.image ?? live.design.image);
         f.box.replaceChildren(...keep, ...nodes, h('p', { class: 'sm' }, 'Pregunta ' + (path.length + 1)), h('h3', { id: tid }, q.text), opts, back ?? '');
         (opts.querySelector('button') as HTMLElement | null)?.focus();
     };

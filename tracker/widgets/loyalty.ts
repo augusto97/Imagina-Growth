@@ -3,7 +3,7 @@
  * recompensas para canjear y el enlace para invitar amigos. Solo con `igrUser.token`
  * (Mi cuenta, página que no se cachea).
  */
-import { copyButton, h, money, register, shadow, uid } from './lib/dom';
+import { copyButton, h, loc, money, register, shadow, uid } from './lib/dom';
 import type { Coupon, Ctx } from './lib/types';
 
 interface Me {
@@ -24,10 +24,10 @@ const CSS =
 
 function date(iso?: string): string {
     const d = iso ? new Date(iso + (iso.length === 10 ? 'T12:00:00' : '')) : null;
-    return d && !isNaN(d.getTime()) ? d.toLocaleDateString(document.documentElement.lang || 'es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    return d && !isNaN(d.getTime()) ? d.toLocaleDateString(loc(), { day: 'numeric', month: 'long', year: 'numeric' }) : '';
 }
 
-const num = (n: number): string => n.toLocaleString(document.documentElement.lang || 'es-CO');
+const num = (n: number): string => n.toLocaleString(loc());
 
 export function loyalty(host: HTMLElement | null, x: Ctx): void {
     if (!host) return;

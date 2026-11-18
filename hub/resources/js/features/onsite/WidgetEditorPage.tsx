@@ -175,24 +175,24 @@ function Editor({ widget, title }: { widget: WidgetDetail; title: string }) {
                     <Card>
                         <CardContent className="igr:pt-5">
                             <fieldset disabled={!canManage} className="igr:min-w-0">
-                                <TabsContent value="content">
+                                <TabsContent value="content" className="igr:pt-0">
                                     <ContentEditor kind={widget.kind} draft={draft} variant={variant} onVariant={setVariant} onChange={setDraft} />
                                 </TabsContent>
-                                <TabsContent value="targeting">
+                                <TabsContent value="targeting" className="igr:pt-0">
                                     <TargetingEditor kind={widget.kind} targeting={draft.targeting} options={options.data} onChange={(targeting) => setDraft({ ...draft, targeting })} />
                                 </TabsContent>
-                                <TabsContent value="consent">
+                                <TabsContent value="consent" className="igr:pt-0">
                                     <ConsentEditor draft={draft} options={options.data} onChange={(consent_config) => setDraft({ ...draft, consent_config })} />
                                 </TabsContent>
-                                <TabsContent value="coupon">
+                                <TabsContent value="coupon" className="igr:pt-0">
                                     <CouponEditor kind={widget.kind} coupon={draft.coupon_config} onChange={(coupon_config) => setDraft({ ...draft, coupon_config })} />
                                 </TabsContent>
                                 {draft.quiz ? (
-                                    <TabsContent value="quiz">
+                                    <TabsContent value="quiz" className="igr:pt-0">
                                         <QuizEditor quiz={draft.quiz} options={options.data} onChange={(quiz) => setDraft({ ...draft, quiz })} />
                                     </TabsContent>
                                 ) : null}
-                                <TabsContent value="schedule">
+                                <TabsContent value="schedule" className="igr:pt-0">
                                     <Section title={t('onsite.schedule.title')} description={t('onsite.schedule.help')}>
                                         <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2">
                                             <Field label={t('onsite.schedule.starts')}>
@@ -221,7 +221,7 @@ function Editor({ widget, title }: { widget: WidgetDetail; title: string }) {
                                     </Section>
                                 </TabsContent>
                             </fieldset>
-                            <TabsContent value="stats">
+                            <TabsContent value="stats" className="igr:pt-0">
                                 <StatsPanel widget={widget} />
                             </TabsContent>
                         </CardContent>
@@ -234,7 +234,7 @@ function Editor({ widget, title }: { widget: WidgetDetail; title: string }) {
                             <p className="igr:text-[13px] igr:font-medium">{t('onsite.preview.title')}</p>
                             <div className="igr:flex igr:items-center igr:gap-1">
                                 {draft.variants.length > 1 ? (
-                                    <Select aria-label={t('onsite.preview.variant')} value={variant} onChange={(e) => setVariant(Number(e.target.value))} className="igr:h-8 igr:w-28">
+                                    <Select aria-label={t('onsite.preview.variant')} value={variant} onChange={(e) => setVariant(Number(e.target.value))} className="igr:h-8 igr:w-auto">
                                         {draft.variants.map((v, i) => (
                                             <option key={v.key} value={i}>
                                                 {t('onsite.editor.variants.name', { key: v.key.toUpperCase() })}
@@ -243,7 +243,7 @@ function Editor({ widget, title }: { widget: WidgetDetail; title: string }) {
                                     </Select>
                                 ) : null}
                                 {states.length > 1 ? (
-                                    <Select aria-label={t('onsite.preview.state')} value={state} onChange={(e) => setState(e.target.value as PreviewState)} className="igr:h-8 igr:w-36">
+                                    <Select aria-label={t('onsite.preview.state')} value={state} onChange={(e) => setState(e.target.value as PreviewState)} className="igr:h-8 igr:w-auto">
                                         {states.map((s) => (
                                             <option key={s} value={s}>
                                                 {t(`onsite.preview.states.${s}`)}

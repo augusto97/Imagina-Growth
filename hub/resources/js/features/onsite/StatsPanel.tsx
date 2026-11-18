@@ -92,7 +92,7 @@ export function StatsPanel({ widget }: { widget: WidgetDetail }) {
                     <TBody>
                         {s.variants.map((v) => (
                             <TR key={v.key}>
-                                <TD className="igr:font-medium">
+                                <TD className="igr:font-medium igr:whitespace-nowrap">
                                     {t('onsite.editor.variants.name', { key: v.key.toUpperCase() })}
                                     {s.winner?.key === v.key ? (
                                         <Badge variant="success" className="igr:ml-2">

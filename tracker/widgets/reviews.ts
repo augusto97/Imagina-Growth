@@ -3,7 +3,7 @@
  * la insignia de estrellas (las insignias de una página van en una sola petición).
  * Imágenes con carga diferida; los enlaces del hub solo si son http(s).
  */
-import { STARS_CSS, collapse, h, register, safeUrl, shadow, stars, uid } from './lib/dom';
+import { STARS_CSS, collapse, h, loc, register, safeUrl, shadow, stars, uid } from './lib/dom';
 import type { Ctx } from './lib/types';
 
 interface Media {
@@ -45,7 +45,7 @@ const CSS =
 
 function date(iso?: string): string {
     const d = iso ? new Date(iso) : null;
-    return d && !isNaN(d.getTime()) ? d.toLocaleDateString(document.documentElement.lang || 'es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    return d && !isNaN(d.getTime()) ? d.toLocaleDateString(loc(), { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 }
 
 function replyText(r: Review['reply']): string {

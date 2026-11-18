@@ -16,7 +16,7 @@ const W = window as unknown as WWin;
 export function fmt(v: string | number, currency: string): string {
     const n = Number(v);
     try {
-        return new Intl.NumberFormat(document.documentElement.lang || 'es-CO', { style: 'currency', currency, minimumFractionDigits: n % 1 ? 2 : 0 }).format(n);
+        return new Intl.NumberFormat(/^es([-_]|$)/i.test(document.documentElement.lang) ? document.documentElement.lang.replace('_', '-') : 'es-CO', { style: 'currency', currency, minimumFractionDigits: n % 1 ? 2 : 0 }).format(n);
     } catch {
         return String(v);
     }

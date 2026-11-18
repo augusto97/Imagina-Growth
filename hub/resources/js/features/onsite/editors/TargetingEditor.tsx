@@ -51,13 +51,12 @@ export function TargetingEditor({ kind, targeting, options, onChange }: { kind: 
                 </Field>
                 <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2">
                     <Field label={t('onsite.targeting.pages.include')} help={t('onsite.targeting.pages.patternHelp')}>
-                        {(id) => <Textarea id={id} rows={3} defaultValue={targeting.pages.include.join('\n')} placeholder={'/\n/tienda/*'} onBlur={(e) => set({ pages: { ...targeting.pages, include: linesToList(e.target.value) } })} />}
+                        {(id) => <Textarea id={id} rows={3} defaultValue={targeting.pages.include.join('\n')} placeholder="/tienda/*" onBlur={(e) => set({ pages: { ...targeting.pages, include: linesToList(e.target.value) } })} />}
                     </Field>
                     <Field label={t('onsite.targeting.pages.exclude')}>
                         {(id) => <Textarea id={id} rows={3} defaultValue={targeting.pages.exclude.join('\n')} placeholder="/mi-cuenta*" onBlur={(e) => set({ pages: { ...targeting.pages, exclude: linesToList(e.target.value) } })} />}
                     </Field>
                 </div>
-                <p className="igr:text-xs igr:text-muted-foreground">{t('onsite.targeting.pages.checkout')}</p>
             </Section>
 
             <Section title={t('onsite.targeting.audience.title')}>

@@ -298,7 +298,7 @@ test('botón de WhatsApp: referencia corta en el mensaje y cta.clicked antes de 
 
 test('nunca hay widgets en el checkout', async ({ page }) => {
     await widgets([{ ...popup, id: 'wg_01JF0POPUPCHECKOUT00000001', targeting: { trigger: { type: 'immediate' } } }]);
-    await page.goto('/?add-to-cart=' + product.id);
+    await page.goto('/?add-to-cart=' + product.id, { waitUntil: 'networkidle' });
     const seen: string[] = [];
     page.on('request', (r) => {
         if (r.url().includes('/widgets.json') || r.url().includes('igr-widgets.js')) seen.push(r.url());

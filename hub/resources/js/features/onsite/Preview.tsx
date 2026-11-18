@@ -31,7 +31,7 @@ export function Preview(props: PreviewProps) {
     const mobile = props.device === 'mobile';
     return (
         <div
-            className={cn('igr:relative igr:mx-auto igr:overflow-hidden igr:rounded-lg igr:border igr:bg-background igr:shadow-sm', mobile ? 'igr:h-[560px] igr:w-[300px]' : 'igr:h-[420px] igr:w-full')}
+            className={cn('igr:relative igr:mx-auto igr:overflow-hidden igr:rounded-lg igr:border igr:bg-background igr:shadow-sm', mobile ? 'igr:h-[580px] igr:w-[300px]' : 'igr:h-[480px] igr:w-full')}
             role="img"
             aria-label={t('onsite.preview.aria', { kind: t(`onsite.kinds.${props.kind}.name`) })}
         >
@@ -248,7 +248,7 @@ function Wheel({ labels, accent, text }: { labels: string[]; accent: string; tex
         };
     });
     return (
-        <svg viewBox="-75 -75 150 150" className="igr:mx-auto igr:mb-3 igr:size-36" aria-hidden>
+        <svg viewBox="-75 -75 150 150" className="igr:mx-auto igr:mb-3 igr:size-32" aria-hidden>
             {slices.map((s, i) => (
                 <g key={i}>
                     <path d={s.d} fill={accent} fillOpacity={s.even ? 1 : 0.55} stroke="#ffffff" strokeWidth={2} />

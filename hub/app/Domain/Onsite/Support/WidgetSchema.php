@@ -165,7 +165,7 @@ final class WidgetSchema
             ],
             'outcomes' => [
                 'rules' => [],
-                'fallback' => ['products' => ['kind' => 'trending', 'category_ids' => []], 'message' => ''],
+                'fallback' => ['products' => ['product_ids' => [], 'category_ids' => [], 'brands' => [], 'max_price' => null, 'kind' => 'trending'], 'message' => ''],
                 'limit' => 4,
             ],
         ];

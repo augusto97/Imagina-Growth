@@ -143,7 +143,7 @@ describe('captación', () => {
         expect(root.querySelector('.sr')?.textContent).toBe('Premios posibles: 5%, 10%, 15%, Envío.');
         (root.querySelector('input[name=phone]') as HTMLInputElement).value = '3001234567';
         root.querySelector('form')?.dispatchEvent(new Event('submit', { cancelable: true }));
-        await tick(10);
+        for (let i = 0; i < 50 && !root.querySelector('[role=status]'); i++) await tick(10);
         expect((root.querySelector('.wh') as HTMLElement).style.transform).toBe('rotate(' + (1800 - 2.5 * 90) + 'deg)');
         expect(root.querySelector('[role=status] h3')?.textContent).toBe('15% de descuento');
         expect(root.querySelector('[role=status] strong')?.textContent).toBe('RULETA-15');
