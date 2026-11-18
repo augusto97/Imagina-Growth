@@ -65,6 +65,7 @@ cleanup() {
     kill $(jobs -p) 2>/dev/null || true
     $WPC igr disconnect >/dev/null 2>&1 || true
     [ -n "$QUOTE_PAGE" ] && $WPC post delete "$QUOTE_PAGE" --force >/dev/null 2>&1 || true
+    rm -f "$WP_CORP_DIR/wp-content/mu-plugins/igr-e2e-mail.php"
 }
 trap cleanup EXIT
 wait_http() { for _ in $(seq 1 240); do curl -fsS "$1" >/dev/null 2>&1 && return 0; sleep 0.5; done; fail "no responde $1"; }
@@ -103,6 +104,9 @@ step "A. Clientes de la agencia: la tienda demo y el sitio corporativo de la cl�
 php artisan igr:seed-demo --workspace="$WS_STORE" --customers=300 --orders=1500 --months=6 --process | tail -2
 $WPC plugin is-active woocommerce 2>/dev/null && fail "El sitio corporativo no debe tener WooCommerce"
 $WPC igr disconnect >/dev/null 2>&1 || true
+# El WordPress de prueba no tiene servidor de correo: wp_mail() responde como si hubiera salido.
+MU="$WP_CORP_DIR/wp-content/mu-plugins/igr-e2e-mail.php"
+mkdir -p "$(dirname "$MU")" && cp "$E2E/wp/igr-e2e-mail.php" "$MU"
 IGR_HUB_URL="$HUB" PHP_CLI_SERVER_WORKERS=4 php -S 127.0.0.1:"$CORP_PORT" -t "$WP_CORP_DIR" >"$LOGS/sitio.log" 2>&1 &
 wait_http "$CORP/wp-login.php"
 IGR_HUB_URL="$HUB" $WPC igr connect "$CODE"
@@ -117,8 +121,12 @@ ok "Clínica conectada: WordPress con Contact Form 7, sin WooCommerce"
 step "B. Del anuncio al lead: formulario, aviso a la vendedora y cita agendada"
 VISIT=$(NAME="María Fernanda Ospina" EMAIL="$EMAIL_1" PHONE="$PHONE_1" GCLID="$GCLID" SHOTS="$LOGS/capturas" node "$E2E/fase5-browser.cjs" visitor | tail -1)
 echo "$VISIT"
-[ "$(echo "$VISIT" | json 'd["form"] == "sent" and d["booked"] and d["manage"]')" = "True" ] || fail "La persona no pudo dejar sus datos o agendar"
-[ "$(echo "$VISIT" | json 'd["errors"] == []')" = "True" ] || fail "Errores de JavaScript en el sitio o en la página de reservas"
+[ "$(echo "$VISIT" | json 'd["form"] == "sent" and d["errors"] == []')" = "True" ] || fail "La persona no pudo dejar sus datos en el formulario"
+settle
+BOOK=$(NAME="María Fernanda Ospina" EMAIL="$EMAIL_1" PHONE="$PHONE_1" GCLID="$GCLID" SHOTS="$LOGS/capturas" node "$E2E/fase5-browser.cjs" book | tail -1)
+echo "$BOOK"
+[ "$(echo "$BOOK" | json 'd["booked"] and d["manage"] and d["errors"] == []')" = "True" ] || fail "La persona no pudo agendar su valoración"
+[ "$(echo "$BOOK" | json 'd["carried"]["aid"] and d["carried"]["gclid"]')" = "True" ] || fail "El botón de reservas no llevó el visitante y el anuncio a la página del hub"
 settle
 LEAD=$(hubphp lead "$WS_CLINIC" "$EMAIL_1" | tail -1)
 echo "$LEAD" | python3 -m json.tool

@@ -2,8 +2,9 @@
  * Navegador de la prueba de la Fase 5 (infra/e2e/fase5.sh).
  *
  *   node fase5-browser.cjs visitor → una persona llega desde un anuncio de Google al sitio corporativo (sin WooCommerce),
- *                                     mira los servicios, deja sus datos en el formulario de Contact Form 7 y agenda su
- *                                     valoración con el botón de reservas (página pública del hub).
+ *                                     mira los servicios y deja sus datos en el formulario de Contact Form 7.
+ *   node fase5-browser.cjs book    → la misma persona (sus cookies) vuelve y agenda su valoración con el botón de reservas
+ *                                     (página pública del hub, con su visitante y el anuncio en el enlace).
  *   node fase5-browser.cjs quote   → otra persona usa el cotizador incrustado en el sitio y deja sus datos.
  *   node fase5-browser.cjs owner   → el dueño de la clínica entra con 2FA: tablero de leads, marca el lead como ganado
  *                                     con su valor (API del panel), la agenda y el perfil.
@@ -107,14 +108,26 @@ async function visitor() {
     await page.waitForSelector('form.wpcf7-form.sent, form.wpcf7-form.failed, form.wpcf7-form.invalid', { timeout: 20000 });
     const formState = await page.getAttribute('form.wpcf7-form', 'data-status');
     await shot(page, '02-formulario-enviado');
+    await context.storageState({ path: `${env.SHOTS}/visitante.json` }); // las cookies del sitio para la reserva
+    await browser.close();
+    return { form: formState, errors };
+}
 
-    // 3. Agenda su valoración: el botón del sitio lleva a la página de reservas del hub.
+async function book() {
+    const browser = await chromium.launch();
+    const context = await browser.newContext({ locale: 'es-CO', viewport: { width: 1280, height: 900 }, storageState: `${env.SHOTS}/visitante.json` });
+    const page = await context.newPage();
+    const errors = [];
+    watch(page, errors);
+
+    // 3. Vuelve al sitio y agenda su valoración: el botón lleva a la página de reservas del hub.
     await page.goto(`${env.CORP}/agenda/`);
     const button = page.locator('a.igr-booking').first();
     await button.waitFor({ timeout: 10000 });
     const bookingHref = await button.getAttribute('href');
     await button.click();
     await page.waitForURL(/\/reservar/, { timeout: 15000 });
+    const landing = new URL(page.url()).searchParams;
     await page.waitForSelector('label.slot input[name=start]', { timeout: 15000 });
     const start = await page.locator('label.slot input[name=start]').first().getAttribute('value');
     await page.locator('label.slot').first().click();
@@ -130,7 +143,7 @@ async function visitor() {
     await shot(page, '04-cita-agendada');
 
     await browser.close();
-    return { form: formState, booking_href: bookingHref, start, booked: true, manage: manageUrl.includes('/cita/'), errors };
+    return { start, booked: true, manage: manageUrl.includes('/cita/'), carried: { aid: landing.has('aid'), gclid: landing.get('gclid') === env.GCLID }, errors };
 }
 
 async function quote() {
@@ -217,7 +230,7 @@ async function agency() {
     return { overview: overview.status, clients, report: { status: generated.status, id: reportId ?? null }, pdf, errors };
 }
 
-const modes = { visitor, quote, owner, agency };
+const modes = { visitor, book, quote, owner, agency };
 const mode = process.argv[2];
 if (!modes[mode]) {
     console.error('Modo desconocido: ' + mode);

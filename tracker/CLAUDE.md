@@ -30,7 +30,7 @@ La cola funciona aunque el script todavía no haya cargado.
 | `product.viewed` | si `igrPage.type === 'product'` |
 | `category.viewed` | si `igrPage.type === 'category'` |
 | `search.performed` | parámetro `s` o `query` en la URL de resultados, o el evento personalizado que emite Imagina Search |
-| `cta.clicked` | delegación de clics en `document` (captura) para `tel:`, `mailto:`, `wa.me`, `api.whatsapp.com`, `whatsapp://`, extensiones descargables y `[data-igr-cta]` |
+| `cta.clicked` | delegación de clics en `document` (captura) para `tel:`, `mailto:`, `wa.me`, `api.whatsapp.com`, `whatsapp://`, extensiones descargables y `[data-igr-cta]`. **Fase 5:** en el botón de reservas (`a[data-igr-cta="booking"]`, `[igr_booking]`) se agregan al enlace `aid` y el último contacto (`utm_*` y click IDs) antes de navegar, porque la página de reservas vive en el hub y sin eso la cita perdería el anuncio que la trajo; sin consentimiento de analítica el enlace queda igual |
 | `checkout.contact_captured` | solo si `igrConfig.earlyCapture === true`; escucha los campos de correo y teléfono del checkout con *debounce* de 1,5 s y validación; el dato viaja **cifrado** al hub (clave pública del sitio, `crypto.subtle`) en un campo aparte |
 
 ## 4. Identificadores y fuentes

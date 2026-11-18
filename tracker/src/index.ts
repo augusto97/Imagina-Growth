@@ -3,7 +3,7 @@
  * Sin dependencias, ≤ 6 KB gzip, nunca lanza errores hacia la página.
  */
 import { CONSENT_EVENTS, detectConsent } from './consent';
-import { adCookies, anonymousId, currentTouch, readSources, refCode, session, touchSession, updateSources } from './ids';
+import { adCookies, anonymousId, currentTouch, readSources, refCode, session, touchSession, updateSources, type Sources } from './ids';
 import { enqueue, flush, initTransport, retryPending } from './transport';
 import type { Config, Consent, Envelope, OrderData, PageData, Props, Touch } from './types';
 import { cut, idle, shortToken, store, uuid7 } from './util';
@@ -235,6 +235,19 @@ export function addWaRef(a: HTMLAnchorElement | { href: string }, conf: Config['
     return token;
 }
 
+/**
+ * Botón de reservas (Fase 5, `[igr_booking]`): la página de reservas vive en el hub, así que el enlace
+ * lleva el visitante (`aid`) y el último contacto (UTM y click IDs) para atribuir la cita al anuncio.
+ */
+export function addBookingContext(a: HTMLAnchorElement | { href: string }, id: string, src: Sources = readSources()): void {
+    const url = new URL(a.href);
+    const t = src.l ?? src.f;
+    if (id) url.searchParams.set('aid', id);
+    for (const [k, v] of Object.entries(t?.utm ?? {})) url.searchParams.set('utm_' + k, v);
+    for (const [k, v] of Object.entries(t?.click_ids ?? {})) url.searchParams.set(k, v);
+    a.href = url.href;
+}
+
 /** Clasifica un clic: WhatsApp, teléfono, correo, descarga o `data-igr-cta`. */
 export function classify(el: Element): { kind: string; target: string; label: string; anchor?: HTMLAnchorElement } | null {
     const custom = el.closest('[data-igr-cta]');
@@ -259,6 +272,8 @@ function clicks(): void {
             if (!(t instanceof Element)) return;
             const c = classify(t);
             if (!c) return;
+            const booking = t.closest('a[data-igr-cta="booking"]') as HTMLAnchorElement | null;
+            if (booking) addBookingContext(booking, aid);
             const props: Props = { kind: c.kind, target: c.target, label: c.label };
             if (c.anchor && c.kind === 'whatsapp') {
                 const ref = addWaRef(c.anchor, cfg.waRef);
