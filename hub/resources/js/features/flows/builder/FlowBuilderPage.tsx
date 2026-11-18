@@ -1,5 +1,5 @@
 import '@xyflow/react/dist/style.css';
-import { Background, type Connection, Controls, type Edge, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useEdgesState, useNodesState } from '@xyflow/react';
+import { Background, type Connection, Controls, type Edge, MarkerType, MiniMap, ReactFlow, type ReactFlowInstance, ReactFlowProvider, useEdgesState, useNodesState } from '@xyflow/react';
 import { Archive, ArrowLeft, BarChart3, CircleAlert, CircleCheck, FlaskConical, History, Pause, Play, Route, Save, Send } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +20,7 @@ import { toast } from '@/stores/toast';
 import { useUi } from '@/stores/ui';
 import { useFlow, useFlowAnalytics, useFlowOptions, useFlowStatus, usePublishFlow, useRestoreVersion, useUpdateFlow } from '../api';
 import { metaOf, PALETTE } from '../catalog';
-import { edgeId, type FlowCanvasNode, freeBranch, fromCanvas, handleOf, nextNodeId, pruneEdges, toCanvas } from '../graph';
+import { branchOf, edgeId, type FlowCanvasNode, freeBranch, fromCanvas, handleOf, nextNodeId, pruneEdges, toCanvas } from '../graph';
 import { StatusBadge } from '../FlowsPage';
 import type { FlowDetail, FlowOptions, GraphNode } from '../types';
 import { CanvasContext } from './context';
@@ -32,6 +32,11 @@ import { type FlowSettings, SettingsPanel } from './SettingsPanel';
 import { TestDialog } from './TestDialog';
 
 const NODE_TYPES = { flow: FlowNode };
+const NODE_WIDTH = 256;
+const NODE_HEIGHT = 90;
+/** Por debajo de este zoom el texto de los pasos no se lee: se muestra el comienzo del flujo y se desplaza. */
+const READABLE_ZOOM = 0.75;
+const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 export function FlowBuilderPage() {
     const { flowId = '' } = useParams();
@@ -84,6 +89,29 @@ function Builder({ flow, options }: { flow: FlowDetail; options: FlowOptions }) 
     const [days, setDays] = useState(30);
     const [dialog, setDialog] = useState<'test' | 'runs' | 'publish' | 'archive' | null>(null);
     const [migrate, setMigrate] = useState(false);
+
+    const canvasRef = useRef<HTMLDivElement>(null);
+    // Vista inicial: todo el flujo si cabe legible; si no, el comienzo arriba y centrado.
+    const onInit = useCallback(
+        (rf: ReactFlowInstance<FlowCanvasNode, Edge>) => {
+            const el = canvasRef.current;
+            if (!el || initial.nodes.length === 0) {
+                return;
+            }
+            const xs = initial.nodes.map((n) => n.position.x);
+            const ys = initial.nodes.map((n) => n.position.y);
+            const minX = Math.min(...xs);
+            const maxX = Math.max(...xs) + NODE_WIDTH;
+            const minY = Math.min(...ys);
+            const maxY = Math.max(...ys) + NODE_HEIGHT;
+            const fit = Math.min(1, (el.clientWidth - 64) / (maxX - minX), (el.clientHeight - 64) / (maxY - minY));
+            const zoom = Math.max(fit, READABLE_ZOOM);
+            const x = el.clientWidth / 2 - ((minX + maxX) / 2) * zoom;
+            const y = fit >= READABLE_ZOOM ? el.clientHeight / 2 - ((minY + maxY) / 2) * zoom : 32 - minY * zoom;
+            void rf.setViewport({ x, y, zoom });
+        },
+        [initial.nodes],
+    );
 
     const update = useUpdateFlow(workspace.id, flow.id);
     const publish = usePublishFlow(workspace.id, flow.id);
@@ -196,11 +224,9 @@ function Builder({ flow, options }: { flow: FlowDetail; options: FlowOptions }) 
 
     const changeStatus = (action: 'activate' | 'pause' | 'archive') => {
         status.mutate(action, {
-            onSuccess: (next) => {
-                setSettings((s) => ({ ...s }));
+            onSuccess: () => {
                 toast.success(t(action === 'activate' ? 'flows.builder.activated' : action === 'pause' ? 'flows.builder.paused' : 'flows.builder.archived'));
                 setDialog(null);
-                void next;
             },
             onError: (e) => handleError(e, t('flows.builder.saveFailed')),
         });
@@ -236,8 +262,8 @@ function Builder({ flow, options }: { flow: FlowDetail; options: FlowOptions }) 
             if (readOnly || c.source === c.target) {
                 return;
             }
-            const handle = handleOf(c.sourceHandle === undefined ? null : c.sourceHandle);
-            const id = edgeId(c.source, handle === 'next' ? null : handle);
+            const handle = handleOf(c.sourceHandle);
+            const id = edgeId(c.source, branchOf(handle));
             // Cada salida va a un solo paso: la nueva conexión reemplaza a la anterior.
             setEdges((eds) => [...eds.filter((e) => !(e.source === c.source && (e.sourceHandle ?? 'next') === handle)), { id, source: c.source, target: c.target, sourceHandle: handle, targetHandle: 'in' }]);
             markDirty();
@@ -252,7 +278,12 @@ function Builder({ flow, options }: { flow: FlowDetail; options: FlowOptions }) 
         const from = nodes.find((n) => n.id === selected) ?? nodes.at(-1);
         const id = nextNodeId(nodes);
         const node: GraphNode = { id, type, config: metaOf(type).defaults() };
+        // Debajo del paso elegido; si ahí ya hay otro, se corre a la derecha hasta encontrar espacio.
         const position = from ? { x: from.position.x, y: from.position.y + 170 } : { x: 0, y: 0 };
+        const taken = (x: number, y: number) => nodes.some((n) => Math.abs(n.position.x - x) < NODE_WIDTH + 24 && Math.abs(n.position.y - y) < NODE_HEIGHT + 40);
+        while (taken(position.x, position.y)) {
+            position.x += NODE_WIDTH + 44;
+        }
         setNodes((ns) => [...ns.map((n) => ({ ...n, selected: false })), { id, type: 'flow', position, data: { node }, selected: true }]);
         if (from) {
             const branch = freeBranch(from.data.node, edges);
@@ -360,7 +391,7 @@ function Builder({ flow, options }: { flow: FlowDetail; options: FlowOptions }) 
                             <Button variant="outline" size="sm" disabled={readOnly || !dirty} loading={update.isPending && dialog === null} onClick={() => save()}>
                                 <Save />
                                 {t('flows.builder.save')}
-                                <Kbd className="igr:ml-1">⌘S</Kbd>
+                                <Kbd className="igr:ml-1">{IS_MAC ? '⌘S' : 'Ctrl S'}</Kbd>
                             </Button>
                             <Button size="sm" disabled={readOnly || (!dirty && !flow.has_draft)} onClick={() => setDialog('publish')}>
                                 <Send />
@@ -396,7 +427,7 @@ function Builder({ flow, options }: { flow: FlowDetail; options: FlowOptions }) 
             <div className="igr:flex igr:min-h-0 igr:flex-1">
                 {/* Paleta */}
                 {!readOnly ? (
-                    <nav aria-label={t('flows.builder.palette')} className="igr:hidden igr:w-52 igr:shrink-0 igr:overflow-y-auto igr:border-r igr:p-2 igr:md:block">
+                    <nav aria-label={t('flows.builder.palette')} className="igr:hidden igr:w-48 igr:shrink-0 igr:overflow-y-auto igr:border-r igr:p-2 igr:md:block">
                         <p className="igr:px-1 igr:pb-2 igr:text-[11px] igr:text-muted-foreground">{t('flows.builder.paletteHelp')}</p>
                         {PALETTE.map((group) => (
                             <div key={group.category} className="igr:mb-3">
@@ -430,7 +461,7 @@ function Builder({ flow, options }: { flow: FlowDetail; options: FlowOptions }) 
                 ) : null}
 
                 {/* Lienzo */}
-                <div className="igr:relative igr:min-w-0 igr:flex-1" aria-label={t('flows.builder.canvasLabel')}>
+                <div ref={canvasRef} className="igr:relative igr:min-w-0 igr:flex-1" aria-label={t('flows.builder.canvasLabel')}>
                     {issues[''] ? (
                         <div className="igr:absolute igr:left-3 igr:top-3 igr:z-10 igr:max-w-md igr:rounded-md igr:border igr:border-destructive/40 igr:bg-card igr:px-3 igr:py-2 igr:text-xs igr:text-destructive igr:shadow-sm">
                             {issues[''].join(' ')}
@@ -463,20 +494,19 @@ function Builder({ flow, options }: { flow: FlowDetail; options: FlowOptions }) 
                             deleteKeyCode={readOnly ? null : ['Backspace', 'Delete']}
                             defaultEdgeOptions={{ type: 'smoothstep', markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 } }}
                             forceColorMode={dark ? 'dark' : 'light'}
-                            fitView
-                            fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
+                            onInit={onInit}
                             minZoom={0.3}
                             proOptions={{ hideAttribution: true }}
                         >
                             <Background gap={20} size={1} />
                             <Controls showInteractive={false} />
-                            <MiniMap pannable zoomable className="igr:hidden igr:lg:block" />
+                            <MiniMap pannable zoomable className="igr:hidden igr:2xl:block" />
                         </ReactFlow>
                     </CanvasContext.Provider>
                 </div>
 
                 {/* Panel derecho */}
-                <aside className="igr:w-full igr:max-w-sm igr:shrink-0 igr:overflow-y-auto igr:border-l igr:p-4">
+                <aside className="igr:w-80 igr:shrink-0 igr:overflow-y-auto igr:border-l igr:p-4 igr:xl:w-96">
                     {selectedNode === null || selectedNode.type === 'trigger' ? (
                         <SettingsPanel
                             flowId={flow.id}
@@ -507,7 +537,7 @@ function Builder({ flow, options }: { flow: FlowDetail; options: FlowOptions }) 
             </div>
 
             <TestDialog flowId={flow.id} open={dialog === 'test'} onOpenChange={(o) => setDialog(o ? 'test' : null)} nodes={graphNodes} />
-            <RunsDialog flowId={flow.id} open={dialog === 'runs'} onOpenChange={(o) => setDialog(o ? 'runs' : null)} />
+            <RunsDialog flowId={flow.id} open={dialog === 'runs'} onOpenChange={(o) => setDialog(o ? 'runs' : null)} nodes={graphNodes} />
             <Dialog open={dialog === 'publish'} onOpenChange={(o) => setDialog(o ? 'publish' : null)}>
                 <DialogContent>
                     <DialogHeader>

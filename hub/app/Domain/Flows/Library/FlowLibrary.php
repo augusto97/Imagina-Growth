@@ -9,27 +9,34 @@ namespace App\Domain\Flows\Library;
  * módulos de otras fases (puntos, niveles VIP, avisos de stock, NPS, referidos,
  * citas, leads, renovaciones) se listan con su fase y todavía no se crean.
  *
- * Las plantillas se nombran por `template_key` = `library_key` de la biblioteca
- * de M08 (TEMPLATE_KEYS); al crear el flujo se resuelven a las plantillas del
- * espacio de trabajo.
+ * Las plantillas se nombran por `template_key` = `library_key`: las de correo
+ * son las de la biblioteca de M08 (EMAIL_KEYS, se instalan al crear el flujo) y
+ * las de WhatsApp (WHATSAPP_KEYS) las elige el cliente entre las aprobadas por
+ * Meta. Sin WhatsApp conectado, LibraryAdapter quita los pasos de WhatsApp.
  */
 final class FlowLibrary
 {
-    /** Plantillas que usan los flujos listos (para M08). */
-    public const TEMPLATE_KEYS = [
-        'wa_welcome_coupon', 'email_welcome_coupon', 'email_welcome_story', 'email_welcome_bestsellers',
-        'wa_abandoned_cart_1', 'email_abandoned_cart_1', 'email_abandoned_cart_2', 'wa_abandoned_cart_coupon', 'email_abandoned_cart_coupon',
-        'wa_abandoned_checkout', 'email_abandoned_checkout', 'email_abandoned_checkout_2',
-        'email_browse_abandonment',
-        'wa_payment_pending_1', 'email_payment_pending_1', 'wa_payment_pending_2', 'email_payment_pending_2',
-        'wa_cod_confirm',
-        'email_post_purchase',
-        'email_second_purchase', 'wa_second_purchase',
-        'wa_replenishment', 'email_replenishment',
-        'email_winback_1', 'wa_winback_coupon', 'email_winback_coupon',
-        'wa_birthday', 'email_birthday',
-        'team_alert',
+    /**
+     * Plantillas de WhatsApp que piden los flujos listos. Las de WhatsApp las
+     * aprueba Meta en la cuenta de cada cliente, así que no vienen en la
+     * biblioteca de M08: el flujo las pide por `library_key` y, si el espacio de
+     * trabajo no tiene una, el constructor pide elegir la plantilla aprobada.
+     */
+    public const WHATSAPP_KEYS = [
+        'wa_welcome_coupon', 'wa_abandoned_cart_1', 'wa_abandoned_cart_coupon', 'wa_abandoned_checkout',
+        'wa_payment_pending_1', 'wa_payment_pending_2', 'wa_cod_confirm', 'wa_second_purchase',
+        'wa_replenishment', 'wa_winback_coupon', 'wa_birthday',
     ];
+
+    /** Plantillas de correo de la biblioteca de M08 (TemplateLibrary) que usan los flujos listos. */
+    public const EMAIL_KEYS = [
+        'welcome_1', 'welcome_2', 'welcome_3', 'abandoned_cart_1', 'abandoned_cart_2', 'abandoned_checkout',
+        'browse_abandonment', 'payment_pending_1', 'payment_pending_2', 'cod_confirm_email', 'post_purchase',
+        'second_purchase', 'replenishment', 'winback_1', 'winback_2', 'birthday', 'team_alert',
+    ];
+
+    /** Todas las claves de plantilla que usan los flujos listos. */
+    public const TEMPLATE_KEYS = [...self::WHATSAPP_KEYS, ...self::EMAIL_KEYS];
 
     /** @return list<array<string, mixed>> */
     public static function all(): array
@@ -79,11 +86,11 @@ final class FlowLibrary
             ->node('cpn', 'coupon', ['kind' => 'percent', 'amount' => '10', 'expires_in_days' => 7, 'prefix' => 'BIENVENIDA'])
             ->node('split', 'channel_split', ['channels' => ['whatsapp', 'email']])
             ->node('wa', 'send_whatsapp', self::send('wa_welcome_coupon'))
-            ->node('em', 'send_email', self::send('email_welcome_coupon'))
+            ->node('em', 'send_email', self::send('welcome_1'))
             ->node('w1', 'wait', self::wait(2, 'days'))
-            ->node('story', 'send_email', self::send('email_welcome_story'))
+            ->node('story', 'send_email', self::send('welcome_2'))
             ->node('w2', 'wait', self::wait(3, 'days'))
-            ->node('best', 'send_email', self::send('email_welcome_bestsellers'))
+            ->node('best', 'send_email', self::send('welcome_3'))
             ->chain('trigger', 'cpn', 'split')
             ->edge('split', 'wa', 'whatsapp')->edge('split', 'em', 'email')
             ->edge('wa', 'w1')->edge('em', 'w1')
@@ -100,17 +107,16 @@ final class FlowLibrary
         $g = (new LibraryGraph)
             ->node('w1', 'wait', self::wait(1, 'hours'))
             ->node('wa1', 'send_whatsapp', self::send('wa_abandoned_cart_1'))
-            ->node('em1', 'send_email', self::send('email_abandoned_cart_1'))
             ->node('w2', 'wait', self::wait(3, 'hours'))
-            ->node('em2', 'send_email', self::send('email_abandoned_cart_2'))
+            ->node('em1', 'send_email', self::send('abandoned_cart_1'))
             ->node('w3', 'wait', self::wait(20, 'hours'))
             ->node('cpn', 'coupon', ['kind' => 'percent', 'amount' => '10', 'expires_in_days' => 2, 'prefix' => 'VUELVE'])
             ->node('wa2', 'send_whatsapp', self::send('wa_abandoned_cart_coupon'))
-            ->node('em3', 'send_email', self::send('email_abandoned_cart_coupon'))
+            ->node('em2', 'send_email', self::send('abandoned_cart_2'))
             ->chain('trigger', 'w1', 'wa1')
-            ->edge('wa1', 'em1', 'failed')->edge('wa1', 'w2')->edge('em1', 'w2')
-            ->chain('w2', 'em2', 'w3', 'cpn', 'wa2')
-            ->edge('wa2', 'em3', 'failed');
+            ->edge('wa1', 'w2')->edge('wa1', 'w2', 'failed')
+            ->chain('w2', 'em1', 'w3', 'cpn', 'wa2')
+            ->edge('wa2', 'em2', 'failed');
 
         return self::flow(2, 'abandoned_cart', 'Carrito abandonado', 'WhatsApp a la hora, correo a las 4 horas y WhatsApp a las 24 horas con un cupón opcional. Sale cuando compra.',
             ['type' => 'event', 'event' => 'cart.abandoned', 'filters' => []],
@@ -124,15 +130,15 @@ final class FlowLibrary
             ->node('we', 'wait_event', ['event' => 'order.created', 'timeout' => ['value' => 30, 'unit' => 'minutes'], 'filters' => []])
             ->node('done', 'exit', [])
             ->node('wa1', 'send_whatsapp', self::send('wa_abandoned_checkout'))
-            ->node('em1', 'send_email', self::send('email_abandoned_checkout'))
+            ->node('em1', 'send_email', self::send('abandoned_checkout'))
             ->node('w2', 'wait', self::wait(23, 'hours'))
-            ->node('em2', 'send_email', self::send('email_abandoned_checkout_2'))
+            ->node('em2', 'send_email', self::send('abandoned_checkout'))
             ->chain('trigger', 'we')
             ->edge('we', 'done', 'event')->edge('we', 'wa1', 'timeout')
-            ->edge('wa1', 'em1', 'failed')->edge('wa1', 'w2')->edge('em1', 'w2')
+            ->edge('wa1', 'em1', 'failed')->edge('wa1', 'w2')
             ->chain('w2', 'em2');
 
-        return self::flow(3, 'abandoned_checkout', 'Checkout abandonado', 'Si no hay pedido 30 minutos después de empezar el pago: WhatsApp y, al día siguiente, correo.',
+        return self::flow(3, 'abandoned_checkout', 'Checkout abandonado', 'Si no hay pedido 30 minutos después de empezar el pago: WhatsApp (o correo si no se puede) y, al día siguiente, correo.',
             ['type' => 'event', 'event' => 'checkout.started', 'filters' => []],
             ['event' => 'order.paid'], ['mode' => 'every_days', 'days' => 7], $g);
     }
@@ -147,7 +153,7 @@ final class FlowLibrary
         $g = (new LibraryGraph)
             ->node('w1', 'wait', self::wait(2, 'hours'))
             ->node('cond', 'condition', ['mode' => 'segment', 'definition' => $viewedTwice, 'exit_if_no' => true])
-            ->node('em', 'send_email', self::send('email_browse_abandonment'))
+            ->node('em', 'send_email', self::send('browse_abandonment'))
             ->chain('trigger', 'w1', 'cond')->edge('cond', 'em', 'yes');
 
         return self::flow(4, 'browse_abandonment', 'Navegación abandonada', 'Vio productos 2 o más veces en 3 días sin agregar al carrito: correo con el producto y alternativas.',
@@ -161,10 +167,10 @@ final class FlowLibrary
         $g = (new LibraryGraph)
             ->node('w1', 'wait', self::wait(2, 'hours'))
             ->node('wa1', 'send_whatsapp', self::send('wa_payment_pending_1'))
-            ->node('em1', 'send_email', self::send('email_payment_pending_1'))
+            ->node('em1', 'send_email', self::send('payment_pending_1'))
             ->node('w2', 'wait', self::wait(22, 'hours'))
             ->node('wa2', 'send_whatsapp', self::send('wa_payment_pending_2'))
-            ->node('em2', 'send_email', self::send('email_payment_pending_2'))
+            ->node('em2', 'send_email', self::send('payment_pending_2'))
             ->chain('trigger', 'w1', 'wa1')
             ->edge('wa1', 'em1', 'failed')->edge('wa1', 'w2')->edge('em1', 'w2')
             ->chain('w2', 'wa2')->edge('wa2', 'em2', 'failed');
@@ -179,14 +185,16 @@ final class FlowLibrary
     {
         $g = (new LibraryGraph)
             ->node('ask', 'send_whatsapp', ['template_key' => 'wa_cod_confirm', 'kind' => 'utility', 'reclassify_reason' => 'Confirmar un pedido contraentrega que la persona acaba de hacer es transaccional (Ley 2300, art. 8).'])
-            ->node('fail', 'notify_team', ['channel' => 'email', 'to_owners' => true, 'message' => 'No se pudo pedir por WhatsApp la confirmación de un pedido contraentrega. Llama al cliente.', 'template_key' => 'team_alert'])
+            ->node('mail', 'send_email', ['template_key' => 'cod_confirm_email', 'kind' => 'utility', 'reclassify_reason' => 'Confirmar un pedido contraentrega que la persona acaba de hacer es transaccional (Ley 2300, art. 8).'])
+            ->node('fail', 'notify_team', ['channel' => 'email', 'to_owners' => true, 'message' => 'No se pudo pedir por WhatsApp la confirmación de un pedido contraentrega; se envió por correo. Llama al cliente antes de despacharlo.', 'template_key' => 'team_alert'])
             ->node('wait', 'wait_event', ['event' => 'message.replied', 'timeout' => ['value' => 12, 'unit' => 'hours'], 'filters' => [['prop' => 'button_payload', 'operator' => 'in', 'value' => ['cod_confirm', 'cod_cancel']]]])
             ->node('answer', 'condition', ['mode' => 'context', 'path' => 'last_event.props.button_payload', 'operator' => 'eq', 'value' => 'cod_confirm'])
             ->node('ok', 'tag', ['add' => ['contraentrega_confirmada']])
             ->node('cancel', 'notify_team', ['channel' => 'email', 'to_owners' => true, 'message' => 'El cliente canceló su pedido contraentrega desde WhatsApp.', 'template_key' => 'team_alert'])
             ->node('late', 'notify_team', ['channel' => 'email', 'to_owners' => true, 'message' => 'Un pedido contraentrega lleva 12 horas sin confirmar. Llama al cliente antes de despacharlo.', 'template_key' => 'team_alert'])
             ->chain('trigger', 'ask')
-            ->edge('ask', 'fail', 'failed')->edge('ask', 'wait')
+            ->edge('ask', 'mail', 'failed')->edge('ask', 'wait')
+            ->chain('mail', 'fail')
             ->edge('wait', 'answer', 'event')->edge('wait', 'late', 'timeout')
             ->edge('answer', 'ok', 'yes')->edge('answer', 'cancel', 'no');
 
@@ -200,7 +208,7 @@ final class FlowLibrary
     {
         $g = (new LibraryGraph)
             ->node('w1', 'wait', self::wait(1, 'days'))
-            ->node('em', 'send_email', self::send('email_post_purchase'))
+            ->node('em', 'send_email', self::send('post_purchase'))
             ->chain('trigger', 'w1', 'em');
 
         return self::flow(7, 'post_purchase', 'Poscompra', 'Gracias y cómo usar el producto, un día después de completar el pedido.',
@@ -212,7 +220,7 @@ final class FlowLibrary
     private static function secondPurchase(): array
     {
         $g = (new LibraryGraph)
-            ->node('em', 'send_email', self::send('email_second_purchase'))
+            ->node('em', 'send_email', self::send('second_purchase'))
             ->node('w1', 'wait', self::wait(4, 'days'))
             ->node('wa', 'send_whatsapp', self::send('wa_second_purchase'))
             ->chain('trigger', 'em', 'w1', 'wa');
@@ -228,7 +236,7 @@ final class FlowLibrary
         $g = (new LibraryGraph)
             ->node('split', 'channel_split', ['channels' => ['whatsapp', 'email']])
             ->node('wa', 'send_whatsapp', self::send('wa_replenishment'))
-            ->node('em', 'send_email', self::send('email_replenishment'))
+            ->node('em', 'send_email', self::send('replenishment'))
             ->chain('trigger', 'split')->edge('split', 'wa', 'whatsapp')->edge('split', 'em', 'email');
 
         return self::flow(10, 'replenishment', 'Reposición', '5 días antes de la fecha esperada de su próxima compra: «se te está acabando».',
@@ -240,12 +248,12 @@ final class FlowLibrary
     private static function winback(): array
     {
         $g = (new LibraryGraph)
-            ->node('em1', 'send_email', self::send('email_winback_1'))
+            ->node('em1', 'send_email', self::send('winback_1'))
             ->node('w1', 'wait', self::wait(3, 'days'))
             ->node('cpn', 'coupon', ['kind' => 'percent', 'amount' => '15', 'expires_in_days' => 7, 'prefix' => 'TEEXTRANAMOS'])
             ->node('split', 'channel_split', ['channels' => ['whatsapp', 'email']])
             ->node('wa', 'send_whatsapp', self::send('wa_winback_coupon'))
-            ->node('em2', 'send_email', self::send('email_winback_coupon'))
+            ->node('em2', 'send_email', self::send('winback_2'))
             ->chain('trigger', 'em1', 'w1', 'cpn', 'split')->edge('split', 'wa', 'whatsapp')->edge('split', 'em2', 'email');
 
         return self::flow(11, 'winback', 'Recuperación', 'Entra en «En riesgo»: mensaje personal y, si no vuelve, un incentivo.',
@@ -260,7 +268,7 @@ final class FlowLibrary
             ->node('cpn', 'coupon', ['kind' => 'percent', 'amount' => '10', 'expires_in_days' => 7, 'prefix' => 'CUMPLE'])
             ->node('split', 'channel_split', ['channels' => ['whatsapp', 'email']])
             ->node('wa', 'send_whatsapp', self::send('wa_birthday'))
-            ->node('em', 'send_email', self::send('email_birthday'))
+            ->node('em', 'send_email', self::send('birthday'))
             ->chain('trigger', 'cpn', 'split')->edge('split', 'wa', 'whatsapp')->edge('split', 'em', 'email');
 
         return self::flow(13, 'birthday', 'Cumpleaños', 'Regalo el día del cumpleaños (cupón), a una hora legal.',

@@ -3,14 +3,17 @@
 use App\Domain\Flows\Graph\Graph;
 use App\Domain\Flows\Graph\GraphValidator;
 use App\Domain\Flows\Library\FlowLibrary;
+use App\Domain\Flows\Library\LibraryAdapter;
 use App\Domain\Flows\Models\Flow;
 use App\Domain\Flows\Models\FlowRun;
 use App\Domain\Flows\Support\FlowSecrets;
 use App\Domain\Messaging\Testing\FakeMessageDispatcher;
+use App\Domain\Templates\Library\TemplateLibrary;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\Feature\Flows\Support\FlowFixtures;
 
 uses(FlowFixtures::class);
@@ -100,11 +103,42 @@ it('la biblioteca muestra los 20 flujos, avisa las plantillas que faltan y activ
     $res = $this->actingAs($this->owner)->postJson($this->api('/library/abandoned_cart'), ['activate' => true])->assertCreated();
     expect($res->json('activated'))->toBeTrue()->and($res->json('status'))->toBe('active')->and($res->json('template_key'))->toBe('abandoned_cart');
 
-    // Sin las plantillas, queda en borrador con los pendientes.
-    DB::table('templates')->where('library_key', 'email_post_purchase')->delete();
-    $draft = $this->actingAs($this->owner)->postJson($this->api('/library/post_purchase'), ['activate' => true])->assertCreated();
+    // Sin la plantilla aprobada de WhatsApp, queda en borrador con los pendientes.
+    DB::table('templates')->where('library_key', 'wa_second_purchase')->delete();
+    $second = collect($this->actingAs($this->owner)->getJson($this->api('/library'))->json('data'))->firstWhere('key', 'second_purchase');
+    expect($second['missing_templates'])->toBe(['wa_second_purchase']);
+    $draft = $this->actingAs($this->owner)->postJson($this->api('/library/second_purchase'), ['activate' => true])->assertCreated();
     expect($draft->json('activated'))->toBeFalse()->and($draft->json('status'))->toBe('draft')->and($draft->json('issues'))->not->toBeEmpty();
     $this->actingAs($this->owner)->postJson($this->api('/library/nps'))->assertUnprocessable();
+});
+
+it('sin WhatsApp conectado, la biblioteca quita sus pasos e instala las plantillas de correo de M08', function () {
+    DB::table('templates')->where('workspace_id', $this->ws->id)->delete();
+    DB::table('channel_accounts')->where('workspace_id', $this->ws->id)->where('channel', 'whatsapp')->update(['status' => 'disconnected']);
+
+    $library = collect($this->actingAs($this->owner)->getJson($this->api('/library'))->assertOk()->json('data'));
+    expect($library->firstWhere('key', 'abandoned_cart')['missing_templates'])->toBe([])
+        ->and($library->firstWhere('key', 'abandoned_cart')['templates'])->toBe(['abandoned_cart_1', 'abandoned_cart_2']);
+
+    $res = $this->actingAs($this->owner)->postJson($this->api('/library/abandoned_cart'), ['activate' => true])->assertCreated();
+    expect($res->json('activated'))->toBeTrue();
+    $nodes = collect($res->json('graph.nodes'));
+    expect($nodes->pluck('type')->all())->not->toContain('send_whatsapp')
+        ->and($nodes->where('type', 'send_email')->pluck('config.template_key')->values()->all())->toBe(['abandoned_cart_1', 'abandoned_cart_2'])
+        ->and(DB::table('templates')->where('workspace_id', $this->ws->id)->pluck('library_key')->sort()->values()->all())->toBe(['abandoned_cart_1', 'abandoned_cart_2']);
+    // El cupón llega al correo de respaldo: trigger → espera → correo → espera → cupón → correo con incentivo.
+    $edges = collect($res->json('graph.edges'))->map(fn ($e) => $e['from'].'>'.$e['to'])->all();
+    expect($edges)->toBe(['trigger>w1', 'w1>w2', 'w2>em1', 'em1>w3', 'w3>cpn', 'cpn>em2']);
+
+    // La confirmación de contraentrega sin WhatsApp: correo de utilidad y aviso al equipo.
+    $cod = $this->actingAs($this->owner)->postJson($this->api('/library/cod_confirm'), ['activate' => true])->assertCreated();
+    expect($cod->json('activated'))->toBeTrue()
+        ->and(collect($cod->json('graph.nodes'))->pluck('id')->all())->toBe(['trigger', 'mail', 'fail']);
+
+    // La bienvenida: la división por canal deja solo el correo.
+    $welcome = $this->actingAs($this->owner)->postJson($this->api('/library/welcome'), ['activate' => true])->assertCreated();
+    expect(collect($welcome->json('graph.nodes'))->firstWhere('id', 'split')['config']['channels'])->toBe(['email'])
+        ->and($welcome->json('activated'))->toBeTrue();
 });
 
 it('modo prueba: recorre el borrador sin esperas y los mensajes van a quien prueba', function () {
@@ -172,4 +206,49 @@ it('aislamiento: los flujos de otro espacio de trabajo no existen para la API ni
     $this->ws = $ws;
     expect(FlowRun::withoutWorkspaceScope()->count())->toBe(0)
         ->and(Flow::withoutWorkspaceScope()->where('workspace_id', $other->id)->count())->toBe(0);
+});
+
+it('las plantillas de correo de la biblioteca de flujos existen en la biblioteca de M08', function () {
+    expect(array_diff(FlowLibrary::EMAIL_KEYS, TemplateLibrary::keys()))->toBe([]);
+    foreach (FlowLibrary::all() as $flow) {
+        foreach (LibraryAdapter::templateKeys($flow['graph'] ?? []) as $key) {
+            expect(in_array($key, FlowLibrary::TEMPLATE_KEYS, true))->toBeTrue("{$flow['key']}: {$key}");
+        }
+    }
+});
+
+it('resultados: conversión del grupo expuesto, incremento con intervalo del 95% y pasos sin el control', function () {
+    $id = $this->actingAs($this->owner)->postJson($this->api('/library/abandoned_cart'), ['activate' => true])->json('id');
+    $flow = Flow::withoutWorkspaceScope()->findOrFail(Str::after($id, 'fl_'));
+    $insert = function (bool $holdout, bool $converted, string $key) use ($flow) {
+        $run = strtoupper((string) Str::ulid());
+        DB::table('flow_runs')->insert([
+            'id' => $run, 'workspace_id' => $flow->workspace_id, 'flow_id' => $flow->id, 'flow_version_id' => $flow->current_version_id, 'contact_id' => $this->contact->id,
+            'status' => 'completed', 'exit_reason' => $converted ? 'goal_reached' : 'completed', 'is_holdout' => $holdout, 'trigger_key' => $key,
+            'context' => json_encode($converted ? ['_goal' => ['revenue_ws' => '100000.00']] : []), 'started_at' => now()->subDay(), 'ended_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('flow_run_steps')->insert(['workspace_id' => $flow->workspace_id, 'run_id' => $run, 'node_id' => 'wa1', 'attempt' => 1, 'outcome' => $holdout ? 'skipped_holdout' : 'sent', 'executed_at' => now()]);
+    };
+    for ($i = 0; $i < 100; $i++) {
+        $insert(false, $i < 30, "event:t{$i}");
+    }
+    for ($i = 0; $i < 50; $i++) {
+        $insert(true, $i < 5, "event:h{$i}");
+    }
+    $insert(false, true, 'test:'.Str::ulid()); // las pruebas no cuentan
+
+    $res = $this->actingAs($this->owner)->getJson($this->api("/{$id}/analytics?days=30"))->assertOk();
+    expect($res->json('summary.entered'))->toBe(150)
+        ->and($res->json('summary.converted'))->toBe(30)
+        ->and($res->json('summary.goal_revenue'))->toBe('3000000.00')
+        ->and($res->json('holdout.entered'))->toBe(50)
+        ->and($res->json('uplift.available'))->toBeTrue()
+        ->and($res->json('uplift.difference'))->toEqual(0.2)
+        ->and($res->json('uplift.significant'))->toBeTrue()
+        // √(0,3·0,7/100 + 0,1·0,9/50) = 0,0624 → 0,2 ± 0,1224
+        ->and($res->json('uplift.ci_low'))->toEqual(0.0776)
+        ->and($res->json('uplift.ci_high'))->toEqual(0.3224)
+        ->and($res->json('nodes.wa1.reached'))->toBe(100)
+        ->and($res->json('nodes.wa1.outcomes'))->toBe(['sent' => 100])
+        ->and($res->json('nodes.wa1.converted'))->toBe(30);
 });

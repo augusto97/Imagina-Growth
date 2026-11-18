@@ -165,7 +165,7 @@ it('un paso nunca envía dos veces: ni por reintentos del job, ni por una caída
     $this->travelTo(flowBogota('2026-11-17 10:00:00'));
     $flow = flowActive($this, flowGraph([
         ['id' => 'wa', 'type' => 'send_whatsapp', 'config' => ['template_key' => 'wa_abandoned_cart_1']],
-        ['id' => 'em', 'type' => 'send_email', 'config' => ['template_key' => 'email_abandoned_cart_1', 'kind' => 'transactional', 'reclassify_reason' => 'Confirmación de una acción del cliente']],
+        ['id' => 'em', 'type' => 'send_email', 'config' => ['template_key' => 'abandoned_cart_1', 'kind' => 'transactional', 'reclassify_reason' => 'Confirmación de una acción del cliente']],
     ], [['from' => 'trigger', 'to' => 'wa'], ['from' => 'wa', 'to' => 'em']]), ['trigger' => ['type' => 'event', 'event' => 'cart.abandoned', 'filters' => []], 'reentry_policy' => ['mode' => 'always']]);
 
     // El mismo evento llega dos veces (reintento de la ingesta): un solo run.

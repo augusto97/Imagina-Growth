@@ -26,6 +26,9 @@ export const FlowNode = memo(function FlowNode({ data, selected }: NodeProps<Flo
     const branches = branchesOf(node);
     const problems = issues[node.id] ?? [];
     const s = stats?.[node.id];
+    // Envíos: el estado real de los mensajes si ya hay, si no lo que registró el paso.
+    const sent = s ? (s.messages.sent ?? s.outcomes.sent ?? 0) : 0;
+    const notSent = s ? (s.outcomes.denied ?? 0) + (s.outcomes.failed ?? 0) : 0;
 
     return (
         <div
@@ -56,12 +59,13 @@ export const FlowNode = memo(function FlowNode({ data, selected }: NodeProps<Flo
                         </p>
                     ) : null}
                     {s ? (
-                        <dl className="igr:mt-2 igr:flex igr:flex-wrap igr:gap-x-3 igr:gap-y-0.5 igr:border-t igr:pt-1.5 igr:text-[11px] igr:text-muted-foreground">
+                        <div className="igr:mt-2 igr:flex igr:flex-wrap igr:gap-x-3 igr:gap-y-0.5 igr:border-t igr:pt-1.5 igr:text-[11px] igr:text-muted-foreground">
                             <Stat label={t('flows.analytics.node.reached')} value={formatNumber(s.reached, locale)} />
-                            {s.messages.sent ? <Stat label={t('flows.analytics.node.sent')} value={formatNumber(s.messages.sent, locale)} /> : null}
+                            {sent ? <Stat label={t('flows.analytics.node.sent')} value={formatNumber(sent, locale)} /> : null}
+                            {notSent ? <Stat label={t('flows.analytics.node.notSent')} value={formatNumber(notSent, locale)} /> : null}
                             {s.messages.clicked ? <Stat label={t('flows.analytics.node.clicked')} value={formatNumber(s.messages.clicked, locale)} /> : null}
                             <Stat label={t('flows.analytics.node.converted')} value={formatNumber(s.converted, locale)} />
-                        </dl>
+                        </div>
                     ) : null}
                 </div>
             </div>
@@ -90,9 +94,9 @@ export const FlowNode = memo(function FlowNode({ data, selected }: NodeProps<Flo
 
 function Stat({ label, value }: { label: string; value: string }) {
     return (
-        <div className="igr:flex igr:gap-1">
-            <dd className="igr:font-medium igr:tabular-nums igr:text-foreground">{value}</dd>
-            <dt>{label}</dt>
-        </div>
+        <span className="igr:flex igr:gap-1">
+            <span className="igr:font-medium igr:tabular-nums igr:text-foreground">{value}</span>
+            {label}
+        </span>
     );
 }

@@ -5,13 +5,20 @@ declare(strict_types=1);
 namespace App\Domain\Flows\Actions;
 
 use App\Domain\Flows\Library\FlowLibrary;
+use App\Domain\Flows\Library\LibraryAdapter;
 use App\Domain\Flows\Models\Flow;
 use App\Domain\Flows\Support\InvalidFlow;
+use App\Domain\Flows\Support\TemplateRef;
+use App\Domain\Templates\Library\TemplateLibrary;
+use App\Support\Tenancy\CurrentWorkspace;
 
 /**
- * Crea un flujo de la biblioteca (modulos.md M09: «activar en 1 clic»). Con
- * `activate`, si el borrador es válido (están las plantillas), se publica y se
- * activa; si no, queda en borrador con los pendientes.
+ * Crea un flujo de la biblioteca (modulos.md M09: «activar en 1 clic»). Antes
+ * lo ajusta al espacio de trabajo (LibraryAdapter: sin WhatsApp conectado se
+ * quitan sus pasos) e instala las plantillas de correo que falten desde la
+ * biblioteca de M08. Con `activate`, si el borrador es válido, se publica y se
+ * activa; si no (p. ej. falta elegir la plantilla aprobada de WhatsApp), queda
+ * en borrador con los pendientes.
  */
 final class CreateFlowFromLibrary
 {
@@ -19,6 +26,7 @@ final class CreateFlowFromLibrary
         private readonly SaveFlow $save,
         private readonly PublishFlow $publish,
         private readonly ChangeFlowStatus $status,
+        private readonly CurrentWorkspace $current,
     ) {}
 
     /**
@@ -31,6 +39,15 @@ final class CreateFlowFromLibrary
         $definition = FlowLibrary::find($key);
         if ($definition === null || $definition['graph'] === null) {
             throw new InvalidFlow(['key' => __('Ese flujo de la biblioteca no está disponible todavía.')]);
+        }
+        $workspace = $this->current->get();
+        $definition = LibraryAdapter::forWorkspace($definition, $workspace->id);
+        foreach ((array) $definition['graph']['nodes'] as $node) {
+            $key = $node['config']['template_key'] ?? null;
+            $channel = $node['type'] === 'send_email' ? 'email' : ($node['type'] === 'send_sms' ? 'sms' : ($node['type'] === 'notify_team' ? (string) ($node['config']['channel'] ?? 'email') : null));
+            if (is_string($key) && $channel !== null && LibraryAdapter::installable($key) && TemplateRef::resolve($workspace->id, $channel, null, $key) === null) {
+                TemplateLibrary::install($workspace, $key, null, $userId);
+            }
         }
         $result = $this->save->handle(null, [
             'name' => $definition['name'],

@@ -31,7 +31,13 @@ export function useFlowOptions(ws: string) {
 }
 
 export function useFlowLibrary(ws: string) {
-    return useQuery({ queryKey: flowKeys.library(ws), queryFn: async ({ signal }) => (await api.get<{ data: LibraryFlow[] }>(`${base(ws)}/library`, signal)).data });
+    return useQuery({
+        queryKey: flowKeys.library(ws),
+        queryFn: async ({ signal }) => {
+            const res = await api.get<{ data: LibraryFlow[]; meta: { whatsapp_connected: boolean } }>(`${base(ws)}/library`, signal);
+            return { flows: res.data, whatsappConnected: res.meta.whatsapp_connected };
+        },
+    });
 }
 
 export function useFlowAnalytics(ws: string, id: string, days: number, enabled: boolean) {

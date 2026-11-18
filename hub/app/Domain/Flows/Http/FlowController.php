@@ -14,6 +14,7 @@ use App\Domain\Flows\Actions\StartTestRun;
 use App\Domain\Flows\Console\DateTriggersCommand;
 use App\Domain\Flows\Graph\NodeTypes;
 use App\Domain\Flows\Library\FlowLibrary;
+use App\Domain\Flows\Library\LibraryAdapter;
 use App\Domain\Flows\Models\Flow;
 use App\Domain\Flows\Models\FlowRun;
 use App\Domain\Flows\Models\FlowVersion;
@@ -248,26 +249,23 @@ final class FlowController
             ->pluck('library_key')->flip();
         $created = Flow::query()->whereNotNull('template_key')->where('status', '!=', Flow::ARCHIVED)->pluck('id', 'template_key');
 
-        return response()->json(['data' => array_map(function (array $f) use ($existing, $created) {
-            $keys = [];
-            foreach ((array) ($f['graph']['nodes'] ?? []) as $node) {
-                $key = $node['config']['template_key'] ?? null;
-                if (is_string($key)) {
-                    $keys[] = $key;
-                }
-            }
-            $keys = array_values(array_unique($keys));
+        $hasWhatsapp = LibraryAdapter::hasWhatsapp($workspaceId);
+
+        return response()->json(['data' => array_map(function (array $f) use ($existing, $created, $workspaceId, $hasWhatsapp) {
+            $f = LibraryAdapter::forWorkspace($f, $workspaceId, $hasWhatsapp);
+            $keys = is_array($f['graph']) ? LibraryAdapter::templateKeys($f['graph']) : [];
 
             return [
                 'key' => $f['key'], 'number' => $f['number'], 'name' => $f['name'], 'description' => $f['description'], 'phase' => $f['phase'],
                 'available' => $f['graph'] !== null,
                 'trigger' => $f['trigger'],
                 'templates' => $keys,
-                'missing_templates' => array_values(array_filter($keys, fn ($k) => ! $existing->has($k))),
+                // Las de la biblioteca de M08 se instalan al crear el flujo; faltan las demás (las aprobadas de WhatsApp).
+                'missing_templates' => array_values(array_filter($keys, fn ($k) => ! $existing->has($k) && ! LibraryAdapter::installable($k))),
                 'created_flow_id' => $created->has($f['key']) ? PrefixedId::encode(Flow::ID_PREFIX, (string) $created->get($f['key'])) : null,
                 'steps' => count((array) ($f['graph']['nodes'] ?? [])),
             ];
-        }, FlowLibrary::all())]);
+        }, FlowLibrary::all()), 'meta' => ['whatsapp_connected' => $hasWhatsapp]]);
     }
 
     /** POST flows/library/{key} {activate} */

@@ -10,12 +10,22 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { formatDateTime } from '@/lib/format';
+import type { GraphNode } from '../types';
 import { Route } from 'lucide-react';
 import { useFlowRuns } from '../api';
 
 /** Quién va por el flujo y dónde está. */
-export function RunsDialog({ flowId, open, onOpenChange }: { flowId: string; open: boolean; onOpenChange: (open: boolean) => void }) {
+export function RunsDialog({ flowId, open, onOpenChange, nodes }: { flowId: string; open: boolean; onOpenChange: (open: boolean) => void; nodes: GraphNode[] }) {
     const { t } = useTranslation();
+    // El paso con su nombre (y el ID entre paréntesis si hay varios del mismo tipo).
+    const stepLabel = (id: string | null) => {
+        const node = id === null ? undefined : nodes.find((n) => n.id === id);
+        if (id === null || node === undefined) {
+            return id ?? '—';
+        }
+        const name = t(`flows.nodes.${node.type}`, { defaultValue: node.type });
+        return nodes.filter((n) => n.type === node.type).length > 1 ? `${name} (${id})` : name;
+    };
     const { workspace } = useWorkspace();
     const [status, setStatus] = useState('');
     const [page, setPage] = useState(1);
@@ -82,13 +92,13 @@ export function RunsDialog({ flowId, open, onOpenChange }: { flowId: string; ope
                                             </TD>
                                             <TD>
                                                 <span>{t(`flows.runs.statuses.${r.status}`)}</span>
-                                                {r.exit_reason ? <span className="igr:ml-1 igr:text-xs igr:text-muted-foreground">· {t(`flows.runs.reasons.${r.exit_reason}`, { defaultValue: r.exit_reason })}</span> : null}
+                                                {r.exit_reason && r.exit_reason !== 'completed' ? <span className="igr:ml-1 igr:text-xs igr:text-muted-foreground">· {t(`flows.runs.reasons.${r.exit_reason}`, { defaultValue: r.exit_reason })}</span> : null}
                                             </TD>
                                             <TD className="igr:text-muted-foreground">
-                                                {r.current_node_id ?? '—'}
+                                                {stepLabel(r.current_node_id)}
                                                 {r.next_run_at && (r.status === 'waiting' || r.status === 'active') ? <span className="igr:block igr:text-xs">{t('flows.runs.next')}: {formatDateTime(r.next_run_at, workspace.locale, workspace.timezone)}</span> : null}
                                             </TD>
-                                            <TD className="igr:text-right igr:text-muted-foreground">{formatDateTime(r.started_at, workspace.locale, workspace.timezone)}</TD>
+                                            <TD className="igr:whitespace-nowrap igr:text-right igr:text-muted-foreground">{formatDateTime(r.started_at, workspace.locale, workspace.timezone)}</TD>
                                         </TR>
                                     ))}
                                 </TBody>

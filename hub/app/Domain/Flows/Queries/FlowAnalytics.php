@@ -121,10 +121,15 @@ final class FlowAnalytics
         ];
     }
 
-    /** @return array<string, array<string, mixed>> por ID de nodo */
+    /**
+     * Por ID de nodo, sin el grupo de control (que no envía nada): lo que el
+     * flujo hizo con quienes sí lo recorren. El control se compara en `uplift`.
+     *
+     * @return array<string, array<string, mixed>>
+     */
     private function nodes(Flow $flow, ?CarbonImmutable $from, ?CarbonImmutable $to): array
     {
-        $runIds = $this->runs($flow, $from, $to)->select('id');
+        $runIds = $this->runs($flow, $from, $to)->where('is_holdout', false)->select('id');
         $rows = DB::table('flow_run_steps as s')
             ->join('flow_runs as r', 'r.id', '=', 's.run_id')
             ->where('s.workspace_id', $flow->workspace_id)

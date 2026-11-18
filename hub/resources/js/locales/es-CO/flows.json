@@ -10,8 +10,16 @@
         "descriptionLabel": "Descripción",
         "create": "Crear y abrir",
         "created": "Flujo creado",
-        "tabs": { "mine": "Mis flujos", "library": "Biblioteca" },
-        "status": { "draft": "Borrador", "active": "Activo", "paused": "Pausado", "archived": "Archivado" },
+        "tabs": {
+            "mine": "Mis flujos",
+            "library": "Biblioteca"
+        },
+        "status": {
+            "draft": "Borrador",
+            "active": "Activo",
+            "paused": "Pausado",
+            "archived": "Archivado"
+        },
         "list": {
             "trigger": "Disparador",
             "entered": "Entraron (30 días)",
@@ -34,12 +42,13 @@
             "steps": "{{count}} paso",
             "steps_other": "{{count}} pasos",
             "phase": "Llega en la Fase {{phase}}",
-            "missing": "Faltan plantillas: {{list}}",
-            "missingHelp": "Créalas en Plantillas (biblioteca) o elige otras al personalizar.",
+            "missing": "Falta elegir la plantilla aprobada de WhatsApp: {{list}}",
+            "missingHelp": "Las plantillas de WhatsApp las aprueba Meta en tu cuenta. Créala en Canales y elígela al personalizar el flujo. Las de correo se instalan solas.",
             "activated": "«{{name}}» quedó activo",
             "createdDraft": "«{{name}}» quedó en borrador: completa lo pendiente para activarlo",
             "available": "Listos para usar",
-            "later": "Llegan con otros módulos"
+            "later": "Llegan con otros módulos",
+            "noWhatsapp": "No tienes WhatsApp conectado: los flujos se crean solo con correo. Cuando conectes WhatsApp, crea el flujo otra vez para sumar sus pasos."
         },
         "builder": {
             "back": "Flujos",
@@ -81,7 +90,13 @@
             "canvasLabel": "Lienzo del flujo",
             "leave": "Hay cambios sin guardar. ¿Salir igual?"
         },
-        "categories": { "trigger": "Disparador", "wait": "Esperas", "logic": "Lógica", "action": "Acciones", "control": "Control" },
+        "categories": {
+            "trigger": "Disparador",
+            "wait": "Esperas",
+            "logic": "Lógica",
+            "action": "Acciones",
+            "control": "Control"
+        },
         "nodes": {
             "trigger": "Disparador",
             "wait": "Esperar",
@@ -104,9 +119,26 @@
             "lead_stage": "Mover etapa del lead",
             "crm_task": "Tarea en Imagina CRM"
         },
-        "branches": { "next": "Siguiente", "yes": "Sí", "no": "No", "failed": "Si no se envía", "event": "Lo hizo", "timeout": "Se acabó el tiempo", "variant": "Variante {{key}}" },
-        "channels": { "whatsapp": "WhatsApp", "email": "Correo", "sms": "SMS", "none": "Ningún canal" },
-        "kinds": { "marketing": "Marketing", "utility": "Utilidad", "transactional": "Transaccional" },
+        "branches": {
+            "next": "Siguiente",
+            "yes": "Sí",
+            "no": "No",
+            "failed": "Si no se envía",
+            "event": "Lo hizo",
+            "timeout": "Se acabó el tiempo",
+            "variant": "Variante {{key}}"
+        },
+        "channels": {
+            "whatsapp": "WhatsApp",
+            "email": "Correo",
+            "sms": "SMS",
+            "none": "Ningún canal"
+        },
+        "kinds": {
+            "marketing": "Marketing",
+            "utility": "Utilidad",
+            "transactional": "Transaccional"
+        },
         "units": {
             "minutes_one": "{{count}} minuto",
             "minutes_other": "{{count}} minutos",
@@ -115,8 +147,20 @@
             "days_one": "{{count}} día",
             "days_other": "{{count}} días"
         },
-        "unitNames": { "minutes": "Minutos", "hours": "Horas", "days": "Días" },
-        "weekdaysShort": { "1": "lun", "2": "mar", "3": "mié", "4": "jue", "5": "vie", "6": "sáb", "7": "dom" },
+        "unitNames": {
+            "minutes": "Minutos",
+            "hours": "Horas",
+            "days": "Días"
+        },
+        "weekdaysShort": {
+            "1": "lun",
+            "2": "mar",
+            "3": "mié",
+            "4": "jue",
+            "5": "vie",
+            "6": "sáb",
+            "7": "dom"
+        },
         "summary": {
             "wait": "Espera {{duration}}",
             "untilTime": "Hasta las {{hour}}:{{minute}} ({{days}})",
@@ -146,7 +190,13 @@
             "webhook": "Webhook de entrada",
             "pick": "Elige cómo entran los contactos"
         },
-        "offset": { "same": "el mismo día", "before_one": "{{count}} día antes", "before_other": "{{count}} días antes", "after_one": "{{count}} día después", "after_other": "{{count}} días después" },
+        "offset": {
+            "same": "el mismo día",
+            "before_one": "{{count}} día antes",
+            "before_other": "{{count}} días antes",
+            "after_one": "{{count}} día después",
+            "after_other": "{{count}} días después"
+        },
         "dateAttributes": {
             "birthday": "Cumpleaños",
             "first_order_anniversary": "Aniversario de la primera compra",
@@ -162,7 +212,20 @@
             "predicted_clv_12m_ws": "CLV previsto a 12 meses",
             "churn_risk": "Riesgo de abandono"
         },
-        "operators": { "eq": "es", "neq": "no es", "gt": "mayor que", "gte": "mayor o igual a", "lt": "menor que", "lte": "menor o igual a", "in": "es uno de", "not_in": "no es ninguno de", "contains": "contiene", "starts_with": "empieza por", "exists": "existe", "not_exists": "no existe" },
+        "operators": {
+            "eq": "es",
+            "neq": "no es",
+            "gt": "mayor que",
+            "gte": "mayor o igual a",
+            "lt": "menor que",
+            "lte": "menor o igual a",
+            "in": "es uno de",
+            "not_in": "no es ninguno de",
+            "contains": "contiene",
+            "starts_with": "empieza por",
+            "exists": "existe",
+            "not_exists": "no existe"
+        },
         "events": {
             "cart_abandoned": "Carrito abandonado",
             "checkout_started": "Empezó el pago",
@@ -259,7 +322,14 @@
         },
         "settings": {
             "triggerType": "Cómo entran",
-            "types": { "event": "Cuando pasa un evento", "segment": "Al entrar o salir de un segmento", "date": "Por una fecha del contacto", "threshold": "Al cruzar un umbral", "manual": "Manual o por API", "webhook": "Webhook de entrada" },
+            "types": {
+                "event": "Cuando pasa un evento",
+                "segment": "Al entrar o salir de un segmento",
+                "date": "Por una fecha del contacto",
+                "threshold": "Al cruzar un umbral",
+                "manual": "Manual o por API",
+                "webhook": "Webhook de entrada"
+            },
             "event": "Evento",
             "segment": "Segmento",
             "on": "Momento",
@@ -294,7 +364,17 @@
             "phone": "Tu teléfono para WhatsApp y SMS (+57…)",
             "run": "Correr la prueba",
             "result": "Resultado",
-            "outcomes": { "continue": "Siguió", "sent": "Enviado a ti", "skipped_holdout": "Grupo de control", "denied": "No se envió", "failed": "Falló", "exit": "Salió", "wait": "Esperando", "wait_event": "Esperando un evento", "deferred": "Aplazado" }
+            "outcomes": {
+                "continue": "Siguió",
+                "sent": "Enviado a ti",
+                "skipped_holdout": "Grupo de control",
+                "denied": "No se envió",
+                "failed": "Falló",
+                "exit": "Salió",
+                "wait": "Esperando",
+                "wait_event": "Esperando un evento",
+                "deferred": "Aplazado"
+            }
         },
         "analytics": {
             "period": "Periodo",
@@ -312,9 +392,18 @@
             "notSignificant": "Aún no es significativo",
             "noHoldout": "Activa un grupo de control en los ajustes para medir el incremento.",
             "smallSample": "Hacen falta al menos 30 contactos en cada grupo (hay {{treatment}} y {{holdout}}).",
-            "node": { "reached": "llegaron", "sent": "enviados", "clicked": "clics", "converted": "convirtieron" },
+            "node": {
+                "reached": "llegaron",
+                "sent": "enviados",
+                "clicked": "clics",
+                "converted": "convirtieron",
+                "notSent": "no enviados"
+            },
             "show": "Ver resultados en el lienzo",
-            "hide": "Ocultar resultados"
+            "hide": "Ocultar resultados",
+            "inControl_one": "{{count}} en el grupo de control",
+            "inControl_other": "{{count}} en el grupo de control",
+            "nodeHelp": "Los números de cada paso no incluyen el grupo de control."
         },
         "runs": {
             "title": "Recorridos",
@@ -325,9 +414,37 @@
             "next": "Siguiente paso",
             "holdout": "Control",
             "empty": "Nadie ha entrado todavía.",
-            "statuses": { "active": "Activo", "waiting": "Esperando", "completed": "Terminó", "exited": "Salió", "failed": "Falló" },
-            "reasons": { "completed": "Terminó", "goal_reached": "Cumplió la meta", "exit_node": "Salida", "filter": "No cumplió el filtro", "manual": "Archivado", "flow_paused": "Flujo archivado", "failed": "Error", "unsubscribed": "Se dio de baja" },
+            "statuses": {
+                "active": "Activo",
+                "waiting": "Esperando",
+                "completed": "Terminó",
+                "exited": "Salió",
+                "failed": "Falló"
+            },
+            "reasons": {
+                "completed": "Terminó",
+                "goal_reached": "Cumplió la meta",
+                "exit_node": "Salida",
+                "filter": "No cumplió el filtro",
+                "manual": "Archivado",
+                "flow_paused": "Flujo archivado",
+                "failed": "Error",
+                "unsubscribed": "Se dio de baja"
+            },
             "all": "Todos"
+        },
+        "templateKeys": {
+            "wa_welcome_coupon": "bienvenida con cupón",
+            "wa_abandoned_cart_1": "recordatorio de carrito",
+            "wa_abandoned_cart_coupon": "carrito con cupón",
+            "wa_abandoned_checkout": "checkout abandonado",
+            "wa_payment_pending_1": "pago pendiente",
+            "wa_payment_pending_2": "pago pendiente, antes de cancelar",
+            "wa_cod_confirm": "confirmar contraentrega",
+            "wa_second_purchase": "segunda compra",
+            "wa_replenishment": "reposición",
+            "wa_winback_coupon": "recuperación con cupón",
+            "wa_birthday": "cumpleaños"
         }
     }
 }

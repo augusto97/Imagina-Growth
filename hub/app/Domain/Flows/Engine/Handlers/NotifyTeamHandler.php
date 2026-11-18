@@ -42,6 +42,9 @@ final class NotifyTeamHandler implements NodeHandler
         $contactUrl = rtrim((string) config('app.url'), '/').'/w/'.$state->workspace->publicId().'/contactos/'.($state->contact?->publicId() ?? '');
         $context = TemplateContext::build($state) + ['aviso' => [
             'titulo' => $state->flow->name,
+            // `resumen` y `detalle` son los nombres de la plantilla team_alert de M08; `texto` queda por compatibilidad.
+            'resumen' => mb_substr((string) ($c['message'] ?? ''), 0, 500),
+            'detalle' => mb_substr((string) ($c['message'] ?? ''), 0, 500),
             'texto' => mb_substr((string) ($c['message'] ?? ''), 0, 500),
             'url' => $contactUrl,
         ]];

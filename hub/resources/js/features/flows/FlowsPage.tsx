@@ -57,11 +57,11 @@ export function FlowsPage() {
             />
             <Tabs value={tab} onValueChange={(v) => setParams(v === 'library' ? { tab: 'biblioteca' } : {}, { replace: true })}>
                 <TabsList>
-                    <TabsTrigger value="mine">
+                    <TabsTrigger value="mine" className="igr:inline-flex igr:items-center igr:gap-1.5">
                         <Workflow className="igr:size-3.5" />
                         {t('flows.tabs.mine')}
                     </TabsTrigger>
-                    <TabsTrigger value="library">
+                    <TabsTrigger value="library" className="igr:inline-flex igr:items-center igr:gap-1.5">
                         <Library className="igr:size-3.5" />
                         {t('flows.tabs.library')}
                     </TabsTrigger>
@@ -114,10 +114,10 @@ function MyFlows({ onLibrary }: { onLibrary: () => void }) {
                     <TR>
                         <TH>{t('flows.name')}</TH>
                         <TH className="igr:hidden igr:md:table-cell">{t('flows.list.trigger')}</TH>
-                        <TH className="igr:text-right">{t('flows.list.entered')}</TH>
-                        <TH className="igr:hidden igr:text-right igr:sm:table-cell">{t('flows.list.live')}</TH>
-                        <TH className="igr:text-right">{t('flows.list.converted')}</TH>
-                        <TH className="igr:hidden igr:text-right igr:lg:table-cell">{t('flows.list.updated')}</TH>
+                        <TH className="igr:whitespace-nowrap igr:text-right">{t('flows.list.entered')}</TH>
+                        <TH className="igr:hidden igr:whitespace-nowrap igr:text-right igr:sm:table-cell">{t('flows.list.live')}</TH>
+                        <TH className="igr:whitespace-nowrap igr:text-right">{t('flows.list.converted')}</TH>
+                        <TH className="igr:hidden igr:whitespace-nowrap igr:text-right igr:lg:table-cell">{t('flows.list.updated')}</TH>
                     </TR>
                 </THead>
                 <TBody>
@@ -136,7 +136,7 @@ function MyFlows({ onLibrary }: { onLibrary: () => void }) {
                             <TD className="igr:text-right igr:tabular-nums">{formatNumber(f.stats.entered, workspace.locale)}</TD>
                             <TD className="igr:hidden igr:text-right igr:tabular-nums igr:sm:table-cell">{formatNumber(f.stats.live, workspace.locale)}</TD>
                             <TD className="igr:text-right igr:tabular-nums">{formatNumber(f.stats.converted, workspace.locale)}</TD>
-                            <TD className="igr:hidden igr:text-right igr:text-muted-foreground igr:lg:table-cell">{formatRelative(f.updated_at, workspace.locale)}</TD>
+                            <TD className="igr:hidden igr:whitespace-nowrap igr:text-right igr:text-muted-foreground igr:lg:table-cell">{formatRelative(f.updated_at, workspace.locale)}</TD>
                         </TR>
                     ))}
                 </TBody>
@@ -181,12 +181,13 @@ function LibraryGallery() {
             },
         );
     };
-    const available = library.data.filter((f) => f.available);
-    const later = library.data.filter((f) => !f.available);
+    const available = library.data.flows.filter((f) => f.available);
+    const later = library.data.flows.filter((f) => !f.available);
 
     return (
         <div className="igr:space-y-6">
             <p className="igr:text-sm igr:text-muted-foreground">{t('flows.library.description')}</p>
+            {!library.data.whatsappConnected ? <p className="igr:rounded-md igr:border igr:bg-muted/40 igr:px-3 igr:py-2 igr:text-xs igr:text-muted-foreground">{t('flows.library.noWhatsapp')}</p> : null}
             <section>
                 <h2 className="igr:mb-2 igr:text-[13px] igr:font-semibold">{t('flows.library.available')}</h2>
                 <div className="igr:grid igr:gap-3 igr:md:grid-cols-2 igr:xl:grid-cols-3">
@@ -204,7 +205,7 @@ function LibraryGallery() {
                                 {f.missing_templates.length > 0 ? (
                                     <p className="igr:flex igr:items-start igr:gap-1.5 igr:text-xs igr:text-warning" title={t('flows.library.missingHelp')}>
                                         <CircleAlert className="igr:mt-0.5 igr:size-3.5 igr:shrink-0" aria-hidden />
-                                        <span>{t('flows.library.missing', { list: f.missing_templates.join(', ') })}</span>
+                                        <span>{t('flows.library.missing', { list: f.missing_templates.map((k) => t(`flows.templateKeys.${k}`, { defaultValue: k })).join(', ') })}</span>
                                     </p>
                                 ) : null}
                                 <div className="igr:mt-auto igr:flex igr:flex-wrap igr:gap-2 igr:pt-2">

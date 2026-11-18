@@ -12,7 +12,9 @@ export function ResultsBar({ data, days, onDays, loading }: { data: FlowAnalytic
     const s = data?.summary;
     const u = data?.uplift;
     const pct = (v: number | undefined | null) => (v === undefined || v === null ? '—' : formatPercent(v, workspace.locale, 1));
-    const points = (v: number | undefined) => (v === undefined ? '—' : `${v >= 0 ? '+' : ''}${(v * 100).toFixed(1).replace('.', ',')}`);
+    const points = (v: number | undefined) =>
+        v === undefined ? '—' : new Intl.NumberFormat(workspace.locale, { signDisplay: 'exceptZero', minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(v * 100);
+    const control = data?.holdout.entered ?? 0;
 
     return (
         <div className="igr:flex igr:flex-wrap igr:items-stretch igr:gap-2 igr:border-b igr:bg-card igr:px-3 igr:py-2" aria-busy={loading}>
@@ -24,7 +26,7 @@ export function ResultsBar({ data, days, onDays, loading }: { data: FlowAnalytic
                 ))}
                 <option value={0}>{t('flows.analytics.all')}</option>
             </Select>
-            <Tile label={t('flows.analytics.entered')} value={s ? formatNumber(s.entered, workspace.locale) : '—'} />
+            <Tile label={t('flows.analytics.entered')} value={s ? formatNumber(s.entered, workspace.locale) : '—'} sub={control > 0 ? t('flows.analytics.inControl', { count: control }) : undefined} />
             <Tile label={t('flows.analytics.live')} value={s ? formatNumber(s.live, workspace.locale) : '—'} />
             <Tile label={t('flows.analytics.converted')} value={s ? formatNumber(s.converted, workspace.locale) : '—'} sub={s ? `${t('flows.analytics.rate')}: ${pct(s.conversion_rate)}` : undefined} />
             <Tile label={t('flows.analytics.goalRevenue')} value={s ? formatMoney(s.goal_revenue, workspace.currency, workspace.locale) : '—'} />
@@ -46,6 +48,7 @@ export function ResultsBar({ data, days, onDays, loading }: { data: FlowAnalytic
                     </p>
                 )}
             </div>
+            {control > 0 ? <p className="igr:w-full igr:text-[11px] igr:text-muted-foreground">{t('flows.analytics.nodeHelp')}</p> : null}
         </div>
     );
 }
