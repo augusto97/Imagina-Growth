@@ -33,6 +33,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $restore_url_token
  * @property string|null $order_id
  * @property string|null $recovered_order_id
+ * @property string|null $restored_from_id
  */
 class Cart extends Model
 {
@@ -40,7 +41,7 @@ class Cart extends Model
 
     public const ID_PREFIX = 'crt';
 
-    protected $fillable = ['workspace_id', 'site_id', 'token', 'contact_id', 'anonymous_id', 'items', 'items_count', 'subtotal', 'subtotal_ws', 'currency', 'coupons', 'status', 'checkout_started_at', 'abandoned_at', 'last_activity_at', 'restore_url_token', 'order_id', 'recovered_order_id'];
+    protected $fillable = ['workspace_id', 'site_id', 'token', 'contact_id', 'anonymous_id', 'items', 'items_count', 'subtotal', 'subtotal_ws', 'currency', 'coupons', 'status', 'checkout_started_at', 'abandoned_at', 'last_activity_at', 'restore_url_token', 'order_id', 'recovered_order_id', 'restored_from_id'];
 
     protected function casts(): array
     {

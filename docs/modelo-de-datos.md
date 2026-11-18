@@ -239,7 +239,7 @@ Se agregaron en `2026_11_19_000100_create_phase1_tables` junto con las tablas de
 ## 12. Tablas y columnas de la Fase 2
 
 Migración `2026_11_20_000100_create_phase2_tables`. Diferencias con §3 a §5, con su motivo:
-- `carts`: `order_id` (el pedido que lo cerró, convertido o recuperado) además de `recovered_order_id` (solo si se recuperó tras abandonarse), `items_count` y `subtotal_ws` (moneda del espacio de trabajo, para sumar entre sitios).
+- `carts`: `order_id` (el pedido que lo cerró, convertido o recuperado) además de `recovered_order_id` (solo si se recuperó tras abandonarse), `items_count` y `subtotal_ws` (moneda del espacio de trabajo, para sumar entre sitios), y `restored_from_id`: el enlace de restauración arma un carrito nuevo en el sitio (otro `cart_token`) y esta columna lo une al abandonado, que queda recuperado cuando llega el pedido.
 - `coupons_issued`: `rules` (mínimo, productos, categorías, uso individual), `redeemed_at` y `last_error`; estado `pending` mientras el sitio lo crea y `failed` si no pudo.
 - `channel_accounts`: `identity` (dominio o número visible, no secreto), `last_error` y `risk_accepted_at`/`risk_accepted_by` (Zender: el `owner` aceptó el aviso de riesgo, cumplimiento.md §5.2).
 - `templates`: `editor_state` (el proyecto de GrapesJS para volver a editar), `library_key`, `status` y `created_by`.

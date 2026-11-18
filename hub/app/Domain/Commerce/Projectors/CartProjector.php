@@ -9,6 +9,7 @@ use App\Domain\Commerce\Models\CouponIssued;
 use App\Domain\Commerce\Models\Order;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Models\Workspace;
+use App\Support\Ids\PrefixedId;
 use App\Support\Money\Decimal;
 use Carbon\CarbonImmutable;
 
@@ -83,6 +84,11 @@ final class CartProjector
                     $cart->items_count = (int) round(array_sum(array_map(fn (array $i) => (float) $i['qty'], $items)));
                     $this->subtotal($cart, $workspace, (string) ($props['subtotal'] ?? '0'), $props['currency'] ?? null, $at);
                     $cart->coupons = array_values(array_map('strval', (array) ($props['coupons'] ?? [])));
+                }
+                // v3: carrito armado desde un enlace de restauración (api-connector.md §6.1).
+                if ($cart->restored_from_id === null && isset($props['restored_from']) && is_string($props['restored_from'])) {
+                    $original = Cart::query()->where('site_id', $site->id)->whereKey(PrefixedId::decode(Cart::ID_PREFIX, $props['restored_from']) ?? '-')->first();
+                    $cart->restored_from_id = $original?->id;
                 }
                 break;
             case 'cart.item_added':
@@ -168,6 +174,12 @@ final class CartProjector
             'recovered_order_id' => $recovered ? $order->id : null,
             'contact_id' => $cart->contact_id ?? $order->contact_id,
         ])->save();
+        // El carrito nuevo salió de un enlace de recuperación: el abandonado original queda recuperado.
+        if ($cart->restored_from_id !== null) {
+            Cart::query()->whereKey($cart->restored_from_id)->whereNull('order_id')->update([
+                'status' => 'recovered', 'order_id' => $order->id, 'recovered_order_id' => $order->id, 'updated_at' => now(),
+            ]);
+        }
     }
 
     /**

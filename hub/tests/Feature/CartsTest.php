@@ -182,3 +182,26 @@ it('el enlace de restauración no se arma sin ítems', function () {
     $cart = app(CurrentWorkspace::class)->run($this->ws, fn () => Cart::query()->create(['workspace_id' => $this->ws->id, 'site_id' => $this->site->id, 'token' => 'c_vacio_000', 'items' => [], 'last_activity_at' => now()]));
     expect(app(CurrentWorkspace::class)->run($this->ws, fn () => CartRestoreLink::for($cart)))->toBeNull();
 });
+
+it('el pedido de un carrito armado desde el enlace de recuperación marca recuperado el carrito abandonado original', function () {
+    $this->postSigned($this->site, $this->secret, [
+        cartEvent($this, 'cart.updated', ['cart_token' => 'c_token_original', 'items' => [['product_id' => '88', 'qty' => 1]], 'subtotal' => '150000.00', 'coupons' => [], 'currency' => 'COP'], '2026-11-18 14:00:00'),
+    ]);
+    $this->runWorker();
+    app(DetectAbandonedCarts::class)->handle(CarbonImmutable::parse('2026-11-18 15:00:00'));
+    $original = app(CurrentWorkspace::class)->run($this->ws, fn () => Cart::query()->where('token', 'c_token_original')->firstOrFail());
+    expect($original->status)->toBe('abandoned');
+
+    // Abre el enlace (otro dispositivo, otro carrito en WooCommerce) y paga.
+    $this->postSigned($this->site, $this->secret, [
+        cartEvent($this, 'cart.updated', ['cart_token' => 'c_token_restaurado', 'items' => [['product_id' => '88', 'qty' => 1]], 'subtotal' => '150000.00', 'coupons' => ['VUELVE-ABCDEFGH'], 'currency' => 'COP', 'restored_from' => $original->publicId()], '2026-11-19 09:00:00', ['anonymous_id' => 'anon-otro-celular']),
+        cartEvent($this, 'order.paid', ['order' => $this->orderSnapshot(['order_id' => '1003', 'number' => '1003', 'cart_token' => 'c_token_restaurado', 'coupons' => []])], '2026-11-19 09:05:00'),
+    ]);
+    $this->runWorker();
+    app(CurrentWorkspace::class)->run($this->ws, function () use ($original) {
+        $order = DB::table('orders')->where('external_id', '1003')->first();
+        $restored = Cart::query()->where('token', 'c_token_restaurado')->firstOrFail();
+        expect($restored->restored_from_id)->toBe($original->id)->and($restored->status)->toBe('converted')
+            ->and($original->fresh()->status)->toBe('recovered')->and($original->fresh()->recovered_order_id)->toBe($order->id);
+    });
+});
