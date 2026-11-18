@@ -133,3 +133,16 @@ it('muestra en la línea de tiempo la fidelización, los mensajes, las reseñas 
         ->and($byEvent['review.collected']['summary'])->toMatchArray(['rating' => 5, 'media' => 2])
         ->and($byEvent['product_watch.created']['summary']['watch_kind'])->toBe('back_in_stock');
 });
+
+it('el agente de la bandeja ve solo los contactos de las conversaciones que tiene asignadas', function () {
+    $agent = $this->addMember($this->ws, WorkspaceRole::Agent);
+    $api = "/api/w/{$this->ws->publicId()}/contacts";
+    $this->actingAs($agent)->getJson($this->url)->assertNotFound();
+    expect($this->actingAs($agent)->getJson($api)->assertOk()->json('data'))->toBe([]);
+
+    app(CurrentWorkspace::class)->run($this->ws, fn () => \App\Domain\Messaging\Models\Conversation::query()->create([
+        'workspace_id' => $this->ws->id, 'contact_id' => $this->contact->id, 'channel_account_id' => (string) \Illuminate\Support\Str::ulid(), 'status' => 'open', 'assignee_id' => $agent->id,
+    ]));
+    $this->actingAs($agent)->getJson($this->url)->assertOk()->assertJsonPath('name', 'Ana Ruiz');
+    expect($this->actingAs($agent)->getJson($api)->json('data'))->toHaveCount(1);
+});

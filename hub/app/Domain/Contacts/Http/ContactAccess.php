@@ -20,9 +20,19 @@ final class ContactAccess
     /** @param Builder<Contact> $query */
     public static function scope(Builder $query): void
     {
-        if (! Gate::allows('ws.viewAllContacts')) {
-            $query->whereRaw('1 = 0');
+        if (Gate::allows('ws.viewAllContacts')) {
+            return;
         }
+        // Rol agente (M01, M11): solo los contactos con una conversación de la bandeja asignada a la persona.
+        $userId = auth()->id();
+        if ($userId === null) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+        $query->whereExists(fn ($q) => $q->selectRaw('1')->from('conversations')
+            ->whereColumn('conversations.contact_id', 'contacts.id')
+            ->where('conversations.assignee_id', (string) $userId));
     }
 
     /** Busca un contacto vigente al que la persona tiene acceso, o 404. */

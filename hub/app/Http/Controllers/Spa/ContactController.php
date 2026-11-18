@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Spa;
 
+use App\Domain\Contacts\Http\ContactAccess;
 use App\Domain\Contacts\Models\Contact;
 use App\Support\Phone\Phone;
 use App\Support\Pii\BlindIndex;
@@ -96,10 +97,7 @@ final class ContactController
     /** @param Builder<Contact> $query */
     private function scopeForRole(Builder $query): void
     {
-        if (Gate::allows('ws.viewAllContacts')) {
-            return;
-        }
-        // agent: solo contactos con una conversación asignada a la persona (tabla de la Fase 4).
-        $query->whereRaw('1 = 0');
+        // agent: solo contactos con una conversación de la bandeja asignada a la persona.
+        ContactAccess::scope($query);
     }
 }
