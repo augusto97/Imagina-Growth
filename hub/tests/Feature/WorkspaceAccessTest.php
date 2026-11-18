@@ -72,7 +72,7 @@ it('invita, acepta, cambia de rol y protege al último dueño', function () {
 
     $this->actingAs($owner)->postJson("/api/w/{$wsId}/invitations", ['email' => 'ana@agencia.co', 'role' => 'marketing'])->assertCreated();
     $token = null;
-    Mail::assertSent(InvitationMail::class, function (InvitationMail $mail) use (&$token) {
+    Mail::assertQueued(InvitationMail::class, function (InvitationMail $mail) use (&$token) {
         $token = $mail->token;
 
         return $mail->hasTo('ana@agencia.co');
@@ -97,4 +97,11 @@ it('invita, acepta, cambia de rol y protege al último dueño', function () {
     $this->actingAs($ana->fresh())->postJson("/api/w/{$wsId}/invitations", ['email' => 'jefe@y.co', 'role' => 'owner'])->assertUnprocessable();
 
     expect(DB::table('audit_logs')->whereIn('action', ['member.invited', 'member.joined', 'member.role_changed'])->count())->toBe(3);
+});
+
+it('responde los errores de validación en español', function () {
+    $this->postJson('/auth/register', ['name' => '', 'email' => 'no-es-correo', 'password' => 'x'])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.email.0', 'El correo debe ser un correo válido.')
+        ->assertJsonPath('errors.name.0', 'El nombre es obligatorio.');
 });

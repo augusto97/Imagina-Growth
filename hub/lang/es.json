@@ -1,0 +1,7 @@
+{
+    "roles.owner": "Dueño",
+    "roles.admin": "Administrador",
+    "roles.marketing": "Marketing",
+    "roles.agent": "Agente",
+    "roles.viewer": "Solo lectura"
+}
