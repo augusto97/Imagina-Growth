@@ -89,12 +89,16 @@ it('el panel publica versiones nuevas y cambia el modo con auditoría', function
     $owner = $this->userWith2fa();
     $this->ws->users()->attach($owner->id, ['role' => 'owner']);
     $url = "/api/w/{$this->ws->publicId()}/consent";
-    $this->actingAs($owner)->getJson("{$url}/texts")->assertOk()->assertJsonPath('mode', 'strict')->assertJsonCount(2, 'texts');
+    $this->actingAs($owner)->getJson("{$url}/texts")->assertOk()->assertJsonPath('mode', 'auto')->assertJsonCount(2, 'texts');
     $this->actingAs($owner)->postJson("{$url}/texts", ['channel' => 'email', 'body' => 'corto'])->assertUnprocessable();
     $this->actingAs($owner)->postJson("{$url}/texts", ['channel' => 'email', 'body' => 'Acepto recibir ofertas de la tienda por correo electrónico.'])->assertOk()
         ->assertJsonPath('texts.1.version', 'v2')->assertJsonCount(2, 'history.email');
     $this->actingAs($owner)->putJson("{$url}/mode", ['mode' => 'informed'])->assertOk()->assertJsonPath('mode', 'informed');
+    $this->actingAs($owner)->putJson("{$url}/mode", ['mode' => 'cualquiera'])->assertUnprocessable();
     expect(DB::table('audit_logs')->whereIn('action', ['consent_text.published', 'consent.mode_changed'])->count())->toBe(2);
+    // El plugin recibe el modo elegido en /v1/s/config.
+    expect($this->signedJson('GET', '/v1/s/config', $this->site, $this->secret)->json('consent.mode'))->toBe('informed');
+    $this->actingAs($owner)->putJson("{$url}/mode", ['mode' => 'auto'])->assertOk()->assertJsonPath('mode', 'auto');
     $viewer = $this->addMember($this->ws, WorkspaceRole::Viewer);
     $this->actingAs($viewer)->postJson("{$url}/texts", ['channel' => 'email', 'body' => 'Acepto recibir ofertas de la tienda por correo.'])->assertForbidden();
 });

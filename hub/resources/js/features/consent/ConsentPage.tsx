@@ -218,7 +218,8 @@ function ModeCard({ current, canManage }: { current: ConsentMode; canManage: boo
     const { workspace } = useWorkspace();
     const save = useConsentMode(workspace.id);
     const [mode, setMode] = useState<ConsentMode>(current);
-    const relaxing = current === 'strict' && mode === 'informed';
+    // Pasar a informado relaja la protección (queda en la auditoría).
+    const relaxing = current !== 'informed' && mode === 'informed';
 
     return (
         <Card className="igr:flex igr:flex-col">
@@ -231,7 +232,7 @@ function ModeCard({ current, canManage }: { current: ConsentMode; canManage: boo
             </CardHeader>
             <CardContent className="igr:flex-1 igr:space-y-2">
                 <div role="radiogroup" aria-label={t('consent.mode.title')} className="igr:space-y-2">
-                    {(['strict', 'informed'] as const).map((m) => (
+                    {(['auto', 'strict', 'informed'] as const).map((m) => (
                         <button
                             key={m}
                             type="button"
@@ -251,7 +252,7 @@ function ModeCard({ current, canManage }: { current: ConsentMode; canManage: boo
                             <span>
                                 <span className="igr:flex igr:items-center igr:gap-2 igr:text-[13px] igr:font-medium">
                                     {t(`consent.mode.${m}`)}
-                                    {m === 'strict' && <Badge variant="outline">{t('consent.mode.recommended')}</Badge>}
+                                    {m === 'auto' && <Badge variant="outline">{t('consent.mode.recommended')}</Badge>}
                                     {current === m && <Badge variant="secondary">{t('consent.mode.current')}</Badge>}
                                 </span>
                                 <span className="igr:mt-0.5 igr:block igr:text-xs igr:text-muted-foreground">{t(`consent.mode.${m}Help`)}</span>

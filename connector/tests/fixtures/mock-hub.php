@@ -281,7 +281,7 @@ if ( 'GET' === $method && '/v1/s/config' === $path ) {
 				'early_capture'     => false,
 			),
 			'consent'            => $state['overrides']['consent'] ?? array(
-				'mode'               => 'strict',
+				'mode'               => 'auto',
 				'privacy_policy_url' => null,
 				'texts'              => array(
 					array( 'kind' => 'marketing_consent', 'channel' => 'whatsapp', 'version' => 'v1', 'label' => 'Quiero recibir ofertas por WhatsApp. Puedo darme de baja cuando quiera.' ),

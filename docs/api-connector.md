@@ -166,7 +166,7 @@ Configuración que el plugin guarda en caché un día:
     "early_capture": false
   },
   "consent": {
-    "mode": "strict",                              // strict | informed (cumplimiento.md §3.3)
+    "mode": "auto",                                // auto | strict | informed, elegido en el panel (cumplimiento.md §3.3)
     "privacy_policy_url": "https://tienda.co/privacidad",
     "texts": [                                     // casillas del checkout y formularios, sin marcar (cumplimiento.md §3.1)
       { "kind": "marketing_consent", "channel": "whatsapp", "version": "v1", "label": "Quiero recibir ofertas por WhatsApp…" },
@@ -250,7 +250,7 @@ El resto de comandos de `connector/CLAUDE.md` §8 se agregan en su fase.
 
 ## 7. Datos en la página (connector → tracker)
 
-**Modo de consentimiento efectivo:** lo decide el plugin según el sitio (`cumplimiento.md` §3.3): **estricto** si hay un banner de cookies (WP Consent API, Complianz, CookieYes, Cookiebot o el banner propio), **informado** si no hay ninguno. El `consent.mode` del hub es la preferencia del espacio de trabajo **[pendiente de decidir: ver CHANGELOG de la Fase 1]**. Los errores del tracker llegan como `custom.tracker_error` en una muestra del 1%.
+**Modo de consentimiento efectivo** (`cumplimiento.md` §3.3): manda `consent.mode`, que se elige en el panel. Con `auto` (por defecto) el plugin decide según el sitio: **estricto** si hay un banner de cookies (WP Consent API, Complianz, CookieYes, Cookiebot o el banner propio) e **informado** si no hay ninguno. Con `strict` y sin banner, el plugin muestra el suyo. Con `informed`, `igrConfig.consent` trae analítica aceptada por defecto, aunque haya banner, y se respeta el rechazo. El hub aplica el mismo criterio a cada evento con su `context.consent.source`: en `auto`, `none` es informado y cualquier banner (o la falta de señal) es estricto. Los errores del tracker llegan como `custom.tracker_error` en una muestra del 1%.
 
 Nunca dependen del visitante en páginas cacheables (`connector/CLAUDE.md` §9).
 

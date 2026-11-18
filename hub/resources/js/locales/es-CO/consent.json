@@ -21,15 +21,17 @@
         },
         "mode": {
             "title": "Modo de consentimiento",
-            "description": "Cómo se mide a los visitantes según lo que acepten en el banner de cookies.",
+            "description": "Cómo se mide a los visitantes antes y después de que respondan al aviso de cookies. El plugin lo aplica en cada sitio.",
             "strict": "Estricto",
-            "strictHelp": "Sin consentimiento de analítica no se guarda el identificador del navegador: solo se cuentan vistas sin identificar. Sin consentimiento de marketing no se envían conversiones a los anuncios.",
+            "strictHelp": "Sin aceptar la analítica no se guarda el identificador del navegador: solo se cuentan vistas sin identificar. Sin aceptar el marketing no se envían conversiones a los anuncios. Si el sitio no tiene aviso de cookies, el plugin muestra uno ligero propio para que el visitante pueda aceptar.",
             "informed": "Informado",
-            "informedHelp": "Si el sitio no tiene banner, el plugin muestra uno ligero propio. Recomendado solo para sitios que no tienen ninguno.",
+            "informedHelp": "Se mide desde la primera visita con un identificador propio y se respeta si el visitante lo rechaza. El marketing y los píxeles de anuncios siguen necesitando que lo acepte.",
             "recommended": "Recomendado",
             "current": "Actual",
-            "relaxWarning": "Pasar a informado relaja la protección por defecto. El cambio queda en la auditoría.",
-            "saved": "Modo de consentimiento guardado"
+            "relaxWarning": "El modo informado relaja la protección: mide antes de que el visitante responda. Úsalo solo si tu política de privacidad lo informa. El cambio queda en la auditoría.",
+            "saved": "Modo de consentimiento guardado",
+            "auto": "Según el sitio",
+            "autoHelp": "Estricto en los sitios que tienen aviso de cookies e informado en los que no. Es lo que pasa si no eliges nada."
         },
         "policy": {
             "title": "Política de privacidad",

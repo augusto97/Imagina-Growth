@@ -48,12 +48,13 @@ Requisitos que se convierten en funciones:
 
 ### 3.3 Cookies y seguimiento
 - **Integración con banners:** WP Consent API (estándar, prioridad), Complianz, CookieYes, Cookiebot y Real Cookie Banner. Para Google se envía Consent Mode v2.
-- **Modos por espacio de trabajo:**
+- **Modos por espacio de trabajo** (se eligen en el panel, Consentimiento; el cambio queda en la auditoría):
 
 | Modo | Comportamiento |
 |---|---|
-| **Estricto** (por defecto si hay banner) | sin consentimiento de analítica no se guarda `_igr_aid`; solo se cuentan vistas agregadas sin identificador. Sin consentimiento de marketing no se envían conversiones a anuncios |
-| **Informado** | si no hay banner, el plugin ofrece uno ligero propio. Recomendado para sitios que no tienen ninguno |
+| **Según el sitio** (`auto`, por defecto) | estricto en los sitios que tienen banner de cookies e informado en los que no |
+| **Estricto** | sin consentimiento de analítica no se guarda `_igr_aid`; solo se cuentan vistas agregadas sin identificador. Sin consentimiento de marketing no se envían conversiones a anuncios. Si el sitio no tiene banner, el plugin muestra uno ligero propio, porque si no nadie podría aceptar |
+| **Informado** | se mide desde la primera visita con el identificador propio, avisando en la política, y se respeta el rechazo explícito. Los píxeles y las conversiones de anuncios siguen necesitando consentimiento de marketing. Con la WP Consent API manda la configuración del banner |
 
 ---
 

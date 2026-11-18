@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Connector;
 use App\Domain\Commerce\Models\Product;
 use App\Domain\Commerce\Models\ProductCategory;
 use App\Domain\Consent\Actions\ConsentTexts;
+use App\Domain\Consent\Support\ConsentMode;
 use App\Domain\Sites\Actions\UpdateBackfillState;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Models\Workspace;
@@ -42,7 +43,7 @@ final class SiteApiController
             ],
             'settings' => $site->effectiveSettings() + ['early_capture' => (bool) $ws->setting('early_capture', false)],
             'consent' => [
-                'mode' => $ws->setting('consent_mode', 'strict'),
+                'mode' => ConsentMode::chosen($ws),
                 'privacy_policy_url' => $ws->getAttribute('privacy_policy_url'),
                 'texts' => $this->consentTexts->current($ws),
             ],

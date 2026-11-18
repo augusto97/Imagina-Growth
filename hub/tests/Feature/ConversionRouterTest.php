@@ -42,6 +42,7 @@ it('encola la conversión de cada destino activo en su cola con el event_id del 
 
 it('respeta el consentimiento: en modo estricto exige marketing = true', function () {
     Queue::fake();
+    $this->ws->forceFill(['settings' => ['consent_mode' => 'strict'] + $this->ws->settings])->save();
     $this->destination($this->ws, Platform::Meta);
     $this->postSigned($this->site, $this->secret, [measurementLiveOrderPaid($this, ['consent' => ['marketing' => false]])]);
     $this->runWorker();
@@ -55,6 +56,27 @@ it('respeta el consentimiento: en modo estricto exige marketing = true', functio
     $this->ws->forceFill(['settings' => ['consent_mode' => 'informed'] + $this->ws->settings])->save();
     $this->postSigned($this->site, $this->secret, [array_replace($noContext, ['event_id' => (string) Str::uuid7()])]);
     $this->runWorker();
+    Queue::assertPushed(DeliverConversion::class, 1);
+});
+
+it('según el sitio (por defecto): estricto si el evento viene de un sitio con banner, informado si no', function () {
+    Queue::fake();
+    expect($this->ws->setting('consent_mode'))->toBe('auto');
+    $this->destination($this->ws, Platform::Meta);
+    $send = function (array $consent) {
+        $event = measurementLiveOrderPaid($this);
+        $event['event_id'] = (string) Str::uuid7();
+        $event['context']['consent'] = $consent;
+        $this->postSigned($this->site, $this->secret, [$event]);
+        $this->runWorker();
+    };
+    // Con banner y sin decisión del visitante: estricto, no se envía.
+    $send(['analytics' => false, 'marketing' => false, 'source' => 'complianz']);
+    // Sin banner y sin rechazo explícito… el plugin manda marketing=false por defecto: tampoco.
+    $send(['analytics' => true, 'marketing' => false, 'source' => 'none']);
+    Queue::assertNotPushed(DeliverConversion::class);
+    // Con banner y marketing aceptado: sí.
+    $send(['analytics' => true, 'marketing' => true, 'source' => 'complianz']);
     Queue::assertPushed(DeliverConversion::class, 1);
 });
 

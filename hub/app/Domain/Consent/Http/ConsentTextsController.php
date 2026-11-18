@@ -6,6 +6,7 @@ namespace App\Domain\Consent\Http;
 
 use App\Domain\Consent\Actions\ConsentTexts;
 use App\Domain\Consent\Models\LegalText;
+use App\Domain\Consent\Support\ConsentMode;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
@@ -32,7 +33,7 @@ final class ConsentTextsController
         return response()->json([
             'texts' => array_map(fn (array $t) => $t + ['published_at' => $publishedAt->get($t['channel'].'|'.$t['version'])?->published_at?->toIso8601String()], $current),
             'history' => $history,
-            'mode' => $workspace->setting('consent_mode', 'strict'),
+            'mode' => ConsentMode::chosen($workspace),
             'privacy_policy_url' => $workspace->getAttribute('privacy_policy_url'),
         ]);
     }
@@ -55,10 +56,10 @@ final class ConsentTextsController
     public function mode(Request $request, RecordAuditLog $audit): JsonResponse
     {
         Gate::authorize('ws.manageWorkspace');
-        $data = $request->validate(['mode' => ['required', 'in:strict,informed']]);
+        $data = $request->validate(['mode' => ['required', 'in:'.implode(',', ConsentMode::ALL)]]);
         $workspace = $this->current->get();
         $settings = $workspace->settings ?? [];
-        $from = $settings['consent_mode'] ?? 'strict';
+        $from = ConsentMode::chosen($workspace);
         $settings['consent_mode'] = $data['mode'];
         $workspace->forceFill(['settings' => $settings])->save();
         // Relajar el modo por defecto queda en la auditoría (cumplimiento.md, regla de diseño).

@@ -4,7 +4,8 @@ import { api } from '@/lib/api';
 
 /* Textos de consentimiento versionados y modo de consentimiento (cumplimiento.md §2, §3.1 y §3.3). */
 
-export type ConsentMode = 'strict' | 'informed';
+/** Modo de cookies (cumplimiento.md §3.3): según el sitio, estricto o informado. */
+export type ConsentMode = 'auto' | 'strict' | 'informed';
 
 export interface ConsentText {
     kind: string;

@@ -142,6 +142,27 @@ test('banner propio: sin aceptar no hay cookies; al aceptar se identifica', asyn
     }
 });
 
+test('modo estricto elegido en el panel: el sitio sin banner muestra el propio y no guarda identificador hasta aceptar', async ({ browser }) => {
+    await hubConfig({ consent: { mode: 'strict', privacy_policy_url: null, texts: [] } });
+    php('ImaginaGrowth\\Connector\\Connection\\RemoteConfig::refresh();');
+    try {
+        const ctx = await browser.newContext();
+        const page = await ctx.newPage();
+        await page.goto('/');
+        await ready(page);
+        expect(await page.evaluate(() => (window as unknown as { igrConfig: { consentMode: string } }).igrConfig.consentMode)).toBe('strict');
+        const banner = page.locator('[data-igr-banner]');
+        await expect(banner.getByRole('region')).toBeVisible();
+        expect(await cookie(ctx, '_igr_aid')).toBeUndefined();
+        await banner.getByRole('button', { name: 'Aceptar' }).click();
+        expect(await cookie(ctx, '_igr_aid')).toMatch(/^[0-9a-f-]{36}$/);
+        await ctx.close();
+    } finally {
+        await hubConfig({ consent: null });
+        php('ImaginaGrowth\\Connector\\Connection\\RemoteConfig::refresh();');
+    }
+});
+
 test('encuesta «¿cómo nos conociste?» en la página de gracias', async ({ page }) => {
     const order = newOrder();
     await page.goto(order.url);

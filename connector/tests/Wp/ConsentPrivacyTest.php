@@ -21,6 +21,8 @@ use ImaginaGrowth\Connector\Outbox\Outbox;
 use ImaginaGrowth\Connector\Privacy\PrivacyTools;
 use ImaginaGrowth\Connector\Scheduler;
 use ImaginaGrowth\Connector\Support\Hmac;
+use ImaginaGrowth\Connector\Settings;
+use ImaginaGrowth\Connector\Tracking\TrackerConfig;
 use ImaginaGrowth\Connector\Tests\Support\WpTestCase;
 use ImaginaGrowth\Connector\Tracking\Ping;
 use ImaginaGrowth\Connector\Tracking\RequestContext;
@@ -170,6 +172,54 @@ final class ConsentPrivacyTest extends WpTestCase {
 				$source
 			);
 		}
+	}
+
+	public function test_el_modo_elegido_en_el_panel_manda(): void {
+		$this->connect();
+		$set = static function ( string $mode ): void {
+			update_option( RemoteConfig::OPTION, array( 'consent' => array( 'mode' => $mode ) ), false );
+			TrackerConfig::rebuild();
+		};
+
+		// Según el sitio (por defecto): sin banner es informado.
+		$set( 'auto' );
+		$this->assertSame( 'auto', ConsentState::workspace_mode() );
+		$this->assertSame( 'none', ConsentState::banner() );
+		$this->assertSame( 'informed', ConsentState::mode() );
+		$this->assertTrue( ConsentState::defaults()['analytics'] );
+
+		// Estricto sin banner en el sitio: aparece el aviso propio y nada se acepta sin el visitante.
+		$set( 'strict' );
+		$this->assertSame( 'igr-banner', ConsentState::banner() );
+		$this->assertSame( 'strict', ConsentState::mode() );
+		$this->assertSame(
+			array(
+				'analytics' => false,
+				'marketing' => false,
+				'source'    => 'igr-banner',
+			),
+			ConsentState::from_request( array() )
+		);
+		$this->assertTrue( ConsentState::from_request( array( '_igr_consent' => 'a1m0' ) )['analytics'] );
+
+		// Informado aunque el sitio tenga el aviso propio: mide desde la primera visita, respeta el rechazo y nunca da marketing por defecto.
+		Settings::save( array( 'banner' => true ) );
+		$set( 'informed' );
+		$this->assertSame( 'informed', ConsentState::mode() );
+		$this->assertSame(
+			array(
+				'analytics' => true,
+				'marketing' => false,
+				'source'    => 'igr-banner',
+			),
+			ConsentState::defaults()
+		);
+		$this->assertFalse( ConsentState::from_request( array( '_igr_consent' => 'a0m0' ) )['analytics'] );
+
+		// Un valor desconocido del hub cae a «según el sitio».
+		$set( 'cualquiera' );
+		$this->assertSame( 'auto', ConsentState::workspace_mode() );
+		Settings::save( array( 'banner' => false ) );
 	}
 
 	public function test_sin_consentimiento_de_marketing_no_viajan_cookies_de_anuncios(): void {

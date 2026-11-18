@@ -94,7 +94,7 @@ final class CreateWorkspace
     public static function defaultSettings(string $country): array
     {
         return [
-            'consent_mode' => 'strict',
+            'consent_mode' => 'auto', // según el sitio: estricto con banner, informado sin él (cumplimiento.md §3.3)
             'early_capture' => false,
             'attribution' => ['click_days' => 5, 'open_days' => 1, 'count_opens' => false],
             'frequency' => ['marketing_per_day' => 1, 'marketing_per_week' => 3, 'one_channel_per_week' => false],

@@ -46,6 +46,7 @@ final class TrackerConfig {
 			}
 		}
 		$roles = $settings['excluded_roles'] ?? null;
+		$mode  = (string) ( $remote['consent']['mode'] ?? 'auto' );
 		Connection::update_state(
 			array(
 				'trk' => array(
@@ -63,6 +64,7 @@ final class TrackerConfig {
 					'cd'    => (string) $settings['cookie_domain'],
 					'cur'   => (string) ( $remote['workspace']['currency'] ?? '' ),
 					'ban'   => (bool) $settings['banner'],
+					'cm'    => in_array( $mode, array( 'strict', 'informed' ), true ) ? $mode : 'auto',
 					'forms' => (bool) $settings['forms'],
 					'roles' => null === $roles ? null : array_values( (array) $roles ),
 				),

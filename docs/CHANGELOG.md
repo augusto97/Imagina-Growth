@@ -72,7 +72,7 @@ El perfil abre en 869 ms con la SPA incluida.
   - §15: colas y `redis-long`.
 
 ### Pendiente y desviaciones conocidas
-- **Decisión de producto: el modo de consentimiento.** El tracker deriva el modo del sitio: estricto si hay un banner, informado si no lo hay. La preferencia `consent.mode` del espacio de trabajo todavía no lo cambia (`api-connector.md` §7).
+- **Modo de consentimiento (decidido después del cierre):** se elige en el panel entre «Según el sitio» (por defecto), «Estricto» e «Informado». El plugin y el hub lo aplican con el mismo criterio (`cumplimiento.md` §3.3, `api-connector.md` §7).
 - **Verificar con cuentas reales** (`[verificar]` en `eventos.md` §7 y `config/igr-measurement.php`):
   - La deduplicación en el Administrador de eventos de Meta.
   - Las versiones de las API.

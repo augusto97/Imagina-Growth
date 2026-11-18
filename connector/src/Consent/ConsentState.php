@@ -16,8 +16,10 @@ use ImaginaGrowth\Connector\Tracking\TrackerConfig;
  * con la misma prioridad que el tracker: WP Consent API, Complianz, CookieYes,
  * Cookiebot, Real Cookie Banner (por la WP Consent API) y el banner ligero propio.
  *
- * Sin señal, el valor es el más conservador: con banner, nada aceptado; sin
- * banner (modo «informado»), analítica sí y marketing no.
+ * El modo lo elige el espacio de trabajo en el panel (cumplimiento.md §3.3):
+ * «según el sitio» (`auto`, por defecto: estricto con banner, informado sin él),
+ * «estricto» o «informado». Sin señal del visitante, en estricto no hay nada
+ * aceptado y en informado hay analítica pero nunca marketing.
  */
 final class ConsentState {
 
@@ -41,13 +43,30 @@ final class ConsentState {
 			return 'real-cookie-banner';
 		}
 		$trk = TrackerConfig::get();
-		return ! empty( $trk['ban'] ) ? 'igr-banner' : 'none';
+		if ( ! empty( $trk['ban'] ) ) {
+			return 'igr-banner';
+		}
+		// Estricto elegido en el panel y el sitio sin banner: el propio, o nadie podría aceptar.
+		return null !== $trk && 'strict' === self::workspace_mode() ? 'igr-banner' : 'none';
 	}
 
 	/**
-	 * `strict` con cualquier banner; `informed` sin banner.
+	 * Modo elegido en el panel: `auto`, `strict` o `informed` (copia autocargada en `igr_state`).
+	 */
+	public static function workspace_mode(): string {
+		$trk  = TrackerConfig::get();
+		$mode = is_array( $trk ) ? (string) ( $trk['cm'] ?? 'auto' ) : 'auto';
+		return in_array( $mode, array( 'strict', 'informed' ), true ) ? $mode : 'auto';
+	}
+
+	/**
+	 * Modo efectivo: el elegido en el panel; con `auto`, estricto si hay banner e informado si no.
 	 */
 	public static function mode(): string {
+		$chosen = self::workspace_mode();
+		if ( 'auto' !== $chosen ) {
+			return $chosen;
+		}
 		return 'none' === self::banner() ? 'informed' : 'strict';
 	}
 
@@ -57,11 +76,10 @@ final class ConsentState {
 	 * @return array{analytics: bool, marketing: bool, source: string}
 	 */
 	public static function defaults(): array {
-		$banner = self::banner();
 		return array(
-			'analytics' => 'none' === $banner,
+			'analytics' => 'informed' === self::mode(),
 			'marketing' => false,
-			'source'    => $banner,
+			'source'    => self::banner(),
 		);
 	}
 

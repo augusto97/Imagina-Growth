@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Measurement\Listeners;
 
+use App\Domain\Consent\Support\ConsentMode;
 use App\Domain\Measurement\Conversions\ConversionInputFactory;
 use App\Domain\Measurement\Conversions\TargetRegistry;
 use App\Domain\Measurement\Jobs\DeliverConversion;
@@ -87,8 +88,8 @@ final class ConversionRouter
 
     private function consentAllows(Workspace $workspace, EventIngested $event): bool
     {
-        $marketing = $event->envelope['context']['consent']['marketing'] ?? null;
+        $consent = $event->envelope['context']['consent'] ?? null;
 
-        return $workspace->setting('consent_mode', 'strict') === 'strict' ? $marketing === true : $marketing !== false;
+        return ConsentMode::allowsMarketing($workspace, is_array($consent) ? $consent : null);
     }
 }

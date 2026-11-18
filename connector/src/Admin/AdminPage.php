@@ -372,6 +372,19 @@ final class AdminPage {
 		$inner .= '<p><label>' . esc_html__( 'Números del negocio (con indicativo, separados por coma)', 'imagina-growth' ) . '<br><input type="text" class="regular-text" name="igr_wa_numbers" value="' . esc_attr( implode( ', ', (array) $s['wa_numbers'] ) ) . '" placeholder="573001234567"></label></p>';
 		$inner .= '<p><label>' . esc_html__( 'Formato del mensaje', 'imagina-growth' ) . '<br><input type="text" class="regular-text" name="igr_wa_format" value="' . esc_attr( (string) $s['wa_format'] ) . '"></label></p><p class="description">' . esc_html__( 'Debe contener {token}; {text} es el mensaje original.', 'imagina-growth' ) . '</p></td></tr>';
 		$inner .= '<tr><th scope="row">' . esc_html__( 'Consentimiento de cookies', 'imagina-growth' ) . '</th><td>';
+		$chosen = ConsentState::workspace_mode();
+		$modes  = array(
+			'strict'   => __( 'Estricto: sin aceptar no se guarda ningún identificador', 'imagina-growth' ),
+			'informed' => __( 'Informado: se mide desde la primera visita y se respeta el rechazo', 'imagina-growth' ),
+		);
+		$inner .= '<p><strong>' . esc_html( $modes[ ConsentState::mode() ] ?? '' ) . '</strong><br><span class="description">' . esc_html(
+			'auto' === $chosen
+				? __( 'Según el sitio, como está elegido en el panel de Imagina Growth: estricto si hay aviso de cookies, informado si no.', 'imagina-growth' )
+				: __( 'Elegido en el panel de Imagina Growth (Consentimiento).', 'imagina-growth' )
+		) . '</span></p>';
+		if ( 'strict' === $chosen && 'igr-banner' === $banner && ! $s['banner'] ) {
+			$inner .= '<p class="description">' . esc_html__( 'El sitio no tiene aviso de cookies y el modo es estricto: se muestra el aviso liviano de Imagina Growth para que el visitante pueda aceptar.', 'imagina-growth' ) . '</p>';
+		}
 		if ( in_array( $banner, array( 'none', 'igr-banner' ), true ) ) {
 			$inner .= '<label><input type="checkbox" name="igr_banner" value="1"' . $checked( (bool) $s['banner'] ) . '> ' . esc_html__( 'Mostrar un aviso de cookies liviano de Imagina Growth', 'imagina-growth' ) . '</label><p class="description">' . esc_html__( 'Sin aviso, se mide la analítica y nunca se activan las cookies de anuncios.', 'imagina-growth' ) . '</p>';
 		} else {
