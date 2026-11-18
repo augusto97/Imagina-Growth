@@ -172,6 +172,10 @@ final class LeadScorer
     {
         $empty = ['pricing_views' => 0, 'visit_days_7d' => 0, 'contact_clicks' => 0];
         $paths = self::cleanPaths($paths);
+        // Los visitantes del contacto salen de MariaDB, que se escribe al resolver la identidad: identity_map
+        // de ClickHouse llega en el siguiente lote de la ingesta y, con el lead recién creado, todavía no está.
+        $aids = DB::table('contact_identities')->where('workspace_id', $workspace->id)->where('contact_id', $contactId)
+            ->where('type', 'anonymous_id')->orderByDesc('last_seen_at')->limit(50)->pluck('value')->map(fn ($v) => (string) $v)->all();
         try {
             $row = Ch::forWorkspace($workspace)->select(
                 "SELECT countIf(event = 'page.viewed' AND arrayExists(p -> startsWith(lower(path), p), {paths:Array(String)})) AS pricing_views,
@@ -179,9 +183,10 @@ final class LeadScorer
                         countIf(event = 'cta.clicked' AND toString(properties.kind) IN ('whatsapp', 'phone')) AS contact_clicks
                  FROM events
                  WHERE workspace_id = {workspace_id:UInt32} AND event IN ('page.viewed', 'cta.clicked') AND occurred_at >= {since30:DateTime64(3)}
-                   AND (contact_id = {contact:String} OR anonymous_id IN (
+                   AND (contact_id = {contact:String} OR has({aids:Array(String)}, anonymous_id) OR anonymous_id IN (
                         SELECT anonymous_id FROM identity_map WHERE workspace_id = {workspace_id:UInt32} AND contact_id = {contact:String}))",
                 [
+                    'aids' => '['.implode(',', array_map(fn (string $a) => "'".addslashes($a)."'", array_filter($aids, fn (string $a) => preg_match('/^[0-9a-f-]{36}$/i', $a) === 1))).']',
                     'paths' => '['.implode(',', array_map(fn (string $p) => "'".$p."'", $paths)).']',
                     'since7' => now()->subDays(7)->utc()->format('Y-m-d H:i:s.v'),
                     'since30' => now()->subDays(30)->utc()->format('Y-m-d H:i:s.v'),

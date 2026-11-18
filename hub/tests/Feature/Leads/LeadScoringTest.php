@@ -2,12 +2,15 @@
 
 require_once __DIR__.'/LeadsHelpers.php';
 
+use App\Analytics\Ch;
 use App\Domain\Intelligence\Ai\Testing\FakeAiGateway;
 use App\Domain\Messaging\Testing\FakeMessageDispatcher;
 use App\Domain\Services\Leads\Listeners\LeadSignalsListener;
 use App\Domain\Services\Leads\Support\LeadDefaults;
 use App\Domain\Services\Leads\Support\LeadQualifier;
 use App\Domain\Services\Leads\Support\LeadScorer;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     leadsSetUp($this);
@@ -117,6 +120,23 @@ it('limita la IA a ±20 y sin IA (o si falla) queda el puntaje de las reglas', f
     expect(count($this->ai->requests))->toBe($before);
 });
 
+it('cuenta la navegación anónima previa aunque identity_map de ClickHouse todavía no tenga el enlace', function () {
+    $contact = leadsContact($this);
+    $aid = (string) Str::uuid();
+    // La visita a /servicios/ llegó anónima; el formulario enlazó el visitante en MariaDB (contact_identities),
+    // y ClickHouse recibe identity_map en el siguiente lote de la ingesta.
+    app(Ch::class)->insert('events', [[
+        'workspace_id' => $this->ws->ch_id, 'site_id' => $this->site->ch_id, 'event_id' => (string) Str::uuid7(), 'event' => 'page.viewed',
+        'occurred_at' => now()->subMinutes(5)->utc()->format('Y-m-d H:i:s.v'), 'received_at' => now()->utc()->format('Y-m-d H:i:s.v'),
+        'source_type' => 'browser', 'anonymous_id' => $aid, 'session_id' => 's-1', 'contact_id' => '', 'path' => '/servicios/',
+        'channel' => 'paid_google', 'revenue' => '0', 'properties' => new stdClass,
+    ]]);
+    DB::table('contact_identities')->insert(['id' => strtoupper((string) Str::ulid()), 'workspace_id' => $this->ws->id, 'contact_id' => $contact->id,
+        'type' => 'anonymous_id', 'value' => $aid, 'first_seen_at' => now(), 'last_seen_at' => now()]);
+
+    expect(app(LeadScorer::class)->browsing($this->ws, $contact->id, LeadDefaults::SCORING['pricing_paths'])['pricing_views'])->toBe(1);
+});
+
 it('distingue correos corporativos y ciudades del área de servicio', function () {
     expect(LeadScorer::isCorporate('ana@ruizabogados.co'))->toBeTrue()
         ->and(LeadScorer::isCorporate('ana@gmail.com'))->toBeFalse()
@@ -127,5 +147,14 @@ it('distingue correos corporativos y ciudades del área de servicio', function (
         ->and(LeadSignalsListener::amount('$2.500.000'))->toBe('2500000.00')
         ->and(LeadSignalsListener::amount('1,250,000.50'))->toBe('1250000.50')
         ->and(LeadSignalsListener::amount('no sé'))->toBeNull()
+        // Rangos y palabras de los <select> de presupuesto: «2 a 8 millones» no es $28.
+        ->and(LeadSignalsListener::amount('2 a 8 millones'))->toBe('5000000.00')
+        ->and(LeadSignalsListener::amount('Menos de 2 millones'))->toBe('2000000.00')
+        ->and(LeadSignalsListener::amount('Más de 8 millones'))->toBe('8000000.00')
+        ->and(LeadSignalsListener::amount('1,5 millones'))->toBe('1500000.00')
+        ->and(LeadSignalsListener::amount('entre 500 mil y 1 millón'))->toBe('750000.00')
+        ->and(LeadSignalsListener::amount('800 mil'))->toBe('800000.00')
+        ->and(LeadSignalsListener::amount('$1.200.000 - $2.000.000'))->toBe('1600000.00')
+        ->and(LeadSignalsListener::amount('3M'))->toBe('3000000.00')
         ->and(LeadDefaults::SCORING['thresholds'])->toBe(['warm' => 30, 'hot' => 60]);
 });
