@@ -88,15 +88,21 @@ export function loyalty(host: HTMLElement | null, x: Ctx): void {
                 };
                 btn.addEventListener('click', () => {
                     btn.disabled = true;
-                    void x.post<{ coupon?: Coupon; balance?: number; message?: string }>('me/redeem', { token, reward_id: rw.id }).then((res) => {
-                        if (res.status === 200 && res.data.coupon?.code) {
-                            balance = Number(res.data.balance ?? balance - rw.points);
+                    void x.post<{ ok?: boolean; coupon?: Coupon; wallet?: { balance?: string; currency?: string }; balance?: number; message?: string; error?: { message?: string } }>('me/redeem', { token, reward_id: rw.id }).then((res) => {
+                        const d = res.data;
+                        const code = d.coupon?.code;
+                        if (res.status === 200 && (code || d.wallet)) {
+                            balance = Number(d.balance ?? balance - rw.points);
                             bal.textContent = num(balance);
-                            const code = res.data.coupon.code;
-                            li.append(h('div', { class: 'cp', role: 'status' }, h('span', null, 'Tu cupón: '), h('strong', null, code), copyButton(code)));
+                            // Cupón para copiar, o la recompensa convertida en saldo a favor.
+                            li.append(
+                                code
+                                    ? h('div', { class: 'cp', role: 'status' }, h('span', null, 'Tu cupón: '), h('strong', null, code), copyButton(code))
+                                    : h('p', { class: 'sm', role: 'status' }, 'Listo. Tu saldo a favor ahora es ' + money(d.wallet?.balance, d.wallet?.currency || x.currency) + '.'),
+                            );
                             for (const f of syncs) f();
                         } else {
-                            why.textContent = res.data.message || (res.status === 401 ? 'Tu sesión venció. Recarga la página.' : 'No pudimos canjear esta recompensa.');
+                            why.textContent = d.message || d.error?.message || (res.status === 401 ? 'Tu sesión venció. Recarga la página.' : 'No pudimos canjear esta recompensa.');
                             btn.disabled = false;
                         }
                     });
@@ -110,7 +116,9 @@ export function loyalty(host: HTMLElement | null, x: Ctx): void {
         const ref = me.referral;
         if (ref && ref.link && /^https?:\/\//.test(ref.link)) {
             const lid = uid('k');
-            const share = h('a', { class: 'wa', href: 'https://wa.me/?text=' + encodeURIComponent(((ref.share_text || '') + ' ' + ref.link).trim()), target: '_blank', rel: 'noopener' }, 'Compartir por WhatsApp');
+            // El texto del programa ya puede traer el enlace ({enlace}); si no, va al final.
+            const text = ref.share_text && ref.share_text.indexOf(ref.link) >= 0 ? ref.share_text : ((ref.share_text || '') + ' ' + ref.link).trim();
+            const share = h('a', { class: 'wa', href: 'https://wa.me/?text=' + encodeURIComponent(text), target: '_blank', rel: 'noopener' }, 'Compartir por WhatsApp');
             share.addEventListener('click', () => void x.post('me/share', { token, channel: 'whatsapp' }));
             const gift = [ref.friend_reward ? 'Tu amigo recibe ' + ref.friend_reward : '', ref.referrer_reward ? 'tú ganas ' + ref.referrer_reward : ''].filter(Boolean).join(' y ');
             out.append(

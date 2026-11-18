@@ -154,16 +154,17 @@ final class PublicWidgetConfig
 
     /**
      * Textos legales vigentes de cada canal, para los formularios que no son widgets
-     * (p. ej. «avísame» de M16): `[{channel, text, version}]`.
+     * (p. ej. «avísame» de M16): `[{channel, label, version}]`, la misma forma que las
+     * casillas de cada widget.
      *
-     * @return list<array{channel: string, text: string, version: string}>
+     * @return list<array{channel: string, label: string, version: string}>
      */
     public function legalConsents(Workspace $workspace): array
     {
-        $out = array_map(fn (array $t) => ['channel' => $t['channel'], 'text' => $t['label'], 'version' => $t['version']], $this->texts->current($workspace));
+        $out = array_map(fn (array $t) => ['channel' => (string) $t['channel'], 'label' => (string) $t['label'], 'version' => (string) $t['version']], $this->texts->current($workspace));
         $sms = $this->texts->latest($workspace, 'sms');
         if ($sms !== null) {
-            $out[] = ['channel' => 'sms', 'text' => $sms->body, 'version' => $sms->version];
+            $out[] = ['channel' => 'sms', 'label' => $sms->body, 'version' => $sms->version];
         }
 
         return $out;
@@ -205,20 +206,43 @@ final class PublicWidgetConfig
     {
         $content['consents'] = $consents;
         if ($widget->kind === 'two_step' && is_array($content['step2'] ?? null)) {
-            // Pasos del formulario como los recorre el tracker: los mismos campos y textos de cada paso.
+            // Pasos del formulario como los recorre el tracker: los campos, textos y casillas de cada
+            // paso (la de correo junto al correo y las de WhatsApp o SMS junto al celular). `no` es el
+            // botón para saltarse el segundo paso: la persona ve igual el resultado del primero.
             $step2 = (array) $content['step2'];
-            $content['no'] = (string) ($step2['skip'] ?? '');
             $content['steps'] = [
-                ['title' => $content['title'] ?? '', 'body' => $content['body'] ?? '', 'fields' => $content['fields'] ?? [], 'cta' => $content['cta'] ?? '', 'success' => $content['success'] ?? ''],
-                ['title' => $step2['title'] ?? '', 'body' => $step2['body'] ?? '', 'fields' => $step2['fields'] ?? [], 'cta' => $step2['cta'] ?? '', 'success' => $step2['success'] ?? '', 'no' => $step2['skip'] ?? ''],
+                ['title' => $content['title'] ?? '', 'body' => $content['body'] ?? '', 'fields' => $content['fields'] ?? [], 'consents' => self::consentsFor((array) ($content['fields'] ?? []), $consents),
+                    'cta' => $content['cta'] ?? '', 'success' => $content['success'] ?? ''],
+                ['title' => $step2['title'] ?? '', 'body' => $step2['body'] ?? '', 'fields' => $step2['fields'] ?? [], 'consents' => self::consentsFor((array) ($step2['fields'] ?? []), $consents),
+                    'cta' => $step2['cta'] ?? '', 'success' => $step2['success'] ?? '', 'no' => (string) ($step2['skip'] ?? '')],
             ];
+        }
+        if ($widget->kind === 'quiz' && (bool) ($content['contact_optional'] ?? false)) {
+            // Con el contacto opcional, la persona puede ver su resultado sin dejar sus datos.
+            $content['fields'] = array_map(fn ($f) => is_array($f) ? ['required' => false] + $f : $f, (array) ($content['fields'] ?? []));
         }
         if ($widget->kind === 'spin_wheel') {
             // Solo las etiquetas: las probabilidades y los cupones quedan en el hub.
             $content['slices'] = array_map(fn (array $p) => ['key' => (string) $p['key'], 'label' => (string) $p['label']], (array) ($widget->coupon_config['prizes'] ?? []));
         }
-        unset($content['wa']);
+        unset($content['wa'], $content['step2']);
 
         return $content;
+    }
+
+    /**
+     * Casillas que van con unos campos: la de correo con el campo de correo y las de
+     * WhatsApp y SMS con el de celular.
+     *
+     * @param  array<int|string, mixed>  $fields
+     * @param  list<array{channel: string, label: string, version: string}>  $consents
+     * @return list<array{channel: string, label: string, version: string}>
+     */
+    private static function consentsFor(array $fields, array $consents): array
+    {
+        $keys = array_map(fn ($f) => is_array($f) ? (string) ($f['key'] ?? '') : '', $fields);
+        $channels = array_merge(in_array('email', $keys, true) ? ['email'] : [], in_array('phone', $keys, true) ? ['whatsapp', 'sms'] : []);
+
+        return array_values(array_filter($consents, fn (array $c) => in_array($c['channel'], $channels, true)));
     }
 }

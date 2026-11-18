@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Domain\Segments\Http;
 
+use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Commerce\Models\Product;
 use App\Domain\Commerce\Models\ProductCategory;
+use App\Domain\Flows\Models\Flow;
+use App\Domain\Loyalty\Models\LoyaltyTier;
 use App\Domain\Segments\Definition\Fields;
 use App\Domain\Segments\Library\SegmentLibrary;
 use App\Ingest\Schema\SchemaRegistry;
@@ -49,6 +52,17 @@ final class SegmentOptionsController
             'values' => $this->values($ws),
             'segments' => DB::table('segments')->where('workspace_id', $ws)->whereNull('deleted_at')->orderBy('name')
                 ->get(['id', 'name'])->map(fn ($s) => ['id' => 'sg_'.$s->id, 'name' => $s->name])->values(),
+            // Mensajería (Fase 2) y fidelización (Fase 3).
+            'message_actions' => array_keys(Fields::MESSAGE_ACTIONS),
+            'message_channels' => Fields::MESSAGE_CHANNELS,
+            'engagement_days' => Fields::ENGAGEMENT_DAYS,
+            'flows' => Flow::query()->where('status', '!=', Flow::ARCHIVED)->orderBy('name')->limit(200)->get(['id', 'name'])
+                ->map(fn (Flow $f) => ['id' => $f->publicId(), 'name' => (string) $f->name])->values(),
+            'campaigns' => Campaign::query()->orderByDesc('created_at')->limit(200)->get(['id', 'name'])
+                ->map(fn (Campaign $c) => ['id' => $c->publicId(), 'name' => (string) $c->name])->values(),
+            'loyalty_fields' => collect(Fields::LOYALTY_FIELDS)->map(fn (array $def, string $key) => ['key' => $key, 'type' => $def['type'], 'operators' => $def['operators'], 'values' => null])->values(),
+            'loyalty_tiers' => LoyaltyTier::query()->orderBy('rank')->get(['id', 'name', 'rank'])
+                ->map(fn (LoyaltyTier $t) => ['id' => $t->publicId(), 'name' => (string) $t->name, 'rank' => (int) $t->rank])->values(),
         ]);
     }
 

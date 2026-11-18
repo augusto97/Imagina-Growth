@@ -466,7 +466,7 @@ $fixture_products = static function () use ( &$state ): array {
 	);
 };
 
-if ( 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/(visitor\.json|reco|points|banner|me|reviews|reviews/badges)$#', (string) $path, $m ) && 'GET' === $method ) {
+if ( 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/(visitor\.json|reco|points|program|banner|me|reviews|reviews/badges)$#', (string) $path, $m ) && 'GET' === $method ) {
 	if ( ! $pk_ok( $m[1] ) ) {
 		$respond( 404, array( 'error' => 'unknown_key' ) );
 	}
@@ -491,21 +491,33 @@ if ( 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/(visitor\.json|reco|points|banner
 		case 'reco':
 			header( 'Cache-Control: ' . ( in_array( $_GET['kind'] ?? '', array( 'para_ti', 'recently_viewed', 'complete_cart' ), true ) ? 'private' : 'public' ) . ', max-age=60' );
 			$limit = max( 1, min( 12, (int) ( $_GET['limit'] ?? 4 ) ) );
-			$respond( 200, array( 'kind' => (string) ( $_GET['kind'] ?? 'trending' ), 'products' => array_slice( $fixture_products(), 0, $limit ) ) );
+			$respond( 200, array( 'kind' => (string) ( $_GET['kind'] ?? 'trending' ), 'products' => array_slice( $fixture_products(), 0, $limit ), 'fallback' => false ) );
 		case 'points':
 			header( 'Cache-Control: public, max-age=300' );
 			$base   = (float) ( $_GET['price'] ?? $_GET['cart_total'] ?? 0 );
 			$points = (int) floor( $base / 1000 );
-			$respond( 200, array( 'points' => $points, 'label' => 'Gana ' . $points . ' Puntos Prueba' ) );
+			$respond( 200, array( 'points' => $points, 'label' => $points > 0 ? 'Gana ' . $points . ' Puntos Prueba' : null ) );
+		case 'program':
+			header( 'Cache-Control: public, max-age=300' );
+			$respond(
+				200,
+				array(
+					'active'        => true,
+					'currency_name' => 'Puntos Prueba',
+					'explainer'     => array( 'title' => 'Así funciona Puntos Prueba', 'sections' => array() ),
+					'tiers'         => array( array( 'name' => 'Plata', 'benefits' => array( 'Envío gratis' ) ) ),
+					'rewards'       => array( array( 'id' => 'rw_01JF0REWARD000000000001', 'name' => '$20.000 de descuento', 'points' => 500, 'kind' => 'coupon_fixed' ) ),
+				)
+			);
 		case 'banner':
 			header( 'Cache-Control: private, no-store' );
 			$ref = $user_ref( isset( $_GET['token'] ) ? (string) $_GET['token'] : null );
-			$respond( 200, array( 'banner' => 'account' === ( $_GET['placement'] ?? '' ) && null !== $ref ? array( 'text' => 'Eres cliente Plata: envío gratis este mes', 'cta' => 'Ver beneficios', 'url' => 'http://127.0.0.1:8080/', 'style' => 'vip' ) : null ) );
+			$respond( 200, array( 'banner' => 'account' === ( $_GET['placement'] ?? '' ) && null !== $ref ? array( 'id' => 'bn_01JF0BANNER0000000000001', 'text' => 'Eres cliente Plata: envío gratis este mes', 'cta' => 'Ver beneficios', 'url' => 'http://127.0.0.1:8080/', 'style' => 'success' ) : null ) );
 		case 'me':
 			header( 'Cache-Control: private, no-store' );
 			$ref = $user_ref( isset( $_GET['token'] ) ? (string) $_GET['token'] : null );
 			if ( null === $ref ) {
-				$respond( 401, array( 'error' => 'token' ) );
+				$respond( 401, array( 'ok' => false, 'error' => array( 'code' => 'invalid_token' ) ) );
 			}
 			$spent   = array_sum( array_map( static fn( $r ) => $r['ref'] === $ref ? (int) $r['points'] : 0, $state['redeems'] ) );
 			$balance = 1532 - $spent;
@@ -513,13 +525,14 @@ if ( 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/(visitor\.json|reco|points|banner
 			$respond(
 				200,
 				array(
+					'program'  => array( 'active' => true, 'currency_name' => 'Puntos Prueba' ),
 					'points'   => array( 'balance' => $balance, 'pending' => 282, 'currency_name' => 'Puntos Prueba', 'expiring' => array( 'points' => 120, 'at' => '2026-12-31' ) ),
 					'tier'     => array( 'name' => 'Plata', 'next_name' => 'Oro', 'progress_pct' => 64, 'benefits' => array( 'Envío gratis' ) ),
 					'wallet'   => array( 'balance' => (string) ( $state['overrides']['wallet_balance'] ?? '35000.00' ), 'currency' => 'COP' ),
 					'referral' => array( 'code' => $code, 'link' => 'http://127.0.0.1:8080/?ref=' . $code, 'share_text' => 'Te regalo 10% en la tienda de prueba', 'friend_reward' => '10% en tu primera compra', 'referrer_reward' => '500 puntos' ),
 					'rewards'  => array(
-						array( 'id' => 'rw_01JF0REWARD000000000001', 'name' => '$20.000 de descuento', 'points' => 500, 'kind' => 'coupon_fixed' ),
-						array( 'id' => 'rw_01JF0REWARD000000000002', 'name' => 'Kit de brochas', 'points' => 5000, 'kind' => 'product' ),
+						array( 'id' => 'rw_01JF0REWARD000000000001', 'name' => '$20.000 de descuento', 'points' => 500, 'kind' => 'coupon_fixed', 'affordable' => $balance >= 500 ),
+						array( 'id' => 'rw_01JF0REWARD000000000002', 'name' => 'Kit de brochas', 'points' => 5000, 'kind' => 'product', 'affordable' => $balance >= 5000 ),
 					),
 				)
 			);
@@ -528,8 +541,8 @@ if ( 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/(visitor\.json|reco|points|banner
 			$page  = max( 1, (int) ( $_GET['page'] ?? 1 ) );
 			$media = array( array( 'url' => 'http://127.0.0.1:8090/_media/1.svg', 'type' => 'image', 'thumb' => 'http://127.0.0.1:8090/_media/1.svg' ) );
 			$all   = array(
-				array( 'id' => 'rv_01', 'rating' => 5, 'title' => 'Excelente cubrimiento', 'body' => 'Con una mano quedó perfecta.', 'author' => 'Ana R.', 'verified' => true, 'media' => $media, 'created_at' => '2026-11-01T10:00:00Z', 'reply' => '¡Gracias, Ana!' ),
-				array( 'id' => 'rv_02', 'rating' => 4, 'title' => null, 'body' => 'Buena, el color es un poco más claro.', 'author' => 'Luis P.', 'verified' => false, 'media' => array(), 'created_at' => '2026-10-20T10:00:00Z', 'reply' => null ),
+				array( 'id' => 'rv_01', 'product_id' => '88', 'rating' => 5, 'title' => 'Excelente cubrimiento', 'body' => 'Con una mano quedó perfecta.', 'author' => 'Ana R.', 'verified' => true, 'media' => $media, 'created_at' => '2026-11-01T10:00:00Z', 'reply' => '¡Gracias, Ana!' ),
+				array( 'id' => 'rv_02', 'product_id' => '88', 'rating' => 4, 'title' => null, 'body' => 'Buena, el color es un poco más claro.', 'author' => 'Luis P.', 'verified' => false, 'media' => array(), 'created_at' => '2026-10-20T10:00:00Z', 'reply' => null ),
 			);
 			if ( '1' === (string) ( $_GET['with_media'] ?? '0' ) ) {
 				$all = array_values( array_filter( $all, static fn( $r ) => array() !== $r['media'] ) );
@@ -581,12 +594,12 @@ if ( 'POST' === $method && 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/widgets/([A
 		}
 	}
 	if ( array() !== $errors ) {
-		$respond( 422, array( 'message' => 'Revisa los datos.', 'errors' => $errors ) );
+		$respond( 422, array( 'ok' => false, 'message' => 'Revisa los datos e inténtalo de nuevo.', 'errors' => $errors ) );
 	}
 	$contact = strtolower( (string) ( $fields['email'] ?? '' ) ) . preg_replace( '/\D/', '', (string) ( $fields['phone'] ?? '' ) );
 	foreach ( $state['submits'] as $sub ) {
 		if ( '' !== $contact && $sub['widget_id'] === $m[2] && $sub['contact'] === $contact ) {
-			$respond( 409, array( 'ok' => false, 'message' => 'Ya recibiste este cupón.' ) );
+			$respond( 409, array( 'ok' => false, 'error' => 'already_claimed', 'message' => 'Ya recibiste el cupón de esta promoción. Revisa tu correo o tu WhatsApp.' ) );
 		}
 	}
 	$state['submits'][] = array(
@@ -602,9 +615,13 @@ if ( 'POST' === $method && 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/widgets/([A
 		'answers'       => $req['answers'] ?? null,
 		'referral_code' => $req['referral_code'] ?? null,
 	);
-	$out = array( 'ok' => true, 'double_opt_in' => false );
-	if ( in_array( $widget['kind'], array( 'popup', 'embedded_form', 'spin_wheel', 'two_step', 'referral_welcome', 'bar', 'teaser' ), true ) && '' !== $contact ) {
-		$out['coupon'] = array( 'code' => 'BIENV-' . strtoupper( substr( hash( 'sha256', $contact . $m[2] ), 0, 6 ) ), 'description' => '10% en tu primera compra', 'expires_at' => gmdate( 'Y-m-d\T23:59:59\Z', time() + 14 * 86400 ) );
+	$step = (int) ( $req['step'] ?? 1 );
+	$out  = array( 'ok' => true, 'message' => '¡Listo!', 'double_opt_in' => false );
+	if ( 'two_step' === $widget['kind'] && 1 === $step ) {
+		$out['next_step'] = 2;
+	}
+	if ( in_array( $widget['kind'], array( 'popup', 'embedded_form', 'spin_wheel', 'two_step', 'referral_welcome', 'bar', 'teaser' ), true ) && '' !== $contact && 1 === $step ) {
+		$out['coupon'] = array( 'code' => 'BIENV-' . strtoupper( substr( hash( 'sha256', $contact . $m[2] ), 0, 6 ) ), 'description' => '10% en tu primera compra', 'expires_at' => gmdate( 'Y-m-d', time() + 14 * 86400 ) );
 	}
 	if ( 'spin_wheel' === $widget['kind'] ) {
 		$slices       = $content['slices'] ?? array( array( 'key' => '10', 'label' => '10%' ) );
@@ -627,14 +644,14 @@ if ( 'POST' === $method && 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/(watch|me/r
 		$email = (string) ( $req['email'] ?? '' );
 		$phone = (string) ( $req['phone'] ?? '' );
 		if ( 1 !== preg_match( '/^\d+$/', (string) ( $req['product_id'] ?? '' ) ) || ! in_array( $req['kind'] ?? '', array( 'back_in_stock', 'price_drop' ), true ) || ( ! filter_var( $email, FILTER_VALIDATE_EMAIL ) && strlen( preg_replace( '/\D/', '', $phone ) ) < 7 ) ) {
-			$respond( 422, array( 'message' => 'Revisa los datos.', 'errors' => array() ) );
+			$respond( 422, array( 'error' => 'invalid', 'message' => 'Escribe un correo o un WhatsApp válido.', 'errors' => array( 'email' => array( 'Escribe un correo o un WhatsApp válido.' ) ) ) );
 		}
-		$state['watches'][] = array( 'product_id' => $req['product_id'], 'kind' => $req['kind'], 'channel' => '' !== $email ? 'email' : 'whatsapp', 'consents' => $req['consents'] ?? array(), 'anonymous_id' => $req['anonymous_id'] ?? null );
+		$state['watches'][] = array( 'product_id' => $req['product_id'], 'kind' => $req['kind'], 'channel' => '' !== $email ? 'email' : 'whatsapp', 'consents' => $req['consents'] ?? array(), 'consent_version' => $req['consent_version'] ?? null, 'anonymous_id' => $req['anonymous_id'] ?? null );
 		$respond( 200, array( 'ok' => true, 'message' => 'back_in_stock' === $req['kind'] ? 'Te avisaremos cuando vuelva.' : 'Te avisaremos si baja de precio.' ) );
 	}
 	$ref = $user_ref( isset( $req['token'] ) ? (string) $req['token'] : null );
 	if ( null === $ref ) {
-		$respond( 401, array( 'error' => 'token' ) );
+		$respond( 401, 'me/share' === $m[2] ? array( 'error' => 'invalid_token' ) : array( 'ok' => false, 'error' => array( 'code' => 'invalid_token' ) ) );
 	}
 	if ( 'me/share' === $m[2] ) {
 		$state['shares'][] = array( 'ref' => $ref, 'channel' => $req['channel'] ?? null );
@@ -642,11 +659,14 @@ if ( 'POST' === $method && 1 === preg_match( '#^/p/(pk_[A-Za-z0-9]+)/(watch|me/r
 	}
 	$points = array( 'rw_01JF0REWARD000000000001' => 500, 'rw_01JF0REWARD000000000002' => 5000 )[ $req['reward_id'] ?? '' ] ?? null;
 	$spent  = array_sum( array_map( static fn( $r ) => $r['ref'] === $ref ? (int) $r['points'] : 0, $state['redeems'] ) );
-	if ( null === $points || 1532 - $spent < $points ) {
-		$respond( 409, array( 'ok' => false, 'message' => 'No te alcanzan los puntos.' ) );
+	if ( null === $points ) {
+		$respond( 422, array( 'ok' => false, 'error' => array( 'code' => 'unknown_reward', 'message' => 'Esta recompensa no está disponible.' ) ) );
+	}
+	if ( 1532 - $spent < $points ) {
+		$respond( 422, array( 'ok' => false, 'error' => array( 'code' => 'not_redeemed', 'message' => 'No tienes puntos suficientes.' ) ) );
 	}
 	$state['redeems'][] = array( 'ref' => $ref, 'reward_id' => $req['reward_id'], 'points' => $points );
-	$respond( 200, array( 'coupon' => array( 'code' => 'PUNTOS-' . strtoupper( bin2hex( random_bytes( 3 ) ) ), 'description' => '$20.000 de descuento', 'expires_at' => gmdate( 'Y-m-d\T23:59:59\Z', time() + 30 * 86400 ) ), 'balance' => 1532 - $spent - $points ) );
+	$respond( 200, array( 'ok' => true, 'balance' => 1532 - $spent - $points, 'coupon' => array( 'code' => 'PUNTOS-' . strtoupper( bin2hex( random_bytes( 3 ) ) ), 'description' => '$20.000 de descuento', 'expires_at' => gmdate( 'Y-m-d', time() + 30 * 86400 ) ) ) );
 }
 
 // Saldo a favor (§5.5): firmado; crea el cupón en el sitio con coupon.create antes de responder.

@@ -4,7 +4,7 @@
  * de consentimiento sin marcar con el texto y la versión del hub, envío y mensaje final.
  */
 import { copyButton, h, loc, overlayHost, shadow, uid } from './dom';
-import type { ConsentText, Ctx, Field, Live, Step, SubmitResult } from './types';
+import type { ConsentText, Ctx, Field, Live, Res, Step, SubmitResult } from './types';
 
 export const FORM_CSS =
     '.bd{position:fixed;inset:0;z-index:2147483000;background:rgba(17,24,39,.55);display:flex;align-items:center;justify-content:center;padding:16px}' +
@@ -89,7 +89,7 @@ export function frame(live: Live, x: Ctx, layout: string, slot: HTMLElement | nu
 }
 
 /** Imagen, título y texto del widget. */
-export function head(f: Frame, title?: string, body?: string, image?: string): Node[] {
+export function head(f: Frame, title?: string, body?: string, image?: string | null): Node[] {
     const id = f.box.getAttribute('data-title') ?? uid('t');
     return [image ? h('img', { class: 'im', src: image, alt: '' }) : null, h('h2', { id }, title ?? ''), body ? h('p', null, body) : null].filter(Boolean) as Node[];
 }
@@ -115,15 +115,17 @@ function invalid(fd: Field, v: string): string | null {
 
 function fmtDate(iso?: string | null): string {
     if (!iso) return '';
-    const d = new Date(iso);
+    // «2026-12-01» es la fecha en la hora de la tienda: a mediodía para que no cambie de día con la zona.
+    const d = new Date(iso.length === 10 ? iso + 'T12:00' : iso);
     return isNaN(d.getTime()) ? '' : d.toLocaleDateString(loc(), { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-/** Mensaje final: cupón con «Copiar», doble opt-in y productos del quiz. */
+/** Mensaje final: cupón con «Copiar» y productos del quiz (el hub ya pide confirmar el correo en `message` con doble opt-in). */
 export function success(live: Live, x: Ctx, res: SubmitResult, products?: (res: SubmitResult) => Node | null): HTMLElement {
     const code = res.coupon?.code ?? '';
     const msg = res.message || (live.content.success || '¡Listo! Ya quedaste registrado.').replace(/\{\{\s*codigo\s*\}\}/g, code);
     const exp = fmtDate(res.coupon?.expires_at);
+    const rc = res.referral_coupon?.code ?? '';
     return h(
         'div',
         { class: 'ok', role: 'status', tabindex: '-1' },
@@ -132,7 +134,7 @@ export function success(live: Live, x: Ctx, res: SubmitResult, products?: (res: 
         code ? h('div', { class: 'cp' }, h('strong', null, code), copyButton(code)) : null,
         res.coupon?.description ? h('p', { class: 'sm' }, res.coupon.description) : null,
         exp ? h('p', { class: 'sm' }, 'Vence el ' + exp + '.') : null,
-        res.double_opt_in ? h('p', { class: 'sm' }, 'Te enviamos un correo para confirmar tu suscripción.') : null,
+        rc ? h('div', { class: 'cp' }, h('span', null, 'Regalo de tu amigo:'), h('strong', null, rc), copyButton(rc)) : null,
         products ? products(res) : null,
     );
 }
@@ -144,6 +146,9 @@ interface FormOpts {
     cta?: string;
     answers?: Record<string, string>;
     compact?: boolean;
+    /** Botón para saltarse este paso (`steps[].no`). */
+    no?: string;
+    skip?: () => void;
     done: (res: SubmitResult) => void;
 }
 
@@ -166,7 +171,9 @@ export function form(live: Live, x: Ctx, o: FormOpts): HTMLFormElement {
     });
     const alert = h('p', { class: 'e', role: 'alert' });
     const btn = h('button', { type: 'submit' }, o.cta || 'Enviar');
-    el.append(alert, h('div', { class: 'ac' }, btn));
+    const skip = o.no && o.skip ? h('button', { type: 'button', class: 's' }, o.no) : '';
+    if (skip) skip.onclick = o.skip as () => void;
+    el.append(alert, h('div', { class: 'ac' }, btn, skip));
     el.addEventListener('submit', (ev) => {
         ev.preventDefault();
         alert.textContent = '';
@@ -188,11 +195,7 @@ export function form(live: Live, x: Ctx, o: FormOpts): HTMLFormElement {
         const consents: Record<string, boolean> = {};
         for (const { c, cb } of boxes) consents[c.channel] = cb.checked;
         btn.disabled = true;
-        const body: Record<string, unknown> = { anonymous_id: x.aid(), variant: live.variant, page_url: x.pageUrl(), step: o.step, fields, consents };
-        if (o.answers) body['answers'] = o.answers;
-        const ref = x.ref();
-        if (ref) body['referral_code'] = ref;
-        void x.post<SubmitResult>('widgets/' + encodeURIComponent(live.id) + '/submit', body).then((r) => {
+        void send(live, x, { step: o.step, fields, consents, answers: o.answers }).then((r) => {
             btn.disabled = false;
             const d = r.data ?? {};
             if (r.status === 200 && d.ok !== false) {
@@ -217,6 +220,18 @@ export function form(live: Live, x: Ctx, o: FormOpts): HTMLFormElement {
     return el;
 }
 
+/** Ya envió: cuenta para la frecuencia, emite `widget.submitted` y cerrar ya no es un cierre. */
+export function sent(f: Frame, live: Live, x: Ctx): void {
+    f.submitted = true;
+    x.mark(live, 'submit');
+    x.track('widget.submitted', live);
+}
+
+/** POST del envío al hub con la variante, la página y el código de referido. */
+export function send(live: Live, x: Ctx, b: Record<string, unknown>): Promise<Res<SubmitResult>> {
+    return x.post<SubmitResult>('widgets/' + encodeURIComponent(live.id) + '/submit', { anonymous_id: x.aid(), variant: live.variant, page_url: x.pageUrl(), ...b, referral_code: x.ref() || undefined });
+}
+
 /** Pasos del formulario (`content.steps` o uno solo con los campos del widget). */
 export function steps(live: Live): Step[] {
     const c = live.content;
@@ -230,6 +245,18 @@ export function capture(f: Frame, live: Live, x: Ctx, opts: { into?: HTMLElement
     const into = opts.into ?? f.box;
     let got: SubmitResult = {};
     const keep = Array.from(into.children).filter((n) => n.classList.contains('x'));
+    const end = (): void => {
+        sent(f, live, x);
+        const fin = (): void => {
+            // El título se queda: el diálogo conserva su nombre accesible.
+            const tid = f.box.getAttribute('data-title') ?? '';
+            const title = live.content.title ? (opts.compact ? h('p', { id: tid }, h('strong', null, live.content.title)) : h('h2', { id: tid }, live.content.title)) : null;
+            into.replaceChildren(...keep, ...(title ? [title] : []), success(live, x, got, opts.products));
+            (into.querySelector('[role=status]') as HTMLElement | null)?.focus?.();
+        };
+        if (opts.after) opts.after(got, fin);
+        else fin();
+    };
     const render = (i: number): void => {
         const s = all[i] as Step;
         const nodes: Node[] = [];
@@ -242,27 +269,17 @@ export function capture(f: Frame, live: Live, x: Ctx, opts: { into?: HTMLElement
                 consents: s.consents ?? [],
                 cta: s.cta ?? live.content.cta,
                 answers: opts.answers,
+                // Saltarse un paso posterior muestra el resultado de los anteriores (p. ej. el cupón del correo).
+                no: i > 0 ? s.no : undefined,
+                skip: end,
                 done: (res) => {
-                    got = { ...got, ...res, coupon: res.coupon ?? got.coupon };
-                    if (i + 1 < all.length) {
-                        render(i + 1);
-                        return;
-                    }
-                    f.submitted = true;
-                    x.mark(live, 'submit');
-                    x.track('widget.submitted', live);
-                    const fin = (): void => {
-                        // El título se queda: el diálogo conserva su nombre accesible.
-                        const tid = f.box.getAttribute('data-title') ?? '';
-                        const title = live.content.title ? (opts.compact ? h('p', { id: tid }, h('strong', null, live.content.title)) : h('h2', { id: tid }, live.content.title)) : null;
-                        into.replaceChildren(...keep, ...(title ? [title] : []), success(live, x, got, opts.products));
-                        (into.querySelector('[role=status]') as HTMLElement | null)?.focus?.();
-                    };
-                    if (opts.after) opts.after(got, fin);
-                    else fin();
+                    got = { ...got, ...res, coupon: res.coupon ?? got.coupon, referral_coupon: res.referral_coupon ?? got.referral_coupon };
+                    if (i + 1 < all.length) render(i + 1);
+                    else end();
                 },
             }),
         );
+        if (live.content.footer && !opts.compact) nodes.push(h('p', { class: 'sm' }, live.content.footer));
         into.replaceChildren(...keep, ...nodes);
     };
     render(0);

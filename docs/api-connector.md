@@ -177,9 +177,16 @@ Configuración que el plugin guarda en caché un día:
     "mode": "full",                                // server_only | with_pixel | full
     "pixels": { "meta": "123456789012345", "tiktok": "C9ABCDEF12345", "google": "G-ABC123" }
   },
+  "onsite": {                                     // Fase 3: módulos que el plugin pinta en la tienda
+    "loyalty": true,                               // programa de fidelización activo: «Gana N puntos» y «Mis recompensas»
+    "wallet": true,                                // «Usar saldo» en el checkout (el saldo es parte del programa)
+    "product_watch": true                          // «Avísame cuando vuelva» / «si baja de precio» (M16)
+  },
   "min_plugin_version": "0.1.0"
 }
 ```
+
+- **`onsite`:** sin `loyalty` el plugin no reserva espacio para puntos ni recompensas, y sin `wallet` no muestra «Usar saldo». Cada elemento también tiene su interruptor local en la pestaña «En el sitio» del plugin (`connector/CLAUDE.md` §10).
 
 - **`measurement.mode = full`:** el connector pasa `pixels` a `igrConfig.pixels` y el tracker carga los píxeles (solo con consentimiento de marketing) y dispara los eventos estándar con `eventID` igual al `event_id` del evento de Imagina Growth (en la compra, `igrOrder.eventId`). La conversión desde el servidor usa el mismo `event_id`: así Meta, TikTok y Google deduplican.
 - **`with_pixel`:** ya hay otro píxel (p. ej. PixelYourSite); solo se deduplica la compra si ese plugin usa `igrOrder.eventId`. **`server_only`:** sin píxel.
@@ -232,11 +239,13 @@ Lo llaman los *exporters* y *erasers* de WordPress (`connector/CLAUDE.md` §11) 
 La **única llamada síncrona** del plugin al hub, y la inicia la persona: el botón «Usar saldo» del checkout (M13). Va firmada (§2) y tiene un *timeout* de 3 s; si el hub no responde, el checkout sigue igual y muestra «No pudimos usar tu saldo ahora».
 
 ```json
-{ "customer_ref": "wc:77", "cart_total": "282000.00", "currency": "COP", "cart_token": "c_8f2a9d…" }
+{ "customer_ref": "wc:77", "cart_total": "282000.00", "currency": "COP", "cart_token": "a3f9c2e1b7d84f0e9c1a2b3c4d5e6f70" }
 ```
 
-- **Respuesta `200`:** `{"coupon": {"code": "SALDO-7K2Q9XAB", "amount": "35000.00", "expires_at": "…"}, "balance": "35000.00"}`. El hub crea un cupón de un solo uso (`coupon.create`, `source_type: wallet`) por `min(saldo, cart_total)` y lo deja como débito **pendiente**. El plugin lo aplica al carrito.
-- **Respuesta `409`:** `{"ok": false, "error": {"code": "no_balance"}}` si no hay saldo.
+- **`cart_token`:** el token de carrito del plugin (hexadecimal, el mismo de `order.cart_token`), opcional. El mismo carrito que lo pide otra vez recibe el mismo cupón.
+- **Respuesta `200`:** `{"coupon": {"code": "SALDO-7K2Q9XAB", "amount": "35000.00", "expires_at": "2026-11-19T15:04:05+00:00"}, "balance": "35000.00"}`. El hub crea un cupón de un solo uso (`coupon.create`, `source_type: wallet`) por `min(saldo, cart_total)` y lo deja como débito **pendiente**. El cupón **ya existe en el sitio** cuando el hub responde (el `coupon.create` corre dentro de la misma llamada), así que el plugin solo lo aplica al carrito.
+- **Respuesta `409`:** `{"ok": false, "error": {"code": "no_balance" | "busy" | "currency_mismatch"}}`: sin saldo, otro canje del mismo cliente en curso, o un carrito en otra moneda que no se puede convertir. El plugin muestra un mensaje distinto para cada uno.
+- **`422 invalid_args`** con datos incompletos y **`502 coupon_failed`** si el sitio no pudo crear el cupón (el saldo no se toca).
 - **Confirmación:** el débito se confirma cuando llega un `order.paid` que usa ese cupón. Se devuelve el saldo si el pedido se cancela o reembolsa, o si el cupón vence sin usarse (24 h).
 
 ## 6. Comandos del hub al sitio
@@ -273,7 +282,7 @@ El resto de comandos de `connector/CLAUDE.md` §8 se agregan en su fase.
 | `review.publish` | `{"review_id": "rv_…", "product_id": "88", "rating": 5, "title": "…"?, "body": "…", "author_name": "Ana R.", "author_email": "…"?, "verified": true, "media": [{"url": "https://…", "type": "image\|video", "thumb": "…"?}], "created_at": "…", "order_id": "1234"?}` | `{"comment_id": "551"}`. Crea la reseña nativa (comentario `review` aprobado, meta `rating`, `verified`, `igr_review_id` y `igr_media`). Idempotente por `review_id` |
 | `review.reply` | `{"comment_id": "551", "body": "…", "author_name": "Pinturas La 14"}` | `{"comment_id": "552"}` (respuesta del dueño como comentario hijo) |
 | `review.unpublish` | `{"comment_id": "551"}` | `{"ok": true}` (la deja pendiente; la moderación la rechazó después de publicada) |
-| `customer.set_tier` | `{"customer_ref": "wc:77", "tier_key": "tr_plata", "tier_name": "Plata", "role": "cliente_plata"?}` | `{"ok": true}`. Guarda la meta `igr_tier` y, si viene `role`, se lo agrega al usuario sin quitarle sus otros roles; el rol anterior de un nivel lo quita |
+| `customer.set_tier` | `{"customer_ref": "wc:77", "tier_key": "tr_plata", "tier_name": "Plata", "role": "cliente_plata"?}` | `{"ok": true}`. Guarda la meta `igr_tier` y, si viene `role`, se lo agrega al usuario sin quitarle sus otros roles; el rol anterior de un nivel lo quita. Sin `tier_key` borra el nivel. Nunca asigna roles del sistema ni uno que dé más que `read`: `422 role_not_allowed` |
 
 ### 6.1 Enlace de carrito restaurable (Fase 2)
 
@@ -301,7 +310,7 @@ Nunca dependen del visitante en páginas cacheables (`connector/CLAUDE.md` §9).
 
 | Variable | Dónde | Contenido |
 |---|---|---|
-| `window.igrConfig` | todas | `{ siteKey: "pk_…", siteId: "st_…", platform: "woocommerce", currency: "COP", endpoint: "<ingest_browser>", consentMode: "strict", consent: {analytics, marketing, source}, cookieDomain, pingUrl: "/?igr_ping=1", waRef: {enabled, format: "{text} (ref: {token})", numbers: ["573001234567"]}, widgetsUrl: "<hub>/p/pk_…/widgets.json", widgetsJs, pixelsJs, pixels: {meta, tiktok, google}, banner, earlyCapture: false }`. `siteId` y `platform` llenan `source` de cada evento; `widgetsJs`, `pixelsJs` y `banner` son los paquetes que se cargan solo cuando hacen falta |
+| `window.igrConfig` | todas | `{ siteKey: "pk_…", siteId: "st_…", platform: "woocommerce", currency: "COP", endpoint: "<ingest_browser>", consentMode: "strict", consent: {analytics, marketing, source}, cookieDomain, pingUrl: "/?igr_ping=1", waRef: {enabled, format: "{text} (ref: {token})", numbers: ["573001234567"], widgets}, widgetsUrl: "<hub>/p/pk_…/widgets.json", widgetsJs, pixelsJs, pixels: {meta, tiktok, google}, banner, earlyCapture: false }`. `siteId` y `platform` llenan `source` de cada evento; `widgetsJs`, `pixelsJs` y `banner` son los paquetes que se cargan solo cuando hacen falta |
 | `window.igrPage` | todas | `{ type: "product", objectId: "88", product: {id, sku, name, price, currency, categories: ["12"], inStock} }` |
 | `window.igrUser` | **solo** páginas no cacheables (Mi cuenta, checkout, gracias) con sesión | `{ ref: "wc:77", token }` |
 | `window.igrOrder` | página de gracias | `{ eventId, orderId: "1234", value: "282000.00", currency: "COP", paid: true, token }`. El píxel de compra del navegador solo se dispara con `paid: true`; un pedido pendiente (PSE, contraentrega) lo cuenta después el servidor al pagarse |
@@ -321,6 +330,8 @@ Nunca dependen del visitante en páginas cacheables (`connector/CLAUDE.md` §9).
 | `wallet` | `{}` | checkout: «Usar saldo» (el clic llama al plugin, que llama a §5.5) |
 
 `window.igrUser` (§7.1) también se imprime en Mi cuenta → «Mis recompensas» para que el tracker pida los datos del programa.
+
+`waRef.widgets` es el interruptor de atribución de WhatsApp del plugin: con él, el widget `wa_widget` del hub agrega la referencia corta aunque su número no esté en la lista local `numbers`.
 
 ### 7.1 Tokens firmados
 
@@ -368,33 +379,47 @@ Configuración de los widgets activos para ese tipo de página. Cacheable en CDN
 
 Todos van sin firma, identifican al sitio por la clave pública y aceptan CORS de los dominios del sitio. Los `POST` usan `Content-Type: text/plain;charset=UTF-8` con cuerpo JSON (§8.2), tienen límite por IP con hash y por `anonymous_id` (`429`), y **nunca devuelven datos personales** salvo con un `igrUser.token` válido.
 
+Errores comunes: `404` con una clave pública desconocida o un sitio desconectado; `429` con `{"error": "rate_limited"}` (o `{"ok": false, "error": …}`). La forma exacta de cada respuesta la fija la prueba de contrato `hub/tests/Contract/PublicEndpointsContractTest.php`, y el hub simulado del plugin (`connector/tests/fixtures/mock-hub.php`) responde igual.
+
 #### `GET /p/{public_key}/widgets.json?page_type=&path=` (amplía §8.1)
-Público, en caché de CDN 5 min, y el mismo para todos los visitantes. Trae los widgets activos para ese tipo de página y ruta, además de la encuesta de la Fase 1:
+Público, en caché de CDN 5 min, y el mismo para todos los visitantes. Trae los widgets activos para ese tipo de página y ruta (filtrados también en el hub; nunca en el checkout), la encuesta de la Fase 1 en la página de gracias y los textos legales vigentes:
 
 ```jsonc
 { "widgets": [{
-    "id": "wg_01JD…", "kind": "popup|embedded_form|bar|spin_wheel|teaser|two_step|quiz|wa_widget|referral_welcome",
-    "slot": null,                                   // o "form"/"quiz" si es incrustado
+    "id": "wg_01JD…",                               // wg_ + ULID
+    "kind": "popup|embedded_form|bar|spin_wheel|teaser|two_step|quiz|wa_widget|referral_welcome",
+    "slot": null,                                   // "form" (embedded_form) o "quiz" (quiz incrustado); null = flotante
+    "priority": 100,
+    "gives_coupon": true,
     "variants": [{ "key": "a", "weight": 50, "design": {…}, "content": {…} }, { "key": "b", … }],
+    "design": {…}, "content": {…},                  // los de la primera variante
     "targeting": {
       "trigger": { "type": "exit_intent|time|scroll|immediate|click", "value": 8 },
-      "pages": { "include": ["/", "/tienda/*"], "exclude": ["/checkout*"] }, "page_types": ["home", "product"],
+      "pages": { "include": ["/", "/tienda/*"], "exclude": ["/carrito*"] }, "page_types": ["home", "product"],
       "devices": ["mobile", "desktop"], "new_visitors": null, "utm": { "source": "instagram" }, "referral": false,
       "countries": ["CO"], "segments": ["sg_…"], "cart_value_min": "100000.00",
       "hide_for_subscribers": true, "frequency": { "max_views": 2, "cooldown_days": 7 }
     },
-    "content": { "title": "…", "body": "…", "fields": [{ "key": "phone", "type": "tel", "required": true, "label": "Tu WhatsApp" }],
-                 "consents": [{ "channel": "whatsapp", "label": "Quiero recibir ofertas por WhatsApp…", "version": "v3" }],
-                 "cta": "Quiero mi cupón", "success": "¡Listo! Tu cupón es {{codigo}}", "slices": [{ "key": "10", "label": "10%" }] },
-    "quiz": { "questions": [{ "id": "q1", "text": "…", "options": [{ "key": "a", "label": "…", "next": "q2" }] }] },
-    "wa": { "number": "573001234567", "text": "Hola, quiero información", "position": "right" }
-}]}
+    "quiz": { "questions": [{ "id": "q1", "text": "…", "options": [{ "key": "a", "label": "…", "next": "q2" }] }] },   // solo quiz
+    "wa": { "number": "573001234567", "text": "Hola, quiero información", "position": "right" }                      // solo wa_widget
+  }],
+  "consents": [{ "channel": "whatsapp", "label": "Quiero recibir ofertas por WhatsApp…", "version": "v3" },
+               { "channel": "email", "label": "…", "version": "v2" }] }
 ```
 
-El tracker elige la variante de forma determinista con el `anonymous_id`, evalúa en el navegador el disparador, la página, el dispositivo, las UTM y la frecuencia, y pide `visitor.json` solo si algún widget usa país, segmento, `hide_for_subscribers` o `new_visitors`. **Nunca se muestra un widget durante el checkout.**
+- **`design`:** `layout` (`center`, `corner` o `fullscreen` en los popups; `null` si no es popup), `position` (el borde o lado: `top`/`bottom` en la barra, `left`/`right` en el teaser, el botón de WhatsApp y la esquina), `display` (solo quiz: `popup` o `embedded`), colores planos `bg`, `text`, `accent` y `accent_text`, `image` (URL o `null`) e `image_layout` (`text_only`, `image_top` o `image_left`).
+- **`content`:** `title`, `body`, `fields` (`[{key, type, required, label}]` con `key` en `email`, `phone`, `first_name`, `last_name`; `type` `email`, `tel` o `text`), `consents` (`[{channel, label, version}]`: las casillas del widget con el texto legal vigente, sin marcar), `cta`, `success` (puede llevar `{{codigo}}` y `{{premio}}`; el hub ya lo resuelve en `message`) y `footer` (letra pequeña debajo del formulario). Según el tipo:
+  - `two_step`: `steps` (2 pasos, cada uno con `title`, `body`, `fields`, `consents` (la de correo con el correo; las de WhatsApp y SMS con el celular), `cta` y `success`; el segundo trae `no`, el botón para saltárselo, que muestra el resultado del primero).
+  - `spin_wheel`: `slices` (`[{key, label}]`, **sin probabilidades**) y `lose`.
+  - `bar`: `url` (sin campos, el botón lleva ahí). `teaser`: `teaser` (texto de la pestaña).
+  - `quiz`: `start` y `contact_optional` (con `true`, los campos llegan con `required: false` y la persona puede ver su resultado sin dejar datos).
+- **`consents` de primer nivel:** los textos vigentes de cada canal con la misma forma que las casillas de los widgets. Los usan los formularios que no son widgets, como «avísame» (M16).
+- **`targeting.referral`:** `true` exige un código de referido en la visita; `false` o `null` es «sin condición». `referral_welcome` siempre lo exige y además que el visitante no sea conocido (`visitor.json`).
+
+El tracker elige la variante de forma determinista con el `anonymous_id`, evalúa en el navegador el disparador, la página, el dispositivo, las UTM, el valor del carrito y la frecuencia, y pide `visitor.json` solo si algún widget usa país, segmento, `hide_for_subscribers`, `new_visitors` o es `referral_welcome`. **Nunca se muestra un widget durante el checkout.**
 
 #### `GET /p/{public_key}/visitor.json?aid=<anonymous_id>`
-Privado (`Cache-Control: private, no-store`). Responde `{"known": false, "returning": true, "subscribed": {"email": false, "whatsapp": true}, "country": "CO", "segments": ["sg_…"]}`. En `segments` solo vienen los que usa algún widget activo. No trae nombres, correos ni teléfonos.
+Privado (`Cache-Control: private, no-store`). Responde siempre `{"known": false, "returning": true, "subscribed": {"email": false, "whatsapp": true}, "country": "CO", "segments": ["sg_…"]}`. En `segments` solo vienen los que usa algún widget activo. No trae nombres, correos ni teléfonos. Sin consentimiento de analítica el tracker lo pide **sin `aid`**: entonces `known`, `returning` y `subscribed` van en `false` y solo `country` sale de la petición (cabecera de país de Cloudflare; la IP no se guarda).
 
 #### `POST /p/{public_key}/widgets/{widget_id}/submit`
 ```json
@@ -402,46 +427,61 @@ Privado (`Cache-Control: private, no-store`). Responde `{"known": false, "return
   "fields": { "phone": "300 123 4567", "email": "…", "first_name": "Ana" },
   "consents": { "whatsapp": true, "email": false }, "answers": { "q1": "a" }, "referral_code": "ANA7K2" }
 ```
-- **`200`:** `{"ok": true, "message": "…", "coupon": {"code", "description", "expires_at"}?, "prize": {"key", "label"}?, "products": [...]?, "double_opt_in": false}`.
+- **`200`:** `{"ok": true, "message": "…", "coupon": {"code", "description", "expires_at": "2026-12-01"}?, "referral_coupon": {…}?, "prize": {"key", "label"}?, "products": [tarjetas como /reco]?, "double_opt_in": false, "next_step": 2?}`.
   - El hub crea o une el contacto (`CaptureContact`) y registra cada consentimiento marcado con su evidencia (`widget:<id>`).
-  - Crea el cupón único (`coupon.create`, `source_type: widget`) si el widget lo da. El premio de la ruleta lo decide el hub.
+  - Crea el cupón único (`coupon.create`, `source_type: widget`) si el widget lo da. El premio de la ruleta lo decide el hub. `expires_at` es la fecha (sin hora) en la zona de la tienda.
   - Guarda las respuestas del quiz como atributos y responde con los productos del resultado.
-  - Con `referral_code`, da el regalo del amigo (M14).
-- **`422`:** datos inválidos, con `errors`.
-- **`409`:** ese contacto ya recibió el cupón de ese widget.
+  - Con `referral_code`, da el regalo del amigo (M14). Si el widget ya da su propio cupón, el del amigo llega aparte en `referral_coupon`.
+  - Con doble opt-in, `message` ya pide confirmar el correo. En dos pasos, el primero responde `next_step: 2` y el segundo no repite el cupón.
+- **`422`:** `{"ok": false, "message": "…", "errors": {"phone": ["…"]}}`.
+- **`409`:** `{"ok": false, "error": "already_claimed|already_played", "message": "…"}`: ese contacto ya recibió el cupón (o ya giró la ruleta).
+- **`404`:** `{"ok": false, "error": "unknown_widget", "message": "…"}`.
 
 #### `GET /p/{public_key}/reco?kind=&product_id=&category_id=&cart=88,91&aid=&limit=4`
-Recomendaciones (M16): `{"kind": "…", "products": [{"id", "name", "price", "regular_price", "sale_price", "currency", "image", "url", "rating_avg", "rating_count"}]}`. Los tipos que no dependen de la persona (`bought_together`, `best_sellers_category`, `trending`) van en caché pública 60 s; `para_ti`, `recently_viewed` y `complete_cart` con `aid`, en caché privada 60 s.
+Recomendaciones (M16): `{"kind": "…", "products": [{"id", "name", "price", "regular_price", "sale_price", "currency", "image", "url", "rating_avg", "rating_count"}], "fallback": false}`. `fallback: true` cuando no hubo señal y se respondió con los más vendidos. Solo productos publicados y con stock. Los tipos que no dependen de la persona (`bought_together`, `best_sellers_category`, `trending`) van en caché pública 60 s; `para_ti`, `recently_viewed` y `complete_cart` con `aid`, en caché privada 60 s. El plugin manda `cart` solo con `complete_cart` en el carrito. Un `kind` desconocido responde `422`.
 
 #### `POST /p/{public_key}/watch`
-`{"anonymous_id", "product_id": "88", "kind": "back_in_stock|price_drop", "email"?, "phone"?, "consents": {"email": true}}` → `200 {"ok": true, "message": "Te avisaremos…"}`. Crea `product_watches` y emite `product_watch.created`.
+`{"anonymous_id", "product_id": "88", "kind": "back_in_stock|price_drop", "email"?, "phone"?, "consents": {"email": true}, "consent_version": "v2"?}`:
+- **`200`:** `{"ok": true, "message": "Listo. Te avisaremos cuando vuelva."}`, o `{"ok": true, "available": true, "message": "…"}` si el producto ya está disponible (no suscribe). Crea `product_watches` y emite `product_watch.created`.
+- **`422`:** `{"error": "invalid", "message": "Escribe un correo o un WhatsApp válido.", "errors": {"email": ["…"]}}`.
+
+`consent_version` es la versión del texto que vio la persona (`consents` de primer nivel de `widgets.json`); el hub registra la vigente.
 
 #### `GET /p/{public_key}/me?token=<igrUser.token>`
-Mis recompensas (M13 y M14). Privado, sin caché y **solo con un token válido** (si no, `401`):
+Mis recompensas (M13 y M14). Privado, sin caché y **solo con un token válido**; si no, `401 {"ok": false, "error": {"code": "invalid_token"}}` sin ningún dato:
 
 ```json
-{ "points": { "balance": 1532, "pending": 282, "currency_name": "Puntos Pintor", "expiring": { "points": 120, "at": "2026-12-31" } },
+{ "program": { "active": true, "currency_name": "Puntos Pintor" },
+  "points": { "balance": 1532, "pending": 282, "currency_name": "Puntos Pintor", "expiring": { "points": 120, "at": "2026-12-31" } },
   "tier": { "name": "Plata", "next_name": "Oro", "progress_pct": 64, "benefits": ["Envío gratis"] },
   "wallet": { "balance": "35000.00", "currency": "COP" },
-  "referral": { "code": "ANA7K2", "link": "https://tienda.co/?ref=ANA7K2", "share_text": "…", "friend_reward": "10% en tu primera compra", "referrer_reward": "500 puntos" },
-  "rewards": [{ "id": "rw_…", "name": "$20.000 de descuento", "points": 500, "kind": "coupon_fixed" }] }
+  "rewards": [{ "id": "rw_…", "name": "$20.000 de descuento", "points": 500, "kind": "coupon_fixed|coupon_percent|free_shipping|free_product|wallet", "affordable": true }],
+  "referral": { "code": "ANA7K2", "link": "https://tienda.co/?ref=ANA7K2", "share_text": "Te regalo 10% en Pinturas La 14: https://tienda.co/?ref=ANA7K2", "friend_reward": "10% en tu primera compra", "referrer_reward": "$20.000 de saldo" } }
 ```
 
-`POST /p/{public_key}/me/redeem` `{"token", "reward_id"}` → `{"coupon": {"code", "description", "expires_at"}, "balance": 1032}`. `POST /p/{public_key}/me/share` `{"token", "channel": "whatsapp"}` → `202` (emite `referral.shared`).
+`expiring` y `tier` pueden ser `null`. `referral` solo viene con el programa de referidos activo (lo aporta M14 con `MeSection`). `share_text` ya trae el enlace cuando el texto del programa usa `{enlace}`; si no, el tracker lo agrega al final.
 
-#### `GET /p/{public_key}/reviews?product_id=&page=1&per_page=10&with_media=0&sort=recent|rating`
+- `POST /p/{public_key}/me/redeem` `{"token", "reward_id"}`:
+  - **`200`** con cupón: `{"ok": true, "balance": 1032, "coupon": {"code", "description", "expires_at": "2027-01-31"}}`; con una recompensa de saldo: `{"ok": true, "balance": 1032, "wallet": {"balance": "45000.00", "currency": "COP"}}`.
+  - **`401`** `{"ok": false, "error": {"code": "invalid_token"}}`; **`422`** `{"ok": false, "error": {"code": "unknown_reward|insufficient_points|not_redeemed", "message": "…"}}`.
+- `POST /p/{public_key}/me/share` `{"token", "channel": "whatsapp"}` → `202 {"ok": true}` (emite `referral.shared`); `401 {"error": "invalid_token"}`; `404 {"error": "program_inactive"}`.
+
+#### `GET /p/{public_key}/reviews?product_id=&page=1&per_page=10&with_media=0&sort=recent|rating&scope=all`
 Público, caché 5 min:
-- `summary`: `{"avg", "count", "distribution": {"5": 40, …}}`.
-- `reviews`: cada una con `id`, `rating`, `title`, `body`, `author` («Ana R.»), `verified`, `media` (`url`, `type` y `thumb`), `created_at` y `reply`.
-- `next_page`.
+- `summary`: `{"avg", "count", "distribution": {"5": 40, …}}` (`avg` es `null` sin reseñas).
+- `reviews`: cada una con `id`, `product_id`, `rating`, `title`, `body`, `author` («Ana R.»), `verified`, `media` (`[{url, type: "image|video", thumb}]`), `created_at` y `reply` (texto o `null`). `title`, `body` y `reply` son **texto plano**: el tracker los escapa.
+- `next_page` (`null` en la última).
 
-Sin `product_id` responde las reseñas de la tienda. `GET /p/{public_key}/reviews/badges?product_ids=88,91` → `{"88": {"avg": 4.8, "count": 23}}`.
+Sin `product_id` responde las reseñas de la tienda; con `scope=all`, todas (para una página de «todas las reseñas»). `GET /p/{public_key}/reviews/badges?product_ids=88,91` → `{"88": {"avg": 4.8, "count": 23}}` (solo los que tienen reseñas).
 
 #### `GET /p/{public_key}/points?product_id=&price=&cart_total=`
-Público, caché 5 min: `{"points": 150, "label": "Gana 150 Puntos Pintor"}`, con la regla base sin el multiplicador del nivel.
+Público, caché 5 min: `{"points": 150, "label": "Gana 150 Puntos Pintor"}`, con la regla base sin el multiplicador del nivel (`label` es `null` con 0 puntos o sin programa activo).
 
-#### `GET /p/{public_key}/banner?placement=&aid=&token=`
-Privado y sin caché: `{"banner": {"text", "cta", "url", "style"} | null}`. Los datos sensibles, como los puntos o el nombre, solo aparecen con `token`.
+#### `GET /p/{public_key}/program`
+Público, caché 5 min: la página explicativa del programa: `{"active": true, "currency_name", "explainer", "tiers": [{"name", "benefits"}], "rewards": [{"id", "name", "points", "kind"}]}`, o `{"active": false}`.
+
+#### `GET /p/{public_key}/banner?placement=top|account&aid=&token=`
+Privado y sin caché: `{"banner": {"id", "text", "cta", "url", "style": "brand|info|success|warning"} | null}`. Los datos sensibles, como los puntos o el nombre, solo aparecen con `token`; sin él se usa el texto público del banner.
 
 #### Páginas que sirve el hub (no pasan por el tracker)
 - `/r/{token}`: formulario de reseña de 1 toque, con fotos y video y sin iniciar sesión. El token va firmado por pedido y contacto.
@@ -449,5 +489,5 @@ Privado y sin caché: `{"banner": {"text", "cta", "url", "style"} | null}`. Los 
 - `/creadores/{token}`: panel del creador (afiliados), con enlace mágico.
 
 #### Referidos y afiliados en el sitio
-El enlace es `https://tienda.co/?ref=CODIGO`. El tracker guarda el código en `_igr_src` (`referral_code` en el primer y el último contacto, v4) y lo manda en `context.referral_code` del evento de aterrizaje. El plugin lo pasa en `last_touch` del pedido. Si la persona no está identificada, un widget `referral_welcome` le ofrece el regalo del amigo a cambio de su correo o WhatsApp.
+El enlace es `https://tienda.co/?ref=CODIGO` (3 a 32 caracteres `[A-Za-z0-9_-]`). El tracker guarda el código en `_igr_src` (`referral_code` en el primer y el último contacto, v4) y lo manda en `context.referral_code` del evento de aterrizaje, también sin consentimiento de analítica: identifica a quien invita, no al visitante. El parámetro `?ref=` se queda en la URL (no es un dato personal y otros plugins de afiliados también lo leen). El plugin lo pasa en `last_touch` del pedido. Si la persona no está identificada, un widget `referral_welcome` le ofrece el regalo del amigo a cambio de su correo o WhatsApp.
 

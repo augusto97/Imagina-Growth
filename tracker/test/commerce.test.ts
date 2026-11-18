@@ -83,7 +83,7 @@ describe('avísame', () => {
         expect((ck.querySelector('input') as HTMLInputElement).checked).toBe(false);
         root.querySelector('form')?.dispatchEvent(new Event('submit', { cancelable: true }));
         await tick();
-        expect(calls[0]?.body).toEqual({ anonymous_id: null, product_id: '88', kind: 'back_in_stock', consents: { email: false }, email: 'ana@example.com' });
+        expect(calls[0]?.body).toEqual({ anonymous_id: null, product_id: '88', kind: 'back_in_stock', consents: { email: false }, consent_version: 'v1', email: 'ana@example.com' });
         expect(root.querySelector('[role=status]')?.textContent).toBe('Te avisaremos cuando vuelva.');
     });
 });

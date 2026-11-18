@@ -74,8 +74,20 @@ final class DependencyIndex
             if (str_starts_with($event, 'consent.') && in_array('consent', $kinds, true)) {
                 return true;
             }
+            if ((str_starts_with($event, 'message.') || $event === 'whatsapp.inbound') && in_array('messaging', $kinds, true)) {
+                return true;
+            }
+            if (self::isLoyaltyEvent($event) && in_array('loyalty', $kinds, true)) {
+                return true;
+            }
         }
 
         return false;
+    }
+
+    /** Eventos que mueven puntos, saldo, nivel o referidos (Fase 3). */
+    private static function isLoyaltyEvent(string $event): bool
+    {
+        return str_starts_with($event, 'points.') || str_starts_with($event, 'wallet.') || str_starts_with($event, 'referral.') || $event === 'tier.changed';
     }
 }

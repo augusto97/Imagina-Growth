@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Domain\Segments\Compiler;
 
 use App\Analytics\Ch;
+use App\Domain\Campaigns\Models\Campaign;
+use App\Domain\Flows\Models\Flow;
+use App\Domain\Loyalty\Models\LoyaltyTier;
 use App\Domain\Segments\Definition\Fields;
 use App\Domain\Segments\Models\Segment;
 use App\Support\Ids\PrefixedId;
@@ -16,7 +19,8 @@ use Throwable;
 /**
  * Compila el AST de un segmento (hub/CLAUDE.md §6) a una consulta sobre
  * `contacts`:
- *  - atributo, compra, predicción, consentimiento y segmento → SQL de MariaDB;
+ *  - atributo, compra, predicción, consentimiento, segmento, mensajería
+ *    (tabla `messages`) y fidelización → SQL de MariaDB;
  *  - evento y carrito abandonado → SQL de ClickHouse que devuelve contact_id
  *    (por contact_id del evento o, si fue anónimo, por identity_map), que se
  *    combina como IN / NOT IN (en línea o con una tabla temporal).
@@ -109,6 +113,8 @@ final class SegmentCompiler
             'segment' => $this->segmentRef($q, $c, $ctx),
             'event' => $this->eventCondition($q, $c, $ctx),
             'cart' => $this->cartCondition($q, $c, $ctx),
+            'messaging' => ($c['action'] ?? '') === 'engagement' ? $this->engagement($q, $c) : $this->messaging($q, $c, $ctx),
+            'loyalty' => $this->loyalty($q, $c, $ctx),
             default => $q->whereRaw('1 = 0'),
         };
     }
@@ -387,6 +393,148 @@ final class SegmentCompiler
             ->where('workspace_id', $ctx->workspace->id)
             ->where('segment_id', $id);
         ($c['operator'] ?? 'in') === 'in' ? $q->whereIn('c.id', $sub) : $q->whereNotIn('c.id', $sub);
+    }
+
+    /**
+     * Mensajería: contactos con al menos N mensajes salientes en los que pasó
+     * la acción (su columna de fecha en `messages`), dentro de la ventana.
+     *
+     * @param  array<string, mixed>  $c
+     */
+    private function messaging(Builder $q, array $c, CompileContext $ctx): void
+    {
+        [$threshold, $negate, $exact] = $this->countSemantics($c);
+        if ($threshold === null) {
+            return;
+        }
+        $col = 'm.'.Fields::MESSAGE_ACTIONS[(string) $c['action']];
+        [$from, $to] = $this->windowRange($c['window'] ?? ['kind' => 'ever'], $ctx);
+        $ws = $ctx->workspace->id;
+        $flow = isset($c['flow_id']) ? PrefixedId::decode(Flow::ID_PREFIX, (string) $c['flow_id']) : null;
+        $campaign = isset($c['campaign_id']) ? PrefixedId::decode(Campaign::ID_PREFIX, (string) $c['campaign_id']) : null;
+
+        $sub = function (Builder $s) use ($c, $col, $from, $to, $ws, $flow, $campaign, $threshold, $exact): void {
+            $s->from('messages as m')->select('m.contact_id')
+                ->where('m.workspace_id', $ws)
+                ->whereNotNull('m.contact_id')
+                ->where('m.direction', 'out')
+                ->whereNotNull($col);
+            if (($c['channel'] ?? 'any') !== 'any') {
+                $s->where('m.channel', (string) $c['channel']);
+            }
+            if (($c['kind'] ?? 'any') === 'marketing') {
+                $s->where('m.kind', 'marketing');
+            }
+            if ($flow !== null) {
+                $s->where('m.flow_id', $flow);
+            }
+            if ($campaign !== null) {
+                $s->where('m.campaign_id', $campaign);
+            }
+            if ($from !== null) {
+                $s->where($col, '>=', $from);
+            }
+            if ($to !== null) {
+                $s->where($col, '<', $to);
+            }
+            $s->groupBy('m.contact_id')->havingRaw('COUNT(*) '.($exact ? '=' : '>=').' ?', [$threshold]);
+        };
+
+        $negate ? $q->whereNotIn('c.id', $sub) : $q->whereIn('c.id', $sub);
+    }
+
+    /**
+     * Puntaje de interacción (Fields::ENGAGEMENT_DAYS): por mensaje enviado,
+     * abrir o leer 1, clic 3 y respuesta 5, con tope 100. Sin mensajes, 0.
+     *
+     * @param  array<string, mixed>  $c
+     */
+    private function engagement(Builder $q, array $c): void
+    {
+        $score = '(SELECT LEAST(100, COALESCE(SUM('
+            .'(CASE WHEN m.opened_at IS NOT NULL OR m.read_at IS NOT NULL THEN 1 ELSE 0 END)'
+            .' + (CASE WHEN m.clicked_at IS NOT NULL THEN 3 ELSE 0 END)'
+            .' + (CASE WHEN m.replied_at IS NOT NULL THEN 5 ELSE 0 END)), 0))'
+            .' FROM messages AS m WHERE m.workspace_id = c.workspace_id AND m.contact_id = c.id'
+            ." AND m.direction = 'out' AND m.sent_at >= ?)";
+        $since = CarbonImmutable::now('UTC')->subDays(Fields::ENGAGEMENT_DAYS);
+        $v = $c['value'] ?? 0;
+        match ($c['operator']) {
+            'gt' => $q->whereRaw("{$score} > ?", [$since, $v]),
+            'gte' => $q->whereRaw("{$score} >= ?", [$since, $v]),
+            'lt' => $q->whereRaw("{$score} < ?", [$since, $v]),
+            'lte' => $q->whereRaw("{$score} <= ?", [$since, $v]),
+            'eq' => $q->whereRaw("{$score} = ?", [$since, $v]),
+            'between' => $q->whereRaw("{$score} BETWEEN ? AND ?", [$since, ((array) $v)[0] ?? 0, ((array) $v)[1] ?? 0]),
+            default => $q->whereRaw('1 = 0'),
+        };
+    }
+
+    /** @param array<string, mixed> $c */
+    private function loyalty(Builder $q, array $c, CompileContext $ctx): void
+    {
+        $field = (string) $c['field'];
+        match ($field) {
+            'tier' => $this->tier($q, $c, $ctx),
+            'points_expiring' => $q->where('c.points_expiring', '>', 0)
+                ->where('c.points_expiring_at', '>=', CarbonImmutable::now('UTC'))
+                ->where('c.points_expiring_at', '<', CarbonImmutable::now('UTC')->addDays((int) ($c['value'] ?? 0))),
+            'referrals_made' => $this->referralsMade($q, $c),
+            'was_referred' => $this->wasReferred($q, ($c['operator'] ?? 'is_true') === 'is_true'),
+            default => $this->column($q, 'c.'.(Fields::LOYALTY_FIELDS[$field]['column'] ?? 'id'), 'number', $c, $ctx),
+        };
+    }
+
+    /** Llegó referido por alguien (cualquier estado del referido). */
+    private function wasReferred(Builder $q, bool $yes): void
+    {
+        $sub = fn (Builder $s) => $s->from('referrals as r')->selectRaw('1')
+            ->whereColumn('r.workspace_id', 'c.workspace_id')
+            ->whereColumn('r.friend_contact_id', 'c.id');
+        $yes ? $q->whereExists($sub) : $q->whereNotExists($sub);
+    }
+
+    /** @param array<string, mixed> $c */
+    private function tier(Builder $q, array $c, CompileContext $ctx): void
+    {
+        $decode = fn (mixed $id): string => PrefixedId::decode(LoyaltyTier::ID_PREFIX, is_string($id) ? $id : '') ?? '';
+        match ($c['operator']) {
+            'is_set' => $q->whereNotNull('c.tier_id'),
+            'is_not_set' => $q->whereNull('c.tier_id'),
+            'in' => $q->whereIn('c.tier_id', array_map($decode, (array) ($c['value'] ?? []))),
+            'not_in' => $q->where(fn (Builder $x) => $x->whereNotIn('c.tier_id', array_map($decode, (array) ($c['value'] ?? [])))->orWhereNull('c.tier_id')),
+            // «Al menos Oro»: el nivel elegido o uno de rango mayor.
+            'at_least' => $q->whereIn('c.tier_id', fn (Builder $s) => $s->from('loyalty_tiers as t')->select('t.id')
+                ->where('t.workspace_id', $ctx->workspace->id)
+                ->where('t.rank', '>=', fn (Builder $r) => $r->from('loyalty_tiers as t2')->select('t2.rank')
+                    ->where('t2.workspace_id', $ctx->workspace->id)
+                    ->where('t2.id', $decode($c['value'] ?? null)))),
+            default => $q->whereRaw('1 = 0'),
+        };
+    }
+
+    /**
+     * Referidos que ya compraron (calificados o premiados) traídos por el contacto.
+     *
+     * @param  array<string, mixed>  $c
+     */
+    private function referralsMade(Builder $q, array $c): void
+    {
+        $sub = fn (Builder $s) => $s->from('referrals as r')->selectRaw('COUNT(*)')
+            ->whereColumn('r.workspace_id', 'c.workspace_id')
+            ->whereColumn('r.referrer_contact_id', 'c.id')
+            ->whereIn('r.status', Fields::REFERRAL_CONVERTED);
+        $v = $c['value'] ?? 0;
+        match ($c['operator']) {
+            'eq' => $q->where($sub, '=', $v),
+            'neq' => $q->where($sub, '<>', $v),
+            'gt' => $q->where($sub, '>', $v),
+            'gte' => $q->where($sub, '>=', $v),
+            'lt' => $q->where($sub, '<', $v),
+            'lte' => $q->where($sub, '<=', $v),
+            'between' => $q->where($sub, '>=', ((array) $v)[0] ?? 0)->where($sub, '<=', ((array) $v)[1] ?? 0),
+            default => $q->whereRaw('1 = 0'),
+        };
     }
 
     // ── ClickHouse ──────────────────────────────────────────────────────

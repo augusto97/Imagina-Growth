@@ -93,19 +93,46 @@ describe('captación', () => {
         expect(JSON.parse(localStorage.getItem('_igr_wf') ?? '{}')['wg_01'].c).toBeGreaterThan(0);
     });
 
-    it('dos pasos: primero la pregunta y después el formulario; el formulario incrustado va en el slot', async () => {
+    it('dos pasos: correo y después WhatsApp con sus casillas; «No, gracias» muestra el cupón del primero; el incrustado va en el slot', async () => {
         fakeTracker(true);
-        hubFetch({ '/submit': () => [200, { ok: true, message: 'Gracias' }] });
-        const two: WidgetCfg = { ...popupCfg, id: 'wg_2', kind: 'two_step', content: { ...popupCfg.content, cta: 'Sí, quiero', no: 'No, gracias' } };
+        const calls = hubFetch({
+            '/submit': (_u, b) => (b?.['step'] === 1 ? [200, { ok: true, message: 'Tu cupón es BIENV-1', coupon: { code: 'BIENV-1' }, double_opt_in: false, next_step: 2 }] : [200, { ok: true, message: 'Ya estás en la lista' }]),
+        });
+        const email = { channel: 'email', label: 'Ofertas por correo.', version: 'v1' };
+        const wa = { channel: 'whatsapp', label: 'Ofertas por WhatsApp.', version: 'v1' };
+        const two: WidgetCfg = {
+            ...popupCfg,
+            id: 'wg_2',
+            kind: 'two_step',
+            content: {
+                title: '10% en tu primera compra',
+                body: 'Escribe tu correo',
+                consents: [email, wa],
+                steps: [
+                    { title: '10%', fields: [{ key: 'email', type: 'email', required: true, label: 'Tu correo' }], consents: [email], cta: 'Continuar' },
+                    { title: '¿También por WhatsApp?', fields: [{ key: 'phone', type: 'tel', required: true, label: 'Tu WhatsApp' }], consents: [wa], cta: 'Sí, por WhatsApp', no: 'No, gracias' },
+                ],
+            },
+        };
         const x = await ctx([two]);
         await import('../widgets/capture');
         renderer('two_step')(null, x.live(two), x, {});
         const root = overlay('two_step');
-        expect(root.querySelector('form')).toBeNull();
-        const buttons = Array.from(root.querySelectorAll('.ac button')).map((b) => b.textContent);
-        expect(buttons).toEqual(['Sí, quiero', 'No, gracias']);
-        (root.querySelector('.ac button') as HTMLButtonElement).click();
+        // Sin pregunta previa: el primer paso es el formulario del correo, con su casilla y sin «No, gracias».
+        expect(root.querySelector('input[name=email]')).not.toBeNull();
+        expect(Array.from(root.querySelectorAll('.ck span')).map((e) => e.textContent)).toEqual(['Ofertas por correo.']);
+        expect(Array.from(root.querySelectorAll('.ac button')).map((b) => b.textContent)).toEqual(['Continuar']);
+        (root.querySelector('input[name=email]') as HTMLInputElement).value = 'ana@correo.co';
+        root.querySelector('form')?.dispatchEvent(new Event('submit', { cancelable: true }));
+        await tick();
+        expect(calls[0]?.body).toMatchObject({ step: 1, fields: { email: 'ana@correo.co' }, consents: { email: false } });
+        // Segundo paso: el WhatsApp con su casilla y el botón para saltárselo.
         expect(root.querySelector('input[name=phone]')).not.toBeNull();
+        expect(Array.from(root.querySelectorAll('.ck span')).map((e) => e.textContent)).toEqual(['Ofertas por WhatsApp.']);
+        const skip = Array.from(root.querySelectorAll<HTMLButtonElement>('.ac button')).find((b) => b.textContent === 'No, gracias');
+        skip?.click();
+        expect(calls).toHaveLength(1);
+        expect((root.querySelector('[role=status] strong') as HTMLElement).textContent).toBe('BIENV-1');
 
         const slot = document.createElement('div');
         slot.setAttribute('data-igr-slot', 'form');

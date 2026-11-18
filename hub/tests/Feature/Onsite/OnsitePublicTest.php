@@ -116,7 +116,7 @@ it('widgets.json publica los widgets activos con la encuesta, sin probabilidades
         ->and($w[$popup]['targeting']['utm'])->toBe([])
         ->and($w[$popup]['design'])->toMatchArray(['layout' => 'center', 'position' => null, 'bg' => '#FFFFFF', 'accent' => '#4F46E5', 'image' => null, 'image_layout' => 'image_left'])
         ->and(collect($res->json('consents'))->pluck('channel')->all())->toBe(['whatsapp', 'email'])
-        ->and($res->json('consents.0'))->toHaveKeys(['channel', 'text', 'version'])
+        ->and($res->json('consents.0'))->toHaveKeys(['channel', 'label', 'version'])
         ->and($w[$wheel]['content']['slices'])->toBe([['key' => 'p5', 'label' => '5%'], ['key' => 'p10', 'label' => '10%'], ['key' => 'envio', 'label' => 'Envío gratis'], ['key' => 'p20', 'label' => '20%']])
         ->and($w[$wa]['wa'])->toBe(['number' => '573001234567', 'text' => 'Hola', 'position' => 'right'])
         ->and($w[$quiz]['quiz']['questions'][0]['options'][0])->toBe(['key' => 'casa', 'label' => 'Para mi casa', 'next' => 'q2'])
@@ -291,7 +291,10 @@ it('el quiz guarda las respuestas como atributos y responde con los productos de
 it('el formulario en 2 pasos une el correo y el WhatsApp en el mismo contacto y no repite el cupón', function () {
     $w = onsiteWidget($this, 'two_step');
     $public = collect($this->getJson("/p/{$this->key}/widgets.json?page_type=home")->json('widgets'))->firstWhere('id', $w);
-    expect($public['content']['steps'])->toHaveCount(2)->and($public['content']['no'])->toBe('No, gracias')
+    expect($public['content']['steps'])->toHaveCount(2)->and($public['content']['steps'][1]['no'])->toBe('No, gracias')
+        ->and($public['content'])->not->toHaveKey('step2')
+        ->and(array_column($public['content']['steps'][0]['consents'], 'channel'))->toBe(['email'])
+        ->and(array_column($public['content']['steps'][1]['consents'], 'channel'))->toBe(['whatsapp'])
         ->and(array_column($public['content']['steps'][1]['fields'], 'key'))->toBe(['phone']);
     $one = onsiteSubmit($this, $w, ['anonymous_id' => 'dos', 'step' => 1, 'fields' => ['email' => 'pao@ejemplo.com'], 'consents' => ['email' => true]])->assertOk();
     expect($one->json('next_step'))->toBe(2)->and($one->json('coupon.code'))->not->toBeNull();

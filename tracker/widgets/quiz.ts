@@ -3,7 +3,7 @@
  * productos que responde el hub.
  */
 import { CARDS_CSS, h, productCard, register, uid } from './lib/dom';
-import { capture, frame, head, success, type Frame } from './lib/forms';
+import { capture, frame, head, send, sent, success, type Frame } from './lib/forms';
 import type { Ctx, Live, Question, SubmitResult } from './lib/types';
 
 const CSS =
@@ -32,16 +32,11 @@ function quiz(f: Frame, live: Live, x: Ctx): void {
         }
         const wait = h('p', { role: 'status' }, 'Buscando tu resultado…');
         f.box.replaceChildren(...keep, ...title(), wait);
-        const body: Record<string, unknown> = { anonymous_id: x.aid(), variant: live.variant, page_url: x.pageUrl(), step: 1, fields: {}, consents: {}, answers };
-        const ref = x.ref();
-        if (ref) body['referral_code'] = ref;
-        void x.post<SubmitResult>('widgets/' + encodeURIComponent(live.id) + '/submit', body).then((r) => {
+        void send(live, x, { step: 1, fields: {}, consents: {}, answers }).then((r) => {
             if (r.status === 200) {
-                f.submitted = true;
-                x.mark(live, 'submit');
-                x.track('widget.submitted', live);
+                sent(f, live, x);
                 f.box.replaceChildren(...keep, ...title(), success(live, x, r.data ?? {}, products(x)));
-            } else wait.textContent = 'No pudimos mostrar tu resultado. Inténtalo de nuevo.';
+            } else wait.textContent = 'No pudimos mostrar tu resultado.';
         });
     };
     const ask = (qid: string | undefined): void => {

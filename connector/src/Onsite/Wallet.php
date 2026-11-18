@@ -153,9 +153,15 @@ final class Wallet {
 		);
 		$response = Http::signed( 'POST', Connection::api_url( 'v1/s/wallet/redeem' ), Json::encode( array_filter( $body, static fn( $v ): bool => null !== $v ) ), Connection::site_id(), Connection::secret(), false, self::TIMEOUT );
 		if ( 409 === $response->status ) {
+			// api-connector.md §5.5: sin saldo, otro canje en curso o el carrito en otra moneda.
+			$why = (string) ( $response->json['error']['code'] ?? 'no_balance' );
 			return array(
 				'ok'      => false,
-				'message' => __( 'No tienes saldo disponible por ahora.', 'imagina-growth' ),
+				'message' => 'busy' === $why
+					? __( 'Estamos aplicando tu saldo. Inténtalo de nuevo en unos segundos.', 'imagina-growth' )
+					: ( 'currency_mismatch' === $why
+						? __( 'Tu saldo no se puede usar con la moneda de este carrito.', 'imagina-growth' )
+						: __( 'No tienes saldo disponible por ahora.', 'imagina-growth' ) ),
 			);
 		}
 		$code = (string) ( $response->json['coupon']['code'] ?? '' );

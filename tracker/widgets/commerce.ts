@@ -89,7 +89,8 @@ export function bis(host: HTMLElement | null, x: Ctx, ctx: Record<string, unknow
         }
         input.setAttribute('aria-invalid', 'false');
         send.disabled = true;
-        const body: Record<string, unknown> = { anonymous_id: x.aid(), product_id: pid, kind, consents: texts[ch] ? { [ch]: cb.checked } : {} };
+        const t = texts[ch];
+        const body: Record<string, unknown> = { anonymous_id: x.aid(), product_id: pid, kind, consents: t ? { [ch]: cb.checked } : {}, consent_version: t?.version };
         body[ch === 'email' ? 'email' : 'phone'] = v.slice(0, 200);
         void x.post<{ ok?: boolean; message?: string }>('watch', body).then((r) => {
             send.disabled = false;

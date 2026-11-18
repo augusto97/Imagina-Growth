@@ -117,6 +117,41 @@ describe('Mis recompensas', () => {
         expect(calls.find((c) => c.url.pathname.endsWith('/me/share'))?.body).toEqual({ token: (W['igrUser'] as { token: string }).token, channel: 'whatsapp' });
     });
 
+    it('recompensa de saldo, errores del hub y texto para compartir que ya trae el enlace', async () => {
+        fakeTracker(true);
+        W['igrUser'] = { ref: 'wc:77', token: 'eyJyZWYiOiJ3Yzo3NyJ9.' + 'a'.repeat(64) };
+        const link = 'https://tienda.co/?ref=ANA7K2';
+        const data = {
+            ...me,
+            referral: { ...me.referral, share_text: 'Te regalo 10% en Pinturas La 14: ' + link },
+            rewards: [
+                { id: 'rw_1', name: '$20.000 de saldo', points: 500, kind: 'wallet' },
+                { id: 'rw_3', name: 'Otro', points: 600, kind: 'coupon_fixed' },
+            ],
+        };
+        hubFetch({
+            '/me': () => [200, data],
+            '/me/redeem': (_u, b) =>
+                b?.['reward_id'] === 'rw_1' ? [200, { ok: true, balance: 1032, wallet: { balance: '55000.00', currency: 'COP' } }] : [422, { ok: false, error: { code: 'not_redeemed', message: 'Esta recompensa se agotó.' } }],
+        });
+        const x = await ctx();
+        await import('../widgets/loyalty');
+        const s = slot('loyalty');
+        renderer('loyalty')(s, null, x, {});
+        await tick();
+        const root = s.shadowRoot as ShadowRoot;
+        const [first, second] = Array.from(root.querySelectorAll('.rw li button')) as HTMLButtonElement[];
+        first?.click();
+        await tick();
+        expect(root.querySelector('.rw [role=status]')?.textContent).toContain('55.000');
+        expect(root.querySelector('.big')?.textContent).toBe('1.032');
+        second?.click();
+        await tick();
+        expect(root.textContent).toContain('Esta recompensa se agotó.');
+        const href = decodeURIComponent((root.querySelector('a.wa') as HTMLAnchorElement).href);
+        expect(href.split(link)).toHaveLength(2);
+    });
+
     it('sin token o con el token vencido lo dice', async () => {
         fakeTracker(true);
         hubFetch({ '/me': () => [401, { error: 'token' }] });

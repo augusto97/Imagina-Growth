@@ -8,6 +8,8 @@ use App\Domain\Commerce\Models\Product;
 use App\Domain\Commerce\Models\ProductCategory;
 use App\Domain\Consent\Actions\ConsentTexts;
 use App\Domain\Consent\Support\ConsentMode;
+use App\Domain\Loyalty\Models\LoyaltyProgram;
+use App\Domain\Recommendations\Models\CommerceSettings;
 use App\Domain\Sites\Actions\UpdateBackfillState;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Models\Workspace;
@@ -48,8 +50,28 @@ final class SiteApiController
                 'texts' => $this->consentTexts->current($ws),
             ],
             'measurement' => $this->measurement(),
+            'onsite' => $this->onsite(),
             'min_plugin_version' => config('igr.min_plugin_version'),
         ]);
+    }
+
+    /**
+     * Módulos de la Fase 3 que el plugin pinta solo si están activos en el hub
+     * (api-connector.md §5.1, connector/CLAUDE.md §10): «Gana N puntos» y «Mis
+     * recompensas» con el programa de fidelización activo, «Usar saldo» también
+     * (el saldo es parte del programa) y «avísame» si los avisos están encendidos.
+     *
+     * @return array{loyalty: bool, wallet: bool, product_watch: bool}
+     */
+    private function onsite(): array
+    {
+        $loyalty = LoyaltyProgram::query()->where('status', 'active')->exists();
+
+        return [
+            'loyalty' => $loyalty,
+            'wallet' => $loyalty,
+            'product_watch' => CommerceSettings::current()->watchSettings()['enabled'],
+        ];
     }
 
     /**

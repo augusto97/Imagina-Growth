@@ -22,6 +22,8 @@ export interface Step {
     fields?: Field[];
     consents?: ConsentText[];
     cta?: string;
+    /** Botón para saltarse el paso (dos pasos: «No, gracias» en el del WhatsApp). */
+    no?: string;
 }
 
 export interface Content {
@@ -33,22 +35,26 @@ export interface Content {
     success?: string;
     slices?: { key: string; label: string }[];
     steps?: Step[];
-    /** two_step: botón para no seguir («No, gracias»). */
-    no?: string;
     /** bar sin campos: a dónde lleva el botón. */
     url?: string;
     /** teaser: texto de la pestaña. */
     teaser?: string;
     image?: string;
+    /** Letra pequeña debajo del formulario (p. ej. el aviso de privacidad). */
+    footer?: string;
 }
 
 export interface Design {
-    layout?: 'center' | 'corner' | 'fullscreen';
-    position?: 'top' | 'bottom' | 'left' | 'right';
+    layout?: 'center' | 'corner' | 'fullscreen' | null;
+    position?: 'top' | 'bottom' | 'left' | 'right' | null;
     bg?: string;
     text?: string;
     accent?: string;
-    image?: string;
+    accent_text?: string;
+    image?: string | null;
+    image_layout?: 'text_only' | 'image_top' | 'image_left';
+    /** Solo el quiz: popup o incrustado. */
+    display?: 'popup' | 'embedded' | null;
 }
 
 export interface Variant {
@@ -125,6 +131,8 @@ export interface SubmitResult {
     ok?: boolean;
     message?: string;
     coupon?: Coupon;
+    /** Regalo del amigo referido cuando el widget también da su propio cupón. */
+    referral_coupon?: Coupon;
     prize?: { key: string; label: string };
     products?: Product[];
     double_opt_in?: boolean;

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Segments\Definition;
 
+use App\Domain\Campaigns\Models\Campaign;
+use App\Domain\Flows\Models\Flow;
+use App\Domain\Loyalty\Models\LoyaltyTier;
 use App\Domain\Segments\Models\Segment;
 use App\Ingest\Schema\SchemaRegistry;
 use App\Support\Ids\PrefixedId;
@@ -124,8 +127,8 @@ final class DefinitionValidator
             'prediction' => $this->prediction($c, $path),
             'consent' => $this->consent($c, $path),
             'segment' => $this->segmentRef($c, $path, $self),
-            'messaging' => $this->later($path, __('La segmentación por mensajes (enviados, leídos, clics) llega en la Fase 2.')),
-            'loyalty' => $this->later($path, __('La segmentación por fidelización (nivel, puntos, saldo) llega en la Fase 3.')),
+            'messaging' => $this->messaging($c, $path),
+            'loyalty' => $this->loyalty($c, $path),
             'service', 'lead' => $this->later($path, __('La segmentación por leads y citas llega en la Fase 5.')),
             default => $this->later($this->join($path, 'type'), __('Tipo de condición desconocido.')),
         };
@@ -355,6 +358,133 @@ final class DefinitionValidator
         }
 
         return ['type' => 'consent', 'channel' => $channel, 'purpose' => $purpose, 'status' => $status];
+    }
+
+    /**
+     * Mensajería (Fase 2): recibió, abrió, leyó, hizo clic o respondió, por
+     * canal, tipo, flujo o campaña, con conteo y ventana; o el puntaje de
+     * interacción (Fields::ENGAGEMENT_DAYS).
+     *
+     * @param  array<mixed>  $c
+     * @return array<string, mixed>
+     */
+    private function messaging(array $c, string $path): array
+    {
+        $action = $c['action'] ?? 'received';
+        if ($action === 'engagement') {
+            $op = $c['operator'] ?? null;
+            if (! is_string($op) || ! in_array($op, Fields::ENGAGEMENT_OPS, true)) {
+                $this->fail($this->join($path, 'operator'), __('Operador inválido para el puntaje de interacción.'));
+
+                return ['type' => 'messaging', 'action' => 'engagement', 'operator' => 'gte', 'value' => 0];
+            }
+            $out = ['type' => 'messaging', 'action' => 'engagement'] + $this->operatorValue($c, $path, 'number', null);
+            foreach ((array) ($out['value'] ?? []) as $v) {
+                if (is_float($v) && ($v < 0 || $v > 100)) {
+                    $this->fail($this->join($path, 'value'), __('El puntaje de interacción va de 0 a 100.'));
+                }
+            }
+
+            return $out;
+        }
+        if (! is_string($action) || ! isset(Fields::MESSAGE_ACTIONS[$action])) {
+            $this->fail($this->join($path, 'action'), __('Elige qué hizo con el mensaje: recibió, abrió, leyó, hizo clic o respondió.'));
+            $action = 'received';
+        }
+        $channel = $c['channel'] ?? 'any';
+        if (! in_array($channel, Fields::MESSAGE_CHANNELS, true)) {
+            $this->fail($this->join($path, 'channel'), __('Canal inválido.'));
+            $channel = 'any';
+        }
+        if ($action === 'opened' && in_array($channel, ['whatsapp', 'sms'], true)) {
+            $this->fail($this->join($path, 'action'), __('Las aperturas solo se miden en el correo; en WhatsApp usa «leyó».'));
+        }
+        if ($action === 'read' && in_array($channel, ['email', 'sms'], true)) {
+            $this->fail($this->join($path, 'action'), __('«Leyó» se mide en WhatsApp; en el correo usa «abrió».'));
+        }
+        $kind = $c['kind'] ?? 'any';
+        if (! in_array($kind, ['any', 'marketing'], true)) {
+            $this->fail($this->join($path, 'kind'), __('Tipo de mensaje inválido.'));
+            $kind = 'any';
+        }
+        $out = ['type' => 'messaging', 'action' => $action, 'channel' => $channel, 'kind' => $kind];
+        foreach (['flow_id' => [Flow::class, Flow::ID_PREFIX, __('El flujo no existe.')], 'campaign_id' => [Campaign::class, Campaign::ID_PREFIX, __('La campaña no existe.')]] as $key => [$model, $prefix, $message]) {
+            $raw = $c[$key] ?? null;
+            if ($raw === null || $raw === '') {
+                continue;
+            }
+            $id = is_string($raw) ? PrefixedId::decode($prefix, $raw) : null;
+            if ($id === null || ! $model::query()->whereKey($id)->exists()) {
+                $this->fail($this->join($path, $key), $message);
+
+                continue;
+            }
+            $out[$key] = $raw;
+        }
+        if (isset($out['flow_id'], $out['campaign_id'])) {
+            $this->fail($this->join($path, 'campaign_id'), __('Filtra por un flujo o por una campaña, no por los dos.'));
+        }
+
+        return $out + $this->countOperator($c, $path)
+            + (isset($c['window']) ? ['window' => $this->window($c['window'], $this->join($path, 'window'))] : []);
+    }
+
+    /**
+     * Fidelización (Fase 3): nivel VIP, puntos, saldo, puntos por vencer y referidos.
+     *
+     * @param  array<mixed>  $c
+     * @return array<string, mixed>
+     */
+    private function loyalty(array $c, string $path): array
+    {
+        $field = is_string($c['field'] ?? null) ? $c['field'] : '';
+        $def = Fields::LOYALTY_FIELDS[$field] ?? null;
+        if ($def === null) {
+            $this->fail($this->join($path, 'field'), __('Dato de fidelización desconocido.'));
+
+            return ['type' => 'loyalty'];
+        }
+        $op = $c['operator'] ?? null;
+        if (! is_string($op) || ! in_array($op, $def['operators'], true)) {
+            $this->fail($this->join($path, 'operator'), __('Operador inválido para este campo.'));
+
+            return ['type' => 'loyalty', 'field' => $field, 'operator' => $def['operators'][0]];
+        }
+        if ($field === 'tier') {
+            return ['type' => 'loyalty', 'field' => 'tier'] + $this->tierValue($op, $c['value'] ?? null, $this->join($path, 'value'));
+        }
+        if ($field === 'points_expiring') {
+            return ['type' => 'loyalty', 'field' => $field] + $this->operatorValue($c, $path, 'date', null);
+        }
+
+        return ['type' => 'loyalty', 'field' => $field] + $this->operatorValue($c, $path, $def['type'], null);
+    }
+
+    /** @return array{operator: string, value?: string|list<string>} */
+    private function tierValue(string $op, mixed $value, string $path): array
+    {
+        if (in_array($op, ['is_set', 'is_not_set'], true)) {
+            return ['operator' => $op];
+        }
+        $list = $op === 'at_least' ? [$value] : (is_array($value) ? array_values($value) : []);
+        $ids = [];
+        foreach ($list as $raw) {
+            $id = is_string($raw) ? PrefixedId::decode(LoyaltyTier::ID_PREFIX, $raw) : null;
+            if ($id !== null) {
+                $ids[(string) $raw] = $id;
+            }
+        }
+        if ($ids === [] || count($ids) !== count($list) || count($ids) > 50) {
+            $this->fail($path, $op === 'at_least' ? __('Elige un nivel.') : __('Elige al menos un nivel.'));
+
+            return ['operator' => $op, 'value' => $op === 'at_least' ? '' : []];
+        }
+        if (LoyaltyTier::query()->whereKey(array_values($ids))->count() !== count($ids)) {
+            $this->fail($path, __('Ese nivel ya no existe en el programa de fidelización.'));
+        }
+        $publicIds = array_map('strval', array_keys($ids));
+
+        return ['operator' => $op, 'value' => $op === 'at_least' ? $publicIds[0] : $publicIds];
     }
 
     /**

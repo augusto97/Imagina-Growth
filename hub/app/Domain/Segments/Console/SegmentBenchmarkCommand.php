@@ -82,6 +82,14 @@ final class SegmentBenchmarkCommand extends Command
             ]),
             'Carrito abandonado 7 días' => $and([['type' => 'cart', 'operator' => 'abandoned', 'window' => ['kind' => 'last_days', 'days' => 7]]]),
             'RFM: Campeones' => $and([['type' => 'prediction', 'field' => 'rfm_segment', 'operator' => 'eq', 'value' => 'champions']]),
+            'Hizo clic en un mensaje de marketing en 30 días' => $and([
+                ['type' => 'messaging', 'action' => 'clicked', 'channel' => 'any', 'kind' => 'marketing', 'operator' => 'ever', 'window' => ['kind' => 'last_days', 'days' => 30]],
+            ]),
+            'Sin mensajes en 14 días e interacción alta' => $and([
+                ['type' => 'messaging', 'action' => 'received', 'channel' => 'any', 'kind' => 'marketing', 'operator' => 'never', 'window' => ['kind' => 'last_days', 'days' => 14]],
+                ['type' => 'messaging', 'action' => 'engagement', 'operator' => 'gte', 'value' => 5],
+            ]),
+            'Con 500 puntos o más' => $and([['type' => 'loyalty', 'field' => 'points_balance', 'operator' => 'gte', 'value' => 500]]),
         ];
     }
 }

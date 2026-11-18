@@ -136,7 +136,7 @@ final class CommercePublicController
             $errors['consent_version'] = [__('Versión del texto legal no válida.')];
         }
         if ($errors !== []) {
-            return response()->json(['error' => 'invalid', 'errors' => $errors], 422)->withHeaders($cors);
+            return self::invalid($errors, $cors);
         }
         $consents = [];
         foreach ((array) ($body['consents'] ?? []) as $channel => $checked) {
@@ -157,9 +157,9 @@ final class CommercePublicController
                 'page_url' => is_string($body['page_url'] ?? null) ? $body['page_url'] : null,
             ], $request->ip(), $request->userAgent()));
         } catch (ValidationException $e) {
-            return response()->json(['error' => 'invalid', 'errors' => $e->errors()], 422)->withHeaders($cors);
+            return self::invalid($e->errors(), $cors);
         } catch (InvalidArgumentException $e) {
-            return response()->json(['error' => 'invalid', 'errors' => ['email' => [$e->getMessage()]]], 422)->withHeaders($cors);
+            return self::invalid(['email' => [$e->getMessage()]], $cors);
         }
 
         if ($result['available']) {
@@ -193,6 +193,19 @@ final class CommercePublicController
         $banner = $this->current->run($workspace, fn () => $resolve->handle($site, $placement, $aid, $token));
 
         return response()->json(['banner' => $banner])->withHeaders($cors);
+    }
+
+    /**
+     * `422` con los errores por campo y `message`, el primero, para mostrarlo tal cual.
+     *
+     * @param  array<string, array<int, string>>  $errors
+     * @param  array<string, string>  $headers
+     */
+    private static function invalid(array $errors, array $headers): JsonResponse
+    {
+        $first = array_values($errors)[0][0] ?? __('Revisa los datos e inténtalo de nuevo.');
+
+        return response()->json(['error' => 'invalid', 'message' => (string) $first, 'errors' => $errors], 422)->withHeaders($headers);
     }
 
     /** @return array{0: Site, 1: Workspace}|null */
