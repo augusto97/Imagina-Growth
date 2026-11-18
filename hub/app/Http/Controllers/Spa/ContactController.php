@@ -50,6 +50,26 @@ final class ContactController
             });
         }
 
+        $filters = $request->validate([
+            'stage' => ['nullable', 'string', 'max:16'],
+            'city' => ['nullable', 'string', 'max:120'],
+            'rfm_segment' => ['nullable', 'string', 'max:32'],
+            'consent' => ['nullable', 'in:email,whatsapp,sms'],
+            'buyers' => ['nullable', 'in:1,0'],
+            'tag' => ['nullable', 'string', 'max:40'],
+            'sort' => ['nullable', 'in:last_seen,last_order,revenue,orders,created'],
+        ]);
+        $query->when($filters['stage'] ?? null, fn ($q, $v) => $q->where('lifecycle_stage', $v))
+            ->when($filters['city'] ?? null, fn ($q, $v) => $q->where('city', $v))
+            ->when($filters['rfm_segment'] ?? null, fn ($q, $v) => $q->where('rfm_segment', $v))
+            ->when($filters['tag'] ?? null, fn ($q, $v) => $q->whereJsonContains('tags', $v))
+            ->when(($filters['buyers'] ?? null) !== null, fn ($q) => $filters['buyers'] === '1' ? $q->where('orders_count', '>', 0) : $q->where('orders_count', 0))
+            ->when($filters['consent'] ?? null, fn ($q, $v) => $q->whereExists(fn ($s) => $s->from('contact_consents')
+                ->whereColumn('contact_consents.contact_id', 'contacts.id')->where('contact_consents.channel', $v)
+                ->where('contact_consents.purpose', 'marketing')->where('contact_consents.status', 'granted')));
+        $sort = ['last_seen' => 'last_seen_at', 'last_order' => 'last_order_at', 'revenue' => 'revenue_total_ws', 'orders' => 'orders_count', 'created' => 'created_at'][$filters['sort'] ?? 'last_seen'];
+        $query->reorder()->orderByDesc($sort)->orderByDesc('id');
+
         $page = $query->paginate(min(100, max(10, (int) $request->query('per_page', 25))));
         $unmasked = Gate::allows('ws.exportContacts');
 
@@ -65,6 +85,9 @@ final class ContactController
                 'revenue_total_ws' => (string) $c->getAttribute('revenue_total_ws'),
                 'last_order_at' => $c->getAttribute('last_order_at')?->toIso8601String(),
                 'last_seen_at' => $c->getAttribute('last_seen_at')?->toIso8601String(),
+                'rfm_segment' => $c->getAttribute('rfm_segment'),
+                'hdyhau' => $c->getAttribute('hdyhau'),
+                'tags' => $c->getAttribute('tags') ?? [],
             ]),
             'meta' => ['total' => $page->total(), 'page' => $page->currentPage(), 'per_page' => $page->perPage()],
         ]);

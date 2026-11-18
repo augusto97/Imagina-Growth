@@ -33,6 +33,8 @@ enum WorkspaceRole: string
         'viewAssignedContacts' => ['owner', 'admin', 'marketing', 'agent'],
         'exportContacts' => ['owner', 'admin'],
         'deleteContacts' => ['owner', 'admin'],
+        'mergeContacts' => ['owner', 'admin'],
+        'editContacts' => ['owner', 'admin', 'marketing'],
         'viewPaymentData' => ['owner', 'admin'],
         'manageMarketing' => ['owner', 'admin', 'marketing'],
         'viewAuditLog' => ['owner', 'admin'],

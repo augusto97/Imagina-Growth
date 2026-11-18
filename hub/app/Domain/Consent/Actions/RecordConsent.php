@@ -26,6 +26,8 @@ final class RecordConsent
     /**
      * @param  'granted'|'revoked'  $action
      * @param  array<string, mixed>  $evidence  page_url, ip_hash, ua_hash, event_id, form_snapshot…
+     * @param  bool  $authoritative  acción directa de la persona o del equipo (panel, baja): gana aunque
+     *                               el reloj del sitio haya fechado la anterior unos segundos en el futuro
      * @return bool si cambió el estado vigente
      */
     public function handle(
@@ -38,6 +40,7 @@ final class RecordConsent
         ?string $legalTextVersion,
         CarbonInterface $at,
         array $evidence = [],
+        bool $authoritative = false,
     ): bool {
         if (! in_array($channel, ContactConsent::CHANNELS, true) || ! in_array($purpose, ['marketing', 'transactional'], true) || ! in_array($action, ['granted', 'revoked'], true)) {
             throw new InvalidArgumentException("Consentimiento inválido: {$channel}/{$purpose}/{$action}");
@@ -48,8 +51,11 @@ final class RecordConsent
         if ($current !== null) {
             $same = $current->status === $action && ($action === 'revoked' || $current->legal_text_version === $legalTextVersion);
             $last = $current->lastActionAt();
-            if ($same || ($last !== null && $last->greaterThan($at))) {
+            if ($same || (! $authoritative && $last !== null && $last->greaterThan($at))) {
                 return false;
+            }
+            if ($authoritative && $last !== null && $last->greaterThanOrEqualTo($at)) {
+                $at = \Carbon\CarbonImmutable::instance($last)->addSecond();
             }
         }
 
