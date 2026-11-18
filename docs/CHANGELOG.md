@@ -1,5 +1,133 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-18 — Cierre de la Fase 3 (Captación y fidelización)
+
+### Criterio «Listo cuando» (medido con `infra/e2e/fase3.sh`)
+
+El recorrido usa la tienda demo (WooCommerce) conectada a un hub aislado (`igr_e2e3`), con correo por SMTP hacia un buzón local. La comerciante deja activos un popup con WhatsApp y cupón del 10%, la bienvenida de referidos, el programa de puntos, el de referidos y las solicitudes de reseña por correo con publicación automática en WooCommerce.
+
+| Criterio | Resultado |
+|---|---|
+| Un visitante anónimo deja su WhatsApp en un popup | **Sí.** El popup sale del `widgets.json` real, con la casilla de WhatsApp sin marcar. El consentimiento queda concedido con origen `widget:wg_…` y la versión vigente del texto legal |
+| Recibe el cupón | **Sí.** `BIENVENIDA-…` en pantalla, creado en la tienda con `coupon.create`, uno por persona y widget |
+| Compra | **Sí.** Paga con ese cupón; el contacto del popup y el del checkout se fusionan. El pedido queda con `attributed_widget_id` (paso 4 de la atribución) |
+| Gana puntos | **Sí.** Registro 100, pedido 350 (pendientes al pagar, confirmados al completar), reseña 50, reseña con foto 100 y referido 500: saldo 1.100, igual al libro, sin nada pendiente |
+| Deja una reseña con foto | **Sí.** La solicitud llega por correo; desde el celular deja 5 estrellas y un JPEG con GPS en el EXIF. La foto servida ya no tiene EXIF ni GPS. Se publica sola y llega a WooCommerce como reseña nativa «verificada» con la foto (`review.publish`). La página de gracias ofrece Google a todos, sin filtrar por nota |
+| Refiere a un amigo | **Sí.** «Mis recompensas» muestra sus puntos y su enlace `?ref=MART…`. Luis lo abre, la bienvenida de referidos le da `AMIGO-…` y compra con él. Su pedido queda con `attributed_referral_id` y canal `affiliates`; el referido termina `rewarded` |
+| Todo queda en su perfil y atribuido | **Sí.** La línea de tiempo de Marta tiene `widget.submitted`, `order.paid`, `order.completed`, los `points.earned`, `review.requested`, `review.collected` y `referral.converted`. 0 rechazos en la ingesta y 0 eventos muertos en el outbox |
+
+**La revisión manual del referido:** al probar desde la misma máquina, el referido de Luis sale con la señal antifraude `same_ip` y pasa a revisión. La comerciante lo aprueba en el script y el job de calificación lo premia. Es el comportamiento esperado.
+
+### Qué se entregó
+- **Base de la fase:**
+  - Contrato v4: `context.referral_code` y `touch.referral_code`, y los esquemas de `points.*`, `tier.changed`, `wallet.*`, `referral.shared`/`converted`, `review.requested`/`collected`, `nps.answered` y `product_watch.*`.
+  - 17 tablas nuevas y los endpoints públicos de §8.3.
+  - Interfaces compartidas: `CaptureContact`, `LoyaltyLedger`, `ReferralRewards` y `RecommendationService`.
+- **M12 Captación:**
+  - Popup (centro, esquina, pantalla completa), formulario incrustado, barra, teaser, dos pasos, ruleta (el premio se sortea en el hub), quiz con ramas y recomendaciones, widget de WhatsApp y bienvenida de referidos.
+  - Variantes A/B con ganadora automática, segmentación, programación y vista previa.
+  - Doble opt-in por correo.
+  - Estadísticas por variante con ingresos atribuidos.
+- **M13 Fidelización:**
+  - Libro de puntos solo de inserción e idempotente: pendientes, confirmados tras la devolución, revertidos en reembolsos y con vencimiento FIFO.
+  - Niveles VIP con `customer.set_tier`.
+  - Recompensas canjeables por cupón o saldo.
+  - Saldo a favor con «Usar saldo» firmado y débito pendiente.
+  - `/me`, `/points` y `/program`; los nodos «dar puntos» y «dar saldo» en los flujos.
+- **M14 Referidos y afiliados:**
+  - Códigos legibles y regalo único para el amigo.
+  - Señales de fraude con revisión manual.
+  - Recompensa al referidor tras la calificación.
+  - Afiliados con comisiones y pagos en CSV, y el portal `/creadores/{token}` con enlace mágico.
+  - Paso 3 de la atribución.
+- **M15 Reseñas y NPS:**
+  - Solicitudes programadas.
+  - Formulario público con fotos y video.
+  - Moderación con heurística y un punto para conectar la IA de la Fase 4.
+  - Publicación, respuesta y retiro en WooCommerce.
+  - Importación nativa, de CSV y de Judge.me.
+  - Widgets públicos.
+  - NPS y CSAT con alertas de detractores.
+- **M16 Comercio en el sitio y audiencias (M06):**
+  - Seis tipos de recomendación con reglas de asociación nocturnas.
+  - «Avísame» por stock y precio, con tope.
+  - Banners por audiencia.
+  - Audiencias hacia Meta, Google y TikTok cada 12 h, con altas y bajas por hash.
+- **En la tienda:**
+  - Tracker: runtime de widgets y un paquete por tipo, cada uno con su límite de tamaño; captura de `?ref=`.
+  - Plugin: bloques, shortcodes, widgets de Elementor, «Mis recompensas», «Usar saldo» y los comandos de reseñas y niveles.
+- **Integración:**
+  - Supresión y exportación con los datos de las Fases 2 y 3, y salida de las audiencias.
+  - Línea de tiempo del perfil con los eventos nuevos.
+  - `contacto.nivel` y `enlaces.referido` en las plantillas.
+  - Consentimiento `ads` desde el banner.
+  - Segmentos por mensajería (pendiente desde la Fase 2) y por fidelización.
+  - Biblioteca de flujos: 14 de 20.
+  - Conciliación del contrato con una prueba que fija cada respuesta.
+
+### Errores que encontró la integración y el recorrido (corregidos con prueba)
+- **Enlaces de baja y preferencias rotos (Fase 2):** salían envueltos en `/c/`, por `LinkRewriter`.
+- **`tienda.url` vacía (Fase 2):** salía vacía en todas las plantillas porque buscaba un estado de sitio que no existe.
+- **Generador de la tienda demo no determinista:** según qué pruebas corrieran antes, una segunda corrida salía distinta; ahora usa su propio motor aleatorio.
+- **13 diferencias entre la tienda y el hub:** las más graves eran estas.
+  - Sin las banderas `onsite` en `/v1/s/config`, el plugin nunca mostraba puntos, «Mis recompensas» ni «Usar saldo».
+  - En el formulario de dos pasos, decir que no al WhatsApp perdía el cupón del primer paso.
+  - Las fechas de vencimiento salían un día antes en Colombia.
+- **Texto para quien refiere:** decía «tu primera compra» en vez de «su».
+
+### Pruebas al cierre
+- **Hub:** 649 pruebas Pest (Larastan nivel 8 sin errores, Pint limpio) y 122 de Vitest en la SPA.
+- **Tracker:** 56 de Vitest y 19 de Playwright contra la tienda. El tracker pesa 5.733 B gzip; los paquetes de widgets, de 958 a 6.137 B gzip, todos dentro de su límite. El quiz está a 7 B de su límite.
+- **Connector:** 15 unitarias y 78 de WordPress. PHPCS: 0 errores y 22 advertencias.
+- **Recorrido:** `infra/e2e/fase3.sh` en verde en una corrida limpia.
+
+### Cambios a la especificación (con su motivo, en el mismo commit que el código)
+- **api-connector.md §8.3, reescrito con las formas finales:**
+  - Llaves de `design` y `content` de los widgets y `consents` arriba en `widgets.json`.
+  - Respuesta del envío del widget; `/reco` con `fallback` y `/banner` con `id`.
+  - `/watch` con `consent_version` y `available`; `/program`; `/me/redeem` con `wallet`.
+  - `/reviews?scope=all`.
+  - Confirmación del doble opt-in en `/p/{key}/confirmar/{token}`: `/confirmar/` lo tomaba la SPA.
+- **§5 y §6:** `onsite` en `/v1/s/config`; `customer.set_tier` responde `422 role_not_allowed` con roles que dan más que `read`.
+- **`?ref=`:**
+  - Se deja en la URL: no es un dato personal y otros plugins de afiliados lo leen.
+  - `context.referral_code` viaja aunque no haya consentimiento de analítica, porque identifica a quien refiere, no al visitante.
+- **Puntos por referir:** se configuran solo en Referidos (M14), para que no haya dos valores que se contradigan.
+- **Biblioteca de flujos:**
+  - 12 (VIP), 15 (puntos por vencer, con el nuevo disparador por fecha `points_expiring_at`) y 16 (invitar a referir) son flujos.
+  - 16 se dispara con los promotores del NPS; la «segunda compra» espera a que el disparador acepte varias condiciones.
+  - 8 (pedir reseña), 14 (avisos de stock y precio) y 17 (NPS) los hace su módulo y la tarjeta lleva a su configuración, para no escribirle dos veces a nadie.
+- **Consentimiento `ads`:** sale de la decisión del banner de cookies sobre marketing de un visitante identificado. Sin una fuente, el modo estricto dejaba las audiencias vacías.
+
+### Decisiones pendientes del producto
+- **[validar con el abogado]** Que aceptar las cookies de marketing valga como consentimiento para subir el correo con hash a audiencias, y la regla de «según el sitio» (todos menos quien revocó).
+- **[validar con el abogado]** Que las solicitudes de reseña y los avisos de stock sean de marketing por defecto; se pueden reclasificar con justificación y queda auditado.
+- **[validar con el abogado]** Los textos de consentimiento por defecto.
+
+### Pendiente y desviaciones conocidas
+- **[verificar]** con cuentas reales:
+  - Las API de audiencias de Meta, Google (Ads API + Data Manager) y TikTok.
+  - El encabezado `CF-IPCountry` de Cloudflare para el país en `visitor.json`.
+  - El enlace de reseñas de Google Business.
+  - Las fotos HEIC del iPhone.
+- **Tienda:**
+  - Widgets de Elementor sin probar (Elementor no está en la tienda de prueba).
+  - «Avísame» por variación.
+  - Los puntos en el carrito de bloques.
+  - Clics de recomendaciones sin medir.
+  - `_igr_ct` puede no actualizarse con la Store API.
+  - El cuadro de saldo aparece cuando responde `/me` (un pequeño salto en el checkout).
+  - El beneficio «envío gratis» del nivel no se aplica en la tienda.
+- **Hub:**
+  - Vencimiento del saldo.
+  - Al fusionar contactos, el libro de puntos se mueve en el job nocturno.
+  - «Llegó referido» en segmentos se actualiza con el siguiente evento o el recálculo nocturno.
+  - Las reseñas nativas de WooCommerce no traen texto (haría falta un comando `review.get`).
+  - Sin consentimiento de analítica, el segundo paso de un formulario de dos pasos se une al primero solo por la identidad normal.
+- **Manual:**
+  - El recorrido grabado de la fase.
+  - Revisar en el navegador las pantallas nuevas de segmentos (tienen pruebas de componentes).
+
 ## 2026-11-18 — Cierre de la Fase 2 (Mensajería y automatizaciones)
 
 ### Criterio «Listo cuando» (medido con `infra/e2e/fase2.sh`)
