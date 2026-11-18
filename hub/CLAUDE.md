@@ -217,7 +217,7 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 - **Google:** GA4 Measurement Protocol para el análisis, y **Data Manager API** para las conversiones mejoradas, las conversiones offline de leads y Customer Match.
 - **TikTok:** Events API.
 - Cada entrega se registra en `conversion_deliveries` (ClickHouse). El panel muestra los errores con un mensaje humano.
-- **Sincronización de audiencias** (Fase 3): un job cada 12 h calcula las diferencias del segmento y envía altas y bajas por lotes.
+- **Sincronización de audiencias** (Fase 3): un job cada 12 h calcula las diferencias del segmento y envía altas y bajas por lotes. `App\Domain\Measurement\Audiences\SyncAudience` compara el segmento (con la regla de consentimiento de `AudienceEligibility`) contra `audience_members`, que guarda cifrados los hashes enviados, y llama a `AudiencePlatform` (Meta, Google Data Manager, TikTok). `RemoveContactFromAudiences` saca a un contacto de todas las audiencias (revocación de `ads`; sirve para la supresión de cumplimiento.md §9).
 
 ## 12. IA
 

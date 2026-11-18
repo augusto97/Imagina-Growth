@@ -167,7 +167,11 @@
                 "waNumber": "Número de WhatsApp",
                 "waNumberHelp": "Con el indicativo del país, sin espacios. Ej.: 573001234567.",
                 "waText": "Mensaje prellenado",
-                "waTextHelp": "La atribución se agrega sola al final del mensaje."
+                "waTextHelp": "La atribución se agrega sola al final del mensaje.",
+                "teaser": "Texto de la pestaña",
+                "teaserHelp": "Lo que se ve cerrado en la esquina; al tocarlo se abre el formulario.",
+                "url": "Enlace del botón",
+                "urlHelp": "Si la barra no pide datos, el botón lleva a este enlace (https o una ruta del sitio, como /ofertas)."
             },
             "step2": {
                 "title": "Segundo paso",

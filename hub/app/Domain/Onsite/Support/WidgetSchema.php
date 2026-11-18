@@ -75,7 +75,7 @@ final class WidgetSchema
             'bar' => [
                 'design' => ['position' => 'top', 'theme' => ['background' => '#111827', 'text' => '#FFFFFF', 'accent' => '#FACC15', 'accent_text' => '#111827']],
                 'content' => ['title' => __('Envío gratis desde $150.000. Suscríbete y recibe 10%.'), 'body' => '',
-                    'fields' => [$email], 'cta' => __('Quiero el 10%'), 'success' => __('Tu cupón: {{codigo}}'), 'footer' => ''],
+                    'fields' => [$email], 'cta' => __('Quiero el 10%'), 'success' => __('Tu cupón: {{codigo}}'), 'footer' => '', 'url' => ''],
                 'consent' => ['channels' => ['email'], 'double_opt_in' => false, 'template_id' => null],
                 'coupon' => $gift,
                 'targeting' => ['trigger' => ['type' => 'immediate', 'value' => null]],
@@ -97,7 +97,7 @@ final class WidgetSchema
             'teaser' => [
                 'design' => ['position' => 'left', 'theme' => $theme],
                 'content' => ['title' => __('¿Quieres 10%?'), 'body' => __('Déjanos tu correo y te lo enviamos.'),
-                    'fields' => [$email], 'cta' => __('Lo quiero'), 'success' => __('Tu cupón: {{codigo}}'), 'footer' => ''],
+                    'fields' => [$email], 'cta' => __('Lo quiero'), 'success' => __('Tu cupón: {{codigo}}'), 'footer' => '', 'teaser' => __('10% de regalo')],
                 'consent' => ['channels' => ['email'], 'double_opt_in' => false, 'template_id' => null],
                 'coupon' => $gift,
                 'targeting' => ['trigger' => ['type' => 'immediate', 'value' => null]],

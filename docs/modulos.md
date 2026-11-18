@@ -179,6 +179,11 @@
   - **Grupos de control** en flujos y campañas para medir el incremento real.
 - **Audiencias (Fase 3):** segmento → Meta Custom Audiences, Google Customer Match (por Data Manager API) y TikTok, sincronizadas cada 12 h. Incluye exclusión de compradores recientes, semillas de lookalike con clientes de CLV alto y reactivación de clientes en riesgo. Solo se suben contactos con consentimiento para anuncios cuando el espacio de trabajo exige ese modo.
 
+  **Implementación (Fase 3, `app/Domain/Measurement/Audiences`):** `audience_syncs` (segmento × destino, con `purpose`: público, exclusión o semilla de similares) y `audience_members` con los hashes enviados, cifrados, para poder sacar a alguien aunque cambie de correo o se borre su perfil.
+  - `igr:audiences:sync` (02:37 y 14:37) calcula quién debe estar y envía solo bajas y altas por lotes: Meta `/{audiencia}/users` (EMAIL y PHONE en SHA-256, 10.000 por lote), Google crea la lista con la API de Google Ads (`crmBasedUserList`) y sube por la Data Manager API (`audienceMembers:ingest` / `:remove`), TikTok con la Segment API (`segment/audience/` y `segment/mapping/`). Todo **[verificar]** con cuentas reales.
+  - **Consentimiento:** con el modo estricto elegido en el panel solo entra quien tiene consentimiento `ads` concedido; en «según el sitio» o informado, todos menos quien lo revocó **[validar]**. Revocar `ads` saca a la persona de todas las audiencias al momento (`RemoveOnAdsConsentRevoked`). Siempre fuera: borrados, fusionados y sin correo ni teléfono.
+  - Errores en español (los mismos traductores de las conversiones); un límite temporal no marca la audiencia con error. Atajos en el panel: excluir compradores de 30 días (crea el segmento), semilla con RFM «Campeones» (hasta el CLV de la Fase 4) y reactivar «En riesgo».
+
 **Listo cuando:** en Meta Events Manager el Purchase aparece deduplicado entre navegador y servidor, una compra iniciada desde un anuncio de clic a WhatsApp aparece atribuida a ese anuncio, y el panel explica cada error de entrega.
 
 ---
@@ -512,6 +517,22 @@
 - **Banners personalizados por segmento:** VIP («Hola, Ana: tienes 1.250 puntos»), con carrito pendiente o en riesgo. Se cargan por JS y los datos sensibles solo se muestran con sesión iniciada.
 - **Carrito restaurable** entre dispositivos (`/igr-cart/{token}`), que usan los flujos y la bandeja.
 - (Opcional, Fase 5) Ofertas en el checkout y después de la compra.
+
+**Implementación (Fase 3, `app/Domain/Recommendations`):**
+- **Motor** (`RecommendationEngine`, registrado como `RecommendationService`): solo productos publicados, no borrados, con stock o bajo pedido y sin variaciones; nunca el producto de la ficha, lo que ya está en el carrito ni lo excluido.
+  - «Para ti»: afinidad por categoría (compra 5, carrito 3, vista 1, vida media de 30 días; si existe `contacts.category_affinity` de la Fase 4, manda esa) + popularidad + «comprados juntos» de lo último que compró o vio, sin lo que ya compró.
+  - «Comprados juntos» y «Completa tu compra»: reglas de `product_associations` por lift. «Vistos recientemente»: `product.viewed` de ClickHouse por sus navegadores o su contacto (90 días). «Más vendidos de esta categoría»: unidades de 90 días (sin categoría, la de la ficha o la tienda). «Tendencia»: unidades de 7 días ÷ (promedio semanal de las 4 anteriores + 1), con 2 unidades mínimo.
+  - **Sin señal** (sin historial, sin reglas, sin ventas recientes) se usan los más vendidos (de la categoría cuando se conoce) y la respuesta lo dice con `fallback: true`. «Vistos recientemente» sin historial responde vacío y el bloque se oculta.
+  - Jobs: `igr:reco:build` cada noche (popularidad y reglas de 12 meses: mínimo 3 pedidos juntos, confianza ≥ 5% y lift > 1, hasta 20 por producto) y `--stats-only` cada 3 horas (`products.purchases_7d/30d/90d`, `views_30d`, `trend_score`). Un sitio que nunca se calculó se calcula en la primera petición.
+  - Las plantillas (`recomendaciones.para_ti`, `mas_vendidos` y `tendencia`) usan el mismo motor con el primer sitio conectado.
+- **`GET /p/{key}/reco`:** caché pública de 60 s para `bought_together`, `best_sellers_category` y `trending` (y 60 s en el hub) y privada para los personales con `aid`; límite por IP con hash. Responde `{kind, products, fallback}`.
+- **«Avísame»** (`POST /p/{key}/watch`): `CaptureContact` con origen `watch:{producto}`; acepta `consent_version` opcional (se registra la versión vigente). El aviso es marketing (cumplimiento.md §4.1, por prudencia): hace falta el consentimiento del canal (marcado ahora o uno que ya tenía) y se elige WhatsApp, correo o SMS en ese orden. Con stock ya disponible responde `available: true` sin suscribir.
+  - `QueueWatchNotifications` escucha `catalog.stock_changed`, `catalog.price_changed` y `catalog.product_upserted` y, si alguien espera ese producto, encola `NotifyProductWatchesJob`; `igr:watches:notify` (cada 10 min) retoma lo aplazado. El mensaje sale por `MessageDispatcher` con la clave `watch:{id}` y la variable `producto` (con `precio_anterior` en las bajas de precio); si la política lo aplaza, la suscripción guarda `next_attempt_at`.
+  - Una suscripción se avisa una sola vez y a una persona no se le avisa del mismo producto más de una vez cada 7 días. Plantillas: las elegidas en el panel por tipo y canal; sin elegir, `back_in_stock`, `price_drop` y `sms_back_in_stock` de la biblioteca. WhatsApp necesita una plantilla aprobada elegida. Si todos los canales con plantilla niegan para siempre (sin consentimiento, baja, supresión), se cancela; vence a los 120 días.
+  - El flujo 14 de la biblioteca no envía el primer aviso (lo hace el módulo, al momento): queda para un recordatorio a quien recibió `product_watch.notified` y no compró.
+  - El panel muestra las ventas del producto de la misma persona en los 7 días siguientes al aviso.
+- **Banners** (`onsite_banners`, `GET /p/{key}/banner`): audiencias `points` (con `LoyaltyLedger`), `pending_cart` (carrito activo o abandonado de 7 días; sin sesión, solo el del mismo navegador, con el enlace para restaurarlo), `at_risk` (RFM «En riesgo» y «No podemos perderlos») y `segment`. Gana el primero por prioridad. `{{nombre}}` y `{{puntos}}` solo con `igrUser.token` válido; sin sesión se usa `text_public`, que el panel no deja guardar con esas variables.
+- **Panel:** «En el sitio → Recomendaciones» (bloques, estado del cálculo, vista previa con un producto, carrito o contacto real y explorador de reglas), «Avisos» y «Banners».
 
 ---
 

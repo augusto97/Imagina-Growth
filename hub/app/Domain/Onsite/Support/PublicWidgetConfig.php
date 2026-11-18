@@ -89,7 +89,7 @@ final class PublicWidgetConfig
         $variants = array_map(fn (array $v) => [
             'key' => $v['key'],
             'weight' => $v['weight'],
-            'design' => $v['design'],
+            'design' => self::design($widget, $v['design']),
             'content' => $this->content($widget, $v['content'], $consents),
         ], WidgetSchema::variants($widget));
         $targeting = $widget->targeting ?? WidgetSchema::defaults($widget->kind)['targeting'];
@@ -122,6 +122,51 @@ final class PublicWidgetConfig
         }
 
         return $entry;
+    }
+
+    /**
+     * Diseño como lo lee el paquete de widgets del tracker: `layout` es dónde va un popup
+     * (centro, esquina o pantalla completa), `position` el lado o borde (barra, teaser,
+     * WhatsApp), los colores planos (`bg`, `text`, `accent`, `accent_text`), `image` y
+     * `image_layout` (solo texto, imagen arriba o a la izquierda).
+     *
+     * @param  array<string, mixed>  $design
+     * @return array<string, mixed>
+     */
+    public static function design(OnsiteWidget $widget, array $design): array
+    {
+        $theme = (array) ($design['theme'] ?? []);
+        $position = (string) ($design['position'] ?? '');
+        $overlay = in_array($position, ['center', 'corner', 'fullscreen'], true);
+
+        return [
+            'layout' => $overlay ? $position : null,
+            'position' => $overlay ? ($position === 'corner' ? 'right' : null) : ($position !== '' ? $position : null),
+            'display' => $widget->kind === 'quiz' ? ($design['display'] ?? 'popup') : null,
+            'bg' => (string) ($theme['background'] ?? '#FFFFFF'),
+            'text' => (string) ($theme['text'] ?? '#111827'),
+            'accent' => (string) ($theme['accent'] ?? '#4F46E5'),
+            'accent_text' => (string) ($theme['accent_text'] ?? '#FFFFFF'),
+            'image' => $design['image_url'] ?? null,
+            'image_layout' => (string) ($design['layout'] ?? 'text_only'),
+        ];
+    }
+
+    /**
+     * Textos legales vigentes de cada canal, para los formularios que no son widgets
+     * (p. ej. «avísame» de M16): `[{channel, text, version}]`.
+     *
+     * @return list<array{channel: string, text: string, version: string}>
+     */
+    public function legalConsents(Workspace $workspace): array
+    {
+        $out = array_map(fn (array $t) => ['channel' => $t['channel'], 'text' => $t['label'], 'version' => $t['version']], $this->texts->current($workspace));
+        $sms = $this->texts->latest($workspace, 'sms');
+        if ($sms !== null) {
+            $out[] = ['channel' => 'sms', 'text' => $sms->body, 'version' => $sms->version];
+        }
+
+        return $out;
     }
 
     /**
@@ -159,6 +204,15 @@ final class PublicWidgetConfig
     private function content(OnsiteWidget $widget, array $content, array $consents): array
     {
         $content['consents'] = $consents;
+        if ($widget->kind === 'two_step' && is_array($content['step2'] ?? null)) {
+            // Pasos del formulario como los recorre el tracker: los mismos campos y textos de cada paso.
+            $step2 = (array) $content['step2'];
+            $content['no'] = (string) ($step2['skip'] ?? '');
+            $content['steps'] = [
+                ['title' => $content['title'] ?? '', 'body' => $content['body'] ?? '', 'fields' => $content['fields'] ?? [], 'cta' => $content['cta'] ?? '', 'success' => $content['success'] ?? ''],
+                ['title' => $step2['title'] ?? '', 'body' => $step2['body'] ?? '', 'fields' => $step2['fields'] ?? [], 'cta' => $step2['cta'] ?? '', 'success' => $step2['success'] ?? '', 'no' => $step2['skip'] ?? ''],
+            ];
+        }
         if ($widget->kind === 'spin_wheel') {
             // Solo las etiquetas: las probabilidades y los cupones quedan en el hub.
             $content['slices'] = array_map(fn (array $p) => ['key' => (string) $p['key'], 'label' => (string) $p['label']], (array) ($widget->coupon_config['prizes'] ?? []));

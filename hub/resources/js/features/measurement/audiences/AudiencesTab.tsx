@@ -210,7 +210,7 @@ function AudienceTable({ data }: { data: AudiencesResponse }) {
                                     </div>
                                 </TD>
                                 <TD className="igr:whitespace-nowrap">{t(`audiences.purpose.${a.purpose}`)}</TD>
-                                <TD className="igr:max-w-72">
+                                <TD className="igr:min-w-64 igr:max-w-96">
                                     <StatusBadge audience={a} />
                                     {a.last_error ? <p className="igr:mt-1 igr:text-xs igr:text-destructive">{a.last_error}</p> : null}
                                 </TD>

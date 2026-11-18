@@ -127,7 +127,7 @@ function Report({ kind, days }: { kind: SurveyKind; days: number }) {
                                         <div className="igr:min-w-0 igr:flex-1 igr:text-[13px]">
                                             <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-2">
                                                 <Badge variant={row.category === 'detractor' || row.category === 'unsatisfied' ? 'warning' : row.category === 'promoter' || row.category === 'satisfied' ? 'success' : 'secondary'}>
-                                                    {t(`reviews.surveys.categories.${row.category}`)}
+                                                    {t(`reviews.surveys.category.${row.category}`)}
                                                 </Badge>
                                                 <span className="igr:text-xs igr:text-muted-foreground">{formatDateTime(row.created_at, workspace.locale, workspace.timezone)}</span>
                                                 {row.order ? <span className="igr:text-xs igr:text-muted-foreground">{t('reviews.card.order', { number: row.order })}</span> : null}

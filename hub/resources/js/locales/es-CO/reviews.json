@@ -181,7 +181,7 @@
             "enabled": "Pedir reseñas automáticamente",
             "trigger": "Contar los días desde",
             "triggers": {
-                "completed": "La entrega (pedido completado)",
+                "completed": "La entrega",
                 "paid": "El pago"
             },
             "days": "Días de espera",
@@ -333,6 +333,14 @@
                 "thanks": "Escribe el agradecimiento.",
                 "csatTemplate": "Elige la plantilla de correo del CSAT.",
                 "alertEmails": "Revisa los correos de aviso."
+            },
+            "category": {
+                "promoter": "Promotor",
+                "passive": "Pasivo",
+                "detractor": "Detractor",
+                "satisfied": "Satisfecho",
+                "neutral": "Neutral",
+                "unsatisfied": "Insatisfecho"
             }
         },
         "import": {

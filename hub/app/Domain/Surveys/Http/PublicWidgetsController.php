@@ -54,14 +54,17 @@ final class PublicWidgetsController
         // M12: widgets activos del sitio para ese tipo de página y ruta (nunca en el checkout).
         $pageType = is_string($request->query('page_type')) ? (string) $request->query('page_type') : null;
         $path = is_string($request->query('path')) ? mb_substr((string) $request->query('path'), 0, 500) : null;
-        $this->current->run($workspace, function () use ($onsite, $workspace, $site, $pageType, $path, &$widgets): void {
+        $consents = $this->current->run($workspace, function () use ($onsite, $workspace, $site, $pageType, $path, &$widgets): array {
             foreach ($onsite->live($site, $pageType, $path) as $widget) {
                 /** @var OnsiteWidget $widget */
                 $widgets[] = $onsite->entry($workspace, $widget);
             }
+
+            // Textos legales vigentes para los formularios que no son widgets («avísame»).
+            return $onsite->legalConsents($workspace);
         });
 
-        return response()->json(['widgets' => $widgets])
+        return response()->json(['widgets' => $widgets, 'consents' => $consents])
             ->withHeaders($this->cors($request, $site) + ['Cache-Control' => 'public, max-age=300']);
     }
 

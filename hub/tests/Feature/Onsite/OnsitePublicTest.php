@@ -114,6 +114,9 @@ it('widgets.json publica los widgets activos con la encuesta, sin probabilidades
         ->and($w[$popup]['variants'][0])->toHaveKeys(['key', 'weight', 'design', 'content'])
         ->and($w[$popup]['content']['consents'][0])->toBe(['channel' => 'whatsapp', 'label' => $w[$popup]['content']['consents'][0]['label'], 'version' => 'v1'])
         ->and($w[$popup]['targeting']['utm'])->toBe([])
+        ->and($w[$popup]['design'])->toMatchArray(['layout' => 'center', 'position' => null, 'bg' => '#FFFFFF', 'accent' => '#4F46E5', 'image' => null, 'image_layout' => 'image_left'])
+        ->and(collect($res->json('consents'))->pluck('channel')->all())->toBe(['whatsapp', 'email'])
+        ->and($res->json('consents.0'))->toHaveKeys(['channel', 'text', 'version'])
         ->and($w[$wheel]['content']['slices'])->toBe([['key' => 'p5', 'label' => '5%'], ['key' => 'p10', 'label' => '10%'], ['key' => 'envio', 'label' => 'Envío gratis'], ['key' => 'p20', 'label' => '20%']])
         ->and($w[$wa]['wa'])->toBe(['number' => '573001234567', 'text' => 'Hola', 'position' => 'right'])
         ->and($w[$quiz]['quiz']['questions'][0]['options'][0])->toBe(['key' => 'casa', 'label' => 'Para mi casa', 'next' => 'q2'])
@@ -132,6 +135,9 @@ it('visitor.json responde privado y sin datos personales: conocido, suscrito, pa
     $unused = onsiteInWs($this, fn () => Segment::query()->create(['name' => 'Otro', 'kind' => 'static']));
     onsiteWidget($this, 'popup', ['targeting' => ['segments' => [$segment->publicId()], 'countries' => ['CO']]]);
 
+    // Sin consentimiento de analítica el tracker no manda aid: responde igual, solo con el país.
+    expect($this->call('GET', "/p/{$this->key}/visitor.json", [], [], [], ['HTTP_CF_IPCOUNTRY' => 'CO'])->assertOk()->json())
+        ->toBe(['known' => false, 'returning' => false, 'subscribed' => ['email' => false, 'whatsapp' => false], 'country' => 'CO', 'segments' => []]);
     $anon = $this->call('GET', "/p/{$this->key}/visitor.json?aid=nuevo-1", [], [], [], ['HTTP_ORIGIN' => 'https://tienda.co', 'HTTP_CF_IPCOUNTRY' => 'mx'])->assertOk();
     expect($anon->json())->toBe(['known' => false, 'returning' => false, 'subscribed' => ['email' => false, 'whatsapp' => false], 'country' => 'MX', 'segments' => []])
         ->and($anon->headers->get('Cache-Control'))->toContain('no-store')->toContain('private');
@@ -284,6 +290,9 @@ it('el quiz guarda las respuestas como atributos y responde con los productos de
 
 it('el formulario en 2 pasos une el correo y el WhatsApp en el mismo contacto y no repite el cupón', function () {
     $w = onsiteWidget($this, 'two_step');
+    $public = collect($this->getJson("/p/{$this->key}/widgets.json?page_type=home")->json('widgets'))->firstWhere('id', $w);
+    expect($public['content']['steps'])->toHaveCount(2)->and($public['content']['no'])->toBe('No, gracias')
+        ->and(array_column($public['content']['steps'][1]['fields'], 'key'))->toBe(['phone']);
     $one = onsiteSubmit($this, $w, ['anonymous_id' => 'dos', 'step' => 1, 'fields' => ['email' => 'pao@ejemplo.com'], 'consents' => ['email' => true]])->assertOk();
     expect($one->json('next_step'))->toBe(2)->and($one->json('coupon.code'))->not->toBeNull();
     $two = onsiteSubmit($this, $w, ['anonymous_id' => 'dos', 'step' => 2, 'fields' => ['phone' => '3157654321'], 'consents' => ['whatsapp' => true]])->assertOk();

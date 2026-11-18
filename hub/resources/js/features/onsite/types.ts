@@ -50,6 +50,8 @@ export interface WidgetContent {
     start?: string;
     contact_optional?: boolean;
     wa?: { number: string; text: string };
+    url?: string;
+    teaser?: string;
 }
 
 export interface WidgetVariant {

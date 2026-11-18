@@ -96,7 +96,8 @@ final class WidgetValidator
 
                 continue;
             }
-            $contactOptional = $widget->kind === 'quiz' && (bool) ($content['contact_optional'] ?? false);
+            $contactOptional = ($widget->kind === 'quiz' && (bool) ($content['contact_optional'] ?? false))
+                || ($widget->kind === 'bar' && $keys === [] && ($content['url'] ?? '') !== '');
             if (! $contactOptional && ! in_array('email', $keys, true) && ! in_array('phone', $keys, true)) {
                 $this->error('fields', __('La variante :v debe pedir un correo o un WhatsApp.', ['v' => strtoupper($variant['key'])]));
             }
@@ -294,6 +295,14 @@ final class WidgetValidator
         }
         if ($kind === 'spin_wheel') {
             $out['lose'] = $this->text($c['lose'] ?? '', 300);
+        }
+        if ($kind === 'bar') {
+            // Barra sin campos: el botón lleva a este enlace (https o una ruta del sitio).
+            $url = is_string($c['url'] ?? null) ? trim($c['url']) : '';
+            $out['url'] = preg_match('#^(https://|/)#i', $url) === 1 ? mb_substr($url, 0, 500) : '';
+        }
+        if ($kind === 'teaser') {
+            $out['teaser'] = $this->text($c['teaser'] ?? '', 60);
         }
         if ($kind === 'quiz') {
             $out['start'] = $this->text($c['start'] ?? '', 60);

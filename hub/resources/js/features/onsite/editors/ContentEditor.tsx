@@ -101,6 +101,11 @@ export function ContentEditor({ kind, draft, variant, onVariant, onChange }: Pro
             ) : null}
 
             <Section title={t('onsite.editor.content.title')}>
+                {kind === 'teaser' ? (
+                    <Field label={t('onsite.editor.content.teaser')} help={t('onsite.editor.content.teaserHelp')}>
+                        {(id) => <Input id={id} value={c.teaser ?? ''} maxLength={60} onChange={(e) => setContent({ teaser: e.target.value })} />}
+                    </Field>
+                ) : null}
                 <Field label={kind === 'wa_widget' ? t('onsite.editor.content.bubble') : t('onsite.editor.content.heading')}>
                     {(id) => <Input id={id} value={c.title} maxLength={200} onChange={(e) => setContent({ title: e.target.value })} />}
                 </Field>
@@ -119,6 +124,11 @@ export function ContentEditor({ kind, draft, variant, onVariant, onChange }: Pro
                 ) : (
                     <>
                         <FieldsEditor fields={c.fields} onChange={(fields) => setContent({ fields })} />
+                        {kind === 'bar' ? (
+                            <Field label={t('onsite.editor.content.url')} help={t('onsite.editor.content.urlHelp')}>
+                                {(id) => <Input id={id} value={c.url ?? ''} placeholder="https://" maxLength={500} onChange={(e) => setContent({ url: e.target.value })} />}
+                            </Field>
+                        ) : null}
                         <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2">
                             <Field label={kind === 'quiz' ? t('onsite.editor.content.ctaQuiz') : t('onsite.editor.content.cta')}>
                                 {(id) => <Input id={id} value={c.cta} maxLength={60} onChange={(e) => setContent({ cta: e.target.value })} />}

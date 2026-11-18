@@ -107,6 +107,8 @@ export function BannersPage() {
 }
 
 const SAMPLE = { nombre: 'Ana', puntos: '1.250', carrito_items: '2' };
+/** Sin sesión el hub no llena el nombre ni los puntos. */
+const PUBLIC_SAMPLE = { carrito_items: '2' };
 
 /** Los textos de ayuda muestran las variables tal cual ({{nombre}}), no las interpolan. */
 const VARIABLE_NAMES = { nombre: '{{nombre}}', puntos: '{{puntos}}', carrito_items: '{{carrito_items}}' };
@@ -115,8 +117,8 @@ const VARIABLE_NAMES = { nombre: '{{nombre}}', puntos: '{{puntos}}', carrito_ite
 function BannerPreview({ banner }: { banner: Pick<Banner, 'text' | 'text_public' | 'cta' | 'style'> }) {
     const { t } = useTranslation();
     const rows = [
-        { label: t('onsiteCommerce.banners.withSession'), text: banner.text },
-        { label: t('onsiteCommerce.banners.withoutSession'), text: banner.text_public ?? '' },
+        { label: t('onsiteCommerce.banners.withSession'), text: banner.text, vars: SAMPLE },
+        { label: t('onsiteCommerce.banners.withoutSession'), text: banner.text_public ?? '', vars: PUBLIC_SAMPLE },
     ];
     return (
         <div className="igr:grid igr:gap-1.5">
@@ -127,7 +129,7 @@ function BannerPreview({ banner }: { banner: Pick<Banner, 'text' | 'text_public'
                         <span className="igr:text-xs igr:text-muted-foreground igr:italic">{t('onsiteCommerce.banners.hidden')}</span>
                     ) : (
                         <div className={cn('igr:flex igr:min-w-0 igr:flex-1 igr:items-center igr:justify-between igr:gap-3 igr:rounded-md igr:px-3 igr:py-1.5 igr:text-xs', STYLE_CLASS[banner.style])}>
-                            <span className="igr:truncate">{renderBannerText(row.text, SAMPLE)}</span>
+                            <span className="igr:truncate">{renderBannerText(row.text, row.vars)}</span>
                             {banner.cta ? <span className="igr:shrink-0 igr:font-semibold igr:underline">{banner.cta}</span> : null}
                         </div>
                     )}
