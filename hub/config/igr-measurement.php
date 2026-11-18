@@ -37,8 +37,9 @@ return [
     'google' => [
         'ga4_url' => 'https://www.google-analytics.com/mp/collect',
         'ga4_debug_url' => 'https://www.google-analytics.com/debug/mp/collect',
-        'data_manager_url' => 'https://datamanager.googleapis.com/v1/events:ingest',
-        'oauth_token_url' => 'https://oauth2.googleapis.com/token',
+        // Se cambian solo en pruebas de punta a punta (simuladores locales).
+        'data_manager_url' => env('IGR_GOOGLE_DATA_MANAGER_EVENTS_URL', 'https://datamanager.googleapis.com/v1/events:ingest'),
+        'oauth_token_url' => env('IGR_GOOGLE_OAUTH_TOKEN_URL', 'https://oauth2.googleapis.com/token'),
         'ads_url' => 'https://googleads.googleapis.com',
         'ads_version' => env('IGR_GOOGLE_ADS_VERSION', 'v21'), // [verificar] versión vigente
     ],

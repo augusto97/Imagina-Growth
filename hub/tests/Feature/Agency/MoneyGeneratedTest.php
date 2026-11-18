@@ -82,6 +82,35 @@ it('cuenta cada pedido una sola vez, en el primer módulo que lo explica', funct
     expect((float) app(MoneyGenerated::class)->forWorkspace($this->w->a, $prevFrom, $prevTo)['total'])->toBe(100000.0);
 });
 
+it('en un negocio de servicios los leads ganados son las ventas y suman al módulo que los captó', function () {
+    $ws = $this->w->b;
+    [$from, $to] = MoneyGenerated::month($ws);
+    $base = app(MoneyGenerated::class)->forWorkspace($ws, $from, $to); // los pedidos que ya trae el fixture
+    $lead = function (string $origin, ?string $value, string $stage = 'won', ?string $wonAt = '2026-11-10 15:00:00') use ($ws): void {
+        DB::table('leads')->insert(['id' => agencyUlid(), 'workspace_id' => $ws->id, 'contact_id' => agencyUlid(), 'stage' => $stage, 'origin' => $origin,
+            'value_ws' => $value, 'won_at' => $stage === 'won' ? $wonAt : null, 'created_at' => now(), 'updated_at' => now()]);
+    };
+    $lead('form', '500000');
+    $lead('whatsapp', '250000');
+    $lead('booking', '300000');
+    $lead('quote', '200000');
+    $lead('manual', '1000000');                       // venta del negocio, no la captó la plataforma
+    $lead('form', '900000', 'lost');                  // perdido: no cuenta
+    $lead('form', '700000', 'proposal');              // abierto: no cuenta
+    $lead('quote', '400000', 'won', '2026-10-20 15:00:00'); // otro mes
+
+    $m = app(MoneyGenerated::class)->forWorkspace($ws, $from, $to);
+    $by = collect($m['modules'])->keyBy('key');
+    expect((float) $m['total'] - (float) $base['total'])->toBe(1250000.0)
+        ->and($m['orders'] - $base['orders'])->toBe(4)
+        ->and((float) $m['store_total'] - (float) $base['store_total'])->toBe(2250000.0)
+        ->and($m['store_orders'] - $base['store_orders'])->toBe(5)
+        ->and((float) $by['leads']['revenue'])->toBe(750000.0)
+        ->and($by['leads']['orders'])->toBe(2)
+        ->and((float) $by['bookings']['revenue'])->toBe(300000.0)
+        ->and((float) $by['quotes']['revenue'])->toBe(200000.0);
+});
+
 it('el panel muestra dinero, cambio, salud, hallazgos críticos y facturación por cliente', function () {
     $w = $this->w;
     DB::table('insights')->insert([

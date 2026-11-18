@@ -23,12 +23,21 @@ use Illuminate\Support\Facades\DB;
  * (`carts.recovered_order_id`). Ventas = `total_ws` de los pedidos pagados en el
  * periodo, sin los cancelados, fallidos ni reembolsados.
  *
+ * Negocios de servicios (M18), sin pedidos: cada lead ganado en el periodo suma su
+ * valor (`leads.value_ws`) a las ventas del negocio, y al dinero generado si la
+ * plataforma lo captó: formulario o WhatsApp → `leads`, página de reservas →
+ * `bookings`, cotizador → `quotes`. Los leads creados a mano o por la API cuentan
+ * como ventas, no como dinero generado. Un lead ganado es una venta, igual que un pedido.
+ *
  * La usan el panel de agencia, el reporte mensual y cualquier pantalla que
  * quiera el dinero generado.
  */
 final class MoneyGenerated
 {
-    public const MODULES = ['affiliates', 'referrals', 'flows', 'campaigns', 'ai_agent', 'inbox', 'widgets', 'recovered_carts', 'messages'];
+    public const MODULES = ['affiliates', 'referrals', 'flows', 'campaigns', 'ai_agent', 'inbox', 'widgets', 'recovered_carts', 'messages', 'leads', 'bookings', 'quotes'];
+
+    /** Origen del lead (leads.origin) → módulo que lo captó. */
+    private const LEAD_ORIGINS = ['form' => 'leads', 'whatsapp' => 'leads', 'booking' => 'bookings', 'quote' => 'quotes'];
 
     /**
      * @return array{currency: string, from: string, to: string, total: string, orders: int, store_total: string, store_orders: int,
@@ -79,6 +88,24 @@ final class MoneyGenerated
             $count++;
         }
 
+        $sales = $rows->count();
+        $won = DB::table('leads')->where('workspace_id', $ws)->where('stage', 'won')->whereNotNull('won_at')
+            ->where('won_at', '>=', $from->utc())->where('won_at', '<', $to->utc())
+            ->get(['origin', 'value_ws']);
+        foreach ($won as $lead) {
+            $amount = Decimal::of((string) ($lead->value_ws ?? '0'));
+            $store = Decimal::add($store, $amount);
+            $sales++;
+            $key = self::LEAD_ORIGINS[(string) $lead->origin] ?? null;
+            if ($key === null) {
+                continue;
+            }
+            $modules[$key]['revenue'] = Decimal::add($modules[$key]['revenue'], $amount);
+            $modules[$key]['orders']++;
+            $total = Decimal::add($total, $amount);
+            $count++;
+        }
+
         $list = [];
         foreach ($modules as $key => $m) {
             $list[] = ['key' => $key, 'revenue' => $m['revenue'], 'orders' => $m['orders']];
@@ -92,7 +119,7 @@ final class MoneyGenerated
             'total' => $total,
             'orders' => $count,
             'store_total' => $store,
-            'store_orders' => $rows->count(),
+            'store_orders' => $sales,
             'share_pct' => (float) $store > 0 ? round((float) $total / (float) $store * 100, 1) : 0.0,
             'modules' => $list,
         ];

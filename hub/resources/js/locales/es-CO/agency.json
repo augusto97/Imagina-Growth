@@ -69,7 +69,10 @@
             "inbox": "Bandeja",
             "widgets": "Captación en el sitio",
             "recovered_carts": "Carritos recuperados",
-            "messages": "Otros mensajes"
+            "messages": "Otros mensajes",
+            "leads": "Leads ganados",
+            "bookings": "Citas agendadas",
+            "quotes": "Cotizador"
         },
         "templates": {
             "intro": "Guarda un flujo, segmento, widget, plantilla o campaña de un cliente y aplícalo a otros. Se copian en borrador, sin contactos ni datos personales.",

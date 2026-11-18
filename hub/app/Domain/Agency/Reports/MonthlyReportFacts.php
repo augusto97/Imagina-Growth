@@ -34,6 +34,9 @@ final class MonthlyReportFacts
             'widgets' => __('Captación en el sitio'),
             'recovered_carts' => __('Carritos recuperados'),
             'messages' => __('Otros mensajes'),
+            'leads' => __('Leads ganados'),
+            'bookings' => __('Citas agendadas'),
+            'quotes' => __('Cotizador'),
         ];
     }
 
