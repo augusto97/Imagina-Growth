@@ -20,8 +20,8 @@ interface LoyaltyLedger
 
     /**
      * Puntos fijos que el programa da por ese motivo (`signup`, `birthday`,
-     * `review`, `review_media`, `referral`, `profile`); 0 si está apagado o no
-     * hay programa activo. `earnPoints` con `points <= 0` usa este valor.
+     * `review`, `review_media`, `profile`); 0 si está apagado o no hay programa
+     * activo. Los de referidos los define M14 y los pasa en `earnPoints`. `earnPoints` con `points <= 0` usa este valor.
      */
     public function rulePoints(string $reason): int;
 

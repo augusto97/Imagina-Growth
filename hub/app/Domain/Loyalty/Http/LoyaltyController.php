@@ -86,7 +86,6 @@ final class LoyaltyController
             'earn_rules.birthday' => ['sometimes', 'integer', 'min:0', 'max:1000000'],
             'earn_rules.review' => ['sometimes', 'integer', 'min:0', 'max:1000000'],
             'earn_rules.review_media' => ['sometimes', 'integer', 'min:0', 'max:1000000'],
-            'earn_rules.referral' => ['sometimes', 'integer', 'min:0', 'max:1000000'],
             'earn_rules.profile' => ['sometimes', 'integer', 'min:0', 'max:1000000'],
             'earn_rules.campaigns' => ['sometimes', 'array', 'max:20'],
             'earn_rules.campaigns.*.name' => ['nullable', 'string', 'max:80'],

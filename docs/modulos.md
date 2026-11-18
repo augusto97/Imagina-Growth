@@ -433,6 +433,7 @@
 - **Saldo en el checkout** (`/v1/s/wallet/redeem`): cupón `SALDO-…` de un solo uso por `min(saldo, total)`, combinable con otros cupones y restringido al correo del cliente; el mismo carrito recibe el mismo cupón. El débito queda pendiente; se confirma con el `order.paid` que lo usa y se libera a las 24 h (desactivando el cupón con `coupon.disable`) salvo que lo use un pedido aún sin pagar.
 - **Flujo 15 «Puntos por vencer»:** disparador por fecha sobre `contacts.points_expiring_at` (la fecha del próximo vencimiento) con `offset_days = −warning_days` (15 por defecto); `points_expiring` trae los puntos que vencen ese día. El job nocturno `igr:loyalty:nightly` vence lo cumplido (`points.expired`), da los puntos de cumpleaños, pasa el saldo de los contactos fusionados y recalcula niveles; `igr:loyalty:settle` (cada 15 min) confirma los periodos cumplidos y libera saldos.
 - **Nodos de flujo** «dar puntos» y «dar saldo» (una vez por visita del nodo; el grupo de control no recibe nada).
+- Los puntos por referir los configura el programa de referidos (M14), que los acredita con `earnPoints(…, 'referral', …)`: el programa de puntos no tiene un monto propio para eso.
 
 ---
 

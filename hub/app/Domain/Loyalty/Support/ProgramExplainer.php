@@ -40,7 +40,6 @@ final class ProgramExplainer
             'birthday' => __('En tu cumpleaños: :points :name de regalo.'),
             'review' => __('Deja una reseña: :points :name.'),
             'review_media' => __('Reseña con foto o video: :points :name.'),
-            'referral' => __('Recomiéndanos a un amigo que compre: :points :name.'),
             'profile' => __('Completa tu perfil: :points :name.'),
         ];
         foreach ($labels as $reason => $text) {

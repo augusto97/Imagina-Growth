@@ -11,7 +11,7 @@ const program: Program = {
     id: 'lp_1',
     status: 'active',
     currency_name: 'Puntos Pintor',
-    earn_rules: { per_amount: { points: 1, amount: '1000.00' }, basis: 'without_shipping', signup: 100, birthday: 200, review: 50, review_media: 100, referral: 500, profile: 50, category_multipliers: [{ category_id: '12', multiplier: 2 }], campaigns: [] },
+    earn_rules: { per_amount: { points: 1, amount: '1000.00' }, basis: 'without_shipping', signup: 100, birthday: 200, review: 50, review_media: 100, profile: 50, category_multipliers: [{ category_id: '12', multiplier: 2 }], campaigns: [] },
     redeem_rules: { min_points: 0, coupon_expiry_days: 30 },
     expiry_policy: { months: 12, warning_days: 15 },
     pending_days: 15,

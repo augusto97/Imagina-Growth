@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input, Select } from '@/components/ui/input';
@@ -94,6 +95,12 @@ export function RulesTab({ data }: { data: LoyaltyOverview }) {
                         ))}
                     </div>
                     <p className="igr:text-xs igr:text-muted-foreground">{t('loyalty.rules.fixedHelp')}</p>
+                    <p className="igr:text-xs igr:text-muted-foreground">
+                        {t('loyalty.rules.referralElsewhere')}{' '}
+                        <Link to={`/w/${workspace.id}/referidos`} className="igr:font-medium igr:text-foreground igr:underline-offset-4 igr:hover:underline">
+                            {t('loyalty.rules.referralLink')}
+                        </Link>
+                    </p>
                 </CardContent>
             </Card>
 

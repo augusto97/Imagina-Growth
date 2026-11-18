@@ -34,7 +34,7 @@ function loyaltyProgramPayload(array $overrides = []): array
 {
     return array_replace_recursive([
         'status' => 'active', 'currency_name' => 'Puntos Pintor', 'pending_days' => 15,
-        'earn_rules' => ['per_amount' => ['points' => 1, 'amount' => '1000'], 'basis' => 'without_shipping', 'signup' => 100, 'birthday' => 200, 'review' => 50, 'review_media' => 100, 'referral' => 500, 'profile' => 50, 'category_multipliers' => [], 'campaigns' => []],
+        'earn_rules' => ['per_amount' => ['points' => 1, 'amount' => '1000'], 'basis' => 'without_shipping', 'signup' => 100, 'birthday' => 200, 'review' => 50, 'review_media' => 100, 'profile' => 50, 'category_multipliers' => [], 'campaigns' => []],
         'redeem_rules' => ['min_points' => 0, 'coupon_expiry_days' => 30],
         'expiry_policy' => ['months' => 12, 'warning_days' => 15],
         'wallet_rules' => ['cashback_pct' => 2],

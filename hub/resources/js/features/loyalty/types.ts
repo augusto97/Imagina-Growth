@@ -4,7 +4,8 @@ export type ProgramStatus = 'draft' | 'active' | 'paused';
 export type ThresholdType = 'spend_12m' | 'points_12m' | 'orders_12m';
 export type RewardKind = 'coupon_fixed' | 'coupon_percent' | 'free_shipping' | 'free_product' | 'wallet';
 export const REWARD_KINDS: RewardKind[] = ['coupon_fixed', 'coupon_percent', 'free_shipping', 'free_product', 'wallet'];
-export const FIXED_REASONS = ['signup', 'birthday', 'review', 'review_media', 'referral', 'profile'] as const;
+/** Puntos fijos de M13. Los de referidos se configuran en el programa de referidos (M14). */
+export const FIXED_REASONS = ['signup', 'birthday', 'review', 'review_media', 'profile'] as const;
 export type FixedReason = (typeof FIXED_REASONS)[number];
 
 export interface EarnRules {
@@ -16,7 +17,6 @@ export interface EarnRules {
     birthday?: number;
     review?: number;
     review_media?: number;
-    referral?: number;
     profile?: number;
 }
 

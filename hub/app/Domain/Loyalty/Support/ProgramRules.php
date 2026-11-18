@@ -16,7 +16,8 @@ use Carbon\CarbonInterface;
  *   per_amount   {points, amount}: N puntos por cada $X (p. ej. 1 por cada $1.000)
  *   basis        without_shipping (por defecto) | total
  *   category_multipliers [{category_id (id de la tienda), multiplier}]
- *   signup, birthday, review, review_media, referral, profile: puntos fijos (0 = apagado)
+ *   signup, birthday, review, review_media, profile: puntos fijos (0 = apagado). Los de
+ *   referidos los define el programa de referidos (M14), que llama a earnPoints con su monto.
  *   campaigns    [{name, multiplier, starts_on, ends_on}] (puntos dobles; fechas locales, inclusivas)
  * redeem_rules:  {min_points, coupon_expiry_days}
  * expiry_policy: {months (0 = no vencen), warning_days}
@@ -25,7 +26,7 @@ use Carbon\CarbonInterface;
 final class ProgramRules
 {
     /** Motivos con puntos fijos configurables. */
-    public const FIXED_REASONS = ['signup', 'birthday', 'review', 'review_media', 'referral', 'profile'];
+    public const FIXED_REASONS = ['signup', 'birthday', 'review', 'review_media', 'profile'];
 
     /**
      * @param  array<string, int>  $fixed
@@ -113,7 +114,7 @@ final class ProgramRules
                 'per_amount' => ['points' => 1, 'amount' => '1000.00'],
                 'basis' => 'without_shipping',
                 'category_multipliers' => [],
-                'signup' => 100, 'birthday' => 200, 'review' => 50, 'review_media' => 100, 'referral' => 500, 'profile' => 50,
+                'signup' => 100, 'birthday' => 200, 'review' => 50, 'review_media' => 100, 'profile' => 50,
                 'campaigns' => [],
             ],
             'redeem_rules' => ['min_points' => 0, 'coupon_expiry_days' => 30],

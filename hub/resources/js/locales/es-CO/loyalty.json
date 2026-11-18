@@ -81,10 +81,11 @@
                 "birthday": "En su cumpleaños",
                 "review": "Por una reseña",
                 "review_media": "Por una reseña con foto o video",
-                "referral": "Por referir a un amigo que compra",
                 "profile": "Por completar su perfil"
             },
             "fixedHelp": "El perfil está completo con nombre, correo, WhatsApp, ciudad y cumpleaños. Los de cumpleaños se dan a quien ya compró.",
+            "referralElsewhere": "Los puntos por referir a un amigo se configuran en el programa de referidos.",
+            "referralLink": "Ir a Referidos",
             "multipliersTitle": "Puntos extra",
             "multipliersHelp": "Multiplica los puntos de algunas categorías o durante una campaña (por ejemplo, puntos dobles en Black Friday).",
             "categories": "Por categoría",
