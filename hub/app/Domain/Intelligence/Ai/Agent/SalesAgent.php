@@ -117,7 +117,10 @@ final class SalesAgent implements ConversationAgent
             'workspace_id' => $run->workspace->id, 'conversation_id' => $run->conversation?->id, 'inbound_message_id' => $inbound?->id,
             'mode' => $mode, 'is_test' => $run->isTest, 'status' => 'failed',
         ]);
-        $last = $history !== [] ? (string) end($history)['content'] : '';
+        // Las reglas (baja, traspaso, alcance) miran solo el mensaje que se está atendiendo: el historial
+        // une los entrantes seguidos y una «BAJA» de antes no debe bloquear la pregunta de ahora.
+        $current = $inbound !== null ? trim((string) (((array) $inbound->payload)['text'] ?? '')) : null;
+        $last = $current ?? ($history !== [] ? (string) end($history)['content'] : '');
         $customerTexts = array_values(array_map(fn (array $m) => (string) $m['content'], array_filter($history, fn (array $m) => $m['role'] === 'user')));
 
         $blocked = $this->guards($run, $turn, $mode, $last);
@@ -304,7 +307,7 @@ final class SalesAgent implements ConversationAgent
     {
         $rows = Message::query()->where('conversation_id', $conversation->id)
             ->where(fn ($q) => $q->where('created_at', '<', $inbound->created_at)->orWhere('id', $inbound->id))
-            ->orderByDesc('created_at')->limit(self::HISTORY)->get()->reverse();
+            ->orderByDesc('created_at')->orderByDesc('id')->limit(self::HISTORY)->get()->reverse();
         $out = [];
         foreach ($rows as $m) {
             $text = trim((string) (((array) $m->payload)['text'] ?? ''));

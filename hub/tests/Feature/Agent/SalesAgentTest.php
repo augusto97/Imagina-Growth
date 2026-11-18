@@ -176,6 +176,8 @@ it('no responde a una baja, a quien pide un asesor le pasa con una persona y res
             AgentTurn::query()->create(['workspace_id' => $this->ws->id, 'conversation_id' => $this->conversation->id, 'mode' => 'auto', 'status' => 'replied']);
         }
     });
+    // Los entrantes anteriores (la «BAJA» de hace un rato) no cuentan: solo el mensaje que se atiende.
+    ($this->in)(fn () => Message::query()->where('conversation_id', $this->conversation->id)->update(['created_at' => now()->subMinutes(5)]));
     expect(agentRun($this, '¿Tienen brochas?')->handoff_reason)->toBe('rate_limit');
 });
 
