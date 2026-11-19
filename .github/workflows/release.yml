@@ -1,5 +1,6 @@
 # Publicación de una versión (docs/despliegue.md §3): al publicar un release con tag vX.Y.Z,
-# arma el paquete, lo firma con ed25519 y sube los assets que usan install.sh y el actualizador.
+# arma el paquete, lo firma con ed25519 si existe el secreto GROWTH_RELEASE_SIGNING_KEY (opcional) y sube los
+# assets que usan install.sh y el actualizador.
 name: Release
 
 on:
@@ -35,12 +36,16 @@ jobs:
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
-      - name: La llave de firma existe
+      - name: ¿Hay llave de firma?
         env:
           GROWTH_RELEASE_SIGNING_KEY: ${{ secrets.GROWTH_RELEASE_SIGNING_KEY }}
         run: |
-          if [ -z "$GROWTH_RELEASE_SIGNING_KEY" ]; then
-            echo "::error::Falta el secreto GROWTH_RELEASE_SIGNING_KEY (llave privada ed25519 en PEM). Créala con infra/release/keygen.sh."; exit 1
+          # La firma es opcional (docs/despliegue.md §3): sin el secreto, la versión sale solo con sha256.
+          if [ -n "$GROWTH_RELEASE_SIGNING_KEY" ]; then
+            echo "SIGNED=1" >> "$GITHUB_ENV"
+          else
+            echo "SIGNED=0" >> "$GITHUB_ENV"
+            echo "::notice::Sin el secreto GROWTH_RELEASE_SIGNING_KEY: la versión se publica sin firma (solo sha256)."
           fi
 
       - uses: shivammathur/setup-php@v2
@@ -62,6 +67,7 @@ jobs:
         run: uv lock --check
 
       - name: Llave pública (derivada de la privada)
+        if: env.SIGNED == '1'
         env:
           GROWTH_RELEASE_SIGNING_KEY: ${{ secrets.GROWTH_RELEASE_SIGNING_KEY }}
         run: |
@@ -69,19 +75,25 @@ jobs:
           printf '%s\n' "$GROWTH_RELEASE_SIGNING_KEY" > "$RUNNER_TEMP/signing.pem"
           openssl pkey -in "$RUNNER_TEMP/signing.pem" -pubout -out "$RUNNER_TEMP/release-signing.pub.pem"
           rm -f "$RUNNER_TEMP/signing.pem"
+          echo "GROWTH_RELEASE_PUBKEY_FILE=$RUNNER_TEMP/release-signing.pub.pem" >> "$GITHUB_ENV"
 
       - name: Armar el paquete
         env:
           GROWTH_COMMIT: ${{ github.sha }}
-        run: GROWTH_RELEASE_PUBKEY_FILE="$RUNNER_TEMP/release-signing.pub.pem" infra/release/build.sh "$VERSION" dist
+        run: infra/release/build.sh "$VERSION" dist
 
       - name: Firmar y verificar
+        if: env.SIGNED == '1'
         env:
           GROWTH_RELEASE_SIGNING_KEY: ${{ secrets.GROWTH_RELEASE_SIGNING_KEY }}
         run: |
           infra/release/sign.sh "dist/growth-$VERSION.zip.sha256"
           infra/release/verify.sh "dist/growth-$VERSION.zip" "dist/growth-$VERSION.zip.sha256" \
             "dist/growth-$VERSION.zip.sha256.sig" "$RUNNER_TEMP/release-signing.pub.pem"
+
+      - name: Verificar el sha256
+        working-directory: dist
+        run: sha256sum --check "growth-$VERSION.zip.sha256"
 
       - name: Subir los assets al release
         env:
@@ -90,11 +102,12 @@ jobs:
           assets=(
             "dist/growth-$VERSION.zip"
             "dist/growth-$VERSION.zip.sha256"
-            "dist/growth-$VERSION.zip.sha256.sig"
             "dist/release.json"
-            "dist/release-signing.pub.pem"
             "dist/install.sh"
           )
+          if [ "$SIGNED" = 1 ]; then
+            assets+=("dist/growth-$VERSION.zip.sha256.sig" "dist/release-signing.pub.pem")
+          fi
           for f in "${assets[@]}"; do
             [ -f "$f" ] || { echo "::error::Falta $f en el paquete"; exit 1; }
           done

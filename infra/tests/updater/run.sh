@@ -387,7 +387,41 @@ JSON
     rm -rf "$dir"
 }
 
-for t in test_update_ok test_health_fails_rollback test_ingest_replica_fails_rollback test_no_space test_bad_packages \
+# La firma es opcional: sin llave pública basta el sha256; con llave, una versión sin .sig no se instala.
+test_unsigned() {
+    setup_world "sin llave pública y sin firma"
+    install_release 0.1.0
+    rm -f "$GROWTH_ETC/release-signing.pub.pem"
+    make_release 0.2.0 unsigned
+    local code
+    code=$(run_update 0.2.0)
+    assert_eq "$code" 0 "código de salida"
+    assert_eq "$(current)" 0.2.0 "current apunta a la nueva"
+    assert_eq "$(status .state)" succeeded "estado"
+    assert_contains "$(status '.steps[] | select(.key == "verify") | .message')" "sin firma" "el paso verify dice que no hubo firma"
+    assert_no_root_exec
+    teardown_world
+
+    setup_world "sin llave pública y zip alterado"
+    install_release 0.1.0
+    rm -f "$GROWTH_ETC/release-signing.pub.pem"
+    make_release 0.2.0 corrupt-zip
+    rm -f "$FAKE/releases/v0.2.0/growth-0.2.0.zip.sha256.sig"
+    run_update 0.2.0 >/dev/null
+    assert_contains "$(status .error)" "sha256" "el sha256 sigue protegiendo"
+    check_nothing_left
+    teardown_world
+
+    setup_world "con llave pública y versión sin firma"
+    install_release 0.1.0
+    make_release 0.2.0 unsigned
+    run_update 0.2.0 >/dev/null
+    assert_contains "$(status .error)" "exige versiones firmadas" "mensaje"
+    check_nothing_left
+    teardown_world
+}
+
+for t in test_update_ok test_unsigned test_health_fails_rollback test_ingest_replica_fails_rollback test_no_space test_bad_packages \
     test_lock_held test_first_install test_dispatch test_env_reader; do
     "$t"
 done

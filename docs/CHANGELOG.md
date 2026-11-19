@@ -1,5 +1,17 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-19 — La firma de las versiones pasa a ser opcional
+
+Para la primera instalación se quiere actualizar como con las otras apps: publicar un release y pulsar
+«Instalar», sin crear llaves. La firma ed25519 queda para después.
+
+- `release.yml` ya no falla sin el secreto `GROWTH_RELEASE_SIGNING_KEY`: publica zip, `.sha256`, `release.json` e
+  `install.sh`, y verifica el sha256. Con el secreto, firma igual que antes.
+- `install.sh` y `growth-update` validan solo el sha256 si el servidor no tiene
+  `/etc/growth/release-signing.pub.pem`. Si la tiene, la firma se exige (una versión sin `.sig` no se instala).
+- Pruebas del actualizador: versión sin firma sin llave (se instala), zip alterado sin llave (se rechaza por
+  sha256) y versión sin firma con llave (se rechaza).
+
 ## 2026-11-18 — Despliegue nativo sin Docker, con versiones firmadas y actualización desde el panel
 
 La app todavía no estaba instalada en ningún lado, así que el despliegue pasó directo de Docker Compose a

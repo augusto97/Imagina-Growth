@@ -416,13 +416,18 @@ db_size() {
 }
 
 begin preflight
-[[ -f $PUBKEY ]] || fail "Falta la llave pública $PUBKEY: sin ella no se puede verificar la versión."
+# La firma es opcional (docs/despliegue.md §3): con llave pública instalada se exige; sin ella, solo el sha256.
+SIGNED=0
+[[ -f $PUBKEY ]] && SIGNED=1
 RELEASE_JSON=$("$CURL" -fsSL --retry 3 -H 'Accept: application/vnd.github+json' "$API/repos/$REPO/releases/tags/v$VERSION") \
     || fail "No se encontró el release v$VERSION en $REPO."
 asset_url() { jq -er --arg n "$1" '.assets[] | select(.name == $n) | .browser_download_url' <<<"$RELEASE_JSON"; }
 URL_ZIP=$(asset_url "$ZIP") || fail "El release no trae $ZIP."
 URL_SHA=$(asset_url "$ZIP.sha256") || fail "El release no trae $ZIP.sha256."
-URL_SIG=$(asset_url "$ZIP.sha256.sig") || fail "El release no trae la firma $ZIP.sha256.sig."
+URL_SIG=""
+if ((SIGNED)); then
+    URL_SIG=$(asset_url "$ZIP.sha256.sig") || fail "El release no trae la firma $ZIP.sha256.sig y este servidor exige versiones firmadas."
+fi
 URL_META=$(asset_url release.json) || fail "El release no trae release.json."
 "$CURL" -fsSL --retry 3 -o "$TMP/release.json" "$URL_META" || fail "No se pudo descargar release.json."
 UNPACKED=$(jq -er '.unpacked_bytes | numbers' "$TMP/release.json") || fail "release.json no dice cuánto ocupa la versión."
@@ -449,19 +454,23 @@ done_step "Libres: $(human "$FREE_BYTES"), $FREE_INODES inodos."
 begin download
 "$CURL" -fsSL --retry 3 -o "$TMP/$ZIP" "$URL_ZIP" || fail "No se pudo descargar $ZIP."
 "$CURL" -fsSL --retry 3 -o "$TMP/$ZIP.sha256" "$URL_SHA" || fail "No se pudo descargar $ZIP.sha256."
-"$CURL" -fsSL --retry 3 -o "$TMP/$ZIP.sha256.sig" "$URL_SIG" || fail "No se pudo descargar la firma."
+if ((SIGNED)); then
+    "$CURL" -fsSL --retry 3 -o "$TMP/$ZIP.sha256.sig" "$URL_SIG" || fail "No se pudo descargar la firma."
+fi
 done_step
 
-# 3. Verificar: primero la firma del .sha256 con la llave de /etc/growth, después el zip.
+# 3. Verificar: la firma del .sha256 con la llave de /etc/growth (si hay llave), después el zip.
 begin verify
-"$OPENSSL" pkeyutl -verify -rawin -pubin -inkey "$PUBKEY" -sigfile "$TMP/$ZIP.sha256.sig" -in "$TMP/$ZIP.sha256" >/dev/null 2>&1 \
-    || fail "La firma de la versión $VERSION no es válida: no se instala."
+if ((SIGNED)); then
+    "$OPENSSL" pkeyutl -verify -rawin -pubin -inkey "$PUBKEY" -sigfile "$TMP/$ZIP.sha256.sig" -in "$TMP/$ZIP.sha256" >/dev/null 2>&1 \
+        || fail "La firma de la versión $VERSION no es válida: no se instala."
+fi
 read -r WANT_SHA WANT_NAME <"$TMP/$ZIP.sha256" || true
 WANT_NAME=${WANT_NAME#\*}
 [[ $WANT_NAME == "$ZIP" && $WANT_SHA =~ ^[0-9a-f]{64}$ ]] || fail "El archivo .sha256 no corresponde a $ZIP."
 GOT_SHA=$("$SHA256SUM" "$TMP/$ZIP" | cut -d' ' -f1)
 [[ $GOT_SHA == "$WANT_SHA" ]] || fail "El sha256 del zip no coincide: el archivo llegó dañado o fue alterado."
-done_step
+if ((SIGNED)); then done_step "Firma y sha256 válidos."; else done_step "sha256 válido (sin firma: este servidor no tiene llave pública)."; fi
 
 # 4. Extraer, enlazar shared/, entorno de Python y reparación del .env.
 begin extract

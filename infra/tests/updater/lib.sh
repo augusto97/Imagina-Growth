@@ -60,7 +60,8 @@ teardown_world() { rm -rf "$WORLD"; }
 
 # make_release <versión> [variante]: arma el zip, el .sha256, la firma y release.json en $FAKE/releases/v<versión>.
 #   variantes: ok | corrupt-zip (bytes cambiados después de firmar) | bad-sig (firmado con otra llave) |
-#              broken-zip (zip inválido pero bien firmado) | big (release.json pide mucho espacio)
+#              broken-zip (zip inválido pero bien firmado) | big (release.json pide mucho espacio) |
+#              unsigned (sin .sig: la firma es opcional)
 make_release() {
     local v=$1 variant=${2:-ok}
     local src="$WORLD/src-$v" dir="$FAKE/releases/v$v" zip="growth-$v.zip"
@@ -95,7 +96,7 @@ make_release() {
         openssl genpkey -algorithm ed25519 -out "$FAKE/other.pem" 2>/dev/null
         key="$FAKE/other.pem"
     fi
-    openssl pkeyutl -sign -rawin -inkey "$key" -in "$dir/$zip.sha256" -out "$dir/$zip.sha256.sig"
+    [[ $variant == unsigned ]] || openssl pkeyutl -sign -rawin -inkey "$key" -in "$dir/$zip.sha256" -out "$dir/$zip.sha256.sig"
     if [[ $variant == corrupt-zip ]]; then
         printf 'X' | dd of="$dir/$zip" bs=1 seek=40 conv=notrunc 2>/dev/null
     fi

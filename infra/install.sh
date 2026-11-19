@@ -12,7 +12,8 @@
 #   --repo O/R          repositorio de GitHub (por defecto augusto97/Imagina-Growth).
 #   --releases-api URL  API de releases (por defecto https://api.github.com; las pruebas usan un simulador).
 #   --pubkey ARCHIVO    llave pública ed25519 (PEM) que valida las versiones. Por defecto, la que el CI
-#                       incrusta en este archivo al publicar cada versión (entre las marcas GROWTH_PUBKEY).
+#                       incrusta en este archivo si el repositorio tiene llave de firma (marcas GROWTH_PUBKEY).
+#                       La firma es opcional: sin llave, las versiones se validan solo con sha256.
 #   --skip-firewall     no tocar ufw.
 #   --no-release        prepara el servidor sin instalar una versión de la app.
 #
@@ -174,10 +175,9 @@ REL_VERSION=""
 REL_DIR=""
 api_get() { curl -fsSL --retry 3 -H 'Accept: application/vnd.github+json' "$1"; }
 
-# Descarga zip, .sha256 y .sig de la versión pedida, valida la firma y el sha256, y deja todo en $REL_DIR.
+# Descarga zip y .sha256 (y el .sig si hay llave pública) de la versión pedida, los valida y deja todo en $REL_DIR.
 fetch_release() {
     [ -n "$REL_DIR" ] && return 0
-    [ -n "$PUBKEY_PEM" ] || die "No hay llave pública para validar la versión (usa --pubkey)."
     command -v jq >/dev/null || "${APT[@]}" install jq >/dev/null
     local rel url name
     if [ "$VERSION" = latest ]; then
@@ -190,17 +190,26 @@ fetch_release() {
     [[ $REL_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "Tag de versión inválido: $REL_VERSION"
     REL_DIR=$WORK/release
     mkdir -p "$REL_DIR"
-    for name in "growth-$REL_VERSION.zip" "growth-$REL_VERSION.zip.sha256" "growth-$REL_VERSION.zip.sha256.sig"; do
+    local names=("growth-$REL_VERSION.zip" "growth-$REL_VERSION.zip.sha256")
+    # La firma es opcional (docs/despliegue.md §3): solo se exige si hay llave pública.
+    [ -n "$PUBKEY_PEM" ] && names+=("growth-$REL_VERSION.zip.sha256.sig")
+    for name in "${names[@]}"; do
         url=$(jq -r --arg n "$name" '.assets[] | select(.name == $n) | .browser_download_url' <<<"$rel")
         if [ -z "$url" ] || [ "$url" = null ]; then die "La versión $REL_VERSION no trae $name."; fi
         curl -fsSL --retry 3 -o "$REL_DIR/$name" "$url"
     done
-    printf '%s\n' "$PUBKEY_PEM" >"$WORK/release-signing.pub.pem"
-    openssl pkeyutl -verify -pubin -inkey "$WORK/release-signing.pub.pem" -rawin \
-        -in "$REL_DIR/growth-$REL_VERSION.zip.sha256" -sigfile "$REL_DIR/growth-$REL_VERSION.zip.sha256.sig" >/dev/null \
-        || die "La firma de growth-$REL_VERSION.zip no es válida."
+    if [ -n "$PUBKEY_PEM" ]; then
+        printf '%s\n' "$PUBKEY_PEM" >"$WORK/release-signing.pub.pem"
+        openssl pkeyutl -verify -pubin -inkey "$WORK/release-signing.pub.pem" -rawin \
+            -in "$REL_DIR/growth-$REL_VERSION.zip.sha256" -sigfile "$REL_DIR/growth-$REL_VERSION.zip.sha256.sig" >/dev/null \
+            || die "La firma de growth-$REL_VERSION.zip no es válida."
+    fi
     (cd "$REL_DIR" && sha256sum --check --status "growth-$REL_VERSION.zip.sha256") || die "El sha256 de growth-$REL_VERSION.zip no coincide."
-    info "Versión $REL_VERSION descargada; firma y sha256 válidos."
+    if [ -n "$PUBKEY_PEM" ]; then
+        info "Versión $REL_VERSION descargada; firma y sha256 válidos."
+    else
+        info "Versión $REL_VERSION descargada; sha256 válido (sin firma)."
+    fi
 }
 
 # ── 2. Paquetes base y repositorios oficiales ───────────────────────────
@@ -544,7 +553,7 @@ if [ -n "$PUBKEY_PEM" ]; then
     openssl pkey -pubin -in "$ETC_DIR/release-signing.pub.pem" -noout 2>/dev/null || die "La llave pública no es válida."
     info "Llave pública de las versiones instalada."
 else
-    warn "Sin llave pública: el actualizador no podrá validar versiones hasta instalar $ETC_DIR/release-signing.pub.pem."
+    info "Sin llave pública: las versiones se validan solo con sha256. Para exigir firma, instala $ETC_DIR/release-signing.pub.pem (--pubkey)."
 fi
 # Copias (infra/backup): la configuración es del administrador; solo se crea si falta.
 if [ ! -f "$ETC_DIR/backup.conf" ] && [ -f "$TPL/backup/backup.conf.example" ]; then

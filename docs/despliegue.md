@@ -58,7 +58,7 @@ Todos los servicios `growth-*` tienen `PartOf=growth.target` y `WantedBy=growth.
   backup/growth-backup-{mariadb,clickhouse,verify}  backup/growth-backup-lib.sh
 /etc/growth/                          root:root 0755
   updater.conf                        0644     repositorio y URL de la API de releases (§5)
-  release-signing.pub.pem             0644     llave pública ed25519 que valida las versiones
+  release-signing.pub.pem             0644     llave pública ed25519 que valida las versiones (opcional, §3)
   clickhouse-default.pass             0600     contraseña aleatoria del usuario `default` de ClickHouse (nadie lo usa)
   backup.conf                         0600     remoto de rclone, retención y heartbeats de Better Stack (§6)
 /var/lib/growth/<unidad>/             estado interno de cada proceso de FrankenPHP
@@ -69,7 +69,7 @@ Todos los servicios `growth-*` tienen `PartOf=growth.target` y `WantedBy=growth.
 
 **Regla de seguridad:** root nunca ejecuta nada de una ruta que `growth` pueda escribir. Las versiones son de
 root y de solo lectura para la app; los scripts de root viven en `/usr/local/lib/growth/` y se reemplazan solo
-con los de una versión verificada (firma y sha256) que pasó el health-check.
+con los de una versión verificada (sha256, y la firma si el servidor tiene llave pública) que pasó el health-check.
 
 En cada versión: `hub/.env -> /opt/growth/shared/.env`, `hub/storage -> /opt/growth/shared/storage` y
 `hub/public/storage -> /opt/growth/shared/storage/app/public`.
@@ -83,9 +83,16 @@ archivo `VERSION` de la raíz. Arma el paquete con `infra/release/build.sh <vers
 |---|---|
 | `growth-<v>.zip` | el paquete (abajo) |
 | `growth-<v>.zip.sha256` | `<sha256 en hex>  growth-<v>.zip` |
-| `growth-<v>.zip.sha256.sig` | firma ed25519 (64 bytes) del archivo `.sha256`, hecha con `openssl pkeyutl -sign -rawin` y la llave del secreto `GROWTH_RELEASE_SIGNING_KEY` (PEM). Sin el secreto, el workflow falla |
+| `growth-<v>.zip.sha256.sig` | **opcional:** firma ed25519 (64 bytes) del archivo `.sha256`, hecha con `openssl pkeyutl -sign -rawin` y la llave del secreto `GROWTH_RELEASE_SIGNING_KEY` (PEM). Sin el secreto, la versión se publica sin firma |
 | `release.json` | el mismo de adentro del zip, para revisar espacio antes de descargar |
-| `release-signing.pub.pem` | la llave pública con la que se firmó (también va incrustada en `install.sh` y en la raíz del zip) |
+| `release-signing.pub.pem` | solo si se firmó: la llave pública (también va incrustada en `install.sh` y en la raíz del zip) |
+
+**La firma es opcional.** Sin el secreto `GROWTH_RELEASE_SIGNING_KEY`, el workflow publica la versión sin `.sig` y
+`install.sh` no lleva llave: el servidor valida solo el sha256. Si el servidor tiene
+`/etc/growth/release-signing.pub.pem` (por `install.sh` con llave incrustada o `--pubkey`), la firma se **exige**: una
+versión sin `.sig` o con una firma de otra llave no se instala. Para activarla después: crear la llave
+(`infra/release/keygen.sh`), guardar el secreto y copiar la llave pública a `/etc/growth/release-signing.pub.pem`
+(root, 0644) en cada servidor.
 | `install.sh` | instalador para un servidor limpio |
 
 Contenido del zip (sin carpeta raíz):
@@ -163,8 +170,8 @@ install.sh                  el instalador
    1. candado `flock /run/lock/growth-update.lock` (si está tomado, termina sin hacer nada);
    2. **preflight:** espacio libre ≥ 3 × `unpacked_bytes` + tamaño de la base, e inodos ≥ 2 × `files`, en
       `/opt/growth`; si no alcanza, termina **sin descargar** el zip;
-   3. **descargar** zip, `.sha256` y `.sig` a `shared/tmp`; **verificar** la firma con
-      `/etc/growth/release-signing.pub.pem` y luego el sha256 del zip;
+   3. **descargar** zip y `.sha256` (y el `.sig` si hay llave pública) a `shared/tmp`; **verificar** la firma con
+      `/etc/growth/release-signing.pub.pem` (si existe) y luego el sha256 del zip;
    4. **extraer** en `releases/<v>.partial` y renombrar a `releases/<v>`; **enlazar** `shared/` (§2);
       `uv sync --frozen --no-dev` en `hub/ml`; reparar `shared/.env` con `release.json` (`growth-env repair`);
    5. `config:cache`, `route:cache`, `view:cache` y `event:cache` con la versión nueva;
@@ -211,8 +218,8 @@ GROWTH_HEALTH_TIMEOUT=120
 ```
 
 La app usa `GROWTH_UPDATE_REPO` y `GROWTH_UPDATE_API` del `.env` solo para **mostrar** la versión nueva; el
-script descarga con lo que dice `updater.conf` (root) y valida con la llave de `/etc/growth`, así una app
-comprometida no puede instalar un zip ajeno.
+script descarga con lo que dice `updater.conf` (root) y, si hay llave, valida con la de `/etc/growth`; así una app
+comprometida no puede instalar un zip de otro repositorio.
 
 **En la app** (`app/Domain/Updates`, `config/growth.php`): `GROWTH_STATE_PATH` (por defecto
 `/opt/growth/shared/state`; una ruta relativa se resuelve desde la raíz del hub), `GROWTH_UPDATE_REPO` y

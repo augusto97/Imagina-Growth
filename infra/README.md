@@ -1,6 +1,6 @@
 # infra/
 
-Despliegue del hub **sin Docker**: servicios nativos de systemd en Ubuntu 24.04, versiones en zip firmadas en
+Despliegue del hub **sin Docker**: servicios nativos de systemd en Ubuntu 24.04, versiones en zip (firma opcional) en
 GitHub Releases, el symlink `current` y actualización con un clic desde el panel de la plataforma. El contrato
 completo (procesos, puertos, rutas, paquete, actualizador, copias y vigilancia) está en
 [`docs/despliegue.md`](../docs/despliegue.md); lo que diga ese documento manda sobre los scripts.
@@ -27,13 +27,13 @@ CI, no de la app).
 
 ## Publicar una versión
 
-1. **Una sola vez:** `infra/release/keygen.sh` explica cómo crear el par de llaves ed25519 con `openssl`. La llave
-   privada (PEM) va al secreto `GROWTH_RELEASE_SIGNING_KEY` del repositorio y **nunca** al repositorio; la pública
-   la incrusta el CI en cada `install.sh`.
+1. **Firma (opcional, se puede activar después):** `infra/release/keygen.sh` crea el par de llaves ed25519. La
+   privada va al secreto `GROWTH_RELEASE_SIGNING_KEY` del repositorio y **nunca** al repositorio. Sin el secreto,
+   las versiones salen sin firma y los servidores validan solo el sha256 (`docs/despliegue.md` §3).
 2. Sube el número en `VERSION` (por ejemplo `0.2.0`) y fusiona a `main` con el CI en verde.
-3. Publica un release con el tag `v0.2.0`. El workflow `release.yml` falla si el tag no coincide con `VERSION` o si
-   falta el secreto; si no, arma, firma, verifica y sube `growth-0.2.0.zip`, su `.sha256`, el `.sig`,
-   `release.json`, `release-signing.pub.pem` e `install.sh`.
+3. Publica un release con el tag `v0.2.0`. El workflow `release.yml` falla si el tag no coincide con `VERSION`; si
+   no, arma, verifica y sube `growth-0.2.0.zip`, su `.sha256`, `release.json` e `install.sh` (y, con el secreto, el
+   `.sig` y `release-signing.pub.pem`).
 4. Los servidores lo ven en la próxima consulta horaria; el administrador de la plataforma lo instala desde
    `/plataforma` → «Actualizaciones».
 
