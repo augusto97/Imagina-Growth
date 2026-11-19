@@ -1,9 +1,16 @@
-# Publicación de una versión (docs/despliegue.md §3): al publicar un release con tag vX.Y.Z,
-# arma el paquete, lo firma con ed25519 si existe el secreto GROWTH_RELEASE_SIGNING_KEY (opcional) y sube los
-# assets que usan install.sh y el actualizador.
+# Publicación de una versión (docs/despliegue.md §3). Dos formas:
+#   - Automática: un push que cambia el archivo VERSION (en main o en la rama de trabajo) crea el tag vX.Y.Z y el
+#     release con sus assets. Si ese release ya existe, no hace nada; una versión menor que la última se rechaza.
+#   - Manual: publicar un release con tag vX.Y.Z en GitHub; el tag debe coincidir con VERSION.
+# Arma el paquete, lo firma con ed25519 si existe el secreto GROWTH_RELEASE_SIGNING_KEY (opcional) y sube los
+# assets que usan install.sh y el actualizador, más el plugin de WordPress.
 name: Release
 
 on:
+  push:
+    # ccr-2bf1a9d4-0xdcjo: la rama donde vive el código hasta que se fusione a main; luego se quita de aquí.
+    branches: [main, ccr-2bf1a9d4-0xdcjo]
+    paths: [VERSION]
   release:
     types: [published]
 
@@ -11,30 +18,64 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.release.tag_name }}
+  group: release-${{ github.event.release.tag_name || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
-  package:
-    name: Paquete firmado de la versión
+  prepare:
+    name: Versión a publicar
     runs-on: ubuntu-24.04
-    env:
-      TAG: ${{ github.event.release.tag_name }}
+    outputs:
+      skip: ${{ steps.v.outputs.skip }}
+      tag: ${{ steps.v.outputs.tag }}
+      mode: ${{ steps.v.outputs.mode }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
-
-      - name: El tag coincide con VERSION
+          ref: ${{ github.event.release.tag_name || github.sha }}
+      - id: v
+        name: Tag, VERSION y releases existentes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           VERSION=$(tr -d '[:space:]' < VERSION)
-          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::El tag «$TAG» no tiene la forma vX.Y.Z"; exit 1
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::VERSION «$VERSION» no tiene la forma X.Y.Z"; exit 1; }
+          if [ "$EVENT" = release ]; then
+            [ "$RELEASE_TAG" = "v$VERSION" ] || { echo "::error::El tag $RELEASE_TAG no coincide con el archivo VERSION ($VERSION). Sube VERSION y vuelve a publicar."; exit 1; }
+            echo "mode=upload" >> "$GITHUB_OUTPUT"
+          else
+            if gh release view "v$VERSION" >/dev/null 2>&1; then
+              echo "::notice::El release v$VERSION ya existe: no se publica nada."
+              echo "skip=1" >> "$GITHUB_OUTPUT"
+            else
+              LATEST=$(gh release view --json tagName -q .tagName 2>/dev/null || true)
+              LATEST=${LATEST#v}
+              if [ -n "$LATEST" ] && [ "$(printf '%s\n%s\n' "$LATEST" "$VERSION" | sort -V | tail -1)" != "$VERSION" ]; then
+                echo "::error::VERSION ($VERSION) es menor que la última publicada ($LATEST)."; exit 1
+              fi
+            fi
+            echo "mode=create" >> "$GITHUB_OUTPUT"
           fi
-          if [ "${TAG#v}" != "$VERSION" ]; then
-            echo "::error::El tag $TAG no coincide con el archivo VERSION ($VERSION). Sube VERSION y vuelve a publicar."; exit 1
-          fi
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+  package:
+    name: Paquete de la versión
+    needs: prepare
+    if: needs.prepare.outputs.skip != '1'
+    runs-on: ubuntu-24.04
+    env:
+      TAG: ${{ needs.prepare.outputs.tag }}
+      MODE: ${{ needs.prepare.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || github.sha }}
+
+      - name: VERSION
+        run: echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
 
       - name: ¿Hay llave de firma?
         env:
@@ -116,4 +157,9 @@ jobs:
           for f in "${assets[@]}"; do
             [ -f "$f" ] || { echo "::error::Falta $f en el paquete"; exit 1; }
           done
-          gh release upload "$TAG" "${assets[@]}" --clobber
+          if [ "$MODE" = create ]; then
+            # Release automático: el tag apunta al commit que cambió VERSION; las notas salen de los commits.
+            gh release create "$TAG" "${assets[@]}" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          else
+            gh release upload "$TAG" "${assets[@]}" --clobber
+          fi

@@ -30,10 +30,13 @@ CI, no de la app).
 1. **Firma (opcional, se puede activar después):** `infra/release/keygen.sh` crea el par de llaves ed25519. La
    privada va al secreto `GROWTH_RELEASE_SIGNING_KEY` del repositorio y **nunca** al repositorio. Sin el secreto,
    las versiones salen sin firma y los servidores validan solo el sha256 (`docs/despliegue.md` §3).
-2. Sube el número en `VERSION` (por ejemplo `0.2.0`) y fusiona a `main` con el CI en verde.
-3. Publica un release con el tag `v0.2.0`. El workflow `release.yml` falla si el tag no coincide con `VERSION`; si
-   no, arma, verifica y sube `growth-0.2.0.zip`, su `.sha256`, `release.json`, `install.sh` y el plugin de WordPress
-   (`imagina-growth-connector.zip`; y, con el secreto, el `.sig` y `release-signing.pub.pem`).
+2. Sube el número en `VERSION` (por ejemplo `0.2.0`) y haz push a `main` (o a la rama de trabajo que lista
+   `release.yml`). El workflow crea solo el tag `v0.2.0` y el release, y sube `growth-0.2.0.zip`, su `.sha256`,
+   `release.json`, `install.sh` y el plugin de WordPress (`imagina-growth-connector.zip`; y, con el secreto, el
+   `.sig` y `release-signing.pub.pem`). Si el release ya existe no hace nada, y una versión menor que la última se
+   rechaza.
+3. También se puede publicar a mano un release con tag `v0.2.0` en GitHub: el workflow sube los mismos archivos y
+   falla si el tag no coincide con `VERSION`.
 4. Los servidores lo ven en la próxima consulta horaria; el administrador de la plataforma lo instala desde
    `/plataforma` → «Actualizaciones».
 

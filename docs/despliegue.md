@@ -76,8 +76,11 @@ En cada versión: `hub/.env -> /opt/growth/shared/.env`, `hub/storage -> /opt/gr
 
 ## 3. Paquete de versión (GitHub Releases)
 
-El workflow `release.yml` corre **al publicar un release** con tag `vX.Y.Z`; falla si `X.Y.Z` no coincide con el
-archivo `VERSION` de la raíz. Arma el paquete con `infra/release/build.sh <versión>` y sube estos assets:
+El workflow `release.yml` publica cada versión **solo**: un push que cambia el archivo `VERSION` de la raíz (en
+`main` o en la rama de trabajo que lista el workflow) crea el tag `vX.Y.Z` en ese commit y el release, con notas
+generadas de los commits. Si el release ya existe no hace nada y, si `VERSION` es menor que la última publicada,
+falla. También corre al publicar a mano un release con tag `vX.Y.Z` (falla si no coincide con `VERSION`). Arma el
+paquete con `infra/release/build.sh <versión>` y sube estos assets:
 
 | Asset | Contenido |
 |---|---|

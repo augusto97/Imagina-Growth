@@ -1,5 +1,11 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-19 — Versión 0.1.2: releases automáticos
+
+Publicar ya no requiere entrar a GitHub: un push que sube `VERSION` crea el tag y el release con sus assets
+(`release.yml`, `docs/despliegue.md` §3). 0.1.2 es la primera versión publicada así y la primera que trae el plugin
+de WordPress como asset; la app no cambia respecto de 0.1.1.
+
 ## 2026-11-19 — El plugin se publica con cada versión
 
 Hasta ahora el plugin «Imagina Growth Connector» no se publicaba en ningún lado. `connector/bin/build-zip.sh` arma
