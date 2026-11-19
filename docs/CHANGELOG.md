@@ -1,5 +1,17 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-19 — Memoria: mínimo de RAM y límites de ClickHouse
+
+La primera instalación real fue en un servidor de 1,6 GB de RAM: ClickHouse tomaba la memoria, el kernel lo mataba
+cada minuto y el panel dejaba de responder. `install.sh` ahora:
+- se detiene antes de instalar si el servidor tiene menos de ~3,5 GB (pide 4 GB; recomienda 8 GB) y avisa por
+  debajo de ~7,5 GB;
+- limita ClickHouse al 30 % de la RAM, con cachés proporcionales y sin los logs de sistema que la app no usa
+  (`config.d/growth-memory.xml`, reescrito en cada corrida para que ampliar el servidor ajuste los límites).
+
+Probado en Ubuntu 26.04: ClickHouse toma los límites (`system.server_settings`), solo quedan `query_log` y
+`part_log`, y la app responde sana.
+
 ## 2026-11-19 — `install.sh` también para Ubuntu 26.04 LTS
 
 El servidor de producción usa Ubuntu 26.04. Ahí los repositorios oficiales no publican MariaDB 11.4 ni Redis 7, así

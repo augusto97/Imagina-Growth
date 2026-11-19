@@ -39,6 +39,9 @@ CI, no de la app).
 
 ## Instalar un servidor
 
+Requisitos: Ubuntu 24.04 o 26.04 LTS limpio, **mínimo 4 GB de RAM** (recomendado 8 GB y 4 vCPU). Con menos
+memoria el instalador se detiene.
+
 ```bash
 curl -fsSL https://github.com/augusto97/Imagina-Growth/releases/latest/download/install.sh \
   | sudo bash -s -- --domain growth.ejemplo.com --email ops@ejemplo.com

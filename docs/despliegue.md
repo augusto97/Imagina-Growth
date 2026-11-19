@@ -261,5 +261,14 @@ Caddyfile (solo si no existe) y baja e instala la última versión con `growth-u
 una versión ya instalada (para eso está el panel; `--version` solo cuenta en la primera instalación). Si se le pasa
 `--domain` o `--email` y el Caddyfile ya existe, deja la propuesta en `/etc/caddy/Caddyfile.growth.new`.
 
+**Memoria:** mínimo 4 GB de RAM (recomendado 8 GB o más y 4 vCPU). Con menos de ~3,5 GB, `install.sh` se detiene
+antes de instalar nada (`GROWTH_ALLOW_LOW_MEMORY=1` lo salta, solo para pruebas); con menos de ~7,5 GB, avisa. Los
+servicios se reparten la RAM: MariaDB usa 1/4 para `innodb_buffer_pool_size`, y ClickHouse queda limitado al 30 %
+(`max_server_memory_usage`) con cachés de marcas proporcionales (1/32 y 1/64 de la RAM) y sin los logs de sistema
+que la app no usa (`trace_log`, `text_log`, `metric_log`, `asynchronous_metric_log`, `query_thread_log`,
+`processors_profile_log`, `opentelemetry_span_log`, `latency_log`, `error_log`). Lo escribe en
+`/etc/clickhouse-server/config.d/growth-memory.xml` en cada corrida: al ampliar el servidor, volver a correr
+`install.sh` ajusta los límites. Sin ese límite, ClickHouse toma hasta el 90 % de la RAM y el kernel lo mata en bucle.
+
 **Python del ML:** `uv sync --frozen` usa el Python 3.12 de Ubuntu si cumple `requires-python`; si una versión
 necesitara otro, `uv` lo baja de GitHub (el servidor necesita salida a GitHub).

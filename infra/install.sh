@@ -84,6 +84,14 @@ case "$OS_ID $OS_VERSION_ID" in
         MARIADB_SERIES=11.4 REDIS_PIN='6:7.4.*'
         ;;
 esac
+# Memoria (docs/despliegue.md §7): MariaDB, ClickHouse, dos Redis, ~12 procesos de PHP y el ML no caben en menos
+# de 4 GB; con menos, el kernel mata ClickHouse en bucle y el servidor deja de responder.
+MEM_MB=$(awk '/MemTotal/ {print int($2 / 1024)}' /proc/meminfo)
+if [ "$MEM_MB" -lt 3500 ] && [ "${GROWTH_ALLOW_LOW_MEMORY:-0}" != 1 ]; then
+    die "Este servidor tiene $((MEM_MB / 1024)),$(((MEM_MB % 1024) * 10 / 1024)) GB de RAM; Imagina Growth necesita al menos 4 GB (recomendado 8 GB). Amplía el servidor y vuelve a correr el instalador."
+elif [ "$MEM_MB" -lt 7500 ]; then
+    warn "Este servidor tiene $((MEM_MB / 1024)) GB de RAM: funciona, pero se recomiendan 8 GB o más."
+fi
 if [ "$VERSION" != latest ] && ! [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     die "Versión inválida: $VERSION (formato X.Y.Z)."
 fi
@@ -450,7 +458,6 @@ else
     info "Sin cambios."
 fi
 
-MEM_MB=$(awk '/MemTotal/ {print int($2 / 1024)}' /proc/meminfo)
 
 # ── 5. MariaDB ──────────────────────────────────────────────────────────
 
@@ -489,6 +496,26 @@ CH_CHANGED=0
 put_file "$TPL/config/clickhouse/igr.xml" /etc/clickhouse-server/config.d/igr.xml 0644 root:clickhouse && CH_CHANGED=1
 put_file "$TPL/config/clickhouse/growth-listen.xml" /etc/clickhouse-server/config.d/growth-listen.xml 0644 root:clickhouse && CH_CHANGED=1
 put_file "$TPL/config/clickhouse/growth-backups.xml" /etc/clickhouse-server/config.d/growth-backups.xml 0644 root:clickhouse && CH_CHANGED=1
+# Memoria de ClickHouse según la RAM (sin esto toma hasta el 90 % y el kernel lo mata): 30 % para el servidor,
+# cachés de marcas proporcionales y sin los logs de sistema que la app no usa (gastan memoria, CPU y disco).
+MEM_BYTES=$((MEM_MB * 1024 * 1024))
+put_content /etc/clickhouse-server/config.d/growth-memory.xml 0644 root:clickhouse <<EOF && CH_CHANGED=1
+<!-- Lo escribe infra/install.sh según la RAM del servidor ($MEM_MB MB); se reescribe en cada corrida. -->
+<clickhouse>
+    <max_server_memory_usage>$((MEM_BYTES * 30 / 100))</max_server_memory_usage>
+    <mark_cache_size>$((MEM_BYTES / 32))</mark_cache_size>
+    <index_mark_cache_size>$((MEM_BYTES / 64))</index_mark_cache_size>
+    <trace_log remove="1"/>
+    <text_log remove="1"/>
+    <metric_log remove="1"/>
+    <asynchronous_metric_log remove="1"/>
+    <query_thread_log remove="1"/>
+    <processors_profile_log remove="1"/>
+    <opentelemetry_span_log remove="1"/>
+    <latency_log remove="1"/>
+    <error_log remove="1"/>
+</clickhouse>
+EOF
 if [ ! -s "$ETC_DIR/clickhouse-default.pass" ]; then
     install -m 0600 /dev/null "$ETC_DIR/clickhouse-default.pass"
     rand_hex 24 >"$ETC_DIR/clickhouse-default.pass"
