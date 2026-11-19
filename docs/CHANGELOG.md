@@ -1,5 +1,16 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-19 — `install.sh` también para Ubuntu 26.04 LTS
+
+El servidor de producción usa Ubuntu 26.04. Ahí los repositorios oficiales no publican MariaDB 11.4 ni Redis 7, así
+que `install.sh` elige por sistema: en 24.04 sigue con MariaDB 11.4 y Redis `7.4.*`; en 26.04 usa MariaDB 11.8 (LTS)
+y Redis `8.*`. ClickHouse 25.8, FrankenPHP con PHP 8.4 y Caddy no cambian. La app no cambió.
+
+Probado en un Ubuntu 26.04 limpio con systemd 259 (`GROWTH_IT_UBUNTU=26.04 infra/tests/install/run.sh`): instaló la
+versión 0.1.0 publicada en GitHub (sin firma, con sha256), los 17 servicios quedaron activos, `/health/ready` en
+8080/8081/8082 y Caddy respondieron, la segunda corrida no cambió nada, y las copias de MariaDB y ClickHouse y la
+prueba de restauración salieron bien.
+
 ## 2026-11-19 — La firma de las versiones pasa a ser opcional
 
 Para la primera instalación se quiere actualizar como con las otras apps: publicar un release y pulsar

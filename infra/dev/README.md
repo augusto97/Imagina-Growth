@@ -68,4 +68,4 @@ Luego entra a `http://127.0.0.1:8080/wp-admin` (usuario `admin`, contraseña `ad
 ## 4. Pruebas
 
 - **Hub:** `vendor/bin/pest`. Usa la base `igr_test`; en paralelo, cada proceso tiene la suya.
-- **Instalador de producción:** `infra/tests/install/run.sh` lo prueba en un Ubuntu 24.04 con systemd, dentro de un contenedor desechable que sirve solo para verificar (ver la cabecera del script).
+- **Instalador de producción:** `infra/tests/install/run.sh` lo prueba en un Ubuntu 24.04 (o 26.04 con `GROWTH_IT_UBUNTU=26.04`) con systemd, dentro de un contenedor desechable que sirve solo para verificar (ver la cabecera del script).

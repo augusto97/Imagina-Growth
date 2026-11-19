@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Prueba de install.sh en un Ubuntu 24.04 limpio con systemd, dentro de un contenedor desechable.
+# Prueba de install.sh en un Ubuntu limpio (24.04 o 26.04) con systemd, dentro de un contenedor desechable.
 # El contenedor es solo para verificar: la app no usa Docker. docs/despliegue.md §7.
 #
 #   infra/tests/install/run.sh up      [--name N] [--assets DIR]   crea la imagen y arranca el contenedor
@@ -8,6 +8,7 @@
 #   infra/tests/install/run.sh down    [--name N]                  borra el contenedor y el reenvío del proxy
 #
 # --name N      nombre del contenedor (por defecto growth-it-1; siempre empieza con growth-it-)
+# GROWTH_IT_UBUNTU=26.04   versión de Ubuntu del contenedor (por defecto 24.04)
 # --assets DIR  carpeta con versiones de prueba: growth-<v>.zip, .sha256, .sig, release-<v>.json, install.sh
 #               y opcionalmente LATEST y notes-<v>.md. Se monta en /assets y se sirve adentro con
 #               mock-releases.py en http://127.0.0.1:9999 (misma forma que la API de GitHub Releases).
@@ -20,9 +21,10 @@ set -euo pipefail
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$HERE/../../.." && pwd)
-IMAGE=growth-it-ubuntu:24.04
+UBUNTU=${GROWTH_IT_UBUNTU:-24.04}
+IMAGE=growth-it-ubuntu:$UBUNTU
 # Imagen base: la oficial de Ubuntu (por defecto desde el espejo de Google, sin el límite de Docker Hub).
-BASE_IMAGE=${GROWTH_IT_BASE_IMAGE:-mirror.gcr.io/library/ubuntu:24.04}
+BASE_IMAGE=${GROWTH_IT_BASE_IMAGE:-mirror.gcr.io/library/ubuntu:$UBUNTU}
 NAME=growth-it-1
 ASSETS=""
 CMD=${1:-}
@@ -103,8 +105,16 @@ case "$CMD" in
         start_forwarder
         build_image
         docker rm -f "$NAME" >/dev/null 2>&1 || true
+        # systemd 258+ (Ubuntu 26.04) ya no arranca con cgroup v1: si esta máquina usa v1, se le da una
+        # jerarquía cgroup v2 propia montada aparte.
+        CGROUP_SRC=/sys/fs/cgroup
+        if [ "$UBUNTU" != 24.04 ] && [ "$(stat -fc %T /sys/fs/cgroup)" != cgroup2fs ]; then
+            CGROUP_SRC=/tmp/growth-it-cgroup2
+            mkdir -p "$CGROUP_SRC"
+            mountpoint -q "$CGROUP_SRC" || mount -t cgroup2 none "$CGROUP_SRC"
+        fi
         args=(-d --name "$NAME" --hostname "$NAME" --privileged --cgroupns=host
-            -v /sys/fs/cgroup:/sys/fs/cgroup:rw --tmpfs /run --tmpfs /run/lock
+            -v "$CGROUP_SRC:/sys/fs/cgroup:rw" --tmpfs /run --tmpfs /run/lock
             -v "$REPO:/src:ro" -v /root/.ccr/ca-bundle.crt:/usr/local/share/ca-certificates/growth-it-proxy.crt:ro)
         [ -n "$ASSETS" ] && args+=(-v "$ASSETS:/assets")
         docker run "${args[@]}" "$IMAGE" >/dev/null

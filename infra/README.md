@@ -1,13 +1,13 @@
 # infra/
 
-Despliegue del hub **sin Docker**: servicios nativos de systemd en Ubuntu 24.04, versiones en zip (firma opcional) en
+Despliegue del hub **sin Docker**: servicios nativos de systemd en Ubuntu 24.04 o 26.04 LTS, versiones en zip (firma opcional) en
 GitHub Releases, el symlink `current` y actualización con un clic desde el panel de la plataforma. El contrato
 completo (procesos, puertos, rutas, paquete, actualizador, copias y vigilancia) está en
 [`docs/despliegue.md`](../docs/despliegue.md); lo que diga ese documento manda sobre los scripts.
 
 | Carpeta o archivo | Para qué |
 |---|---|
-| `install.sh` | Instalador para un servidor limpio: repositorios oficiales, MariaDB 11.4, ClickHouse 25.8, dos Redis 7, FrankenPHP con PHP 8.4, uv, Caddy, usuario `growth`, `/opt/growth`, `.env` con secretos, unidades, firewall y la última versión. Idempotente |
+| `install.sh` | Instalador para un servidor limpio: repositorios oficiales, MariaDB 11.4 (11.8 en 26.04), ClickHouse 25.8, dos Redis 7.4 (8 en 26.04), FrankenPHP con PHP 8.4, uv, Caddy, usuario `growth`, `/opt/growth`, `.env` con secretos, unidades, firewall y la última versión. Idempotente |
 | `systemd/` | Unidades: `growth.target`, `growth-app`, `growth-ingest-api@`, `growth-ingest@`, `growth-horizon`, `growth-reverb`, `growth-scheduler`, `growth-ml`, `growth-update.path` + `growth-update-dispatch`, las copias y la vigilancia (timers) y nuestra plantilla `redis-server@` |
 | `bin/` | Scripts del servidor: `growth-update` (actualiza o instala una versión), `growth-update-dispatch` (atiende el pedido del panel con `systemd-run`), `growth-env` (lee y repara el `.env` sin `source`) y los envoltorios de los servicios |
 | `config/` | Plantillas de PHP, MariaDB, ClickHouse, Redis (colas y caché) y el Caddyfile interno de FrankenPHP |

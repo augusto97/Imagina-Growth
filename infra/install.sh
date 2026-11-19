@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Instalador de Imagina Growth para un servidor Ubuntu 24.04 limpio (docs/despliegue.md §7).
+# Instalador de Imagina Growth para un servidor Ubuntu 24.04 o 26.04 LTS limpio (docs/despliegue.md §7).
 #
 #   curl -fsSL https://github.com/augusto97/Imagina-Growth/releases/latest/download/install.sh \
 #     | sudo bash -s -- --domain growth.ejemplo.com --email ops@ejemplo.com
@@ -74,9 +74,16 @@ os_field() { grep -E "^$1=" /etc/os-release 2>/dev/null | head -1 | cut -d= -f2-
 OS_ID=$(os_field ID)
 OS_VERSION_ID=$(os_field VERSION_ID)
 OS_CODENAME=$(os_field VERSION_CODENAME)
-if [ "$OS_ID" != ubuntu ] || [ "$OS_VERSION_ID" != 24.04 ]; then
-    warn "Probado en Ubuntu 24.04; este servidor es $(os_field PRETTY_NAME)."
-fi
+# Versiones por sistema (docs/despliegue.md §1): en 26.04 los repositorios oficiales ya no publican MariaDB 11.4
+# ni Redis 7, así que se usan las LTS que sí existen ahí.
+case "$OS_ID $OS_VERSION_ID" in
+    "ubuntu 26.04") MARIADB_SERIES=11.8 REDIS_PIN='6:8.*' ;;
+    "ubuntu 24.04") MARIADB_SERIES=11.4 REDIS_PIN='6:7.4.*' ;;
+    *)
+        warn "Probado en Ubuntu 24.04 y 26.04; este servidor es $(os_field PRETTY_NAME). Se usan las versiones de 24.04."
+        MARIADB_SERIES=11.4 REDIS_PIN='6:7.4.*'
+        ;;
+esac
 if [ "$VERSION" != latest ] && ! [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     die "Versión inválida: $VERSION (formato X.Y.Z)."
 fi
@@ -232,10 +239,10 @@ add_key() { # url destino dearmor(0/1)
     if [ "$3" = 1 ]; then curl -fsSL "$1" | gpg --dearmor -o "$2" --yes; else curl -fsSL "$1" -o "$2"; fi
     chmod 0644 "$2"
 }
-# MariaDB 11.4 (script oficial de configuración del repositorio).
-if ! grep -qs "11.4" /etc/apt/sources.list.d/mariadb.sources /etc/apt/sources.list.d/mariadb.list; then
+# MariaDB LTS (script oficial de configuración del repositorio): 11.4 en 24.04, 11.8 en 26.04.
+if ! grep -qs "/$MARIADB_SERIES/" /etc/apt/sources.list.d/mariadb.sources /etc/apt/sources.list.d/mariadb.list; then
     curl -fsSL https://r.mariadb.com/downloads/mariadb_repo_setup -o "$WORK/mariadb_repo_setup"
-    bash "$WORK/mariadb_repo_setup" --mariadb-server-version=mariadb-11.4 --skip-maxscale --skip-tools >/dev/null
+    bash "$WORK/mariadb_repo_setup" --mariadb-server-version="mariadb-$MARIADB_SERIES" --skip-maxscale --skip-tools >/dev/null
 fi
 # ClickHouse 25.8 (LTS), fijado a 25.8.*.
 add_key https://packages.clickhouse.com/rpm/lts/repodata/repomd.xml.key /etc/apt/keyrings/clickhouse.gpg 1
@@ -247,14 +254,14 @@ Package: clickhouse-server clickhouse-client clickhouse-common-static clickhouse
 Pin: version 25.8.*
 Pin-Priority: 1001
 EOF
-# Redis 7 (repositorio oficial de Redis, fijado a 7.4.*; trae Redis 8 por defecto).
+# Redis (repositorio oficial de Redis), fijado por sistema: 7.4.* en 24.04; 8.* en 26.04, donde no hay Redis 7.
 add_key https://packages.redis.io/gpg /etc/apt/keyrings/redis.gpg 1
 put_content /etc/apt/sources.list.d/redis.list <<EOF || true
 deb [signed-by=/etc/apt/keyrings/redis.gpg] https://packages.redis.io/deb ${OS_CODENAME:-noble} main
 EOF
-put_content /etc/apt/preferences.d/growth-redis <<'EOF' || true
+put_content /etc/apt/preferences.d/growth-redis <<EOF || true
 Package: redis redis-server redis-tools
-Pin: version 6:7.4.*
+Pin: version $REDIS_PIN
 Pin-Priority: 1001
 EOF
 # FrankenPHP y PHP 8.4 ZTS (repositorio oficial de FrankenPHP para Debian y Ubuntu, línea 84).

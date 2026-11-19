@@ -1,7 +1,7 @@
 # Despliegue nativo (systemd, versiones en zip y actualización desde el panel)
 
 > Contrato del despliegue de producción del hub. Reemplaza a Docker Compose: el hub corre como servicios
-> de systemd en un VPS de Ubuntu 24.04, cada versión es un zip publicado en GitHub Releases y el
+> de systemd en un VPS de Ubuntu 24.04 o 26.04 LTS, cada versión es un zip publicado en GitHub Releases y el
 > administrador de la plataforma actualiza con un clic. Lo que diga este documento manda sobre los
 > scripts de `infra/`; si cambian, se cambia aquí en el mismo commit.
 
@@ -18,10 +18,10 @@ Todo escucha en `127.0.0.1` salvo Caddy. El firewall (ufw) solo abre SSH, `80/tc
 | `growth-reverb` | `artisan reverb:start` | 8085 |
 | `growth-scheduler` | `artisan schedule:work` | — |
 | `growth-ml` | uvicorn (`hub/ml`, entorno de `uv`), 2 workers | 8095 |
-| `mariadb` | MariaDB 11.4 (repositorio oficial de MariaDB) | 3306 |
+| `mariadb` | MariaDB LTS del repositorio oficial: 11.4 en Ubuntu 24.04 y 11.8 en 26.04 (el repositorio no publica 11.4 para 26.04) | 3306 |
 | `clickhouse-server` | ClickHouse 25.8 (repositorio oficial, fijado a 25.8.*) | 8123 HTTP, 9000 nativo |
-| `redis-server@queue` | Redis 7.4 (repositorio oficial, fijado a `7.4.*` porque instala Redis 8 por defecto): colas, streams de ingesta, candados. `noeviction` + AOF (`everysec`). La plantilla `redis-server@.service` es nuestra: el paquete oficial no la trae | 6379 |
-| `redis-server@cache` | Redis 7: caché. `allkeys-lru`, sin persistencia | 6380 |
+| `redis-server@queue` | Redis del repositorio oficial, fijado por sistema: `7.4.*` en Ubuntu 24.04 (si no, instala Redis 8) y `8.*` en 26.04 (no hay Redis 7 para 26.04); la app usa lo mismo en ambas: colas, streams de ingesta, candados. `noeviction` + AOF (`everysec`). La plantilla `redis-server@.service` es nuestra: el paquete oficial no la trae | 6379 |
+| `redis-server@cache` | La misma versión de Redis: caché. `allkeys-lru`, sin persistencia | 6380 |
 | `caddy` | Caddy (repositorio oficial), TLS automático y bajo demanda | 80, 443 |
 
 Todos los servicios `growth-*` tienen `PartOf=growth.target` y `WantedBy=growth.target`; `growth.target` está en
