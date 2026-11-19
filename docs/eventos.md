@@ -95,8 +95,8 @@ Para orientar bien las estrategias, cada espacio de trabajo debe responder estas
 
 | Endpoint | Quién llama | Autenticación | Notas |
 |---|---|---|---|
-| `POST https://in.growth.imagina.cloud/v1/b` | tracker | clave pública del sitio + verificación de `Origin` contra los dominios del sitio | CORS, `sendBeacon`, lote ≤ 20 eventos, límite por IP y por sitio |
-| `POST https://in.growth.imagina.cloud/v1/s` | connector | `X-IGR-Site`, `X-IGR-Signature: t=<unix>,v1=<hex hmac_sha256(secret, t + "." + body)>`, ±300 s | gzip, lote ≤ 500 |
+| `POST https://growth.imagina.cloud/v1/b` (o el host de `IGR_INGEST_URL`) | tracker | clave pública del sitio + verificación de `Origin` contra los dominios del sitio | CORS, `sendBeacon`, lote ≤ 20 eventos, límite por IP y por sitio |
+| `POST https://growth.imagina.cloud/v1/s` (o el host de `IGR_INGEST_URL`) | connector | `X-IGR-Site`, `X-IGR-Signature: t=<unix>,v1=<hex hmac_sha256(secret, t + "." + body)>`, ±300 s | gzip, lote ≤ 500 |
 | `POST https://t.<dominio-cliente>/v1/b` | tracker | igual que `/b` | dominio de seguimiento propio por CNAME (Fase 3). Caddy emite el TLS bajo demanda |
 
 **Respuesta:** `202 {"accepted": n, "rejected": [{"event_id": "...", "reason": "schema"}]}`. Un rechazo por esquema no se reintenta; un 5xx sí.

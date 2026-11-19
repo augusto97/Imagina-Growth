@@ -103,12 +103,16 @@ Respuesta `200`:
   "site_id": "st_01JD...", "public_key": "pk_...", "secret": "sk_...",
   "workspace": { "id": "ws_01JD...", "name": "Pinturas La 14", "country": "CO", "timezone": "America/Bogota", "currency": "COP" },
   "endpoints": {
-    "ingest_server": "https://in.growth.imagina.cloud/v1/s",
-    "ingest_browser": "https://in.growth.imagina.cloud/v1/b",
+    "ingest_server": "https://growth.imagina.cloud/v1/s",
+    "ingest_browser": "https://growth.imagina.cloud/v1/b",
     "api": "https://growth.imagina.cloud/"
   }
 }
 ```
+
+Los endpoints salen de `IGR_INGEST_URL` y `IGR_APP_URL`; por defecto, todo en el dominio del panel. Si el host de
+ingesta no existe en el DNS (`cURL error 6`), el plugin pasa al host de `api`, que atiende las mismas rutas, y lo
+guarda (`Connection::use_hub_host_for_ingest()`).
 
 Errores: `422 {"error":"invalid_code"}` (no existe, vencido o ya usado; mismo mensaje para no filtrar cuál), `422 {"error":"nonce_mismatch"}`, `422 {"error":"site_mismatch"}` (la URL no coincide con la del código). El código vence a los **10 minutos** y se borra al usarse. Se guarda con hash, nunca en claro.
 

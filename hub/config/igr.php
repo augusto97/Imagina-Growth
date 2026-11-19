@@ -91,7 +91,8 @@ return [
 
     // Dominios propios de las agencias (M22): el CNAME al que deben apuntar el panel, los enlaces y la página de reservas.
     'custom_domains' => [
-        'cname_target' => env('IGR_CUSTOM_DOMAINS_CNAME', 'domains.growth.imagina.cloud'),
+        // A dónde apuntan con CNAME los dominios propios de las agencias: por defecto, el dominio del panel.
+        'cname_target' => env('IGR_CUSTOM_DOMAINS_CNAME', parse_url((string) env('APP_URL', ''), PHP_URL_HOST) ?: 'growth.imagina.cloud'),
     ],
 
     'roles' => [

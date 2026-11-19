@@ -25,7 +25,7 @@ final class CustomDomains
 
     public static function cnameTarget(): string
     {
-        return strtolower((string) config('igr.custom_domains.cname_target', 'domains.growth.imagina.cloud'));
+        return strtolower((string) config('igr.custom_domains.cname_target', 'growth.imagina.cloud'));
     }
 
     public function add(string $accountId, ?string $workspaceId, string $host, string $purpose, ?string $userId = null): CustomDomain

@@ -110,7 +110,7 @@ echo 0.2.0 >"$ASSETS/LATEST"
 # Mientras dura la actualización: el panel (/up) y la ingesta (/p/…) pedidos a Caddy cada 200 ms.
 in_box "rm -f /tmp/stop-availability /tmp/availability.log; nohup bash -c 'while [ ! -f /tmp/stop-availability ]; do
   a=\$(curl -sk -o /dev/null -w \"%{http_code}\" --resolve $DOMAIN:443:127.0.0.1 https://$DOMAIN/up);
-  i=\$(curl -sk -o /dev/null -w \"%{http_code}\" --resolve in.$DOMAIN:443:127.0.0.1 https://in.$DOMAIN/p/pk_e2e/visitor.json);
+  i=\$(curl -sk -o /dev/null -w \"%{http_code}\" --resolve $DOMAIN:443:127.0.0.1 https://$DOMAIN/p/pk_e2e/visitor.json);
   echo \"\$(date +%s.%N) \$a \$i\" >>/tmp/availability.log; sleep 0.2; done' >/dev/null 2>&1 &"
 RESULT=$(panel 0.2.0)
 in_box 'touch /tmp/stop-availability'

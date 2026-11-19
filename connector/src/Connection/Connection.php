@@ -167,6 +167,32 @@ final class Connection {
 	}
 
 	/**
+	 * Pasa la ingesta al dominio principal del hub (el de la API), que atiende las mismas rutas `/v1/s` y `/v1/b`.
+	 * Se usa cuando el host de ingesta que dio el hub no existe en el DNS (p. ej. falta el registro `in.<dominio>`).
+	 *
+	 * @return bool true si cambió algo.
+	 */
+	public static function use_hub_host_for_ingest(): bool {
+		$data      = self::data();
+		$base      = rtrim( self::endpoint( 'api' ), '/' );
+		$base      = '' !== $base ? $base : self::hub_url();
+		$want      = array(
+			'ingest_server'  => $base . '/v1/s',
+			'ingest_browser' => $base . '/v1/b',
+		);
+		$endpoints = is_array( $data['endpoints'] ?? null ) ? $data['endpoints'] : array();
+		if ( ( $endpoints['ingest_server'] ?? '' ) === $want['ingest_server'] && ( $endpoints['ingest_browser'] ?? '' ) === $want['ingest_browser'] ) {
+			return false;
+		}
+		$data['endpoints']          = array_merge( $endpoints, $want );
+		$data['endpoints_repaired'] = time();
+		update_option( self::OPTION, $data, false );
+		self::$cache = $data;
+		\ImaginaGrowth\Connector\Tracking\TrackerConfig::rebuild();
+		return true;
+	}
+
+	/**
 	 * Rota el secreto: el nuevo pasa a actual y el anterior vale 24 h.
 	 *
 	 * @param string $new_secret Secreto nuevo (`sk_…`).

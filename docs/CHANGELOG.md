@@ -1,5 +1,21 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-19 — Versión 0.1.4: todo en un solo dominio
+
+En el primer sitio real el plugin no podía enviar datos: el hub le había dado `https://in.growth.imagina.cloud` y ese
+registro DNS nunca se pidió en el instalador. Era un requisito escondido, así que se quitó:
+- La ingesta, los enlaces y el destino del CNAME de los dominios propios van por defecto en el dominio del panel; el
+  Caddyfile de la plantilla manda `/v1` y `/p` del dominio principal a las réplicas de ingesta y ya no tiene los
+  bloques `in.` ni `go.`. El único registro DNS es el del dominio.
+- `install.sh` pasa al dominio principal las URLs de instalaciones anteriores cuyos subdominios no existen en el DNS
+  y avisa al final si falta el DNS de algún nombre en uso.
+- Plugin 0.1.2: si el host de ingesta no existe en el DNS (`cURL error 6`), pasa al dominio principal del hub, lo
+  guarda y reintenta, sin reconectar el sitio. Los eventos pendientes salen solos.
+
+Probado en Ubuntu 26.04 limpio: la ingesta responde en el dominio principal (`/v1/s` 401 sin firma, `/v1/b` 400,
+`/p` llega a la app) y, con la configuración vieja (`in.`, `go.`, `domains.` sin DNS), el instalador la corrige y la
+ingesta sigue respondiendo. En el plugin, la prueba del caso real envía al dominio principal tras el error de DNS.
+
 ## 2026-11-19 — Plugin 0.1.2 y aviso de DNS en el instalador
 
 - En el primer sitio real, el plugin no podía enviar nada: faltaba el registro DNS de `in.<dominio>` (la ingesta) y

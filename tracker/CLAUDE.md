@@ -54,7 +54,7 @@ La cola funciona aunque el script todavía no haya cargado.
 
 - Lotes en memoria y envío cada 2 s, o al llegar a 10 eventos, o en `visibilitychange: hidden` / `pagehide`.
 - Primero `navigator.sendBeacon(endpoint, Blob JSON)`. Si falla, `fetch(..., {keepalive: true})`. Si eso también falla, un reintento con almacenamiento en `sessionStorage` (máximo 50 eventos).
-- Endpoint: `igrConfig.endpoint` (`in.growth.imagina.cloud/v1/b` o el dominio de seguimiento propio del cliente).
+- Endpoint: `igrConfig.endpoint` (`growth.imagina.cloud/v1/b`, o el host de `IGR_INGEST_URL`, o el dominio de seguimiento propio del cliente).
 
 ## 7. Consentimiento
 

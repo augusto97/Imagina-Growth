@@ -110,6 +110,13 @@ final class Flusher {
 		}
 
 		$response = Http::signed( 'POST', $url, $body, Connection::site_id(), Connection::secret(), true, 15 );
+		// El host de ingesta no existe en el DNS (falta `in.<dominio>`): se pasa al dominio principal del hub y se
+		// reintenta una vez ahí. El cambio queda guardado para los envíos siguientes y para el tracker.
+		if ( 0 === $response->status && self::dns_failure( $response ) && Connection::use_hub_host_for_ingest() ) {
+			$url = Connection::endpoint( 'ingest_server' );
+			Logger::warning( 'El host de ingesta no existe en el DNS; se usa el dominio principal del hub: ' . $url );
+			$response = Http::signed( 'POST', $url, $body, Connection::site_id(), Connection::secret(), true, 15 );
+		}
 
 		if ( 202 === $response->status || 200 === $response->status ) {
 			return self::handle_accepted( $rows, $response );
@@ -135,6 +142,16 @@ final class Flusher {
 			Logger::warning( 'Envío al hub fallido, se reintentará: ' . $response->describe(), array( 'events' => count( $rows ) ) );
 		}
 		return $out;
+	}
+
+	/**
+	 * ¿El error es que el nombre del host no existe en el DNS? (cURL error 6.)
+	 *
+	 * @param HttpResponse $response Respuesta.
+	 */
+	private static function dns_failure( HttpResponse $response ): bool {
+		$error = (string) $response->error;
+		return str_contains( $error, 'cURL error 6' ) || str_contains( $error, 'Could not resolve host' );
 	}
 
 	/**

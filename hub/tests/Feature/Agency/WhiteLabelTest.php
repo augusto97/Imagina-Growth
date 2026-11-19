@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Agency\Domains\CustomDomains;
 use App\Domain\Agency\Domains\DnsResolver;
 use App\Domain\Agency\Models\AccountBranding;
 use App\Domain\Agency\Models\CustomDomain;
@@ -34,6 +35,15 @@ beforeEach(function () {
     $this->w = AgencyWorld::make($this);
     $this->dns = new AgencyFakeDns;
     $this->app->instance(DnsResolver::class, $this->dns);
+    // Un servidor que separa el destino del CNAME (por defecto es el dominio del panel, ver la prueba siguiente).
+    config(['igr.custom_domains.cname_target' => 'domains.growth.imagina.cloud']);
+});
+
+it('sin configuración, los dominios propios apuntan con CNAME al dominio del panel (APP_URL)', function () {
+    config(['igr.custom_domains.cname_target' => parse_url((string) config('app.url'), PHP_URL_HOST)]);
+    expect(CustomDomains::cnameTarget())->toBe('localhost');
+    $config = require base_path('config/igr.php');
+    expect($config['custom_domains']['cname_target'])->toBe(parse_url((string) env('APP_URL'), PHP_URL_HOST));
 });
 
 it('solo el dueño de la agencia cambia la marca; todos los clientes de la agencia la usan', function () {

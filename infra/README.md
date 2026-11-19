@@ -52,8 +52,9 @@ curl -fsSL https://github.com/augusto97/Imagina-Growth/releases/latest/download/
 ```
 
 Después:
-- DNS del dominio (y de `in.` para la ingesta) hacia el servidor; `domains.growth.imagina.cloud` (o
-  `IGR_CUSTOM_DOMAINS_CNAME`) para los dominios propios de las agencias.
+- Un solo registro DNS: el dominio hacia el servidor. El panel, la ingesta de los sitios y los enlaces van en ese
+  mismo dominio, y los dominios propios de las agencias le apuntan con CNAME. El instalador avisa al final si el
+  dominio todavía no tiene DNS.
 - Completar en `/opt/growth/shared/.env` lo que no se puede generar: correo (SES), Meta, Anthropic.
 - Configurar `rclone` y `/etc/growth/backup.conf` para las copias ([`backup/README.md`](backup/README.md)) y los
   heartbeats y monitores de Better Stack.

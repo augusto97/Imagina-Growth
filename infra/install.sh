@@ -392,8 +392,24 @@ env_add APP_LOCALE es
 env_add APP_FALLBACK_LOCALE es
 env_add APP_FAKER_LOCALE es_CO
 env_add IGR_APP_URL "https://$DOMAIN"
-env_add IGR_INGEST_URL "https://in.$DOMAIN"
-env_add IGR_LINKS_URL "https://go.$DOMAIN"
+# Todo en el dominio principal: la ingesta (/v1, /p) y los enlaces (/c, /u, /preferencias) no necesitan
+# subdominios ni registros DNS extra. Quien quiera separarlos los cambia aquí y agrega el DNS y el bloque de Caddy.
+env_add IGR_INGEST_URL "https://$DOMAIN"
+env_add IGR_LINKS_URL "https://$DOMAIN"
+env_add IGR_CUSTOM_DOMAINS_CNAME "$DOMAIN"
+# Las instalaciones anteriores usaban in., go. y domains. del dominio: si esos nombres no existen en el DNS, se pasa
+# al dominio principal (si existen, se respetan).
+URLS_CHANGED=0
+move_off_subdomain() { # clave valor_viejo valor_nuevo host
+    [ "$(env_get "$1")" = "$2" ] || return 0
+    getent ahosts "$4" >/dev/null 2>&1 && return 0
+    sed -i "s|^$1=.*|$1=$3|" "$ENV_FILE"
+    URLS_CHANGED=1
+    info "$4 no existe en el DNS: $1 pasa a $3."
+}
+move_off_subdomain IGR_INGEST_URL "https://in.$DOMAIN" "https://$DOMAIN" "in.$DOMAIN"
+move_off_subdomain IGR_LINKS_URL "https://go.$DOMAIN" "https://$DOMAIN" "go.$DOMAIN"
+move_off_subdomain IGR_CUSTOM_DOMAINS_CNAME "domains.$DOMAIN" "$DOMAIN" "domains.$DOMAIN"
 env_has IGR_BLIND_INDEX_KEY || env_add IGR_BLIND_INDEX_KEY "$(rand_b64key)"
 env_add IGR_REQUIRE_2FA true
 env_add IGR_INGEST_SHARDS 4
@@ -670,7 +686,7 @@ if [ ! -f "$CADDY_DEST" ] || grep -q 'root \* /usr/share/caddy' "$CADDY_DEST"; t
     install -m 0644 "$WORK/Caddyfile" "$CADDY_DEST"
     systemctl enable caddy >/dev/null 2>&1
     systemctl restart caddy
-    info "Caddyfile instalado para $DOMAIN, in.$DOMAIN y go.$DOMAIN."
+    info "Caddyfile instalado para $DOMAIN (panel, ingesta y enlaces en el mismo dominio)."
 elif [ "$DOMAIN_GIVEN" = 1 ] && ! cmp -s "$WORK/Caddyfile" "$CADDY_DEST"; then
     install -m 0644 "$WORK/Caddyfile" "$CADDY_DEST.growth.new"
     warn "Ya hay un $CADDY_DEST; no se toca. La versión para --domain/--email quedó en $CADDY_DEST.growth.new."
@@ -715,12 +731,12 @@ elif [ -L "$GROWTH_ROOT/current" ]; then
     find "$CACHE_DIR" -mindepth 1 ! -type f -exec rm -rf -- {} +
     chown -R -h root:root "$CACHE_DIR"
     chmod -R u+rwX,go+rX,go-w "$CACHE_DIR"
-    if [ "$PROFILE_CHANGED" = 1 ] || [ "$INGEST_CHANGED" = 1 ]; then
+    if [ "$PROFILE_CHANGED" = 1 ] || [ "$INGEST_CHANGED" = 1 ] || [ "$URLS_CHANGED" = 1 ]; then
         if systemctl is-active --quiet growth.target; then
-            systemctl restart growth-horizon.service growth-ingest@1.service
+            systemctl restart growth-horizon.service growth-scheduler.service growth-ingest@1.service
             [ "$PROFILE" = standard ] && systemctl start growth-ingest@2.service growth-ingest@3.service growth-ingest@4.service
         fi
-        info "Perfil de procesos aplicado: $PROFILE."
+        info "Configuración aplicada (perfil de procesos: $PROFILE)."
     fi
 else
     log "La app"
@@ -748,12 +764,16 @@ log "Listo"
 # DNS: sin estos registros el panel no abre o los sitios no pueden enviar datos (el plugin muestra
 # «Could not resolve host: in.…»). Solo se avisa: el instalador no toca el DNS.
 MISSING_DNS=()
-for host in "$DOMAIN" "in.$DOMAIN" "go.$DOMAIN"; do
+for url in "https://$DOMAIN" "$(env_get IGR_INGEST_URL)" "$(env_get IGR_LINKS_URL)"; do
+    host=${url#*://}
+    host=${host%%/*}
+    [ -n "$host" ] || continue
+    [[ " ${MISSING_DNS[*]} " == *" $host "* ]] && continue
     getent ahosts "$host" >/dev/null 2>&1 || MISSING_DNS+=("$host")
 done
 if [ ${#MISSING_DNS[@]} -gt 0 ]; then
-    warn "Estos nombres todavía no tienen registro DNS: ${MISSING_DNS[*]}. Crea un registro A hacia la IP de este servidor para cada uno (in. es la ingesta: sin él los sitios no pueden enviar datos)."
+    warn "Estos nombres no tienen registro DNS: ${MISSING_DNS[*]}. Crea un registro A hacia la IP de este servidor para cada uno."
 fi
-info "Panel: https://$DOMAIN · ingesta: https://in.$DOMAIN · enlaces: https://go.$DOMAIN"
+info "Panel, ingesta y enlaces: https://$DOMAIN"
 info "Configuración: $ENV_FILE (solo el usuario growth) · actualizador: $ETC_DIR/updater.conf"
 info "Copias a la Storage Box: configura rclone y $ETC_DIR/backup.conf (infra/backup)."

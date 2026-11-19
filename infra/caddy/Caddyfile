@@ -68,27 +68,16 @@
 	}
 }
 
+# Todo en un solo dominio: panel, API y SPA (growth-app), ingesta de los sitios (/v1 y /p, a las réplicas de
+# ingesta) y enlaces rastreados, baja y preferencias. No hace falta ningún otro registro DNS. Para separar la ingesta
+# o los enlaces en subdominios: el registro DNS, un bloque igual a este con ese nombre y IGR_INGEST_URL o IGR_LINKS_URL.
 __DOMAIN__ {
 	import common
 	import reverb
-	handle {
-		import app
-	}
-}
-
-in.__DOMAIN__ {
-	import common
 	@ingest path /v1/* /p/*
 	handle @ingest {
 		import ingest
 	}
-	handle {
-		respond 404
-	}
-}
-
-go.__DOMAIN__ {
-	import common
 	handle {
 		import app
 	}

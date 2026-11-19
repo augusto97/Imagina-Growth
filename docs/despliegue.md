@@ -265,6 +265,13 @@ Caddyfile (solo si no existe) y baja e instala la última versión con `growth-u
 una versión ya instalada (para eso está el panel; `--version` solo cuenta en la primera instalación). Si se le pasa
 `--domain` o `--email` y el Caddyfile ya existe, deja la propuesta en `/etc/caddy/Caddyfile.growth.new`.
 
+**Un solo dominio y un solo registro DNS.** El panel, la API, la ingesta de los sitios (`/v1`, `/p`, que Caddy manda a
+las réplicas de ingesta) y los enlaces rastreados, la baja y las preferencias van en `--domain`
+(`IGR_INGEST_URL` = `IGR_LINKS_URL` = `https://<dominio>`, y `IGR_CUSTOM_DOMAINS_CNAME` = `<dominio>`). Las
+instalaciones anteriores a 0.1.4 usaban `in.`, `go.` y `domains.`: si esos nombres no existen en el DNS, el
+instalador los pasa al dominio principal (si existen, los respeta), y el plugin hace lo mismo por su cuenta cuando
+el host de ingesta no resuelve. Al terminar, avisa qué nombres en uso no tienen registro DNS.
+
 **Memoria y perfil de procesos.** `install.sh` mide la RAM y elige el perfil (se reescribe en cada corrida, así que
 ampliar o reducir el servidor y volver a correrlo lo ajusta):
 
