@@ -35,6 +35,9 @@ final class ClassifyInboundMessage implements ShouldQueue
 
     public string $queue = 'ai';
 
+    /** Intentos del worker; explícitos para no depender del supervisor de Horizon (perfil pequeño). */
+    public int $tries = 3;
+
     public function __construct(
         private readonly InboundClassifier $classifier,
         private readonly UnsubscribeService $unsubscribe,

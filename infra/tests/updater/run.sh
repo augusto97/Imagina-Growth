@@ -421,7 +421,24 @@ test_unsigned() {
     teardown_world
 }
 
-for t in test_update_ok test_unsigned test_health_fails_rollback test_ingest_replica_fails_rollback test_no_space test_bad_packages \
+# Perfil pequeño: updater.conf dice qué workers de ingesta existen y solo esos se reinician.
+test_small_profile() {
+    setup_world "perfil pequeño: un worker de ingesta"
+    install_release 0.1.0
+    printf 'GROWTH_INGEST_WORKERS=1\n' >>"$GROWTH_ETC/updater.conf"
+    make_release 0.2.0
+    local code
+    code=$(GROWTH_INGEST_WORKERS="" run_update 0.2.0)
+    assert_eq "$code" 0 "código de salida"
+    assert_eq "$(current)" 0.2.0 "current apunta a la nueva"
+    local c
+    c=$(calls)
+    assert_contains "$c" "systemctl restart growth-ingest@1.service" "reinicia el worker 1"
+    assert_not_contains "$c" "growth-ingest@2.service" "no toca el worker 2 (enmascarado)"
+    teardown_world
+}
+
+for t in test_update_ok test_small_profile test_unsigned test_health_fails_rollback test_ingest_replica_fails_rollback test_no_space test_bad_packages \
     test_lock_held test_first_install test_dispatch test_env_reader; do
     "$t"
 done

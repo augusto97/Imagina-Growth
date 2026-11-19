@@ -84,14 +84,15 @@ case "$OS_ID $OS_VERSION_ID" in
         MARIADB_SERIES=11.4 REDIS_PIN='6:7.4.*'
         ;;
 esac
-# Memoria (docs/despliegue.md §7): MariaDB, ClickHouse, dos Redis, ~12 procesos de PHP y el ML no caben en menos
-# de 4 GB; con menos, el kernel mata ClickHouse en bucle y el servidor deja de responder.
-MEM_MB=$(awk '/MemTotal/ {print int($2 / 1024)}' /proc/meminfo)
-if [ "$MEM_MB" -lt 3500 ] && [ "${GROWTH_ALLOW_LOW_MEMORY:-0}" != 1 ]; then
-    die "Este servidor tiene $((MEM_MB / 1024)),$(((MEM_MB % 1024) * 10 / 1024)) GB de RAM; Imagina Growth necesita al menos 4 GB (recomendado 8 GB). Amplía el servidor y vuelve a correr el instalador."
-elif [ "$MEM_MB" -lt 7500 ]; then
-    warn "Este servidor tiene $((MEM_MB / 1024)) GB de RAM: funciona, pero se recomiendan 8 GB o más."
+# Memoria y perfil de procesos (docs/despliegue.md §7). Con menos de ~3,5 GB se usa el perfil pequeño: ClickHouse y
+# MariaDB con menos memoria, un solo worker de ingesta para todos los shards y Horizon con 3 procesos de trabajo.
+# GROWTH_MEMORY_MB solo sirve para las pruebas (un contenedor ve la RAM de la máquina anfitriona).
+MEM_MB=${GROWTH_MEMORY_MB:-$(awk '/MemTotal/ {print int($2 / 1024)}' /proc/meminfo)}
+[[ $MEM_MB =~ ^[0-9]+$ ]] || die "No se pudo leer la memoria del servidor."
+if [ "$MEM_MB" -lt 1400 ]; then
+    die "Este servidor tiene $MEM_MB MB de RAM; Imagina Growth necesita al menos 1,5 GB (2 GB o más para trabajar cómodo)."
 fi
+if [ "$MEM_MB" -lt 3500 ]; then PROFILE=small; else PROFILE=standard; fi
 if [ "$VERSION" != latest ] && ! [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     die "Versión inválida: $VERSION (formato X.Y.Z)."
 fi
@@ -448,6 +449,16 @@ fi
 env_add IGR_ANTHROPIC_API_KEY ""
 env_add GROWTH_UPDATE_REPO "$REPO"
 env_add GROWTH_UPDATE_API "$API"
+# El perfil de procesos lo decide el instalador por la RAM: se reescribe en cada corrida.
+PROFILE_CHANGED=0
+if [ "$(env_get IGR_WORKERS_PROFILE)" != "$PROFILE" ]; then
+    if env_has IGR_WORKERS_PROFILE; then
+        sed -i "s/^IGR_WORKERS_PROFILE=.*/IGR_WORKERS_PROFILE=$PROFILE/" "$ENV_FILE"
+    else
+        printf 'IGR_WORKERS_PROFILE=%s\n' "$PROFILE" >>"$ENV_FILE"
+    fi
+    PROFILE_CHANGED=1
+fi
 chown growth:growth "$ENV_FILE"
 chmod 0600 "$ENV_FILE"
 if [ "$NEW_ENV" = 1 ]; then
@@ -457,12 +468,18 @@ elif [ ${#ENV_ADDED[@]} -gt 0 ]; then
 else
     info "Sin cambios."
 fi
+if [ "$PROFILE" = small ]; then
+    info "Perfil de procesos: pequeño ($MEM_MB MB de RAM). Con 4 GB o más, volver a correr el instalador pasa al estándar."
+else
+    info "Perfil de procesos: estándar ($MEM_MB MB de RAM)."
+fi
 
 
 # ── 5. MariaDB ──────────────────────────────────────────────────────────
 
 log "MariaDB"
-POOL_MB=$((MEM_MB / 4)); [ "$POOL_MB" -lt 128 ] && POOL_MB=128
+if [ "$PROFILE" = small ]; then POOL_MB=$((MEM_MB / 8)); else POOL_MB=$((MEM_MB / 4)); fi
+[ "$POOL_MB" -lt 128 ] && POOL_MB=128
 if sed "s/__BUFFER_POOL__/${POOL_MB}M/" "$TPL/config/mariadb/90-growth.cnf" | put_content /etc/mysql/mariadb.conf.d/90-growth.cnf; then
     SERVICE_RESTART+=(mariadb)
 fi
@@ -496,15 +513,16 @@ CH_CHANGED=0
 put_file "$TPL/config/clickhouse/igr.xml" /etc/clickhouse-server/config.d/igr.xml 0644 root:clickhouse && CH_CHANGED=1
 put_file "$TPL/config/clickhouse/growth-listen.xml" /etc/clickhouse-server/config.d/growth-listen.xml 0644 root:clickhouse && CH_CHANGED=1
 put_file "$TPL/config/clickhouse/growth-backups.xml" /etc/clickhouse-server/config.d/growth-backups.xml 0644 root:clickhouse && CH_CHANGED=1
-# Memoria de ClickHouse según la RAM (sin esto toma hasta el 90 % y el kernel lo mata): 30 % para el servidor,
-# cachés de marcas proporcionales y sin los logs de sistema que la app no usa (gastan memoria, CPU y disco).
+# Memoria de ClickHouse según la RAM (sin esto toma hasta el 90 % y el kernel lo mata): 30 % para el servidor
+# (25 % en el perfil pequeño), cachés de marcas proporcionales y sin los logs de sistema que la app no usa.
 MEM_BYTES=$((MEM_MB * 1024 * 1024))
+if [ "$PROFILE" = small ]; then CH_PCT=25 CH_MARK_DIV=64; else CH_PCT=30 CH_MARK_DIV=32; fi
 put_content /etc/clickhouse-server/config.d/growth-memory.xml 0644 root:clickhouse <<EOF && CH_CHANGED=1
 <!-- Lo escribe infra/install.sh según la RAM del servidor ($MEM_MB MB); se reescribe en cada corrida. -->
 <clickhouse>
-    <max_server_memory_usage>$((MEM_BYTES * 30 / 100))</max_server_memory_usage>
-    <mark_cache_size>$((MEM_BYTES / 32))</mark_cache_size>
-    <index_mark_cache_size>$((MEM_BYTES / 64))</index_mark_cache_size>
+    <max_server_memory_usage>$((MEM_BYTES * CH_PCT / 100))</max_server_memory_usage>
+    <mark_cache_size>$((MEM_BYTES / CH_MARK_DIV))</mark_cache_size>
+    <index_mark_cache_size>$((MEM_BYTES / CH_MARK_DIV / 2))</index_mark_cache_size>
     <trace_log remove="1"/>
     <text_log remove="1"/>
     <metric_log remove="1"/>
@@ -589,6 +607,12 @@ if [ -n "$PUBKEY_PEM" ]; then
 else
     info "Sin llave pública: las versiones se validan solo con sha256. Para exigir firma, instala $ETC_DIR/release-signing.pub.pem (--pubkey)."
 fi
+# Workers de ingesta que reinicia el actualizador (perfil pequeño: uno solo para todos los shards).
+if [ "$PROFILE" = small ]; then WANT_WORKERS=1; else WANT_WORKERS="1 2 3 4"; fi
+if ! grep -qx "GROWTH_INGEST_WORKERS=\"$WANT_WORKERS\"" "$ETC_DIR/updater.conf" 2>/dev/null; then
+    sed -i '/^GROWTH_INGEST_WORKERS=/d' "$ETC_DIR/updater.conf"
+    printf 'GROWTH_INGEST_WORKERS="%s"\n' "$WANT_WORKERS" >>"$ETC_DIR/updater.conf"
+fi
 # Copias (infra/backup): la configuración es del administrador; solo se crea si falta.
 if [ ! -f "$ETC_DIR/backup.conf" ] && [ -f "$TPL/backup/backup.conf.example" ]; then
     install -m 0600 -o root -g root "$TPL/backup/backup.conf.example" "$ETC_DIR/backup.conf"
@@ -601,6 +625,33 @@ log "Servicios de systemd"
 for f in "$TPL"/systemd/growth*; do
     put_file "$f" "/etc/systemd/system/$(basename "$f")" && UNITS_CHANGED=1
 done
+# Perfil pequeño: growth-ingest@1 lee todos los shards y los workers 2 a 4 quedan enmascarados.
+INGEST_CHANGED=0
+DROPIN=/etc/systemd/system/growth-ingest@1.service.d/growth-profile.conf
+if [ "$PROFILE" = small ]; then
+    install -d -m 0755 "$(dirname "$DROPIN")"
+    put_content "$DROPIN" 0644 root:root <<'EOF' && INGEST_CHANGED=1
+# Perfil pequeño (lo escribe infra/install.sh): un solo worker de ingesta para todos los shards.
+[Service]
+ExecStart=
+ExecStart=/usr/local/bin/growth-php /opt/growth/current/hub/artisan igr:ingest:work
+EOF
+    for i in 2 3 4; do
+        if [ "$(systemctl is-enabled "growth-ingest@$i.service" 2>/dev/null || true)" != masked ]; then
+            systemctl stop "growth-ingest@$i.service" >/dev/null 2>&1 || true
+            systemctl mask "growth-ingest@$i.service" >/dev/null 2>&1
+            INGEST_CHANGED=1
+        fi
+    done
+else
+    if [ -f "$DROPIN" ]; then rm -f "$DROPIN"; INGEST_CHANGED=1; fi
+    for i in 2 3 4; do
+        if [ "$(systemctl is-enabled "growth-ingest@$i.service" 2>/dev/null || true)" = masked ]; then
+            systemctl unmask "growth-ingest@$i.service" >/dev/null 2>&1
+            INGEST_CHANGED=1
+        fi
+    done
+fi
 systemctl daemon-reload
 systemctl enable --now growth-update.path >/dev/null 2>&1
 # growth.target se habilita al final, cuando hay una versión instalada (sin ella los servicios no arrancan).
@@ -655,6 +706,22 @@ elif [ -L "$GROWTH_ROOT/current" ]; then
     log "La app"
     info "Ya está instalada la versión $(basename "$(readlink -f "$GROWTH_ROOT/current")"); las actualizaciones se hacen desde el panel."
     [ "$VERSION_GIVEN" = 1 ] && warn "Se ignora --version: el instalador no reemplaza una versión instalada."
+    # La caché de configuración se rearma en cada corrida (el .env pudo cambiar, p. ej. el perfil), como lo hace
+    # growth-update: bootstrap/cache se presta a «growth» solo mientras tanto y vuelve a root.
+    CACHE_DIR=$(readlink -f "$GROWTH_ROOT/current")/hub/bootstrap/cache
+    chown growth:growth "$CACHE_DIR"
+    (cd "$GROWTH_ROOT/current/hub" && runuser -u growth -- env HOME=/tmp /usr/local/bin/growth-php artisan config:cache --no-interaction >/dev/null) \
+        || warn "No se pudo rearmar la caché de configuración; corre el instalador otra vez."
+    find "$CACHE_DIR" -mindepth 1 ! -type f -exec rm -rf -- {} +
+    chown -R -h root:root "$CACHE_DIR"
+    chmod -R u+rwX,go+rX,go-w "$CACHE_DIR"
+    if [ "$PROFILE_CHANGED" = 1 ] || [ "$INGEST_CHANGED" = 1 ]; then
+        if systemctl is-active --quiet growth.target; then
+            systemctl restart growth-horizon.service growth-ingest@1.service
+            [ "$PROFILE" = standard ] && systemctl start growth-ingest@2.service growth-ingest@3.service growth-ingest@4.service
+        fi
+        info "Perfil de procesos aplicado: $PROFILE."
+    fi
 else
     log "La app"
     fetch_release
@@ -671,7 +738,8 @@ for t in growth-backup-mariadb.timer growth-backup-clickhouse.timer growth-backu
     [ -e "/etc/systemd/system/$t" ] && systemctl enable --now "$t" >/dev/null 2>&1
 done
 if [ -L "$GROWTH_ROOT/current" ]; then
-    systemctl enable growth.target >/dev/null 2>&1
+    # --now: si se apagó la app para correr el instalador (p. ej. sin memoria), vuelve a arrancar.
+    systemctl enable --now growth.target >/dev/null 2>&1
     # La vigilancia usa la app (artisan growth:monitor): solo con una versión instalada.
     [ -e /etc/systemd/system/growth-monitor.timer ] && systemctl enable --now growth-monitor.timer >/dev/null 2>&1
 fi

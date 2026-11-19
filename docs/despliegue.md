@@ -261,14 +261,27 @@ Caddyfile (solo si no existe) y baja e instala la última versión con `growth-u
 una versión ya instalada (para eso está el panel; `--version` solo cuenta en la primera instalación). Si se le pasa
 `--domain` o `--email` y el Caddyfile ya existe, deja la propuesta en `/etc/caddy/Caddyfile.growth.new`.
 
-**Memoria:** mínimo 4 GB de RAM (recomendado 8 GB o más y 4 vCPU). Con menos de ~3,5 GB, `install.sh` se detiene
-antes de instalar nada (`GROWTH_ALLOW_LOW_MEMORY=1` lo salta, solo para pruebas); con menos de ~7,5 GB, avisa. Los
-servicios se reparten la RAM: MariaDB usa 1/4 para `innodb_buffer_pool_size`, y ClickHouse queda limitado al 30 %
-(`max_server_memory_usage`) con cachés de marcas proporcionales (1/32 y 1/64 de la RAM) y sin los logs de sistema
-que la app no usa (`trace_log`, `text_log`, `metric_log`, `asynchronous_metric_log`, `query_thread_log`,
-`processors_profile_log`, `opentelemetry_span_log`, `latency_log`, `error_log`). Lo escribe en
-`/etc/clickhouse-server/config.d/growth-memory.xml` en cada corrida: al ampliar el servidor, volver a correr
-`install.sh` ajusta los límites. Sin ese límite, ClickHouse toma hasta el 90 % de la RAM y el kernel lo mata en bucle.
+**Memoria y perfil de procesos.** `install.sh` mide la RAM y elige el perfil (se reescribe en cada corrida, así que
+ampliar o reducir el servidor y volver a correrlo lo ajusta):
+
+| | Pequeño (menos de ~3,5 GB) | Estándar |
+|---|---|---|
+| ClickHouse (`config.d/growth-memory.xml`) | 25 % de la RAM; cachés de marcas 1/64 y 1/128 | 30 %; 1/32 y 1/64 |
+| MariaDB `innodb_buffer_pool_size` | 1/8 de la RAM (mínimo 128 MB) | 1/4 |
+| Workers de ingesta | `growth-ingest@1` lee los 4 shards (drop-in `growth-profile.conf`); 2 a 4 enmascarados | uno por shard (`@1..4`) |
+| Horizon (`IGR_WORKERS_PROFILE` en el `.env`) | `small`: 2 supervisores, 3 procesos de trabajo | `standard`: los supervisores de `hub/CLAUDE.md` §15 |
+| `GROWTH_INGEST_WORKERS` en `updater.conf` | `"1"` | `"1 2 3 4"` |
+
+En los dos perfiles ClickHouse va sin los logs de sistema que la app no usa (`trace_log`, `text_log`, `metric_log`,
+`asynchronous_metric_log`, `query_thread_log`, `processors_profile_log`, `opentelemetry_span_log`, `latency_log`,
+`error_log`); sin un límite, ClickHouse toma hasta el 90 % de la RAM y el kernel lo mata en bucle. Con menos de
+1,4 GB el instalador se detiene. El perfil pequeño sirve para empezar (pocos sitios y poco tráfico); con carga real
+conviene 4 GB o más. Los trabajos que necesitan otro número de intentos lo declaran en su clase (`$tries`), porque en
+el perfil pequeño todas las colas cortas comparten un supervisor.
+
+Si el servidor ya se quedó sin memoria (la app no responde), primero `systemctl stop growth.target clickhouse-server`
+y después el instalador: con la memoria llena ni `apt` avanza. Al terminar, el instalador vuelve a arrancar la app
+(`systemctl enable --now growth.target`) y rearma la caché de configuración, como `growth-update`.
 
 **Python del ML:** `uv sync --frozen` usa el Python 3.12 de Ubuntu si cumple `requires-python`; si una versión
 necesitara otro, `uv` lo baja de GitHub (el servidor necesita salida a GitHub).

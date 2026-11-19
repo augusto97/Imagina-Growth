@@ -9,6 +9,8 @@
 #
 # --name N      nombre del contenedor (por defecto growth-it-1; siempre empieza con growth-it-)
 # GROWTH_IT_UBUNTU=26.04   versión de Ubuntu del contenedor (por defecto 24.04)
+# GROWTH_IT_MEMORY=1600m   límite de RAM del contenedor (y 2 GB de swap), para probar servidores pequeños;
+#                          install pasa además GROWTH_MEMORY_MB con ese valor (el contenedor ve la RAM del anfitrión)
 # --assets DIR  carpeta con versiones de prueba: growth-<v>.zip, .sha256, .sig, release-<v>.json, install.sh
 #               y opcionalmente LATEST y notes-<v>.md. Se monta en /assets y se sirve adentro con
 #               mock-releases.py en http://127.0.0.1:9999 (misma forma que la API de GitHub Releases).
@@ -98,6 +100,8 @@ in_env() {
     printf '%s\n' "-e" "HTTPS_PROXY=$px" "-e" "https_proxy=$px" \
         "-e" "NO_PROXY=localhost,127.0.0.1,::1" "-e" "no_proxy=localhost,127.0.0.1,::1" \
         "-e" "DEBIAN_FRONTEND=noninteractive"
+    [ -n "${GROWTH_IT_MEMORY:-}" ] && printf '%s\n' "-e" "GROWTH_MEMORY_MB=${GROWTH_IT_MEMORY%m}"
+    return 0
 }
 
 case "$CMD" in
@@ -117,6 +121,10 @@ case "$CMD" in
             -v "$CGROUP_SRC:/sys/fs/cgroup:rw" --tmpfs /run --tmpfs /run/lock
             -v "$REPO:/src:ro" -v /root/.ccr/ca-bundle.crt:/usr/local/share/ca-certificates/growth-it-proxy.crt:ro)
         [ -n "$ASSETS" ] && args+=(-v "$ASSETS:/assets")
+        if [ -n "${GROWTH_IT_MEMORY:-}" ]; then
+            mem_mb=${GROWTH_IT_MEMORY%m}
+            args+=(--memory "${mem_mb}m" --memory-swap "$((mem_mb + 2048))m")
+        fi
         docker run "${args[@]}" "$IMAGE" >/dev/null
         for _ in $(seq 1 30); do docker exec "$NAME" systemctl is-system-running >/dev/null 2>&1 && break
             [ "$(docker exec "$NAME" systemctl is-system-running 2>/dev/null || true)" = "degraded" ] && break; sleep 1; done

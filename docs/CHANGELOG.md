@@ -1,5 +1,21 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-19 — Versión 0.1.1: perfil pequeño para servidores con poca RAM
+
+Corrige la entrada anterior: pedir 4 GB como mínimo era un error. Una instalación nueva, sin sitios ni tráfico, no
+necesita esa memoria; lo que pasaba es que todo se configuraba para volumen de producción sin mirar el servidor
+(ClickHouse sin límite, ~20 procesos de Horizon, 4 workers de ingesta). Ahora `install.sh` elige el perfil por la
+RAM (`docs/despliegue.md` §7): con menos de ~3,5 GB, ClickHouse al 25 %, MariaDB con 1/8, un worker de ingesta para
+los 4 shards y Horizon con 3 procesos (`IGR_WORKERS_PROFILE=small`, `config/horizon.php`). Solo se detiene con menos
+de 1,4 GB. `growth-update` lee de `updater.conf` qué workers de ingesta reinicia. `SendMessageJob` y
+`ClassifyInboundMessage` declaran sus intentos (5 y 3) para no depender del supervisor.
+
+Probado en Ubuntu 26.04 con 1,6 GB de RAM, 2 GB de swap y 2 núcleos (como el servidor real): con la configuración
+anterior la memoria se llenaba y la app respondía 503; tras correr el instalador nuevo y actualizar a 0.1.1, sin
+procesos muertos por memoria en la medición, `/health/ready` y `/login` en 10 a 30 ms, y en el navegador el registro
+(0,5 s) y `/seguridad` (0,7 s) sin errores. Si la memoria ya está llena, hay que apagar la app antes de correr el
+instalador.
+
 ## 2026-11-19 — Memoria: mínimo de RAM y límites de ClickHouse
 
 La primera instalación real fue en un servidor de 1,6 GB de RAM: ClickHouse tomaba la memoria, el kernel lo mataba

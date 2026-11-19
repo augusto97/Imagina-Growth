@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Str;
 
+$smallProfile = env('IGR_WORKERS_PROFILE') === 'small';
+
 return [
 
     /*
@@ -196,7 +198,39 @@ return [
     |
     */
 
-    'defaults' => [
+    /*
+    | Perfil de procesos (docs/despliegue.md §7): `IGR_WORKERS_PROFILE=small` lo escribe install.sh en
+    | servidores con poca RAM. Junta las colas en dos supervisores (3 procesos de trabajo en vez de ~20):
+    | uno atiende todas las colas cortas en orden de prioridad y otro los trabajos largos de `analytics`.
+    | Los trabajos que necesitan otro número de intentos lo declaran en su clase ($tries).
+    */
+    'defaults' => $smallProfile ? [
+        'supervisor-small' => [
+            'connection' => 'redis',
+            'queue' => [
+                'projections', 'triggers', 'flows',
+                'messages:whatsapp', 'messages:email', 'messages:sms', 'messages:messenger', 'messages:instagram',
+                'conversions:meta', 'conversions:google', 'conversions:tiktok', 'ai', 'default',
+            ],
+            'balance' => false,
+            'maxProcesses' => 2,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 1,
+            'timeout' => 85, // menor que el retry_after (90 s) de la conexión redis
+            'nice' => 0,
+        ],
+        'supervisor-small-analytics' => [
+            'connection' => 'redis-long', // retry_after de 1900 s (config/queue.php)
+            'queue' => ['analytics'],
+            'balance' => false,
+            'maxProcesses' => 1,
+            'memory' => 256,
+            'tries' => 2,
+            'timeout' => 1800,
+        ],
+    ] : [
         'supervisor-1' => [
             'connection' => 'redis',
             'queue' => ['projections', 'default'],
@@ -267,7 +301,7 @@ return [
         ],
     ],
 
-    'environments' => [
+    'environments' => $smallProfile ? ['production' => [], 'local' => []] : [
         'production' => [
             'supervisor-1' => [
                 'maxProcesses' => 10,

@@ -46,6 +46,9 @@ final class SendMessageJob implements ShouldQueue, WorkspaceAware
 
     public int $timeout = 60;
 
+    /** Intentos del worker; explícitos para no depender del supervisor de Horizon (perfil pequeño). */
+    public int $tries = 5;
+
     public function __construct(public string $workspaceIdValue, public string $messageId) {}
 
     public function workspaceId(): string

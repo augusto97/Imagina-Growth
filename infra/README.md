@@ -39,8 +39,9 @@ CI, no de la app).
 
 ## Instalar un servidor
 
-Requisitos: Ubuntu 24.04 o 26.04 LTS limpio, **mínimo 4 GB de RAM** (recomendado 8 GB y 4 vCPU). Con menos
-memoria el instalador se detiene.
+Requisitos: Ubuntu 24.04 o 26.04 LTS limpio y al menos 1,5 GB de RAM. Con menos de ~3,5 GB el instalador usa el
+perfil pequeño (menos memoria para ClickHouse y MariaDB, un worker de ingesta y 3 procesos de Horizon; ver
+`docs/despliegue.md` §7).
 
 ```bash
 curl -fsSL https://github.com/augusto97/Imagina-Growth/releases/latest/download/install.sh \

@@ -287,6 +287,8 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 | `ai` | llamadas a modelos | 2 |
 | `default` | resto | 2 |
 
+**Perfil pequeño** (`IGR_WORKERS_PROFILE=small`, lo escribe `install.sh` en servidores con menos de ~3,5 GB): todas las colas cortas van en un supervisor con 2 procesos (en el orden de la tabla) y `analytics` en otro con 1; los jobs que necesitan más de un intento lo declaran en su clase (`$tries`). Ver `docs/despliegue.md` §7.
+
 Los jobs largos de `analytics` (importación de contactos, recálculo completo de segmentos, inteligencia nocturna) los atiende la conexión `redis-long` de `config/queue.php`: es la misma cola de Redis con `retry_after` de 1.900 s, mayor que su `timeout`, para que ningún worker los vuelva a tomar mientras siguen corriendo. Los segmentos en tiempo real (`EvaluateContactSegmentsJob`, 15 s después del evento) van por `triggers`.
 
 **Programadas:** flujos y campañas (cada minuto), carritos abandonados (cada minuto), sesiones (cada 10 min), segmentos completos, RFM, afinidad, predicciones y hallazgos (cada noche, escalonadas por workspace), gasto en anuncios (cada día), audiencias (cada 12 h), tarifas de WhatsApp (cada trimestre, manual con aviso), analista semanal (los lunes por zona horaria), reporte mensual (el día 1), uso de los planes con avisos al 80/100 % (`igr:billing:usage`, cada 5 min), facturas vencidas y fin de la gracia (`igr:billing:status`, cada hora), decaimiento del puntaje de los leads (`igr:leads:decay`, cada noche a las 03:40) y purga por retención (cada noche). La calificación con IA de los leads (`QualifyLeadWithAi`) va por `ai` y la conversión offline de un lead ganado (`SendLeadConversion`) por `default`.

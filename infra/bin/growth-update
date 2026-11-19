@@ -22,7 +22,7 @@ LOCK_FILE=${GROWTH_LOCK_FILE:-/run/lock/growth-update.lock}
 HEALTH_BASE=${GROWTH_HEALTH_BASE:-http://127.0.0.1}
 APP_PORT=${GROWTH_APP_PORT:-8080}
 INGEST_API_INSTANCES=${GROWTH_INGEST_API_INSTANCES:-1 2}
-INGEST_WORKERS=${GROWTH_INGEST_WORKERS:-1 2 3 4}
+INGEST_WORKERS=${GROWTH_INGEST_WORKERS:-}   # vacío: lo dice updater.conf (perfil de install.sh) o 1 2 3 4
 KEEP_RELEASES=${GROWTH_KEEP_RELEASES:-3}
 KEEP_BACKUPS=${GROWTH_KEEP_BACKUPS:-5}
 
@@ -89,6 +89,9 @@ API=$(conf_get "$GROWTH_ETC/updater.conf" GROWTH_UPDATE_API https://api.github.c
 API=${API%/}
 HEALTH_TIMEOUT=$(conf_get "$GROWTH_ETC/updater.conf" GROWTH_HEALTH_TIMEOUT 120)
 [[ $HEALTH_TIMEOUT =~ ^[0-9]+$ ]] || HEALTH_TIMEOUT=120
+# Workers de ingesta activos: install.sh deja «1» en servidores pequeños (un worker para todos los shards).
+[[ -n $INGEST_WORKERS ]] || INGEST_WORKERS=$(conf_get "$GROWTH_ETC/updater.conf" GROWTH_INGEST_WORKERS "1 2 3 4")
+[[ $INGEST_WORKERS =~ ^[1-9]( [1-9])*$ ]] || INGEST_WORKERS="1 2 3 4"
 PUBKEY="$GROWTH_ETC/release-signing.pub.pem"
 [[ $REPO =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo "GROWTH_UPDATE_REPO inválido en updater.conf" >&2; exit 2; }
 
