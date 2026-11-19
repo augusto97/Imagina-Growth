@@ -211,6 +211,16 @@ final class CatalogSync {
 	}
 
 	/**
+	 * Cuántas categorías de producto hay, con la misma consulta que recorre category_ids() (así el total de la
+	 * importación coincide con lo que se envía; wp_count_terms() pasa por filtros de otros plugins).
+	 */
+	public static function category_count(): int {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->terms} t INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = t.term_id WHERE tt.taxonomy = 'product_cat'" );
+	}
+
+	/**
 	 * IDs de categorías después del cursor.
 	 *
 	 * @param int $after Cursor.

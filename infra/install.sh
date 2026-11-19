@@ -745,6 +745,15 @@ if [ -L "$GROWTH_ROOT/current" ]; then
 fi
 
 log "Listo"
+# DNS: sin estos registros el panel no abre o los sitios no pueden enviar datos (el plugin muestra
+# «Could not resolve host: in.…»). Solo se avisa: el instalador no toca el DNS.
+MISSING_DNS=()
+for host in "$DOMAIN" "in.$DOMAIN" "go.$DOMAIN"; do
+    getent ahosts "$host" >/dev/null 2>&1 || MISSING_DNS+=("$host")
+done
+if [ ${#MISSING_DNS[@]} -gt 0 ]; then
+    warn "Estos nombres todavía no tienen registro DNS: ${MISSING_DNS[*]}. Crea un registro A hacia la IP de este servidor para cada uno (in. es la ingesta: sin él los sitios no pueden enviar datos)."
+fi
 info "Panel: https://$DOMAIN · ingesta: https://in.$DOMAIN · enlaces: https://go.$DOMAIN"
 info "Configuración: $ENV_FILE (solo el usuario growth) · actualizador: $ETC_DIR/updater.conf"
 info "Copias a la Storage Box: configura rclone y $ETC_DIR/backup.conf (infra/backup)."

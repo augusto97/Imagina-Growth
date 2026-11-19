@@ -1,5 +1,13 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-19 — Plugin 0.1.2 y aviso de DNS en el instalador
+
+- En el primer sitio real, el plugin no podía enviar nada: faltaba el registro DNS de `in.<dominio>` (la ingesta) y
+  el error era `Could not resolve host`. `install.sh` ahora avisa al final qué nombres (`dominio`, `in.`, `go.`) no
+  tienen registro DNS.
+- Plugin 0.1.2: el total de categorías de la importación usa la misma consulta que recorre la importación (en ese
+  sitio el panel mostraba «8 / 4»; `wp_count_terms()` pasa por filtros de otros plugins).
+
 ## 2026-11-19 — Versión 0.1.3: «Importar y enviar ahora» y descarga del plugin desde el panel
 
 - **Plugin 0.1.1:** en «Estado», el botón **«Importar y enviar ahora»** hace la importación histórica y el envío
