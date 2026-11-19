@@ -261,5 +261,9 @@ Menú «Imagina Growth» con estas pestañas:
 ## 15. Distribución y actualizaciones
 
 - Distribución y actualizaciones por **Imagina Updater** (el sistema propio de licencias y actualizaciones remotas).
+- **Mientras tanto:** cada release del hub en GitHub publica el zip del plugin (`connector/bin/build-zip.sh`):
+  `imagina-growth-connector-<versión>.zip` y `imagina-growth-connector.zip` (nombre fijo, para
+  `releases/latest/download/imagina-growth-connector.zip`). Se instala en WordPress con Plugins → Añadir nuevo →
+  Subir plugin.
 - El plugin es gratis de instalar y solo funciona con una cuenta del hub.
 - Versionado semántico. El hub conoce la versión mínima compatible y avisa en el panel si un sitio está desactualizado.

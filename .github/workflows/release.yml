@@ -82,6 +82,9 @@ jobs:
           GROWTH_COMMIT: ${{ github.sha }}
         run: infra/release/build.sh "$VERSION" dist
 
+      - name: Plugin de WordPress (Imagina Growth Connector)
+        run: connector/bin/build-zip.sh dist
+
       - name: Firmar y verificar
         if: env.SIGNED == '1'
         env:
@@ -104,7 +107,9 @@ jobs:
             "dist/growth-$VERSION.zip.sha256"
             "dist/release.json"
             "dist/install.sh"
+            "dist/imagina-growth-connector.zip"
           )
+          assets+=(dist/imagina-growth-connector-*.zip)
           if [ "$SIGNED" = 1 ]; then
             assets+=("dist/growth-$VERSION.zip.sha256.sig" "dist/release-signing.pub.pem")
           fi

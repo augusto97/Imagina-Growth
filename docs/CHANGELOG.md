@@ -1,5 +1,12 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-19 — El plugin se publica con cada versión
+
+Hasta ahora el plugin «Imagina Growth Connector» no se publicaba en ningún lado. `connector/bin/build-zip.sh` arma
+el zip instalable (sin dependencias de desarrollo; el plugin trae su propio autoload) y `release.yml` lo sube a cada
+release como `imagina-growth-connector.zip`. Probado: se instala y activa con WP-CLI en WordPress 6 con WooCommerce
+11 y su página de ajustes carga sin errores. Imagina Updater sigue pendiente (connector/CLAUDE.md §15).
+
 ## 2026-11-19 — Versión 0.1.1: perfil pequeño para servidores con poca RAM
 
 Corrige la entrada anterior: pedir 4 GB como mínimo era un error. Una instalación nueva, sin sitios ni tráfico, no

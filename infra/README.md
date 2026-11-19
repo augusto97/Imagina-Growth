@@ -32,8 +32,8 @@ CI, no de la app).
    las versiones salen sin firma y los servidores validan solo el sha256 (`docs/despliegue.md` §3).
 2. Sube el número en `VERSION` (por ejemplo `0.2.0`) y fusiona a `main` con el CI en verde.
 3. Publica un release con el tag `v0.2.0`. El workflow `release.yml` falla si el tag no coincide con `VERSION`; si
-   no, arma, verifica y sube `growth-0.2.0.zip`, su `.sha256`, `release.json` e `install.sh` (y, con el secreto, el
-   `.sig` y `release-signing.pub.pem`).
+   no, arma, verifica y sube `growth-0.2.0.zip`, su `.sha256`, `release.json`, `install.sh` y el plugin de WordPress
+   (`imagina-growth-connector.zip`; y, con el secreto, el `.sig` y `release-signing.pub.pem`).
 4. Los servidores lo ven en la próxima consulta horaria; el administrador de la plataforma lo instala desde
    `/plataforma` → «Actualizaciones».
 
