@@ -6,7 +6,8 @@
     "sites": {
         "fields": {
             "codGateways": "Pago contra entrega"
-        }
+        },
+        "downloadPlugin": "Descargar plugin"
     },
     "workspace": {
         "namePlaceholder": "Ej.: Pinturas El Ávila"

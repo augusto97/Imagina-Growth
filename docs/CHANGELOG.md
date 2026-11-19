@@ -1,5 +1,16 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-19 — Versión 0.1.3: «Importar y enviar ahora» y descarga del plugin desde el panel
+
+- **Plugin 0.1.1:** en «Estado», el botón **«Importar y enviar ahora»** hace la importación histórica y el envío
+  desde la página del administrador cuando el cron de WordPress no corre (antes la importación quedaba «en cola» sin
+  avanzar y no había cómo forzarla). Muestra el avance por entidad y el error exacto del hub. También avisa en
+  «Estado» si las tareas programadas van atrasadas. Probado en el navegador con `DISABLE_WP_CRON`: 250 pedidos,
+  69 productos, clientes, reembolsos y reseñas importados y enviados en 2 s al hub de prueba; con el hub caído, se
+  detiene y muestra el error de conexión.
+- **Hub:** botón **«Descargar plugin»** en Sitios (y en el paso 1 de «Conectar con un código»). El paquete de cada
+  versión trae el plugin en `public/downloads/imagina-growth-connector.zip`.
+
 ## 2026-11-19 — Versión 0.1.2: releases automáticos
 
 Publicar ya no requiere entrar a GitHub: un push que sube `VERSION` crea el tag y el release con sus assets

@@ -7,7 +7,8 @@
     "sites": {
         "fields": {
             "codGateways": "Pago contra entrega"
-        }
+        },
+        "downloadPlugin": "Descargar plugin"
     },
     "security": {
         "description": "Protege tu cuenta con un código de tu celular además de la contraseña. Es obligatoria para dueños y administradores."

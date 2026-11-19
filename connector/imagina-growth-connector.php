@@ -3,7 +3,7 @@
  * Plugin Name:       Imagina Growth Connector
  * Plugin URI:        https://growth.imagina.cloud
  * Description:       Conecta tu sitio WordPress o tu tienda WooCommerce con Imagina Growth: datos de clientes, analítica, mensajería y fidelización, sin poner lento tu sitio.
- * Version:           0.1.0
+ * Version:           0.1.1
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            Imagina La Web
@@ -21,7 +21,7 @@ declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'IGR_VERSION', '0.1.0' );
+define( 'IGR_VERSION', '0.1.1' );
 define( 'IGR_PLUGIN_FILE', __FILE__ );
 define( 'IGR_PLUGIN_DIR', __DIR__ );
 define( 'IGR_DB_VERSION', '1' );

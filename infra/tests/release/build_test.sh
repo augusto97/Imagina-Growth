@@ -50,6 +50,7 @@ LIST="$T/list.txt"
 unzip -Z1 "$ZIP" > "$LIST"
 has() { if grep -qx "$1" "$LIST"; then pass "trae $1"; else fail "falta $1"; fi; }
 lacks() { if grep -qE "$1" "$LIST"; then fail "no debería traer $1: $(grep -E "$1" "$LIST" | head -1)"; else pass "sin $1"; fi; }
+has hub/public/downloads/imagina-growth-connector.zip
 has VERSION
 has release.json
 has hub/artisan

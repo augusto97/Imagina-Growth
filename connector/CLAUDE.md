@@ -208,13 +208,15 @@ Menú «Imagina Growth» con estas pestañas:
 
 | Pestaña | Contenido |
 |---|---|
-| **Estado** | conexión, espacio de trabajo, eventos de las últimas 24 h por tipo, último envío, retraso y errores |
+| **Estado** | conexión, espacio de trabajo, eventos de las últimas 24 h por tipo, último envío, retraso y errores; aviso si WP-Cron va atrasado; botón **«Importar y enviar ahora»** (`Admin\SyncNow`) |
 | **Datos** | qué se envía (activar o desactivar por tipo), excluir roles (administradores por defecto), páginas excluidas, estados pagados, pasarelas offline |
 | **Formularios** | detectados, mapeo de campos y prueba de envío |
 | **Consentimiento** | textos, casillas del checkout y modo de banner |
 | **En el sitio** | interruptores de los elementos automáticos («Avísame», «Avísame si baja», puntos, «Mis recompensas», «Usar saldo», banner superior; los de fidelización también dependen del hub) y cómo poner los slots (bloques, shortcodes y Elementor) |
 | **Diagnóstico** | Action Scheduler, cron, outbox (pendientes y fallidos con reintento manual), conflictos detectados, exportar el informe de soporte |
 | **Avanzado** | dominio de seguimiento, modo de píxel, importación histórica, desconexión |
+
+**«Importar y enviar ahora»** (`Admin\SyncNow`, AJAX `igr_sync_now`, solo `manage_options` con nonce): si Action Scheduler no corre (WP-Cron sin visitas o `DISABLE_WP_CRON` sin cron real), la importación y el envío no avanzan. El botón hace el mismo trabajo en tramos de ~15 s (lotes de `Runner::step(false)` + `Flusher::run`) que la página repite hasta terminar, con el avance por entidad y el error exacto del hub si lo hay. La primera llamada arranca la importación si nunca corrió o falló, la reanuda si estaba en pausa y adelanta los reintentos (`Outbox::expedite()`). Es la única excepción a «nada de HTTP en la petición del admin»: la pide el administrador y nunca corre en la de un visitante.
 
 **WP-CLI:** `wp igr status`, `wp igr flush`, `wp igr backfill`, `wp igr resync-catalog`, `wp igr test-event`, `wp igr demo-store` (solo con `WP_ENVIRONMENT_TYPE=local`).
 
@@ -264,6 +266,7 @@ Menú «Imagina Growth» con estas pestañas:
 - **Mientras tanto:** cada release del hub en GitHub publica el zip del plugin (`connector/bin/build-zip.sh`):
   `imagina-growth-connector-<versión>.zip` y `imagina-growth-connector.zip` (nombre fijo, para
   `releases/latest/download/imagina-growth-connector.zip`). Se instala en WordPress con Plugins → Añadir nuevo →
-  Subir plugin.
+  Subir plugin. El paquete del hub también lo trae en `public/downloads/imagina-growth-connector.zip`: el botón
+  «Descargar plugin» de Sitios (y el paso 1 de «Conectar con un código») baja el de la misma versión del hub.
 - El plugin es gratis de instalar y solo funciona con una cuenta del hub.
 - Versionado semántico. El hub conoce la versión mínima compatible y avisa en el panel si un sitio está desactualizado.

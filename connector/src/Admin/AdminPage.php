@@ -278,6 +278,14 @@ final class AdminPage {
 		}
 		echo '</tbody></table>';
 
+		$lag = Scheduler::lag_minutes();
+		if ( $lag > 10 ) {
+			echo '<div class="notice notice-warning inline"><p><strong>' . esc_html(
+				/* translators: %d: minutos de retraso. */
+				sprintf( __( 'Las tareas programadas de WordPress van %d minutos atrasadas: la importación y el envío no avanzan solos.', 'imagina-growth' ), $lag )
+			) . '</strong> ' . esc_html__( 'Usa «Importar y enviar ahora» (abajo) y pide a tu hosting un cron real cada minuto (ver Diagnóstico).', 'imagina-growth' ) . '</p></div>';
+		}
+
 		$events = Outbox::last_24h_by_event();
 		if ( array() !== $events ) {
 			echo '<h2>' . esc_html__( 'Eventos de las últimas 24 h', 'imagina-growth' ) . '</h2><table class="widefat striped"><tbody>';
@@ -295,6 +303,19 @@ final class AdminPage {
 	private static function render_backfill(): void {
 		$state = Runner::state();
 		echo '<h2>' . esc_html__( 'Importación histórica', 'imagina-growth' ) . '</h2>';
+		self::render_sync_now();
+		// El estado de la carga de la página: lo reemplaza el avance en vivo al usar el botón.
+		echo '<div id="igr-backfill-static">';
+		self::render_backfill_state( $state );
+		echo '</div>';
+	}
+
+	/**
+	 * Estado guardado de la importación.
+	 *
+	 * @param array<string, mixed> $state Estado de Runner.
+	 */
+	private static function render_backfill_state( array $state ): void {
 		if ( array() === $state ) {
 			echo '<p>' . esc_html__( 'Aún no se ha importado el historial.', 'imagina-growth' ) . '</p>';
 			return;
@@ -334,6 +355,71 @@ final class AdminPage {
 		if ( ! empty( $state['warning'] ) ) {
 			echo '<p style="color:#996800">' . esc_html( (string) $state['warning'] ) . '</p>';
 		}
+	}
+
+	/**
+	 * Botón «Importar y enviar ahora» (Admin\SyncNow): repite tramos por AJAX hasta terminar y muestra el avance.
+	 */
+	private static function render_sync_now(): void {
+		echo '<div class="card" style="max-width:none"><p>' . esc_html__( 'La importación y el envío corren solos en segundo plano. Si no avanzan (por ejemplo, porque el cron de WordPress no corre), hazlo desde aquí y deja esta página abierta hasta que termine.', 'imagina-growth' ) . '</p>';
+		echo '<p><button type="button" class="button button-primary" id="igr-sync-now">' . esc_html__( 'Importar y enviar ahora', 'imagina-growth' ) . '</button> <span id="igr-sync-msg" aria-live="polite"></span></p>';
+		echo '<div id="igr-sync-progress"></div></div>';
+		$config = array(
+			'url'    => admin_url( 'admin-ajax.php' ),
+			'action' => SyncNow::ACTION,
+			'nonce'  => wp_create_nonce( SyncNow::ACTION ),
+			'names'  => array(
+				'products'      => __( 'Productos', 'imagina-growth' ),
+				'categories'    => __( 'Categorías', 'imagina-growth' ),
+				'customers'     => __( 'Clientes', 'imagina-growth' ),
+				'orders'        => __( 'Pedidos', 'imagina-growth' ),
+				'refunds'       => __( 'Reembolsos', 'imagina-growth' ),
+				'reviews'       => __( 'Reseñas', 'imagina-growth' ),
+				'subscriptions' => __( 'Suscripciones', 'imagina-growth' ),
+			),
+			'text'   => array(
+				'working' => __( 'Importando y enviando… no cierres esta página.', 'imagina-growth' ),
+				'sent'    => __( 'enviados en esta sesión', 'imagina-growth' ),
+				'pending' => __( 'pendientes', 'imagina-growth' ),
+				'done'    => __( 'Listo: todo quedó importado y enviado a Imagina Growth.', 'imagina-growth' ),
+				'error'   => __( 'Se detuvo por un error:', 'imagina-growth' ),
+				'stuck'   => __( 'No hubo avance en varios intentos. Revisa la pestaña Diagnóstico.', 'imagina-growth' ),
+				'network' => __( 'No se pudo hablar con tu propio sitio (la petición falló o tardó demasiado). Intenta de nuevo.', 'imagina-growth' ),
+				'dead'    => __( 'eventos rechazados (ver Diagnóstico)', 'imagina-growth' ),
+			),
+		);
+		$js     = 'window.igrSyncNow=' . wp_json_encode( $config ) . ';' . <<<'JS'
+(function(){
+var c=window.igrSyncNow,b=document.getElementById('igr-sync-now'),m=document.getElementById('igr-sync-msg'),p=document.getElementById('igr-sync-progress');
+if(!b){return;}
+var total=0,idle=0,last=-1;
+function fmt(n){return Number(n).toLocaleString();}
+function draw(d){
+  var st=document.getElementById('igr-backfill-static');if(st){st.style.display='none';}
+  var h='<table class="widefat striped"><tbody>';
+  (d.entities||[]).forEach(function(e){var pct=e.total>0?Math.min(100,Math.floor(e.sent*100/e.total)):100;
+    h+='<tr><td>'+(c.names[e.key]||e.key)+'</td><td>'+fmt(e.sent)+' / '+fmt(e.total)+' <progress max="100" value="'+pct+'" style="vertical-align:middle;width:180px"></progress></td></tr>';});
+  h+='</tbody></table><p>'+fmt(total)+' '+c.text.sent+' · '+fmt(d.pending)+' '+c.text.pending+(d.dead>0?' · '+fmt(d.dead)+' '+c.text.dead:'')+'</p>';
+  p.innerHTML=h;
+}
+function stop(msg,color){b.disabled=false;m.textContent=msg;m.style.color=color||'';}
+function step(first){
+  var f=new FormData();f.append('action',c.action);f.append('nonce',c.nonce);if(first){f.append('first','1');}
+  fetch(c.url,{method:'POST',body:f,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(r){
+    if(!r||!r.success){stop(c.text.error+' '+((r&&r.data&&r.data.message)||''),'#b32d2e');return;}
+    var d=r.data;total+=d.sent;draw(d);
+    if(d.error){stop(c.text.error+' '+d.error,'#b32d2e');return;}
+    if(d.done){stop(c.text.done,'#008a20');return;}
+    var mark=d.pending+'/'+total+'/'+JSON.stringify(d.entities);
+    idle=(mark===last&&!d.busy)?idle+1:0;last=mark;
+    if(idle>=5){stop(c.text.stuck,'#996800');return;}
+    setTimeout(function(){step(false);},d.busy?3000:300);
+  }).catch(function(){stop(c.text.network,'#b32d2e');});
+}
+b.addEventListener('click',function(){b.disabled=true;total=0;idle=0;last=-1;m.style.color='';m.textContent=c.text.working;step(true);});
+})();
+JS;
+		wp_print_inline_script_tag( $js );
 	}
 
 	/**

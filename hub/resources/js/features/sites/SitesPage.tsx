@@ -10,6 +10,7 @@ import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { formatRelative } from '@/lib/format';
 import { ConnectManualDialog } from './ConnectManualDialog';
+import { PluginDownloadButton } from './PluginDownload';
 import { BackfillBadge, SiteStatusBadge } from './SiteBits';
 
 export function SitesPage() {
@@ -35,12 +36,15 @@ export function SitesPage() {
                 title={t('sites.title')}
                 description={t('sites.description')}
                 actions={
-                    canManage ? (
-                        <Button onClick={() => setOpen(true)}>
-                            <Plug />
-                            {t('sites.connect')}
-                        </Button>
-                    ) : undefined
+                    <div className="igr:flex igr:gap-2">
+                        <PluginDownloadButton />
+                        {canManage && (
+                            <Button onClick={() => setOpen(true)}>
+                                <Plug />
+                                {t('sites.connect')}
+                            </Button>
+                        )}
+                    </div>
                 }
             />
             {sites.isError ? (
@@ -53,12 +57,15 @@ export function SitesPage() {
                     title={t('sites.emptyTitle')}
                     description={t('sites.emptyDescription')}
                     action={
-                        canManage ? (
-                            <Button onClick={() => setOpen(true)}>
-                                <Plug />
-                                {t('sites.connect')}
-                            </Button>
-                        ) : undefined
+                        <div className="igr:flex igr:flex-wrap igr:justify-center igr:gap-2">
+                            <PluginDownloadButton />
+                            {canManage && (
+                                <Button onClick={() => setOpen(true)}>
+                                    <Plug />
+                                    {t('sites.connect')}
+                                </Button>
+                            )}
+                        </div>
                     }
                 />
             ) : (

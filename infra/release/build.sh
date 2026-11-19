@@ -95,6 +95,10 @@ for f in packages.php services.php; do
 done
 printf '*\n!.gitignore\n' > "$HUB/bootstrap/cache/.gitignore"
 rm -rf "$HUB/public/hot" "$HUB/public/storage"
+# El plugin de WordPress de esta misma versión, para el botón «Descargar plugin» del panel (Sitios).
+mkdir -p "$HUB/public/downloads"
+"$ROOT/connector/bin/build-zip.sh" "$WORK/plugin" >/dev/null
+cp "$WORK/plugin/imagina-growth-connector.zip" "$HUB/public/downloads/imagina-growth-connector.zip"
 # Servicio de predicciones: el código y el lockfile; el entorno lo crea uv en el servidor.
 cp -a "$SRC/ml/app" "$SRC/ml/pyproject.toml" "$SRC/ml/uv.lock" "$HUB/ml/"
 [ -f "$SRC/ml/README.md" ] && cp -a "$SRC/ml/README.md" "$HUB/ml/"

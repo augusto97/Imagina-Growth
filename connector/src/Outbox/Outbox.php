@@ -303,6 +303,18 @@ final class Outbox {
 	}
 
 	/**
+	 * Adelanta los pendientes que esperaban un reintento: quedan listos para enviarse ya (envío forzado desde el admin).
+	 *
+	 * @return int Eventos adelantados.
+	 */
+	public static function expedite(): int {
+		global $wpdb;
+		$table = self::table();
+		$now   = Dates::mysql_utc();
+		return (int) $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET next_attempt_at = %s WHERE status = %s AND next_attempt_at > %s", $now, self::STATUS_PENDING, $now ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
+
+	/**
 	 * Conteo por estado.
 	 *
 	 * @return array{pending:int, sending:int, sent:int, dead:int, oldest_pending_at:?string}

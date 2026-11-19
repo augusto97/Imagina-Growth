@@ -97,7 +97,7 @@ versión sin `.sig` o con una firma de otra llave no se instala. Para activarla 
 (`infra/release/keygen.sh`), guardar el secreto y copiar la llave pública a `/etc/growth/release-signing.pub.pem`
 (root, 0644) en cada servidor.
 | `install.sh` | instalador para un servidor limpio |
-| `imagina-growth-connector.zip` (y `-<versión>.zip`) | el plugin de WordPress, listo para subir en Plugins → Añadir nuevo → Subir plugin (`connector/bin/build-zip.sh`) |
+| `imagina-growth-connector.zip` (y `-<versión>.zip`) | el plugin de WordPress, listo para subir en Plugins → Añadir nuevo → Subir plugin (`connector/bin/build-zip.sh`). El zip del hub lo trae también en `hub/public/downloads/` para el botón «Descargar plugin» del panel |
 
 Contenido del zip (sin carpeta raíz):
 

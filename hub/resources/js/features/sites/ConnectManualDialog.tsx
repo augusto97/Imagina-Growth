@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Skeleton } from '@/components/ui/skeleton';
 import { api } from '@/lib/api';
 import { toast } from '@/stores/toast';
+import { PLUGIN_DOWNLOAD_URL } from './PluginDownload';
 
 function useSecondsLeft(expiresAt: string | undefined): number {
     const [now, setNow] = useState(() => Date.now());
@@ -128,7 +129,12 @@ export function ConnectManualDialog({ workspaceId, open, onOpenChange }: { works
                 </DialogHeader>
                 <ConnectCodeBody workspaceId={workspaceId} onConnected={() => onOpenChange(false)} />
                 <ol className="igr:mt-4 igr:list-decimal igr:space-y-1.5 igr:pl-5 igr:text-[13px] igr:text-muted-foreground">
-                    <li>{t('sites.manual.step1')}</li>
+                    <li>
+                        {t('sites.manual.step1')}{' '}
+                        <a href={PLUGIN_DOWNLOAD_URL} download className="igr:font-medium igr:text-primary igr:underline-offset-2 igr:hover:underline">
+                            {t('sites.downloadPlugin')}
+                        </a>
+                    </li>
                     <li>{t('sites.manual.step2')}</li>
                     <li>{t('sites.manual.step3')}</li>
                 </ol>

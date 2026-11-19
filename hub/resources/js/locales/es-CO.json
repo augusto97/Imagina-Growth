@@ -434,7 +434,8 @@
                 "unknown_event": "Evento desconocido",
                 "site_mismatch": "Sitio distinto"
             }
-        }
+        },
+        "downloadPlugin": "Descargar plugin"
     },
     "reconciliation": {
         "title": "Conciliación con WooCommerce",
