@@ -26,6 +26,40 @@ _{{ __('Escrito con IA a partir de tus cifras; cada número se verificó contra 
 @endforeach
 @endif
 
+@foreach ($leads as $funnel)
+## {{ count($leads) > 1 ? __('Tu embudo de leads: :name', ['name' => $funnel['name']]) : __('Tu embudo de leads') }}
+
+<x-mail::table>
+| {{ __('Etapa') }} | {{ __('Semana') }} | {{ __('Anterior') }} | {{ __('Pasaron de la etapa anterior') }} |
+|:--|--:|--:|--:|
+@foreach ($funnel['stages'] as $s)
+| {{ $s['label'] }} | **{{ $s['reached'] }}** | {{ $s['previous'] }} | {{ $s['conversion'] ?? '—' }}@if ($s['previous_conversion']) ({{ __('antes :rate', ['rate' => $s['previous_conversion']]) }})@endif |
+@endforeach
+</x-mail::table>
+
+@if ($funnel['drop'])
+**{{ __('Dónde se cae la venta:') }}** {{ __('entre «:from» y «:to» pasa :rate de los leads de los últimos 90 días.', ['from' => $funnel['drop']['from'], 'to' => $funnel['drop']['to'], 'rate' => $funnel['drop']['rate']]) }}
+
+@endif
+@if ($funnel['lost'] > 0)
+**{{ trans_choice('{1} :n lead perdido|[2,*] :n leads perdidos', $funnel['lost'], ['n' => $funnel['lost']]) }}**@if (count($funnel['reasons']) > 0): @foreach ($funnel['reasons'] as $i => $r){{ $i > 0 ? ', ' : '' }}{{ $r['reason'] }} ({{ $r['count'] }})@endforeach @endif
+
+@endif
+@if (count($funnel['stalled']) > 0)
+**{{ __('Quietos más de :days días:', ['days' => $funnel['stale_days']]) }}** @foreach ($funnel['stalled'] as $i => $s){{ $i > 0 ? ', ' : '' }}{{ $s['label'] }} ({{ $s['count'] }})@endforeach
+
+@endif
+@if ($funnel['conclusion'] !== '')
+{{ $funnel['conclusion'] }}
+
+@if ($funnel['ai'])
+_{{ __('Escrito con IA a partir de tus cifras; cada número se verificó contra los datos.') }}_
+
+@endif
+@endif
+[{{ __('Ver el embudo') }}]({{ $leadsUrl }}) · [{{ __('A quién escribirle hoy') }}]({{ $todayUrl }})
+
+@endforeach
 @if (count($insights) > 0)
 ## {{ __('Lo que encontramos') }}
 

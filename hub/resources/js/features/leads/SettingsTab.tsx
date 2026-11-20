@@ -24,6 +24,7 @@ export function SettingsTab() {
     return (
         <div className="igr:space-y-4">
             <RulesForm key={JSON.stringify([settings.data.scoring, settings.data.alerts, settings.data.assignment, settings.data.whatsapp_leads, settings.data.ai_qualify, settings.data.ai_brief])} s={settings.data} />
+            <AssistantCard key={JSON.stringify(settings.data.assistant)} s={settings.data} />
             <SellersCard s={settings.data} />
             <PipelinesCard pipelines={settings.data.pipelines} />
         </div>
@@ -180,6 +181,57 @@ function RulesForm({ s }: { s: LeadSettings }) {
             <Button type="submit" disabled={save.isPending}>
                 {t('common.save')}
             </Button>
+        </form>
+    );
+}
+
+/** «Hoy» y el seguimiento: días para «quieto» y la plantilla de WhatsApp para escribir fuera de la ventana de 24 h. */
+function AssistantCard({ s }: { s: LeadSettings }) {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const save = useSaveLeadSettings(workspace.id);
+    const [days, setDays] = useState(s.assistant.stale_days);
+    const [template, setTemplate] = useState(s.assistant.whatsapp_template_id ?? '');
+    const marketing = s.whatsapp_templates.filter((tpl) => tpl.category === 'marketing');
+    return (
+        <form
+            onSubmit={(e) => {
+                e.preventDefault();
+                save.mutate(
+                    { assistant: { stale_days: days, whatsapp_template_id: template || null } },
+                    { onSuccess: () => toast.success(t('leads.settings.saved')), onError: (err) => toast.error(errorMessage(err, t)) },
+                );
+            }}
+        >
+            <Card>
+                <CardHeader>
+                    <CardTitle>{t('leads.settings.assistantTitle')}</CardTitle>
+                    <CardDescription>{t('leads.settings.assistantHelp')}</CardDescription>
+                </CardHeader>
+                <CardContent className="igr:space-y-3">
+                    <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2">
+                        <div className="igr:space-y-1">
+                            <Label htmlFor="stale-days">{t('leads.settings.staleDays')}</Label>
+                            <Input id="stale-days" type="number" min={1} max={90} value={days} onChange={(e) => setDays(Math.max(1, Math.min(90, Number(e.target.value) || 1)))} />
+                        </div>
+                        <div className="igr:space-y-1">
+                            <Label htmlFor="followup-template">{t('leads.settings.followupTemplate')}</Label>
+                            <Select id="followup-template" value={template} onChange={(e) => setTemplate(e.target.value)}>
+                                <option value="">{t('leads.settings.followupTemplateDefault')}</option>
+                                {marketing.map((tpl) => (
+                                    <option key={tpl.id} value={tpl.id}>
+                                        {tpl.name}
+                                    </option>
+                                ))}
+                            </Select>
+                            <p className="igr:text-xs igr:text-muted-foreground">{t('leads.settings.followupTemplateHelp')}</p>
+                        </div>
+                    </div>
+                    <Button type="submit" size="sm" disabled={save.isPending}>
+                        {t('common.save')}
+                    </Button>
+                </CardContent>
+            </Card>
         </form>
     );
 }

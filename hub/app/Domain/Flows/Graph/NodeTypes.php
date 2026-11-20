@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Domain\Flows\Graph;
 
 /**
- * Catálogo de nodos de modulos.md M09. Cada tipo dice su categoría, las ramas
- * de salida que acepta (`null` es la salida normal) y, si llega en otra fase,
- * cuál. `dynamic` = las ramas salen de la configuración (variantes A/B, canales).
+ * Catálogo de nodos de modulos.md M09. Cada tipo dice su categoría y las ramas
+ * de salida que acepta (`null` es la salida normal). `dynamic` = las ramas salen
+ * de la configuración (variantes A/B, canales). Ya no quedan nodos bloqueados.
  */
 final class NodeTypes
 {
@@ -45,7 +45,15 @@ final class NodeTypes
 
     public const GIVE_WALLET = 'give_wallet';
 
-    /** @var array<string, array{category: string, branches: list<string|null>|'dynamic', phase?: int}> */
+    public const ASSIGN_AGENT = 'assign_agent';
+
+    public const LEAD_STAGE = 'lead_stage';
+
+    public const CRM_TASK = 'crm_task';
+
+    public const LEAD_FOLLOWUP = 'lead_followup';
+
+    /** @var array<string, array{category: string, branches: list<string|null>|'dynamic'}> */
     public const TYPES = [
         self::TRIGGER => ['category' => 'trigger', 'branches' => [null]],
         self::WAIT => ['category' => 'wait', 'branches' => [null]],
@@ -65,10 +73,12 @@ final class NodeTypes
         // Fidelización (M13): dar puntos o saldo a favor.
         self::GIVE_POINTS => ['category' => 'action', 'branches' => [null]],
         self::GIVE_WALLET => ['category' => 'action', 'branches' => [null]],
-        // Llegan con sus módulos (CLAUDE.md §5).
-        'assign_agent' => ['category' => 'action', 'branches' => [null], 'phase' => 4],
-        'lead_stage' => ['category' => 'action', 'branches' => [null], 'phase' => 5],
-        'crm_task' => ['category' => 'action', 'branches' => [null], 'phase' => 5],
+        // Leads y bandeja (M18, M11): asignar a una persona, mover la etapa del lead, crear una tarea
+        // para «Hoy» y el seguimiento con IA del lead (flujo 18).
+        self::ASSIGN_AGENT => ['category' => 'action', 'branches' => [null, 'failed']],
+        self::LEAD_STAGE => ['category' => 'action', 'branches' => [null, 'failed']],
+        self::CRM_TASK => ['category' => 'action', 'branches' => [null]],
+        self::LEAD_FOLLOWUP => ['category' => 'action', 'branches' => [null, 'failed']],
     ];
 
     /** Nodos de espera: un ciclo solo es válido si pasa por uno. */
@@ -84,11 +94,6 @@ final class NodeTypes
     public static function exists(string $type): bool
     {
         return isset(self::TYPES[$type]);
-    }
-
-    public static function phase(string $type): ?int
-    {
-        return self::TYPES[$type]['phase'] ?? null;
     }
 
     /**

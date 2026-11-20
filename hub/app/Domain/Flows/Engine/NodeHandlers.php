@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Domain\Flows\Engine;
 
 use App\Domain\Flows\Engine\Handlers\AbSplitHandler;
+use App\Domain\Flows\Engine\Handlers\AssignAgentHandler;
 use App\Domain\Flows\Engine\Handlers\ChannelSplitHandler;
 use App\Domain\Flows\Engine\Handlers\ConditionHandler;
 use App\Domain\Flows\Engine\Handlers\CouponHandler;
+use App\Domain\Flows\Engine\Handlers\CrmTaskHandler;
 use App\Domain\Flows\Engine\Handlers\ExitHandler;
 use App\Domain\Flows\Engine\Handlers\GivePointsHandler;
 use App\Domain\Flows\Engine\Handlers\GiveWalletHandler;
+use App\Domain\Flows\Engine\Handlers\LeadFollowUpHandler;
+use App\Domain\Flows\Engine\Handlers\LeadStageHandler;
 use App\Domain\Flows\Engine\Handlers\NotifyTeamHandler;
 use App\Domain\Flows\Engine\Handlers\SendHandler;
 use App\Domain\Flows\Engine\Handlers\TagHandler;
@@ -41,6 +45,10 @@ final class NodeHandlers
         NodeTypes::EXIT => ExitHandler::class,
         NodeTypes::GIVE_POINTS => GivePointsHandler::class,
         NodeTypes::GIVE_WALLET => GiveWalletHandler::class,
+        NodeTypes::ASSIGN_AGENT => AssignAgentHandler::class,
+        NodeTypes::LEAD_STAGE => LeadStageHandler::class,
+        NodeTypes::CRM_TASK => CrmTaskHandler::class,
+        NodeTypes::LEAD_FOLLOWUP => LeadFollowUpHandler::class,
     ];
 
     public function for(string $type): ?NodeHandler

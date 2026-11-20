@@ -104,3 +104,10 @@ export function briefEdits(brief: Brief, draft: Record<BriefKey, string>): Parti
     }
     return out;
 }
+
+/** Cambio en puntos porcentuales con su signo: «+25», «−5», «0». */
+export function signedPoints(points: number): string {
+    const rounded = Math.round(points * 10) / 10;
+    const text = String(Math.abs(rounded)).replace('.', ',');
+    return rounded > 0 ? `+${text}` : rounded < 0 ? `−${text}` : '0';
+}

@@ -391,6 +391,120 @@ export function NodePanel({ node, options, issues, readOnly, webhookSecret, onCh
                     </>
                 );
                 break;
+            case 'assign_agent': {
+                const mode = str(c.mode, 'auto');
+                body = (
+                    <>
+                        <Field label={t('flows.config.assignMode')} htmlFor={id('mode')} help={t('flows.config.assignHelp')}>
+                            <Select id={id('mode')} value={mode} disabled={readOnly} onChange={(e) => set({ mode: e.target.value, user_id: e.target.value === 'user' ? (c.user_id ?? null) : null })}>
+                                <option value="auto">{t('flows.config.assignAuto')}</option>
+                                <option value="user">{t('flows.config.assignUser')}</option>
+                            </Select>
+                        </Field>
+                        {mode === 'user' ? <PersonSelect id={id('user')} value={str(c.user_id)} team={options.team ?? []} disabled={readOnly} onChange={(user_id) => set({ user_id })} /> : null}
+                    </>
+                );
+                break;
+            }
+            case 'lead_stage': {
+                const stages = options.lead_stages ?? [];
+                body = (
+                    <>
+                        <Field label={t('flows.config.stage')} htmlFor={id('stage')} help={t('flows.config.stageHelp')}>
+                            <Select id={id('stage')} value={str(c.stage)} disabled={readOnly} onChange={(e) => set({ stage: e.target.value })}>
+                                <option value="">—</option>
+                                {stages.map((st) => (
+                                    <option key={st.key} value={st.key}>
+                                        {st.label}
+                                        {new Set(stages.map((x) => x.pipeline)).size > 1 ? ` · ${st.pipeline}` : ''}
+                                    </option>
+                                ))}
+                            </Select>
+                        </Field>
+                        {stages.find((st) => st.key === c.stage)?.kind === 'lost' ? (
+                            <Field label={t('flows.config.lostReason')} htmlFor={id('reason')}>
+                                <Input id={id('reason')} maxLength={120} value={str(c.lost_reason)} disabled={readOnly} onChange={(e) => set({ lost_reason: e.target.value })} />
+                            </Field>
+                        ) : null}
+                    </>
+                );
+                break;
+            }
+            case 'crm_task': {
+                const assign = str(c.assign, 'lead_owner');
+                body = (
+                    <>
+                        <Field label={t('flows.config.taskTitle')} htmlFor={id('title')} help={t('flows.config.taskHelp')}>
+                            <Input id={id('title')} maxLength={160} placeholder={t('flows.config.taskTitlePlaceholder')} value={str(c.title)} disabled={readOnly} onChange={(e) => set({ title: e.target.value })} />
+                        </Field>
+                        <Field label={t('flows.config.taskKind')} htmlFor={id('kind')}>
+                            <Select id={id('kind')} value={str(c.kind, 'task')} disabled={readOnly} onChange={(e) => set({ kind: e.target.value })}>
+                                {(['task', 'call'] as const).map((k) => (
+                                    <option key={k} value={k}>
+                                        {t(`flows.config.taskKinds.${k}`)}
+                                    </option>
+                                ))}
+                            </Select>
+                        </Field>
+                        <label className="igr:flex igr:items-center igr:gap-2 igr:text-[13px]">
+                            <input type="checkbox" checked={c.due_in === null || c.due_in === undefined} disabled={readOnly} onChange={(e) => set({ due_in: e.target.checked ? null : { value: 1, unit: 'days' } })} />
+                            {t('flows.config.taskDueToday')}
+                        </label>
+                        {c.due_in ? (
+                            <Field label={t('flows.config.taskDue')} htmlFor={id('due')}>
+                                <DurationInput id={id('due')} value={c.due_in} disabled={readOnly} onChange={(due_in) => set({ due_in })} />
+                            </Field>
+                        ) : null}
+                        <Field label={t('flows.config.taskAssign')} htmlFor={id('assign')}>
+                            <Select id={id('assign')} value={assign} disabled={readOnly} onChange={(e) => set({ assign: e.target.value, user_id: e.target.value === 'user' ? (c.user_id ?? null) : null })}>
+                                <option value="lead_owner">{t('flows.config.taskLeadOwner')}</option>
+                                <option value="user">{t('flows.config.assignUser')}</option>
+                            </Select>
+                        </Field>
+                        {assign === 'user' ? <PersonSelect id={id('user')} value={str(c.user_id)} team={options.team ?? []} disabled={readOnly} onChange={(user_id) => set({ user_id })} /> : null}
+                    </>
+                );
+                break;
+            }
+            case 'lead_followup': {
+                const channels = list(c.channels);
+                const templates = options.templates.filter((tpl) => tpl.channel === 'whatsapp' && tpl.category === 'marketing');
+                body = (
+                    <>
+                        <p className="igr:text-[12px] igr:text-muted-foreground">{t('flows.config.followUpHelp')}</p>
+                        <fieldset className="igr:space-y-1">
+                            <legend className="igr:text-[13px] igr:font-medium">{t('flows.config.followUpChannels')}</legend>
+                            {(['whatsapp', 'email'] as const).map((ch) => (
+                                <label key={ch} className="igr:flex igr:items-center igr:gap-2 igr:text-[13px]">
+                                    <input
+                                        type="checkbox"
+                                        checked={channels.includes(ch)}
+                                        disabled={readOnly}
+                                        onChange={(e) => set({ channels: (['whatsapp', 'email'] as const).filter((x) => (x === ch ? e.target.checked : channels.includes(x))) })}
+                                    />
+                                    {t(`flows.channels.${ch}`)}
+                                </label>
+                            ))}
+                        </fieldset>
+                        <Field label={t('flows.config.followUpStep')} htmlFor={id('step')}>
+                            <Input id={id('step')} type="number" min={1} max={10} className="igr:w-24" value={str(c.step, '1')} disabled={readOnly} onChange={(e) => set({ step: Math.max(1, Math.min(10, Math.round(Number(e.target.value) || 1))) })} />
+                        </Field>
+                        {channels.includes('whatsapp') ? (
+                            <Field label={t('flows.config.followUpTemplate')} htmlFor={id('template')}>
+                                <Select id={id('template')} value={str(c.template_id)} disabled={readOnly} onChange={(e) => set({ template_id: e.target.value || null })}>
+                                    <option value="">{t('flows.config.followUpTemplateDefault')}</option>
+                                    {templates.map((tpl) => (
+                                        <option key={tpl.id} value={tpl.id}>
+                                            {tpl.name}
+                                        </option>
+                                    ))}
+                                </Select>
+                            </Field>
+                        ) : null}
+                    </>
+                );
+                break;
+            }
             case 'exit':
                 body = <p className="igr:text-[13px] igr:text-muted-foreground">{t('flows.config.exitHelp')}</p>;
                 break;
@@ -420,6 +534,23 @@ export function NodePanel({ node, options, issues, readOnly, webhookSecret, onCh
             ) : null}
             {body}
         </div>
+    );
+}
+
+/** Una persona del equipo (asignar o dueño de la tarea). */
+function PersonSelect({ id, value, team, disabled, onChange }: { id: string; value: string; team: { id: string; name: string }[]; disabled: boolean; onChange: (v: string | null) => void }) {
+    const { t } = useTranslation();
+    return (
+        <Field label={t('flows.config.person')} htmlFor={id}>
+            <Select id={id} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value || null)}>
+                <option value="">—</option>
+                {team.map((m) => (
+                    <option key={m.id} value={m.id}>
+                        {m.name}
+                    </option>
+                ))}
+            </Select>
+        </Field>
     );
 }
 

@@ -286,7 +286,8 @@ final class InboxController
         return array_values(array_unique($keys));
     }
 
-    private static function denied(string $reason, ?Channel $channel = null): string
+    /** El motivo de una negación del despachador en palabras del usuario (lo usa también «Hoy» de leads). */
+    public static function denied(string $reason, ?Channel $channel = null): string
     {
         if ($channel !== null && $channel->isSocial()) {
             $name = $channel === Channel::Instagram ? 'Instagram' : 'Messenger';

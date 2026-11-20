@@ -80,7 +80,7 @@ final class ChangeFlowStatus
             };
             if ($channel !== null) {
                 $needed[] = [$channel];
-            } elseif ($type === NodeTypes::CHANNEL_SPLIT && (array) ($config['channels'] ?? []) !== []) {
+            } elseif (in_array($type, [NodeTypes::CHANNEL_SPLIT, NodeTypes::LEAD_FOLLOWUP], true) && (array) ($config['channels'] ?? []) !== []) {
                 $needed[] = array_values(array_map('strval', (array) $config['channels']));
             }
         }

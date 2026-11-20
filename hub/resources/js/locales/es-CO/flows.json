@@ -117,12 +117,14 @@
             "exit": "Salida",
             "give_points": "Dar puntos",
             "give_wallet": "Dar saldo a favor",
-            "assign_agent": "Asignar a un agente",
+            "assign_agent": "Asignar a una persona",
             "lead_stage": "Mover etapa del lead",
-            "crm_task": "Tarea en Imagina CRM"
+            "crm_task": "Crear tarea",
+            "lead_followup": "Seguimiento con IA"
         },
         "branches": {
             "next": "Siguiente",
+            "notDone": "Si no se pudo",
             "yes": "Sí",
             "no": "No",
             "failed": "Si no se envía",
@@ -180,7 +182,17 @@
             "noMessage": "Escribe el aviso",
             "noUrl": "Escribe la URL",
             "exit": "Termina el flujo",
-            "comingPhase": "Todavía no disponible"
+            "comingPhase": "Todavía no disponible",
+            "assignAuto": "Por turnos (bandeja y leads)",
+            "assignUser": "A {{name}}",
+            "pickPerson": "Elige a la persona",
+            "leadStage": "A «{{stage}}»",
+            "pickStage": "Elige la etapa",
+            "task": "{{title}} · vence en {{duration}}",
+            "taskToday": "{{title}} · hoy",
+            "call": "Llamada: {{title}}",
+            "noTask": "Escribe la tarea",
+            "followUp": "Toque {{step}} · {{channels}}"
         },
         "triggerText": {
             "event": "Cuando pasa «{{event}}»",
@@ -322,6 +334,31 @@
             "url": "URL (https)",
             "secret": "Firma: X-IGR-Signature con este secreto",
             "laterPhase": "Este paso todavía no está disponible.",
+            "assignMode": "A quién",
+            "assignAuto": "Automático: por turnos entre quien atiende (bandeja y leads)",
+            "assignUser": "Una persona del equipo",
+            "person": "Persona",
+            "assignHelp": "Asigna la conversación más reciente del contacto en la bandeja y su lead abierto. En automático, solo si no tenían a nadie.",
+            "stage": "Etapa",
+            "stageHelp": "Mueve el lead abierto del contacto como si lo hiciera una persona en el tablero. Ganado envía la conversión offline.",
+            "lostReason": "Motivo de pérdida",
+            "taskTitle": "Tarea",
+            "taskTitlePlaceholder": "Llamar para confirmar la visita",
+            "taskKind": "Tipo",
+            "taskKinds": {
+                "task": "Tarea",
+                "call": "Llamada"
+            },
+            "taskDue": "Vence después de",
+            "taskDueToday": "Vence hoy",
+            "taskAssign": "Para",
+            "taskLeadOwner": "El vendedor del lead (si no tiene, la ven los dueños)",
+            "taskHelp": "La tarea sale en «Hoy» del vendedor el día que vence.",
+            "followUpChannels": "Canales",
+            "followUpStep": "Número de seguimiento",
+            "followUpTemplate": "Plantilla de WhatsApp fuera de la ventana de 24 h",
+            "followUpTemplateDefault": "La de Ajustes de leads (o wa_lead_followup)",
+            "followUpHelp": "La IA escribe el mensaje con lo que pidió el lead (qué, cuánto, dónde, para cuándo) para que aporte algo. Dentro de la ventana de 24 h sale como texto; fuera, con la plantilla de marketing. Respeta consentimiento, horario legal y frecuencia; si no puede salir, deja una tarea en «Hoy».",
             "exitHelp": "El contacto termina el flujo aquí."
         },
         "settings": {

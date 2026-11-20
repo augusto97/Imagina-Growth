@@ -55,8 +55,40 @@ final class WeeklyReportMail extends Mailable implements ShouldQueue
                 'ai' => ($this->facts['analysis']['source'] ?? '') === 'ai',
                 'actions' => array_map(fn (array $a) => ['title' => (string) ($a['titulo'] ?? ''), 'detail' => (string) ($a['detalle'] ?? ''), 'url' => $base.($a['ruta'] ?? 'hallazgos')], (array) $this->facts['analysis']['actions']),
             ] : null,
+            'leads' => array_map(fn (array $f) => self::leadFunnel($f, $currency), (array) ($this->facts['leads'] ?? [])),
+            'leadsUrl' => $base.'leads?tab=indicadores',
+            'todayUrl' => $base.'hoy',
             'actionUrl' => $base.($this->facts['action']['to'] ?? ''),
             'dashboardUrl' => $base.'analitica',
         ]);
+    }
+
+    /**
+     * Un embudo de leads listo para la tabla del correo: etapas con lo de la semana, la anterior
+     * y el paso entre etapas; dónde se cae; perdidos y estancados; la conclusión.
+     *
+     * @param  array<string, mixed>  $f
+     * @return array<string, mixed>
+     */
+    private static function leadFunnel(array $f, string $currency): array
+    {
+        $pct = fn (mixed $r): ?string => is_numeric($r) ? Money::percent((float) $r, 0) : null;
+
+        return [
+            'name' => (string) ($f['pipeline']['name'] ?? ''),
+            'stages' => array_map(fn (array $s) => [
+                'label' => (string) $s['label'], 'reached' => Money::number((int) $s['reached']), 'previous' => Money::number((int) $s['previous']),
+                'conversion' => $pct($s['conversion']), 'previous_conversion' => $pct($s['previous_conversion']),
+            ], (array) ($f['stages'] ?? [])),
+            'drop' => is_array($f['drop'] ?? null) ? ['from' => (string) $f['drop']['from_label'], 'to' => (string) $f['drop']['to_label'], 'rate' => $pct($f['drop']['conversion'])] : null,
+            'lost' => (int) ($f['lost']['count'] ?? 0),
+            'reasons' => array_map(fn (array $r) => ['reason' => (string) ($r['reason'] ?? __('Sin motivo')), 'count' => (int) $r['count']], array_slice((array) ($f['lost']['reasons'] ?? []), 0, 3)),
+            'stalled' => array_map(fn (array $s) => ['label' => (string) $s['label'], 'count' => (int) $s['count']], (array) ($f['stalled'] ?? [])),
+            'stale_days' => (int) ($f['stale_days'] ?? 7),
+            'won' => (int) ($f['won']['week']['count'] ?? 0),
+            'won_value' => Money::format((float) ($f['won']['week']['value'] ?? 0), $currency),
+            'conclusion' => (string) ($f['conclusion']['text'] ?? ''),
+            'ai' => ($f['conclusion']['source'] ?? '') === 'ai',
+        ];
     }
 }

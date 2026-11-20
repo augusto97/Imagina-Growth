@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { briefDraft, briefEdits, briefFilled, duration, filtersQuery, moveCard, moveNeeds, parseList, pipelineErrors, stageKey, temperatureTone } from './logic';
+import { briefDraft, briefEdits, briefFilled, duration, signedPoints, filtersQuery, moveCard, moveNeeds, parseList, pipelineErrors, stageKey, temperatureTone } from './logic';
 import type { BoardColumn, Brief, LeadRow } from './types';
 
 const lead = (id: string, stage: string): LeadRow => ({
@@ -67,5 +67,11 @@ describe('leads', () => {
         expect(draft.need).toBe('pintura azul');
         expect(draft.budget).toBe('');
         expect(briefEdits(brief, { ...draft, city: 'Medellín', need: '', timing: '  ' })).toEqual({ city: 'Medellín', need: null });
+    });
+
+    it('escribe el cambio en puntos con su signo', () => {
+        expect(signedPoints(25)).toBe('+25');
+        expect(signedPoints(-5.26)).toBe('−5,3');
+        expect(signedPoints(0)).toBe('0');
     });
 });

@@ -6,6 +6,7 @@ namespace App\Domain\Reports;
 
 use App\Domain\Intelligence\Ai\Features\Analyst\WeeklyAnalyst;
 use App\Domain\Reports\Mail\WeeklyReportMail;
+use App\Domain\Services\Leads\Support\LeadFunnelReport;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
@@ -21,7 +22,7 @@ use Illuminate\Support\Str;
  */
 final class SendWeeklyReport
 {
-    public function __construct(private readonly WeeklyReport $report, private readonly WeeklyAnalyst $analyst) {}
+    public function __construct(private readonly WeeklyReport $report, private readonly WeeklyAnalyst $analyst, private readonly LeadFunnelReport $leads) {}
 
     /** @return array{status: string, recipients: list<string>, delivery_id: string|null} */
     public function handle(Workspace $workspace, ?CarbonImmutable $weekStart = null, bool $force = false): array
@@ -42,6 +43,8 @@ final class SendWeeklyReport
         $facts['analysis'] = [
             'id' => $analysis->publicId(), 'body' => $analysis->body_markdown, 'actions' => $analysis->actions ?? [], 'source' => $analysis->source,
         ];
+        // El embudo de leads del lunes (M18): consultas → … → ganados, dónde se cae y por qué.
+        $facts['leads'] = $this->leads->forWeek($workspace, $weekStart);
         foreach ($recipients as $user) {
             Mail::to($user->email)->locale(str_replace('-', '_', $workspace->locale))->queue(new WeeklyReportMail($facts, $user->name));
         }

@@ -23,6 +23,8 @@ use App\Domain\Flows\Support\FlowRules;
 use App\Domain\Flows\Support\InvalidFlow;
 use App\Domain\Flows\Support\TemplateRef;
 use App\Domain\Segments\Models\Segment;
+use App\Domain\Services\Leads\Models\LeadPipeline;
+use App\Domain\Services\Leads\Support\LeadDefaults;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Domain\Workspaces\Models\User;
 use App\Ingest\Schema\SchemaRegistry;
@@ -292,7 +294,7 @@ final class FlowController
             if ($type === NodeTypes::TRIGGER) {
                 continue;
             }
-            $nodes[] = ['type' => $type, 'category' => $meta['category'], 'phase' => $meta['phase'] ?? null, 'branches' => $meta['branches'] === 'dynamic' ? 'dynamic' : $meta['branches']];
+            $nodes[] = ['type' => $type, 'category' => $meta['category'], 'phase' => null, 'branches' => $meta['branches'] === 'dynamic' ? 'dynamic' : $meta['branches']];
         }
 
         return response()->json([
@@ -306,7 +308,28 @@ final class FlowController
             'flows' => Flow::query()->where('status', '!=', Flow::ARCHIVED)->orderBy('name')->get(['id', 'name'])->map(fn (Flow $f) => ['id' => $f->publicId(), 'name' => $f->name])->values(),
             'date_attributes' => FlowRules::DATE_ATTRIBUTES,
             'threshold_metrics' => DateTriggersCommand::METRICS,
+            // Para «Asignar a una persona», «Crear tarea» y «Mover etapa del lead».
+            'team' => $this->current->get()->users()->orderBy('name')->get(['users.id', 'users.name'])->map(fn (User $u) => ['id' => $u->publicId(), 'name' => $u->name])->values(),
+            'lead_stages' => self::leadStages(),
         ]);
+    }
+
+    /**
+     * Las etapas de los pipelines de leads (sin repetir la clave), con el pipeline de cada una.
+     *
+     * @return list<array{key: string, label: string, kind: string, pipeline: string}>
+     */
+    private static function leadStages(): array
+    {
+        $pipelines = LeadPipeline::query()->orderByDesc('is_default')->orderBy('created_at')->get();
+        $out = [];
+        foreach ($pipelines->isEmpty() ? [null] : $pipelines->all() as $p) {
+            foreach ($p !== null ? $p->stages : LeadDefaults::STAGES as $stage) {
+                $out[$stage['key']] ??= ['key' => $stage['key'], 'label' => $p !== null ? $stage['label'] : __($stage['label']), 'kind' => $stage['kind'], 'pipeline' => $p !== null ? $p->name : __('Ventas')];
+            }
+        }
+
+        return array_values($out);
     }
 
     private function find(string $publicId): Flow
