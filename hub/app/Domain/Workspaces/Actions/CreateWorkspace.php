@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Workspaces\Actions;
 
+use App\Domain\Billing\Plans\PlanCatalog;
 use App\Domain\Workspaces\Data\WorkspaceData;
 use App\Domain\Workspaces\Enums\AccountRole;
 use App\Domain\Workspaces\Enums\AccountType;
@@ -31,11 +32,16 @@ final class CreateWorkspace
         }
 
         return DB::transaction(function () use ($user, $data, $account): Workspace {
+            // La cuenta propia de quien administra la plataforma nace con el plan de la plataforma (S3): sin plan
+            // regiría el plan gratuito por defecto.
+            $platformPlan = (bool) ($user->getAttributes()['is_platform_admin'] ?? false) && PlanCatalog::ensure(PlanCatalog::platformPlanId())
+                ? PlanCatalog::platformPlanId() : null;
             $account ??= Account::query()->create([
                 'type' => AccountType::Direct,
                 'name' => $data->name,
                 'country' => $data->country,
                 'billing_email' => $user->email,
+                'plan_id' => $platformPlan,
                 'status' => 'active',
             ]);
 

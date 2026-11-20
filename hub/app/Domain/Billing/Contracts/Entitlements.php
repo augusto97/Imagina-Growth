@@ -8,9 +8,9 @@ use App\Domain\Workspaces\Models\Workspace;
 
 /**
  * Qué incluye el plan de un espacio de trabajo (M21): módulos activables (Pennant)
- * y límites. Sin plan (por defecto `UnlimitedEntitlements`) todo está permitido;
- * planes y facturación lo reemplazan. Nunca corta de golpe: pasado el límite hay
- * periodo de gracia y aviso (M21).
+ * y límites. Lo implementa `PlanEntitlements`: sin plan asignado rige el plan
+ * gratuito por defecto (`igr-plans.default_plan`), no «todo» (S3). Nunca corta de
+ * golpe: pasado el límite hay periodo de gracia y aviso (M21).
  *
  * Módulos: onsite, loyalty, referrals, reviews, inbox, ai, ai_agent, services,
  * bookings, quotes, api, mcp, agency_reports, white_label.

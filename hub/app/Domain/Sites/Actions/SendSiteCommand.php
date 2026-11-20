@@ -6,8 +6,9 @@ namespace App\Domain\Sites\Actions;
 
 use App\Domain\Sites\Models\Site;
 use App\Support\Hmac\Signature;
+use App\Support\Net\SafeHttp;
+use App\Support\Net\UnsafeUrl;
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -33,7 +34,14 @@ final class SendSiteCommand
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
         try {
-            $response = Http::timeout($timeout)
+            // `rest_url` lo informa el sitio: solo direcciones públicas, resueltas al enviar y sin redirecciones (S5).
+            $request = SafeHttp::for($url, httpsOnly: false);
+        } catch (UnsafeUrl $e) {
+            throw new RuntimeException(__('No se pudo contactar al sitio: :msg', ['msg' => $e->getMessage()]), 0, $e);
+        }
+
+        try {
+            $response = $request->timeout($timeout)
                 ->withHeaders([
                     'Content-Type' => 'application/json',
                     'X-IGR-Signature' => Signature::sign($signWith ?? $site->secret, $body),

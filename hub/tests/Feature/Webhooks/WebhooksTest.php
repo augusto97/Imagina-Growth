@@ -9,6 +9,7 @@ use App\Domain\Webhooks\Models\WebhookSubscription;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Ingest\Events\EventIngested;
 use App\Support\Hmac\Signature;
+use App\Support\Net\HostResolver;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Http;
@@ -163,6 +164,23 @@ it('las URL deben ser HTTPS y públicas', function () {
     foreach (['http://hooks.ejemplo.com/x', 'https://localhost/x', 'https://10.0.0.5/x', 'https://127.0.0.1/x'] as $url) {
         $this->actingAs($this->owner)->postJson(($this->api)('webhooks'), ['url' => $url, 'events' => ['order.paid']])->assertUnprocessable()->assertJsonValidationErrors('url');
     }
+});
+
+it('una URL que hoy resuelve a la red interna no recibe la entrega (S5: DNS al enviar, también IPv6)', function () {
+    Http::fake(['hooks.ejemplo.test/*' => Http::response('ok', 200)]);
+    ($this->subscribe)();
+    config(['igr.webhooks.allow_private_urls' => false]);
+    app()->instance(HostResolver::class, new class extends HostResolver
+    {
+        public function resolve(string $host): array
+        {
+            return ['93.184.216.34', 'fd00::7'];
+        }
+    });
+    event(($this->orderPaid)());
+
+    Http::assertNothingSent();
+    expect(WebhookDelivery::withoutWorkspaceScope()->where('attempt', 1)->sole()->error)->toBe('url_not_public');
 });
 
 it('Zapier, Make y n8n se suscriben por la API y datos personales exigen contacts:pii', function () {

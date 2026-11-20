@@ -14,6 +14,7 @@ use App\Ingest\HubEvents;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
+use Ramsey\Uuid\Uuid;
 use Throwable;
 
 /**
@@ -72,16 +73,19 @@ final class DetectAbandonedCarts
             if (! is_string($contactId)) {
                 continue; // anónimo puro: no hay a quién escribirle
             }
-            // Solo el primero que lo marca emite el evento (dos procesos del scheduler no duplican).
+            // Primero el evento y después la marca (R4): si emitir falla, el carrito sigue activo y se reintenta en la
+            // próxima vuelta, en lugar de quedar «abandonado» sin evento (y sin flujo). El event_id sale del carrito y
+            // de su última actividad: si dos vueltas lo emiten, ClickHouse, los flujos (trigger_key) y los webhooks lo
+            // reciben una sola vez.
+            $cart->contact_id = $contactId;
+            $site = Site::query()->find($cart->site_id);
+            $eventId = Uuid::uuid5(Uuid::NAMESPACE_URL, 'igr:cart.abandoned:'.$cart->id.':'.$cart->last_activity_at->getTimestamp())->toString();
+            $this->hubEvents->emit($workspace, 'cart.abandoned', $this->properties($cart, $now), $contactId, $site, $now, $eventId, $cart->anonymous_id);
             $claimed = Cart::query()->whereKey($cart->id)->where('status', 'active')
                 ->update(['status' => 'abandoned', 'abandoned_at' => $now, 'contact_id' => $contactId, 'updated_at' => $now]);
-            if ($claimed !== 1) {
-                continue;
+            if ($claimed === 1) {
+                $count++;
             }
-            $cart->refresh();
-            $site = Site::query()->find($cart->site_id);
-            $this->hubEvents->emit($workspace, 'cart.abandoned', $this->properties($cart, $now), $contactId, $site, $now, null, $cart->anonymous_id);
-            $count++;
         }
 
         return $count;

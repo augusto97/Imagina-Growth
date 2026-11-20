@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Messaging\Http\Api;
 
+use App\Domain\Billing\Support\PlatformSending;
 use App\Domain\Messaging\Channels\DriverRegistry;
 use App\Domain\Messaging\Channels\Drivers\MetaCloudDriver;
 use App\Domain\Messaging\Channels\Drivers\MetaSocialDriver;
@@ -17,6 +18,7 @@ use App\Domain\Messaging\Support\EmailDomain;
 use App\Domain\Messaging\Support\SesClientFactory;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
+use App\Support\Net\SafeUrl;
 use App\Support\Phone\Phone;
 use App\Support\Tenancy\CurrentWorkspace;
 use Aws\Exception\AwsException;
@@ -54,6 +56,8 @@ final class ChannelController
                     'graph_version' => config('igr-messaging.meta.graph_version'),
                 ],
                 'zender_caps' => ['hourly' => (int) config('igr-messaging.zender.hourly_cap'), 'daily' => (int) config('igr-messaging.zender.daily_cap')],
+                // Si el plan incluye correo por la cuenta de SES de la plataforma (S3); si no, solo SMTP propio.
+                'platform_email' => PlatformSending::emailAllowed($this->current->get()),
             ],
         ]);
     }
@@ -74,6 +78,9 @@ final class ChannelController
             'password' => ['nullable', 'string', 'max:500'],
             'encryption' => ['nullable', Rule::in(['tls', 'ssl', 'none'])],
         ]);
+        if ($data['provider'] === 'smtp' && ($problem = SafeUrl::hostProblem((string) ($data['host'] ?? ''))) !== null) {
+            throw ValidationException::withMessages(['host' => $problem]);
+        }
         $domain = strtolower(substr((string) strrchr($data['from_email'], '@'), 1));
         $config = array_filter([
             'from_email' => $data['from_email'], 'from_name' => $data['from_name'], 'reply_to' => $data['reply_to'] ?? null, 'domain' => $domain,
@@ -81,6 +88,9 @@ final class ChannelController
             'password' => $data['password'] ?? null, 'encryption' => $data['encryption'] ?? null,
         ], fn ($v) => $v !== null);
         if ($data['provider'] === 'ses') {
+            if (! PlatformSending::emailAllowed($this->current->get())) {
+                throw ValidationException::withMessages(['provider' => PlatformSending::message()]);
+            }
             // Sin las credenciales de SES de la plataforma, el SDK lanzaba CredentialsException y la API respondía 500.
             if (! app(SesClientFactory::class)->configured()) {
                 throw ValidationException::withMessages(['provider' => __('Esta instalación todavía no tiene Amazon SES configurado. Conecta tu correo por SMTP o pide a quien administra la plataforma que configure SES.')]);
@@ -197,6 +207,9 @@ final class ChannelController
             'display_name' => ['nullable', 'string', 'max:120'],
             'accept_risk' => ['accepted'],
         ]);
+        if (($problem = SafeUrl::problem($data['base_url'])) !== null) {
+            throw ValidationException::withMessages(['base_url' => $problem]);
+        }
         $phone = Phone::toE164($data['phone'], strtoupper((string) ($this->current->get()->country ?: 'CO')));
         if ($phone === null) {
             throw ValidationException::withMessages(['phone' => __('Escribe un número de WhatsApp válido.')]);

@@ -152,6 +152,12 @@ install.sh                  el instalador
   MariaDB, ClickHouse y los dos Redis (`redis_queue` y `redis_cache`) responden; `503` si no. La versión sale del archivo `VERSION` de la raíz de la
   versión (`base_path('../VERSION')`; en desarrollo, el `VERSION` del repositorio).
 - `GET /health` (ya existe) sigue siendo la salud de la ingesta con el atraso de los streams.
+- **Detalle solo para la máquina o con token** (S16): lo que llega por Caddy (siempre con `X-Forwarded-For`) o desde
+  otra IP recibe solo `{"status":"ok"}` o `{"status":"degraded"}` con el mismo 200/503. La versión, los `checks` y los
+  streams salen cuando la conexión viene de 127.0.0.1 o ::1 sin encabezados de proxy (el health-check de
+  `growth-update`, que llama a `http://127.0.0.1:<puerto>`) o con `IGR_HEALTH_TOKEN` en `X-IGR-Health-Token` o
+  `Authorization: Bearer` (un monitor externo que quiera el detalle). Los monitores de Better Stack solo miran el
+  código de respuesta y siguen igual.
 - El health-check del actualizador exige `status = ok` **y** `version` igual a la versión instalada en
   `growth-app` (8080) y en cada `growth-ingest-api@N`, para no confundirse con un proceso viejo.
 
@@ -333,6 +339,17 @@ el perfil pequeño todas las colas cortas comparten un supervisor.
 Si el servidor ya se quedó sin memoria (la app no responde), primero `systemctl stop growth.target clickhouse-server`
 y después el instalador: con la memoria llena ni `apt` avanza. Al terminar, el instalador vuelve a arrancar la app
 (`systemctl enable --now growth.target`) y rearma la caché de configuración, como `growth-update`.
+
+**Primer administrador y revisión.** Después de instalar, desde el servidor:
+
+- `growth-php artisan igr:admin:create admin@ejemplo.com` crea (o promueve, si ya existe) a quien administra la
+  plataforma. Pide la contraseña dos veces sin mostrarla; con `--generate` la genera y la muestra una sola vez (sin
+  terminal, `--generate` es obligatorio). Sus cuentas sin plan quedan con el plan `plataforma`. Al entrar, se le pide
+  la verificación en dos pasos.
+- `growth-php artisan igr:doctor` dice qué falta configurar y cómo (correo, SES y `IGR_SES_SNS_TOPIC_ARN`, secreto y
+  token del webhook de Meta, clave de Anthropic, Google Calendar, Reverb, ML, Horizon, programador, colas, tarifas de
+  WhatsApp, planes y la versión del plugin de cada sitio). Sale con código 1 si hay errores; `--json` para scripts.
+  Lo mismo se ve en Plataforma → Instalación.
 
 **Python del ML:** `uv sync --frozen` usa el Python 3.12 de Ubuntu si cumple `requires-python`; si una versión
 necesitara otro, `uv` lo baja de GitHub (el servidor necesita salida a GitHub).

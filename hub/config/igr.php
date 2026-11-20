@@ -96,6 +96,31 @@ return [
             : in_array(env('APP_ENV', 'production'), ['local', 'testing'], true),
     ],
 
+    // Purga por retención (R14, igr:retention:purge cada noche), en días. ingest_rejections usa
+    // ingest.rejection_retention_days; webhook_deliveries, igr:webhooks:prune (30); conversion_deliveries, el TTL de
+    // ClickHouse (90).
+    'retention' => [
+        'failed_jobs' => (int) env('IGR_RETENTION_FAILED_JOBS_DAYS', 30),
+        'job_batches' => 7,
+        'connect_codes' => 7,
+        'invitations' => 30,
+        'password_resets' => 1,
+        'flow_run_steps' => (int) env('IGR_RETENTION_FLOW_STEPS_DAYS', 180),
+        'ai_agent_turns' => (int) env('IGR_RETENTION_AGENT_TURNS_DAYS', 180),
+    ],
+
+    // Eventos del hub hacia ClickHouse (R4): auto = por la cola dentro de una petición web y en el momento en consola
+    // (con la cola de respaldo si ClickHouse falla); queue = siempre por la cola; direct = siempre en el momento.
+    'hub_events' => [
+        'write' => env('IGR_HUB_EVENTS_WRITE', 'auto'),
+    ],
+
+    // GET /health y /health/ready (S16): en público solo dicen ok o fallo; el detalle de dependencias sale desde la
+    // propia máquina (127.0.0.1, sin pasar por Caddy) o con este token en `X-IGR-Health-Token` o `Authorization: Bearer`.
+    'health' => [
+        'token' => env('IGR_HEALTH_TOKEN'),
+    ],
+
     // Dominios propios de las agencias (M22): el CNAME al que deben apuntar el panel, los enlaces y la página de reservas.
     'custom_domains' => [
         // A dónde apuntan con CNAME los dominios propios de las agencias: por defecto, el dominio del panel.

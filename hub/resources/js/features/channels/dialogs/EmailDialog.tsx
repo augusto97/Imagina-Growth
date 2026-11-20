@@ -11,8 +11,13 @@ import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { cn } from '@/lib/cn';
 import { toast } from '@/stores/toast';
-import { type ChannelAccount, type DnsRecord, type EmailForm, useCheckDns, useCreateEmail } from '../api';
+import { type ChannelAccount, type DnsRecord, type EmailForm, useChannels, useCheckDns, useCreateEmail } from '../api';
 import { CopyButton, fieldError } from '../shared';
+
+/** ¿El plan incluye correo por la cuenta de SES de la plataforma? (`meta.platform_email`; si no llega, sí). */
+export function platformEmailAllowed(meta: unknown): boolean {
+    return !(typeof meta === 'object' && meta !== null && Reflect.get(meta, 'platform_email') === false);
+}
 
 /** Registros DNS del dominio con su verificación en vivo. */
 export function DnsRecords({ records }: { records: DnsRecord[] }) {
@@ -117,14 +122,16 @@ export function EmailDialog({ open, onClose, dnsFor }: { open: boolean; onClose:
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const create = useCreateEmail(workspace.id);
+    const sesAllowed = platformEmailAllowed(useChannels(workspace.id).data?.meta);
     const [form, setForm] = useState<EmailForm>({ provider: 'ses', from_email: '', from_name: workspace.name, encryption: 'tls', port: 587 });
+    const provider = sesAllowed ? form.provider : 'smtp';
     const [created, setCreated] = useState<{ account: ChannelAccount; dns: DnsRecord[] } | null>(null);
     const set = (patch: Partial<EmailForm>) => setForm((f) => ({ ...f, ...patch }));
     const account = dnsFor ?? created?.account ?? null;
 
     const submit = (e: SyntheticEvent<HTMLFormElement>) => {
         e.preventDefault();
-        create.mutate(form, {
+        create.mutate({ ...form, provider }, {
             onSuccess: (r) => {
                 toast.success(t('channels.toast.connected'));
                 if (r.data.provider === 'smtp') {
@@ -155,15 +162,33 @@ export function EmailDialog({ open, onClose, dnsFor }: { open: boolean; onClose:
                         <fieldset className="igr:grid igr:gap-2 igr:sm:grid-cols-2">
                             <legend className="igr:sr-only">{t('channels.email.title')}</legend>
                             {(['ses', 'smtp'] as const).map((p) => (
-                                <label key={p} className={cn('igr:flex igr:cursor-pointer igr:gap-2 igr:rounded-lg igr:border igr:p-3', form.provider === p && 'igr:border-primary igr:bg-primary/5')}>
-                                    <input type="radio" name="provider" value={p} checked={form.provider === p} onChange={() => set({ provider: p })} className="igr:mt-0.5" />
+                                <label
+                                    key={p}
+                                    className={cn(
+                                        'igr:flex igr:cursor-pointer igr:gap-2 igr:rounded-lg igr:border igr:p-3',
+                                        provider === p && 'igr:border-primary igr:bg-primary/5',
+                                        p === 'ses' && !sesAllowed && 'igr:cursor-not-allowed igr:opacity-60',
+                                    )}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="provider"
+                                        value={p}
+                                        checked={provider === p}
+                                        disabled={p === 'ses' && !sesAllowed}
+                                        onChange={() => set({ provider: p })}
+                                        className="igr:mt-0.5"
+                                    />
                                     <span>
                                         <span className="igr:block igr:text-[13px] igr:font-medium">{t(p === 'ses' ? 'channels.email.providerSes' : 'channels.email.providerSmtp')}</span>
-                                        <span className="igr:block igr:text-xs igr:text-muted-foreground">{t(p === 'ses' ? 'channels.email.providerSesHelp' : 'channels.email.providerSmtpHelp')}</span>
+                                        <span className="igr:block igr:text-xs igr:text-muted-foreground">
+                                            {t(p === 'ses' ? (sesAllowed ? 'channels.email.providerSesHelp' : 'channels.email.providerSesNotInPlan') : 'channels.email.providerSmtpHelp')}
+                                        </span>
                                     </span>
                                 </label>
                             ))}
                         </fieldset>
+                        <FieldError message={fieldError(create.error, 'provider')} />
                         <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2">
                             <div className="igr:space-y-1">
                                 <Label htmlFor="em-from">{t('channels.email.fromEmail')}</Label>
@@ -180,7 +205,7 @@ export function EmailDialog({ open, onClose, dnsFor }: { open: boolean; onClose:
                                 <FieldError message={fieldError(create.error, 'reply_to')} />
                             </div>
                         </div>
-                        {form.provider === 'smtp' && (
+                        {provider === 'smtp' && (
                             <div className="igr:grid igr:gap-3 igr:sm:grid-cols-4">
                                 <div className="igr:space-y-1 igr:sm:col-span-2">
                                     <Label htmlFor="em-host">{t('channels.email.host')}</Label>

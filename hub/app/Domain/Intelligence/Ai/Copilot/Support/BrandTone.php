@@ -10,9 +10,9 @@ use App\Domain\Intelligence\Ai\Exceptions\AiUnavailable;
 use App\Domain\Intelligence\Ai\Support\PiiScrubber;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Models\Workspace;
+use App\Support\Net\SafeHttp;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Throwable;
 
 /**
@@ -103,7 +103,8 @@ final class BrandTone
     private function page(string $url): ?string
     {
         try {
-            $response = Http::timeout(5)->connectTimeout(3)->withHeaders(['User-Agent' => 'ImaginaGrowth/1.0 (tono de marca)'])->get($url);
+            // La URL sale del sitio del cliente: solo direcciones públicas, sin redirecciones (S5).
+            $response = SafeHttp::for($url, httpsOnly: false)->timeout(5)->connectTimeout(3)->withHeaders(['User-Agent' => 'ImaginaGrowth/1.0 (tono de marca)'])->get($url);
         } catch (Throwable) {
             return null;
         }

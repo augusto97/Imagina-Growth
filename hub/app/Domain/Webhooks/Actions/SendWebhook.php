@@ -6,11 +6,11 @@ namespace App\Domain\Webhooks\Actions;
 
 use App\Domain\Webhooks\Models\WebhookDelivery;
 use App\Domain\Webhooks\Models\WebhookSubscription;
-use App\Domain\Webhooks\Support\SafeUrl;
 use App\Domain\Webhooks\Support\SubscriptionIndex;
 use App\Support\Hmac\Signature;
+use App\Support\Net\SafeHttp;
+use App\Support\Net\UnsafeUrl;
 use App\Support\Pii\Pii;
-use Illuminate\Support\Facades\Http;
 use Throwable;
 
 /**
@@ -49,11 +49,16 @@ final class SendWebhook
         $started = microtime(true);
         $status = null;
         $error = null;
-        if (! SafeUrl::resolvesPublic($sub->url)) {
-            $error = 'url_not_public';
-        } else {
+        try {
+            // Resuelve el DNS ahora y conecta a la IP revisada: nada de redes internas ni DNS rebinding (S5).
+            $request = SafeHttp::for($sub->url);
+        } catch (UnsafeUrl $e) {
+            $request = null;
+            $error = $e->reason === 'dns_unresolved' ? 'dns_unresolved' : 'url_not_public';
+        }
+        if ($request !== null) {
             try {
-                $response = Http::timeout(10)->connectTimeout(5)->withoutRedirecting()
+                $response = $request->timeout(10)->connectTimeout(5)
                     ->withHeaders([
                         'User-Agent' => 'ImaginaGrowth-Webhooks/1.0',
                         'X-IGR-Signature' => Signature::sign($sub->secret, $body),

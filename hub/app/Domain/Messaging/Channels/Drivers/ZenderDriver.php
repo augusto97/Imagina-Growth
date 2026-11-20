@@ -11,10 +11,11 @@ use App\Domain\Messaging\Channels\Data\SendResult;
 use App\Domain\Messaging\Channels\Data\WebhookBatch;
 use App\Domain\Messaging\Enums\MessageKind;
 use App\Domain\Messaging\Models\ChannelAccount;
+use App\Support\Net\SafeHttp;
+use App\Support\Net\UnsafeUrl;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 
 /**
  * Zender: WhatsApp no oficial (cumplimiento.md §5.2). Solo conversaciones 1:1 y
@@ -36,8 +37,15 @@ final class ZenderDriver implements ChannelDriver
         if ($base === null || $secret === null || $device === null) {
             return SendResult::failed(__('Faltan los datos de Zender en la cuenta.'), 'not_configured');
         }
+        $url = rtrim($base, '/').'/api/send/whatsapp';
         try {
-            $response = Http::asForm()->timeout(20)->acceptJson()->post(rtrim($base, '/').'/api/send/whatsapp', [
+            // La instalación de Zender la elige el cliente: solo direcciones públicas (S5).
+            $request = SafeHttp::for($url, httpsOnly: false);
+        } catch (UnsafeUrl $e) {
+            return SendResult::failed($e->getMessage(), $e->reason);
+        }
+        try {
+            $response = $request->asForm()->timeout(20)->acceptJson()->post($url, [
                 'secret' => $secret,
                 'account' => $device,
                 'recipient' => $message->to,

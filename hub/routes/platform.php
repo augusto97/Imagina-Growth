@@ -2,6 +2,7 @@
 
 use App\Domain\Billing\Http\PlatformClientsController;
 use App\Domain\Billing\Http\PlatformController;
+use App\Domain\Billing\Http\PlatformDoctorController;
 use App\Domain\Billing\Http\PlatformMailController;
 use App\Domain\Billing\Http\PlatformPlansController;
 use Illuminate\Support\Facades\Route;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Route;
  */
 Route::get('overview', [PlatformController::class, 'overview']);
 Route::get('health', [PlatformController::class, 'health']);
+// Diagnóstico de la instalación (lo mismo que igr:doctor).
+Route::get('doctor', PlatformDoctorController::class);
 // Correo del sistema: estado y prueba de envío.
 Route::get('mail', [PlatformMailController::class, 'show']);
 Route::post('mail/test', [PlatformMailController::class, 'test'])->middleware('throttle:6,1');

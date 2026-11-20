@@ -15,8 +15,10 @@ use App\Domain\Billing\Invoices\PaymentLinkProvider;
 use App\Domain\Billing\Plans\PlanCatalog;
 use App\Domain\Billing\Plans\PlanEntitlements;
 use App\Domain\Billing\Plans\PlanResolver;
+use App\Domain\Billing\Platform\InstallationDoctor;
 use App\Domain\Workspaces\Models\Workspace;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Pennant\Feature;
@@ -56,7 +58,12 @@ final class ModuleServiceProvider extends ServiceProvider
         }
         $this->commands([PlansSyncCommand::class, BillingUsageCommand::class, BillingStatusCommand::class]);
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
-            $schedule->command('igr:billing:usage')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
+            // Latido del programador: igr:doctor avisa si deja de renovarse (las tareas programadas no corren).
+            $schedule->call(fn () => Cache::put(InstallationDoctor::SCHEDULER_HEARTBEAT, now()->getTimestamp(), 3600))
+                ->everyMinute()->name('igr:scheduler-heartbeat');
+            // R13: cada 5 minutos solo los espacios con actividad; cada hora, todos (y el cierre del mes anterior).
+            $schedule->command('igr:billing:usage --changed')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
+            $schedule->command('igr:billing:usage')->hourlyAt(7)->withoutOverlapping()->onOneServer();
             $schedule->command('igr:billing:status')->hourlyAt(23)->withoutOverlapping()->onOneServer();
         });
     }

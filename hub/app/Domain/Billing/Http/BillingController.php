@@ -65,6 +65,8 @@ final class BillingController
                 'trial_ends_at' => $row?->trial_ends_at !== null ? CarbonImmutable::parse((string) $row->trial_ends_at)->toIso8601String() : null,
             ],
             'plan' => $plan?->toPublicArray(),
+            // assigned: la cuenta tiene plan; default: rige el plan gratuito por defecto; unrestricted: sin plan = todo.
+            'plan_source' => $this->plans->source($workspace),
             'usage' => $usage->for($workspace),
             'modules' => $modules,
             'plans' => Plan::query()->where('public', true)->orderBy('metric')->orderBy('price_usd')->get()->map(fn (Plan $p) => $p->toPublicArray())->all(),

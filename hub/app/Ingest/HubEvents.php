@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Ingest;
 
-use App\Analytics\Ch;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Ingest\Events\EventIngested;
@@ -17,13 +16,14 @@ use InvalidArgumentException;
 
 /**
  * Emite los eventos que genera el hub (eventos.md §4.6): los valida contra su
- * esquema, los escribe en ClickHouse y publica EventIngested para los
+ * esquema, los escribe en ClickHouse con HubEventWriter (en una petición web, por
+ * la cola; si ClickHouse falla, también: R4) y publica EventIngested para los
  * listeners (flujos, segmentos en tiempo real).
  */
 final class HubEvents
 {
     public function __construct(
-        private readonly Ch $ch,
+        private readonly HubEventWriter $writer,
         private readonly SchemaRegistry $schemas,
         private readonly EventRowMapper $mapper,
     ) {}
@@ -87,7 +87,7 @@ final class HubEvents
             $ids[] = $eventId;
         }
 
-        $this->ch->insert('events', $rows, async: true);
+        $this->writer->write($rows);
         if ($publish) {
             foreach ($published as $domainEvent) {
                 event($domainEvent);

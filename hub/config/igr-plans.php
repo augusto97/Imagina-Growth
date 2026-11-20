@@ -7,11 +7,20 @@
  *
  * Módulos (Entitlements, Pennant): onsite, loyalty, referrals, reviews, inbox, ai,
  * ai_agent, services, bookings, quotes, api, mcp, agency_reports, white_label.
- * Límites: emails (correos incluidos al mes), ai_budget_usd, users,
- * api_requests_per_minute. El volumen principal (pedidos o contactos) es `included`.
+ * Límites: emails (correos incluidos al mes; 0 = sin envío de correo por la cuenta de SES de la plataforma),
+ * ai_budget_usd, users, api_requests_per_minute. El volumen principal (pedidos o contactos) es `included`
+ * (0 = sin tope de volumen).
+ *
+ * Analítica, segmentos, RFM y hallazgos no son módulos: los tiene todo plan.
  */
 return [
     'modules' => ['onsite', 'loyalty', 'referrals', 'reviews', 'inbox', 'ai', 'ai_agent', 'services', 'bookings', 'quotes', 'api', 'mcp', 'agency_reports', 'white_label'],
+
+    // Plan de una cuenta sin plan asignado (docs/auditoria-2026-11.md S3): el mínimo gratuito, nunca «todo».
+    // `none` vuelve al comportamiento anterior (sin plan = todo permitido): solo para desarrollo y pruebas.
+    'default_plan' => env('IGR_DEFAULT_PLAN', 'diagnostico'),
+    // Plan con el que nacen las cuentas propias de quien administra la plataforma (superadmin): todo, sin topes.
+    'platform_plan' => 'plataforma',
 
     // Umbrales de aviso de uso y días de gracia: sin cortes bruscos (M21).
     'alert_thresholds' => [80, 100],
@@ -29,6 +38,21 @@ return [
     ],
 
     'plans' => [
+        // Gratis: analítica, segmentos, RFM y hallazgos, con IA mínima y sin envío de correo por la plataforma
+        // (el cliente puede conectar su propio SMTP). Es el plan de toda cuenta sin plan asignado.
+        'diagnostico' => [
+            'name' => 'Diagnóstico', 'metric' => 'orders', 'included' => 0,
+            'modules' => ['ai'],
+            'limits' => ['emails' => 0, 'ai_budget_usd' => 1, 'users' => 2],
+            'price_usd' => 0, 'price_cop' => 0,
+        ],
+        // Uso interno de la plataforma (cuentas del superadmin): todos los módulos y sin topes. No se ofrece.
+        'plataforma' => [
+            'name' => 'Plataforma (uso interno)', 'metric' => 'orders', 'included' => 0,
+            'modules' => ['onsite', 'loyalty', 'referrals', 'reviews', 'inbox', 'ai', 'ai_agent', 'services', 'bookings', 'quotes', 'api', 'mcp', 'agency_reports', 'white_label'],
+            'limits' => [],
+            'price_usd' => 0, 'public' => false,
+        ],
         'tienda_inicio' => [
             'name' => 'Tienda · Inicio', 'metric' => 'orders', 'included' => 300,
             'modules' => ['onsite', 'reviews', 'ai'],

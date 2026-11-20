@@ -10,6 +10,7 @@ use App\Domain\Workspaces\Contracts\Branding;
 use App\Domain\Workspaces\Data\BrandingData;
 use App\Domain\Workspaces\Models\Workspace;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
@@ -21,7 +22,7 @@ use Illuminate\Mail\Mailables\Envelope;
  * El reporte mensual al dueño, con el PDF adjunto y la marca de la agencia: el
  * remitente propio solo si su dominio está verificado (ver AgencyBranding).
  */
-final class MonthlyReportMail extends Mailable implements ShouldQueue
+final class MonthlyReportMail extends Mailable implements ShouldBeEncrypted, ShouldQueue
 {
     use Queueable;
 

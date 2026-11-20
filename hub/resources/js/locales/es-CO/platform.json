@@ -10,7 +10,8 @@
             "health": "Salud",
             "invoices": "Facturas",
             "requests": "Pedidos de plan",
-            "plans": "Planes"
+            "plans": "Planes",
+            "doctor": "Instalación"
         },
         "accounts": {
             "empty": "Todavía no hay clientes.",
@@ -20,7 +21,7 @@
             "usage": "Uso del mes",
             "invoices": "Facturas abiertas",
             "actions": "Acciones",
-            "noPlan": "Sin plan",
+            "noPlan": "Sin plan (rige el plan gratuito)",
             "internal": "interno",
             "graceUntil": "Gracia hasta el {{date}}",
             "overdue_one": "{{count}} vencida",
@@ -222,6 +223,34 @@
             "test": "Enviar correo de prueba",
             "sent": "Correo de prueba enviado a {{to}}.",
             "failed": "No se pudo enviar el correo de prueba"
+        },
+        "doctor": {
+            "title": "Revisión de la instalación",
+            "description": "Qué falta configurar en el servidor y cómo arreglarlo. Es lo mismo que «php artisan igr:doctor».",
+            "recheck": "Volver a revisar",
+            "checkedAt": "Revisado el {{date}}",
+            "overall": {
+                "ok": "Todo en orden",
+                "info": "Todo en orden",
+                "warning": "Falta configurar algo",
+                "error": "Hay errores"
+            },
+            "status": {
+                "ok": "Bien",
+                "info": "Nota",
+                "warning": "Falta",
+                "error": "Error"
+            },
+            "count": {
+                "ok_one": "{{count}} bien",
+                "ok_other": "{{count}} bien",
+                "info_one": "{{count}} nota",
+                "info_other": "{{count}} notas",
+                "warning_one": "{{count}} por configurar",
+                "warning_other": "{{count}} por configurar",
+                "error_one": "{{count}} error",
+                "error_other": "{{count}} errores"
+            }
         }
     }
 }

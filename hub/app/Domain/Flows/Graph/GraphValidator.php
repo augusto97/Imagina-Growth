@@ -8,6 +8,7 @@ use App\Domain\Flows\Support\TemplateRef;
 use App\Domain\Segments\Definition\DefinitionValidator;
 use App\Domain\Segments\Definition\InvalidDefinition;
 use App\Ingest\Schema\SchemaRegistry;
+use App\Support\Net\SafeUrl;
 
 /**
  * Valida el grafo antes de publicar (hub/CLAUDE.md §7): un solo disparador,
@@ -368,6 +369,8 @@ final class GraphValidator
         $secureOnly = ! app()->environment('local', 'testing');
         if (filter_var($url, FILTER_VALIDATE_URL) === false || ($secureOnly && ! str_starts_with($url, 'https://'))) {
             $this->add($id, __('Escribe una URL completa con https://.'));
+        } elseif (($problem = SafeUrl::problem($url)) !== null) {
+            $this->add($id, $problem);
         }
     }
 }

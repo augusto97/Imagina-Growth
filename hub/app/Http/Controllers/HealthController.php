@@ -5,24 +5,32 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Analytics\Ch;
+use App\Http\Support\HealthAccess;
 use App\Ingest\IngestStream;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
  * GET /health (hub/CLAUDE.md §16): MariaDB, ClickHouse, Redis y retraso del
- * stream de ingesta. 503 si algo crítico falla. Sin datos de clientes.
+ * stream de ingesta. 503 si algo crítico falla. Sin datos de clientes. En
+ * público solo dice ok o degraded; el detalle, desde la máquina o con el token
+ * (S16, HealthAccess).
  */
 final class HealthController
 {
-    public function __invoke(Ch $ch, IngestStream $stream): JsonResponse
+    public function __invoke(Request $request, Ch $ch, IngestStream $stream): JsonResponse
     {
         $checks = [
             'mariadb' => $this->check(fn () => DB::select('SELECT 1') !== []),
             'clickhouse' => $this->check(fn () => $ch->ping()),
             'redis' => $this->check(fn () => (bool) $stream->connection()->command('ping')),
         ];
+        $ok = ! in_array(false, $checks, true);
+        if (! HealthAccess::detailed($request)) {
+            return response()->json(['status' => $ok ? 'ok' : 'degraded'], $ok ? 200 : 503, ['Cache-Control' => 'no-store']);
+        }
 
         $ingest = [];
         try {
@@ -43,14 +51,12 @@ final class HealthController
             $ingest = null;
         }
 
-        $ok = ! in_array(false, $checks, true);
-
         return response()->json([
             'status' => $ok ? 'ok' : 'degraded',
             'checks' => $checks,
             'ingest' => $ingest,
             'time' => now()->toIso8601String(),
-        ], $ok ? 200 : 503);
+        ], $ok ? 200 : 503, ['Cache-Control' => 'no-store']);
     }
 
     private function check(callable $probe): bool

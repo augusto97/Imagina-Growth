@@ -13,6 +13,7 @@ use App\Domain\Messaging\Models\WaTemplate;
 use App\Support\Pii\BlindIndex;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
@@ -212,6 +213,37 @@ it('SES por SNS: confirma la suscripción visitando la URL de AWS', function () 
     $msg = snsMessage(['Type' => 'SubscriptionConfirmation', 'Message' => 'Confirma', 'Token' => 't', 'SubscribeURL' => 'https://sns.us-east-1.amazonaws.com/?Action=ConfirmSubscription&Token=t']);
     $this->call('POST', '/webhooks/ses', [], [], [], ['CONTENT_TYPE' => 'text/plain'], json_encode($msg))->assertOk();
     Http::assertSent(fn ($r) => str_contains($r->url(), 'Action=ConfirmSubscription'));
+});
+
+it('SES por SNS: solo del tema configurado, de su misma región y con una versión de firma conocida (S6)', function () {
+    $m = outbound($this, 'ses', 'ses-002', 'email');
+    $delivery = fn (array $over = []) => $this->call('POST', '/webhooks/ses', [], [], [], ['CONTENT_TYPE' => 'text/plain'],
+        json_encode(snsMessage($over + ['Type' => 'Notification', 'Message' => json_encode(['eventType' => 'Bounce', 'mail' => ['messageId' => 'ses-002'], 'bounce' => ['bounceType' => 'Permanent', 'bouncedRecipients' => [['emailAddress' => 'ana@ejemplo.com']]]])])));
+
+    // Firma válida de SNS, pero desde el tema de otra cuenta de AWS: se rechaza.
+    $delivery(['TopicArn' => 'arn:aws:sns:us-east-1:999999999999:atacante'])->assertForbidden();
+    // El tema es el nuestro pero el certificado es de otra región.
+    $delivery(['SigningCertURL' => 'https://sns.eu-west-1.amazonaws.com/SimpleNotificationService-test.pem'])->assertForbidden();
+    // Versión de firma desconocida.
+    $delivery(['SignatureVersion' => '3'])->assertForbidden();
+    // Sin tema configurado no se acepta nada, aunque la firma sea válida.
+    config(['igr-messaging.ses.sns_topic_arn' => null]);
+    $delivery()->assertForbidden();
+    expect(Message::withoutWorkspaceScope()->find($m->id)->status)->not->toBe('bounced');
+
+    // Con varios temas (separados por comas), cualquiera de ellos.
+    config(['igr-messaging.ses.sns_topic_arn' => 'arn:aws:sns:us-east-1:1:otro, arn:aws:sns:us-east-1:1:igr']);
+    $delivery()->assertOk();
+    expect(Message::withoutWorkspaceScope()->find($m->id)->status)->toBe('bounced');
+});
+
+it('SES por SNS: una descarga fallida del certificado no queda en caché', function () {
+    $msg = snsMessage(['Type' => 'Notification', 'Message' => json_encode(['eventType' => 'Delivery', 'mail' => ['messageId' => 'nada']])]);
+    $pem = (string) Http::get($msg['SigningCertURL'])->body();
+    Http::swap(new Factory);
+    Http::fake(['sns.us-east-1.amazonaws.com/*' => Http::sequence()->push('error', 500)->push($pem)]);
+    $this->call('POST', '/webhooks/ses', [], [], [], ['CONTENT_TYPE' => 'text/plain'], json_encode($msg))->assertForbidden();
+    $this->call('POST', '/webhooks/ses', [], [], [], ['CONTENT_TYPE' => 'text/plain'], json_encode($msg))->assertOk();
 });
 
 it('Zender con su secreto y Twilio con su firma; sin ellos, 403', function () {

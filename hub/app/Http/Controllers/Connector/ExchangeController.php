@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Connector;
 
 use App\Domain\Sites\Actions\ExchangeConnectCode;
 use App\Domain\Sites\Exceptions\ConnectException;
+use App\Support\Net\SafeUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -30,6 +31,13 @@ final class ExchangeController
             'locale' => ['nullable', 'string', 'max:10'],
             'capabilities' => ['nullable', 'array'],
         ]);
+
+        // El hub le enviará comandos a `rest_url`: solo direcciones públicas (S5). En local y pruebas se permite todo.
+        foreach (['site_url', 'rest_url'] as $field) {
+            if (isset($data[$field]) && ($problem = SafeUrl::problem((string) $data[$field], httpsOnly: false)) !== null) {
+                return response()->json(['error' => 'url_not_public', 'message' => $problem, 'field' => $field], 422);
+            }
+        }
 
         // Versiones viejas del plugin podían mandar un desfase («-05:00») en lugar de un ID IANA.
         if (isset($data['timezone']) && ! in_array($data['timezone'], timezone_identifiers_list(), true)) {
