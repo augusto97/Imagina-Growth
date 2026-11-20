@@ -169,7 +169,12 @@ install.sh                  el instalador
 2. **Pedir:** solo un administrador de la plataforma (`is_platform_admin`, con 2FA y confirmando su contraseña).
    La app escribe (atómico: temporal + rename) `shared/state/update-request.json`:
    `{"version":"0.2.0","requested_by":"usr_…","requested_at":"…","id":"upd_…"}`. Si ya hay un pedido o una
-   actualización en curso, responde 409. La app **no** actualiza nada.
+   actualización en curso, responde 409. La app **no** actualiza nada. Un pedido que ya terminó (el estado final
+   es de ese mismo pedido o posterior a cuando se aceptó) o que el servidor no tomó en 15 minutos
+   (`GROWTH_UPDATE_REQUEST_STALE_MINUTES`) no cuenta como «en curso» ni bloquea volver a pedir; `growth-system`
+   (en cada arranque de `growth-app`, si el candado de `growth-update` está libre) borra el pedido en proceso que
+   haya quedado y reactiva `growth-update.path` si se cayó. `growth-update` borra el pedido apenas escribe el
+   estado final.
 3. **Despachar:** `growth-update.path` (root) vigila ese archivo y arranca `growth-update-dispatch.service`
    (root, oneshot): valida la versión (`^[0-9]+\.[0-9]+\.[0-9]+$`), mueve el pedido a
    `update-request.processing.json` y lanza `systemd-run --unit=growth-update-<id> --collect

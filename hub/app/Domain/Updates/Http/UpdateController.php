@@ -87,6 +87,7 @@ final class UpdateController
             'busy' => $busy,
             'can_install' => $available && ! $busy,
             'pending' => $pending === null ? null : array_intersect_key($pending, array_flip(['version', 'id', 'requested_by', 'requested_at', 'accepted_at'])),
+            'stale_request' => $this->state->staleRequest(),
             'status' => $this->state->status(),
             'history' => $this->state->history(10),
         ];

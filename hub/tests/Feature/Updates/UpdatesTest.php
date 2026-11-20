@@ -139,3 +139,32 @@ it('no sigue un symlink en el estado ni en el historial', function () {
     $this->actingAs($this->admin)->getJson('/api/platform/updates')->assertOk()->assertJsonPath('status', null);
     unlink($secret);
 });
+
+it('un pedido que ya terminó o que el servidor nunca tomó no queda «en curso» ni bloquea la siguiente actualización', function () {
+    ($this->fakeGithub)();
+    $this->actingAs($this->admin)->postJson('/api/platform/updates/check')->assertOk();
+
+    // Quedó el pedido en proceso de una actualización que ya terminó bien (el caso del panel en producción).
+    $this->state->write(UpdateState::PROCESSING, ['version' => '0.1.9', 'id' => 'upd_viejo123456', 'requested_by' => 'usr_x', 'accepted_at' => '2026-11-20T13:32:00Z']);
+    $this->state->write(UpdateState::STATUS, ['id' => 'upd_viejo123456', 'from' => '0.1.4', 'to' => '0.1.9', 'state' => 'succeeded', 'finished_at' => '2026-11-20T13:40:00Z', 'steps' => []]);
+    $this->actingAs($this->admin)->getJson('/api/platform/updates')->assertOk()
+        ->assertJsonPath('pending', null)->assertJsonPath('busy', false)->assertJsonPath('can_install', true);
+
+    // Otro pedido de antes, con otro id, aceptado antes de que terminara la última: tampoco cuenta.
+    $this->state->write(UpdateState::PROCESSING, ['version' => '0.1.9', 'id' => 'upd_otro1234567', 'requested_by' => 'usr_x', 'accepted_at' => '2026-11-20T13:30:00Z']);
+    $this->actingAs($this->admin)->getJson('/api/platform/updates')->assertOk()->assertJsonPath('pending', null);
+
+    // Un pedido aceptado después de la última actualización sí está en curso.
+    $this->state->write(UpdateState::PROCESSING, ['version' => '0.2.0', 'id' => 'upd_nuevo123456', 'requested_by' => 'usr_x', 'accepted_at' => '2026-11-20T14:00:00Z']);
+    $this->actingAs($this->admin)->getJson('/api/platform/updates')->assertOk()->assertJsonPath('pending.id', 'upd_nuevo123456')->assertJsonPath('busy', true);
+    unlink($this->stateDir.'/update-request.processing.json');
+
+    // Un pedido en espera que el servidor no tomó en 15 minutos deja volver a pedir (y lo reemplaza).
+    $this->state->write(UpdateState::REQUEST, ['version' => '0.2.0', 'id' => 'upd_espera12345', 'requested_by' => 'usr_x', 'requested_at' => '2026-11-20T14:00:00Z']);
+    $this->actingAs($this->admin)->getJson('/api/platform/updates')->assertOk()->assertJsonPath('busy', true)->assertJsonPath('stale_request', false);
+    touch($this->stateDir.'/update-request.json', time() - 20 * 60);
+    $this->actingAs($this->admin)->getJson('/api/platform/updates')->assertOk()
+        ->assertJsonPath('pending', null)->assertJsonPath('busy', false)->assertJsonPath('stale_request', true);
+    $this->actingAs($this->admin)->postJson('/api/platform/updates/install', ['version' => '0.2.0', 'password' => 'clave-admin-2026'])->assertStatus(202);
+    expect(json_decode((string) file_get_contents($this->stateDir.'/update-request.json'), true)['id'])->not->toBe('upd_espera12345');
+});

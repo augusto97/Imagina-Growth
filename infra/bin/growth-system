@@ -39,6 +39,7 @@ CADDYFILE=${GROWTH_CADDYFILE:-/etc/caddy/Caddyfile}
 CADDY=${CADDY:-caddy}
 CURL=${CURL:-curl}
 CF_IPS_URL=${GROWTH_CF_IPS_URL:-https://www.cloudflare.com}
+UPDATE_LOCK=${GROWTH_LOCK_FILE:-/run/lock/growth-update.lock}
 # shellcheck disable=SC2317  # se llama por $CH_PING
 ch_ping_default() { curl -fsS --max-time 3 http://127.0.0.1:8123/ping; }
 NO_STAMP=0
@@ -138,6 +139,34 @@ STAMP_VALUE="$VERSION $MEM_MB $SELF_SUM"
 if [[ $CMD == status ]]; then
     printf 'Perfil: %s (%s MB de RAM) · versión %s\n' "$PROFILE" "$MEM_MB" "$VERSION"
 fi
+# ── Pedidos de actualización huérfanos ───────────────────────────────────────────────
+
+# Si no corre ninguna actualización (el candado de growth-update está libre), un pedido «en proceso» que quedó de una
+# actualización ya terminada o cortada se borra, y el vigilante de pedidos (growth-update.path) queda activo aunque
+# se hubiera caído: así el botón de actualizar nunca se queda bloqueado. Corre siempre, también con el sello al día
+# (en cada arranque de growth-app); con --update corre dentro de growth-update, que tiene el candado: no toca nada.
+update_state_cleanup() {
+    local dir=$GROWTH_ROOT/shared/state processing state
+    processing=$dir/update-request.processing.json
+    [[ $CMD == status || ! -d $dir ]] && return 0
+    mkdir -p "$(dirname "$UPDATE_LOCK")" 2>/dev/null || true
+    (
+        flock -n 9 || exit 0
+        if [[ -e $processing || -L $processing ]]; then
+            state=$(jq -r '.state // empty' "$dir/update-status.json" 2>/dev/null || true)
+            if [[ -L $processing || $state != queued && $state != running ]] || [[ -n $(find "$processing" -mmin +180 2>/dev/null) ]]; then
+                rm -f -- "$processing"
+                note "Actualizaciones: se quitó un pedido que había quedado «en curso»"
+            fi
+        fi
+    ) 9>"$UPDATE_LOCK"
+    if [[ -f $UNIT_DIR/growth-update.path ]] && ! active growth-update.path; then
+        "$SYSTEMCTL" reset-failed growth-update.path >/dev/null 2>&1 || true
+        sctl enable --now growth-update.path >/dev/null 2>&1 && note "Actualizaciones: se reactivó el vigilante de pedidos"
+    fi
+}
+update_state_cleanup
+
 # Con --hook, una sola vez por versión y RAM: growth-app se reinicia a menudo y no hace falta repetir.
 if [[ $MODE == --hook && $FORCE != 1 && -f $STATE/applied && $(cat "$STATE/applied" 2>/dev/null) == "$STAMP_VALUE" ]]; then
     exit 0
@@ -476,6 +505,7 @@ caddy_apply() {
     fi
 }
 caddy_apply
+
 
 if [[ -d $GROWTH_ROOT/shared/state && $CMD != status ]]; then
     chown root:"$GROWTH_USER" "$GROWTH_ROOT/shared/state" 2>/dev/null || true

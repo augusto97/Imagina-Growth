@@ -15,5 +15,7 @@ return [
         'timeout' => (int) env('GROWTH_UPDATE_HTTP_TIMEOUT', 10),
         // Una actualización «en curso» sin señales de vida por más de esto se considera abandonada.
         'stale_after_minutes' => (int) env('GROWTH_UPDATE_STALE_MINUTES', 120),
+        // Un pedido que el servidor no tomó en este tiempo (lo toma en segundos) ya no bloquea volver a pedir.
+        'request_stale_minutes' => (int) env('GROWTH_UPDATE_REQUEST_STALE_MINUTES', 15),
     ],
 ];

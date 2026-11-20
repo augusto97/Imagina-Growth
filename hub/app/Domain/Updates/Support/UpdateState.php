@@ -12,7 +12,8 @@ use RuntimeException;
  *
  * - `latest-release.json`: la última versión publicada que vio `growth:updates:check`.
  * - `update-request.json`: el pedido que deja el panel (lo toma growth-update-dispatch).
- * - `update-request.processing.json`: el pedido ya aceptado, mientras corre la actualización.
+ * - `update-request.processing.json`: el pedido ya aceptado, mientras corre la actualización. Si quedó de una
+ *   actualización que ya terminó (o el servidor nunca tomó el pedido), no cuenta: ver `pending()`.
  * - `update-status.json` y `update-history.jsonl`: lo que escribe growth-update en cada paso.
  *
  * El panel solo escribe el pedido y la última versión vista; todo de forma atómica (temporal + rename).
@@ -83,10 +84,57 @@ final class UpdateState
         return $this->read(self::LATEST);
     }
 
-    /** @return array<string, mixed>|null el pedido en espera o en proceso */
+    /**
+     * El pedido en espera o en proceso, si de verdad sigue vivo. Un pedido que ya terminó (el estado final es de ese
+     * mismo pedido o es posterior a cuando se aceptó) o que el servidor nunca tomó (más de `request_stale_minutes`)
+     * no cuenta: si no, el panel quedaba «en curso» para siempre y bloqueaba la siguiente actualización.
+     *
+     * @return array<string, mixed>|null
+     */
     public function pending(): ?array
     {
-        return $this->read(self::PROCESSING) ?? $this->read(self::REQUEST);
+        clearstatcache();
+        $processing = $this->read(self::PROCESSING);
+        if ($processing !== null && ! $this->finishedFor($processing) && ! $this->olderThan(self::PROCESSING, (int) config('growth.update.stale_after_minutes', 120))) {
+            return $processing;
+        }
+        $request = $this->read(self::REQUEST);
+        if ($request !== null && ! $this->olderThan(self::REQUEST, (int) config('growth.update.request_stale_minutes', 15))) {
+            return $request;
+        }
+
+        return null;
+    }
+
+    /** ¿Hay un pedido en espera que el servidor nunca tomó? (El panel deja volver a pedir.) */
+    public function staleRequest(): bool
+    {
+        clearstatcache();
+
+        return is_file($this->path(self::REQUEST)) && $this->olderThan(self::REQUEST, (int) config('growth.update.request_stale_minutes', 15));
+    }
+
+    /** @param array<string, mixed> $pending */
+    private function finishedFor(array $pending): bool
+    {
+        $status = $this->status();
+        if (! in_array($status['state'] ?? null, ['succeeded', 'failed', 'rolled_back'], true)) {
+            return false;
+        }
+        if (is_string($status['id'] ?? null) && ($status['id'] ?? null) === ($pending['id'] ?? null)) {
+            return true;
+        }
+        $since = $pending['accepted_at'] ?? $pending['requested_at'] ?? null;
+        $finished = $status['finished_at'] ?? null;
+
+        return is_string($since) && is_string($finished) && CarbonImmutable::parse($finished)->greaterThanOrEqualTo(CarbonImmutable::parse($since));
+    }
+
+    private function olderThan(string $file, int $minutes): bool
+    {
+        $mtime = @filemtime($this->path($file));
+
+        return $mtime !== false && CarbonImmutable::createFromTimestamp($mtime)->lessThan(now()->subMinutes($minutes));
     }
 
     /**
@@ -116,8 +164,12 @@ final class UpdateState
     /** ¿Hay un pedido o una actualización en curso? Una «en curso» sin cambios por horas se da por abandonada. */
     public function busy(): bool
     {
-        clearstatcache();
-        if (is_file($this->path(self::REQUEST)) || is_file($this->path(self::PROCESSING))) {
+        if ($this->pending() !== null) {
+            return true;
+        }
+        // Un pedido en proceso que no se puede leer (lo escribe root) se da por ocupado mientras sea reciente.
+        if (is_file($this->path(self::PROCESSING)) && $this->read(self::PROCESSING) === null
+            && ! $this->olderThan(self::PROCESSING, (int) config('growth.update.stale_after_minutes', 120))) {
             return true;
         }
         $status = $this->status();

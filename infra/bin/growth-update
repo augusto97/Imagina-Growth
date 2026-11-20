@@ -153,12 +153,14 @@ status_finish() { # status_finish <state> [error]
     STATUS=$(jq --arg s "$state" --arg e "$err" --arg at "$(now)" \
         '.state = $s | .finished_at = $at | .error = (if $e == "" then null else $e end)' <<<"$STATUS")
     json_write "$STATUS_FILE" "$STATUS"
+    # El pedido en proceso se borra apenas queda el estado final: si algo corta el proceso después, el panel no
+    # se queda «en curso».
+    rm -f "$PROCESSING_FILE"
     # El historial también se reescribe con un temporal + rename: nunca se agrega a un archivo que podría ser
     # un symlink puesto por otro usuario.
     local hist
     hist=$( { [[ -f $HISTORY_FILE && ! -L $HISTORY_FILE ]] && tail -n 499 "$HISTORY_FILE"; jq -c . <<<"$STATUS"; } )
     json_write "$HISTORY_FILE" "$hist"
-    rm -f "$PROCESSING_FILE"
 }
 
 # ── Utilidades ───────────────────────────────────────────────────────────────────

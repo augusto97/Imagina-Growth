@@ -26,7 +26,7 @@ world() {
 echo "systemctl $*" >>"$FAKE/calls.log"
 args=("$@"); [[ ${args[0]} == --no-block ]] && args=("${args[@]:1}")
 case "${args[0]}" in
-    is-active) [[ ${args[1]} == --quiet ]] && u=${args[2]} || u=${args[1]}; grep -qx "$u" "$FAKE/active" 2>/dev/null ;;
+    is-active) [[ ${args[1]} == --quiet ]] && u=${args[2]} || u=${args[1]}; grep -qx "$u" "$FAKE/active" 2>/dev/null; exit $? ;;
     is-enabled) grep -qx "${args[1]}" "$FAKE/masked" 2>/dev/null && echo masked || echo enabled ;;
     mask) echo "${args[1]}" >>"$FAKE/masked" ;;
     unmask) sed -i "\#^${args[1]}\$#d" "$FAKE/masked" ;;
@@ -54,6 +54,7 @@ EOF
     export GROWTH_CH_PING="$W/fake/ch-ping" GROWTH_CH_WAIT=1
     # Caddy: sin binario (las pruebas de Caddy lo activan con CADDY=$FAKE/caddy).
     export GROWTH_CADDYFILE="$W/etc/caddy/Caddyfile" CADDY="$W/fake/sin-caddy" CURL="$W/fake/curl" GROWTH_CF_IPS_URL=https://cf.test
+    export GROWTH_LOCK_FILE="$W/run/growth-update.lock"
     GROWTH_USER=$(id -un)
     GROWTH_CH_GROUP=$(id -gn)
     GROWTH_REDIS_GROUP=$GROWTH_CH_GROUP
@@ -152,6 +153,38 @@ before=$(cat "$GROWTH_ROOT/shared/.env")
 eq "$(GROWTH_MEMORY_MB=1638 run status)" 0 "código de status"
 eq "$(cat "$GROWTH_ROOT/shared/.env")" "$before" "status no toca el .env"
 hasnt "$FAKE/calls.log" "mask" "status no enmascara"
+rm -rf "$W"
+
+# 7. Pedidos de actualización huérfanos: se limpian en cada arranque aunque el sello esté al día, nunca durante una
+#    actualización, y el vigilante de pedidos se reactiva si se cayó.
+world "pedido huérfano"
+ST=$GROWTH_ROOT/shared/state
+eq "$(GROWTH_MEMORY_MB=1638 run apply --update)" 0 "primera aplicación"
+printf '{"version":"0.1.9","id":"upd_viejo","accepted_at":"2026-11-20T13:32:00Z"}\n' >"$ST/update-request.processing.json"
+printf '{"id":"upd_viejo","state":"succeeded"}\n' >"$ST/update-status.json"
+: >"$W/etc/systemd/system/growth-update.path"
+: >"$FAKE/calls.log"
+eq "$(GROWTH_MEMORY_MB=1638 run apply --hook)" 0 "hook con el sello al día"
+[[ ! -e $ST/update-request.processing.json ]] && ok || bad "borra el pedido de una actualización ya terminada"
+has "$FAKE/calls.log" "systemctl reset-failed growth-update.path" "reactiva el vigilante caído"
+has "$FAKE/calls.log" "enable --now growth-update.path" "y lo deja activo"
+
+printf '{"version":"0.2.0","id":"upd_nuevo","accepted_at":"2026-11-20T14:00:00Z"}\n' >"$ST/update-request.processing.json"
+printf '{"id":"upd_nuevo","state":"running"}\n' >"$ST/update-status.json"
+echo growth-update.path >>"$FAKE/active"
+: >"$FAKE/calls.log"
+GROWTH_MEMORY_MB=1638 run apply --hook >/dev/null
+[[ -e $ST/update-request.processing.json ]] && ok || bad "una actualización corriendo no se toca"
+hasnt "$FAKE/calls.log" "reset-failed growth-update.path" "vigilante activo: no se toca"
+
+printf '{"id":"upd_nuevo","state":"succeeded"}\n' >"$ST/update-status.json"
+mkdir -p "$(dirname "$GROWTH_LOCK_FILE")"
+exec 8>"$GROWTH_LOCK_FILE"; flock 8
+GROWTH_MEMORY_MB=1638 run apply --hook >/dev/null
+[[ -e $ST/update-request.processing.json ]] && ok || bad "con el candado tomado (growth-update corriendo) no se toca"
+flock -u 8; exec 8>&-
+GROWTH_MEMORY_MB=1638 run apply --hook >/dev/null
+[[ ! -e $ST/update-request.processing.json ]] && ok || bad "sin candado y terminada: se borra"
 rm -rf "$W"
 
 # 6. Caddy: el Caddyfile sin editar se pone al día; el editado a mano no se toca.
