@@ -369,7 +369,7 @@ y después el instalador: con la memoria llena ni `apt` avanza. Al terminar, el 
   token del webhook de Meta, clave de Anthropic, Google Calendar, Reverb, ML, Horizon, programador, colas, tarifas de
   WhatsApp, tasas de cambio, configuration set de SES, planes y la versión del plugin de cada sitio). Sale con código 1
   si hay errores; `--json` para scripts. Lo mismo se ve en Plataforma → Instalación.
-- `growth-php artisan igr:ses:setup` deja listo el SES de la plataforma (§8).
+- `growth-php artisan igr:ses:setup` deja listo el SES de la plataforma en el momento (lo hace solo cada noche; §8).
 - `growth-php artisan igr:fx:update` trae las tasas de cambio del día (lo hace solo el programador dos veces al día; la
   fuente es `IGR_FX_URL`, por defecto el acceso libre de ExchangeRate-API, sin llave).
 
@@ -394,6 +394,7 @@ aperturas, rechazos) llegan por un tema de SNS a `https://<panel>/webhooks/ses`.
    `ses:CreateConfigurationSetEventDestination` y `ses:UpdateConfigurationSetEventDestination` sobre
    `arn:aws:ses:<región>:<cuenta>:configuration-set/igr-events`
    (https://docs.aws.amazon.com/service-authorization/latest/reference/list_sesv2.html).
-3. `growth-php artisan igr:ses:setup` crea el configuration set y su destino de eventos `igr-sns` si faltan, o corrige
-   el destino si apunta a otro tema (idempotente). Lo mismo pasa solo al conectar un dominio por SES o al probar un canal
-   SES; si a IAM le falta un permiso, el mensaje dice cuál.
+3. El configuration set y su destino de eventos `igr-sns` se crean solos (o se corrige el destino si apunta a otro
+   tema; idempotente): cada noche a las 03:47 si hay credenciales de SES, al conectar un dominio por SES y al probar un
+   canal SES. No hace falta la consola; `growth-php artisan igr:ses:setup` lo hace en el momento. Si a IAM le falta un
+   permiso, Plataforma → Instalación dice cuál.

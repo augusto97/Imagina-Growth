@@ -302,7 +302,7 @@ final class InstallationDoctor
         $set = SesEventSetup::configurationSet();
         if ($last === null) {
             return new DoctorCheck('email.ses_events', 'email', DoctorCheck::WARNING, __('El configuration set :set no se ha revisado', ['set' => $set]),
-                __('Corre «php artisan igr:ses:setup»: crea el configuration set y su destino de eventos hacia SNS si faltan (también pasa al conectar o probar un canal SES).'));
+                __('Se prepara solo cada noche (03:47) y al conectar o probar un canal SES; para no esperar, corre «php artisan igr:ses:setup».'));
         }
         $when = is_string($last['checked_at'] ?? null) ? (string) $last['checked_at'] : '';
 

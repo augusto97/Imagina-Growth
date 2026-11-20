@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Messaging\Support\SesClientFactory;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -15,3 +16,6 @@ Schedule::command('igr:retention:purge')->dailyAt('03:25')->withoutOverlapping()
 // Tasas de cambio del día (F11): la fuente se actualiza una vez al día cerca de las 00:00 UTC; la segunda corrida
 // recoge el día si la primera falló.
 Schedule::command('igr:fx:update')->twiceDailyAt(1, 13, 17)->withoutOverlapping()->onOneServer();
+// F5: el configuration set de SES de la plataforma y su destino de eventos, cada noche y solo si hay credenciales de
+// SES (idempotente; así no hace falta correr igr:ses:setup a mano después de configurar SES o de una actualización).
+Schedule::command('igr:ses:setup')->dailyAt('03:47')->when(fn (): bool => app(SesClientFactory::class)->configured())->withoutOverlapping()->onOneServer();
