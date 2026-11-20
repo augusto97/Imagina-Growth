@@ -15,7 +15,7 @@
  * `reviews` (+ `badges`), `points`, `banner` y `POST /v1/s/wallet/redeem` (crea el cupón en el sitio con
  * `coupon.create` firmado antes de responder, como el hub).
  * Guarda agregados en `$MOCK_HUB_DATA/state.json` para que las pruebas los inspeccionen (`GET /_state`).
- * `POST /_config` reemplaza claves de primer nivel: la respuesta de `/v1/s/config` (`measurement`, `consent`,
+ * `POST /_config` reemplaza claves de primer nivel: la respuesta de `/v1/s/config` (`measurement`, `consent`, `plugin`, `early_capture`,
  * `onsite`), los widgets (`widgets`), los productos de `reco` (`reco`) y el saldo (`wallet_balance`).
  *
  * @package ImaginaGrowth\Connector
@@ -284,7 +284,7 @@ if ( 'GET' === $method && '/v1/s/config' === $path ) {
 				'offline_gateways'  => array( 'bacs', 'cheque', 'cod' ),
 				'excluded_roles'    => array( 'administrator', 'shop_manager' ),
 				'backfill_months'   => 24,
-				'early_capture'     => false,
+				'early_capture'     => (bool) ( $state['overrides']['early_capture'] ?? false ),
 			),
 			'consent'            => $state['overrides']['consent'] ?? array(
 				'mode'               => 'auto',
@@ -297,6 +297,12 @@ if ( 'GET' === $method && '/v1/s/config' === $path ) {
 			'measurement'        => $state['overrides']['measurement'] ?? array( 'mode' => 'server_only', 'pixels' => new stdClass() ),
 			'onsite'             => $state['overrides']['onsite'] ?? array( 'loyalty' => true, 'wallet' => true, 'product_watch' => true ),
 			'min_plugin_version' => '0.1.0',
+			'plugin'             => $state['overrides']['plugin'] ?? array(
+				'min_version'    => '0.1.0',
+				'latest_version' => '0.1.3',
+				'download_url'   => 'http://' . ( $_SERVER['HTTP_HOST'] ?? '127.0.0.1:8090' ) . '/downloads/imagina-growth-connector.zip',
+				'status'         => 'current',
+			),
 		)
 	);
 }

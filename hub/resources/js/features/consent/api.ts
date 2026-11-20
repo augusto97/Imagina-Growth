@@ -21,11 +21,20 @@ export interface ConsentTextVersion {
     published_at: string | null;
 }
 
+/** Captura temprana del checkout (cumplimiento.md §3.2): apagada por defecto. */
+export interface EarlyCaptureState {
+    enabled: boolean;
+    accepted_at: string | null;
+    accepted_by: string | null;
+}
+
 export interface ConsentSettings {
     texts: ConsentText[];
     history: Record<string, ConsentTextVersion[]>;
     mode: ConsentMode;
     privacy_policy_url: string | null;
+    early_capture: EarlyCaptureState;
+    plugin_min_for_early_capture: string;
 }
 
 /** Límites de ConsentTextsController::store. */
@@ -57,5 +66,13 @@ export function useConsentMode(ws: string) {
             qc.setQueryData(key(ws), settings);
             void qc.invalidateQueries({ queryKey: keys.me });
         },
+    });
+}
+
+export function useEarlyCapture(ws: string) {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (data: { enabled: boolean; accept_responsibility?: boolean }) => api.put<ConsentSettings>(`${wsPath(ws)}/consent/early-capture`, data),
+        onSuccess: (settings) => qc.setQueryData(key(ws), settings),
     });
 }

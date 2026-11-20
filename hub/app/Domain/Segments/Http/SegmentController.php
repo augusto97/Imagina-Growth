@@ -148,8 +148,7 @@ final class SegmentController
             Contact::query()
                 ->whereNull('merged_into_id')
                 ->whereIn('id', fn ($q) => $q->from('segment_memberships')->select('contact_id')->where('workspace_id', $workspaceId)->where('segment_id', $model->id))
-                ->orderBy('id')
-                ->chunk(1000, function ($contacts) use ($out): void {
+                ->chunkById(1000, function ($contacts) use ($out): void {
                     foreach ($contacts as $c) {
                         /** @var Contact $c */
                         fputcsv($out, Csv::row([

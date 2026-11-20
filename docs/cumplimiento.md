@@ -40,11 +40,27 @@ Requisitos que se convierten en funciones:
 - **Registro de cuenta, formularios de terceros** (mapeo de la casilla de consentimiento) y **widgets del hub**.
 - **WhatsApp:** cuando la persona inicia la conversación y acepta por un botón («¿Quieres recibir novedades por aquí?»), con evidencia del mensaje.
 - **Importación CSV:** es obligatorio declarar el origen y la fecha del consentimiento. Sin esos datos, los contactos solo pueden recibir mensajes transaccionales.
+  - **Implementación (auditoría F7):** la declaración lleva canales, de dónde salió, **cómo se obtuvo la autorización**
+    (`legal_basis`: formulario en línea con casilla sin marcar, casilla en la compra, formato escrito o firmado, llamada
+    grabada o aceptación por WhatsApp o SMS; siempre una autorización previa y expresa, §2) y la fecha
+    (`App\Domain\Consent\Support\ConsentDeclaration`). Con una columna `consent_<canal>` en el CSV, solo las filas con
+    «sí» quedan con consentimiento en ese canal; un vacío o un «no» no cuenta. Nunca se le devuelve el consentimiento a
+    quien lo revocó o está en las bajas o supresiones.
+- **Historial importado por el plugin:** la importación histórica no crea consentimiento. El dueño puede declararlo en
+  Contactos → Importar («Historial importado por el plugin», `POST contacts/imports/history`) con la misma
+  declaración; se registra con su evidencia (`scope: history`) solo para los contactos de los pedidos y clientes
+  importados de ese sitio que tienen la dirección del canal, con las mismas exclusiones.
 
 ### 3.2 Captura temprana del checkout (correo o teléfono antes de pagar)
 - Viene **desactivada por defecto**.
 - Para activarla, el espacio de trabajo tiene que mostrar un aviso visible junto al campo («Usaremos tu correo o WhatsApp para ayudarte a terminar tu compra») y aceptar la responsabilidad en la configuración (queda en la auditoría) **[validar]**.
 - El dato capturado solo se usa para recuperar *ese* carrito. No crea consentimiento de marketing.
+- **Implementación (v6):** se activa en Consentimiento con la casilla de responsabilidad (`consent.early_capture_changed`
+  en la auditoría). El plugin muestra el aviso junto al campo y envía `checkout.contact_captured` desde el servidor
+  (`eventos.md` §4.2); el hub lo rechaza si la opción está apagada. El contacto que existe solo por la captura queda
+  marcado (`contacts.early_capture_at`): no entra en audiencias de anuncios ni suma puntos hasta que compra, se registra
+  o deja un formulario. El recordatorio del carrito es marketing (§4.1): solo sale con el consentimiento del canal y en
+  la ventana legal. Usar el dato sin ese consentimiento para recuperar el carrito queda **[validar]** con el abogado.
 
 ### 3.3 Cookies y seguimiento
 - **Integración con banners:** WP Consent API (estándar, prioridad), Complianz, CookieYes, Cookiebot y Real Cookie Banner. Para Google se envía Consent Mode v2.

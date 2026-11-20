@@ -266,16 +266,24 @@ final class AdminPage {
 		$stats     = Outbox::stats();
 		$flush     = get_option( Flusher::STATUS_OPTION, array() );
 		$flush     = is_array( $flush ) ? $flush : array();
+		$version   = UpdateNotice::state();
 		echo '<table class="widefat striped"><tbody>';
-		self::row( __( 'Conexión', 'imagina-growth' ), '<span style="color:#008a20">●</span> ' . esc_html__( 'Conectado', 'imagina-growth' ) );
-		self::row( __( 'Espacio de trabajo', 'imagina-growth' ), esc_html( (string) ( $workspace['name'] ?? '—' ) ) );
-		self::row( __( 'ID del sitio', 'imagina-growth' ), '<code>' . esc_html( Connection::site_id() ) . '</code>' );
-		self::row( __( 'Último envío correcto', 'imagina-growth' ), esc_html( isset( $flush['last_success_at'] ) ? human_time_diff( (int) $flush['last_success_at'] ) . ' ' . __( 'atrás', 'imagina-growth' ) : '—' ) );
-		self::row( __( 'Pendientes por enviar', 'imagina-growth' ), esc_html( number_format_i18n( $stats['pending'] + $stats['sending'] ) ) );
-		self::row( __( 'Fallidos', 'imagina-growth' ), esc_html( number_format_i18n( $stats['dead'] ) ) );
-		if ( ! empty( $flush['last_error'] ) ) {
-			self::row( __( 'Último error', 'imagina-growth' ), '<span style="color:#b32d2e">' . esc_html( (string) $flush['last_error'] ) . '</span>' );
+		self::row( __( 'Conexión', 'imagina-growth' ), '<span style="color:#008a20">●</span> ' . esc_html__( 'Conectado: los datos de tu tienda llegan a Imagina Growth', 'imagina-growth' ) );
+		self::row( __( 'Cuenta de Imagina Growth', 'imagina-growth' ), esc_html( (string) ( $workspace['name'] ?? '—' ) ) );
+		self::row( __( 'Último envío', 'imagina-growth' ), esc_html( isset( $flush['last_success_at'] ) ? sprintf( /* translators: %s: tiempo, p. ej. «5 minutos». */ __( 'hace %s', 'imagina-growth' ), human_time_diff( (int) $flush['last_success_at'] ) ) : __( 'Todavía no', 'imagina-growth' ) ) );
+		self::row( __( 'Datos esperando para enviarse', 'imagina-growth' ), esc_html( number_format_i18n( $stats['pending'] + $stats['sending'] ) ) . ' <span class="description">' . esc_html__( 'Salen solos cada minuto.', 'imagina-growth' ) . '</span>' );
+		if ( $stats['dead'] > 0 ) {
+			self::row( __( 'Datos que no se pudieron enviar', 'imagina-growth' ), esc_html( number_format_i18n( $stats['dead'] ) ) . ' <span class="description">' . esc_html__( 'Puedes reintentarlos en Diagnóstico.', 'imagina-growth' ) . '</span>' );
 		}
+		if ( ! empty( $flush['last_error'] ) ) {
+			self::row( __( 'Aviso del último envío', 'imagina-growth' ), '<span style="color:#b32d2e">' . esc_html( Wording::error( (string) $flush['last_error'] ) ) . '</span>' );
+		}
+		self::row(
+			__( 'Versión del plugin', 'imagina-growth' ),
+			esc_html( IGR_VERSION ) . ' · ' . ( 'current' === $version['status']
+				? esc_html__( 'al día', 'imagina-growth' )
+				: sprintf( '<a href="%s">%s</a>', esc_url( $version['url'] ), esc_html( sprintf( /* translators: %s: versión nueva. */ __( 'descarga la %s', 'imagina-growth' ), $version['latest'] ) ) ) )
+		);
 		echo '</tbody></table>';
 
 		$lag = Scheduler::lag_minutes();
@@ -283,14 +291,14 @@ final class AdminPage {
 			echo '<div class="notice notice-warning inline"><p><strong>' . esc_html(
 				/* translators: %d: minutos de retraso. */
 				sprintf( __( 'Las tareas programadas de WordPress van %d minutos atrasadas: la importación y el envío no avanzan solos.', 'imagina-growth' ), $lag )
-			) . '</strong> ' . esc_html__( 'Usa «Importar y enviar ahora» (abajo) y pide a tu hosting un cron real cada minuto (ver Diagnóstico).', 'imagina-growth' ) . '</p></div>';
+			) . '</strong> ' . esc_html__( 'Usa «Importar y enviar ahora» (abajo) y pide a tu hosting que active las tareas programadas cada minuto (ver Diagnóstico).', 'imagina-growth' ) . '</p></div>';
 		}
 
 		$events = Outbox::last_24h_by_event();
 		if ( array() !== $events ) {
-			echo '<h2>' . esc_html__( 'Eventos de las últimas 24 h', 'imagina-growth' ) . '</h2><table class="widefat striped"><tbody>';
+			echo '<h2>' . esc_html__( 'Lo que pasó en tu tienda en las últimas 24 horas', 'imagina-growth' ) . '</h2><table class="widefat striped"><tbody>';
 			foreach ( $events as $event => $count ) {
-				self::row( $event, esc_html( number_format_i18n( $count ) ) );
+				self::row( Wording::event( (string) $event ), esc_html( number_format_i18n( $count ) ) );
 			}
 			echo '</tbody></table>';
 		}
@@ -361,7 +369,7 @@ final class AdminPage {
 	 * Botón «Importar y enviar ahora» (Admin\SyncNow): repite tramos por AJAX hasta terminar y muestra el avance.
 	 */
 	private static function render_sync_now(): void {
-		echo '<div class="card" style="max-width:none"><p>' . esc_html__( 'La importación y el envío corren solos en segundo plano. Si no avanzan (por ejemplo, porque el cron de WordPress no corre), hazlo desde aquí y deja esta página abierta hasta que termine.', 'imagina-growth' ) . '</p>';
+		echo '<div class="card" style="max-width:none"><p>' . esc_html__( 'La importación y el envío corren solos en segundo plano. Si no avanzan (por ejemplo, porque las tareas programadas de WordPress no corren), hazlo desde aquí y deja esta página abierta hasta que termine.', 'imagina-growth' ) . '</p>';
 		echo '<p><button type="button" class="button button-primary" id="igr-sync-now">' . esc_html__( 'Importar y enviar ahora', 'imagina-growth' ) . '</button> <span id="igr-sync-msg" aria-live="polite"></span></p>';
 		echo '<div id="igr-sync-progress"></div></div>';
 		$config = array(
@@ -385,7 +393,7 @@ final class AdminPage {
 				'error'   => __( 'Se detuvo por un error:', 'imagina-growth' ),
 				'stuck'   => __( 'No hubo avance en varios intentos. Revisa la pestaña Diagnóstico.', 'imagina-growth' ),
 				'network' => __( 'No se pudo hablar con tu propio sitio (la petición falló o tardó demasiado). Intenta de nuevo.', 'imagina-growth' ),
-				'dead'    => __( 'eventos rechazados (ver Diagnóstico)', 'imagina-growth' ),
+				'dead'    => __( 'datos que no se pudieron enviar (ver Diagnóstico)', 'imagina-growth' ),
 			),
 		);
 		$js     = 'window.igrSyncNow=' . wp_json_encode( $config ) . ';' . <<<'JS'
@@ -432,29 +440,39 @@ JS;
 			echo '<div class="notice notice-warning inline"><p><strong>' . esc_html(
 				/* translators: %d: minutos de retraso. */
 				sprintf( __( 'Las tareas programadas van %d minutos atrasadas.', 'imagina-growth' ), $lag )
-			) . '</strong> ' . esc_html__( 'Tu sitio recibe pocas visitas y WP-Cron no corre a tiempo. Pide a tu hosting un cron real cada minuto con uno de estos comandos:', 'imagina-growth' ) . '</p><p><code>wp action-scheduler run --group=imagina-growth</code><br><code>wp cron event run --due-now</code></p></div>';
+			) . '</strong> ' . esc_html__( 'Tu sitio recibe pocas visitas y WordPress no alcanza a correr sus tareas programadas a tiempo. Pídele a tu hosting que las active cada minuto (le sirven estos comandos):', 'imagina-growth' ) . '</p><p><code>wp action-scheduler run --group=imagina-growth</code><br><code>wp cron event run --due-now</code></p></div>';
 		}
-		echo '<h2>' . esc_html__( 'Outbox', 'imagina-growth' ) . '</h2><table class="widefat striped"><tbody>';
+		echo '<h2>' . esc_html__( 'Datos de tu tienda por enviar', 'imagina-growth' ) . '</h2>';
+		echo '<p class="description">' . esc_html__( 'El plugin guarda cada pedido, carrito o cliente en tu sitio y lo envía a Imagina Growth cada minuto. Si algo falla, se reintenta solo y no se pierde nada.', 'imagina-growth' ) . '</p>';
+		echo '<table class="widefat striped"><tbody>';
 		foreach ( array( 'pending', 'sending', 'sent', 'dead' ) as $key ) {
-			self::row( $key, esc_html( number_format_i18n( (int) $report['outbox'][ $key ] ) ) );
+			self::row( Wording::status( $key ), esc_html( number_format_i18n( (int) $report['outbox'][ $key ] ) ) );
 		}
-		self::row( __( 'Pendiente más antiguo', 'imagina-growth' ), esc_html( (string) ( $report['outbox']['oldest_pending_at'] ?? '—' ) ) );
+		self::row( __( 'El que más lleva esperando', 'imagina-growth' ), esc_html( Wording::ago( isset( $report['outbox']['oldest_pending_at'] ) ? (string) $report['outbox']['oldest_pending_at'] : null ) ) );
 		echo '</tbody></table><p>';
 		self::form( 'igr_flush', '<button class="button">' . esc_html__( 'Enviar ahora', 'imagina-growth' ) . '</button>', true );
 		if ( (int) $report['outbox']['dead'] > 0 ) {
-			self::form( 'igr_retry_dead', '<button class="button">' . esc_html__( 'Reintentar los fallidos', 'imagina-growth' ) . '</button>', true );
+			self::form( 'igr_retry_dead', '<button class="button">' . esc_html__( 'Volver a intentar los que fallaron', 'imagina-growth' ) . '</button>', true );
 		}
 		echo '</p>';
 		$dead = Outbox::dead( 20 );
 		if ( array() !== $dead ) {
-			echo '<h3>' . esc_html__( 'Últimos fallidos', 'imagina-growth' ) . '</h3><table class="widefat striped"><thead><tr><th>Evento</th><th>event_id</th><th>Intentos</th><th>Motivo</th></tr></thead><tbody>';
+			echo '<h3>' . esc_html__( 'Los últimos que no se pudieron enviar', 'imagina-growth' ) . '</h3><table class="widefat striped"><thead><tr><th>' . esc_html__( 'Dato', 'imagina-growth' ) . '</th><th>' . esc_html__( 'Intentos', 'imagina-growth' ) . '</th><th>' . esc_html__( 'Qué pasó', 'imagina-growth' ) . '</th></tr></thead><tbody>';
 			foreach ( $dead as $row ) {
-				printf( '<tr><td>%s</td><td><code>%s</code></td><td>%d</td><td>%s</td></tr>', esc_html( (string) $row['event'] ), esc_html( (string) $row['event_id'] ), (int) $row['attempts'], esc_html( (string) $row['last_error'] ) );
+				printf( '<tr><td>%s</td><td>%d</td><td>%s</td></tr>', esc_html( Wording::event( (string) $row['event'] ) ), (int) $row['attempts'], esc_html( Wording::error( (string) $row['last_error'] ) ) );
 			}
 			echo '</tbody></table>';
 		}
-		echo '<h2>' . esc_html__( 'Informe para soporte', 'imagina-growth' ) . '</h2>';
-		echo '<textarea readonly rows="16" style="width:100%;font-family:monospace">' . esc_textarea( (string) wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ) . '</textarea>';
+		echo '<h2>' . esc_html__( 'Si soporte te lo pide', 'imagina-growth' ) . '</h2>';
+		echo '<details><summary>' . esc_html__( 'Ver el informe técnico (cópialo y envíalo a soporte)', 'imagina-growth' ) . '</summary>';
+		echo '<p class="description">' . esc_html(
+			sprintf(
+				/* translators: %s: código del sitio. */
+				__( 'Código del sitio: %s. El informe no trae datos de tus clientes.', 'imagina-growth' ),
+				Connection::site_id()
+			)
+		) . '</p>';
+		echo '<textarea readonly rows="16" style="width:100%;font-family:monospace">' . esc_textarea( (string) wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ) . '</textarea></details>';
 	}
 
 	/**
@@ -572,7 +590,7 @@ JS;
 		echo '<h2>' . esc_html__( 'Desconectar', 'imagina-growth' ) . '</h2><p>' . esc_html__( 'Se borran las claves del sitio y se detiene el envío de datos.', 'imagina-growth' ) . '</p>';
 		self::form(
 			'igr_disconnect',
-			'<label><input type="checkbox" name="igr_wipe" value="1"> ' . esc_html__( 'Borrar también el historial local del outbox', 'imagina-growth' ) . '</label><br><br><button class="button button-link-delete" onclick="return confirm(\'' . esc_js( __( '¿Desconectar el sitio de Imagina Growth?', 'imagina-growth' ) ) . '\')">' . esc_html__( 'Desconectar', 'imagina-growth' ) . '</button>'
+			'<label><input type="checkbox" name="igr_wipe" value="1"> ' . esc_html__( 'Borrar también la copia local de los datos enviados', 'imagina-growth' ) . '</label><br><br><button class="button button-link-delete" onclick="return confirm(\'' . esc_js( __( '¿Desconectar el sitio de Imagina Growth?', 'imagina-growth' ) ) . '\')">' . esc_html__( 'Desconectar', 'imagina-growth' ) . '</button>'
 		);
 	}
 
@@ -587,7 +605,7 @@ JS;
 			'connected'    => __( '¡Listo! El sitio quedó conectado y empezó la importación del historial.', 'imagina-growth' ),
 			'disconnected' => __( 'El sitio se desconectó.', 'imagina-growth' ),
 			'backfill'     => __( 'La importación histórica quedó en cola.', 'imagina-growth' ),
-			'retry'        => __( 'Los eventos fallidos se reintentarán en el próximo envío.', 'imagina-growth' ),
+			'retry'        => __( 'Los datos que fallaron se volverán a intentar en el próximo envío.', 'imagina-growth' ),
 			'flush'        => __( 'El envío quedó en cola.', 'imagina-growth' ),
 			'saved'        => __( 'Los ajustes se guardaron.', 'imagina-growth' ),
 		);

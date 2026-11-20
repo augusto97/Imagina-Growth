@@ -170,7 +170,7 @@ Configuración que el plugin guarda en caché un día:
     "offline_gateways": ["bacs", "cheque", "cod"],
     "excluded_roles": ["administrator", "shop_manager"],
     "backfill_months": 24,
-    "early_capture": false
+    "early_capture": false                         // captura temprana del checkout: la decide el espacio de trabajo (cumplimiento.md §3.2)
   },
   "consent": {
     "mode": "auto",                                // auto | strict | informed, elegido en el panel (cumplimiento.md §3.3)
@@ -189,9 +189,22 @@ Configuración que el plugin guarda en caché un día:
     "wallet": true,                                // «Usar saldo» en el checkout (el saldo es parte del programa)
     "product_watch": true                          // «Avísame cuando vuelva» / «si baja de precio» (M16)
   },
-  "min_plugin_version": "0.1.0"
+  "min_plugin_version": "0.1.0",
+  "plugin": {                                     // versiones que conoce el hub (connector/CLAUDE.md §15)
+    "min_version": "0.1.0",                        // la mínima compatible
+    "latest_version": "0.1.3",                     // la que trae este paquete del hub en public/downloads
+    "download_url": "https://growth.imagina.cloud/downloads/imagina-growth-connector.zip",
+    "status": "current"                            // current | update_available | outdated, según la versión del último heartbeat
+  }
 }
 ```
+
+- **`early_capture`:** con `true`, el plugin envía `checkout.contact_captured` (v6, `eventos.md` §4.2) cuando un
+  invitado escribe un correo o un teléfono válido en el checkout, y muestra el aviso junto al campo. El hub vuelve a
+  revisar la opción en cada evento: con la opción apagada lo rechaza (`not_allowed`) aunque el plugin tenga la
+  configuración vieja.
+- **`plugin`:** el plugin compara su propia versión con `min_version` y `latest_version` y muestra el aviso en el admin
+  de WordPress con el enlace de descarga, sin pedir nada más al hub (la configuración ya está en caché).
 
 - **`onsite`:** sin `loyalty` el plugin no reserva espacio para puntos ni recompensas, y sin `wallet` no muestra «Usar saldo». Cada elemento también tiene su interruptor local en la pestaña «En el sitio» del plugin (`connector/CLAUDE.md` §10).
 
@@ -317,7 +330,7 @@ Nunca dependen del visitante en páginas cacheables (`connector/CLAUDE.md` §9).
 
 | Variable | Dónde | Contenido |
 |---|---|---|
-| `window.igrConfig` | todas | `{ siteKey: "pk_…", siteId: "st_…", platform: "woocommerce", currency: "COP", endpoint: "<ingest_browser>", consentMode: "strict", consent: {analytics, marketing, source}, cookieDomain, pingUrl: "/?igr_ping=1", waRef: {enabled, format: "{text} (ref: {token})", numbers: ["573001234567"], widgets}, widgetsUrl: "<hub>/p/pk_…/widgets.json", widgetsJs, pixelsJs, pixels: {meta, tiktok, google}, banner, earlyCapture: false }`. `siteId` y `platform` llenan `source` de cada evento; `widgetsJs`, `pixelsJs` y `banner` son los paquetes que se cargan solo cuando hacen falta |
+| `window.igrConfig` | todas | `{ siteKey: "pk_…", siteId: "st_…", platform: "woocommerce", currency: "COP", endpoint: "<ingest_browser>", consentMode: "strict", consent: {analytics, marketing, source}, cookieDomain, pingUrl: "/?igr_ping=1", waRef: {enabled, format: "{text} (ref: {token})", numbers: ["573001234567"], widgets}, widgetsUrl: "<hub>/p/pk_…/widgets.json", widgetsJs, pixelsJs, pixels: {meta, tiktok, google}, banner }`. `siteId` y `platform` llenan `source` de cada evento; `widgetsJs`, `pixelsJs` y `banner` son los paquetes que se cargan solo cuando hacen falta |
 | `window.igrPage` | todas | `{ type: "product", objectId: "88", product: {id, sku, name, price, currency, categories: ["12"], inStock} }` |
 | `window.igrUser` | **solo** páginas no cacheables (Mi cuenta, checkout, gracias) con sesión | `{ ref: "wc:77", token }` |
 | `window.igrOrder` | página de gracias | `{ eventId, orderId: "1234", value: "282000.00", currency: "COP", paid: true, token }`. El píxel de compra del navegador solo se dispara con `paid: true`; un pedido pendiente (PSE, contraentrega) lo cuenta después el servidor al pagarse |

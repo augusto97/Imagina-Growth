@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property list<string>|null $name_prefix_bidx
  * @property CarbonInterface|null $first_seen_at
  * @property CarbonInterface|null $last_seen_at
+ * @property CarbonInterface|null $early_capture_at existe solo por la captura temprana del checkout (cumplimiento.md §3.2)
  */
 class Contact extends Model
 {
@@ -57,6 +58,7 @@ class Contact extends Model
             'last_order_at' => 'datetime',
             'rfm_computed_at' => 'datetime',
             'expected_next_order_at' => 'datetime',
+            'early_capture_at' => 'datetime',
             'category_affinity' => 'array',
         ];
     }

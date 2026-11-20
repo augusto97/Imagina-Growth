@@ -241,7 +241,7 @@ final class CartRestoreTest extends WpTestCase {
 	}
 
 	public function test_el_pedido_lleva_el_cart_token_del_checkout(): void {
-		$this->assertSame( 4, EventFactory::SCHEMA_VERSION );
+		$this->assertSame( 6, EventFactory::SCHEMA_VERSION );
 		$paint = $this->product( '141000' );
 		WC()->cart->add_to_cart( $paint->get_id(), 1 );
 		$token = CartCollector::current_token();

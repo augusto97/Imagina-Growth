@@ -40,11 +40,11 @@ describe('declaración de consentimiento', () => {
     });
 
     it('si se declara, pide canales, origen de 10 caracteres y una fecha no futura', () => {
-        expect(consentProblems({ mode: 'declared', channels: [], source: 'corto', date: '2026-12-01' }, today)).toEqual(['channels', 'source', 'futureDate']);
-        expect(consentProblems({ mode: 'declared', channels: ['email'], source: 'Formulario de la feria', date: '' }, today)).toEqual(['date']);
-        const ok = { mode: 'declared' as const, channels: ['whatsapp' as const], source: '  Formulario de la feria  ', date: '2026-10-01' };
+        expect(consentProblems({ mode: 'declared', channels: [], source: 'corto', date: '2026-12-01' }, today)).toEqual(['channels', 'source', 'legalBasis', 'futureDate']);
+        expect(consentProblems({ mode: 'declared', channels: ['email'], source: 'Formulario de la feria', legalBasis: 'written_form', date: '' }, today)).toEqual(['date']);
+        const ok = { mode: 'declared' as const, channels: ['whatsapp' as const], source: '  Formulario de la feria  ', legalBasis: 'online_form' as const, date: '2026-10-01' };
         expect(consentProblems(ok, today)).toEqual([]);
-        expect(consentPayload(ok)).toEqual({ channels: ['whatsapp'], source: 'Formulario de la feria', date: '2026-10-01' });
+        expect(consentPayload(ok)).toEqual({ channels: ['whatsapp'], source: 'Formulario de la feria', date: '2026-10-01', legal_basis: 'online_form' });
         expect(consentPayload({ ...ok, mode: 'none' })).toBeNull();
     });
 });

@@ -35,7 +35,8 @@ final class RecalculateAllTiers
         $since = $now->subMonths(12);
         $changed = 0;
         $base->where(fn ($q) => $q->whereNotNull('tier_id')->orWhere('last_order_at', '>=', $since)->orWhere('points_balance', '>', 0))
-            ->orderBy('id')->select('id')->chunk(1000, function ($rows) use ($tierList, $now, &$changed): void {
+            // Por clave: el callback cambia tier_id, que está en el filtro; con OFFSET se saltaban contactos (R12).
+            ->select('id')->chunkById(1000, function ($rows) use ($tierList, $now, &$changed): void {
                 foreach ($rows as $row) {
                     try {
                         if ($this->tiers->handle((string) $row->id, $tierList, $now)['changed']) {

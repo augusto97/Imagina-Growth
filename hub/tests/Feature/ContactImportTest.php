@@ -34,7 +34,7 @@ it('sugiere el mapeo con una vista previa', function () {
 it('importa con origen de consentimiento declarado, normaliza teléfonos y borra el archivo', function () {
     Storage::fake('local');
     $mapping = json_encode(['Correo' => 'email', 'Teléfono' => 'phone', 'Nombre' => 'first_name', 'Ciudad' => 'city', 'Etiquetas' => 'tags']);
-    $consent = json_encode(['channels' => ['email', 'whatsapp'], 'source' => 'Formulario de la feria de pintura 2026', 'date' => '2026-10-01']);
+    $consent = json_encode(['channels' => ['email', 'whatsapp'], 'source' => 'Formulario de la feria de pintura 2026', 'legal_basis' => 'written_form', 'date' => '2026-10-01']);
     $res = $this->actingAs($this->owner)->post($this->url, ['file' => csvFile($this->csv), 'mapping' => $mapping, 'consent' => $consent], ['Accept' => 'application/json'])->assertStatus(202);
 
     $show = $this->actingAs($this->owner)->getJson("{$this->url}/{$res->json('id')}")->assertOk();

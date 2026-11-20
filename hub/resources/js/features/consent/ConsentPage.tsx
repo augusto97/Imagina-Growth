@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { History, Mail, MessageCircle, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { History, Mail, MessageCircle, ShieldCheck, ShoppingCart, TriangleAlert } from 'lucide-react';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useUpdateWorkspace } from '@/api/queries';
@@ -17,7 +17,18 @@ import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
 import { DataRequestsTable } from '@/features/privacy/DataRequestsTable';
 import { useDataRequests } from '@/features/privacy/api';
-import { type ConsentMode, type ConsentText, type ConsentTextVersion, TEXT_MAX, TEXT_MIN, useConsentMode, useConsentSettings, usePublishConsentText } from './api';
+import {
+    type ConsentMode,
+    type ConsentText,
+    type ConsentTextVersion,
+    type EarlyCaptureState,
+    TEXT_MAX,
+    TEXT_MIN,
+    useConsentMode,
+    useConsentSettings,
+    useEarlyCapture,
+    usePublishConsentText,
+} from './api';
 
 /** Ajustes de consentimiento y derechos de los titulares (cumplimiento.md §2, §3 y §9). */
 export function ConsentPage() {
@@ -58,6 +69,8 @@ export function ConsentPage() {
                         <ModeCard current={settings.data.mode} canManage={canManage} />
                         <PolicyCard current={settings.data.privacy_policy_url} canManage={canManage} />
                     </div>
+
+                    <EarlyCaptureCard state={settings.data.early_capture} minPlugin={settings.data.plugin_min_for_early_capture} canManage={canManage} />
 
                     {canExport && (
                         <section aria-labelledby="data-requests">
@@ -111,7 +124,9 @@ function TextCard({ text, history, canManage }: { text: ConsentText; history: Co
                         {channel}
                     </CardTitle>
                     <CardDescription>
-                        {text.published_at ? t('consent.texts.publishedOn', { date: formatDateTime(text.published_at, workspace.locale, workspace.timezone) }) : t('consent.texts.default')}
+                        {text.published_at
+                            ? t('consent.texts.publishedOn', { date: formatDateTime(text.published_at, workspace.locale, workspace.timezone) })
+                            : t('consent.texts.default')}
                     </CardDescription>
                 </div>
                 <Badge variant="secondary" className="igr:font-mono">
@@ -160,7 +175,10 @@ function TextCard({ text, history, canManage }: { text: ConsentText; history: Co
                                     <li key={h.version} className="igr:text-xs">
                                         <p className="igr:font-medium">
                                             {t('consent.texts.version', { version: h.version })}
-                                            <span className="igr:font-normal igr:text-muted-foreground"> · {formatDateTime(h.published_at, workspace.locale, workspace.timezone)}</span>
+                                            <span className="igr:font-normal igr:text-muted-foreground">
+                                                {' '}
+                                                · {formatDateTime(h.published_at, workspace.locale, workspace.timezone)}
+                                            </span>
                                         </p>
                                         <p className="igr:mt-0.5 igr:text-muted-foreground">{h.label}</p>
                                     </li>
@@ -270,16 +288,103 @@ function ModeCard({ current, canManage }: { current: ConsentMode; canManage: boo
             </CardContent>
             {canManage && (
                 <CardFooter className="igr:justify-end">
-                    <Button
-                        disabled={mode === current}
-                        loading={save.isPending}
-                        onClick={() => save.mutate(mode, { onSuccess: () => toast.success(t('consent.mode.saved')) })}
-                    >
+                    <Button disabled={mode === current} loading={save.isPending} onClick={() => save.mutate(mode, { onSuccess: () => toast.success(t('consent.mode.saved')) })}>
                         {t('common.save')}
                     </Button>
                 </CardFooter>
             )}
         </Card>
+    );
+}
+
+/** Captura temprana del checkout (cumplimiento.md §3.2): encenderla exige aceptar la responsabilidad y queda en la auditoría. */
+function EarlyCaptureCard({ state, minPlugin, canManage }: { state: EarlyCaptureState; minPlugin: string; canManage: boolean }) {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const save = useEarlyCapture(workspace.id);
+    const [accepted, setAccepted] = useState(false);
+    const acceptId = useId();
+
+    return (
+        <section aria-labelledby="early-capture">
+            <Card>
+                <CardHeader className="igr:flex-row igr:items-start igr:justify-between igr:gap-2">
+                    <div>
+                        <CardTitle id="early-capture" className="igr:flex igr:items-center igr:gap-2">
+                            <ShoppingCart className="igr:size-4 igr:text-muted-foreground" />
+                            {t('consent.earlyCapture.title')}
+                        </CardTitle>
+                        <CardDescription>{t('consent.earlyCapture.description')}</CardDescription>
+                    </div>
+                    <Badge variant={state.enabled ? 'default' : 'secondary'}>{state.enabled ? t('consent.earlyCapture.on') : t('consent.earlyCapture.off')}</Badge>
+                </CardHeader>
+                <CardContent className="igr:space-y-3 igr:text-[13px]">
+                    <div>
+                        <p className="igr:mb-1.5 igr:text-[11px] igr:font-medium igr:uppercase igr:tracking-wide igr:text-muted-foreground">
+                            {t('consent.earlyCapture.noticeTitle')}
+                        </p>
+                        <p className="igr:rounded-md igr:border igr:bg-background igr:p-3 igr:text-xs igr:text-muted-foreground">{t('consent.earlyCapture.notice')}</p>
+                    </div>
+                    <ul className="igr:list-disc igr:space-y-1 igr:pl-5 igr:text-xs igr:text-muted-foreground">
+                        <li>{t('consent.earlyCapture.ruleCart')}</li>
+                        <li>{t('consent.earlyCapture.ruleConsent')}</li>
+                        <li>{t('consent.earlyCapture.rulePlugin', { version: minPlugin })}</li>
+                    </ul>
+                    {state.enabled && state.accepted_at && (
+                        <p className="igr:text-xs igr:text-muted-foreground">
+                            {t('consent.earlyCapture.acceptedOn', {
+                                date: formatDateTime(state.accepted_at, workspace.locale, workspace.timezone),
+                                name: state.accepted_by ?? '—',
+                            })}
+                        </p>
+                    )}
+                    {canManage && !state.enabled && (
+                        <label htmlFor={acceptId} className="igr:flex igr:items-start igr:gap-2 igr:rounded-md igr:bg-muted/60 igr:p-2.5 igr:text-xs">
+                            <input
+                                id={acceptId}
+                                type="checkbox"
+                                className="igr:mt-0.5 igr:size-4 igr:accent-[var(--primary)]"
+                                checked={accepted}
+                                onChange={(e) => setAccepted(e.target.checked)}
+                            />
+                            <span>{t('consent.earlyCapture.accept')}</span>
+                        </label>
+                    )}
+                    <FieldError message={save.isError ? errorMessage(save.error, t) : undefined} />
+                </CardContent>
+                {canManage && (
+                    <CardFooter className="igr:justify-end">
+                        {state.enabled ? (
+                            <Button
+                                variant="outline"
+                                loading={save.isPending}
+                                onClick={() => save.mutate({ enabled: false }, { onSuccess: () => toast.success(t('consent.earlyCapture.disabled')) })}
+                            >
+                                {t('consent.earlyCapture.disable')}
+                            </Button>
+                        ) : (
+                            <Button
+                                disabled={!accepted}
+                                loading={save.isPending}
+                                onClick={() =>
+                                    save.mutate(
+                                        { enabled: true, accept_responsibility: true },
+                                        {
+                                            onSuccess: () => {
+                                                setAccepted(false);
+                                                toast.success(t('consent.earlyCapture.enabled'));
+                                            },
+                                        },
+                                    )
+                                }
+                            >
+                                {t('consent.earlyCapture.enable')}
+                            </Button>
+                        )}
+                    </CardFooter>
+                )}
+            </Card>
+        </section>
     );
 }
 

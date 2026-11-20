@@ -18,7 +18,8 @@ final class LoyaltyEventListener
 {
     public const ORDER_EVENTS = ['order.paid', 'order.completed', 'order.refunded', 'order.cancelled', 'order.failed', 'order.status_changed'];
 
-    public const PROFILE_EVENTS = ['customer.registered', 'customer.updated', 'checkout.contact_captured'];
+    /** La captura temprana del checkout no suma puntos: ese dato solo sirve para recuperar el carrito (cumplimiento.md §3.2). */
+    public const PROFILE_EVENTS = ['customer.registered', 'customer.updated'];
 
     public function handle(EventIngested $event): void
     {

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://growth.imagina.cloud/schemas/events/checkout.contact_captured.json",
   "title": "checkout.contact_captured",
-  "description": "Esquema de `properties` del evento checkout.contact_captured (docs/eventos.md §4)",
+  "description": "Esquema de `properties` del evento checkout.contact_captured (docs/eventos.md §4.2). v6: lo envía el plugin desde el servidor, firmado por /v1/s, con el correo o el teléfono en `identity` (nunca en `properties`) y solo si el espacio de trabajo activó la captura temprana (cumplimiento.md §3.2).",
   "type": "object",
   "required": [
     "has_email",
@@ -14,6 +14,18 @@
     },
     "has_phone": {
       "type": "boolean"
+    },
+    "cart_token": {
+      "$ref": "_defs.json#/$defs/cart_token",
+      "description": "v6: el carrito de la sesión (el mismo de cart.*); une ese carrito con el contacto."
+    },
+    "checkout": {
+      "type": "string",
+      "enum": [
+        "classic",
+        "blocks"
+      ],
+      "description": "v6: checkout clásico (update_order_review) o de bloques (Store API)."
     }
   },
   "additionalProperties": false,
@@ -21,6 +33,12 @@
     {
       "has_email": true,
       "has_phone": false
+    },
+    {
+      "has_email": true,
+      "has_phone": true,
+      "cart_token": "a3f9c2e1b7d84f0e9c1a2b3c4d5e6f70",
+      "checkout": "blocks"
     }
   ],
   "x-invalid-examples": [
@@ -28,6 +46,21 @@
       "has_email": true,
       "has_phone": false,
       "email": "ana@ejemplo.com"
+    },
+    {
+      "has_email": true,
+      "has_phone": false,
+      "phone": "+573001234567"
+    },
+    {
+      "has_email": true,
+      "has_phone": false,
+      "checkout": "otro"
+    },
+    {
+      "has_email": true,
+      "has_phone": false,
+      "cart_token": "corto"
     }
   ]
 }

@@ -31,7 +31,6 @@ La cola funciona aunque el script todavía no haya cargado.
 | `category.viewed` | si `igrPage.type === 'category'` |
 | `search.performed` | parámetro `s` o `query` en la URL de resultados, o el evento personalizado que emite Imagina Search |
 | `cta.clicked` | delegación de clics en `document` (captura) para `tel:`, `mailto:`, `wa.me`, `api.whatsapp.com`, `whatsapp://`, extensiones descargables y `[data-igr-cta]`. **Fase 5:** en el botón de reservas (`a[data-igr-cta="booking"]`, `[igr_booking]`) se agregan al enlace `aid` y el último contacto (`utm_*` y click IDs) antes de navegar, porque la página de reservas vive en el hub y sin eso la cita perdería el anuncio que la trajo; sin consentimiento de analítica el enlace queda igual |
-| `checkout.contact_captured` | solo si `igrConfig.earlyCapture === true`; escucha los campos de correo y teléfono del checkout con *debounce* de 1,5 s y validación; el dato viaja **cifrado** al hub (clave pública del sitio, `crypto.subtle`) en un campo aparte |
 
 ## 4. Identificadores y fuentes
 
@@ -42,6 +41,9 @@ La cola funciona aunque el script todavía no haya cargado.
 - **Parámetro `_igr`** (enlaces de mensajes): se llama `identify({token})` y **se borra de la URL** con `history.replaceState` para que nadie lo comparta por error.
 - **Parámetro `?ref=`** (referidos y afiliados, v4): si cumple `^[A-Za-z0-9_-]{3,32}$`, el toque de esa visita lleva `referral_code` (en `_igr_src`, primer y último contacto, con consentimiento) y los eventos de esa página llevan `context.referral_code`, también sin consentimiento de analítica porque es el código del referidor y no identifica al visitante. **No se quita de la URL:** no es un dato personal, está hecho para compartirse y otros plugins de afiliados también leen `ref`. El plugin lo pasa al pedido en `last_touch`.
 - **Versión del contrato:** los eventos del navegador salen con `schema_version: 4`.
+- **Captura temprana del checkout:** no la hace el tracker. El correo o el teléfono del checkout nunca salen del
+  navegador por `/v1/b` (solo navegación): los toma el plugin en el servidor y viajan firmados (`checkout.contact_captured`
+  v6, `connector/CLAUDE.md` §6).
 
 ## 5. Atribución de WhatsApp
 

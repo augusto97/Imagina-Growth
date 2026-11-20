@@ -15,7 +15,9 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $filename
  * @property string|null $path
  * @property array<string, string> $mapping
- * @property array{channels: list<string>, source: string, date: string}|null $consent
+ * @property string $kind csv o history (consentimiento declarado del historial del plugin)
+ * @property string|null $site_id
+ * @property array{channels: list<string>, source: string, date: string, legal_basis?: string}|null $consent
  * @property string $status
  * @property array<string, int>|null $totals
  * @property list<array{row: int, message: string}>|null $errors

@@ -45,6 +45,23 @@
         "requests": {
             "title": "Solicitudes de los titulares",
             "description": "Pedidos de acceso o de borrado de datos (habeas data). Atiéndelos antes del plazo legal: en Colombia, 15 días hábiles."
+        },
+        "earlyCapture": {
+            "title": "Captura temprana del checkout",
+            "description": "Si un cliente escribe su correo o WhatsApp en el pago y no termina la compra, su carrito queda unido a ese dato para que el flujo de carrito abandonado sepa a quién escribirle.",
+            "on": "Activada",
+            "off": "Apagada",
+            "noticeTitle": "Aviso que el plugin muestra junto al campo",
+            "notice": "Usaremos tu correo o WhatsApp para ayudarte a terminar tu compra.",
+            "ruleCart": "El dato solo sirve para recuperar ese carrito: no entra en audiencias de anuncios ni suma puntos.",
+            "ruleConsent": "No crea consentimiento de marketing: el recordatorio solo sale a quien ya aceptó recibir mensajes por ese canal, y en el horario legal.",
+            "rulePlugin": "Funciona con el plugin {{version}} o más nuevo. Los sitios toman el cambio en las próximas horas (como máximo un día).",
+            "accept": "Acepto la responsabilidad de usar este dato solo para recuperar el carrito y de informarlo en la política de privacidad de la tienda. El cambio queda en la auditoría.",
+            "acceptedOn": "Activada el {{date}} por {{name}}.",
+            "enable": "Activar la captura temprana",
+            "disable": "Apagar",
+            "enabled": "Captura temprana activada",
+            "disabled": "Captura temprana apagada"
         }
     }
 }

@@ -7,6 +7,7 @@ namespace App\Ingest\Pipeline;
 use App\Domain\Commerce\Projectors\CartProjector;
 use App\Domain\Commerce\Projectors\CatalogProjector;
 use App\Domain\Commerce\Projectors\OrderProjector;
+use App\Domain\Commerce\Support\EarlyCapture;
 use App\Domain\Consent\Actions\ProjectConsents;
 use App\Domain\Contacts\Jobs\RecalculateContactStats;
 use App\Domain\Identity\IdentityInput;
@@ -157,6 +158,16 @@ final class IngestProcessor
             $site = $this->site($entry->siteId);
             if ($workspace === null || $site === null) {
                 $this->reject($entry, $envelope, 'site_missing', 'El sitio o el espacio de trabajo ya no existe');
+                $out->ackIds[] = $entry->streamId;
+                $out->rejected++;
+
+                continue;
+            }
+
+            // Captura temprana (cumplimiento.md §3.2): solo firmada por el plugin y con la opción encendida en el
+            // espacio de trabajo. El plugin pudo quedarse con la configuración vieja: aquí no se crea ni se toca nada.
+            if ($envelope['event'] === EarlyCapture::EVENT && (($envelope['source']['type'] ?? '') !== 'server' || ! EarlyCapture::enabled($workspace))) {
+                $this->reject($entry, $envelope, 'not_allowed', 'La captura temprana del checkout está apagada en este espacio de trabajo');
                 $out->ackIds[] = $entry->streamId;
                 $out->rejected++;
 

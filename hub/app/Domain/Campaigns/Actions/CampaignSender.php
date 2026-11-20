@@ -52,8 +52,8 @@ final class CampaignSender
         $inserted = 0;
         $this->audience->query($workspace, $campaign->audience ?? [])
             ->select(['c.id', 'c.country', 'c.timezone', 'c.preferred_hour'])
-            ->orderBy('c.id')
-            ->chunk(1000, function ($contacts) use ($workspace, $campaign, $variants, $ab, $samplePct, $now, &$inserted): void {
+            // Por clave (c.id > último), no por OFFSET: con 100.000 contactos el OFFSET recorría todo otra vez en cada página (R12).
+            ->chunkById(1000, function ($contacts) use ($workspace, $campaign, $variants, $ab, $samplePct, $now, &$inserted): void {
                 $rows = [];
                 foreach ($contacts as $c) {
                     $id = (string) $c->id;
@@ -77,7 +77,7 @@ final class CampaignSender
                 }
                 // insertOrIgnore: materializar dos veces no duplica (único campaign_id + contact_id).
                 $inserted += DB::table('campaign_recipients')->insertOrIgnore($rows);
-            });
+            }, 'c.id', 'id');
         $campaign->forceFill(['status' => Campaign::SENDING, 'started_at' => $campaign->started_at ?? $now])->save();
 
         return $inserted;

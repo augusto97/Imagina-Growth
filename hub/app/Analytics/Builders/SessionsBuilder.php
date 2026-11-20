@@ -15,6 +15,14 @@ use Carbon\CarbonInterface;
  * se escriben sesiones cerradas. Reconstruir una sesión es idempotente
  * (ReplacingMergeTree por started_at + session_id, se lee con FINAL).
  *
+ * R7 de la auditoría: la ventana del programador (180 minutos) vuelve a ver
+ * cada sesión unas 15 veces. Solo se inserta la sesión nueva o la que cambió
+ * (llegó un evento tarde, la persona se identificó): las que ya están con las
+ * mismas columnas (misma huella cityHash64, con los mismos tipos de los dos
+ * lados) se descartan con un NOT IN contra `sessions`. Sin FINAL: basta con que
+ * alguna versión guardada sea igual, porque una sesión solo crece (más eventos,
+ * contacto identificado).
+ *
  * El contacto de la sesión sale de identity_map (anónimo → contacto), así una
  * visita anónima queda atribuida cuando la persona se identifica después.
  */
@@ -28,11 +36,21 @@ final class SessionsBuilder
                 landing_path, exit_path, channel, utm_source, utm_medium, utm_campaign, device_type, browser, city, region, country,
                 viewed_product, added_to_cart, started_checkout, searched, cta_clicks, purchased, orders, is_returning, revenue)
             SELECT
-                s.workspace_id, s.site_id, s.session_id, s.anonymous_id,
+                n.workspace_id, n.site_id, n.session_id, n.anonymous_id, n.contact_id, n.started_at, n.ended_at, n.pageviews,
+                n.landing_path, n.exit_path, n.channel, n.utm_source, n.utm_medium, n.utm_campaign, n.device_type, n.browser, n.city,
+                n.region, n.country, n.viewed_product, n.added_to_cart, n.started_checkout, n.searched, n.cta_clicks, n.purchased,
+                n.orders, n.is_returning, n.revenue
+            FROM (
+            SELECT
+                s.workspace_id AS workspace_id, s.site_id AS site_id, s.session_id AS session_id, s.anonymous_id AS anonymous_id,
                 if(s.contact_id != '', s.contact_id, ifNull(im.contact_id, '')) AS contact_id,
-                s.started_at, s.ended_at, s.pageviews, s.landing_path, s.exit_path, s.channel, s.utm_source, s.utm_medium,
-                s.utm_campaign, s.device_type, s.browser, s.city, s.region, s.country, s.viewed_product, s.added_to_cart,
-                s.started_checkout, s.searched, s.cta_clicks, s.purchased, s.orders, s.is_returning, s.revenue
+                s.started_at AS started_at, s.ended_at AS ended_at, s.pageviews AS pageviews, s.landing_path AS landing_path,
+                s.exit_path AS exit_path, toString(s.channel) AS channel, toString(s.utm_source) AS utm_source,
+                toString(s.utm_medium) AS utm_medium, s.utm_campaign AS utm_campaign, toString(s.device_type) AS device_type,
+                toString(s.browser) AS browser, toString(s.city) AS city, toString(s.region) AS region, toString(s.country) AS country,
+                s.viewed_product AS viewed_product, s.added_to_cart AS added_to_cart, s.started_checkout AS started_checkout,
+                s.searched AS searched, s.cta_clicks AS cta_clicks, s.purchased AS purchased, s.orders AS orders,
+                s.is_returning AS is_returning, toDecimal64(s.revenue, 2) AS revenue
             FROM (
                 SELECT
                     workspace_id,
@@ -80,6 +98,18 @@ final class SessionsBuilder
                 FROM identity_map WHERE workspace_id = {workspace_id:UInt32}
                 GROUP BY anonymous_id
             ) AS im ON im.anonymous_id = s.anonymous_id
+            ) AS n
+            LEFT ANTI JOIN (
+                SELECT session_id, cityHash64(anonymous_id, contact_id, started_at, ended_at, pageviews, landing_path, exit_path,
+                    toString(channel), toString(utm_source), toString(utm_medium), utm_campaign, toString(device_type),
+                    toString(browser), toString(city), toString(region), toString(country), viewed_product, added_to_cart,
+                    started_checkout, searched, cta_clicks, purchased, orders, is_returning, revenue) AS fp
+                FROM sessions
+                WHERE workspace_id = {workspace_id:UInt32} AND started_at >= {from:DateTime64(3)} - INTERVAL 1 DAY
+            ) AS e ON e.session_id = n.session_id AND e.fp = cityHash64(n.anonymous_id, n.contact_id, n.started_at, n.ended_at,
+                n.pageviews, n.landing_path, n.exit_path, n.channel, n.utm_source, n.utm_medium, n.utm_campaign, n.device_type,
+                n.browser, n.city, n.region, n.country, n.viewed_product, n.added_to_cart, n.started_checkout, n.searched,
+                n.cta_clicks, n.purchased, n.orders, n.is_returning, n.revenue)
             SQL;
 
         Ch::forWorkspace($workspace)->execute($sql, [

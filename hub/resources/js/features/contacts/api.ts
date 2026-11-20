@@ -387,7 +387,22 @@ export function useRecordConsent(ws: string, id: string) {
 
 /* Importación CSV ------------------------------------------------------- */
 
-export type ImportField = 'email' | 'phone' | 'first_name' | 'last_name' | 'city' | 'region_code' | 'country' | 'birthday' | 'renewal_at' | 'tags' | 'ignore' | `custom:${string}`;
+export type ImportField =
+    | 'email'
+    | 'phone'
+    | 'first_name'
+    | 'last_name'
+    | 'city'
+    | 'region_code'
+    | 'country'
+    | 'birthday'
+    | 'renewal_at'
+    | 'tags'
+    | 'consent_email'
+    | 'consent_whatsapp'
+    | 'consent_sms'
+    | 'ignore'
+    | `custom:${string}`;
 
 export interface ImportPreview {
     headers: string[];
@@ -396,14 +411,21 @@ export interface ImportPreview {
     fields: ImportField[];
 }
 
+/** Cómo se obtuvo la autorización (ConsentDeclaration::LEGAL_BASES del hub, cumplimiento.md §3.1). */
+export const LEGAL_BASES = ['online_form', 'checkout_checkbox', 'written_form', 'recorded_call', 'messaging_optin'] as const;
+export type LegalBasis = (typeof LEGAL_BASES)[number];
+
 export interface ImportConsent {
     channels: ConsentChannel[];
     source: string;
     date: string;
+    legal_basis?: LegalBasis;
 }
 
 export interface ContactImport {
     id: string;
+    /** csv o history (consentimiento declarado del historial del plugin) */
+    kind?: 'csv' | 'history';
     status: 'queued' | 'running' | 'completed' | 'failed' | (string & {});
     filename: string;
     totals: { rows: number; created: number; updated: number; skipped: number; invalid: number; consents?: number };
@@ -493,5 +515,14 @@ export function useImport(ws: string, id: string) {
             return data;
         },
         refetchInterval: (query) => (query.state.data && ['completed', 'failed'].includes(query.state.data.status) ? false : 1500),
+    });
+}
+
+/** Consentimiento del historial que importó el plugin de un sitio (auditoría F7). */
+export function useDeclareHistoryConsent(ws: string) {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (data: { site: string; consent: ImportConsent }) => api.post<ContactImport>(`${wsPath(ws)}/contacts/imports/history`, data),
+        onSuccess: () => void qc.invalidateQueries({ queryKey: ['ws', ws, 'contact-imports'] }),
     });
 }

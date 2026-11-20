@@ -73,6 +73,7 @@ imagina-growth-connector/
 | `cart.item_removed` | `woocommerce_cart_item_removed` | |
 | `cart.updated` | `woocommerce_cart_updated` | *throttle* de 30 s por sesión (transient) |
 | `checkout.started` | `template_redirect` con `is_checkout() && !is_wc_endpoint_url('order-received')` | una vez por sesión de carrito |
+| `checkout.contact_captured` | `woocommerce_checkout_update_order_review` (clásico; el plugin pide `update_checkout` al salir del correo o del teléfono) y `woocommerce_store_api_cart_update_customer_from_request` (bloques) | v6, `Collectors\EarlyCapture`. Solo con `settings.early_capture` del hub, para invitados y con un correo o un teléfono E.164 completos. Aviso «Usaremos tu correo o WhatsApp para ayudarte a terminar tu compra» en la descripción del campo (clásico) o debajo del correo (bloques, script en línea). Una fila en el outbox que sale 20 s después; si en ese tiempo llega otro valor del mismo carrito, se reemplaza (`Outbox::replace_pending`). Una vez por carrito y dato, máximo 5 por carrito. El dato va en `identity`. Los `cart.*` de un invitado ya no llevan el correo de la sesión de WooCommerce (solo el de la cuenta) |
 | `order.created` | `woocommerce_checkout_order_processed` (clásico), `woocommerce_store_api_checkout_order_processed` (bloques), `woocommerce_new_order` (admin y REST) | guarda `_igr_ctx`; `event_id` determinista |
 | `order.paid` | `woocommerce_order_status_changed` hacia un estado pagado + `woocommerce_payment_complete` | la primera vez que pasa a pagado (meta `_igr_paid_sent`) |
 | `order.status_changed` / `.completed` / `.cancelled` / `.failed` | `woocommerce_order_status_changed` | |
@@ -208,12 +209,12 @@ Menú «Imagina Growth» con estas pestañas:
 
 | Pestaña | Contenido |
 |---|---|
-| **Estado** | conexión, espacio de trabajo, eventos de las últimas 24 h por tipo, último envío, retraso y errores; aviso si WP-Cron va atrasado; botón **«Importar y enviar ahora»** (`Admin\SyncNow`) |
+| **Estado** | conexión, cuenta, lo que pasó en la tienda en las últimas 24 horas (con nombres como «Pedidos pagados», no `order.paid`), último envío, datos esperando y los que no se pudieron enviar, el último aviso explicado (`Admin\Wording::error`: qué pasó y qué hacer, sin `HTTP 401`), versión del plugin; aviso si las tareas programadas van atrasadas; botón **«Importar y enviar ahora»** (`Admin\SyncNow`) |
 | **Datos** | qué se envía (activar o desactivar por tipo), excluir roles (administradores por defecto), páginas excluidas, estados pagados, pasarelas offline |
 | **Formularios** | detectados, mapeo de campos y prueba de envío |
 | **Consentimiento** | textos, casillas del checkout y modo de banner |
 | **En el sitio** | interruptores de los elementos automáticos («Avísame», «Avísame si baja», puntos, «Mis recompensas», «Usar saldo», banner superior; los de fidelización también dependen del hub) y cómo poner los slots (bloques, shortcodes y Elementor) |
-| **Diagnóstico** | Action Scheduler, cron, outbox (pendientes y fallidos con reintento manual), conflictos detectados, exportar el informe de soporte |
+| **Diagnóstico** | tareas programadas, «Datos de tu tienda por enviar» (en espera, enviándose, enviados y los que no se pudieron enviar, con reintento manual y el motivo en palabras), y el informe técnico para soporte plegado en un `<details>` con el código del sitio. Sin jerga (auditoría U5): nada de «outbox», `event_id` ni `pending` a la vista |
 | **Avanzado** | dominio de seguimiento, modo de píxel, importación histórica, desconexión |
 
 **«Importar y enviar ahora»** (`Admin\SyncNow`, AJAX `igr_sync_now`, solo `manage_options` con nonce): si Action Scheduler no corre (WP-Cron sin visitas o `DISABLE_WP_CRON` sin cron real), la importación y el envío no avanzan. El botón hace el mismo trabajo en tramos de ~15 s (lotes de `Runner::step(false)` + `Flusher::run`) que la página repite hasta terminar, con el avance por entidad y el error exacto del hub si lo hay. La primera llamada arranca la importación si nunca corrió o falló, la reanuda si estaba en pausa y adelanta los reintentos (`Outbox::expedite()`). Es la única excepción a «nada de HTTP en la petición del admin»: la pide el administrador y nunca corre en la de un visitante.
@@ -270,3 +271,10 @@ Menú «Imagina Growth» con estas pestañas:
   «Descargar plugin» de Sitios (y el paso 1 de «Conectar con un código») baja el de la misma versión del hub.
 - El plugin es gratis de instalar y solo funciona con una cuenta del hub.
 - Versionado semántico. El hub conoce la versión mínima compatible y avisa en el panel si un sitio está desactualizado.
+- **Aviso en el admin de WordPress** (`Admin\UpdateNotice`): `/v1/s/config` trae `plugin` (`min_version`,
+  `latest_version`, `download_url` = `{hub}/downloads/imagina-growth-connector.zip`) y queda guardado con el resto de la
+  configuración, así que el aviso no hace ninguna llamada al hub al cargar el admin. Con una versión menor que la mínima:
+  aviso de error en todo el admin para quien puede actualizar plugins. Con una más nueva: aviso informativo en el
+  Escritorio, en Plugins y en la página del plugin, que se puede ocultar hasta la siguiente versión (meta del usuario
+  `igr_dismissed_update`). Un enlace que no sea http(s) se cambia por el del hub conectado. `config/igr.php`
+  (`plugin.latest_version`) sube junto con la cabecera del plugin: lo revisa `tests/Unit/Config/PluginReleaseTest.php`.

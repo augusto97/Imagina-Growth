@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Domain\Sites\Support;
 
+use App\Domain\Sites\Models\Site;
 use ZipArchive;
 
 /**
- * Versión del plugin que trae esta versión del hub (`public/downloads/imagina-growth-connector.zip`, la que
- * descargan los clientes desde el panel; en desarrollo, la del código del connector). Sirve para avisar qué sitios
- * tienen el plugin viejo (F15).
+ * Versiones del plugin que conoce el hub (connector/CLAUDE.md §15, api-connector.md §5.1):
+ * - la mínima compatible y la última, que viajan en `/v1/s/config` para que el plugin avise en el admin de WordPress
+ *   sin pedir nada más al hub (`forSite`);
+ * - la que trae este paquete en `public/downloads/imagina-growth-connector.zip` (la que descargan los clientes desde
+ *   el panel; en desarrollo, la del código del connector), con la que el diagnóstico avisa qué sitios tienen el
+ *   plugin viejo (F15, `bundledVersion`).
  */
 final class PluginRelease
 {
@@ -53,5 +57,50 @@ final class PluginRelease
     public static function older(?string $version, string $than): bool
     {
         return $version === null || $version === '' || version_compare($version, $than, '<');
+    }
+
+    public static function minVersion(): string
+    {
+        return (string) config('igr.min_plugin_version');
+    }
+
+    public static function latestVersion(): string
+    {
+        return (string) config('igr.plugin.latest_version');
+    }
+
+    public static function downloadUrl(): string
+    {
+        return rtrim((string) config('igr.urls.app'), '/').(string) config('igr.plugin.download_path');
+    }
+
+    /**
+     * `outdated`: el sitio usa una versión menor que la mínima (debe actualizar); `update_available`: hay una más nueva.
+     *
+     * @return array{min_version: string, latest_version: string, download_url: string, status: string}
+     */
+    public static function forSite(Site $site): array
+    {
+        $current = (string) $site->getAttribute('plugin_version');
+        $status = 'current';
+        if ($current !== '' && self::isVersion($current)) {
+            if (version_compare($current, self::minVersion(), '<')) {
+                $status = 'outdated';
+            } elseif (version_compare($current, self::latestVersion(), '<')) {
+                $status = 'update_available';
+            }
+        }
+
+        return [
+            'min_version' => self::minVersion(),
+            'latest_version' => self::latestVersion(),
+            'download_url' => self::downloadUrl(),
+            'status' => $status,
+        ];
+    }
+
+    private static function isVersion(string $v): bool
+    {
+        return preg_match('/^\d+\.\d+\.\d+$/', $v) === 1;
     }
 }

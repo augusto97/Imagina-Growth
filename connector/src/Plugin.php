@@ -14,6 +14,7 @@ use ImaginaGrowth\Connector\Backfill\Runner;
 use ImaginaGrowth\Connector\Catalog\CatalogCollector;
 use ImaginaGrowth\Connector\Catalog\CatalogSync;
 use ImaginaGrowth\Connector\Collectors\CartCollector;
+use ImaginaGrowth\Connector\Collectors\EarlyCapture;
 use ImaginaGrowth\Connector\Onsite\Account;
 use ImaginaGrowth\Connector\Onsite\Blocks;
 use ImaginaGrowth\Connector\Onsite\CartRestore;
@@ -107,6 +108,7 @@ final class Plugin {
 		if ( is_admin() ) {
 			AdminPage::register();
 			Admin\SyncNow::register();
+			Admin\UpdateNotice::register();
 		}
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -134,6 +136,7 @@ final class Plugin {
 		$woo = static function (): void {
 			OrderCollector::register();
 			CartCollector::register();
+			EarlyCapture::register();
 			CatalogCollector::register();
 			CheckoutConsent::register();
 			CartRestore::register();

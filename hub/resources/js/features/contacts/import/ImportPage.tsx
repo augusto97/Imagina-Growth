@@ -14,10 +14,21 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import { formatDate, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { useContactAbilities } from '../abilities';
-import { type ConsentChannel, type ImportField, type ImportPreview, useImports, usePreviewImport, useStartImport } from '../api';
+import { useSites } from '@/api/queries';
+import {
+    type ConsentChannel,
+    type ImportField,
+    type ImportPreview,
+    LEGAL_BASES,
+    type LegalBasis,
+    useDeclareHistoryConsent,
+    useImports,
+    usePreviewImport,
+    useStartImport,
+} from '../api';
 import { errorMessage } from '../errors';
 import { CONSENT_CHANNELS } from '../labels';
-import { type ConsentDraft, STANDARD_FIELDS, consentPayload, consentProblems, customKey, initialMapping, isCustom, mappingProblems } from './mapping';
+import { type ConsentDraft, STANDARD_FIELDS, consentPayload, consentProblems, customKey, initialMapping, isCustom, mappingProblems, perRowConsentFields } from './mapping';
 import { ImportStatusBadge } from './StatusBadge';
 
 const STEPS = ['upload', 'map', 'consent', 'confirm'] as const;
@@ -35,7 +46,7 @@ export function ImportPage() {
     const [file, setFile] = useState<File | null>(null);
     const [data, setData] = useState<ImportPreview | null>(null);
     const [mapping, setMapping] = useState<Record<string, ImportField>>({});
-    const [consent, setConsent] = useState<ConsentDraft>({ mode: null, channels: [], source: '', date: '' });
+    const [consent, setConsent] = useState<ConsentDraft>({ mode: null, channels: [], source: '', date: '', legalBasis: '' });
     const [showErrors, setShowErrors] = useState(false);
     const [today] = useState(() => new Intl.DateTimeFormat('en-CA', { timeZone: workspace.timezone }).format(new Date()));
 
@@ -55,7 +66,9 @@ export function ImportPage() {
     };
 
     const problems = mappingProblems(mapping);
-    const consentIssues = consentProblems(consent, today);
+    const perRow = perRowConsentFields(mapping);
+    // Una columna de consentimiento por fila necesita la declaración (de dónde salió y cómo se obtuvo).
+    const consentIssues = perRow.length > 0 && consent.mode === 'none' ? ['needsDeclaration' as const] : consentProblems(consent, today);
     const next = () => {
         if ((step === 'map' && problems.length > 0) || (step === 'consent' && consentIssues.length > 0)) {
             setShowErrors(true);
@@ -72,10 +85,7 @@ export function ImportPage() {
         if (!file) {
             return;
         }
-        start.mutate(
-            { file, mapping, consent: consentPayload(consent) },
-            { onSuccess: (created) => void navigate(`/w/${workspace.id}/contactos/importar/${created.id}`) },
-        );
+        start.mutate({ file, mapping, consent: consentPayload(consent) }, { onSuccess: (created) => void navigate(`/w/${workspace.id}/contactos/importar/${created.id}`) });
     };
 
     return (
@@ -114,6 +124,7 @@ export function ImportPage() {
             {step === 'upload' && (
                 <>
                     <UploadStep onFile={choose} loading={preview.isPending} error={preview.isError ? errorMessage(preview.error, t) : null} />
+                    <HistoryConsentCard today={today} />
                     <RecentImports />
                 </>
             )}
@@ -164,13 +175,25 @@ export function ImportPage() {
                                     }
                                 />
                             ))}
-                        <p className="igr:mt-1 igr:text-xs igr:text-muted-foreground">{t('contacts.import.map.phoneHelp', { country: t(`countries.${workspace.country}`, { defaultValue: workspace.country }) })}</p>
+                        <p className="igr:mt-1 igr:text-xs igr:text-muted-foreground">
+                            {t('contacts.import.map.phoneHelp', { country: t(`countries.${workspace.country}`, { defaultValue: workspace.country }) })}
+                        </p>
                     </CardContent>
                     <WizardFooter onBack={prev} onNext={next} />
                 </Card>
             )}
 
-            {step === 'consent' && <ConsentStep draft={consent} onChange={setConsent} today={today} problems={showErrors ? consentIssues : []} onBack={prev} onNext={next} />}
+            {step === 'consent' && (
+                <ConsentStep
+                    draft={consent}
+                    onChange={setConsent}
+                    today={today}
+                    problems={showErrors ? consentIssues : []}
+                    perRow={perRow.length > 0}
+                    onBack={prev}
+                    onNext={next}
+                />
+            )}
 
             {step === 'confirm' && data && file && (
                 <Card>
@@ -352,7 +375,14 @@ function FieldPicker({ header, value, onChange }: { header: string; value: Impor
                     aria-label={t('contacts.import.map.customKey', { header })}
                     className="igr:w-36 igr:font-mono igr:text-xs"
                     value={value.slice('custom:'.length)}
-                    onChange={(e) => onChange(`custom:${e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 40)}`)}
+                    onChange={(e) =>
+                        onChange(
+                            `custom:${e.target.value
+                                .toLowerCase()
+                                .replace(/[^a-z0-9_]/g, '_')
+                                .slice(0, 40)}`,
+                        )
+                    }
                 />
             )}
         </div>
@@ -364,6 +394,7 @@ function ConsentStep({
     onChange,
     today,
     problems,
+    perRow,
     onBack,
     onNext,
 }: {
@@ -371,14 +402,11 @@ function ConsentStep({
     onChange: (draft: ConsentDraft) => void;
     today: string;
     problems: string[];
+    perRow: boolean;
     onBack: () => void;
     onNext: () => void;
 }) {
     const { t } = useTranslation();
-    const sourceId = useId();
-    const dateId = useId();
-    const toggle = (channel: ConsentChannel) =>
-        onChange({ ...draft, channels: draft.channels.includes(channel) ? draft.channels.filter((c) => c !== channel) : [...draft.channels, channel] });
 
     return (
         <Card>
@@ -387,6 +415,8 @@ function ConsentStep({
                 <CardDescription>{t('contacts.import.consent.description')}</CardDescription>
             </CardHeader>
             <CardContent className="igr:space-y-3">
+                {perRow && <p className="igr:rounded-md igr:bg-muted/60 igr:p-2.5 igr:text-xs igr:text-muted-foreground">{t('contacts.import.consent.perRow')}</p>}
+                {problems.includes('needsDeclaration') && <FieldError message={t('contacts.import.consent.needsDeclaration')} />}
                 <div role="radiogroup" aria-label={t('contacts.import.consent.title')} className="igr:grid igr:gap-2 igr:md:grid-cols-2">
                     <ModeOption
                         checked={draft.mode === 'declared'}
@@ -405,52 +435,164 @@ function ConsentStep({
                 </div>
                 {problems.includes('chooseMode') && <FieldError message={t('contacts.import.consent.chooseMode')} />}
 
-                {draft.mode === 'declared' && (
-                    <div className="igr:space-y-4 igr:rounded-lg igr:border igr:p-4">
-                        <fieldset>
-                            <legend className="igr:text-[13px] igr:font-medium">{t('contacts.import.consent.channels')}</legend>
-                            <div className="igr:mt-2 igr:flex igr:flex-wrap igr:gap-4">
-                                {CONSENT_CHANNELS.map((c) => (
-                                    <label key={c} className="igr:flex igr:items-center igr:gap-2 igr:text-[13px]">
-                                        <input type="checkbox" className="igr:size-4 igr:accent-[var(--primary)]" checked={draft.channels.includes(c)} onChange={() => toggle(c)} />
-                                        {t(`contacts.consentChannels.${c}`)}
-                                    </label>
-                                ))}
-                            </div>
-                            {problems.includes('channels') && <FieldError message={t('contacts.import.consent.channelsRequired')} />}
-                        </fieldset>
-                        <div className="igr:space-y-1.5">
-                            <Label htmlFor={sourceId}>{t('contacts.import.consent.source')}</Label>
-                            <Textarea
-                                id={sourceId}
-                                maxLength={300}
-                                placeholder={t('contacts.import.consent.sourcePlaceholder')}
-                                value={draft.source}
-                                aria-invalid={problems.includes('source') ? true : undefined}
-                                onChange={(e) => onChange({ ...draft, source: e.target.value })}
-                            />
-                            <p className="igr:text-xs igr:text-muted-foreground">{t('contacts.import.consent.sourceHelp')}</p>
-                            {problems.includes('source') && <FieldError message={t('contacts.import.consent.sourceRequired')} />}
-                        </div>
-                        <div className="igr:space-y-1.5">
-                            <Label htmlFor={dateId}>{t('contacts.import.consent.date')}</Label>
-                            <Input
-                                id={dateId}
-                                type="date"
-                                max={today}
-                                className="igr:w-44"
-                                value={draft.date}
-                                aria-invalid={problems.includes('date') || problems.includes('futureDate') ? true : undefined}
-                                onChange={(e) => onChange({ ...draft, date: e.target.value })}
-                            />
-                            {problems.includes('date') && <FieldError message={t('contacts.import.consent.dateRequired')} />}
-                            {problems.includes('futureDate') && <FieldError message={t('contacts.import.consent.futureDate')} />}
-                        </div>
-                        <p className="igr:rounded-md igr:bg-muted/60 igr:p-2.5 igr:text-xs igr:text-muted-foreground">{t('contacts.import.consent.legal')}</p>
-                    </div>
-                )}
+                {draft.mode === 'declared' && <DeclarationFields draft={draft} onChange={onChange} today={today} problems={problems} />}
             </CardContent>
             <WizardFooter onBack={onBack} onNext={onNext} />
+        </Card>
+    );
+}
+
+/** Canales, origen, cómo se obtuvo y fecha (cumplimiento.md §3.1): los mismos para el CSV y para el historial del plugin. */
+function DeclarationFields({ draft, onChange, today, problems }: { draft: ConsentDraft; onChange: (draft: ConsentDraft) => void; today: string; problems: string[] }) {
+    const { t } = useTranslation();
+    const sourceId = useId();
+    const basisId = useId();
+    const dateId = useId();
+    const toggle = (channel: ConsentChannel) =>
+        onChange({ ...draft, channels: draft.channels.includes(channel) ? draft.channels.filter((c) => c !== channel) : [...draft.channels, channel] });
+
+    return (
+        <div className="igr:space-y-4 igr:rounded-lg igr:border igr:p-4">
+            <fieldset>
+                <legend className="igr:text-[13px] igr:font-medium">{t('contacts.import.consent.channels')}</legend>
+                <div className="igr:mt-2 igr:flex igr:flex-wrap igr:gap-4">
+                    {CONSENT_CHANNELS.map((c) => (
+                        <label key={c} className="igr:flex igr:items-center igr:gap-2 igr:text-[13px]">
+                            <input type="checkbox" className="igr:size-4 igr:accent-[var(--primary)]" checked={draft.channels.includes(c)} onChange={() => toggle(c)} />
+                            {t(`contacts.consentChannels.${c}`)}
+                        </label>
+                    ))}
+                </div>
+                {problems.includes('channels') && <FieldError message={t('contacts.import.consent.channelsRequired')} />}
+            </fieldset>
+            <div className="igr:space-y-1.5">
+                <Label htmlFor={sourceId}>{t('contacts.import.consent.source')}</Label>
+                <Textarea
+                    id={sourceId}
+                    maxLength={300}
+                    placeholder={t('contacts.import.consent.sourcePlaceholder')}
+                    value={draft.source}
+                    aria-invalid={problems.includes('source') ? true : undefined}
+                    onChange={(e) => onChange({ ...draft, source: e.target.value })}
+                />
+                <p className="igr:text-xs igr:text-muted-foreground">{t('contacts.import.consent.sourceHelp')}</p>
+                {problems.includes('source') && <FieldError message={t('contacts.import.consent.sourceRequired')} />}
+            </div>
+            <div className="igr:space-y-1.5">
+                <Label htmlFor={basisId}>{t('contacts.import.consent.legalBasis')}</Label>
+                <Select
+                    id={basisId}
+                    value={draft.legalBasis ?? ''}
+                    aria-invalid={problems.includes('legalBasis') ? true : undefined}
+                    onChange={(e) => onChange({ ...draft, legalBasis: e.target.value as LegalBasis | '' })}
+                >
+                    <option value="">{t('contacts.import.consent.legalBasisChoose')}</option>
+                    {LEGAL_BASES.map((b) => (
+                        <option key={b} value={b}>
+                            {t(`contacts.import.consent.legalBases.${b}`)}
+                        </option>
+                    ))}
+                </Select>
+                {problems.includes('legalBasis') && <FieldError message={t('contacts.import.consent.legalBasisRequired')} />}
+            </div>
+            <div className="igr:space-y-1.5">
+                <Label htmlFor={dateId}>{t('contacts.import.consent.date')}</Label>
+                <Input
+                    id={dateId}
+                    type="date"
+                    max={today}
+                    className="igr:w-44"
+                    value={draft.date}
+                    aria-invalid={problems.includes('date') || problems.includes('futureDate') ? true : undefined}
+                    onChange={(e) => onChange({ ...draft, date: e.target.value })}
+                />
+                {problems.includes('date') && <FieldError message={t('contacts.import.consent.dateRequired')} />}
+                {problems.includes('futureDate') && <FieldError message={t('contacts.import.consent.futureDate')} />}
+            </div>
+            <p className="igr:rounded-md igr:bg-muted/60 igr:p-2.5 igr:text-xs igr:text-muted-foreground">{t('contacts.import.consent.legal')}</p>
+        </div>
+    );
+}
+
+/** El historial que importó el plugin llega sin consentimiento: aquí se declara de dónde salió (auditoría F7). */
+function HistoryConsentCard({ today }: { today: string }) {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const sites = useSites(workspace.id);
+    const declare = useDeclareHistoryConsent(workspace.id);
+    const [open, setOpen] = useState(false);
+    const [site, setSite] = useState('');
+    const [draft, setDraft] = useState<ConsentDraft>({ mode: 'declared', channels: [], source: '', date: '', legalBasis: '' });
+    const [showErrors, setShowErrors] = useState(false);
+    const [done, setDone] = useState(false);
+    const siteId = useId();
+    const list = sites.data ?? [];
+    if (list.length === 0) {
+        return null;
+    }
+    const problems = [...consentProblems(draft, today), ...(site === '' ? ['site'] : [])];
+    const submit = () => {
+        if (problems.length > 0) {
+            setShowErrors(true);
+            return;
+        }
+        const payload = consentPayload(draft);
+        if (payload === null) {
+            return;
+        }
+        declare.mutate(
+            { site, consent: payload },
+            {
+                onSuccess: () => {
+                    setDone(true);
+                    setOpen(false);
+                },
+            },
+        );
+    };
+
+    return (
+        <Card className="igr:mt-4">
+            <CardHeader>
+                <CardTitle>{t('contacts.import.history.title')}</CardTitle>
+                <CardDescription>{t('contacts.import.history.description')}</CardDescription>
+            </CardHeader>
+            {open ? (
+                <>
+                    <CardContent className="igr:space-y-3">
+                        <div className="igr:space-y-1.5">
+                            <Label htmlFor={siteId}>{t('contacts.import.history.site')}</Label>
+                            <Select id={siteId} value={site} onChange={(e) => setSite(e.target.value)} aria-invalid={showErrors && site === '' ? true : undefined}>
+                                <option value="">{t('contacts.import.history.chooseSite')}</option>
+                                {list.map((s) => (
+                                    <option key={s.id} value={s.id}>
+                                        {s.name ?? s.host}
+                                    </option>
+                                ))}
+                            </Select>
+                            {showErrors && site === '' && <FieldError message={t('contacts.import.history.siteRequired')} />}
+                        </div>
+                        <DeclarationFields draft={draft} onChange={setDraft} today={today} problems={showErrors ? problems : []} />
+                        {declare.isError && <ErrorState error={declare.error} />}
+                    </CardContent>
+                    <CardFooter className="igr:justify-end igr:gap-2">
+                        <Button variant="ghost" onClick={() => setOpen(false)}>
+                            {t('common.cancel')}
+                        </Button>
+                        <Button loading={declare.isPending} onClick={submit}>
+                            <ShieldCheck />
+                            {t('contacts.import.history.declare')}
+                        </Button>
+                    </CardFooter>
+                </>
+            ) : (
+                <CardFooter className="igr:justify-between igr:gap-2">
+                    <p className="igr:text-xs igr:text-muted-foreground">{done ? t('contacts.import.history.queued') : t('contacts.import.history.none')}</p>
+                    <Button variant="outline" onClick={() => setOpen(true)}>
+                        {t('contacts.import.history.open')}
+                    </Button>
+                </CardFooter>
+            )}
         </Card>
     );
 }

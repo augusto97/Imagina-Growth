@@ -68,6 +68,13 @@ return [
 
     'min_plugin_version' => '0.1.0',
 
+    // Versión del plugin que trae este paquete del hub en public/downloads (infra/release/build.sh). Una prueba la
+    // compara con la cabecera de connector/imagina-growth-connector.php: suben juntas.
+    'plugin' => [
+        'latest_version' => env('IGR_PLUGIN_LATEST_VERSION', '0.1.3'),
+        'download_path' => '/downloads/imagina-growth-connector.zip',
+    ],
+
     // Analítica (M05): caché de 5 min por consulta, que se invalida cuando llegan eventos nuevos.
     // Se apaga para medir el criterio de la Fase 1 sin caché.
     'analytics' => [

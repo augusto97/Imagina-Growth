@@ -64,9 +64,10 @@ final class Outbox {
 	 * Guarda un evento (sobre completo). Un `event_id` repetido se ignora (idempotencia local).
 	 *
 	 * @param array<string, mixed> $envelope Sobre del evento.
+	 * @param int                  $delay    Segundos antes de que el envío lo pueda tomar.
 	 * @return bool true si se insertó.
 	 */
-	public static function insert( array $envelope ): bool {
+	public static function insert( array $envelope, int $delay = 0 ): bool {
 		global $wpdb;
 		$now    = Dates::mysql_utc();
 		$sql    = $wpdb->prepare(
@@ -75,10 +76,33 @@ final class Outbox {
 			(string) $envelope['event'],
 			Json::encode( $envelope ),
 			self::STATUS_PENDING,
-			$now,
+			$delay > 0 ? Dates::mysql_utc( time() + $delay ) : $now,
 			$now
 		);
 		$result = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		return 1 === $result;
+	}
+
+	/**
+	 * Reemplaza el sobre de un evento que todavía no salió (debounce): un solo UPDATE.
+	 *
+	 * @param string               $event_id ID del evento.
+	 * @param array<string, mixed> $envelope Sobre nuevo (mismo `event_id`).
+	 * @param int                  $delay    Segundos de espera desde ahora.
+	 * @return bool true si se reemplazó (false si ya se envió o se está enviando).
+	 */
+	public static function replace_pending( string $event_id, array $envelope, int $delay = 0 ): bool {
+		global $wpdb;
+		$table  = self::table();
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$table} SET payload = %s, next_attempt_at = %s WHERE event_id = %s AND status = %s AND attempts = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				Json::encode( $envelope ),
+				Dates::mysql_utc( time() + max( 0, $delay ) ),
+				$event_id,
+				self::STATUS_PENDING
+			)
+		);
 		return 1 === $result;
 	}
 

@@ -19,7 +19,7 @@ Convenciones para MariaDB:
 | Tabla | Columnas clave |
 |---|---|
 | `accounts` | id, type (`agency`, `direct`), name, legal_name, tax_id, country, billing_email, plan_id, status |
-| `workspaces` | id, ch_id, account_id, name, slug, country, timezone, currency, locale, industry, legal_name, privacy_policy_url, settings (json: estados pagados, ventanas de atribución, límites de frecuencia, captura temprana, modo de consentimiento), brand_kit (json: logo, colores, tono de voz), status |
+| `workspaces` | id, ch_id, account_id, name, slug, country, timezone, currency, locale, industry, legal_name, privacy_policy_url, settings (json: estados pagados, ventanas de atribución, límites de frecuencia, captura temprana `early_capture` y quién la aceptó `early_capture_accepted`, modo de consentimiento), brand_kit (json: logo, colores, tono de voz), status |
 | `users` | id, name, email, password, two_factor_secret, locale, last_login_at |
 | `workspace_user` | workspace_id, user_id, role (`owner`, `admin`, `marketing`, `agent`, `viewer`), notifications (json) |
 | `account_user` | account_id, user_id, role (`agency_owner`, `agency_member`) |
@@ -378,3 +378,18 @@ La base es la migración `2026_11_23_000100_create_phase5_tables` (más `2026_11
 
 - `ad_destinations.oauth_connection_id` y `channel_accounts.oauth_connection_id`: el destino o la cuenta toma el token de la conexión (siempre del mismo espacio de trabajo) y cae al pegado a mano si la conexión se cierra.
 - `booking_staff.calendar.connection_id`: la persona de la agenda usa la conexión de Google con sujeto `staff:{id}`.
+
+## 17. Columnas e índices de la estabilización (noviembre de 2026)
+
+- `carts.contact_captured_at` y `contacts.early_capture_at` (`2026_11_25_400100`): captura temprana del checkout
+  (`eventos.md` §4.2, `cumplimiento.md` §3.2). El contacto con `early_capture_at` existe solo por esa captura: no entra en
+  audiencias de anuncios ni suma puntos hasta que compra, se registra o deja un formulario.
+- Índices para las tareas programadas que buscan en todos los espacios de trabajo (`2026_11_25_400200`, R12):
+  `carts (status, last_activity_at)`, `messages (status, deferred_until)`, `webhook_deliveries (next_attempt_at)` y
+  `(created_at)`, `review_requests (status, scheduled_for)`, `survey_requests (status, scheduled_for)` y
+  `appointments (status, starts_at)`.
+- ClickHouse `0301_events_received_at_index.sql`: índice de salto minmax `idx_received_at` en `events` para «eventos de
+  las últimas 24 horas».
+- `contact_imports.kind` (`csv` o `history`) y `contact_imports.site_id` (`2026_11_25_400300`, F7): la declaración del
+  consentimiento del historial que importó el plugin queda como una «importación» de ese sitio, con sus totales.
+  `consent` guarda además `legal_basis` (cómo se obtuvo la autorización, `cumplimiento.md` §3.1).
