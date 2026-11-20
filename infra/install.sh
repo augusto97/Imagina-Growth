@@ -577,11 +577,12 @@ info "Base igr y usuario igr listos."
 log "Redis (colas en 6379 y caché en 6380)"
 REDIS_PASS=$(env_get REDIS_PASSWORD)
 CACHE_MB=$((MEM_MB / 10)); [ "$CACHE_MB" -lt 64 ] && CACHE_MB=64
+QUEUE_MB=$((MEM_MB / 5)); [ "$QUEUE_MB" -lt 192 ] && QUEUE_MB=192
 install -d -m 0750 -o redis -g redis /var/lib/redis-queue /var/lib/redis-cache
 put_file "$TPL/systemd/redis-server@.service" /etc/systemd/system/redis-server@.service && UNITS_CHANGED=1
 [ "$UNITS_CHANGED" = 1 ] && systemctl daemon-reload
 for inst in queue cache; do
-    if sed -e "s/__REDIS_PASSWORD__/$REDIS_PASS/" -e "s/__MAXMEMORY__/${CACHE_MB}mb/" "$TPL/config/redis/redis-$inst.conf" \
+    if sed -e "s/__REDIS_PASSWORD__/$REDIS_PASS/" -e "s/__MAXMEMORY__/${CACHE_MB}mb/" -e "s/__QUEUE_MAXMEMORY__/${QUEUE_MB}mb/" "$TPL/config/redis/redis-$inst.conf" \
         | put_content "/etc/redis/redis-$inst.conf" 0640 root:redis; then
         systemctl enable "redis-server@$inst" >/dev/null 2>&1
         systemctl restart "redis-server@$inst"
@@ -592,7 +593,7 @@ done
 for port in 6379 6380; do
     wait_for "Redis $port" env REDISCLI_AUTH="$REDIS_PASS" redis-cli -p "$port" ping
 done
-info "Colas: $(REDISCLI_AUTH=$REDIS_PASS redis-cli -p 6379 config get maxmemory-policy | tail -1) + AOF · caché: $(REDISCLI_AUTH=$REDIS_PASS redis-cli -p 6380 config get maxmemory-policy | tail -1) (${CACHE_MB} MB)"
+info "Colas: $(REDISCLI_AUTH=$REDIS_PASS redis-cli -p 6379 config get maxmemory-policy | tail -1) + AOF (${QUEUE_MB} MB) · caché: $(REDISCLI_AUTH=$REDIS_PASS redis-cli -p 6380 config get maxmemory-policy | tail -1) (${CACHE_MB} MB)"
 
 # ── 8. Actualizador: repositorio y llave ────────────────────────────────
 

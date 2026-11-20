@@ -138,6 +138,8 @@ Respuesta `202`:
 | `too_large` | el evento supera 32 KB | no → `dead` |
 | `unknown_event` | el nombre no está en el catálogo ni empieza por `custom.` | no → `dead` |
 | `site_mismatch` | `source.site_id` distinto del sitio firmante | no → `dead` |
+| `not_allowed` | solo en `/v1/b`: el evento no es de navegación (`docs/eventos.md` §3) | no |
+| `stale` | solo en `/v1/b`: el evento es de hace más de 7 días | no |
 
 - El hub responde `202` **después** de dejar el lote en la cola (Redis Stream). El esquema de `properties` se valida en el worker: esos rechazos van a `ingest_rejections` y se ven en el panel del sitio (y en el Diagnóstico del plugin con `site.diagnostics`).
 - Los duplicados (mismo `event_id`) se aceptan y se descartan en silencio: el hub es idempotente.
@@ -148,6 +150,7 @@ Respuesta `202`:
 - Lo usa el tracker (Fase 1). Sin firma: clave pública + `Origin` contra `sites.domains`.
 - `Content-Type: text/plain;charset=UTF-8` (así `sendBeacon` no exige *preflight*); el cuerpo es JSON: `{"k": "pk_...", "events": [...]}`, hasta **20 eventos**.
 - `source.type` debe ser `browser`. Los eventos de navegador **nunca** traen correo ni teléfono (lo hace cumplir `_envelope.json`).
+- Solo entran eventos de navegación (§4.1 de `docs/eventos.md` y `custom.*`); pedidos, clientes, formularios, reseñas y catálogo se rechazan con `not_allowed`.
 - Misma respuesta que §4.1. Límite por IP y por sitio.
 
 ## 5. Otros endpoints del sitio (firmados)

@@ -5,8 +5,10 @@ use App\Domain\Commerce\Models\Product;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Contacts\Models\ContactIdentity;
 use App\Ingest\Events\EventIngested;
+use App\Ingest\IngestStream;
 use App\Support\Pii\BlindIndex;
 use App\Support\Tenancy\CurrentWorkspace;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 
@@ -170,4 +172,74 @@ it('un listener que falla no frena la ingesta ni hace reprocesar el lote', funct
     $this->runWorker();
     expect(inWs($this, fn () => Order::query()->count()))->toBe(1)
         ->and((int) $this->chRows($this->ws, "SELECT count() AS c FROM events WHERE workspace_id = {workspace_id:UInt32} AND event = 'order.paid'")[0]['c'])->toBe(1);
+});
+
+it('un pedido con origen navegador que ya estaba en el stream no se proyecta (segunda barrera)', function () {
+    $event = $this->envelope($this->site, 'order.paid', ['order' => $this->orderSnapshot()], ['source' => ['type' => 'browser', 'sdk' => 'tracker/0.1.0'], 'identity' => ['anonymous_id' => 'anon-x']]);
+    app(IngestStream::class)->push($this->site, $this->ws->ch_id, [json_encode($event)]);
+    $this->runWorker();
+
+    inWs($this, fn () => expect(Order::query()->count())->toBe(0)->and(Contact::query()->count())->toBe(0));
+    expect(DB::table('ingest_rejections')->where('reason', 'not_allowed')->count())->toBe(1);
+});
+
+it('recorta del stream lo ya confirmado y nunca lo pendiente ni lo que nadie leyó', function () {
+    $stream = app(IngestStream::class);
+    $group = (string) config('igr.ingest.consumer_group');
+    /** @var Redis $redis */
+    $redis = $stream->connection()->client();
+    $key = $stream->key(0);
+    $redis->xGroup('CREATE', $key, $group, '0', true);
+    $ids = [];
+    for ($i = 1; $i <= 5; $i++) {
+        $ids[] = $redis->xAdd($key, '*', ['e' => (string) $i]);
+    }
+    $redis->xReadGroup($group, 'c1', [$key => '>'], 3);          // 1, 2 y 3 entregados
+    $redis->xAck($key, $group, [$ids[0], $ids[1]]);                // 3 sigue pendiente; 4 y 5 sin leer
+
+    expect($stream->trimAcknowledged(0, $group))->toBe(2)
+        ->and(array_keys($redis->xRange($key, '-', '+')))->toBe([$ids[2], $ids[3], $ids[4]]);
+
+    $redis->xAck($key, $group, [$ids[2]]);
+    expect($stream->trimAcknowledged(0, $group))->toBe(0)          // 3 es la última entregada: se queda
+        ->and($redis->xLen($key))->toBe(3);
+});
+
+it('el worker deja el stream casi vacío después de procesar', function () {
+    $events = [];
+    for ($i = 0; $i < 30; $i++) {
+        $events[] = $this->envelope($this->site, 'catalog.product_deleted', ['product_id' => (string) (100 + $i)]);
+    }
+    $this->postSigned($this->site, $this->secret, $events)->assertStatus(202);
+    $this->runWorker();
+
+    $stream = app(IngestStream::class);
+    $length = 0;
+    for ($i = 0; $i < $stream->shards(); $i++) {
+        $length += (int) $stream->connection()->command('xlen', [$stream->key($i)]);
+    }
+    expect($length)->toBeLessThanOrEqual(1);
+});
+
+it('un evento que falla siempre no frena a los demás: tras 5 intentos va a los rechazos', function () {
+    Order::creating(function (Order $order) {
+        if ($order->external_id === '999') {
+            throw new QueryException('mariadb', 'insert into orders', [], new PDOException('Deadlock found when trying to get lock'));
+        }
+    });
+    $good = $this->envelope($this->site, 'order.paid', ['order' => $this->orderSnapshot()]);
+    $poison = $this->envelope($this->site, 'order.paid', ['order' => $this->orderSnapshot(['order_id' => '999', 'number' => '999'])]);
+    $this->postSigned($this->site, $this->secret, [$poison, $good])->assertStatus(202)->assertJsonPath('accepted', 2);
+
+    $this->runWorker();
+
+    inWs($this, fn () => expect(Order::query()->pluck('external_id')->all())->toBe(['1234']));
+    expect(DB::table('ingest_rejections')->where('reason', 'processing')->where('event_id', $poison['event_id'])->count())->toBe(1);
+    $stream = app(IngestStream::class);
+    $pending = 0;
+    for ($i = 0; $i < $stream->shards(); $i++) {
+        $summary = $stream->connection()->client()->xPending($stream->key($i), (string) config('igr.ingest.consumer_group'));
+        $pending += is_array($summary) ? (int) $summary[0] : 0;
+    }
+    expect($pending)->toBe(0);
 });

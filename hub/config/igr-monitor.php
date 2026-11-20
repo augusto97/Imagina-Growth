@@ -21,4 +21,6 @@ return [
     'max_stream_age_seconds' => (int) env('GROWTH_MONITOR_MAX_STREAM_AGE', 120),
     // Trabajos pendientes sumando todas las colas de Horizon.
     'max_queue_backlog' => (int) env('GROWTH_MONITOR_MAX_QUEUE_BACKLOG', 10000),
+    // Porcentaje de `maxmemory` del Redis de colas: lleno, deja de aceptar eventos y trabajos (aviso de «streams»).
+    'max_redis_memory_pct' => (int) env('GROWTH_MONITOR_MAX_REDIS_MEMORY_PCT', 85),
 ];

@@ -10,6 +10,7 @@ use App\Ingest\Pipeline\BatchOutcome;
 use App\Ingest\Pipeline\IngestEntry;
 use App\Ingest\Pipeline\IngestProcessor;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use RedisException;
 use Throwable;
@@ -45,6 +46,11 @@ final class IngestWorkCommand extends Command
     private array $ackBuffer = [];
 
     private ?float $bufferSince = null;
+
+    private int $chFailures = 0;
+
+    /** @var array<int, float> último recorte por shard */
+    private array $lastTrim = [];
 
     /** @var array<string, true> IDs leídos y todavía sin confirmar en este proceso */
     private array $inFlight = [];
@@ -91,21 +97,38 @@ final class IngestWorkCommand extends Command
                 }
                 $readAny = true;
                 try {
-                    $outcome = $processor->process($entries);
+                    $outcomes = [$processor->process($entries)];
                 } catch (Throwable $e) {
-                    // Lote revertido y sin confirmar: se reclamará y reintentará.
+                    // Lote revertido y sin confirmar. Se reintenta uno por uno para que un evento
+                    // dañado no frene a los demás; el que sigue fallando solo se cuenta.
                     Log::error('igr.ingest.batch_failed', ['shard' => $shard, 'entries' => count($entries), 'error' => mb_substr($e->getMessage(), 0, 300)]);
-                    $this->error('Lote revertido; se reintentará: '.mb_substr($e->getMessage(), 0, 200));
-                    if ($once && ++$failures >= 5) {
-                        return self::FAILURE;
+                    $this->error('Lote revertido; se reintenta uno por uno: '.mb_substr($e->getMessage(), 0, 200));
+                    $outcomes = [];
+                    $discarded = false;
+                    foreach (count($entries) > 1 ? $entries : [] as $one) {
+                        try {
+                            $outcomes[] = $processor->process([$one]);
+                        } catch (Throwable $e1) {
+                            $discarded = $this->countFailure($redis, $stream, $shard, $group, $one, $processor, $e1) || $discarded;
+                        }
                     }
-                    sleep(1);
+                    if (count($entries) === 1) {
+                        $discarded = $this->countFailure($redis, $stream, $shard, $group, $entries[0], $processor, $e);
+                    }
+                    if ($outcomes === [] && ! $discarded) {
+                        if ($once && ++$failures >= 5) {
+                            return self::FAILURE;
+                        }
+                        sleep(1);
 
-                    continue;
+                        continue;
+                    }
                 }
-                $this->buffer($shard, $outcome);
-                foreach ($totals as $k => $v) {
-                    $totals[$k] = $v + $outcome->{$k};
+                foreach ($outcomes as $outcome) {
+                    $this->buffer($shard, $outcome);
+                    foreach ($totals as $k => $v) {
+                        $totals[$k] = $v + $outcome->{$k};
+                    }
                 }
                 if (count($this->eventBuffer) >= $flushRows) {
                     $this->flush($ch, $redis, $stream, $group);
@@ -156,14 +179,17 @@ final class IngestWorkCommand extends Command
             $ch->insert('events', $this->eventBuffer);
             $ch->insert('identity_map', $this->identityBuffer);
         } catch (Throwable $e) {
-            // Sin confirmar: las entradas siguen pendientes y se reclaman en 30 s.
+            // Sin confirmar: las entradas siguen pendientes y se reclaman en 30 s. Con ClickHouse
+            // caído se espera cada vez más (hasta 30 s) en vez de reprocesar en bucle.
             Log::error('igr.ingest.clickhouse_failed', ['rows' => count($this->eventBuffer), 'error' => mb_substr($e->getMessage(), 0, 300)]);
             $this->error('ClickHouse falló; se reintentará: '.mb_substr($e->getMessage(), 0, 200));
             $this->resetBuffers();
-            sleep(1);
+            $this->chFailures++;
+            sleep(min(30, 2 ** min(5, $this->chFailures - 1)));
 
             return;
         }
+        $this->chFailures = 0;
 
         $ttl = (int) config('igr.ingest.dedupe_ttl_seconds');
         $pipe = $redis->multi(\Redis::PIPELINE);
@@ -176,7 +202,57 @@ final class IngestWorkCommand extends Command
             }
         }
         $pipe->exec();
+        $shards = array_keys($this->ackBuffer);
         $this->resetBuffers();
+        $this->trim($stream, $shards, $group);
+    }
+
+    /**
+     * XACK no borra: sin recortar, el stream crece hasta el tope y llena la memoria de Redis.
+     *
+     * @param  list<int>  $shards
+     */
+    private function trim(IngestStream $stream, array $shards, string $group): void
+    {
+        $every = (int) config('igr.ingest.trim_every_seconds');
+        foreach ($shards as $shard) {
+            if (($this->lastTrim[$shard] ?? 0) > microtime(true) - $every) {
+                continue;
+            }
+            $this->lastTrim[$shard] = microtime(true);
+            try {
+                $stream->trimAcknowledged($shard, $group);
+            } catch (Throwable $e) {
+                Log::warning('igr.ingest.trim_failed', ['shard' => $shard, 'error' => mb_substr($e->getMessage(), 0, 200)]);
+            }
+        }
+    }
+
+    /**
+     * Un evento que falla solo, con MariaDB disponible, suma un fallo; a los `max_failures` va a
+     * ingest_rejections y se confirma. Si la base está caída no se cuenta: se reintenta luego.
+     *
+     * @return bool true si se descartó
+     */
+    private function countFailure(\Redis $redis, IngestStream $stream, int $shard, string $group, IngestEntry $entry, IngestProcessor $processor, Throwable $e): bool
+    {
+        try {
+            DB::select('SELECT 1');
+        } catch (Throwable) {
+            return false;
+        }
+        $key = $stream->key($shard).':failures';
+        $count = (int) $redis->hIncrBy($key, $entry->streamId, 1);
+        $redis->expire($key, 7 * 86400);
+        if ($count < (int) config('igr.ingest.max_failures')) {
+            return false;
+        }
+        $processor->deadLetter($entry, mb_substr($e->getMessage(), 0, 500));
+        $redis->xAck($stream->key($shard), $group, [$entry->streamId]);
+        $redis->hDel($key, $entry->streamId);
+        Log::error('igr.ingest.dead_letter', ['shard' => $shard, 'stream_id' => $entry->streamId]);
+
+        return true;
     }
 
     private function resetBuffers(): void

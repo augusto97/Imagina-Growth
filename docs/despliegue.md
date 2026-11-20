@@ -20,7 +20,7 @@ Todo escucha en `127.0.0.1` salvo Caddy. El firewall (ufw) solo abre SSH, `80/tc
 | `growth-ml` | uvicorn (`hub/ml`, entorno de `uv`), 2 workers | 8095 |
 | `mariadb` | MariaDB LTS del repositorio oficial: 11.4 en Ubuntu 24.04 y 11.8 en 26.04 (el repositorio no publica 11.4 para 26.04) | 3306 |
 | `clickhouse-server` | ClickHouse 25.8 (repositorio oficial, fijado a 25.8.*) | 8123 HTTP, 9000 nativo |
-| `redis-server@queue` | Redis del repositorio oficial, fijado por sistema: `7.4.*` en Ubuntu 24.04 (si no, instala Redis 8) y `8.*` en 26.04 (no hay Redis 7 para 26.04); la app usa lo mismo en ambas: colas, streams de ingesta, candados. `noeviction` + AOF (`everysec`). La plantilla `redis-server@.service` es nuestra: el paquete oficial no la trae | 6379 |
+| `redis-server@queue` | Redis del repositorio oficial, fijado por sistema: `7.4.*` en Ubuntu 24.04 (si no, instala Redis 8) y `8.*` en 26.04 (no hay Redis 7 para 26.04); la app usa lo mismo en ambas: colas, streams de ingesta, candados. `noeviction` + AOF (`everysec`), sin instantáneas RDB y con `maxmemory` del 20% de la RAM (mínimo 192 MB): lleno, rechaza escrituras y el plugin reintenta, en vez de que el kernel mate procesos; `growth:monitor` avisa al 85%. El worker de ingesta recorta del stream lo ya confirmado. La plantilla `redis-server@.service` es nuestra: el paquete oficial no la trae | 6379 |
 | `redis-server@cache` | La misma versión de Redis: caché. `allkeys-lru`, sin persistencia | 6380 |
 | `caddy` | Caddy (repositorio oficial), TLS automático y bajo demanda | 80, 443 |
 

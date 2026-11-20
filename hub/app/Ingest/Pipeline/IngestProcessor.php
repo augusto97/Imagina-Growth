@@ -17,6 +17,7 @@ use App\Domain\Sites\Projectors\SiteHealthProjector;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Ingest\Events\EventIngested;
 use App\Ingest\IngestStream;
+use App\Ingest\Schema\BrowserEvents;
 use App\Ingest\Schema\SchemaRegistry;
 use App\Support\Pii\Pii;
 use App\Support\Tenancy\CurrentWorkspace;
@@ -129,6 +130,15 @@ final class IngestProcessor
             if (isset($seenInBatch[$dedupeKey]) || $redis->command('exists', [$dedupeKey])) {
                 $out->ackIds[] = $entry->streamId;
                 $out->duplicates++;
+
+                continue;
+            }
+
+            // Segunda barrera: lo que ya estaba en el stream antes de filtrar en el endpoint (eventos.md §3).
+            if (($envelope['source']['type'] ?? '') === 'browser' && ! BrowserEvents::allows((string) $envelope['event'])) {
+                $this->reject($entry, $envelope, 'not_allowed', 'El navegador solo envía eventos de navegación');
+                $out->ackIds[] = $entry->streamId;
+                $out->rejected++;
 
                 continue;
             }
@@ -292,13 +302,29 @@ final class IngestProcessor
     private function isTransient(Throwable $e): bool
     {
         if ($e instanceof QueryException) {
-            // Errores de conexión o bloqueos: se reintentan. Violaciones de datos: no.
-            return in_array((string) $e->getCode(), ['2002', '2006', '2013', 'HY000', '40001', '1205', '1213'], true)
+            // Errores de conexión o bloqueos: se reintentan. Violaciones de datos: no. HY000 es el
+            // SQLSTATE genérico de MariaDB (también lo usan errores de datos), así que se mira el
+            // código del motor: tratarlo como pasajero reintentaba para siempre el mismo lote.
+            $driverCode = (int) ($e->errorInfo[1] ?? 0);
+
+            return in_array($driverCode, [1040, 1053, 1205, 1213, 2002, 2006, 2013], true)
+                || in_array((string) $e->getCode(), ['2002', '2006', '2013', '40001'], true)
                 || str_contains($e->getMessage(), 'Deadlock')
-                || str_contains($e->getMessage(), 'gone away');
+                || str_contains($e->getMessage(), 'gone away')
+                || str_contains($e->getMessage(), 'Lost connection');
         }
 
         return $e instanceof \RedisException || $e instanceof \PDOException;
+    }
+
+    /**
+     * Un evento que falla una y otra vez con la base disponible: a ingest_rejections para que no
+     * frene el shard (el worker lo confirma después).
+     */
+    public function deadLetter(IngestEntry $entry, string $detail): void
+    {
+        $envelope = json_decode($entry->json, true);
+        $this->reject($entry, is_array($envelope) ? $envelope : null, 'processing', 'Falló '.((int) config('igr.ingest.max_failures')).' veces: '.$detail);
     }
 
     /** @param array<string, mixed>|null $envelope */

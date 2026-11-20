@@ -29,6 +29,7 @@ final class GrowthMonitorCommand extends Command
         $streams = $probe->streams();
         $horizon = $probe->horizon();
         $queues = $probe->queues();
+        $memory = $probe->queueMemory();
 
         $backlog = $streams === null ? null : array_sum(array_map(fn (array $s) => $s['lag'] + $s['pending'], $streams));
         $oldest = $streams === null ? null : max([0, ...array_column($streams, 'oldest_seconds')]);
@@ -38,7 +39,8 @@ final class GrowthMonitorCommand extends Command
             'health' => ! in_array(false, $deps, true),
             'streams' => $deps['redis'] && $backlog !== null && $oldest !== null
                 && $backlog < (int) config('igr-monitor.max_stream_lag')
-                && $oldest < (int) config('igr-monitor.max_stream_age_seconds'),
+                && $oldest < (int) config('igr-monitor.max_stream_age_seconds')
+                && ($memory === null || $memory['used_pct'] < (int) config('igr-monitor.max_redis_memory_pct')),
             'queues' => $horizon === 'running' && $queued !== null && $queued < (int) config('igr-monitor.max_queue_backlog'),
         ];
 
@@ -64,6 +66,7 @@ final class GrowthMonitorCommand extends Command
             'streams' => ['backlog' => $backlog, 'oldest_seconds' => $oldest, 'shards' => $streams],
             'horizon' => $horizon,
             'queues' => ['backlog' => $queued, 'sizes' => $queues],
+            'redis_memory' => $memory,
             'verdicts' => $verdicts,
             'pinged' => $pinged,
             'time' => now()->toIso8601String(),

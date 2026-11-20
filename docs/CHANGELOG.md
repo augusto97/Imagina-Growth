@@ -1,5 +1,21 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-20 — Versión 0.1.6: auditoría, primer lote (seguridad de la ingesta y memoria de Redis)
+
+Primer lote de `docs/auditoria-2026-11.md`, con lo que podía perder datos o llenar el servidor:
+- **S1 (crítico):** la ruta pública del tracker aceptaba pedidos, clientes, formularios y reseñas con la clave pública
+  que está en el HTML. Ahora solo acepta eventos de navegación (`not_allowed` para el resto), el worker descarta los
+  que ya estaban en la cola, una fecha del futuro pasa a la hora de recepción y del navegador nada de hace más de 7
+  días (`stale`).
+- **R1:** el stream de ingesta crecía sin límite en Redis (XACK no borra). El worker recorta lo confirmado cada 5 s,
+  el tope baja a 250.000 por shard, el dedupe a 4 días, Redis de colas tiene `maxmemory` (20% de la RAM) sin
+  instantáneas RDB y `growth:monitor` avisa al 85%.
+- **R2 y R3:** un error de datos (`HY000`) se trataba como pasajero y el lote se reintentaba para siempre; ahora se
+  reintenta uno por uno y el evento que falla 5 veces va a los rechazos. Con ClickHouse caído, espera creciente.
+- Incluye el enlace de invitación para copiar y el aviso de correo apagado.
+- Pruebas: 6 nuevas (lista de eventos del navegador, fechas, segunda barrera, recorte del stream, worker con el
+  stream vacío al final y evento dañado) y la suite completa del hub en verde.
+
 ## 2026-11-20 — Invitaciones con enlace para copiar y aviso de correo apagado
 
 En producción `MAIL_MAILER` era `log`: las invitaciones a los clientes nunca salían y nadie lo sabía.

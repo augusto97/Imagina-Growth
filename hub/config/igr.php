@@ -32,14 +32,17 @@ return [
         'shards' => (int) env('IGR_INGEST_SHARDS', 4),
         'stream_prefix' => 'ingest:',
         'consumer_group' => 'ingest-workers',
-        'stream_maxlen' => 1_000_000,
+        // Tope por shard por si los workers se detienen; lo normal es que el worker recorte lo confirmado.
+        'stream_maxlen' => (int) env('IGR_INGEST_STREAM_MAXLEN', 250_000),
+        'trim_every_seconds' => 5,
+        'max_failures' => 5,             // un evento que falla solo 5 veces con la base disponible va a ingest_rejections
         'max_event_bytes' => 32 * 1024,
         'server_batch_max_events' => 500,
         'server_batch_max_bytes' => 1024 * 1024,          // comprimido
         'server_batch_max_inflated_bytes' => 16 * 1024 * 1024,
         'browser_batch_max_events' => 20,
         'browser_batch_max_bytes' => 64 * 1024,
-        'dedupe_ttl_seconds' => 7 * 24 * 3600,
+        'dedupe_ttl_seconds' => 4 * 24 * 3600,      // cubre los reintentos del plugin (~3 días)
         'clickhouse_flush_rows' => 5000,
         'clickhouse_flush_ms' => 1000,
         'worker_read_count' => 500,

@@ -92,6 +92,30 @@ class SystemProbe
         }
     }
 
+    /**
+     * Memoria del Redis de colas (`noeviction`): lleno, deja de aceptar eventos y trabajos.
+     *
+     * @return array{used_mb: int, max_mb: int, used_pct: int}|null
+     */
+    public function queueMemory(): ?array
+    {
+        try {
+            /** @var \Redis $redis */
+            $redis = $this->stream->connection()->client();
+            $info = $redis->info('memory');
+            $used = (int) ($info['used_memory'] ?? 0);
+            $max = (int) ($info['maxmemory'] ?? 0);
+
+            return [
+                'used_mb' => intdiv($used, 1048576),
+                'max_mb' => intdiv($max, 1048576),
+                'used_pct' => $max > 0 ? (int) round($used * 100 / $max) : 0,
+            ];
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
     /** `running`, `paused` o `inactive` (como `horizon:status`). */
     public function horizon(): string
     {

@@ -96,3 +96,42 @@ it('recibe eventos del navegador con clave pública y Origin del sitio (api-conn
     $this->call('POST', '/v1/b', [], [], [], ['CONTENT_TYPE' => 'text/plain', 'HTTP_ORIGIN' => 'https://tienda.co'], json_encode(['k' => $this->site->public_key, 'events' => [$withEmail]]))
         ->assertJsonPath('rejected.0.reason', 'envelope');
 });
+
+it('con la clave pública solo entran eventos de navegación: nada de pedidos, clientes ni formularios', function () {
+    $browser = ['source' => ['type' => 'browser', 'sdk' => 'tracker/0.1.0'], 'identity' => ['anonymous_id' => 'c3b0f4a2']];
+    $events = [
+        $this->envelope($this->site, 'order.paid', ['order' => $this->orderSnapshot()], $browser),
+        $this->envelope($this->site, 'form.submitted', ['form_id' => 'f1', 'fields' => ['email' => 'ana@ejemplo.com']], $browser),
+        $this->envelope($this->site, 'customer.registered', ['customer_ref' => 'wc:1', 'email' => 'ana@ejemplo.com'], $browser),
+        $this->envelope($this->site, 'review.submitted', ['product_id' => '1', 'rating' => 5], $browser),
+        $this->envelope($this->site, 'page.viewed', ['page_type' => 'home'], $browser),
+        $this->envelope($this->site, 'custom.boton', ['x' => 1], $browser),
+    ];
+    $res = $this->call('POST', '/v1/b', [], [], [], ['CONTENT_TYPE' => 'text/plain', 'HTTP_ORIGIN' => 'https://tienda.co'], json_encode(['k' => $this->site->public_key, 'events' => $events]));
+
+    $res->assertStatus(202)->assertJsonPath('accepted', 2);
+    expect(collect($res->json('rejected'))->pluck('reason')->all())->toBe(['not_allowed', 'not_allowed', 'not_allowed', 'not_allowed'])
+        ->and(streamLength())->toBe(2);
+});
+
+it('corrige la fecha de un reloj adelantado y rechaza del navegador lo de hace más de 7 días', function () {
+    $browser = ['source' => ['type' => 'browser', 'sdk' => 'tracker/0.1.0'], 'identity' => ['anonymous_id' => 'c3b0f4a2']];
+    $future = $this->envelope($this->site, 'page.viewed', ['page_type' => 'home'], $browser + ['occurred_at' => now()->addDays(3)->toIso8601String()]);
+    $old = $this->envelope($this->site, 'page.viewed', ['page_type' => 'home'], $browser + ['occurred_at' => now()->subDays(8)->toIso8601String()]);
+    $res = $this->call('POST', '/v1/b', [], [], [], ['CONTENT_TYPE' => 'text/plain', 'HTTP_ORIGIN' => 'https://tienda.co'], json_encode(['k' => $this->site->public_key, 'events' => [$future, $old]]));
+    $res->assertStatus(202)->assertJsonPath('accepted', 1)->assertJsonPath('rejected.0.reason', 'stale');
+
+    $stream = app(IngestStream::class);
+    $entries = [];
+    for ($i = 0; $i < $stream->shards(); $i++) {
+        foreach ((array) $stream->connection()->command('xrange', [$stream->key($i), '-', '+']) as $fields) {
+            $entries[] = $fields;
+        }
+    }
+    $json = json_encode($entries);
+    expect($json)->not->toContain(now()->addDays(3)->format('Y-m-d'));
+
+    // Del servidor, la importación sí trae historia; el futuro también se corrige.
+    $serverOld = $this->envelope($this->site, 'catalog.product_deleted', ['product_id' => '88'], ['occurred_at' => now()->subYears(2)->toIso8601String()]);
+    $this->postSigned($this->site, $this->secret, [$serverOld])->assertStatus(202)->assertJsonPath('accepted', 1);
+});

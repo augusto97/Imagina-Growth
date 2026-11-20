@@ -67,4 +67,48 @@ final class IngestStream
         }
         $pipe->exec();
     }
+
+    /**
+     * Borra del stream lo que el grupo ya confirmó (XACK no borra): deja desde la entrada
+     * pendiente más vieja o, si no hay pendientes, desde la última entregada. Lo que nadie ha
+     * leído nunca se toca.
+     *
+     * @return int entradas borradas
+     */
+    public function trimAcknowledged(int $shard, string $group): int
+    {
+        /** @var \Redis $client */
+        $client = $this->connection()->client();
+        $key = $this->key($shard);
+        $groups = $client->xInfo('GROUPS', $key);
+        if (! is_array($groups) || $groups === []) {
+            return 0;
+        }
+        $threshold = null;
+        foreach ($groups as $info) {
+            if (! is_array($info)) {
+                continue;
+            }
+            $delivered = (string) ($info['last-delivered-id'] ?? '0-0');
+            $threshold = $threshold === null || self::idLess($delivered, $threshold) ? $delivered : $threshold;
+        }
+        $summary = $client->xPending($key, $group);
+        if (is_array($summary) && (int) ($summary[0] ?? 0) > 0 && is_string($summary[1] ?? null)) {
+            $oldestPending = $summary[1];
+            $threshold = $threshold === null || self::idLess($oldestPending, $threshold) ? $oldestPending : $threshold;
+        }
+        if ($threshold === null || $threshold === '0-0') {
+            return 0;
+        }
+
+        return (int) $client->rawCommand('XTRIM', $key, 'MINID', $threshold);
+    }
+
+    private static function idLess(string $a, string $b): bool
+    {
+        [$am, $as] = array_map('intval', explode('-', $a.'-0'));
+        [$bm, $bs] = array_map('intval', explode('-', $b.'-0'));
+
+        return $am < $bm || ($am === $bm && $as < $bs);
+    }
 }

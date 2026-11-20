@@ -101,6 +101,17 @@ Para orientar bien las estrategias, cada espacio de trabajo debe responder estas
 
 **Respuesta:** `202 {"accepted": n, "rejected": [{"event_id": "...", "reason": "schema"}]}`. Un rechazo por esquema no se reintenta; un 5xx sí.
 
+**Qué acepta `/v1/b`:** la clave pública está en el HTML de cada página, así que el navegador solo informa navegación:
+los eventos de §4.1 (`page.viewed`, `page.engaged`, `product.viewed`, `category.viewed`, `search.performed`,
+`cta.clicked`, `widget.shown`, `widget.submitted`, `widget.closed`, `identify`) y `custom.*`. Cualquier otro se rechaza
+con `not_allowed`, también en el worker si ya estaba en el stream (`App\Ingest\Schema\BrowserEvents`). Pedidos,
+carritos, clientes, formularios, reseñas y catálogo solo llegan firmados por `/v1/s`. `checkout.contact_captured`
+queda fuera hasta que exista la captura temprana con el dato cifrado.
+
+**Fechas:** un `occurred_at` más de 5 minutos en el futuro (reloj adelantado) se reemplaza por la hora de recepción,
+en cualquier origen. Del navegador, un evento de hace más de 7 días se rechaza con `stale`; la importación del plugin
+sí trae historia.
+
 ---
 
 ## 4. Catálogo de eventos
