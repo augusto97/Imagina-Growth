@@ -127,6 +127,7 @@ done
 matches() { local f=$1 p; [ ${#includes[@]} -eq 0 ] && return 0; for p in "${includes[@]}"; do
   if [[ $p == */\*\* ]]; then [[ $f == "${p%/\*\*}"/* ]] && return 0; else [[ $f == $p ]] && return 0; fi; done; return 1; }
 case $cmd in
+  listremotes) echo "remote:" ;;
   copy)
     src=$(map "${args[0]}"); dst=$(map "${args[1]}"); mkdir -p "$dst"
     (cd "$src" && find . -type f | sed 's|^\./||') | while IFS= read -r f; do

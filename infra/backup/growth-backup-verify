@@ -96,8 +96,9 @@ newest() {
 }
 
 if [ "$FROM_REMOTE" = "1" ]; then
-    [ -n "$REMOTE" ] || die "falta GROWTH_BACKUP_REMOTE en $GROWTH_BACKUP_CONF"
+    [ -n "$REMOTE" ] || die_code not_configured "falta GROWTH_BACKUP_REMOTE en $GROWTH_BACKUP_CONF"
     require rclone
+    remote_exists "$REMOTE" || die_code not_configured "el remoto «${REMOTE%%:*}» no existe en la configuración de rclone"
 fi
 require mariadb mariadb-admin "$MARIADBD" tar zstd "$CLIENT" curl
 rm -rf "$RC"

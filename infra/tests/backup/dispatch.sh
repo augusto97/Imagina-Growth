@@ -55,6 +55,7 @@ if [ -n "${FAKE_RCLONE_ERR:-}" ]; then
 fi
 map() { case $1 in growth-backup:*) echo "$FAKE_REMOTE/crypt/${1#growth-backup:}" ;; growth-install:*|growth-storagebox:*) echo "$FAKE_REMOTE/sftp/${1#*:}" ;; *) echo "$FAKE_REMOTE/other/${1#*:}" ;; esac; }
 case ${args[0]} in
+  listremotes) cat "$FAKE_STATE/remotes" 2>/dev/null; true ;;
   mkdir) mkdir -p "$(map "${args[1]}")" ;;
   rcat) p=$(map "${args[1]}"); mkdir -p "$(dirname "$p")"; cat >"$p" ;;
   deletefile) rm -f "$(map "${args[1]}")" ;;
@@ -402,6 +403,24 @@ check "con el candado: sale bien sin tocar el pedido" '[ "$code" = 0 ] && [ -e "
 wait
 dispatch >/dev/null
 check "sin candado: lo atiende" '[ ! -e "$STATE/backup-request.json" ] && [ "$(st .last_request.id)" = bkp_L1o2c3k4 ] && [ "$(st .last_request.action)" = refresh ]'
+teardown
+
+setup "Configuración a mano: solo cuenta si su remoto existe en rclone"
+printf 'GROWTH_BACKUP_REMOTE=storagebox-crypt:growth\nGROWTH_BACKUP_LOCAL_DAYS=3\n' >"$CONF"
+"$DISPATCH" >/dev/null 2>&1
+check "la plantilla vieja (remoto de ejemplo que no existe) no cuenta como configurada" '[ "$(st .configured)" = false ] && [ "$(st .manual_remote)" = null ]'
+request '{"id":"bkp_M1a2n3u4","action":"backup_now","requested_by":"usr_1"}'
+dispatch >/dev/null
+check "y no lanza copias" '[ "$(st .last_request.code)" = not_configured ] && ! called "systemctl start"'
+printf 'storagebox:\nstoragebox-crypt:\n' >"$FAKE_STATE/remotes"
+"$DISPATCH" >/dev/null 2>&1
+check "con el remoto en rclone: configurada a mano, sin destino del panel" '[ "$(st .configured)" = true ] && [ "$(st .managed)" = false ] && [ "$(st .manual_remote)" = storagebox-crypt:growth ] && [ "$(st .destination)" = null ]'
+request '{"id":"bkp_M1a2n3u4","action":"test","requested_by":"usr_1"}'
+dispatch >/dev/null
+check "la prueba usa ese remoto tal cual, con la configuración de rclone de root" 'called "rclone mkdir storagebox-crypt:growth" && ! grep -q "^config-mode" "$CALLS" && [ "$(st .last_test.ok)" = true ]'
+request "$(configure_json key)"
+dispatch >/dev/null
+check "guardar desde el panel la reemplaza y conserva los días locales" '[ "$(st .managed)" = true ] && grep -qx "GROWTH_BACKUP_REMOTE=growth-backup:growth" "$CONF" && grep -qx "GROWTH_BACKUP_LOCAL_DAYS=3" "$CONF"'
 teardown
 
 setup "Sin ssh-keyscan en el servidor: lo dice en palabras"

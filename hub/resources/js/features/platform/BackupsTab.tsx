@@ -208,6 +208,7 @@ function JobRow({ job, value, next, when }: { job: BackupJobKey; value: BackupJo
                 {failed ? (
                     <p className="igr:max-w-md igr:text-xs igr:text-destructive">
                         {describeError(t, value.code, value.message)}
+                        {value.message && errorKey(value.code) ? <span className="igr:block igr:text-muted-foreground">{t('platform.backups.detail', { message: value.message })}</span> : null}
                         {value.last_success?.finished_at ? <span className="igr:block igr:text-muted-foreground">{t('platform.backups.status.lastGood', { date: when(value.last_success.finished_at) })}</span> : null}
                     </p>
                 ) : null}
@@ -219,7 +220,7 @@ function JobRow({ job, value, next, when }: { job: BackupJobKey; value: BackupJo
                 </Badge>
             </TD>
             <TD className="igr:whitespace-nowrap igr:align-top">{value?.finished_at ?? value?.started_at ? when(value.finished_at ?? value.started_at) : t('platform.backups.status.never')}</TD>
-            <TD className="igr:text-right igr:tabular-nums igr:align-top">{job === 'verify' ? '—' : formatBytes(shownSize, workspace.locale)}</TD>
+            <TD className="igr:whitespace-nowrap igr:text-right igr:tabular-nums igr:align-top">{job === 'verify' ? '—' : formatBytes(shownSize, workspace.locale)}</TD>
             <TD className="igr:whitespace-nowrap igr:align-top">{next ? when(next) : '—'}</TD>
         </TR>
     );

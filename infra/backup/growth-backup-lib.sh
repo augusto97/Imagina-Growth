@@ -164,6 +164,15 @@ require() {
     done
 }
 
+# ¿El remoto de rclone (la parte antes de «:») existe en su configuración? La plantilla de backup.conf de las
+# versiones anteriores traía uno de ejemplo que en un servidor sin configurar no existe: así el panel dice «sin
+# destino» y no «no se pudo subir». Una ruta local (sin «:») no se revisa.
+#   remote_exists REMOTO
+remote_exists() {
+    case $1 in *:*) ;; *) return 0 ;; esac
+    rclone listremotes 2>/dev/null | grep -qxF -- "${1%%:*}:"
+}
+
 # Quita de una carpeta local los archivos (no carpetas) que coinciden con PATRÓN y tienen más de N minutos.
 #   prune_local CARPETA PATRÓN MINUTOS
 prune_local() {

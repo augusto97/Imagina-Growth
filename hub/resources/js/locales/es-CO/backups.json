@@ -5,6 +5,7 @@
         },
         "backups": {
             "failed": "No se pudo completar",
+            "detail": "Detalle del servidor: {{message}}",
             "done": {
                 "configure": "Destino guardado.",
                 "test": "La conexión con el Storage Box funciona.",

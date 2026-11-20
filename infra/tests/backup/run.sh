@@ -161,6 +161,16 @@ check "avisa a /fail" 'called "/MARIADB/fail"'
 check "el panel ve «sin destino»" '[ "$(jq -r .code "$GROWTH_STATE_DIR/backup-job-mariadb.json")" = not_configured ]'
 teardown
 
+setup "Un remoto que no existe en rclone (la plantilla vieja) es «sin destino», no una subida fallida"
+sed -i 's/^GROWTH_BACKUP_REMOTE=.*/GROWTH_BACKUP_REMOTE=storagebox-crypt:growth/' "$GROWTH_BACKUP_CONF"
+"$BACKUP/growth-backup-mariadb" >"$TMPROOT/out.log" 2>&1
+code=$?
+check "termina con error antes de copiar" '[ $code -ne 0 ] && ! called "mariadb-backup"'
+check "lo explica y el panel ve not_configured" 'grep -q "no existe en la configuración de rclone" "$TMPROOT/out.log" && [ "$(jq -r .code "$GROWTH_STATE_DIR/backup-job-mariadb.json")" = not_configured ]'
+"$BACKUP/growth-backup-clickhouse" >/dev/null 2>&1
+check "ClickHouse igual" '[ "$(jq -r .code "$GROWTH_STATE_DIR/backup-job-clickhouse.json")" = not_configured ]'
+teardown
+
 setup "El resultado para el panel nunca sigue un symlink ni hace fallar la copia"
 echo intacto >"$TMPROOT/victima"
 ln -s "$TMPROOT/victima" "$GROWTH_STATE_DIR/backup-job-mariadb.json"

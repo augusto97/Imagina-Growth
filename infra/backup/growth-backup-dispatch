@@ -91,6 +91,23 @@ rclone_get() {
 }
 
 bconf() { dotenv_get "$GROWTH_BACKUP_CONF" "$1"; }
+
+# ¿Hay destino? Imprime managed (el del panel), manual (uno puesto a mano cuyo remoto existe en la configuración de
+# rclone) o none. La plantilla de backup.conf de las versiones anteriores traía un remoto de ejemplo
+# (storagebox-crypt:growth) que en un servidor sin configurar no existe: eso no cuenta como configurado.
+destination_state() {
+    local remote cfg args=()
+    remote=$(bconf GROWTH_BACKUP_REMOTE)
+    if [[ -z $remote ]]; then
+        echo none
+    elif [[ $remote == "$PANEL_REMOTE" && -f $RCLONE_CONF && -n $(bconf GROWTH_BACKUP_SFTP_HOST) ]]; then
+        echo managed
+    else
+        cfg=$(bconf GROWTH_RCLONE_CONFIG)
+        [[ $cfg == /* && -f $cfg ]] && args=(--config "$cfg")
+        if "$RCLONE" "${args[@]}" listremotes 2>/dev/null | grep -qxF -- "${remote%%:*}:"; then echo manual; else echo none; fi
+    fi
+}
 fingerprint() { "$SSH_KEYGEN" -lf "$1" 2>/dev/null | awk 'NR == 1 {print $2}' || true; }
 
 timers_enabled() {
@@ -104,7 +121,7 @@ timers_enabled() {
 # El estado para el panel: lo que dice backup.conf (sin secretos: de los secretos, solo si están), la llave
 # pública, la huella del servidor y el último pedido y la última prueba. Temporal + rename en la carpeta sticky.
 publish_status() {
-    local remote host port user path auth keep managed=false configured=false pub="" keyfp="" hostfp="" tmp
+    local remote host port user path auth keep managed=false configured=false pub="" keyfp="" hostfp="" tmp dest
     [[ -d $GROWTH_STATE_DIR ]] || return 0
     remote=$(bconf GROWTH_BACKUP_REMOTE)
     host=$(bconf GROWTH_BACKUP_SFTP_HOST)
@@ -113,8 +130,9 @@ publish_status() {
     path=$(bconf GROWTH_BACKUP_SFTP_PATH)
     auth=$(bconf GROWTH_BACKUP_SFTP_AUTH)
     keep=$(bconf GROWTH_BACKUP_KEEP_DAYS)
-    [[ -n $remote ]] && configured=true
-    [[ -n $host && $remote == "$PANEL_REMOTE" && -f $RCLONE_CONF ]] && managed=true
+    dest=$(destination_state)
+    [[ $dest != none ]] && configured=true
+    [[ $dest == managed ]] && managed=true
     [[ $port =~ ^[0-9]{1,5}$ ]] || port=""
     [[ $keep =~ ^[0-9]{1,4}$ ]] || keep=""
     if [[ -f $KEY.pub ]]; then
@@ -290,7 +308,7 @@ LAST_FREE=""
 connection_test() {
     local target cfg probe ok=false
     TEST_CODE="" TEST_MSG="" LAST_FREE=""
-    if [[ $(bconf GROWTH_BACKUP_REMOTE) == "$PANEL_REMOTE" && -f $RCLONE_CONF ]]; then
+    if [[ $(destination_state) == managed ]]; then
         load_destination
         cfg=$RCLONE_CONF
         target=$PANEL_REMOTE
@@ -476,7 +494,7 @@ action_configure() {
 }
 
 action_test() {
-    if [[ -z $(bconf GROWTH_BACKUP_REMOTE) ]]; then
+    if [[ $(destination_state) == none ]]; then
         fail_request not_configured "Primero guarda el destino de las copias."
         return 0
     fi
@@ -490,7 +508,7 @@ action_test() {
 
 action_backup_now() {
     local u state
-    if [[ -z $(bconf GROWTH_BACKUP_REMOTE) ]]; then
+    if [[ $(destination_state) == none ]]; then
         fail_request not_configured "Primero guarda el destino de las copias."
         return 0
     fi
@@ -522,7 +540,7 @@ action_backup_now() {
 action_install_key() {
     local pw tmpcfg pass_obs existing keyline
     load_destination
-    if [[ $(bconf GROWTH_BACKUP_REMOTE) != "$PANEL_REMOTE" || -z $HOST ]]; then
+    if [[ $(destination_state) != managed ]]; then
         fail_request not_configured "Primero guarda el destino de las copias."
         return 0
     fi
