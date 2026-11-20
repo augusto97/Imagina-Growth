@@ -46,7 +46,7 @@ Todos los servicios `growth-*` tienen `PartOf=growth.target` y `WantedBy=growth.
   releases/<versión>/                 root     una carpeta por versión (sin la «v»: 0.2.0), solo lectura para growth
   current -> releases/<versión>       root     symlink a la versión activa
   shared/                             growth   lo único que growth puede escribir
-    .env                              0600     configuración y secretos (nunca en el repo)
+    .env                              0600     arranque y secretos de la instalación (nunca en el repo); lo demás, Plataforma → Ajustes (§9)
     storage/                          Laravel storage: app/, framework/{cache,sessions,views}, logs/
     state/                            root:growth 1775 (sticky): pedidos del panel y estado que escribe root
       update-request.json             growth 0600  pedido de actualización (§5)
@@ -150,7 +150,8 @@ install.sh                  el instalador
 
 - `secret: true`: se genera solo si falta, con el formato de `generate`: `hex32` (por defecto), `base64_32` o
   `laravel_key` (`base64:` + 32 bytes, el de `APP_KEY`). Con `generate: "none"` o `null` (las llaves VAPID, las
-  de Meta o Anthropic) queda vacía y la completa `install.sh` o el administrador.
+  de Meta o Anthropic) queda vacía: el administrador las pone en Plataforma → Ajustes (§9), donde el valor del panel
+  manda sobre el del `.env`. El `.env` sigue siendo el respaldo de esos ajustes, pero nadie necesita editarlo.
 - Los valores por defecto no usan `${VAR}`: se escriben literales (la configuración ya cae a `APP_URL` o `APP_NAME`
   cuando hace falta).
 - `never_regenerate: true` (`APP_KEY`, `IGR_BLIND_INDEX_KEY`, `DB_PASSWORD`, `CLICKHOUSE_PASSWORD`,
@@ -282,7 +283,8 @@ la última; 409 si ya hay un pedido o una actualización en curso).
   pendiente de Horizon y la salud, y avisa a los heartbeats de Better Stack solo si todo está bien (si un
   heartbeat no llega, Better Stack alerta). Cada copia y la prueba de restauración también avisan a su heartbeat
   (y a `/fail` si fallan). Los heartbeats de las copias los guarda el panel en `/etc/growth/backup.conf` (§6.1); los
-  de la vigilancia van en `shared/.env`. Nunca en el repo.
+  de `growth:monitor` (salud, streams y colas) y sus umbrales, en Plataforma → Ajustes → Monitoreo (§9; de respaldo,
+  `shared/.env`). Nunca en el repo.
 - **Better Stack:** monitores de uptime sobre `https://<dominio>/health/ready` y `/health` (ingesta), y seis
   heartbeats: salud, streams y colas (cada minuto), copia de MariaDB y de ClickHouse (diarias) y verificación
   (semanal). Pasos en `infra/backup/README.md`.
@@ -465,36 +467,41 @@ Si el servidor ya se quedó sin memoria (la app no responde), primero `systemctl
 y después el instalador: con la memoria llena ni `apt` avanza. Al terminar, el instalador vuelve a arrancar la app
 (`systemctl enable --now growth.target`) y rearma la caché de configuración, como `growth-update`.
 
-**Primer administrador y revisión.** Después de instalar, desde el servidor:
+**Primer administrador.** Lo único que se hace en el servidor después de instalar es crear a la primera persona que
+administra la plataforma: `growth-php artisan igr:admin:create admin@ejemplo.com` (o promueve, si ya existe). Pide la
+contraseña dos veces sin mostrarla; con `--generate` la genera y la muestra una sola vez (sin terminal, `--generate` es
+obligatorio). Sus cuentas sin plan quedan con el plan `plataforma`. Al entrar, se le pide la verificación en dos pasos.
+Desde ahí, todo lo demás se hace en el panel (§9), sin consola ni archivos:
 
-- `growth-php artisan igr:admin:create admin@ejemplo.com` crea (o promueve, si ya existe) a quien administra la
-  plataforma. Pide la contraseña dos veces sin mostrarla; con `--generate` la genera y la muestra una sola vez (sin
-  terminal, `--generate` es obligatorio). Sus cuentas sin plan quedan con el plan `plataforma`. Al entrar, se le pide
-  la verificación en dos pasos.
-- `growth-php artisan igr:doctor` dice qué falta configurar y cómo (correo, SES y `IGR_SES_SNS_TOPIC_ARN`, secreto y
-  token del webhook de Meta, clave de Anthropic, Google Calendar, Reverb, ML, Horizon, programador, colas, tarifas de
-  WhatsApp, tasas de cambio, configuration set de SES, planes y la versión del plugin de cada sitio). Sale con código 1
-  si hay errores; `--json` para scripts. Lo mismo se ve en Plataforma → Instalación.
-- `growth-php artisan igr:ses:setup` deja listo el SES de la plataforma en el momento (lo hace solo cada noche; §8).
-- `growth-php artisan igr:fx:update` trae las tasas de cambio del día (lo hace solo el programador dos veces al día; la
-  fuente es `IGR_FX_URL`, por defecto el acceso libre de ExchangeRate-API, sin llave).
+- **Plataforma → Ajustes:** correo, Amazon SES, las apps de Meta, Google y TikTok, la IA, registro y seguridad, avisos
+  push, facturación, monitoreo, retención y la fuente de las tasas de cambio; también los demás administradores, los
+  festivos y las tarifas de WhatsApp.
+- **Plataforma → Instalación** dice qué falta y lleva a la sección que lo arregla (lo mismo que `growth-php artisan
+  igr:doctor`, que sale con código 1 si hay errores; `--json` para scripts).
+- **«Preparar ahora»** (Ajustes → Amazon SES) deja listo el SES de la plataforma en el momento (lo hace solo cada
+  noche; §8). Antes: `igr:ses:setup`, que sigue existiendo.
+- **«Actualizar ahora»** (Plataforma → Tasas de cambio) trae las tasas del día (lo hace solo el programador dos veces
+  al día; la fuente se cambia en Ajustes → Tasas de cambio, por defecto el acceso libre de ExchangeRate-API, sin llave).
+  Antes: `igr:fx:update`, que sigue existiendo.
 
 **Python del ML:** `uv sync --frozen` usa el Python 3.12 de Ubuntu si cumple `requires-python`; si una versión
 necesitara otro, `uv` lo baja de GitHub (el servidor necesita salida a GitHub).
 
 ## 8. Amazon SES de la plataforma
 
-Los clientes que envían correo con el SES de la plataforma verifican su dominio en esa cuenta de AWS, y todo correo
-sale con el configuration set `IGR_SES_CONFIGURATION_SET` (`igr-events`). Sus eventos (entregas, rebotes, quejas,
-aperturas, rechazos) llegan por un tema de SNS a `https://<panel>/webhooks/ses`.
+Las credenciales y los datos de esta sección van en **Plataforma → Ajustes → Amazon SES** (§9; de respaldo,
+`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `IGR_SES_REGION`, `IGR_SES_SNS_TOPIC_ARN`, `IGR_SES_CONFIGURATION_SET` e
+`IGR_SES_RATE` del `.env`). Los clientes que envían correo con el SES de la plataforma verifican su dominio en esa cuenta
+de AWS, y todo correo sale con el configuration set (`igr-events`). Sus eventos (entregas, rebotes, quejas, aperturas,
+rechazos) llegan por un tema de SNS a `https://<panel>/webhooks/ses`.
 
-1. **Tema de SNS** estándar (SES no admite FIFO) en la misma región que `IGR_SES_REGION`, con su ARN en
-   `IGR_SES_SNS_TOPIC_ARN` y una suscripción HTTPS a `https://<panel>/webhooks/ses` (el hub confirma la suscripción
-   solo). Su política debe dejar publicar a SES:
+1. **Tema de SNS** estándar (SES no admite FIFO) en la misma región de SES, con su ARN en el campo «Tema de SNS de los
+   avisos» y una suscripción HTTPS a `https://<panel>/webhooks/ses` (el hub confirma la suscripción solo; el panel
+   muestra la dirección para copiarla). Su política debe dejar publicar a SES:
    `{"Effect": "Allow", "Principal": {"Service": "ses.amazonaws.com"}, "Action": "sns:Publish", "Resource": "<ARN del tema>",
    "Condition": {"StringEquals": {"AWS:SourceAccount": "<cuenta>", "AWS:SourceArn": "arn:aws:ses:<región>:<cuenta>:configuration-set/igr-events"}}}`
    (https://docs.aws.amazon.com/ses/latest/dg/event-publishing-add-event-destination-sns.html).
-2. **Usuario de IAM** de `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, además de enviar (`ses:SendEmail` sobre las
+2. **Usuario de IAM** de la clave de acceso de AWS, además de enviar (`ses:SendEmail` sobre las
    identidades y el configuration set) y crear identidades (`ses:CreateEmailIdentity`, `ses:GetEmailIdentity`), necesita
    `ses:CreateConfigurationSet`, `ses:GetConfigurationSet`, `ses:GetConfigurationSetEventDestinations`,
    `ses:CreateConfigurationSetEventDestination` y `ses:UpdateConfigurationSetEventDestination` sobre
@@ -502,5 +509,60 @@ aperturas, rechazos) llegan por un tema de SNS a `https://<panel>/webhooks/ses`.
    (https://docs.aws.amazon.com/service-authorization/latest/reference/list_sesv2.html).
 3. El configuration set y su destino de eventos `igr-sns` se crean solos (o se corrige el destino si apunta a otro
    tema; idempotente): cada noche a las 03:47 si hay credenciales de SES, al conectar un dominio por SES y al probar un
-   canal SES. No hace falta la consola; `growth-php artisan igr:ses:setup` lo hace en el momento. Si a IAM le falta un
-   permiso, Plataforma → Instalación dice cuál.
+   canal SES. No hace falta la consola: «Preparar ahora» en Plataforma → Ajustes → Amazon SES lo hace en el momento
+   (antes, `growth-php artisan igr:ses:setup`, que sigue existiendo). Si a IAM le falta un permiso, el panel y Plataforma
+   → Instalación dicen cuál.
+
+## 9. Ajustes de la plataforma (el `.env` solo para el arranque)
+
+Desde la F17 de la auditoría (lote 4), todo lo que un administrador puede necesitar cambiar se hace en **Plataforma → Ajustes** (solo
+superadmin, siempre con la verificación en dos pasos), sin consola ni archivos. El `.env` del servidor queda para el
+arranque, y lo escribe el instalador: nadie necesita tocarlo.
+
+**Qué queda en el `.env` (lo escribe `install.sh` o `growth-env repair`):** `APP_KEY` y `IGR_BLIND_INDEX_KEY`, `APP_URL`
+y `APP_ENV`/`APP_DEBUG`, las bases de datos (MariaDB y ClickHouse), los dos Redis, Reverb, la sesión y Sanctum, el
+perfil de procesos (`IGR_WORKERS_PROFILE`), el servicio de predicciones (`IGR_ML_URL`, `IGR_ML_TOKEN`), los registros,
+el actualizador (`GROWTH_*`) y los proxies de confianza. Tampoco se editan en el panel, a propósito:
+
+- **Los dominios de ingesta y de enlaces** (`IGR_INGEST_URL`, `IGR_LINKS_URL`, `IGR_CUSTOM_DOMAINS_CNAME`): todo va en el
+  dominio del panel (§7). Cambiarlos sin su registro DNS y su bloque de Caddy deja a los sitios sin enviar datos y a los
+  enlaces de los mensajes sin abrir.
+- **Las versiones de las API** de Meta, Google y TikTok: vienen fijadas en cada versión de la plataforma y se ponen al
+  día con el botón de Actualizaciones.
+
+**Qué está en el panel** (registro `App\Domain\Platform\Settings\PlatformSettingsRegistry`, con el `.env` de respaldo):
+
+| Sección | Ajustes | Respaldo en el `.env` |
+|---|---|---|
+| Correo de la plataforma | cómo se envía (SMTP, Amazon SES o solo registro), servidor, puerto, cifrado, usuario, contraseña, EHLO, remitente y nombre; botón «Enviar correo de prueba» | `MAIL_*` |
+| Amazon SES | llave y secreto de AWS, región, tema de SNS, configuration set, correos por segundo; botón «Preparar ahora» | `AWS_*`, `IGR_SES_*` |
+| Meta | identificador y clave secreta de la app, token de verificación del webhook («Generar»), configuraciones de Embedded Signup y de Login for Business; las direcciones para registrar en la app | `IGR_META_*` |
+| Google / TikTok | cliente y secreto (y el developer token de Ads, ya opcional) / app y secreto | `IGR_GOOGLE_*`, `IGR_TIKTOK_*` |
+| IA | encendida, clave de Anthropic, tope mensual por cliente | `IGR_AI_ENABLED`, `IGR_ANTHROPIC_API_KEY`, `IGR_AI_MONTHLY_BUDGET_USD` |
+| Registro y seguridad | registro abierto, 2FA obligatoria, plan de una cuenta nueva, token de `/health` («Generar»), aceptar la firma v1 del plugin (con los sitios que faltan) | `IGR_OPEN_REGISTRATION`, `IGR_REQUIRE_2FA`, `IGR_DEFAULT_PLAN`, `IGR_HEALTH_TOKEN`, `IGR_SIGNATURE_ACCEPT_V1` |
+| Avisos en el celular | llaves VAPID («Generar llaves»; la privada nunca se muestra) y contacto | `IGR_PUSH_VAPID_*` |
+| Facturación | correo de facturación, prefijo de las facturas, enlace de pago (`{number}`, `{total}`, `{currency}`) | `IGR_PLATFORM_BILLING_EMAIL`, `IGR_INVOICE_PREFIX`, `IGR_PAYMENT_MANUAL_URL` |
+| Monitoreo | heartbeats de salud, streams y colas de Better Stack y los umbrales de `growth:monitor` | `BETTERSTACK_HEARTBEAT_*`, `GROWTH_MONITOR_*` |
+| Retención | días de mensajes (desde 90), trabajos fallidos, pasos de los flujos y turnos del agente | `IGR_RETENTION_*` |
+| Tasas de cambio | dirección de la fuente | `IGR_FX_URL` |
+
+Y lo que antes eran comandos: **Administradores** (agregar o quitar, con la contraseña de quien lo hace; antes
+`igr:admin:create`), **Festivos** (agregar uno decretado o quitar uno de la ley por país y año; antes `igr:holidays`),
+**Tarifas de WhatsApp** (la tabla de Meta por mercado y tipo, con su fecha de vigencia, y «Cargar las tarifas
+incluidas»; antes `igr:wa-rates --seed` y editar el código) y, en Plataforma → Planes, **«Agregar los planes incluidos
+que falten»** (antes `igr:plans:sync --missing`). Los comandos siguen existiendo.
+
+**Cómo funciona:**
+
+- Tabla `platform_settings`: una fila por ajuste; los secretos van cifrados con la llave de la app y nunca vuelven al
+  navegador (solo «configurado» y, si son largos, sus últimos 4 caracteres). Cada cambio queda en `audit_logs`
+  (`platform.settings_updated`) con las claves, nunca con los valores.
+- **El valor del panel manda; vacío vuelve al `.env`** (o al valor por defecto). El respaldo se toma de la configuración
+  que cargó el proceso, así que funciona igual con `config:cache`; `config:cache` nunca guarda en disco los valores del
+  panel.
+- **Se aplica al arrancar cada proceso** (cada petición de FrankenPHP, cada comando, cada `schedule:run` del
+  programador, que corre en un proceso nuevo cada minuto) y **en caliente** en los procesos largos: antes de cada
+  trabajo de Horizon y cada 5 segundos en los workers de ingesta se compara la versión guardada en la caché; si cambió,
+  se vuelve a aplicar y se olvida lo que se armó con la configuración anterior (los mailers, el cliente de la IA, los
+  festivos en memoria). Nadie reinicia nada. Reverb no lee ninguno de estos ajustes.
+- Sin la tabla (instalación, migraciones) o sin base, rige el `.env` y nada falla.

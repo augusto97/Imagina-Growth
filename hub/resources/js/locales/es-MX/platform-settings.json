@@ -1,0 +1,9 @@
+{
+    "platformSettings": {
+        "sections": {
+            "push": {
+                "description": "Las llaves con las que la bandeja avisa en el celular o la computadora cuando llega un mensaje nuevo."
+            }
+        }
+    }
+}

@@ -252,7 +252,7 @@ Migración `2026_11_20_000100_create_phase2_tables`. Diferencias con §3 a §5, 
 - Nuevas:
   - `campaign_recipients`: un destinatario por campaña, con variante, grupo de control, estado y mensaje. Sirve para el envío por lotes, la idempotencia y el incremento.
   - `contact_preferences`: temas y frecuencia del centro de preferencias.
-  - `holiday_overrides`: excepciones de festivos que edita el admin de la plataforma (cumplimiento.md §4.2).
+  - `holiday_overrides`: excepciones de festivos que edita el admin de la plataforma en Plataforma → Ajustes → Festivos (cumplimiento.md §4.2).
   - `conversations`: se adelanta de la Fase 4 porque la ventana de 24 h de WhatsApp la necesita SendPolicy.
 
 ## 13. Tablas y columnas de la Fase 3
@@ -411,3 +411,12 @@ La base es la migración `2026_11_23_000100_create_phase5_tables` (más `2026_11
   source_type, flow_id, campaign_id). Lo llena `igr:retention:purge` antes de borrar los mensajes de más de 24 meses (se
   suma, no se reemplaza); sin contacto, destino ni contenido. El tablero de Mensajería y los informes de campañas y flujos
   lo suman a lo que sigue en `messages`.
+
+## 19. Ajustes de la plataforma (F17)
+
+- `platform_settings` (`2026_11_27_100100`): key (PK, la clave del registro `PlatformSettingsRegistry`, p. ej.
+  `mail.smtp_host`), value (JSON; si `encrypted`, cifrado con la llave de la app), encrypted, updated_by?, timestamps.
+  Lo que antes iba en el `.env` del servidor y ahora se edita en Plataforma → Ajustes (hub/CLAUDE.md §16): sin fila, rige
+  el `.env`. La fila `_generation` no es un ajuste: cambia cuando algo que los procesos guardan en memoria cambió (los
+  festivos) para que lo vuelvan a leer sin reiniciar. Las tarifas de WhatsApp (`wa_rates`) y los festivos
+  (`holiday_overrides`) también se editan ahí, cada uno en su tabla.

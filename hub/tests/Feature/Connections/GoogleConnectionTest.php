@@ -117,9 +117,9 @@ it('vuelve sin sesión al inicio, con «cancelado» si la persona no aceptó y s
 it('sin la app de Google configurada explica qué falta y los campos manuales siguen', function () {
     config(['igr-connections.google.client_id' => '', 'igr-connections.meta.whatsapp_config_id' => '']);
     $google = collect($this->actingAs($this->owner)->getJson("{$this->api}/connections")->assertOk()->json('providers'))->firstWhere('key', 'google');
-    expect($google)->toMatchArray(['configured' => false, 'missing' => ['IGR_GOOGLE_CLIENT_ID'], 'redirect_uri' => 'https://growth.test/oauth/google/callback']);
+    expect($google)->toMatchArray(['configured' => false, 'missing' => ['google.client_id'], 'redirect_uri' => 'https://growth.test/oauth/google/callback']);
     $this->actingAs($this->owner)->postJson("{$this->api}/connections/google/start")->assertUnprocessable()->assertJsonPath('reason', 'not_configured');
-    $this->actingAs($this->owner)->postJson("{$this->api}/connections/meta_whatsapp/start")->assertUnprocessable()->assertJsonPath('missing', ['IGR_META_ES_CONFIG_ID']);
+    $this->actingAs($this->owner)->postJson("{$this->api}/connections/meta_whatsapp/start")->assertUnprocessable()->assertJsonPath('missing', ['meta.es_config_id']);
     // El destino manual de siempre sigue funcionando.
     $this->actingAs($this->owner)->postJson("{$this->api}/measurement/destinations", ['platform' => 'google', 'credentials' => ['measurement_id' => 'G-1', 'api_secret' => 's']])->assertCreated();
 });

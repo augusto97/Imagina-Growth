@@ -1,0 +1,323 @@
+{
+    "platformSettings": {
+        "title": "Ajustes de la plataforma",
+        "description": "Todo lo que antes se configuraba en el servidor, aquí. Lo que guardes se usa enseguida, sin reiniciar nada. Si dejas un campo vacío, rige el valor que trae el servidor.",
+        "sectionLabel": "Sección",
+        "groups": {
+            "email": "Correo",
+            "apps": "Conexiones e IA",
+            "access": "Acceso y seguridad",
+            "business": "Negocio",
+            "operation": "Operación"
+        },
+        "sections": {
+            "mail": {
+                "title": "Correo de la plataforma",
+                "description": "Con este correo salen las invitaciones, la recuperación de contraseña, los informes y los avisos. Usa el servidor de correo (SMTP) de tu proveedor o Amazon SES."
+            },
+            "ses": {
+                "title": "Amazon SES",
+                "description": "La cuenta de Amazon SES de la plataforma: con ella envían correo los clientes que no tienen su propio servidor, y también puede enviar el correo de la plataforma."
+            },
+            "meta": {
+                "title": "Meta (WhatsApp, Facebook e Instagram)",
+                "description": "La app de Meta de la plataforma. Con ella los clientes conectan WhatsApp, sus anuncios, Messenger e Instagram con un clic."
+            },
+            "google": {
+                "title": "Google",
+                "description": "El cliente de Google de la plataforma. Con él los clientes conectan Google Ads, Analytics y su calendario con un clic."
+            },
+            "tiktok": {
+                "title": "TikTok",
+                "description": "La app de TikTok for Business de la plataforma. Con ella los clientes envían sus ventas a TikTok y traen el gasto de sus campañas."
+            },
+            "ai": {
+                "title": "Inteligencia artificial",
+                "description": "La IA escribe el informe semanal, responde «Pregúntale a tus datos» y atiende como agente de ventas. Sin clave, todo funciona con plantillas sin IA."
+            },
+            "security": {
+                "title": "Registro y seguridad",
+                "description": "Quién puede crear una cuenta, qué se le exige al entrar, qué plan tiene una cuenta nueva y cómo se protege la conexión con los sitios."
+            },
+            "admins": {
+                "title": "Administradores",
+                "description": "Las personas que administran la plataforma: ven esta pantalla, los clientes, los planes y las actualizaciones. Todas deben activar la verificación en dos pasos."
+            },
+            "push": {
+                "title": "Avisos en el celular",
+                "description": "Las llaves con las que la bandeja avisa en el celular o el computador cuando llega un mensaje nuevo."
+            },
+            "billing": {
+                "title": "Facturación",
+                "description": "Cómo se numeran las facturas de la plataforma, a dónde llegan los pedidos de cambio de plan y con qué enlace pagan los clientes."
+            },
+            "wa_rates": {
+                "title": "Tarifas de WhatsApp",
+                "description": "Lo que cobra Meta por cada mensaje, por país y tipo. Con esto se estima el costo de cada mensaje y de cada campaña. Meta las cambia cada trimestre (1 de enero, abril, julio y octubre)."
+            },
+            "holidays": {
+                "title": "Festivos",
+                "description": "Los festivos de cada país. Ese día no sale publicidad y la agenda se cierra. Los de la ley ya están; agrega los que decrete el Gobierno o quita uno que ese año no aplique."
+            },
+            "fx": {
+                "title": "Tasas de cambio",
+                "description": "De dónde se traen cada día las tasas de cambio contra el dólar. Las tasas del día y las manuales están en la pestaña «Tasas de cambio»."
+            },
+            "monitor": {
+                "title": "Monitoreo",
+                "description": "Cada minuto la plataforma se revisa a sí misma y le avisa a Better Stack si todo está bien. Si un aviso deja de llegar, Better Stack te alerta."
+            },
+            "retention": {
+                "title": "Retención de datos",
+                "description": "Cuántos días se guardan los datos que se borran solos cada noche. Los mensajes viejos se resumen antes de borrarse."
+            }
+        },
+        "fields": {
+            "mail": {
+                "driver": { "label": "Cómo se envía", "help": "«Servidor de correo» para Gmail, Microsoft 365, Zoho o tu hosting; «Amazon SES» usa la cuenta de la sección Amazon SES; «Solo registro» no envía nada." },
+                "smtp_host": { "label": "Servidor de correo", "help": "La dirección del servidor de salida.", "where": "Tu proveedor de correo la da como «servidor SMTP» o «servidor de salida».", "placeholder": "smtp.tu-proveedor.com" },
+                "smtp_port": { "label": "Puerto", "help": "Casi siempre 587 (con STARTTLS) o 465 (SSL).", "placeholder": "587" },
+                "smtp_encryption": { "label": "Cifrado", "help": "Usa el que indique tu proveedor. «Sin cifrado» solo para un servidor dentro de la misma red." },
+                "smtp_username": { "label": "Usuario", "help": "Casi siempre es el correo completo con el que entras al buzón." },
+                "smtp_password": { "label": "Contraseña", "help": "La del buzón o, si tu proveedor lo pide, una contraseña de aplicación." },
+                "smtp_ehlo": { "label": "Nombre del servidor al saludar (EHLO)", "help": "Opcional. Déjalo vacío salvo que tu proveedor pida uno; por defecto se usa el dominio del panel." },
+                "from_address": { "label": "Correo del remitente", "help": "Desde qué dirección llegan los correos. Su dominio debe estar verificado en tu proveedor o en Amazon SES.", "placeholder": "hola@tu-dominio.com" },
+                "from_name": { "label": "Nombre del remitente", "help": "Lo que ve la persona como «De»." }
+            },
+            "ses": {
+                "key": { "label": "ID de la clave de acceso de AWS", "help": "Empieza por AKIA.", "where": "En la consola de AWS: IAM → Usuarios → el usuario de la plataforma → Credenciales de seguridad → Crear clave de acceso." },
+                "secret": { "label": "Clave de acceso secreta de AWS", "help": "AWS la muestra una sola vez, al crear la clave." },
+                "region": { "label": "Región", "help": "Donde está tu cuenta de SES, por ejemplo us-east-1.", "placeholder": "us-east-1" },
+                "sns_topic_arn": { "label": "Tema de SNS de los avisos", "help": "El tema al que SES manda las entregas, los rebotes y las quejas. Sin él no se frenan los correos que rebotan.", "where": "En la consola de AWS: SNS → Temas → el tema → ARN. Suscríbele la dirección de abajo.", "placeholder": "arn:aws:sns:us-east-1:123456789012:igr-ses" },
+                "configuration_set": { "label": "Configuration set", "help": "Se crea solo con «Preparar ahora». Cámbialo solo si usas otro nombre en AWS.", "placeholder": "igr-events" },
+                "rate": { "label": "Correos por segundo", "help": "El máximo que permite tu cuenta de SES (en la consola: SES → Panel → Límite de envío)." }
+            },
+            "meta": {
+                "app_id": { "label": "Identificador de la app", "help": "Solo números.", "where": "En developers.facebook.com → tu app → Configuración → Básica → Identificador de la app." },
+                "app_secret": { "label": "Clave secreta de la app", "help": "Sin ella no llegan los mensajes de WhatsApp, Messenger e Instagram.", "where": "En la misma página: Clave secreta de la app → Mostrar." },
+                "webhook_verify_token": { "label": "Token de verificación del webhook", "help": "Una frase al azar que también escribes en Meta al registrar el webhook. Usa «Generar» y cópiala antes de guardar: después no se vuelve a mostrar." },
+                "es_config_id": { "label": "Configuración de WhatsApp con un clic", "help": "El ID de la configuración «WhatsApp Embedded Signup».", "where": "En la app de Meta: Facebook Login for Business → Configuraciones." },
+                "login_config_id": { "label": "Configuración de anuncios y mensajes", "help": "El ID de la configuración con anuncios, píxel, páginas e Instagram.", "where": "En la app de Meta: Facebook Login for Business → Configuraciones." }
+            },
+            "google": {
+                "client_id": { "label": "ID de cliente", "help": "Termina en .apps.googleusercontent.com.", "where": "En console.cloud.google.com → Google Auth Platform → Clientes → tu cliente web." },
+                "client_secret": { "label": "Secreto del cliente", "help": "Está junto al ID de cliente." },
+                "ads_developer_token": { "label": "Token de desarrollador de Google Ads", "help": "Ya no es obligatorio: Google lo dejó de pedir. Déjalo vacío salvo que Google te lo pida." }
+            },
+            "tiktok": {
+                "app_id": { "label": "App ID", "help": "El identificador de tu app.", "where": "En business-api.tiktok.com/portal → My Apps → tu app." },
+                "app_secret": { "label": "Secret", "help": "Está junto al App ID." }
+            },
+            "ai": {
+                "enabled": { "label": "IA encendida", "help": "Apágala para que todo use plantillas sin IA, aunque haya clave." },
+                "api_key": { "label": "Clave de Anthropic", "help": "Empieza por sk-ant-.", "where": "En console.anthropic.com → Settings → API keys → Create key." },
+                "monthly_budget_usd": { "label": "Tope mensual por cliente (USD)", "help": "Lo máximo que puede gastar en IA cada espacio de trabajo al mes si su plan no dice otra cosa." }
+            },
+            "security": {
+                "open_registration": { "label": "Registro abierto", "help": "Encendido, cualquiera puede crear una cuenta. Apagado, solo por invitación (recomendado)." },
+                "require_2fa": { "label": "Verificación en dos pasos obligatoria", "help": "Para dueños, administradores y agencias. Esta pantalla la pide siempre." },
+                "default_plan": { "label": "Plan de una cuenta nueva", "help": "El que rige mientras no le asignes otro. Diagnóstico es el gratuito." },
+                "health_token": { "label": "Token de la página de salud", "help": "Para que un monitor externo vea el detalle de /health. Usa «Generar», cópialo al monitor y guarda: después no se vuelve a mostrar." },
+                "accept_signature_v1": { "label": "Aceptar la firma anterior del plugin", "help": "Los sitios con un plugin viejo firman a la antigua. Apágalo cuando todos tengan el plugin al día." }
+            },
+            "push": {
+                "vapid_public_key": { "label": "Llave pública", "help": "La usan los navegadores para suscribirse. No es secreta." },
+                "vapid_private_key": { "label": "Llave privada", "help": "Firma cada aviso. Nunca se muestra." },
+                "vapid_subject": { "label": "Contacto", "help": "Un correo (mailto:) o una dirección web de contacto para los servicios de avisos.", "placeholder": "mailto:soporte@tu-dominio.com" }
+            },
+            "billing": {
+                "platform_email": { "label": "Correo de facturación", "help": "Aquí llegan los pedidos de cambio de plan (además de a los administradores)." },
+                "invoice_prefix": { "label": "Prefijo de las facturas", "help": "Letras y números en mayúsculas. Las facturas quedan como PREFIJO-2026-0001; al cambiarlo, la numeración empieza de nuevo con el prefijo nuevo.", "placeholder": "IGR" },
+                "payment_url": { "label": "Enlace de pago", "help": "La página donde pagan los clientes. Puedes usar {number}, {total} y {currency} para que vaya con los datos de la factura.", "placeholder": "https://pagos.tu-dominio.com/?factura={number}" }
+            },
+            "monitor": {
+                "heartbeat_health": { "label": "Aviso de salud", "help": "Que la base de datos, ClickHouse y Redis respondan.", "where": "En Better Stack: Heartbeats → Create heartbeat → copia la dirección." },
+                "heartbeat_streams": { "label": "Aviso de la ingesta", "help": "Que los eventos de los sitios se procesen al día." },
+                "heartbeat_queues": { "label": "Aviso de las colas", "help": "Que las colas corran y no se acumulen." },
+                "max_stream_lag": { "label": "Eventos sin procesar (máximo)", "help": "Con más que esto, el aviso de la ingesta deja de salir." },
+                "max_stream_age": { "label": "Antigüedad del evento más viejo (segundos)", "help": "Con un evento esperando más que esto, el aviso de la ingesta deja de salir." },
+                "max_queue_backlog": { "label": "Trabajos en espera (máximo)", "help": "Con más que esto, el aviso de las colas deja de salir." },
+                "max_redis_memory_pct": { "label": "Memoria de Redis (porcentaje máximo)", "help": "Lleno, deja de aceptar eventos y trabajos." }
+            },
+            "retention": {
+                "messages_days": { "label": "Mensajes (días)", "help": "Desde 90. Antes de borrarlos se suman al archivo del tablero. Nunca baja de la ventana de atribución más larga más 60 días." },
+                "failed_jobs_days": { "label": "Trabajos fallidos (días)", "help": "Los que se ven en Horizon como fallidos." },
+                "flow_steps_days": { "label": "Pasos de los flujos terminados (días)", "help": "El detalle de cada recorrido de un flujo." },
+                "agent_turns_days": { "label": "Conversaciones del agente de IA (días)", "help": "El registro de cada turno del agente de ventas." }
+            },
+            "fx": {
+                "url": { "label": "Dirección de la fuente", "help": "Debe responder en el formato de ExchangeRate-API. Déjala vacía para usar la fuente libre de siempre." }
+            }
+        },
+        "options": {
+            "mail": {
+                "driver": { "smtp": "Servidor de correo (SMTP)", "ses": "Amazon SES", "log": "Solo registro (no envía)" },
+                "smtp_encryption": { "starttls": "STARTTLS (puerto 587)", "ssl": "SSL/TLS (puerto 465)", "none": "Sin cifrado" }
+            }
+        },
+        "yes": "Sí",
+        "no": "No",
+        "where": "Dónde se obtiene:",
+        "save": "Guardar",
+        "discard": "Descartar cambios",
+        "saved": "Guardado. Ya está en uso, sin reiniciar nada.",
+        "nothingChanged": "No hay cambios para guardar.",
+        "unsaved": "Tienes cambios sin guardar en esta sección.",
+        "reset": "Usar el valor del servidor",
+        "resetHint": "Se quitará al guardar y regirá el valor del servidor.",
+        "source": {
+            "panel": "Guardado aquí",
+            "server": "Valor del servidor",
+            "none": "Sin configurar"
+        },
+        "serverValue": "Del servidor: {{value}}",
+        "useServer": "Del servidor: {{value}}",
+        "useServerEmpty": "Usar el del servidor",
+        "secret": {
+            "panel": "Guardada aquí {{hint}}. Escribe otra para cambiarla.",
+            "server": "Viene del servidor {{hint}}. Escribe otra para que mande la de aquí.",
+            "none": "Sin configurar",
+            "remove": "Quitar",
+            "removed": "Se quitará al guardar.",
+            "show": "Mostrar",
+            "hide": "Ocultar"
+        },
+        "generate": "Generar",
+        "generated": "Cópialo ahora y pégalo donde va: después de guardar no se vuelve a mostrar.",
+        "copy": "Copiar",
+        "copied": "Copiado.",
+        "status": {
+            "configured": "Configurado",
+            "off": "Sin configurar"
+        },
+        "mail": {
+            "test": "Enviar correo de prueba",
+            "testHelp": "Te llega a tu correo. Guarda primero los cambios.",
+            "on": "El correo está encendido ({{mailer}}).",
+            "off": "El correo está apagado: no salen invitaciones, recuperaciones de contraseña ni informes."
+        },
+        "ses": {
+            "setup": "Preparar ahora",
+            "setupHelp": "Crea en AWS el configuration set y su destino de avisos. Se hace solo cada noche y al conectar un dominio.",
+            "subscribe": "Suscribe esta dirección al tema de SNS (protocolo HTTPS):",
+            "last": "Última revisión: {{at}}",
+            "never": "Todavía no se ha revisado.",
+            "result": {
+                "ok": "Listo",
+                "no_topic": "Falta el tema de SNS",
+                "error": "Con problemas"
+            }
+        },
+        "urls": {
+            "title": "Direcciones para registrar en la app",
+            "callback": "Dirección de retorno (OAuth)",
+            "webhook": "Webhook",
+            "domain": "Dominio de la app"
+        },
+        "meta": {
+            "accounts": "{{count}} número o cuenta de Meta conectados ahora.",
+            "webhookFields": "En Meta, suscribe los campos de WhatsApp messages, message_template_status_update, phone_number_quality_update, account_update, history, smb_app_state_sync y smb_message_echoes."
+        },
+        "google": {
+            "legacy": "Hay un cliente anterior solo para la agenda configurado en el servidor: las personas que ya conectaron su calendario siguen funcionando con él."
+        },
+        "security": {
+            "signatureAll": "Todos los sitios ya firman con la versión nueva: puedes apagar la firma anterior.",
+            "signatureSome_one": "{{count}} sitio todavía firma a la antigua (plugin anterior a la {{version}}). Si apagas la firma anterior, sus datos dejan de llegar.",
+            "signatureSome_other": "{{count}} sitios todavía firman a la antigua (plugin anterior a la {{version}}). Si apagas la firma anterior, sus datos dejan de llegar.",
+            "healthUrl": "Página de salud:"
+        },
+        "push": {
+            "generate": "Generar llaves nuevas",
+            "regenerate": "Cambiar las llaves",
+            "regenerateConfirm": "Si cambias las llaves, cada persona debe volver a activar los avisos en su navegador. ¿Seguir?",
+            "generated": "Llaves nuevas guardadas."
+        },
+        "holidays": {
+            "country": "País",
+            "year": "Año",
+            "countries": { "CO": "Colombia", "MX": "México", "VE": "Venezuela" },
+            "date": "Fecha",
+            "name": "Nombre",
+            "origin": {
+                "law": "De la ley",
+                "added": "Agregado",
+                "removed": "Quitado",
+                "code": "Excepción del sistema"
+            },
+            "add": "Agregar festivo",
+            "addTitle": "Agregar un festivo",
+            "addHelp": "Por ejemplo, un día cívico que decretó el Gobierno. Ese día no sale publicidad y la agenda se cierra.",
+            "namePlaceholder": "Día cívico decretado",
+            "remove": "No es festivo este año",
+            "undo": "Deshacer",
+            "added": "Festivo agregado.",
+            "removedToast": "Ese día ya no cuenta como festivo.",
+            "restored": "Volvió a lo que dice la ley.",
+            "empty": "No hay festivos para ese año."
+        },
+        "waRates": {
+            "effective": "Vigentes desde el {{date}}.",
+            "stale": "Tienen más de {{days}} días: revisa la tabla de Meta y actualízalas.",
+            "staleBadge": "Desactualizadas",
+            "source": "Tabla oficial de Meta",
+            "market": "Mercado",
+            "markets": {
+                "CO": "Colombia",
+                "MX": "México",
+                "LA": "Resto de América Latina (incluye Venezuela)",
+                "AR": "Argentina",
+                "BR": "Brasil",
+                "CL": "Chile",
+                "PE": "Perú",
+                "NA": "Estados Unidos y Canadá",
+                "ZZ": "Otros países"
+            },
+            "categories": {
+                "marketing": "Marketing",
+                "utility": "Utilidad",
+                "authentication": "Autenticación",
+                "service": "Servicio"
+            },
+            "from": "Rigen desde",
+            "fromHelp": "Los mensajes de antes de esta fecha siguen con la tarifa de su día.",
+            "unit": "En dólares por mensaje entregado.",
+            "save": "Guardar tarifas",
+            "saved": "Tarifas guardadas.",
+            "invalid": "Revisa las tarifas: deben ser números entre 0 y 1 (por ejemplo 0,0125).",
+            "seed": "Cargar las tarifas incluidas",
+            "seedHelp": "Vuelve a cargar la tabla que trae esta versión (vigente desde el {{date}}).",
+            "seeded": "Tarifas incluidas cargadas."
+        },
+        "admins": {
+            "add": "Agregar administrador",
+            "addTitle": "Agregar a alguien que administre la plataforma",
+            "addHelp": "Si ya tiene cuenta, solo se le da el acceso. Si no, se crea con una contraseña que verás una sola vez. Al entrar deberá activar la verificación en dos pasos.",
+            "person": "Persona",
+            "email": "Correo",
+            "name": "Nombre (si es nueva)",
+            "yourPassword": "Tu contraseña",
+            "yourPasswordHelp": "Para confirmar que eres tú.",
+            "twoFactor": "Verificación en dos pasos",
+            "twoFactorOn": "Activa",
+            "twoFactorOff": "Pendiente",
+            "lastLogin": "Última entrada",
+            "never": "Nunca",
+            "me": "Tú",
+            "remove": "Quitar",
+            "removeTitle": "Quitar a {{name}}",
+            "removeHelp": "Deja de administrar la plataforma. Su cuenta y sus espacios de trabajo siguen igual.",
+            "removed": "Ya no administra la plataforma.",
+            "promoted": "{{email}} ya administra la plataforma.",
+            "created": "Cuenta creada para {{email}}.",
+            "password": "Contraseña para entrar (se muestra una sola vez):",
+            "passwordHelp": "Compártela por un canal seguro. Puede cambiarla al entrar."
+        },
+        "plansSync": {
+            "button": "Agregar los planes incluidos que falten",
+            "done_one": "Se agregó {{count}} plan.",
+            "done_other": "Se agregaron {{count}} planes.",
+            "none": "Ya están todos los planes incluidos."
+        }
+    }
+}

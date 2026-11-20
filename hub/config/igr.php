@@ -25,14 +25,15 @@ return [
 
     // Firma entre el plugin y el hub (docs/api-connector.md §2). La v2 cubre el método, la ruta, la consulta y un
     // nonce; la v1 (plugins anteriores a la 0.1.4) solo el cuerpo y la hora. Cuando todos los sitios tengan la 0.1.4 o
-    // más nueva (Plataforma → Instalación lo dice), IGR_SIGNATURE_ACCEPT_V1=false deja de aceptar la v1.
+    // más nueva (Plataforma → Instalación lo dice), se apaga en Plataforma → Ajustes → Registro y seguridad (F17; respaldo
+    // IGR_SIGNATURE_ACCEPT_V1=false) y el hub deja de aceptar la v1.
     'signature' => [
         'tolerance_seconds' => 300,
         'previous_secret_grace_hours' => 24,
         'accept_v1' => (bool) env('IGR_SIGNATURE_ACCEPT_V1', true),
     ],
 
-    // Registro abierto a cualquiera (true) o solo por invitación (false, por defecto). La primera persona de una
+    // Registro abierto a cualquiera (true) o solo por invitación (false, por defecto; Plataforma → Ajustes, F17). La primera persona de una
     // instalación nueva siempre puede registrarse (App\Support\Registration).
     'registration_open' => (bool) env('IGR_OPEN_REGISTRATION', false),
 

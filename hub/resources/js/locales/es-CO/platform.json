@@ -12,6 +12,7 @@
             "requests": "Pedidos de plan",
             "plans": "Planes",
             "doctor": "Instalación",
+            "settings": "Ajustes",
             "fx": "Tasas de cambio"
         },
         "accounts": {
@@ -219,15 +220,16 @@
         },
         "mail": {
             "offTitle": "El correo de la plataforma no está configurado",
-            "offBody": "Mientras tanto no salen invitaciones, recuperaciones de contraseña ni informes. Para activarlo, pon tus datos de SMTP (o de Amazon SES) en /opt/growth/shared/.env del servidor y reinicia la app con «systemctl restart growth.target». Hasta entonces, comparte las invitaciones con el enlace que aparece al crearlas.",
-            "offExample": "MAIL_MAILER=smtp\nMAIL_HOST=smtp.tu-proveedor.com\nMAIL_PORT=587\nMAIL_USERNAME=usuario\nMAIL_PASSWORD=contraseña\nMAIL_FROM_ADDRESS=hola@growth.imagina.cloud",
+            "offBody": "Mientras tanto no salen invitaciones, recuperaciones de contraseña ni informes. Actívalo en Ajustes → Correo con los datos de tu proveedor de correo (SMTP) o de Amazon SES: se usa enseguida, sin reiniciar nada. Hasta entonces, comparte las invitaciones con el enlace que aparece al crearlas.",
+            "configure": "Configurar el correo",
             "test": "Enviar correo de prueba",
             "sent": "Correo de prueba enviado a {{to}}.",
             "failed": "No se pudo enviar el correo de prueba"
         },
         "doctor": {
             "title": "Revisión de la instalación",
-            "description": "Qué falta configurar en el servidor y cómo arreglarlo. Es lo mismo que «php artisan igr:doctor».",
+            "description": "Qué falta configurar y dónde arreglarlo. Casi todo se arregla en la pestaña Ajustes, sin tocar el servidor.",
+            "fix": "Arreglarlo",
             "recheck": "Volver a revisar",
             "checkedAt": "Revisado el {{date}}",
             "overall": {

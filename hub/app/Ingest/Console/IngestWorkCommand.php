@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Ingest\Console;
 
 use App\Analytics\Ch;
+use App\Domain\Platform\Settings\PlatformSettingsRuntime;
 use App\Ingest\IngestStream;
 use App\Ingest\Pipeline\BatchOutcome;
 use App\Ingest\Pipeline\IngestEntry;
@@ -30,6 +31,9 @@ final class IngestWorkCommand extends Command
         {--consumer= : Nombre del consumidor (por defecto host:pid)}';
 
     protected $description = 'Consume los Redis Streams de ingesta y escribe en ClickHouse y MariaDB';
+
+    /** Cada cuánto revisa si cambiaron los ajustes de la plataforma. */
+    private const SETTINGS_CHECK_SECONDS = 5;
 
     private bool $stop = false;
 
@@ -84,7 +88,12 @@ final class IngestWorkCommand extends Command
 
         $totals = ['processed' => 0, 'duplicates' => 0, 'rejected' => 0];
         $failures = 0;
+        $settings = app(PlatformSettingsRuntime::class);
         while (! $this->stop && microtime(true) < $deadline) {
+            // Ajustes de la plataforma (F17): si cambiaron en el panel, se aplican sin reiniciar el worker.
+            if (microtime(true) - $settings->checkedAt() >= self::SETTINGS_CHECK_SECONDS) {
+                $settings->refreshIfStale();
+            }
             $readAny = false;
             foreach ($shards as $shard) {
                 $key = $stream->key($shard);

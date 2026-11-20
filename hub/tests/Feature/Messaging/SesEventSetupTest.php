@@ -111,7 +111,7 @@ it('si a IAM le falta un permiso lo dice con su nombre, y conectar el canal resp
     // igr:doctor lo muestra como error, con qué hacer.
     Artisan::call('igr:doctor', ['--json' => true]);
     $check = collect(json_decode(trim(Artisan::output()), true)['checks'])->firstWhere('key', 'email.ses_events');
-    expect($check['status'])->toBe('error')->and($check['detail'])->toContain('igr:ses:setup');
+    expect($check['status'])->toBe('error')->and($check['detail'])->toContain('Preparar ahora')->and($check['link'])->toBe('pestana=ajustes&seccion=ses');
 
     // Sin permiso para crear el configuration set pero se puede leer (lo creó alguien a mano): sirve.
     $calls = scriptedSes(['CreateConfigurationSet' => 'AccessDeniedException', 'GetConfigurationSet' => ['ConfigurationSetName' => 'igr-events'], 'GetConfigurationSetEventDestinations' => ['EventDestinations' => []]]);
@@ -126,7 +126,7 @@ it('al conectar un dominio por SES prepara antes el configuration set, y sin tem
     config(['igr-messaging.ses.sns_topic_arn' => null]);
     $calls = scriptedSes(['CreateEmailIdentity' => ['DkimAttributes' => ['Tokens' => ['t1', 't2', 't3'], 'Status' => 'PENDING']]]);
     $res = $this->actingAs($this->owner)->postJson("{$this->api}/channels/email", ['provider' => 'ses', 'from_email' => 'hola@pinturas.co', 'from_name' => 'Pinturas'])->assertCreated();
-    expect($res->json('ses_events.status'))->toBe('no_topic')->and($res->json('ses_events.message'))->toContain('IGR_SES_SNS_TOPIC_ARN')
+    expect($res->json('ses_events.status'))->toBe('no_topic')->and($res->json('ses_events.message'))->toContain('tema de SNS')->toContain('Plataforma → Ajustes → Amazon SES')
         // El configuration set primero: la identidad del dominio se crea con él.
         ->and(sesCallNames($calls))->toBe(['CreateConfigurationSet', 'CreateEmailIdentity'])
         ->and($calls[1]['ConfigurationSetName'])->toBe('igr-events');

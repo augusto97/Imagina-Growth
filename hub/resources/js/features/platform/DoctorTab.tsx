@@ -1,5 +1,6 @@
 import { RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,13 +8,14 @@ import { ErrorState } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { formatDateTime } from '@/lib/format';
-import { type DoctorStatus, sortChecks, statusVariant, usePlatformDoctor } from './doctor-api';
+import { type DoctorStatus, doctorLinkParams, sortChecks, statusVariant, usePlatformDoctor } from './doctor-api';
 
-/** Plataforma → Instalación: qué falta configurar y cómo (lo mismo que `php artisan igr:doctor`). */
+/** Plataforma → Instalación: qué falta configurar y dónde (lo mismo que `igr:doctor`), con un botón a la sección de Ajustes que lo arregla. */
 export function DoctorTab() {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const doctor = usePlatformDoctor(true);
+    const [params, setParams] = useSearchParams();
     if (doctor.isError) return <ErrorState error={doctor.error} onRetry={() => void doctor.refetch()} />;
     if (doctor.isPending) return <Skeleton className="igr:h-64" />;
     const report = doctor.data;
@@ -61,6 +63,18 @@ export function DoctorTab() {
                                     <div className="igr:min-w-0 igr:space-y-1 igr:text-sm">
                                         <p className="igr:font-medium">{check.title}</p>
                                         {check.status !== 'ok' && check.detail !== '' ? <p className="igr:text-muted-foreground">{check.detail}</p> : null}
+                                        {check.status !== 'ok' && check.link ? (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    const next = doctorLinkParams(check.link, params);
+                                                    if (next) setParams(next, { replace: true });
+                                                }}
+                                            >
+                                                {t('platform.doctor.fix')}
+                                            </Button>
+                                        ) : null}
                                         {check.items.length > 0 ? (
                                             <ul className="igr:list-disc igr:space-y-0.5 igr:pl-5 igr:text-muted-foreground">
                                                 {check.items.map((item) => (

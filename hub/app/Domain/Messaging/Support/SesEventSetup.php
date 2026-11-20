@@ -61,7 +61,7 @@ class SesEventSetup
         $set = self::configurationSet();
         $topic = self::topic();
         if (! $this->factory->configured()) {
-            return self::result('error', __('Amazon SES no está configurado en la plataforma (faltan AWS_ACCESS_KEY_ID y AWS_SECRET_ACCESS_KEY).'));
+            return self::result('error', __('Amazon SES no está configurado en la plataforma: quien la administra debe poner la llave y el secreto de AWS en Plataforma → Ajustes → Amazon SES.'));
         }
 
         $operation = 'CreateConfigurationSet';
@@ -70,7 +70,7 @@ class SesEventSetup
             $client = $this->factory->make();
             $changed = $this->ensureConfigurationSet($client, $set, $operation);
             if ($topic === null) {
-                $out = self::result('no_topic', __('El configuration set :set existe, pero sin IGR_SES_SNS_TOPIC_ARN no tiene a dónde mandar las entregas, los rebotes y las quejas.', ['set' => $set]), null, $changed);
+                $out = self::result('no_topic', __('El configuration set :set existe, pero sin el tema de SNS (Plataforma → Ajustes → Amazon SES) no tiene a dónde mandar las entregas, los rebotes y las quejas.', ['set' => $set]), null, $changed);
             } else {
                 $changed = $this->ensureDestination($client, $set, $topic, $operation) || $changed;
                 $out = self::result('ok', __('El configuration set :set manda sus eventos al tema de SNS.', ['set' => $set]), null, $changed);

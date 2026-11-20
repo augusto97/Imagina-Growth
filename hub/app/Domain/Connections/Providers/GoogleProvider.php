@@ -36,9 +36,9 @@ final class GoogleProvider implements OAuthProvider
     public function missing(): array
     {
         $missing = [];
-        foreach (['IGR_GOOGLE_CLIENT_ID' => 'client_id', 'IGR_GOOGLE_CLIENT_SECRET' => 'client_secret'] as $env => $key) {
+        foreach (['google.client_id' => 'client_id', 'google.client_secret' => 'client_secret'] as $setting => $key) {
             if ((string) config('igr-connections.google.'.$key) === '') {
-                $missing[] = $env;
+                $missing[] = $setting;
             }
         }
 

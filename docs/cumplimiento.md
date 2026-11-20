@@ -173,7 +173,7 @@ Venezuela no tiene una ley general de protección de datos personales equivalent
 - **Feriados nacionales** (`Holidays::forYear('VE')`, sin traslados):
   - Artículo 184 de la Ley Orgánica del Trabajo, los Trabajadores y las Trabajadoras (G.O. Extraordinaria N.º 6.076 del 7 de mayo de 2012): 1 de enero, lunes y martes de Carnaval, Jueves y Viernes Santo, 1 de mayo y 24, 25 y 31 de diciembre.
   - Ley de Fiestas Nacionales (G.O. N.º 29.541 del 22 de junio de 1971), artículo 1: 19 de abril, 24 de junio, 5 de julio, 24 de julio y 12 de octubre.
-  - Los que decreten el Gobierno Nacional, los estados o los municipios (hasta tres al año, literal d del mismo artículo) se cargan como excepción en `holiday_overrides`. Los feriados solo bancarios del calendario de Sudeban (San José, Corpus Christi, Divina Pastora…) no cierran la ventana.
+  - Los que decreten el Gobierno Nacional, los estados o los municipios (hasta tres al año, literal d del mismo artículo) se cargan como excepción en Plataforma → Ajustes → Festivos (`holiday_overrides`; rige enseguida en todos los procesos). Los feriados solo bancarios del calendario de Sudeban (San José, Corpus Christi, Divina Pastora…) no cierran la ventana.
   - Fuentes consultadas en noviembre de 2026: el texto del artículo 184 en el [glosario de Acceso a la Justicia](https://accesoalajusticia.org/glossary/dias-festivos/), el artículo 1 de la Ley de Fiestas Nacionales (copia de Justia) y el calendario 2026 de Sudeban publicado por [Bloomberg Línea](https://www.bloomberglinea.com/latinoamerica/venezuela/este-es-el-calendario-bancario-para-venezuela-en-2026/) y [El Diario](https://eldiario.com/2025/12/02/dias-feriados-bancarios-2026-en-venezuela/), que coincide con el cálculo **[validar con la Gaceta Oficial]**.
 
 ---

@@ -13,7 +13,8 @@ use Throwable;
 
 /**
  * Correo del sistema (invitaciones, recuperación de contraseña, informes, avisos). El instalador lo deja en `log`
- * hasta que el administrador ponga sus datos de SMTP o SES en el .env: el panel lo avisa y permite probarlo.
+ * hasta que el administrador ponga sus datos de SMTP o SES en Plataforma → Ajustes → Correo (F17): el panel lo avisa y
+ * permite probarlo.
  */
 final class PlatformMailController
 {

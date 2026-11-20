@@ -19,7 +19,8 @@ interface OAuthProvider
     public function provider(): ConnectionProvider;
 
     /**
-     * Variables de entorno que faltan para usar este proveedor (vacío = configurado).
+     * Ajustes de la plataforma que faltan para usar este proveedor (vacío = configurado), con su clave de
+     * Plataforma → Ajustes (`meta.app_id`, `google.client_secret`…).
      *
      * @return list<string>
      */

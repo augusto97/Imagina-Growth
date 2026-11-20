@@ -6,7 +6,7 @@
         "retrain": "Reentrenar modelos",
         "queued": "Recalculando. Tarda unos minutos.",
         "queuedTrain": "Reentrenando los modelos. Tarda unos minutos.",
-        "mlMissing": "El servicio de predicciones no está configurado (IGR_ML_URL e IGR_ML_TOKEN): el abandono usa la heurística de días sin comprar y el CLV previsto no se calcula.",
+        "mlMissing": "El servicio de predicciones no está disponible en esta instalación: el abandono usa la heurística de días sin comprar y el CLV previsto no se calcula. Quien administra la plataforma lo ve en Plataforma → Instalación.",
         "coverage": {
             "clv": "Clientes con CLV previsto",
             "churn": "Clientes con riesgo de abandono",

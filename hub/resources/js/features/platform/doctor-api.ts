@@ -12,6 +12,22 @@ export interface DoctorCheck {
     title: string;
     detail: string;
     items: string[];
+    /** Dónde se arregla en Plataforma, como consulta de la pantalla (`pestana=ajustes&seccion=mail`). */
+    link: string | null;
+}
+
+/** Los parámetros de Plataforma que abren dónde se arregla un punto (solo `pestana` y `seccion`), o null. */
+export function doctorLinkParams(link: string | null | undefined, current: URLSearchParams): URLSearchParams | null {
+    if (!link) return null;
+    const target = new URLSearchParams(link);
+    const tab = target.get('pestana');
+    if (!tab) return null;
+    const next = new URLSearchParams(current);
+    next.set('pestana', tab);
+    const section = target.get('seccion');
+    if (section) next.set('seccion', section);
+    else next.delete('seccion');
+    return next;
 }
 
 export interface DoctorReport {
