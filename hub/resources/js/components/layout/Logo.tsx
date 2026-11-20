@@ -18,7 +18,10 @@ export function Logo({ className, compact = false, brand }: { className?: string
                     <img src={b.logo_url} alt={b.name} className="igr:h-6 igr:max-w-32 igr:shrink-0 igr:object-contain" />
                 ) : (
                     <span
-                        className={cn('igr:flex igr:size-6 igr:shrink-0 igr:items-center igr:justify-center igr:rounded-md igr:text-xs igr:font-semibold igr:text-white', color ? null : 'igr:bg-primary')}
+                        className={cn(
+                            'igr:flex igr:size-6 igr:shrink-0 igr:items-center igr:justify-center igr:rounded-md igr:text-xs igr:font-semibold',
+                            color ? 'igr:text-white' : 'igr:bg-primary igr:text-primary-foreground',
+                        )}
                         style={color ? { background: color } : undefined}
                         aria-hidden
                     >
@@ -31,10 +34,10 @@ export function Logo({ className, compact = false, brand }: { className?: string
     }
     return (
         <div className={cn('igr:flex igr:items-center igr:gap-2', className)}>
-            <svg viewBox="0 0 32 32" className="igr:size-6 igr:shrink-0" aria-hidden>
+            <svg viewBox="0 0 32 32" className="igr:size-6 igr:shrink-0 igr:text-primary-foreground" aria-hidden>
                 <rect width="32" height="32" rx="8" className="igr:fill-primary" />
-                <path d="M9 21.5 14 15l4 3.5 5-7.5" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="23" cy="11" r="2" fill="white" />
+                <path d="M9 21.5 14 15l4 3.5 5-7.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="23" cy="11" r="2" fill="currentColor" />
             </svg>
             {compact ? null : <span className="igr:text-sm igr:font-semibold igr:tracking-tight">Imagina Growth</span>}
         </div>

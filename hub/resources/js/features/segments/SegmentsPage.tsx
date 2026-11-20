@@ -160,6 +160,9 @@ export function SegmentsPage() {
     );
 }
 
+/** Un segmento dinámico que todavía no se calcula: sus cifras aún no existen. */
+const pending = (s: { last_computed_at: string | null; kind: string }) => s.last_computed_at === null && s.kind === 'dynamic';
+
 function SegmentTable({ items }: { items: SegmentSummary[] }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
@@ -191,10 +194,11 @@ function SegmentTable({ items }: { items: SegmentSummary[] }) {
                             </Link>
                             {s.description ? <p className="igr:truncate igr:text-xs igr:text-muted-foreground">{s.description}</p> : null}
                         </TD>
-                        <TD className="igr:text-right igr:font-medium igr:tabular-nums">{s.last_computed_at === null && s.kind === 'dynamic' ? <span className="igr:text-xs igr:font-normal igr:text-muted-foreground">{t('segments.computing')}</span> : formatNumber(s.member_count, workspace.locale)}</TD>
-                        <TD className="igr:text-right igr:tabular-nums igr:text-muted-foreground">{formatNumber(s.channel_counts.whatsapp ?? 0, workspace.locale)}</TD>
-                        <TD className="igr:text-right igr:tabular-nums igr:text-muted-foreground">{formatNumber(s.channel_counts.email ?? 0, workspace.locale)}</TD>
-                        <TD className="igr:text-right igr:tabular-nums">{formatMoney(s.revenue_ws, workspace.currency, workspace.locale)}</TD>
+                        <TD className="igr:text-right igr:font-medium igr:tabular-nums">{pending(s) ? <span className="igr:text-xs igr:font-normal igr:text-muted-foreground">{t('segments.computing')}</span> : formatNumber(s.member_count, workspace.locale)}</TD>
+                        {/* Mientras se calcula por primera vez, nada de ceros que parecen datos (U6). */}
+                        <TD className="igr:text-right igr:tabular-nums igr:text-muted-foreground">{pending(s) ? '—' : formatNumber(s.channel_counts.whatsapp ?? 0, workspace.locale)}</TD>
+                        <TD className="igr:text-right igr:tabular-nums igr:text-muted-foreground">{pending(s) ? '—' : formatNumber(s.channel_counts.email ?? 0, workspace.locale)}</TD>
+                        <TD className="igr:text-right igr:tabular-nums">{pending(s) ? <span className="igr:text-muted-foreground">—</span> : formatMoney(s.revenue_ws, workspace.currency, workspace.locale)}</TD>
                         <TD className="igr:text-right igr:text-xs igr:text-muted-foreground">{s.last_computed_at ? formatRelative(s.last_computed_at, workspace.locale) : '—'}</TD>
                     </TR>
                 ))}

@@ -49,10 +49,11 @@ export function useOverview(ws: string) {
     return useQuery({ queryKey: keys.overview(ws), queryFn: ({ signal }) => api.get<Overview>(`${w(ws)}/overview`, signal) });
 }
 
-export function useSites(ws: string) {
+export function useSites(ws: string, enabled = true) {
     return useQuery({
         queryKey: keys.sites(ws),
         queryFn: async ({ signal }) => (await api.get<{ sites: Site[] }>(`${w(ws)}/sites`, signal)).sites,
+        enabled,
     });
 }
 

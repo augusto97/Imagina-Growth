@@ -13,7 +13,8 @@ import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { formatDate, formatDateTime, formatNumber, formatRelative } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { ReconciliationTable } from './ReconciliationTable';
-import { BackfillBadge, BackfillProgress, SiteStatusBadge } from './SiteBits';
+import { BackfillBadge, BackfillProgress } from './SiteBits';
+import { eventLabel, SiteHealthBadge, SiteHealthPanel } from './SiteHealth';
 import { SiteActions } from './SiteActions';
 
 function Copyable({ value }: { value: string }) {
@@ -66,7 +67,7 @@ export function SiteDetailPage() {
                 <div>
                     <div className="igr:flex igr:items-center igr:gap-2">
                         <h1 className="igr:text-lg igr:font-semibold igr:tracking-tight">{site.name ?? site.host}</h1>
-                        <SiteStatusBadge status={site.status} />
+                        <SiteHealthBadge site={site} />
                     </div>
                     <a href={site.url} target="_blank" rel="noreferrer" className="igr:mt-0.5 igr:inline-flex igr:items-center igr:gap-1 igr:text-[13px] igr:text-muted-foreground igr:hover:text-foreground">
                         {site.host}
@@ -75,6 +76,8 @@ export function SiteDetailPage() {
                 </div>
                 <SiteActions workspaceId={workspace.id} site={site} canManage={canManage} />
             </div>
+
+            <SiteHealthPanel site={site} />
 
             <Tabs defaultValue="import">
                 <TabsList>
@@ -164,7 +167,7 @@ export function SiteDetailPage() {
                                     <TBody>
                                         {events.map((e) => (
                                             <TR key={e.event}>
-                                                <TD className="igr:font-mono igr:text-xs">{e.event}</TD>
+                                                <TD title={e.event}>{eventLabel(t, e.event)}</TD>
                                                 <TD className="igr:text-right igr:tabular-nums">{formatNumber(e.c, locale)}</TD>
                                             </TR>
                                         ))}
@@ -195,7 +198,7 @@ export function SiteDetailPage() {
                                         {rejections.map((r, i) => (
                                             <TR key={`${r.event_id ?? ''}-${i}`}>
                                                 <TD className="igr:whitespace-nowrap igr:text-muted-foreground">{formatRelative(r.created_at, locale)}</TD>
-                                                <TD className="igr:font-mono igr:text-xs">{r.event ?? '—'}</TD>
+                                                <TD title={r.event ?? undefined}>{r.event ? eventLabel(t, r.event) : '—'}</TD>
                                                 <TD>
                                                     <Badge variant="destructive">{t(`sites.rejections.reasons.${r.reason}`, { defaultValue: r.reason })}</Badge>
                                                 </TD>

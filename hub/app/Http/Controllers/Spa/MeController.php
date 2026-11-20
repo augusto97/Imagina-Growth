@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Spa;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
+use App\Domain\Workspaces\Queries\WorkspaceFeatures;
 use App\Http\Controllers\Spa\Concerns\Presenters;
 use App\Http\Middleware\ResolveWorkspace;
 use Illuminate\Http\JsonResponse;
@@ -15,7 +16,7 @@ use Illuminate\Http\Request;
 /** GET /api/me: la persona, su 2FA y sus espacios de trabajo con el rol efectivo. */
 final class MeController
 {
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(Request $request, WorkspaceFeatures $features): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
@@ -24,11 +25,13 @@ final class MeController
         $accountIds = $user->accounts()->pluck('accounts.id');
         $viaAgency = Workspace::query()->whereIn('account_id', $accountIds)->whereNotIn('id', $direct->modelKeys())->get();
 
-        $workspaces = $direct->concat($viaAgency)
-            ->map(function (Workspace $ws) use ($user): array {
+        $all = $direct->concat($viaAgency)->values();
+        $computed = $features->forMany($all);
+        $workspaces = $all
+            ->map(function (Workspace $ws) use ($user, $computed): array {
                 $role = ResolveWorkspace::roleFor($user, $ws) ?? WorkspaceRole::Viewer;
 
-                return Presenters::workspace($ws, $role);
+                return Presenters::workspace($ws, $role, $computed[$ws->id] ?? null);
             })
             ->sortBy('name')
             ->values();

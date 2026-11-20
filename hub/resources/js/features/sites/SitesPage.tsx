@@ -11,7 +11,8 @@ import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { formatRelative } from '@/lib/format';
 import { ConnectManualDialog } from './ConnectManualDialog';
 import { PluginDownloadButton } from './PluginDownload';
-import { BackfillBadge, SiteStatusBadge } from './SiteBits';
+import { BackfillBadge } from './SiteBits';
+import { causeTitle, SiteHealthBadge } from './SiteHealth';
 
 export function SitesPage() {
     const { t } = useTranslation();
@@ -95,7 +96,12 @@ export function SitesPage() {
                                         </Link>
                                     </TD>
                                     <TD>
-                                        <SiteStatusBadge status={site.status} />
+                                        <div className="igr:flex igr:flex-col igr:items-start igr:gap-1">
+                                            <SiteHealthBadge site={site} />
+                                            {site.health_status?.causes[0] && site.status !== 'disconnected' ? (
+                                                <span className="igr:max-w-64 igr:text-xs igr:text-muted-foreground">{causeTitle(t, site.health_status.causes[0])}</span>
+                                            ) : null}
+                                        </div>
                                     </TD>
                                     <TD>
                                         <div className="igr:flex igr:items-center igr:gap-2">

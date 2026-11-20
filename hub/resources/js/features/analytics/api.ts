@@ -206,7 +206,12 @@ export interface SearchesData {
 /* 7. Geografía */
 export interface GeographyData {
     regions: { region: string; orders: number; revenue: number; aov: number }[];
-    cities: { city: string; region: string; orders: number; revenue: number; sessions: number | null; conversion: number | null }[];
+    /** conversion es null sin visitas de esa ciudad o con menos de min_sessions (low_sample). */
+    cities: { city: string; region: string; orders: number; revenue: number; sessions: number | null; conversion: number | null; low_sample?: boolean }[];
+    sessions?: { total: number; without_city: number; without_city_share: number };
+    min_sessions?: number;
+    /** Hay pedidos pero ninguna visita terminó en compra: la conversión no se puede calcular. */
+    conversion_unavailable?: boolean;
 }
 
 /* 8. Cupones */
@@ -258,7 +263,33 @@ export interface HdyhauData {
     matrix: { answer: string; channel: string; responses: number }[];
 }
 
-export type MessagingData = Unavailable;
+/* 9. Mensajería */
+export interface MessagingCounts {
+    total: number;
+    sent: number;
+    delivered: number;
+    read: number;
+    opened: number;
+    clicked: number;
+    replied: number;
+    unsubscribed: number;
+    complained: number;
+    bounced: number;
+    failed: number;
+    orders: number;
+    revenue: number;
+}
+export interface MessagingData {
+    available: true;
+    empty: boolean;
+    totals: MessagingCounts;
+    compare: MessagingCounts | null;
+    by_channel: (MessagingCounts & { channel: string })[];
+    by_source: (MessagingCounts & { type: 'flow' | 'campaign' | 'inbox' | 'other'; id: string | null; name: string | null; channels: string[] })[];
+    series: { date: string; sent: number; delivered: number; clicked: number }[];
+    /** Las aperturas no cuentan las automáticas de Apple (con ClickHouse disponible). */
+    opens_exclude_mpp: boolean;
+}
 
 export interface DashboardDataMap {
     overview: OverviewData;

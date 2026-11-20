@@ -88,7 +88,7 @@
         },
         "checks": {
             "title": "Revisión",
-            "help": "Lo que revisa el hub antes de usar la plantilla. Los errores impiden marcarla como lista.",
+            "help": "Lo que revisamos antes de usar la plantilla. Los errores impiden marcarla como lista.",
             "liveHelp": "Revisión rápida mientras editas. Al guardar se hace la revisión completa.",
             "ok": "Todo en orden",
             "error": "Error",

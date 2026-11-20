@@ -28,7 +28,7 @@
             "searches": "Lo que la gente busca en tu tienda y lo que no encuentra.",
             "geography": "Ventas y conversión por departamento y ciudad.",
             "coupons": "Cuánto se usan los cupones, cuánto cuestan y si tus clientes ya solo compran con descuento.",
-            "messaging": "Resultados de WhatsApp, correo y SMS.",
+            "messaging": "Lo que lograron tus mensajes de WhatsApp, correo y SMS: entregas, lecturas, clics, respuestas, bajas y ventas.",
             "profitability": "Margen por producto y retorno de la inversión en anuncios.",
             "services": "Formularios, clics a WhatsApp y llamadas: los leads de tu sitio.",
             "hdyhau": "Lo que tus clientes dicen sobre cómo te conocieron, frente a lo que mide el sitio."
@@ -348,7 +348,7 @@
         },
         "searches": {
             "empty": "Aún no hay búsquedas en este periodo",
-            "emptyHelp": "Las búsquedas llegan del tracker del sitio. Si tu tienda no tiene buscador, este tablero queda vacío.",
+            "emptyHelp": "Las búsquedas llegan del código de seguimiento de tu sitio. Si tu tienda no tiene buscador, este tablero queda vacío.",
             "title": "Lo más buscado",
             "term": "Búsqueda",
             "searches": "Búsquedas",
@@ -366,10 +366,15 @@
             "region": "Departamento o estado",
             "city": "Ciudad",
             "regionsTitle": "Ventas por departamento",
-            "regionsDescription": "Según la dirección de facturación de los pedidos pagados.",
+            "regionsDescription": "Según la dirección de envío de los pedidos pagados.",
             "regionDetail": "{{orders}} pedidos · ticket de {{aov}}",
             "citiesTitle": "Ciudades",
-            "citiesDescription": "Pedidos por la dirección de facturación; sesiones y conversión por la ubicación aproximada de la visita."
+            "citiesDescription": "Pedidos por la dirección de envío; visitas y conversión por la ubicación aproximada de la conexión.",
+            "conversionHelp": "Compras sobre visitas desde esa ciudad. Solo se calcula con {{min}} visitas o más: con menos, una sola compra cambia mucho la cifra.",
+            "fewVisits": "Pocas visitas",
+            "lowSample": "Menos de {{min}} visitas en el periodo: la conversión no sería confiable.",
+            "withoutCity": "El {{share}} de las visitas no tiene ciudad (la ubicación por conexión no siempre la da), así que las visitas por ciudad son aproximadas.",
+            "unlinked": "La conversión por ciudad no está disponible: las compras de este periodo no quedaron ligadas a una visita. Suele pasar cuando el código de seguimiento no carga en la página de pago; revisa la salud del sitio en Sitios."
         },
         "coupons": {
             "share": "Pedidos con cupón",
@@ -387,8 +392,65 @@
             "trendDescription": "Parte de los pedidos pagados que usaron al menos un cupón."
         },
         "messaging": {
-            "title": "Mensajería en camino",
-            "soon": "Este tablero se llena cuando conectes WhatsApp, correo o SMS y envíes mensajes: entregas, lecturas, clics, ventas atribuidas a cada mensaje y bajas."
+            "emptyTitle": "Todavía no hay mensajes en este periodo",
+            "emptyDescription": "Cuando conectes WhatsApp o tu correo y actives un flujo o envíes una campaña, aquí verás entregas, lecturas, clics, respuestas, bajas y las ventas de cada mensaje.",
+            "connectChannel": "Conectar un canal",
+            "activateFlow": "Activar un flujo",
+            "sent": "Enviados",
+            "sentHelp": "Mensajes que salieron hacia el proveedor en el periodo (flujos, campañas, bandeja y avisos). No cuenta los que la política de envío frenó por consentimiento, horario o frecuencia.",
+            "delivered": "Entregados",
+            "deliveryRate": "Entrega",
+            "read": "Leídos",
+            "readRate": "Lectura en WhatsApp",
+            "readHelp": "WhatsApp avisa cuando la persona abre el mensaje (si no desactivó las confirmaciones de lectura).",
+            "opened": "Aperturas",
+            "openRate": "Apertura del correo",
+            "openedHelp": "Sin las aperturas automáticas de Apple Mail, que abren todos los correos aunque nadie los lea.",
+            "openedMppHelp": "Las aperturas del correo incluyen las automáticas de Apple Mail: tómalas como una referencia, no como lecturas reales.",
+            "clicked": "Clics",
+            "clickRate": "Clics",
+            "clickRateHelp": "Personas que tocaron al menos un enlace del mensaje, sobre los mensajes entregados.",
+            "clicksHint_one": "{{formatted}} mensaje con clic",
+            "clicksHint_other": "{{formatted}} mensajes con clic",
+            "replied": "Respuestas",
+            "unsubscribed": "Bajas",
+            "unsubscribeRate": "Bajas",
+            "problems": "Rebotes y fallos",
+            "problemsHelp": "Correos que rebotaron y mensajes que el proveedor no pudo enviar. Si suben, revisa la calidad del número o del dominio en Canales.",
+            "orders": "Ventas",
+            "ordersHint_one": "{{formatted}} venta",
+            "ordersHint_other": "{{formatted}} ventas",
+            "revenue": "Ventas atribuidas",
+            "revenueHelp": "Pedidos pagados del periodo que llegaron después de un clic en un mensaje (o de leerlo, si lo activaste), dentro de la ventana de atribución.",
+            "countHint_one": "{{formatted}} mensaje",
+            "countHint_other": "{{formatted}} mensajes",
+            "seriesTitle": "Mensajes enviados",
+            "seriesDescription": "Cuántos mensajes salieron en cada día del periodo.",
+            "byChannelTitle": "Por canal",
+            "byChannelDescription": "El porcentaje al lado de cada cifra es sobre lo entregado.",
+            "bySourceTitle": "Por flujo o campaña",
+            "bySourceDescription": "Qué automatización o envío trajo más ventas.",
+            "channelCol": "Canal",
+            "sourceCol": "Flujo o campaña",
+            "channel": {
+                "whatsapp": "WhatsApp",
+                "email": "Correo",
+                "sms": "SMS",
+                "messenger": "Messenger",
+                "instagram": "Instagram"
+            },
+            "source": {
+                "inbox": "Bandeja",
+                "other": "Otros envíos",
+                "unnamed": "Sin nombre",
+                "type": {
+                    "flow": "Flujo",
+                    "campaign": "Campaña",
+                    "inbox": "Respuestas del equipo",
+                    "other": "API y avisos del sistema"
+                }
+            },
+            "perMessage": "{{value}} por mensaje"
         },
         "profit": {
             "noCosts": "Falta el costo de tus productos",

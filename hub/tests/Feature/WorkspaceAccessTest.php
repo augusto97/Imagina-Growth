@@ -105,7 +105,7 @@ it('invita, acepta, cambia de rol y protege al último dueño', function () {
 it('responde los errores de validación en español', function () {
     $this->postJson('/auth/register', ['name' => '', 'email' => 'no-es-correo', 'password' => 'x'])
         ->assertUnprocessable()
-        ->assertJsonPath('errors.email.0', 'El correo debe ser un correo válido.')
+        ->assertJsonPath('errors.email.0', 'Escribe un correo válido.')
         ->assertJsonPath('errors.name.0', 'El nombre es obligatorio.');
 });
 

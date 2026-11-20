@@ -148,7 +148,7 @@
                 "successPlaceholder": "Es un valor estimado…"
             },
             "preview": "Vista previa",
-            "previewHelp": "Calculado en el hub con lo que tienes en pantalla, sin guardar.",
+            "previewHelp": "Calculado con lo que tienes en pantalla, sin guardar.",
             "choosePackage": "Paquete",
             "estimate": "Precio estimado",
             "previewCapture": "En el sitio, el precio aparece después de dejar los datos de contacto.",

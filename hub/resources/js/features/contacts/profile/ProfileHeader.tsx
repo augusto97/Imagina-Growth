@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { formatDate, formatMoney } from '@/lib/format';
+import { regionName } from '@/lib/regions';
 import { toast } from '@/stores/toast';
 import { useContactAbilities } from '../abilities';
 import { type ContactProfile, useUpdateContact } from '../api';
@@ -18,7 +19,9 @@ export function ProfileHeader({ profile, actions }: { profile: ContactProfile; a
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const name = profile.name !== '' ? profile.name : t('contacts.noName');
-    const place = [profile.city, profile.region_code].filter(Boolean).join(', ');
+    // El departamento por su nombre, no por su código (CO-DC → Bogotá D.C.), y sin repetir la ciudad.
+    const region = regionName(t, profile.region_code);
+    const place = [profile.city, region !== profile.city ? region : null].filter(Boolean).join(', ');
     const money = (v: string | null) => formatMoney(v, profile.currency, workspace.locale);
 
     return (

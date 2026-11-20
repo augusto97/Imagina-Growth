@@ -10,15 +10,21 @@ use App\Domain\Workspaces\Contracts\Branding;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
+use App\Domain\Workspaces\Queries\WorkspaceFeatures;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 /** Formas JSON compartidas por los controladores de la SPA (IDs con prefijo). */
 final class Presenters
 {
-    /** @return array<string, mixed> */
-    public static function workspace(Workspace $ws, ?WorkspaceRole $role = null): array
+    /**
+     * @param  array{modules: list<string>, capabilities: array{store: bool|null, services: bool|null}}|null  $features  ya calculados en lote (WorkspaceFeatures::forMany)
+     * @return array<string, mixed>
+     */
+    public static function workspace(Workspace $ws, ?WorkspaceRole $role = null, ?array $features = null): array
     {
+        $features ??= app(WorkspaceFeatures::class)->for($ws);
+
         return [
             'id' => $ws->publicId(),
             'name' => $ws->name,
@@ -44,6 +50,9 @@ final class Presenters
             'billing' => self::billing($ws),
             'branding' => self::branding($ws),
             'requires_two_factor' => $role?->requiresTwoFactor() ?? false,
+            // U2: el menú oculta los módulos fuera del plan y lo que no aplica al tipo de negocio.
+            'modules' => $features['modules'],
+            'capabilities' => $features['capabilities'],
         ];
     }
 

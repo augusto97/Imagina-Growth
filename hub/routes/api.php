@@ -3,6 +3,7 @@
 use App\Http\Controllers\Connector\ExchangeController;
 use App\Http\Controllers\Spa\AuditLogController;
 use App\Http\Controllers\Spa\ContactController;
+use App\Http\Controllers\Spa\GettingStartedController;
 use App\Http\Controllers\Spa\InvitationController;
 use App\Http\Controllers\Spa\MeController;
 use App\Http\Controllers\Spa\MemberController;
@@ -30,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/', [WorkspaceController::class, 'show']);
         Route::patch('/', [WorkspaceController::class, 'update']);
         Route::get('overview', OverviewController::class);
+        Route::get('getting-started', GettingStartedController::class);
 
         Route::get('members', [MemberController::class, 'index']);
         Route::patch('members/{member}', [MemberController::class, 'update']);
@@ -45,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('sites/{site}/commands/{command}', [SiteController::class, 'command'])->where('command', '[a-z_.]+');
 
         Route::get('contacts', [ContactController::class, 'index']);
+        Route::get('contacts/search', [ContactController::class, 'search'])->middleware('throttle:120,1');
         Route::get('audit-logs', AuditLogController::class);
 
         // Cada módulo agrega sus rutas del espacio de trabajo en routes/api/<módulo>.php.

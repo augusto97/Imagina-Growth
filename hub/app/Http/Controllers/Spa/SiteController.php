@@ -9,6 +9,7 @@ use App\Domain\Sites\Actions\CreateConnectCode;
 use App\Domain\Sites\Actions\DisconnectSite;
 use App\Domain\Sites\Actions\RotateSiteSecret;
 use App\Domain\Sites\Actions\SendSiteCommand;
+use App\Domain\Sites\Health\SiteHealth;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Sites\Queries\ReconciliationQuery;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
@@ -26,16 +27,18 @@ final class SiteController
 {
     public function __construct(private readonly CurrentWorkspace $current) {}
 
-    /** GET /api/w/{workspace}/sites */
-    public function index(): JsonResponse
+    /** GET /api/w/{workspace}/sites — con el semáforo de salud de cada sitio (U4). */
+    public function index(SiteHealth $health): JsonResponse
     {
         Gate::authorize('ws.viewSites');
+        $sites = Site::query()->orderBy('created_at')->get();
+        $status = $health->forSites($this->current->get(), $sites);
 
-        return response()->json(['sites' => Site::query()->orderBy('created_at')->get()->map(fn (Site $s) => Presenters::site($s))]);
+        return response()->json(['sites' => $sites->map(fn (Site $s) => Presenters::site($s) + ['health_status' => $status[$s->id] ?? null])]);
     }
 
     /** GET /api/w/{workspace}/sites/{site} */
-    public function show(string $site, ReconciliationQuery $reconciliation): JsonResponse
+    public function show(string $site, ReconciliationQuery $reconciliation, SiteHealth $health): JsonResponse
     {
         Gate::authorize('ws.viewSites');
         $model = $this->find($site);
@@ -57,7 +60,7 @@ final class SiteController
         }
 
         return response()->json([
-            'site' => Presenters::site($model, detail: true),
+            'site' => Presenters::site($model, detail: true) + ['health_status' => $health->forSite($this->current->get(), $model)],
             'reconciliation' => $reconciliation->handle($model),
             'rejections' => $rejections,
             'events_24h' => $events24h,

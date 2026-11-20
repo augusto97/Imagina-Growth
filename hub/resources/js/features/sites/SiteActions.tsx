@@ -9,8 +9,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useWorkspace } from '@/hooks/useWorkspace';
 import { api, isApiError } from '@/lib/api';
 import { toast } from '@/stores/toast';
+import { DiagnosticsSummary } from './DiagnosticsSummary';
 
 type Pending = null | 'diagnostics' | 'backfill' | 'rotate' | 'disconnect';
 
@@ -25,6 +27,7 @@ export function SiteActions({ workspaceId, site, canManage }: { workspaceId: str
     const [diagnostics, setDiagnostics] = useState<unknown>(null);
     const [from, setFrom] = useState('');
     const [restart, setRestart] = useState(false);
+    const { workspace } = useWorkspace();
     const base = `${wsPath(workspaceId)}/sites/${site.id}`;
     const refresh = () => {
         void qc.invalidateQueries({ queryKey: keys.site(workspaceId, site.id) });
@@ -114,9 +117,13 @@ export function SiteActions({ workspaceId, site, canManage }: { workspaceId: str
                         <DialogTitle>{t('sites.actions.diagnosticsTitle', { host: site.host })}</DialogTitle>
                         <DialogDescription>{t('sites.actions.diagnosticsDescription')}</DialogDescription>
                     </DialogHeader>
-                    <pre className="igr:max-h-[50vh] igr:overflow-auto igr:rounded-lg igr:bg-muted igr:p-3 igr:font-mono igr:text-xs igr:leading-relaxed" aria-busy={command.isPending}>
-                        {diagnostics === null ? t('common.loading') : JSON.stringify(diagnostics, null, 2)}
-                    </pre>
+                    {diagnostics === null ? (
+                        <p className="igr:text-[13px] igr:text-muted-foreground" aria-busy={command.isPending}>
+                            {t('common.loading')}
+                        </p>
+                    ) : (
+                        <DiagnosticsSummary data={diagnostics} locale={workspace.locale} />
+                    )}
                 </DialogContent>
             </Dialog>
 

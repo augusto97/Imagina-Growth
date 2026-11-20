@@ -64,17 +64,17 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | F3 | P1 | Webhooks de Meta (WhatsApp) responden 403 sin `IGR_META_APP_SECRET`. | `WebhookController` | ⏳ |
 | F4 | P1 | Falta la captura temprana del checkout (`checkout.contact_captured`). | tracker, plugin | ⏳ |
 | F5 | P1 | SES: error 500 sin credenciales y el configuration set `igr-events` nunca se crea. | canal de correo | 🔧 0.1.7: sin credenciales responde 422 con el motivo y el envío falla sin reintentar; falta crear el configuration set |
-| F6 | P1 | La salud del sitio nunca pasa a «degradado». | `SiteHealthProjector` | ⏳ |
+| F6 | P1 | La salud del sitio nunca pasa a «degradado». | `SiteHealthProjector` | ✅ (lote 3): `SiteHealth` calcula el semáforo y `igr:sites:health` (cada 10 min) marca `degraded` el sitio que no está al día y lo devuelve a `connected` al recuperarse |
 | F7 | P1 | Los contactos importados quedan con 0 consentimientos, sin forma de declarar el origen. | importación | ⏳ |
 | F8 | P1 | Inteligencia, RFM y atribución solo corren de noche: después de importar, todo en cero hasta el otro día. | scheduler | ✅ 0.1.7: al terminar la importación, `ProcessImportedHistory` (atribución, KPI, RFM y hallazgos) cuando la ingesta queda al día |
 | F9 | P1 | Mensajes que se quedan en `sending`. | `SendMessageJob` | ⏳ |
 | F10 | P1 | Se puede activar un flujo sin canal conectado. | flujos | ✅ 0.1.7: no se activa sin cuenta activa del canal que usa; desde la biblioteca queda publicado con el motivo |
-| F11 | P2 | Tablero de mensajería vacío (stub). | mensajería | ⏳ |
-| F12 | P2 | `kpi_daily` de sesiones atrasado; conversión por geografía engañosa. | analítica | ⏳ |
+| F11 | P2 | Tablero de mensajería vacío (stub). | mensajería | ✅ (lote 3): `MessagingDashboard` con datos reales de `messages` y sus eventos (enviados, entregados, leídos, aperturas sin Apple MPP, clics, respuestas, bajas, rebotes y fallos, ventas atribuidas e ingreso por mensaje) por canal y por flujo o campaña, con comparación y serie; índice `messages (workspace_id, direction, created_at)`. Falta costo y ROI (el costo está en USD y no hay tasa de cambio) |
+| F12 | P2 | `kpi_daily` de sesiones atrasado; conversión por geografía engañosa. | analítica | 🔧 (lote 3): la conversión por ciudad compara las ciudades sin tildes ni «D.C.» (la IP dice «Bogota», el pedido «Bogotá D.C.»), no sale con menos de 100 visitas («Pocas visitas») y avisa qué parte de las visitas no tiene ciudad; los departamentos salen con su nombre; sin compras ligadas a las visitas no muestra 0 % y explica por qué. Falta: `kpi_daily` de sesiones atrasado |
 | F13 | P2 | Textos «Fase N» en la interfaz. | SPA | ✅ 0.1.7: textos reescritos y el aviso viejo del copiloto de campañas quitado |
 | F14 | P2 | Nodos de flujo bloqueados (`assign_agent`, `lead_stage`, `crm_task`). | constructor de flujos | ⏳ |
 | F15 | P2 | Avisos de actualización del plugin; `platform doctor`; `igr:admin:create`; tarifas de WhatsApp sin sembrar. | plataforma | ⏳ |
-| F16 | P2 | «Primeros pasos» no guía a la primera venta recuperada. | inicio | ⏳ |
+| F16 | P2 | «Primeros pasos» no guía a la primera venta recuperada. | inicio | ✅ (lote 3): camino de 5 pasos con datos reales (`GET getting-started`): sitio → importación → canal → flujo de carrito abandonado → primera venta recuperada con el monto (servicios: flujo «Lead de servicios» y primer lead ganado); se oculta con todo listo |
 
 ## 4. Interfaz y experiencia
 
@@ -84,12 +84,12 @@ generado sale en $0 y hay jerga técnica por todas partes. Las capturas están e
 | # | P | Hallazgo | Estado |
 |---|---|---|---|
 | U1 | P1 | Panel inutilizable en el celular (barra lateral fija). | ✅ 0.1.7: barra superior con menú lateral que se cierra al navegar; márgenes más chicos |
-| U2 | P1 | Menú de 29 entradas sin agrupar. | ⏳ |
+| U2 | P1 | Menú de 29 entradas sin agrupar. | ✅ (lote 3): grupos por tarea (Clientes, Vender, Fidelizar, Medir, Configuración) plegables y recordados, el activo abierto; oculta módulos fuera del plan, lo de tiendas sin WooCommerce y lo de servicios en una tienda (`modules` y `capabilities` en `/api/me`); igual en el celular y en ⌘K |
 | U3 | P1 | Conectar WhatsApp exige pasos técnicos (ver §6). | ⏳ |
-| U4 | P2 | KPIs en 0 sin tracker y sitio «Conectado» sin datos: falta un semáforo de salud. | ⏳ |
-| U5 | P2 | Jerga: «Diagnóstico» del plugin, textos de conciliación, códigos en el perfil 360, el texto del código de conexión no coincide. | ⏳ |
-| U6 | P2 | ⌘K no busca contactos; bandeja y segmentos sin estado vacío útil; errores del servidor en inglés. | ⏳ |
-| U7 | P3 | Constructor de flujos apretado; contraste de algunos tokens. | ⏳ |
+| U4 | P2 | KPIs en 0 sin tracker y sitio «Conectado» sin datos: falta un semáforo de salud. | ✅ (lote 3): semáforo al día / con atraso / sin datos con causas concretas (servidor, navegador, WP-Cron, cola del plugin, versión mínima, rechazos, importación) y qué hacer, en Sitios, el detalle, el Inicio y Analítica (explica los KPI en 0 sin tracker) |
+| U5 | P2 | Jerga: «Diagnóstico» del plugin, textos de conciliación, códigos en el perfil 360, el texto del código de conexión no coincide. | ✅ (lote 3): «Revisar el plugin» con un resumen en palabras (tareas programadas, datos por enviar, errores; el JSON queda plegado para soporte); conciliación y datos recibidos sin «hub» ni códigos de eventos; departamentos por nombre en el perfil y en Geografía (CO, MX, VE); los pasos del código de conexión dicen lo que muestra el plugin; «el hub» y «tracker» fuera de los textos del dueño |
+| U6 | P2 | ⌘K no busca contactos; bandeja y segmentos sin estado vacío útil; errores del servidor en inglés. | ✅ (lote 3): ⌘K busca contactos (nombre, correo o teléfono con el índice ciego); la bandeja vacía explica cómo llegan los mensajes (conectar WhatsApp, botón en el sitio) o propone ver todas o quitar filtros; los segmentos sin calcular no muestran ceros; `lang/es/validation.php` con todas las reglas de Laravel (prueba que lo exige) |
+| U7 | P3 | Constructor de flujos apretado; contraste de algunos tokens. | 🔧 (lote 3): los textos de estado (éxito, aviso, error) y las insignias cumplen AA (4,5:1) en claro y en oscuro; `success-foreground` y `warning-foreground` para los rellenos; bordes de los campos más visibles (siguen bajo 3:1 por diseño). Falta: el constructor de flujos apretado |
 
 **Las cinco mejoras de mayor impacto:** dinero generado real; un camino guiado hasta la primera venta recuperada;
 WhatsApp sin fricción; celular y menú agrupado; quitar la jerga y mostrar un semáforo de salud.

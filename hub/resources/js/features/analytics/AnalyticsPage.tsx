@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Link, NavLink, useParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { EmptyState, ErrorState, PageHeader } from '@/components/ui/misc';
+import { useSites } from '@/api/queries';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
+import { SitesHealthNotice, trackerMissing } from '@/features/sites/SiteHealth';
 import { cn } from '@/lib/cn';
 import { DASHBOARDS, isDashboard, useDashboard, useMetricCatalog } from './api';
 import type { DashboardDataMap, DashboardResponse, DashboardSlug, MetricDefinition } from './api';
@@ -12,7 +14,8 @@ import { DashboardSkeleton } from './components/StatTile';
 import { ChannelsDashboard } from './dashboards/ChannelsDashboard';
 import { CustomersDashboard } from './dashboards/CustomersDashboard';
 import { FunnelDashboard } from './dashboards/FunnelDashboard';
-import { CouponsDashboard, GeographyDashboard, HdyhauDashboard, MessagingDashboard, ProfitabilityDashboard, SearchesDashboard, ServicesDashboard } from './dashboards/MoreDashboards';
+import { MessagingDashboard } from './dashboards/MessagingDashboard';
+import { CouponsDashboard, GeographyDashboard, HdyhauDashboard, ProfitabilityDashboard, SearchesDashboard, ServicesDashboard } from './dashboards/MoreDashboards';
 import { OverviewDashboard } from './dashboards/OverviewDashboard';
 import { ProductsDashboard } from './dashboards/ProductsDashboard';
 import { makeFormatters } from './format';
@@ -44,6 +47,9 @@ export function slugFromPath(path: string | undefined): DashboardSlug | null {
     }
     return isDashboard(path) ? path : null;
 }
+
+/** Tableros que dependen de las visitas del navegador (sin tracker salen en cero). */
+const TRAFFIC_DASHBOARDS: DashboardSlug[] = ['overview', 'funnel', 'channels', 'products', 'searches', 'geography', 'services'];
 
 /** Sin sesiones ni pedidos en el rango: no hay nada que dibujar. */
 function isEmpty(slug: DashboardSlug, data: unknown): boolean {
@@ -100,6 +106,7 @@ export function AnalyticsPage() {
     const { params, update, query, search } = useAnalyticsParams(workspace.timezone);
     const result = useDashboard(workspace.id, slug ?? 'overview', query, canView && slug !== null);
     const catalog = useMetricCatalog(workspace.id);
+    const sites = useSites(workspace.id, useCan('viewSites'));
     const base = `/w/${workspace.id}`;
     const fmt = makeFormatters(workspace.locale, result.data?.currency ?? workspace.currency);
 
@@ -142,7 +149,8 @@ export function AnalyticsPage() {
                     </NavLink>
                 ))}
             </nav>
-            {slug !== 'messaging' ? <FilterBar params={params} update={update} period={result.data?.period} fmt={fmt} /> : null}
+            <FilterBar params={params} update={update} period={result.data?.period} fmt={fmt} periodOnly={slug === 'messaging'} />
+            {TRAFFIC_DASHBOARDS.includes(slug) ? <SitesHealthNotice sites={(sites.data ?? []).filter((s) => trackerMissing(s.health_status))} base={base} className="igr:mb-4" /> : null}
             {result.isError ? (
                 <ErrorState error={result.error} onRetry={() => void result.refetch()} />
             ) : response === undefined ? (

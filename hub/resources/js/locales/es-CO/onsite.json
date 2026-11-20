@@ -53,7 +53,7 @@
             },
             "spin_wheel": {
                 "name": "Ruleta",
-                "description": "Gira y gana: el premio lo sortea el hub con tus probabilidades."
+                "description": "Gira y gana: el premio se sortea en Imagina Growth con tus probabilidades."
             },
             "teaser": {
                 "name": "Teaser",
@@ -160,7 +160,7 @@
                 "start": "Botón para empezar el quiz",
                 "success": "Mensaje de éxito",
                 "successHelp": "Usa {{code}} donde va el cupón. Si el widget no da cupón, esa frase no se muestra.",
-                "successWheelHelp": "Usa {{prize}} y {{code}}: el hub los llena con lo que salió en la ruleta.",
+                "successWheelHelp": "Usa {{prize}} y {{code}}: se llenan solos con lo que salió en la ruleta.",
                 "lose": "Mensaje si no gana premio",
                 "contactOptional": "Mostrar el resultado sin pedir datos",
                 "contactOptionalHelp": "Si está apagado, la persona deja su correo o WhatsApp para ver el resultado (recomendado).",
@@ -315,7 +315,7 @@
             "minimum": "Compra mínima ({{currency}})",
             "prizes": {
                 "title": "Premios de la ruleta",
-                "help": "Las probabilidades se quedan en el hub: el navegador solo ve los nombres.",
+                "help": "Las probabilidades se quedan en Imagina Growth: quien visita tu sitio solo ve los nombres de los premios.",
                 "label": "Nombre del premio",
                 "weight": "Peso",
                 "odds": "Probabilidad: {{value}}",

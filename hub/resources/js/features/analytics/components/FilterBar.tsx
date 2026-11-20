@@ -17,11 +17,14 @@ export function FilterBar({
     update,
     period,
     fmt,
+    periodOnly = false,
 }: {
     params: AnalyticsParams;
     update: (patch: Partial<AnalyticsParams>) => void;
     period: PeriodInfo | undefined;
     fmt: Formatters;
+    /** Solo rango y comparación (p. ej. mensajería, donde sitio, canal de llegada y ciudad no aplican). */
+    periodOnly?: boolean;
 }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
@@ -63,9 +66,23 @@ export function FilterBar({
             </div>
             {params.range === 'custom' ? (
                 <div className="igr:flex igr:items-center igr:gap-1">
-                    <Input type="date" aria-label={t('analytics.filters.from')} className="igr:w-auto" value={params.from} max={params.to} onChange={(e) => e.target.value && update({ range: 'custom', from: e.target.value, to: params.to })} />
+                    <Input
+                        type="date"
+                        aria-label={t('analytics.filters.from')}
+                        className="igr:w-auto"
+                        value={params.from}
+                        max={params.to}
+                        onChange={(e) => e.target.value && update({ range: 'custom', from: e.target.value, to: params.to })}
+                    />
                     <span className="igr:text-muted-foreground">–</span>
-                    <Input type="date" aria-label={t('analytics.filters.to')} className="igr:w-auto" value={params.to} min={params.from} onChange={(e) => e.target.value && update({ range: 'custom', from: params.from, to: e.target.value })} />
+                    <Input
+                        type="date"
+                        aria-label={t('analytics.filters.to')}
+                        className="igr:w-auto"
+                        value={params.to}
+                        min={params.from}
+                        onChange={(e) => e.target.value && update({ range: 'custom', from: params.from, to: e.target.value })}
+                    />
                 </div>
             ) : null}
             <Select aria-label={t('analytics.filters.compare')} className="igr:w-auto" value={params.compare} onChange={(e) => update({ compare: e.target.value as CompareMode })}>
@@ -75,7 +92,7 @@ export function FilterBar({
                     </option>
                 ))}
             </Select>
-            {siteList.length > 1 ? (
+            {!periodOnly && siteList.length > 1 ? (
                 <Select aria-label={t('analytics.filters.site')} className="igr:w-auto igr:max-w-48" value={params.site} onChange={(e) => update({ site: e.target.value })}>
                     <option value="">{t('analytics.filters.allSites')}</option>
                     {siteList.map((s) => (
@@ -85,24 +102,39 @@ export function FilterBar({
                     ))}
                 </Select>
             ) : null}
-            <Select aria-label={t('analytics.filters.channel')} className="igr:w-auto igr:max-w-48" value={params.channel} onChange={(e) => update({ channel: e.target.value })}>
-                <option value="">{t('analytics.filters.allChannels')}</option>
-                {CHANNELS.map((c) => (
-                    <option key={c} value={c}>
-                        {t(`analytics.channel.${c}`)}
-                    </option>
-                ))}
-            </Select>
-            <Select aria-label={t('analytics.filters.device')} className="igr:w-auto" value={params.device} onChange={(e) => update({ device: e.target.value })}>
-                <option value="">{t('analytics.filters.allDevices')}</option>
-                {DEVICES.map((d) => (
-                    <option key={d} value={d}>
-                        {t(`analytics.device.${d}`)}
-                    </option>
-                ))}
-            </Select>
-            <Input aria-label={t('analytics.filters.city')} placeholder={t('analytics.filters.cityPlaceholder')} className="igr:w-36" value={city} onChange={(e) => setCity(e.target.value)} />
-            {filters > 0 ? (
+            {periodOnly ? null : (
+                <>
+                    <Select
+                        aria-label={t('analytics.filters.channel')}
+                        className="igr:w-auto igr:max-w-48"
+                        value={params.channel}
+                        onChange={(e) => update({ channel: e.target.value })}
+                    >
+                        <option value="">{t('analytics.filters.allChannels')}</option>
+                        {CHANNELS.map((c) => (
+                            <option key={c} value={c}>
+                                {t(`analytics.channel.${c}`)}
+                            </option>
+                        ))}
+                    </Select>
+                    <Select aria-label={t('analytics.filters.device')} className="igr:w-auto" value={params.device} onChange={(e) => update({ device: e.target.value })}>
+                        <option value="">{t('analytics.filters.allDevices')}</option>
+                        {DEVICES.map((d) => (
+                            <option key={d} value={d}>
+                                {t(`analytics.device.${d}`)}
+                            </option>
+                        ))}
+                    </Select>
+                    <Input
+                        aria-label={t('analytics.filters.city')}
+                        placeholder={t('analytics.filters.cityPlaceholder')}
+                        className="igr:w-36"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                    />
+                </>
+            )}
+            {!periodOnly && filters > 0 ? (
                 <Button variant="ghost" size="sm" onClick={() => update({ site: '', channel: '', device: '', city: '' })}>
                     <X />
                     {t('analytics.filters.clear', { count: filters })}

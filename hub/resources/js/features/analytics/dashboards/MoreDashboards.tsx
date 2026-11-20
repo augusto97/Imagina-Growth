@@ -7,6 +7,7 @@ import { DataTable } from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import { Notice, Section } from '../components/Section';
 import { StatTile, TileGrid } from '../components/StatTile';
+import { regionName } from '@/lib/regions';
 import { useExporter, useLabels } from './shared';
 import type { DashboardProps } from './shared';
 
@@ -54,18 +55,33 @@ export function GeographyDashboard({ response, data, fmt }: DashboardProps<'geog
     type Region = GeographyData['regions'][number];
     type City = GeographyData['cities'][number];
     const regionColumns: Column<Region>[] = [
-        { key: 'region', label: t('analytics.geo.region'), render: (r) => labels.orNone(r.region), value: (r) => r.region },
+        { key: 'region', label: t('analytics.geo.region'), render: (r) => labels.orNone(regionName(t, r.region)), value: (r) => regionName(t, r.region) },
         { key: 'orders', label: t('analytics.metric.orders'), align: 'right', render: (r) => fmt.number(r.orders), value: (r) => r.orders },
         { key: 'revenue', label: t('analytics.metric.revenue'), align: 'right', render: (r) => fmt.money(r.revenue), value: (r) => r.revenue },
         { key: 'aov', label: t('analytics.metric.aov'), align: 'right', render: (r) => fmt.money(r.aov), value: (r) => r.aov },
     ];
     const cityColumns: Column<City>[] = [
         { key: 'city', label: t('analytics.geo.city'), render: (r) => labels.orNone(r.city), value: (r) => r.city },
-        { key: 'region', label: t('analytics.geo.region'), render: (r) => labels.orNone(r.region), value: (r) => r.region },
+        { key: 'region', label: t('analytics.geo.region'), render: (r) => labels.orNone(regionName(t, r.region)), value: (r) => regionName(t, r.region) },
         { key: 'orders', label: t('analytics.metric.orders'), align: 'right', render: (r) => fmt.number(r.orders), value: (r) => r.orders },
         { key: 'revenue', label: t('analytics.metric.revenue'), align: 'right', render: (r) => fmt.money(r.revenue), value: (r) => r.revenue },
         { key: 'sessions', label: t('analytics.metric.sessions'), align: 'right', render: (r) => fmt.number(r.sessions), value: (r) => r.sessions },
-        { key: 'conversion', label: t('analytics.col.conversion'), align: 'right', render: (r) => fmt.percent(r.conversion, 2), value: (r) => r.conversion },
+        {
+            key: 'conversion',
+            label: t('analytics.col.conversion'),
+            help: t('analytics.geo.conversionHelp', { min: fmt.number(data.min_sessions ?? 100) }),
+            align: 'right',
+            // Con pocas visitas, una compra mueve la tasa decenas de puntos: no se muestra.
+            render: (r) =>
+                r.low_sample ? (
+                    <span className="igr:text-muted-foreground" title={t('analytics.geo.lowSample', { min: fmt.number(data.min_sessions ?? 100) })}>
+                        {t('analytics.geo.fewVisits')}
+                    </span>
+                ) : (
+                    fmt.percent(r.conversion, 2)
+                ),
+            value: (r) => r.conversion,
+        },
     ];
     return (
         <div className="igr:grid igr:gap-4 igr:xl:grid-cols-[1fr_1.4fr]">
@@ -73,11 +89,17 @@ export function GeographyDashboard({ response, data, fmt }: DashboardProps<'geog
                 title={t('analytics.geo.regionsTitle')}
                 description={t('analytics.geo.regionsDescription')}
                 onExport={exporter(t('analytics.geo.regionsTitle'), regionColumns, data.regions)}
-                chart={<BarList rows={data.regions} label={(r) => labels.orNone(r.region)} value={(r) => r.revenue} format={(v) => fmt.money(v)} max={15} detail={(r) => t('analytics.geo.regionDetail', { orders: fmt.number(r.orders), aov: fmt.money(r.aov) })} />}
+                chart={<BarList rows={data.regions} label={(r) => labels.orNone(regionName(t, r.region))} value={(r) => r.revenue} format={(v) => fmt.money(v)} max={15} detail={(r) => t('analytics.geo.regionDetail', { orders: fmt.number(r.orders), aov: fmt.money(r.aov) })} />}
                 table={<DataTable columns={regionColumns} rows={data.regions} rowKey={(r) => r.region} />}
             />
             <Section title={t('analytics.geo.citiesTitle')} description={t('analytics.geo.citiesDescription')} onExport={exporter(t('analytics.geo.citiesTitle'), cityColumns, data.cities)} flush>
                 <DataTable columns={cityColumns} rows={data.cities} rowKey={(r) => `${r.city}-${r.region}`} limit={20} />
+                {data.conversion_unavailable ? <p className="igr:border-t igr:px-4 igr:py-3 igr:text-xs igr:text-muted-foreground">{t('analytics.geo.unlinked')}</p> : null}
+                {data.sessions && data.sessions.without_city_share >= 0.05 ? (
+                    <p className="igr:border-t igr:px-4 igr:py-3 igr:text-xs igr:text-muted-foreground">
+                        {t('analytics.geo.withoutCity', { share: fmt.percent(data.sessions.without_city_share, 0) })}
+                    </p>
+                ) : null}
             </Section>
         </div>
     );
@@ -137,11 +159,7 @@ export function CouponsDashboard({ response, data, fmt }: DashboardProps<'coupon
     );
 }
 
-/* 9. Mensajería (llega con la Fase 2) */
-export function MessagingDashboard({ data }: DashboardProps<'messaging'>) {
-    const { t } = useTranslation();
-    return <EmptyState icon={MessageCircle} title={t('analytics.messaging.title')} description={t('analytics.messaging.soon', { phase: data.phase ?? 2 })} />;
-}
+/* 9. Mensajería: dashboards/MessagingDashboard.tsx */
 
 /* 10. Rentabilidad */
 export function ProfitabilityDashboard({ response, data, fmt }: DashboardProps<'profitability'>) {

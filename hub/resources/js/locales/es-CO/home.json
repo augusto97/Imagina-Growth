@@ -12,6 +12,92 @@
         "attributedSummary_one": "{{count}} venta · {{share}} de tus ventas del periodo",
         "attributedSummary_other": "{{count}} ventas · {{share}} de tus ventas del periodo",
         "attributedEmpty": "Todavía no hay ventas atribuidas en este periodo. Activa el flujo de carrito abandonado: es el que primero recupera ventas.",
-        "attributedStart": "Ver flujos"
+        "attributedStart": "Ver flujos",
+        "guide": {
+            "title": {
+                "store": "Tu camino a la primera venta recuperada",
+                "services": "Tu camino al primer cliente ganado"
+            },
+            "description": {
+                "store": "Cinco pasos y la plataforma empieza a recuperar carritos sola. Aquí ves en cuál vas.",
+                "services": "Cinco pasos y la plataforma empieza a responder y hacer seguimiento a tus clientes potenciales sola."
+            },
+            "progress": "{{done}} de {{total}} listos",
+            "stateDone": "listo",
+            "statePending": "pendiente",
+            "and": " y ",
+            "channel": {
+                "email": "correo",
+                "whatsapp": "WhatsApp"
+            },
+            "askAdmin": "Pídeselo a un dueño o administrador.",
+            "askMarketing": "Pídeselo a alguien de marketing o a un administrador.",
+            "hide": "Ocultar",
+            "complete": {
+                "store": "¡Listo! La plataforma ya recupera ventas por ti.",
+                "services": "¡Listo! La plataforma ya te consigue clientes."
+            },
+            "actions": {
+                "connect": "Conectar el sitio",
+                "viewSite": "Ver el sitio",
+                "viewImport": "Ver el avance",
+                "fixImport": "Ver qué pasó",
+                "connectChannel": "Conectar un canal",
+                "activateFlow": "Activar el flujo",
+                "reviewFlow": "Revisar y activar",
+                "viewFlows": "Ver flujos"
+            },
+            "steps": {
+                "connect_site": {
+                    "title": "Conecta tu sitio",
+                    "help": "Instala el plugin Imagina Growth Connector en tu WordPress y conéctalo. Toma menos de 2 minutos.",
+                    "done": "Tu sitio está conectado.",
+                    "pending": "El sitio todavía no termina de conectarse. Revisa el plugin en tu WordPress."
+                },
+                "import": {
+                    "title": "Importa tu historial",
+                    "help": "Empieza sola al conectar el sitio: pedidos, clientes y productos de los últimos 24 meses, sin poner lento tu sitio.",
+                    "running": "Importando… {{pct}} %",
+                    "stopped": "La importación se detuvo. Mira qué pasó y vuelve a empezarla desde el sitio.",
+                    "done": "Tu historial ya está en Imagina Growth."
+                },
+                "channel": {
+                    "title": "Conecta WhatsApp o tu correo",
+                    "help": "Es por donde le escribimos a quien dejó su carrito. Con WhatsApp se recuperan más ventas.",
+                    "done": "Conectado: {{channels}}."
+                },
+                "flow": {
+                    "store": {
+                        "title": "Activa el flujo de carrito abandonado",
+                        "help": "Le escribe solo a quien dejó productos en el carrito: WhatsApp a la hora, correo a las 4 horas y un recordatorio al día siguiente.",
+                        "done": "El flujo de carrito abandonado está activo."
+                    },
+                    "services": {
+                        "title": "Activa el flujo «Lead de servicios»",
+                        "help": "Responde al instante a quien deja sus datos en tu sitio o por WhatsApp, y le hace seguimiento.",
+                        "done": "El flujo «Lead de servicios» está activo."
+                    },
+                    "status": {
+                        "draft": "El flujo está en borrador: revísalo y actívalo.",
+                        "paused": "El flujo está en pausa: actívalo de nuevo para que siga trabajando."
+                    }
+                },
+                "first_sale": {
+                    "store": {
+                        "title": "Tu primera venta recuperada",
+                        "help": "Cuando alguien compre después de recibir el mensaje, la verás aquí con su monto.",
+                        "done_one": "Recuperaste {{amount}} en {{count}} venta.",
+                        "done_other": "Ya recuperaste {{amount}} en {{count}} ventas; la primera fue de {{first}}."
+                    },
+                    "services": {
+                        "title": "Tu primer cliente ganado",
+                        "help": "Cuando ganes un cliente que llegó por la plataforma, lo verás aquí con su valor.",
+                        "done_one": "Ganaste {{amount}} con {{count}} cliente que llegó por la plataforma.",
+                        "done_other": "Ya ganaste {{amount}} con {{count}} clientes que llegaron por la plataforma; el primero fue de {{first}}."
+                    },
+                    "when": "Primera: {{date}}."
+                }
+            }
+        }
     }
 }

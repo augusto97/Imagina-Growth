@@ -1,13 +1,37 @@
+import { useQuery } from '@tanstack/react-query';
 import { Command } from 'cmdk';
-import { Moon, Plug, Plus, Sun, SunMoon, UserPlus } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { Loader2, Moon, Plug, Plus, Sun, SunMoon, User, UserPlus } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { useWorkspace } from '@/hooks/useWorkspace';
+import { wsPath } from '@/api/queries';
+import { useDebounced } from '@/hooks/useDebounced';
+import { useCan, useWorkspace } from '@/hooks/useWorkspace';
+import { api } from '@/lib/api';
 import { useUi } from '@/stores/ui';
 import { workspaceInitials } from './Sidebar';
-import { MAIN_NAV, SETTINGS_NAV } from './nav';
+import { itemPath, navContext, visibleNav } from './nav';
+
+interface ContactHit {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    city: string | null;
+    orders_count: number;
+}
+
+/** Contactos por nombre, correo o teléfono (índice ciego del hub; GET contacts/search). */
+function useContactSearch(ws: string, q: string, enabled: boolean) {
+    const term = useDebounced(q.trim(), 250);
+    return useQuery({
+        queryKey: ['ws', ws, 'contacts', 'search', term],
+        queryFn: async ({ signal }) => (await api.get<{ data: ContactHit[] }>(`${wsPath(ws)}/contacts/search?q=${encodeURIComponent(term)}`, signal)).data,
+        enabled: enabled && term.length >= 2,
+        staleTime: 30_000,
+    });
+}
 
 function Item({ onSelect, children, value }: { onSelect: () => void; children: ReactNode; value: string }) {
     return (
@@ -24,22 +48,32 @@ function Item({ onSelect, children, value }: { onSelect: () => void; children: R
 const groupClass =
     'igr:px-1 igr:py-1 igr:[&_[cmdk-group-heading]]:px-2 igr:[&_[cmdk-group-heading]]:py-1.5 igr:[&_[cmdk-group-heading]]:text-[11px] igr:[&_[cmdk-group-heading]]:font-medium igr:[&_[cmdk-group-heading]]:text-muted-foreground';
 
-/** Paleta ⌘K: navegar, cambiar de espacio de trabajo y acciones rápidas. */
+/** Paleta ⌘K: buscar contactos, navegar, cambiar de espacio de trabajo y acciones rápidas. */
 export function CommandPalette() {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const { workspace, me } = useWorkspace();
     const { commandOpen, setCommandOpen, setTheme } = useUi();
+    const canSearchContacts = useCan('viewAssignedContacts');
+    const [query, setQuery] = useState('');
+    const contacts = useContactSearch(workspace.id, query, commandOpen && canSearchContacts);
     const base = `/w/${workspace.id}`;
 
+    const close = (open: boolean) => {
+        setCommandOpen(open);
+        if (!open) {
+            setQuery('');
+        }
+    };
     const go = (path: string) => {
-        setCommandOpen(false);
+        close(false);
         void navigate(path);
     };
-    const pages = [...MAIN_NAV, ...SETTINGS_NAV].filter((i) => i.to !== undefined && (!i.ability || workspace.abilities.includes(i.ability)));
+    const groups = visibleNav(navContext(workspace));
+    const searching = canSearchContacts && query.trim().length >= 2;
 
     return (
-        <DialogPrimitive.Root open={commandOpen} onOpenChange={setCommandOpen}>
+        <DialogPrimitive.Root open={commandOpen} onOpenChange={close}>
             <DialogPrimitive.Portal>
                 <DialogPrimitive.Overlay className="igr:fixed igr:inset-0 igr:z-50 igr:bg-black/40" />
                 <DialogPrimitive.Content
@@ -49,23 +83,64 @@ export function CommandPalette() {
                     <DialogPrimitive.Title className="igr:sr-only">{t('command.title')}</DialogPrimitive.Title>
                     <Command label={t('command.title')} loop>
                         <Command.Input
-                            placeholder={t('command.placeholder')}
+                            value={query}
+                            onValueChange={setQuery}
+                            placeholder={canSearchContacts ? t('command.placeholderContacts') : t('command.placeholder')}
                             className="igr:h-11 igr:w-full igr:border-b igr:bg-transparent igr:px-4 igr:text-sm igr:outline-none igr:placeholder:text-muted-foreground"
                         />
                         <Command.List className="igr:max-h-80 igr:overflow-y-auto igr:p-1">
-                            <Command.Empty className="igr:py-8 igr:text-center igr:text-[13px] igr:text-muted-foreground">{t('command.empty')}</Command.Empty>
-                            <Command.Group heading={t('command.goTo')} className={groupClass}>
-                                {pages.map((item) => {
-                                    const Icon = item.icon;
-                                    return (
-                                        <Item key={item.key} value={`ir ${t(`nav.${item.key}`)}`} onSelect={() => go(item.to === '' ? base : `${base}/${item.to ?? ''}`)}>
-                                            <Icon />
-                                            {t(`nav.${item.key}`)}
-                                            {item.shortcut ? <span className="igr:ml-auto igr:text-[11px] igr:text-muted-foreground">G {item.shortcut.toUpperCase()}</span> : null}
+                            <Command.Empty className="igr:py-8 igr:text-center igr:text-[13px] igr:text-muted-foreground">
+                                {searching && contacts.isFetching ? t('command.searchingContacts') : t('command.empty')}
+                            </Command.Empty>
+                            {searching ? (
+                                <Command.Group heading={t('command.contacts')} className={groupClass}>
+                                    {contacts.isFetching && !contacts.data ? (
+                                        <Command.Loading>
+                                            <div className="igr:flex igr:items-center igr:gap-2 igr:px-2 igr:py-2 igr:text-[13px] igr:text-muted-foreground">
+                                                <Loader2 className="igr:size-4 igr:animate-spin" />
+                                                {t('command.searchingContacts')}
+                                            </div>
+                                        </Command.Loading>
+                                    ) : null}
+                                    {(contacts.data ?? []).map((c) => (
+                                        // El valor incluye lo escrito: el filtro de la paleta no esconde lo que encontró el servidor.
+                                        <Item key={c.id} value={`contacto ${query} ${c.id}`} onSelect={() => go(`${base}/contactos/${c.id}`)}>
+                                            <User />
+                                            <span className="igr:min-w-0 igr:flex-1">
+                                                <span className="igr:block igr:truncate">{c.name || c.email || c.phone || t('contacts.noName')}</span>
+                                                <span className="igr:block igr:truncate igr:text-[11px] igr:text-muted-foreground">
+                                                    {[c.email, c.phone, c.city].filter(Boolean).join(' · ')}
+                                                </span>
+                                            </span>
+                                            {c.orders_count > 0 ? (
+                                                <span className="igr:text-[11px] igr:text-muted-foreground">{t('command.orders', { count: c.orders_count })}</span>
+                                            ) : null}
                                         </Item>
-                                    );
-                                })}
-                            </Command.Group>
+                                    ))}
+                                    {contacts.data && contacts.data.length > 0 ? (
+                                        <Item value={`contacto ${query} ver todos`} onSelect={() => go(`${base}/contactos?q=${encodeURIComponent(query.trim())}`)}>
+                                            <User />
+                                            {t('command.allContacts', { q: query.trim() })}
+                                        </Item>
+                                    ) : null}
+                                </Command.Group>
+                            ) : null}
+                            {groups.map((group) => (
+                                <Command.Group key={group.key} heading={group.key === 'home' ? t('command.goTo') : t(`nav.groups.${group.key}`)} className={groupClass}>
+                                    {group.items.map((item) => {
+                                        const Icon = item.icon;
+                                        return (
+                                            <Item key={item.key} value={`ir ${t(`nav.${item.key}`)} ${t(`nav.groups.${group.key}`)}`} onSelect={() => go(itemPath(base, item))}>
+                                                <Icon />
+                                                {t(`nav.${item.key}`)}
+                                                {item.shortcut ? (
+                                                    <span className="igr:ml-auto igr:text-[11px] igr:text-muted-foreground">G {item.shortcut.toUpperCase()}</span>
+                                                ) : null}
+                                            </Item>
+                                        );
+                                    })}
+                                </Command.Group>
+                            ))}
                             <Command.Group heading={t('command.actions')} className={groupClass}>
                                 {workspace.abilities.includes('manageSites') ? (
                                     <Item value={t('command.connectSite')} onSelect={() => go(`${base}/sitios?conectar=1`)}>
@@ -83,15 +158,33 @@ export function CommandPalette() {
                                     <Plus />
                                     {t('nav.newWorkspace')}
                                 </Item>
-                                <Item value={`${t('theme.title')} ${t('theme.light')}`} onSelect={() => { setTheme('light'); setCommandOpen(false); }}>
+                                <Item
+                                    value={`${t('theme.title')} ${t('theme.light')}`}
+                                    onSelect={() => {
+                                        setTheme('light');
+                                        close(false);
+                                    }}
+                                >
                                     <Sun />
                                     {t('command.themeLight')}
                                 </Item>
-                                <Item value={`${t('theme.title')} ${t('theme.dark')}`} onSelect={() => { setTheme('dark'); setCommandOpen(false); }}>
+                                <Item
+                                    value={`${t('theme.title')} ${t('theme.dark')}`}
+                                    onSelect={() => {
+                                        setTheme('dark');
+                                        close(false);
+                                    }}
+                                >
                                     <Moon />
                                     {t('command.themeDark')}
                                 </Item>
-                                <Item value={`${t('theme.title')} ${t('theme.system')}`} onSelect={() => { setTheme('system'); setCommandOpen(false); }}>
+                                <Item
+                                    value={`${t('theme.title')} ${t('theme.system')}`}
+                                    onSelect={() => {
+                                        setTheme('system');
+                                        close(false);
+                                    }}
+                                >
                                     <SunMoon />
                                     {t('command.themeSystem')}
                                 </Item>
@@ -102,7 +195,9 @@ export function CommandPalette() {
                                         .filter((ws) => ws.id !== workspace.id)
                                         .map((ws) => (
                                             <Item key={ws.id} value={`espacio ${ws.name}`} onSelect={() => go(`/w/${ws.id}`)}>
-                                                <span className="igr:flex igr:size-5 igr:items-center igr:justify-center igr:rounded igr:bg-muted igr:text-[10px] igr:font-semibold">{workspaceInitials(ws.name)}</span>
+                                                <span className="igr:flex igr:size-5 igr:items-center igr:justify-center igr:rounded igr:bg-muted igr:text-[10px] igr:font-semibold">
+                                                    {workspaceInitials(ws.name)}
+                                                </span>
                                                 {t('command.switchTo', { name: ws.name })}
                                             </Item>
                                         ))}
