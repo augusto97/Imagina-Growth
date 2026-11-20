@@ -100,6 +100,7 @@
             "title": "Conectar un dominio de correo",
             "providerSes": "Amazon SES (recomendado)",
             "providerSesHelp": "Verificamos tu dominio con DKIM y calentamos el envío poco a poco.",
+            "providerSesNotInPlan": "Tu plan no incluye el envío por la plataforma. Conecta tu propio servidor de correo (SMTP) o cambia de plan en Plan y facturación.",
             "providerSmtp": "SMTP propio",
             "providerSmtpHelp": "Tu servidor de correo. Sin seguimiento de rebotes ni aperturas.",
             "fromEmail": "Correo remitente",

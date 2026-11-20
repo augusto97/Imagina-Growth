@@ -6,6 +6,8 @@ namespace App\Console\Commands;
 
 use App\Analytics\Builders\KpiDailyBuilder;
 use App\Analytics\Builders\SessionsBuilder;
+use App\Domain\Billing\Plans\PlanCatalog;
+use App\Domain\Billing\Plans\PlanResolver;
 use App\Domain\Intelligence\Insights\InsightEngine;
 use App\Domain\Intelligence\Rfm\RfmCalculator;
 use App\Domain\Sites\Actions\UpdateBackfillState;
@@ -23,6 +25,7 @@ use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -140,10 +143,21 @@ final class SeedDemoCommand extends Command
         $user = User::query()->firstOrCreate(['email' => 'demo@growth.test'], ['name' => 'Dueño demo', 'password' => Hash::make('demo-growth-2026')]);
         $existing = $user->workspaces()->where('workspaces.name', 'Pinturas Demo')->first();
         if ($existing instanceof Workspace) {
-            return $existing;
+            return $this->withDemoPlan($existing);
         }
         $this->line('Usuario demo: demo@growth.test / demo-growth-2026 (activa la 2FA al entrar).');
 
-        return app(CreateWorkspace::class)->handle($user, new WorkspaceData(name: 'Pinturas Demo', industry: 'ferreteria_pinturas'));
+        return $this->withDemoPlan(app(CreateWorkspace::class)->handle($user, new WorkspaceData(name: 'Pinturas Demo', industry: 'ferreteria_pinturas')));
+    }
+
+    /** Sin plan, la tienda demo quedaría en el plan gratuito (S3): lleva el plan Pro para mostrar todos los módulos. */
+    private function withDemoPlan(Workspace $workspace): Workspace
+    {
+        if (PlanCatalog::ensure('tienda_pro')) {
+            DB::table('accounts')->where('id', $workspace->account_id)->whereNull('plan_id')->update(['plan_id' => 'tienda_pro', 'updated_at' => now()]);
+            app(PlanResolver::class)->refresh($workspace);
+        }
+
+        return $workspace;
     }
 }

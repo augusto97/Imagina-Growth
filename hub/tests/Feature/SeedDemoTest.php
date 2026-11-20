@@ -23,7 +23,9 @@ it('genera la tienda demo por el pipeline y concilia al 100%', function () {
             ->and(Contact::query()->count())->toBeGreaterThan(60)
             ->and(Contact::query()->where('orders_count', '>=', 2)->count())->toBeGreaterThan(5);
     });
-    expect(DB::table('ingest_rejections')->count())->toBe(0);
+    expect(DB::table('ingest_rejections')->count())->toBe(0)
+        // Sin plan quedaría en el gratuito (S3): la demo lleva el plan Pro.
+        ->and(DB::table('accounts')->where('id', $ws->account_id)->value('plan_id'))->toBe('tienda_pro');
 
     // Es determinista e idempotente: volver a correrlo no duplica nada.
     $this->artisan('igr:seed-demo', ['--customers' => 60, '--orders' => 300, '--process' => true])->assertSuccessful();
