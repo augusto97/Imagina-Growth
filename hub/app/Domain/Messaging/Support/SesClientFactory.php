@@ -12,6 +12,12 @@ use Aws\SesV2\SesV2Client;
  */
 class SesClientFactory
 {
+    /** Si la plataforma tiene credenciales de SES (sin ellas el SDK lanza CredentialsException, no AwsException). */
+    public function configured(): bool
+    {
+        return (string) config('igr-messaging.ses.key') !== '' && (string) config('igr-messaging.ses.secret') !== '';
+    }
+
     public function make(): SesV2Client
     {
         $key = config('igr-messaging.ses.key');

@@ -67,11 +67,21 @@ final class SendWeeklyReport
         return ['status' => $recipients->isEmpty() ? 'no_recipients' : 'sent', 'recipients' => array_values($recipients->map(fn (User $u) => $u->email)->all()), 'delivery_id' => (string) $id];
     }
 
-    /** ¿Le toca hoy? Lunes a las 07:00 en la zona del espacio de trabajo (inteligencia.md §6.2). */
+    /**
+     * ¿Le toca? Los lunes desde las 07:00 en la zona del espacio de trabajo (inteligencia.md §6.2). Desde las 7 y no
+     * solo a las 7: si el programador se atrasó esa hora, el informe sale en la siguiente. `attempted()` evita repetir.
+     */
     public static function isDue(Workspace $workspace, ?CarbonImmutable $now = null): bool
     {
         $local = ($now ?? CarbonImmutable::now())->setTimezone($workspace->timezone ?: 'UTC');
 
-        return $local->isMonday() && $local->hour === 7;
+        return $local->isMonday() && $local->hour >= 7;
+    }
+
+    /** Ya se armó el informe de esta semana (enviado o sin destinatarios): el envío automático no lo repite. */
+    public static function attempted(Workspace $workspace, ?CarbonImmutable $now = null): bool
+    {
+        return DB::table('report_deliveries')->where('workspace_id', $workspace->id)->where('kind', 'weekly')
+            ->where('period_start', WeeklyReport::lastWeekStart($workspace, $now)->toDateString())->exists();
     }
 }

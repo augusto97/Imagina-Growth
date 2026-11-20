@@ -8,6 +8,7 @@ use App\Analytics\Semantic\Filters;
 use App\Analytics\Semantic\MetricQuery;
 use App\Analytics\Semantic\MetricQueryRunner;
 use App\Analytics\Semantic\Period;
+use App\Domain\Agency\Queries\MoneyGenerated;
 use App\Domain\Intelligence\Models\Insight;
 use App\Domain\Workspaces\Models\Workspace;
 
@@ -16,7 +17,7 @@ final class OverviewDashboard extends Dashboard
 {
     public const KPIS = ['revenue', 'orders', 'aov', 'sessions', 'conversion_rate', 'new_customers', 'returning_customers', 'cod_pending_orders', 'cod_pending_revenue', 'revenue_per_visitor'];
 
-    public function __construct(private readonly MetricQueryRunner $runner) {}
+    public function __construct(private readonly MetricQueryRunner $runner, private readonly MoneyGenerated $money) {}
 
     public function handle(Workspace $workspace, Period $period, Filters $filters): array
     {
@@ -27,9 +28,33 @@ final class OverviewDashboard extends Dashboard
             'kpis' => $kpis['totals'],
             'compare' => $kpis['compare_totals'],
             'series' => $series['rows'],
-            // Ingresos atribuidos a mensajes, widgets y referidos: llegan con las fases 2 y 3.
-            'attributed' => ['revenue' => 0, 'available' => false, 'phase' => 2],
+            'attributed' => $this->attributed($workspace, $period),
             'insights' => self::topInsights(),
+        ];
+    }
+
+    /**
+     * El dinero generado del periodo (CLAUDE.md §3.7), con la misma regla que el panel de agencia y el reporte
+     * mensual: cada venta cuenta una sola vez, en el primer módulo que la explica.
+     *
+     * @return array{revenue: float, orders: int, share_pct: float, available: bool, modules: list<array{key: string, revenue: float, orders: int}>}
+     */
+    private function attributed(Workspace $workspace, Period $period): array
+    {
+        $m = $this->money->forWorkspace($workspace, $period->from, $period->to);
+        $modules = [];
+        foreach ($m['modules'] as $module) {
+            if ($module['orders'] > 0) {
+                $modules[] = ['key' => $module['key'], 'revenue' => (float) $module['revenue'], 'orders' => $module['orders']];
+            }
+        }
+
+        return [
+            'revenue' => (float) $m['total'],
+            'orders' => $m['orders'],
+            'share_pct' => $m['share_pct'],
+            'available' => true,
+            'modules' => array_slice($modules, 0, 3),
         ];
     }
 

@@ -41,7 +41,7 @@
             "open": "Ver flujo",
             "steps": "{{count}} paso",
             "steps_other": "{{count}} pasos",
-            "phase": "Llega en la Fase {{phase}}",
+            "phase": "Próximamente",
             "missing": "Falta elegir la plantilla aprobada de WhatsApp: {{list}}",
             "missingHelp": "Las plantillas de WhatsApp las aprueba Meta en tu cuenta. Créala en Canales y elígela al personalizar el flujo. Las de correo se instalan solas.",
             "activated": "«{{name}}» quedó activo",
@@ -180,7 +180,7 @@
             "noMessage": "Escribe el aviso",
             "noUrl": "Escribe la URL",
             "exit": "Termina el flujo",
-            "comingPhase": "Llega en la Fase {{phase}}"
+            "comingPhase": "Todavía no disponible"
         },
         "triggerText": {
             "event": "Cuando pasa «{{event}}»",
@@ -321,7 +321,7 @@
             "message": "Aviso",
             "url": "URL (https)",
             "secret": "Firma: X-IGR-Signature con este secreto",
-            "laterPhase": "Este paso llega en la Fase {{phase}}.",
+            "laterPhase": "Este paso todavía no está disponible.",
             "exitHelp": "El contacto termina el flujo aquí."
         },
         "settings": {

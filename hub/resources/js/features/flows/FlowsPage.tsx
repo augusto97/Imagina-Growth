@@ -175,7 +175,8 @@ function LibraryGallery() {
                         toast.success(t('flows.library.activated', { name: detail.name }));
                     } else {
                         if (activate) {
-                            toast.info(t('flows.library.createdDraft', { name: detail.name }));
+                            // Sin el canal conectado, el motivo exacto («Conecta WhatsApp en Canales…»).
+                            toast.info(t('flows.library.createdDraft', { name: detail.name }), detail.issues.channel?.[0]);
                         }
                         void navigate(`/w/${workspace.id}/flujos/${detail.id}`);
                     }

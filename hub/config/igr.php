@@ -28,6 +28,10 @@ return [
         'previous_secret_grace_hours' => 24,
     ],
 
+    // Registro abierto a cualquiera (true) o solo por invitación (false, por defecto). La primera persona de una
+    // instalación nueva siempre puede registrarse (App\Support\Registration).
+    'registration_open' => (bool) env('IGR_OPEN_REGISTRATION', false),
+
     'ingest' => [
         'shards' => (int) env('IGR_INGEST_SHARDS', 4),
         'stream_prefix' => 'ingest:',

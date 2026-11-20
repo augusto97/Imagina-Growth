@@ -1,6 +1,9 @@
 <?php
 
+use App\Domain\Intelligence\Jobs\ProcessImportedHistory;
 use App\Domain\Sites\Queries\ReconciliationQuery;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
     $this->useIngestInfrastructure();
@@ -88,4 +91,35 @@ it('devuelve en la conciliación el hash de categoría que mandó el plugin', fu
     $this->runWorker();
     $this->signedJson('GET', '/v1/s/catalog/hashes?type=category', $this->site, $this->secret)
         ->assertOk()->assertJsonPath('items.0', ['id' => '12', 'hash' => 'abcdef0123456789abcdef0123456789']);
+});
+
+it('al terminar la importación encola una vez el procesamiento de la historia (F8)', function () {
+    Queue::fake();
+    $state = ['status' => 'running', 'from' => '2024-11-18', 'phase' => 'orders', 'entities' => ['orders' => ['total' => 4, 'sent' => 2]]];
+    $this->signedJson('PUT', '/v1/s/backfill', $this->site, $this->secret, $state)->assertOk();
+    Queue::assertNotPushed(ProcessImportedHistory::class);
+
+    $state['status'] = 'completed';
+    $this->signedJson('PUT', '/v1/s/backfill', $this->site, $this->secret, $state)->assertOk();
+    $this->signedJson('PUT', '/v1/s/backfill', $this->site, $this->secret, $state)->assertOk(); // un reporte repetido no vuelve a encolar
+    Queue::assertPushed(ProcessImportedHistory::class, 1);
+});
+
+it('el procesamiento de la historia deja el RFM listo sin esperar a la noche', function () {
+    $events = [];
+    foreach (['1', '2', '3'] as $i => $id) {
+        $events[] = $this->envelope($this->site, 'order.paid', ['order' => $this->orderSnapshot([
+            'order_id' => $id, 'number' => $id, 'customer_ref' => "wc:{$id}",
+            'billing' => ['email' => "c{$id}@ejemplo.com", 'country' => 'CO'],
+            'created_at' => now()->subDays(40 + $i * 30)->toIso8601String(), 'paid_at' => now()->subDays(40 + $i * 30)->toIso8601String(),
+            'modified_at' => now()->subDays(40 + $i * 30)->toIso8601String(),
+        ])], ['source' => ['type' => 'import']]);
+    }
+    $this->postSigned($this->site, $this->secret, $events)->assertJsonPath('accepted', 3);
+    $this->runWorker();
+
+    ProcessImportedHistory::dispatchSync($this->ws->id);
+
+    $ws = $this->ws->id;
+    expect(DB::table('contacts')->where('workspace_id', $ws)->whereNotNull('rfm_segment')->count())->toBe(3);
 });

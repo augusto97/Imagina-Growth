@@ -9,11 +9,13 @@ StartLimitBurst=20
 
 [Service]
 Type=notify
-Environment=GROWTH_PORT=8080 XDG_CONFIG_HOME=%S/growth/%N XDG_DATA_HOME=%S/growth/%N
+Environment=XDG_CONFIG_HOME=%S/growth/%N XDG_DATA_HOME=%S/growth/%N
 # Caddy interno de FrankenPHP: su configuración y datos en /var/lib/growth/<unidad> (escribible pese a ProtectSystem).
 StateDirectory=growth/%N
-ExecStart=/usr/bin/frankenphp run --config /opt/growth/current/config/frankenphp/Caddyfile
+ExecStart=/opt/growth/current/bin/growth-web 8080
 TimeoutStopSec=30
+# Si falta memoria, el kernel sacrifica antes el ML y Horizon que el panel.
+OOMScoreAdjust=-100
 User=growth
 Group=growth
 WorkingDirectory=/opt/growth/current/hub

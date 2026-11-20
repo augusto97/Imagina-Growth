@@ -1,5 +1,39 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-20 — Versión 0.1.7: auditoría, segundo lote
+
+- **Dinero generado (F1):** el inicio y el tablero general usan el mismo cálculo que el reporte mensual de la agencia
+  (cada venta una sola vez, en el primer módulo que la explica), con los tres módulos que más vendieron y, en cero,
+  el camino al flujo de carrito abandonado. Antes era $0 fijo.
+- **Registro solo por invitación (S3):** sin invitación pendiente no se crea cuenta, salvo la primera persona de una
+  instalación nueva o con `IGR_OPEN_REGISTRATION=true`. El login solo muestra «Crear cuenta» si el registro está
+  abierto o se llega desde una invitación.
+- **Restablecer contraseña (S4):** el enlace usa siempre `APP_URL`, nunca el `Host` de la petición.
+- **Trabajos duplicados (R6):** la conexión `redis` reintenta a los 330 s (antes 90): el reporte mensual, los lotes de
+  campaña, los avisos de producto y el agente de IA ya no se ejecutan dos veces. Una prueba revisa el timeout de
+  cada job contra su conexión.
+- **Flujos sin canal (F10):** no se activa un flujo que envía por un canal sin conectar; desde la biblioteca queda
+  publicado con el motivo («Conecta WhatsApp en Canales…»).
+- **Después de importar (F8):** al terminar la importación histórica corren la atribución, los KPI, el RFM y los
+  hallazgos, sin esperar a la noche.
+- **Servidor pequeño (R5):** 2 hilos de PHP por proceso web y un proceso de ML con `IGR_WORKERS_PROFILE=small`
+  (se aplica al actualizar), y prioridades ante falta de memoria: primero el ML, Horizon y ClickHouse; al final
+  MariaDB y Redis (las de MariaDB, ClickHouse y Redis, al volver a correr el instalador).
+- **Textos «Fase N» (F13):** reescritos; se quitó el aviso viejo de que el copiloto de campañas «llega en la Fase 4».
+- **Celular (U1):** el panel se usa desde el teléfono: barra superior con el menú, que se abre como panel lateral y
+  se cierra al cambiar de página.
+- **Seguridad menor:** la exportación CSV neutraliza fórmulas (S10) y el panel no se deja incrustar en otro sitio
+  (S12, `X-Frame-Options` y `frame-ancestors`).
+- **Caché de los tableros (R9):** la versión se redondea al minuto; con tráfico en vivo la caché ya acierta.
+- **Correo por SES sin credenciales (F5):** conectar responde 422 con el motivo (antes 500) y el envío falla sin
+  reintentar.
+- **Informe semanal (R10):** sale el lunes desde las 7 en la primera corrida del programador, una sola vez por semana
+  (antes, si se atrasaba esa hora, no salía).
+- Probado: suite completa del hub (1070 pruebas antes de los últimos arreglos, más las nuevas), actualizador (255
+  comprobaciones) e instalación limpia en Ubuntu 26.04 con 1,6 GB: Redis con `maxmemory` de 327 MB y sin RDB, 2 hilos
+  de PHP, un proceso de ML y las prioridades de memoria aplicadas.
+- `docs/auditoria-2026-11.md` §5.1: comparación con el «ARM» (vendedor con agentes de IA) y las brechas a cubrir.
+
 ## 2026-11-20 — Versión 0.1.6: auditoría, primer lote (seguridad de la ingesta y memoria de Redis)
 
 Primer lote de `docs/auditoria-2026-11.md`, con lo que podía perder datos o llenar el servidor:

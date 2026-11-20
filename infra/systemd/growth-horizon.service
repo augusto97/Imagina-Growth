@@ -8,6 +8,8 @@ StartLimitIntervalSec=300
 StartLimitBurst=20
 
 [Service]
+# Los trabajos que el kernel corte se reintentan; el panel y la ingesta tienen prioridad.
+OOMScoreAdjust=300
 Type=exec
 ExecStart=/usr/local/bin/growth-php /opt/growth/current/hub/artisan horizon
 KillSignal=SIGTERM

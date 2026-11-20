@@ -56,6 +56,11 @@ it('el correo por SES pide los registros DKIM, SPF y DMARC y se activa al verifi
     // SES devuelve los tokens DKIM al crear la identidad.
     app()->instance(SesClientFactory::class, new class extends SesClientFactory
     {
+        public function configured(): bool
+        {
+            return true;
+        }
+
         public function make(): SesV2Client
         {
             $h = new MockHandler;
@@ -199,4 +204,10 @@ it('la pestaña Mensajes del perfil lista los envíos con su flujo y respeta el 
     $res = $this->actingAs($this->owner)->getJson($url)->assertOk();
     expect($res->json('data.0'))->toMatchArray(['channel' => 'whatsapp', 'source_name' => 'Carrito abandonado', 'status' => 'read', 'preview' => 'carrito_abandonado']);
     $this->actingAs($this->addMember($this->ws, WorkspaceRole::Agent, true))->getJson($url)->assertNotFound();
+});
+
+it('sin SES configurado en la plataforma, conectar correo por SES responde 422 con el motivo (F5)', function () {
+    config(['igr-messaging.ses.key' => '', 'igr-messaging.ses.secret' => '']);
+    $this->actingAs($this->owner)->postJson("{$this->api}/channels/email", ['provider' => 'ses', 'from_email' => 'hola@pinturas.co', 'from_name' => 'Pinturas'])
+        ->assertUnprocessable()->assertJsonValidationErrors('provider');
 });

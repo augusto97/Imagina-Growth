@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Proceso web del hub: FrankenPHP en 127.0.0.1:PUERTO (growth-app en 8080, réplicas de ingesta en 8081+).
+# Los hilos de PHP salen del perfil que dejó install.sh en el .env (IGR_WORKERS_PROFILE): en servidores
+# pequeños, 2 por proceso; si no, el doble de CPU, como FrankenPHP por defecto. GROWTH_PHP_THREADS manda si
+# viene en el entorno.
+set -euo pipefail
+port=${1:?falta el puerto}
+[[ $port =~ ^80[0-9][0-9]$ ]] || { echo "Puerto inválido: $port" >&2; exit 2; }
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+ENV_FILE=${GROWTH_ENV_FILE:-/opt/growth/shared/.env}
+export GROWTH_PORT=$port
+if [ -z "${GROWTH_PHP_THREADS:-}" ]; then
+    profile=""
+    if [ -x "$ROOT/bin/growth-env" ] && [ -r "$ENV_FILE" ]; then
+        profile=$("$ROOT/bin/growth-env" get IGR_WORKERS_PROFILE "$ENV_FILE" 2>/dev/null || true)
+    fi
+    if [ "$profile" = small ]; then
+        GROWTH_PHP_THREADS=2
+    else
+        GROWTH_PHP_THREADS=$(($(nproc 2>/dev/null || echo 2) * 2))
+    fi
+fi
+export GROWTH_PHP_THREADS
+exec /usr/bin/frankenphp run --config "$ROOT/config/frankenphp/Caddyfile"

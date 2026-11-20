@@ -6,7 +6,7 @@
         "newTitle": "Nueva plantilla de {{channel}}",
         "newHelp": "Ponle un nombre que la distinga en los flujos y las campañas. Luego la diseñas en el editor.",
         "create": "Crear y abrir",
-        "phase": "Fase {{n}}",
+        "phase": "próximamente",
         "fromLibrary": "De la biblioteca",
         "duplicated": "Plantilla duplicada",
         "archived": "Plantilla archivada. Los flujos y campañas que la usan la conservan.",

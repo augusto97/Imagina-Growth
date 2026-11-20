@@ -1,10 +1,13 @@
 <?php
 
+use App\Domain\Workspaces\Actions\InviteToWorkspace;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Mail\InvitationMail;
 use App\Domain\Workspaces\Models\User;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 
 it('registra a una persona y le crea su primer espacio de trabajo como dueña', function () {
     $this->postJson('/auth/register', [
@@ -104,4 +107,43 @@ it('responde los errores de validación en español', function () {
         ->assertUnprocessable()
         ->assertJsonPath('errors.email.0', 'El correo debe ser un correo válido.')
         ->assertJsonPath('errors.name.0', 'El nombre es obligatorio.');
+});
+
+it('el registro es solo por invitación salvo para la primera persona (S3)', function () {
+    $register = fn (string $email) => $this->postJson('/auth/register', [
+        'name' => 'Persona', 'email' => $email, 'password' => 'Clave-segura-2026', 'password_confirmation' => 'Clave-segura-2026',
+    ]);
+
+    $register('primera@tienda.co')->assertCreated();          // instalación nueva: la primera persona administra
+    auth()->logout();
+    $register('curioso@otro.co')->assertUnprocessable()->assertJsonValidationErrors('email');
+
+    $owner = $this->userWith2fa();
+    $ws = $this->workspaceFor($owner);
+    app(InviteToWorkspace::class)->handle($ws, $owner, 'Invitada@Tienda.co', WorkspaceRole::Marketing);
+    $register('invitada@tienda.co')->assertCreated();
+    auth()->logout();
+
+    config(['igr.registration_open' => true]);
+    $register('abierto@otro.co')->assertCreated();
+});
+
+it('el enlace de restablecer usa el dominio del panel y no el Host de la petición (S4)', function () {
+    Notification::fake();
+    config(['app.url' => 'https://growth.ejemplo.co']);
+    $user = User::factory()->create(['email' => 'ana@tienda.co']);
+
+    $this->withHeader('Host', 'atacante.example')->postJson('/auth/forgot-password', ['email' => 'ana@tienda.co'])->assertOk();
+
+    Notification::assertSentTo($user, ResetPassword::class, function ($n) use ($user) {
+        $url = $n->toMail($user)->actionUrl;
+
+        return str_starts_with($url, 'https://growth.ejemplo.co/restablecer/') && ! str_contains($url, 'atacante');
+    });
+});
+
+it('el panel no se deja incrustar en otro sitio (S12)', function () {
+    $this->get('/login')->assertOk()
+        ->assertHeader('X-Frame-Options', 'SAMEORIGIN')
+        ->assertHeader('Content-Security-Policy', "frame-ancestors 'self'");
 });

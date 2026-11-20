@@ -6,6 +6,8 @@ After=network.target
 Documentation=https://redis.io/docs/
 
 [Service]
+# Las colas guardan eventos sin procesar: lo último que el kernel debe matar si falta memoria.
+OOMScoreAdjust=-400
 Type=notify
 ExecStart=/usr/bin/redis-server /etc/redis/redis-%i.conf --supervised systemd --daemonize no
 ExecStop=/bin/kill -s TERM $MAINPID

@@ -158,10 +158,7 @@
             "insightsTitle": "Hallazgos principales",
             "insightsDescription": "Problemas y oportunidades que detectamos en tus datos.",
             "allInsights": "Ver todos",
-            "noInsights": "No hay hallazgos abiertos. Los revisamos cada noche.",
-            "attributedTitle": "Dinero generado por la plataforma",
-            "attributedHelp": "Ventas atribuidas a mensajes, widgets y referidos de Imagina Growth.",
-            "attributedSoon": "Llega con la Fase {{phase}}: cuando envíes mensajes y flujos, aquí verás cuánto vendieron."
+            "noInsights": "No hay hallazgos abiertos. Los revisamos cada noche."
         },
         "funnel": {
             "title": "Embudo de compra",
@@ -382,7 +379,7 @@
             "aovWith": "Ticket con cupón",
             "aovWithout": "Ticket sin cupón",
             "dependency": "De tus clientes que repiten, {{only}} solo compran con descuento, {{repeat}} repiten en total y {{never}} nunca usan cupones.",
-            "incrementalSoon": "Saber si un cupón trajo ventas que no habrían pasado igual llega con la Fase {{phase}} (grupos de control).",
+            "incrementalSoon": "Para saber si un cupón trajo ventas que no habrían pasado igual, deja un grupo de control en el flujo o la campaña que lo envía.",
             "codesTitle": "Códigos",
             "code": "Código",
             "none": "No se usaron cupones en este periodo",
@@ -391,7 +388,7 @@
         },
         "messaging": {
             "title": "Mensajería en camino",
-            "soon": "Este tablero llega con la Fase {{phase}}, cuando conectes WhatsApp, correo o SMS. Mostrará entregas, lecturas, clics, ventas atribuidas a cada mensaje y bajas."
+            "soon": "Este tablero se llena cuando conectes WhatsApp, correo o SMS y envíes mensajes: entregas, lecturas, clics, ventas atribuidas a cada mensaje y bajas."
         },
         "profit": {
             "noCosts": "Falta el costo de tus productos",
@@ -418,7 +415,7 @@
             "whatsapp": "Clics a WhatsApp",
             "phone": "Clics para llamar",
             "email": "Clics al correo",
-            "responseSoon": "El tiempo de respuesta a cada lead llega con la Fase {{phase}}, con la bandeja de conversaciones.",
+            "responseSoon": "El tiempo de respuesta a cada lead aparece cuando tu equipo responde desde la bandeja de conversaciones.",
             "formsTitle": "Formularios",
             "form": "Formulario",
             "plugin": "Plugin",

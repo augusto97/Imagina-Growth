@@ -326,11 +326,11 @@
             "none": "Sin datos"
         },
         "messages": {
-            "title": "Los mensajes llegan en la Fase 2",
+            "title": "Todavía no hay mensajes",
             "description": "Aquí verás lo que le enviaste por WhatsApp, correo o SMS: entregados, leídos, con clic y el dinero que generó cada uno."
         },
         "loyalty": {
-            "title": "La fidelización llega en la Fase 3",
+            "title": "Todavía no participa en la fidelización",
             "description": "Aquí verás sus puntos, su nivel VIP, su saldo a favor y a quién refirió."
         },
         "data": {

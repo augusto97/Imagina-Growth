@@ -3,6 +3,4 @@
 set -euo pipefail
 n=${1:?falta el número de réplica}
 [[ $n =~ ^[1-9][0-9]?$ ]] || { echo "Réplica inválida: $n" >&2; exit 2; }
-ROOT=$(cd "$(dirname "$0")/.." && pwd)
-export GROWTH_PORT=$((8080 + n))
-exec /usr/bin/frankenphp run --config "$ROOT/config/frankenphp/Caddyfile"
+exec "$(cd "$(dirname "$0")" && pwd)/growth-web" $((8080 + n))

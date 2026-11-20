@@ -75,7 +75,8 @@
         "resetInvalid": "El enlace no es válido o ya venció. Pide uno nuevo.",
         "confirmPasswordTitle": "Confirma tu contraseña",
         "confirmPasswordDescription": "Por seguridad, confirma tu contraseña antes de cambiar la verificación en dos pasos.",
-        "wrongPassword": "La contraseña no es correcta."
+        "wrongPassword": "La contraseña no es correcta.",
+        "inviteOnly": "Las cuentas se crean por invitación. Si trabajas con un negocio que usa Imagina Growth, pide que te inviten."
     },
     "security": {
         "title": "Verificación en dos pasos",
@@ -234,11 +235,12 @@
         "workspaces": "Espacios de trabajo",
         "newWorkspace": "Nuevo espacio de trabajo",
         "security": "Seguridad",
-        "comingSoon": "Próximamente: llega en la fase {{phase}}",
+        "comingSoon": "Próximamente",
         "consent": "Consentimiento",
         "survey": "Encuesta",
         "templates": "Plantillas",
-        "channels": "Canales"
+        "channels": "Canales",
+        "openMenu": "Abrir el menú"
     },
     "command": {
         "title": "Paleta de comandos",
@@ -273,7 +275,7 @@
         "emptyDescription": "Instala el plugin Imagina Growth Connector en tu WordPress y conéctalo. Importamos tus pedidos, clientes y productos sin poner lento tu sitio.",
         "askAdmin": "Pide a un dueño o administrador que conecte el sitio.",
         "nextTitle": "Lo que viene",
-        "nextDescription": "La Fase 1 trae el perfil 360, los segmentos, el RFM y los tableros.",
+        "nextDescription": "Conecta tu sitio y en minutos verás tus clientes, segmentos, RFM y tableros.",
         "nextBody": "Mientras tanto, revisa que la importación histórica haya terminado y que la conciliación con WooCommerce coincida al 100 %.",
         "viewSites": "Ver sitios",
         "stepsTitle": "Primeros pasos",

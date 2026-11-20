@@ -64,13 +64,19 @@ final class CreateFlowFromLibrary
         $flow = $result['flow'];
         $this->excludeSiblings($flow);
         $activated = false;
-        if ($activate && $result['issues'] === []) {
+        $issues = $result['issues'];
+        if ($activate && $issues === []) {
             $this->publish->handle($flow, $userId);
-            $this->status->handle($flow->refresh(), Flow::ACTIVE);
-            $activated = true;
+            try {
+                $this->status->handle($flow->refresh(), Flow::ACTIVE);
+                $activated = true;
+            } catch (InvalidFlow $e) {
+                // Sin el canal conectado queda publicado pero sin activar, con el motivo a la vista.
+                $issues = ['channel' => [$e->getMessage()]];
+            }
         }
 
-        return ['flow' => $flow->refresh(), 'issues' => $result['issues'], 'activated' => $activated];
+        return ['flow' => $flow->refresh(), 'issues' => $issues, 'activated' => $activated];
     }
 
     /**

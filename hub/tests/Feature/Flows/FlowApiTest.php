@@ -287,3 +287,17 @@ it('carrito y checkout abandonados de la biblioteca se excluyen entre sí por de
         expect($a->exclusions)->toBe([$b->id])->and($b->exclusions)->toBe([$a->id]);
     });
 });
+
+it('no se activa un flujo que envía por un canal sin conectar; la biblioteca lo deja publicado con el motivo', function () {
+    DB::table('channel_accounts')->where('workspace_id', $this->ws->id)->update(['status' => 'disconnected']);
+
+    $res = $this->actingAs($this->owner)->postJson($this->api('/library/abandoned_cart'), ['activate' => true])->assertCreated();
+    expect($res->json('activated'))->toBeFalse()->and($res->json('status'))->not->toBe('active')
+        ->and($res->json('issues.channel.0'))->toContain('Canales');
+
+    $id = $res->json('id');
+    $this->actingAs($this->owner)->postJson($this->api("/{$id}/activate"))->assertUnprocessable()->assertJsonValidationErrors('channel');
+
+    DB::table('channel_accounts')->where('workspace_id', $this->ws->id)->update(['status' => 'active']);
+    $this->actingAs($this->owner)->postJson($this->api("/{$id}/activate"))->assertOk()->assertJsonPath('status', 'active');
+});

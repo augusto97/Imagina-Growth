@@ -2,12 +2,15 @@
 
 use App\Analytics\Dashboards\Attribution;
 use App\Analytics\Http\AnalyticsController;
+use App\Analytics\Semantic\MetricQueryRunner;
 use App\Domain\Intelligence\Models\Insight;
+use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     $this->useIngestInfrastructure();
@@ -43,7 +46,7 @@ it('las ventas del tablero son las de los pedidos válidos (misma definición qu
     expect((float) $res->json('data.kpis.revenue'))->toBe(round($expected, 2))
         ->and($res->json('data.kpis.orders'))->toBe($orders)
         ->and($res->json('data.kpis.sessions'))->toBeGreaterThan(1000)
-        ->and($res->json('data.attributed.available'))->toBeFalse()
+        ->and($res->json('data.attributed.available'))->toBeTrue()
         ->and(array_sum(array_column($res->json('data.series'), 'revenue')))->toEqualWithDelta($expected, 0.01);
 });
 
@@ -102,4 +105,42 @@ it('el Inicio deja de mostrar un hallazgo descartado aunque el tablero esté en 
     expect($ids())->toContain($insight->publicId());
     $this->actingAs($this->owner)->patchJson("/api/w/{$this->ws->publicId()}/insights/{$insight->publicId()}", ['status' => 'dismissed'])->assertOk();
     expect($ids())->not->toContain($insight->publicId());
+});
+
+it('el inicio muestra el dinero generado del periodo con la regla del reporte mensual', function () {
+    $order = DB::table('orders')->where('workspace_id', $this->ws->id)->where('is_paid', true)
+        ->where('paid_at', '>=', now()->subDays(20))->orderByDesc('paid_at')->first();
+    $flow = (string) Str::ulid();
+    DB::table('flows')->insert([
+        'id' => $flow, 'workspace_id' => $this->ws->id, 'name' => 'Carrito abandonado', 'status' => 'active',
+        'trigger' => json_encode(['type' => 'event']), 'created_at' => now(), 'updated_at' => now(),
+    ]);
+    DB::table('orders')->where('id', $order->id)->update(['attributed_flow_id' => $flow]);
+
+    $res = $this->actingAs($this->owner)->getJson("{$this->url}/overview{$this->range}&compare=none")->assertOk();
+
+    expect($res->json('data.attributed.revenue'))->toEqualWithDelta((float) $order->total_ws, 0.01)
+        ->and($res->json('data.attributed.orders'))->toBe(1)
+        ->and($res->json('data.attributed.modules.0.key'))->toBe('flows')
+        ->and($res->json('data.attributed.share_pct'))->toBeGreaterThan(0);
+});
+
+it('la caché de los tableros aguanta el tráfico en vivo y se renueva al minuto (R9)', function () {
+    config(['igr.analytics.cache' => true]);
+    $site = Site::withoutWorkspaceScope()->where('workspace_id', $this->ws->id)->firstOrFail();
+    $calls = 0;
+    $compute = function () use (&$calls) {
+        return ++$calls;
+    };
+    $runner = MetricQueryRunner::class;
+
+    $site->forceFill(['last_event_at' => now()->startOfMinute()->addSeconds(5)])->save();
+    $runner::remember($this->ws, 'prueba', $compute);
+    $site->forceFill(['last_event_at' => now()->startOfMinute()->addSeconds(40)])->save(); // otro evento, mismo minuto
+    $runner::remember($this->ws, 'prueba', $compute);
+    expect($calls)->toBe(1);
+
+    $site->forceFill(['last_event_at' => now()->startOfMinute()->addMinutes(2)])->save();
+    $runner::remember($this->ws, 'prueba', $compute);
+    expect($calls)->toBe(2);
 });

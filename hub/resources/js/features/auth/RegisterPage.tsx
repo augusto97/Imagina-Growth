@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { FieldError } from '@/components/ui/misc';
 import { api, ensureCsrf } from '@/lib/api';
 import { applyServerErrors, safeNext } from '@/lib/forms';
+import { registrationOpen } from '@/lib/runtime';
 import { AuthLayout } from './AuthLayout';
 
 export function RegisterPage() {
@@ -52,7 +53,7 @@ export function RegisterPage() {
     return (
         <AuthLayout
             title={t('auth.registerTitle')}
-            description={t('auth.registerDescription')}
+            description={registrationOpen() || next.startsWith('/invitacion') ? t('auth.registerDescription') : t('auth.inviteOnly')}
             footer={
                 <>
                     {t('auth.haveAccount')}{' '}

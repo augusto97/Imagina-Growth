@@ -1,4 +1,4 @@
-import { ArrowRight, CircleDollarSign, Lightbulb, Truck } from 'lucide-react';
+import { ArrowRight, Lightbulb, Truck } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -9,6 +9,7 @@ import { SeverityBadge } from '@/features/insights/severity';
 import type { MetricUnit, OverviewData } from '../api';
 import { TrendChart } from '../components/charts';
 import { DataTable } from '../components/DataTable';
+import { MoneyGeneratedCard } from '../components/MoneyGeneratedCard';
 import type { Column } from '../components/DataTable';
 import { Notice, Section } from '../components/Section';
 import { StatTile, TileGrid } from '../components/StatTile';
@@ -139,20 +140,7 @@ export function OverviewDashboard({ response, data, fmt, base, catalog }: Dashbo
                         )}
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="igr:flex igr:items-center igr:gap-1.5">
-                            <CircleDollarSign className="igr:size-4 igr:text-muted-foreground" />
-                            {t('analytics.overview.attributedTitle')}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="igr:text-2xl igr:font-semibold igr:tabular-nums">{fmt.money(data.attributed.revenue)}</div>
-                        <p className="igr:mt-1 igr:text-xs igr:text-muted-foreground">
-                            {data.attributed.available ? t('analytics.overview.attributedHelp') : t('analytics.overview.attributedSoon', { phase: data.attributed.phase })}
-                        </p>
-                    </CardContent>
-                </Card>
+                <MoneyGeneratedCard data={data.attributed} money={(v) => fmt.money(v)} base={base} />
             </div>
         </div>
     );

@@ -5,7 +5,7 @@
 #     | sudo bash -s -- --domain growth.ejemplo.com --email ops@ejemplo.com
 #
 # Opciones:
-#   --domain D          dominio del panel (la ingesta queda en in.D y los enlaces en go.D). Obligatorio la
+#   --domain D          dominio del panel (la ingesta y los enlaces van en el mismo dominio). Obligatorio la
 #                       primera vez; después se toma del APP_URL del .env.
 #   --email E           correo para Let's Encrypt (opcional).
 #   --version X.Y.Z     versión a instalar (por defecto, la última publicada).
@@ -499,6 +499,12 @@ if [ "$PROFILE" = small ]; then POOL_MB=$((MEM_MB / 8)); else POOL_MB=$((MEM_MB 
 if sed "s/__BUFFER_POOL__/${POOL_MB}M/" "$TPL/config/mariadb/90-growth.cnf" | put_content /etc/mysql/mariadb.conf.d/90-growth.cnf; then
     SERVICE_RESTART+=(mariadb)
 fi
+# Si falta memoria, el kernel sacrifica antes ClickHouse, el ML y Horizon que la base transaccional.
+install -d -m 0755 /etc/systemd/system/mariadb.service.d
+if printf '[Service]\nOOMScoreAdjust=-300\n' | put_content /etc/systemd/system/mariadb.service.d/growth-oom.conf 0644 root:root; then
+    systemctl daemon-reload
+    SERVICE_RESTART+=(mariadb)
+fi
 systemctl enable mariadb >/dev/null 2>&1
 if [[ " ${SERVICE_RESTART[*]} " == *" mariadb "* ]] && systemctl is-active --quiet mariadb; then
     systemctl restart mariadb
@@ -560,6 +566,11 @@ DEFAULT_SHA=$(tr -d '\n' <"$ETC_DIR/clickhouse-default.pass" | sha256sum | cut -
 # Las contraseñas de ClickHouse cambian aquí con el .env; el archivo es solo legible por ClickHouse.
 sed -e "s/__IGR_SHA256__/$IGR_SHA/" -e "s/__DEFAULT_SHA256__/$DEFAULT_SHA/" "$TPL/config/clickhouse/growth-users.xml" \
     | put_content /etc/clickhouse-server/users.d/growth-users.xml 0640 root:clickhouse && CH_CHANGED=1
+install -d -m 0755 /etc/systemd/system/clickhouse-server.service.d
+if printf '[Service]\nOOMScoreAdjust=200\n' | put_content /etc/systemd/system/clickhouse-server.service.d/growth-oom.conf 0644 root:root; then
+    systemctl daemon-reload
+    CH_CHANGED=1
+fi
 systemctl enable clickhouse-server >/dev/null 2>&1
 if [ "$CH_CHANGED" = 1 ] && systemctl is-active --quiet clickhouse-server; then
     systemctl restart clickhouse-server

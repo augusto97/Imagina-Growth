@@ -8,6 +8,10 @@
         "allInsights": "Ver todos",
         "noInsights": "No hay hallazgos abiertos. Revisamos tus datos cada noche.",
         "attributedTitle": "Dinero generado",
-        "attributedHelp": "Lo que vendan los mensajes, flujos, widgets y referidos de Imagina Growth. Empieza a contar con la Fase {{phase}}."
+        "attributedHelp": "Lo que vendieron los flujos, campañas, la bandeja, el agente, los widgets y los referidos de Imagina Growth.",
+        "attributedSummary_one": "{{count}} venta · {{share}} de tus ventas del periodo",
+        "attributedSummary_other": "{{count}} ventas · {{share}} de tus ventas del periodo",
+        "attributedEmpty": "Todavía no hay ventas atribuidas en este periodo. Activa el flujo de carrito abandonado: es el que primero recupera ventas.",
+        "attributedStart": "Ver flujos"
     }
 }

@@ -142,7 +142,7 @@
             "email": "Correo de marketing",
             "revenue": "Venta histórica",
             "clv": "Valor futuro (12 meses)",
-            "clvLater": "Con las predicciones (Fase 4)",
+            "clvLater": "Sin predicción todavía",
             "noSample": "Ningún contacto cumple todavía."
         },
         "builder": {
@@ -160,8 +160,8 @@
             "removeCondition": "Quitar condición",
             "removeGroup": "Quitar grupo",
             "comingSoon": "Próximamente",
-            "phase": "Fase {{phase}}",
-            "phase4Hint": "Este dato se calcula con las predicciones de la Fase 4; mientras tanto ningún contacto lo tiene.",
+            "phase": "Próximamente",
+            "phase4Hint": "Este dato sale de las predicciones; mientras no se hayan calculado, ningún contacto lo tiene.",
             "field": "Campo",
             "profile": "Perfil",
             "custom": "Atributos propios",
@@ -207,7 +207,8 @@
             "campaigns": "Campañas",
             "engagementHint": "Puntaje de 0 a 100 con los mensajes de los últimos {{days}} días: abrir o leer suma 1, un clic 3 y una respuesta 5.",
             "noTiers": "Primero crea los niveles en Fidelización.",
-            "chooseTier": "Elige un nivel…"
+            "chooseTier": "Elige un nivel…",
+            "predicted": "predicción"
         },
         "types": {
             "attribute": "Perfil",

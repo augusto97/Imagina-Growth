@@ -18,6 +18,7 @@ use App\Domain\Segments\Queries\SegmentPreview;
 use App\Domain\Segments\Support\DependencyIndex;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Domain\Workspaces\Models\User;
+use App\Support\Csv;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -151,12 +152,12 @@ final class SegmentController
                 ->chunk(1000, function ($contacts) use ($out): void {
                     foreach ($contacts as $c) {
                         /** @var Contact $c */
-                        fputcsv($out, [
+                        fputcsv($out, Csv::row([
                             $c->publicId(), $c->first_name ?? '', $c->last_name ?? '', $c->email ?? '', $c->phone ?? '',
                             $c->getAttribute('city') ?? '', $c->getAttribute('region_code') ?? '', $c->getAttribute('lifecycle_stage') ?? '',
                             $c->getAttribute('rfm_segment') ?? '', (int) $c->getAttribute('orders_count'), (string) $c->getAttribute('revenue_total_ws'),
                             $c->getAttribute('last_order_at')?->toDateString() ?? '',
-                        ], ',', '"', '');
+                        ]), ',', '"', '');
                     }
                 });
             fclose($out);

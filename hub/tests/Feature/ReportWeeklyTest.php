@@ -43,10 +43,11 @@ it('el correo se renderiza en español con las cifras de la semana', function ()
     }
 });
 
-it('le toca los lunes a las 7 de la mañana en la zona del espacio de trabajo', function () {
+it('le toca los lunes desde las 7 de la mañana en la zona del espacio de trabajo', function () {
     $monday7 = CarbonImmutable::parse('2026-11-23 07:15', 'America/Bogota');
     expect(SendWeeklyReport::isDue($this->ws, $monday7))->toBeTrue()
-        ->and(SendWeeklyReport::isDue($this->ws, $monday7->addHour()))->toBeFalse()
+        ->and(SendWeeklyReport::isDue($this->ws, $monday7->addHours(3)))->toBeTrue()   // el programador se atrasó
+        ->and(SendWeeklyReport::isDue($this->ws, $monday7->subHour()))->toBeFalse()
         ->and(SendWeeklyReport::isDue($this->ws, $monday7->addDay()))->toBeFalse()
         ->and(WeeklyReport::lastWeekStart($this->ws, $monday7)->toDateString())->toBe('2026-11-16');
 });

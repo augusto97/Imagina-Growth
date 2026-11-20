@@ -282,6 +282,9 @@ ampliar o reducir el servidor y volver a correrlo lo ajusta):
 | Workers de ingesta | `growth-ingest@1` lee los 4 shards (drop-in `growth-profile.conf`); 2 a 4 enmascarados | uno por shard (`@1..4`) |
 | Horizon (`IGR_WORKERS_PROFILE` en el `.env`) | `small`: 2 supervisores, 3 procesos de trabajo | `standard`: los supervisores de `hub/CLAUDE.md` §15 |
 | `GROWTH_INGEST_WORKERS` en `updater.conf` | `"1"` | `"1 2 3 4"` |
+| Hilos de PHP por proceso web (`bin/growth-web` lee `IGR_WORKERS_PROFILE`) | 2 | el doble de CPU |
+| Procesos del ML (`bin/growth-ml`) | 1 | 2 |
+| Redis de colas `maxmemory` | 20 % de la RAM (mínimo 192 MB) | 20 % |
 
 En los dos perfiles ClickHouse va sin los logs de sistema que la app no usa (`trace_log`, `text_log`, `metric_log`,
 `asynchronous_metric_log`, `query_thread_log`, `processors_profile_log`, `opentelemetry_span_log`, `latency_log`,
@@ -289,6 +292,11 @@ En los dos perfiles ClickHouse va sin los logs de sistema que la app no usa (`tr
 1,4 GB el instalador se detiene. El perfil pequeño sirve para empezar (pocos sitios y poco tráfico); con carga real
 conviene 4 GB o más. Los trabajos que necesitan otro número de intentos lo declaran en su clase (`$tries`), porque en
 el perfil pequeño todas las colas cortas comparten un supervisor.
+
+**Prioridad ante falta de memoria** (`OOMScoreAdjust`): primero el ML (500), después Horizon (300) y ClickHouse
+(200, drop-in del instalador); el panel (-100), la ingesta (-200), MariaDB (-300) y los Redis (-400) son lo último.
+Los hilos de PHP y los procesos del ML se ajustan solos al actualizar; `maxmemory` y las prioridades de MariaDB y
+ClickHouse, al volver a correr el instalador.
 
 Si el servidor ya se quedó sin memoria (la app no responde), primero `systemctl stop growth.target clickhouse-server`
 y después el instalador: con la memoria llena ni `apt` avanza. Al terminar, el instalador vuelve a arrancar la app

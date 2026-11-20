@@ -72,9 +72,6 @@ export function CampaignsPage() {
             </Tabs>
             {view === 'list' ? <CampaignList onCreate={canManage ? () => setCreating({ name: '' }) : undefined} /> : <CommercialCalendar onCreate={canManage ? (name) => setCreating({ name }) : undefined} />}
             {creating !== null && <NewCampaignDialog initialName={creating.name} onClose={() => setCreating(null)} />}
-            <p className="igr:mt-6 igr:text-xs igr:text-muted-foreground" aria-disabled="true">
-                {t('campaigns.copilotSoon')}
-            </p>
         </>
     );
 }

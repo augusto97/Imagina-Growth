@@ -8,6 +8,7 @@ use App\Domain\Commerce\Models\Order;
 use App\Domain\Referrals\Models\Affiliate;
 use App\Domain\Referrals\Models\AffiliateConversion;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
+use App\Support\Csv;
 use App\Support\Ids\PrefixedId;
 use App\Support\Money\Decimal;
 use App\Support\Tenancy\CurrentWorkspace;
@@ -73,7 +74,7 @@ final class AffiliateConversionController
             fwrite($out, "\xEF\xBB\xBF"); // BOM: Excel abre bien las tildes
             fputcsv($out, [__('Afiliado'), __('Tipo'), __('Correo'), __('Datos de pago'), __('Pedidos'), __('Comisión'), __('Moneda'), __('Comisiones')], ';');
             foreach ($rows as $row) {
-                fputcsv($out, [self::cell($row['name']), $row['kind'], self::cell((string) $row['email']), self::cell((string) $row['payout_info']), $row['orders'], $row['commission'], $currency, implode(' ', $row['conversion_ids'])], ';');
+                fputcsv($out, [Csv::cell($row['name']), $row['kind'], Csv::cell((string) $row['email']), Csv::cell((string) $row['payout_info']), $row['orders'], $row['commission'], $currency, implode(' ', $row['conversion_ids'])], ';');
             }
             fclose($out);
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'no-store, private']);
@@ -119,11 +120,6 @@ final class AffiliateConversionController
     }
 
     /** Evita la inyección de fórmulas al abrir el CSV en una hoja de cálculo. */
-    private static function cell(string $value): string
-    {
-        return preg_match('/^[=+\-@\t\r]/', $value) === 1 ? "'".$value : $value;
-    }
-
     /** @return array<string, mixed> */
     public static function present(AffiliateConversion $c, ?Affiliate $affiliate, ?Order $order): array
     {

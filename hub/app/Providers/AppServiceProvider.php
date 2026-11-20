@@ -10,6 +10,7 @@ use App\Ingest\Console\IngestWorkCommand;
 use App\Ingest\Schema\SchemaRegistry;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -44,6 +45,11 @@ class AppServiceProvider extends ServiceProvider
         foreach (WorkspaceRole::abilities() as $ability) {
             Gate::define('ws.'.$ability, fn (User $user): bool => app(CurrentWorkspace::class)->role()?->can($ability) ?? false);
         }
+
+        // El enlace de restablecer va siempre al dominio del panel, nunca al `Host` de la petición: con proxies de
+        // confianza `*`, alguien podría pedir el correo de otra persona con su dominio y robarle el token (S4).
+        ResetPassword::createUrlUsing(fn (User $user, string $token): string => rtrim((string) config('app.url'), '/')
+            .'/restablecer/'.$token.'?email='.rawurlencode($user->getEmailForPasswordReset()));
 
         RateLimiter::for('connect', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
 

@@ -21,4 +21,7 @@ env_get() {
 token=$(env_get IGR_ML_TOKEN)
 [ -n "$token" ] || { echo "Falta IGR_ML_TOKEN en $ENV_FILE" >&2; exit 1; }
 cd "$ROOT/hub/ml"
-IGR_ML_TOKEN=$token exec "$ROOT/hub/ml/.venv/bin/uvicorn" app.main:app --host 127.0.0.1 --port 8095 --workers 2
+# Un proceso en servidores pequeños (IGR_WORKERS_PROFILE=small): cada worker de uvicorn carga los modelos.
+workers=2
+[ "$(env_get IGR_WORKERS_PROFILE)" = small ] && workers=1
+IGR_ML_TOKEN=$token exec "$ROOT/hub/ml/.venv/bin/uvicorn" app.main:app --host 127.0.0.1 --port 8095 --workers "$workers"

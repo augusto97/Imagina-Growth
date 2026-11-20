@@ -134,7 +134,7 @@ describe('catálogo de nodos', () => {
         expect(summarize(t, { id: 'g', type: 'tag', config: { add: ['vip'], remove: [] } }, options)).toBe('+ vip');
         expect(summarize(t, { id: 'p', type: 'give_points', config: { points: 250 } }, options)).toBe('+250 puntos');
         expect(summarize(t, { id: 'p', type: 'give_wallet', config: {} }, options)).toBe('Indica la cantidad');
-        expect(summarize(t, { id: 'p', type: 'assign_agent', config: {} }, options)).toBe('Llega en la Fase 4');
+        expect(summarize(t, { id: 'p', type: 'assign_agent', config: {} }, options)).toBe('Todavía no disponible');
         for (const [type, meta] of Object.entries(NODE_META)) {
             expect(summarize(t, { id: 'x', type, config: meta.defaults() }, options), type).not.toMatch(/flows\./);
         }

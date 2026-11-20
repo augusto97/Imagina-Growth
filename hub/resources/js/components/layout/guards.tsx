@@ -14,6 +14,7 @@ import { setLocale } from '@/lib/i18n';
 import { useUi } from '@/stores/ui';
 import { CommandPalette } from './CommandPalette';
 import { MAIN_NAV, SETTINGS_NAV } from './nav';
+import { MobileNav } from './MobileNav';
 import { Sidebar } from './Sidebar';
 
 export function FullPageSkeleton() {
@@ -135,9 +136,12 @@ export function WorkspaceLayout() {
     return (
         <WorkspaceContext.Provider value={ctx}>
             <div className="igr:flex igr:h-full">
-                <Sidebar />
+                <div className="igr:hidden igr:h-full igr:md:block">
+                    <Sidebar />
+                </div>
                 <main className="igr:min-w-0 igr:flex-1 igr:overflow-y-auto">
-                    <div className="igr:mx-auto igr:max-w-6xl igr:px-8 igr:py-6">
+                    <MobileNav />
+                    <div className="igr:mx-auto igr:max-w-6xl igr:px-4 igr:py-4 igr:md:px-8 igr:md:py-6">
                         <BillingBanner />
                         <Outlet />
                     </div>

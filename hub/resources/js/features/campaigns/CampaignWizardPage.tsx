@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Info, ShieldCheck, Sparkles, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, Check, Info, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
@@ -171,10 +171,6 @@ function Wizard({ campaign, options }: { campaign: CampaignDetail; options: Camp
             {step === 'content' && <ContentStep campaign={campaign} options={options} saving={actions.update.isPending} canManage={canManage} onSave={(p) => save(p, 'schedule')} />}
             {step === 'schedule' && <ScheduleStep campaign={campaign} saving={actions.update.isPending} canManage={canManage} onSave={(p) => save(p, 'review')} />}
             {step === 'review' && <ReviewStep campaign={campaign} canManage={canManage} />}
-            <p className="igr:mt-6 igr:inline-flex igr:items-center igr:gap-1.5 igr:text-xs igr:text-muted-foreground">
-                <Sparkles className="igr:size-3.5" aria-hidden="true" />
-                {t('campaigns.copilotSoon')}
-            </p>
         </>
     );
 }

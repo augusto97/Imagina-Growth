@@ -14,6 +14,7 @@ use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Support\EmailBuilder;
 use App\Domain\Messaging\Support\SesClientFactory;
 use Aws\Exception\AwsException;
+use Aws\Exception\CredentialsException;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
@@ -39,6 +40,9 @@ final class SesDriver implements ChannelDriver
                 'ConfigurationSetName' => (string) config('igr-messaging.ses.configuration_set'),
                 'EmailTags' => [['Name' => 'igr_message', 'Value' => $message->messageId]],
             ]);
+        } catch (CredentialsException $e) {
+            // Sin credenciales de SES en la plataforma: falla sin reintentar y con el motivo a la vista.
+            return SendResult::failed(__('Amazon SES no está configurado en la plataforma.'), 'ses_not_configured', false);
         } catch (AwsException $e) {
             $code = (string) $e->getAwsErrorCode();
 

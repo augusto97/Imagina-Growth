@@ -3,6 +3,7 @@
 namespace App\Actions\Fortify;
 
 use App\Domain\Workspaces\Models\User;
+use App\Support\Registration;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -33,6 +34,12 @@ class CreateNewUser implements CreatesNewUsers
             ],
             'password' => $this->passwordRules(),
         ])->validate();
+
+        if (! Registration::allows($input['email'])) {
+            throw ValidationException::withMessages([
+                'email' => __('El registro es solo por invitación. Pide a quien administra Imagina Growth que te invite.'),
+            ]);
+        }
 
         return User::create([
             'name' => $input['name'],

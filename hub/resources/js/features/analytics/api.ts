@@ -4,6 +4,15 @@ import { api } from '@/lib/api';
 
 /* Tipos y consultas de Analítica (M05). Rutas en hub/routes/api/analytics.php. */
 
+/** Dinero generado por la plataforma en el periodo (CLAUDE.md §3.7). */
+export interface AttributedRevenue {
+    revenue: number;
+    orders: number;
+    share_pct: number;
+    available: boolean;
+    modules: { key: string; revenue: number; orders: number }[];
+}
+
 export const DASHBOARDS = [
     'overview',
     'funnel',
@@ -71,7 +80,7 @@ export interface OverviewData {
     kpis: Record<string, number>;
     compare: Record<string, number> | null;
     series: { date: string; revenue: number; orders: number; sessions: number }[];
-    attributed: { revenue: number; available: boolean; phase: number };
+    attributed: AttributedRevenue;
     insights: OverviewInsight[];
 }
 

@@ -12,7 +12,7 @@ namespace App\Support;
  */
 final class SpaRuntime
 {
-    /** @return array{version: string, reverb: array{key: string, host: string, port: int, scheme: string}|null} */
+    /** @return array{version: string, reverb: array{key: string, host: string, port: int, scheme: string}|null, registration: bool} */
     public static function config(): array
     {
         $key = (string) config('broadcasting.connections.reverb.key', '');
@@ -27,6 +27,6 @@ final class SpaRuntime
             ];
         }
 
-        return ['version' => AppVersion::current(), 'reverb' => $reverb];
+        return ['version' => AppVersion::current(), 'reverb' => $reverb, 'registration' => Registration::isOpen()];
     }
 }

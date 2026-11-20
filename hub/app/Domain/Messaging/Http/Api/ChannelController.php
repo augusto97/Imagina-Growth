@@ -14,11 +14,13 @@ use App\Domain\Messaging\Enums\Channel;
 use App\Domain\Messaging\Enums\MessageKind;
 use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Support\EmailDomain;
+use App\Domain\Messaging\Support\SesClientFactory;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Support\Phone\Phone;
 use App\Support\Tenancy\CurrentWorkspace;
 use Aws\Exception\AwsException;
+use Aws\Exception\CredentialsException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -79,8 +81,14 @@ final class ChannelController
             'password' => $data['password'] ?? null, 'encryption' => $data['encryption'] ?? null,
         ], fn ($v) => $v !== null);
         if ($data['provider'] === 'ses') {
+            // Sin las credenciales de SES de la plataforma, el SDK lanzaba CredentialsException y la API respondía 500.
+            if (! app(SesClientFactory::class)->configured()) {
+                throw ValidationException::withMessages(['provider' => __('Esta instalación todavía no tiene Amazon SES configurado. Conecta tu correo por SMTP o pide a quien administra la plataforma que configure SES.')]);
+            }
             try {
                 $config['dkim_tokens'] = $ses->ensureDomainIdentity($domain);
+            } catch (CredentialsException) {
+                throw ValidationException::withMessages(['provider' => __('Las credenciales de Amazon SES de la plataforma no son válidas. Avisa a quien administra la plataforma.')]);
             } catch (AwsException $e) {
                 throw ValidationException::withMessages(['from_email' => __('Amazon SES no aceptó el dominio: :msg', ['msg' => $e->getAwsErrorMessage() ?: $e->getMessage()])]);
             }

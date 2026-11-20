@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\FrameGuard;
 use App\Http\Middleware\ResolveWorkspace;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withBroadcasting(__DIR__.'/../routes/channels.php', ['prefix' => 'api', 'middleware' => ['api', 'auth:sanctum']])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
+        $middleware->web(append: [FrameGuard::class]);
         $middleware->alias(['workspace' => ResolveWorkspace::class]);
         $middleware->trustProxies(at: '*');
     })

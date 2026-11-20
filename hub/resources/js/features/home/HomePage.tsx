@@ -1,4 +1,4 @@
-import { Activity, ArrowRight, Check, CircleDollarSign, Lightbulb, Plug, Truck, Users } from 'lucide-react';
+import { Activity, ArrowRight, Check, Lightbulb, Plug, Truck, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,7 @@ import { cn } from '@/lib/cn';
 import { formatNumber } from '@/lib/format';
 import { useDashboard, useMetricCatalog } from '@/features/analytics/api';
 import { TrendChart } from '@/features/analytics/components/charts';
+import { MoneyGeneratedCard } from '@/features/analytics/components/MoneyGeneratedCard';
 import { StatTile, TileGrid } from '@/features/analytics/components/StatTile';
 import { makeFormatters } from '@/features/analytics/format';
 import { apiQuery, readParams } from '@/features/analytics/params';
@@ -186,18 +187,7 @@ export function HomePage() {
                                     )}
                                 </CardContent>
                             </Card>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="igr:flex igr:items-center igr:gap-1.5">
-                                        <CircleDollarSign className="igr:size-4 igr:text-muted-foreground" />
-                                        {t('home.attributedTitle')}
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="igr:text-2xl igr:font-semibold igr:tabular-nums">{fmt.money(kpis?.data.attributed.revenue ?? 0)}</p>
-                                    <p className="igr:mt-1 igr:text-xs igr:text-muted-foreground">{t('home.attributedHelp', { phase: kpis?.data.attributed.phase ?? 2 })}</p>
-                                </CardContent>
-                            </Card>
+                            <MoneyGeneratedCard data={kpis?.data.attributed} money={(v) => fmt.money(v)} base={base} />
                         </div>
                     </div>
                 )}

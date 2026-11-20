@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { FieldError } from '@/components/ui/misc';
 import { api, ensureCsrf, isApiError } from '@/lib/api';
 import { safeNext } from '@/lib/forms';
+import { registrationOpen } from '@/lib/runtime';
 import { AuthLayout } from './AuthLayout';
 
 export function LoginPage() {
@@ -56,12 +57,16 @@ export function LoginPage() {
             title={t('auth.loginTitle')}
             description={t('auth.loginDescription')}
             footer={
-                <>
-                    {t('auth.noAccount')}{' '}
-                    <Link className="igr:font-medium igr:text-foreground igr:underline-offset-4 igr:hover:underline" to={`/registro?next=${encodeURIComponent(next)}`}>
-                        {t('auth.createAccount')}
-                    </Link>
-                </>
+                registrationOpen() || next.startsWith('/invitacion') ? (
+                    <>
+                        {t('auth.noAccount')}{' '}
+                        <Link className="igr:font-medium igr:text-foreground igr:underline-offset-4 igr:hover:underline" to={`/registro?next=${encodeURIComponent(next)}`}>
+                            {t('auth.createAccount')}
+                        </Link>
+                    </>
+                ) : (
+                    t('auth.inviteOnly')
+                )
             }
         >
             <form className="igr:space-y-4" onSubmit={(e) => void onSubmit(e)} noValidate>

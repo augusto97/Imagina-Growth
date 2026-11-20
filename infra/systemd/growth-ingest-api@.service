@@ -8,6 +8,8 @@ StartLimitIntervalSec=300
 StartLimitBurst=20
 
 [Service]
+# La ingesta es lo último que debe caer: los sitios envían sin parar.
+OOMScoreAdjust=-200
 Type=notify
 Environment=XDG_CONFIG_HOME=%S/growth/%N XDG_DATA_HOME=%S/growth/%N
 StateDirectory=growth/%N

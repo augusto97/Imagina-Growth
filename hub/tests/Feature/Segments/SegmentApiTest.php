@@ -149,3 +149,16 @@ it('en tiempo real: product.viewed mete al contacto en el segmento y emite segme
     $events = collect($this->chRows($this->ws, "SELECT event, contact_id FROM events WHERE workspace_id = {workspace_id:UInt32} AND event = 'segment.entered'"));
     expect($events)->toHaveCount(1)->and($events->first()['contact_id'])->toBe($this->ana->id);
 });
+
+it('la exportación CSV neutraliza las fórmulas (S10)', function () {
+    $ws = $this->ws;
+    app(CurrentWorkspace::class)->run($ws, fn () => Contact::query()->create([
+        'workspace_id' => $ws->id, 'lifecycle_stage' => 'customer', 'last_seen_at' => now(), 'city' => 'Manizales',
+        'first_name' => '=HYPERLINK("https://malo.example","clic")', 'last_name' => '@SUM(1)',
+    ]));
+    $id = $this->actingAs($this->owner)->postJson($this->base, ['name' => 'Manizales', 'definition' => segDefinition('Manizales')])->json('id');
+
+    $csv = $this->actingAs($this->owner)->get("{$this->base}/{$id}/export")->assertOk()->streamedContent();
+
+    expect($csv)->toContain("'=HYPERLINK")->toContain("'@SUM(1)")->not->toMatch('/,=HYPERLINK/');
+});

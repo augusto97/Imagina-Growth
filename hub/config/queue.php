@@ -64,11 +64,14 @@ return [
             'after_commit' => false,
         ],
 
+        // retry_after debe superar el timeout del job más largo de estas colas (300 s: reporte mensual, lotes de
+        // campaña, avisos de producto). Con 90 s, el worker los tomaba otra vez mientras seguían corriendo y se
+        // enviaban dos veces. Lo vigila tests/Unit/Config/QueueTimeoutsTest.php.
         'redis' => [
             'driver' => 'redis',
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
             'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
+            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 330),
             'block_for' => null,
             'after_commit' => false,
         ],

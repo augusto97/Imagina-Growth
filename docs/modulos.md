@@ -299,6 +299,8 @@
 
 **Versionado:** publicar una versión nueva no rompe a quienes ya van por el flujo; siguen en su versión.
 
+**Activar exige el canal:** un flujo cuyos envíos o avisos usan un canal sin cuenta activa (WhatsApp, correo, SMS) no se activa y dice cuál conectar; un reparto por canal necesita al menos uno. Desde la biblioteca, el flujo queda publicado con ese motivo para activarlo después.
+
 **Analítica por nodo:** cuántos entran y salen, conversiones, ingresos e incremento frente al grupo de control.
 
 ### Biblioteca de flujos listos (en español, para activar en 1 clic)

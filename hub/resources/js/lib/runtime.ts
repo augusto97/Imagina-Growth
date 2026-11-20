@@ -14,6 +14,7 @@ export interface ReverbRuntime {
 export interface IgrRuntime {
     version?: string;
     reverb?: ReverbRuntime | null;
+    registration?: boolean;
 }
 
 declare global {
@@ -51,4 +52,9 @@ export function reverbConfig(): ReverbRuntime | null {
 export function serverVersion(): string | null {
     const v = typeof window !== 'undefined' ? window.igrRuntime?.version : undefined;
     return typeof v === 'string' && v !== '' ? v : null;
+}
+
+/** Si cualquiera puede crear una cuenta (si no, solo quien trae una invitación). Sin el dato, se muestra. */
+export function registrationOpen(): boolean {
+    return typeof window === 'undefined' || window.igrRuntime?.registration !== false;
 }

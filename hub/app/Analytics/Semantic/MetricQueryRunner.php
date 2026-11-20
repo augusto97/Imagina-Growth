@@ -53,9 +53,12 @@ final class MetricQueryRunner
         if (! config('igr.analytics.cache', true)) {
             return $compute();
         }
-        $version = (string) Site::withoutWorkspaceScope()->where('workspace_id', $workspace->id)->max('last_event_at');
+        // La versión es el último evento redondeado al minuto: con tráfico, `last_event_at` cambia cada segundo y
+        // la caché nunca acertaba (docs/auditoria-2026-11.md R9). Un tablero puede ir hasta un minuto atrás.
+        $last = Site::withoutWorkspaceScope()->where('workspace_id', $workspace->id)->max('last_event_at');
+        $version = $last === null ? '0' : (string) intdiv((int) strtotime((string) $last), 60);
 
-        return Cache::remember('ws:'.$workspace->id.':analytics:'.$key.':'.md5($version), self::CACHE_SECONDS, fn () => $compute());
+        return Cache::remember('ws:'.$workspace->id.':analytics:'.$key.':'.$version, self::CACHE_SECONDS, fn () => $compute());
     }
 
     /** @return list<array<string, mixed>> */

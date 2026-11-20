@@ -273,7 +273,7 @@
             "cadence": "Revisión",
             "lastRun": "Última revisión",
             "notYet": "Todavía no ha corrido",
-            "comingPhase": "Llega en la Fase {{phase}}",
+            "comingPhase": "Todavía no disponible",
             "cadences": {
                 "nightly": "Cada noche",
                 "weekly": "Cada semana"

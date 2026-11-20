@@ -8,6 +8,8 @@ StartLimitIntervalSec=300
 StartLimitBurst=20
 
 [Service]
+# Lo primero que se sacrifica si falta memoria: las predicciones se recalculan en la próxima corrida.
+OOMScoreAdjust=500
 Type=exec
 WorkingDirectory=/opt/growth/current/hub/ml
 ExecStart=/opt/growth/current/bin/growth-ml

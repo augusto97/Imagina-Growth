@@ -374,7 +374,7 @@ function PredictionEditor({ c, onChange }: { c: PredictionCondition; onChange: (
             >
                 {options.predictions.map((f) => (
                     <option key={f.key} value={f.key}>
-                        {PHASE4_FIELDS.includes(f.key) ? `${t(`segments.fields.${f.key}`)} · ${t('segments.builder.phase', { phase: 4 })}` : t(`segments.fields.${f.key}`)}
+                        {PHASE4_FIELDS.includes(f.key) ? `${t(`segments.fields.${f.key}`)} · ${t('segments.builder.predicted')}` : t(`segments.fields.${f.key}`)}
                     </option>
                 ))}
             </Select>
