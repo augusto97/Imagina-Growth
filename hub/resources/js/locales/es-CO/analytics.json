@@ -348,7 +348,7 @@
         },
         "searches": {
             "empty": "Aún no hay búsquedas en este periodo",
-            "emptyHelp": "Las búsquedas llegan del tracker del sitio. Si tu tienda no tiene buscador, este tablero queda vacío.",
+            "emptyHelp": "Las búsquedas llegan del código de seguimiento de tu sitio. Si tu tienda no tiene buscador, este tablero queda vacío.",
             "title": "Lo más buscado",
             "term": "Búsqueda",
             "searches": "Búsquedas",
@@ -366,10 +366,14 @@
             "region": "Departamento o estado",
             "city": "Ciudad",
             "regionsTitle": "Ventas por departamento",
-            "regionsDescription": "Según la dirección de facturación de los pedidos pagados.",
+            "regionsDescription": "Según la dirección de envío de los pedidos pagados.",
             "regionDetail": "{{orders}} pedidos · ticket de {{aov}}",
             "citiesTitle": "Ciudades",
-            "citiesDescription": "Pedidos por la dirección de facturación; sesiones y conversión por la ubicación aproximada de la visita."
+            "citiesDescription": "Pedidos por la dirección de envío; visitas y conversión por la ubicación aproximada de la conexión.",
+            "conversionHelp": "Compras sobre visitas desde esa ciudad. Solo se calcula con {{min}} visitas o más: con menos, una sola compra cambia mucho la cifra.",
+            "fewVisits": "Pocas visitas",
+            "lowSample": "Menos de {{min}} visitas en el periodo: la conversión no sería confiable.",
+            "withoutCity": "El {{share}} de las visitas no tiene ciudad (la ubicación por conexión no siempre la da), así que las visitas por ciudad son aproximadas."
         },
         "coupons": {
             "share": "Pedidos con cupón",

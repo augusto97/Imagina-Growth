@@ -1,7 +1,9 @@
-import { Bot, Search, Sparkles } from 'lucide-react';
+import { Bot, MessageCircle, Search, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/input';
 import { ErrorState } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,6 +16,55 @@ import { ChannelIcon } from './ChannelIcon';
 import type { ConversationStatus, InboxChannel, InboxView } from './types';
 
 const VIEWS: InboxView[] = ['all', 'mine', 'unassigned', 'ai'];
+
+/**
+ * Lista vacía que dice qué hacer (docs/auditoria-2026-11.md U6): sin conversaciones abiertas, ver todas; sin ninguna,
+ * conectar WhatsApp y poner el botón en el sitio; con filtros, quitarlos.
+ */
+function ListEmpty({ filtered, status, onShowAll, onClear }: { filtered: boolean; status: ConversationStatus | 'all'; onShowAll: () => void; onClear: () => void }) {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const base = `/w/${workspace.id}`;
+    if (filtered) {
+        return (
+            <div className="igr:space-y-2 igr:p-6 igr:text-center">
+                <p className="igr:text-xs igr:text-muted-foreground">{t('inbox.list.empty')}</p>
+                <Button size="sm" variant="outline" onClick={onClear}>
+                    {t('inbox.list.clearFilters')}
+                </Button>
+            </div>
+        );
+    }
+    if (status !== 'all') {
+        return (
+            <div className="igr:space-y-2 igr:p-6 igr:text-center">
+                <p className="igr:text-xs igr:text-muted-foreground">{t('inbox.list.emptyStatus', { status: t(`inbox.status.${status}`).toLowerCase() })}</p>
+                <Button size="sm" variant="outline" onClick={onShowAll}>
+                    {t('inbox.list.showAll')}
+                </Button>
+            </div>
+        );
+    }
+    return (
+        <div className="igr:space-y-3 igr:p-5 igr:text-center">
+            <MessageCircle className="igr:mx-auto igr:size-6 igr:text-muted-foreground" aria-hidden />
+            <p className="igr:text-[13px] igr:font-medium">{t('inbox.list.firstTitle')}</p>
+            <p className="igr:text-xs igr:text-muted-foreground">{t('inbox.list.firstDescription')}</p>
+            <div className="igr:flex igr:flex-col igr:gap-1.5">
+                {workspace.abilities.includes('manageWorkspace') ? (
+                    <Button asChild size="sm">
+                        <Link to={`${base}/canales`}>{t('inbox.list.connectWhatsapp')}</Link>
+                    </Button>
+                ) : null}
+                {workspace.abilities.includes('manageMarketing') ? (
+                    <Button asChild size="sm" variant="outline">
+                        <Link to={`${base}/en-el-sitio`}>{t('inbox.list.addWidget')}</Link>
+                    </Button>
+                ) : null}
+            </div>
+        </div>
+    );
+}
 
 /** Lista de conversaciones con vistas (todas, mías, sin asignar, con IA), estado, intención, canal y búsqueda. */
 export function ConversationListPane({ selected, onSelect }: { selected: string | undefined; onSelect: (id: string) => void }) {
@@ -104,7 +155,18 @@ export function ConversationListPane({ selected, onSelect }: { selected: string 
                         ))}
                     </div>
                 ) : list.data.data.length === 0 ? (
-                    <p className="igr:p-6 igr:text-center igr:text-xs igr:text-muted-foreground">{t('inbox.list.empty')}</p>
+                    <ListEmpty
+                        filtered={view !== 'all' || intent !== '' || channel !== '' || q.trim() !== ''}
+                        status={status}
+                        onShowAll={() => setStatus('all')}
+                        onClear={() => {
+                            setView('all');
+                            setIntent('');
+                            setChannel('');
+                            setSearch('');
+                            setStatus('all');
+                        }}
+                    />
                 ) : (
                     <ul aria-label={t('inbox.list.title')}>
                         {list.data.data.map((c) => (

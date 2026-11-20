@@ -206,7 +206,10 @@ export interface SearchesData {
 /* 7. Geografía */
 export interface GeographyData {
     regions: { region: string; orders: number; revenue: number; aov: number }[];
-    cities: { city: string; region: string; orders: number; revenue: number; sessions: number | null; conversion: number | null }[];
+    /** conversion es null sin visitas de esa ciudad o con menos de min_sessions (low_sample). */
+    cities: { city: string; region: string; orders: number; revenue: number; sessions: number | null; conversion: number | null; low_sample?: boolean }[];
+    sessions?: { total: number; without_city: number; without_city_share: number };
+    min_sessions?: number;
 }
 
 /* 8. Cupones */

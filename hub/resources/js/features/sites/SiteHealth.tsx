@@ -42,6 +42,12 @@ export function causeAction(t: TFunction, cause: SiteHealthCause): string {
     return t(`sites.health.causes.${cause.key}.action`, cause.params);
 }
 
+/** Nombre de un tipo de dato para el dueño: el del perfil 360, el del sitio o, si no hay, el código. */
+export function eventLabel(t: TFunction, event: string): string {
+    const key = event.replace(/[^a-z0-9]+/gi, '_');
+    return t(`contacts.events.${key}`, { defaultValue: t(`sites.eventLabels.${key}`, { defaultValue: event }) });
+}
+
 /** Las causas que importan para los tableros: sin visitas del navegador, las visitas y la conversión salen en cero. */
 export function trackerMissing(health: SiteHealthStatus | null | undefined): boolean {
     return (health?.causes ?? []).some((c) => c.key === 'browser_missing' || c.key === 'browser_late');

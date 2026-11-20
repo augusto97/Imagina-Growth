@@ -317,7 +317,7 @@
             "status": "Estado",
             "backfill": "Importación",
             "plugin": "Plugin",
-            "lastEvent": "Último evento"
+            "lastEvent": "Último dato"
         },
         "status": {
             "pending": "Pendiente",
@@ -364,14 +364,14 @@
             "expired": "El código venció. Genera otro.",
             "regenerate": "Generar otro código",
             "step1": "En tu WordPress, instala y activa el plugin «Imagina Growth Connector».",
-            "step2": "Entra a Imagina Growth en el menú del administrador y elige «Tengo un código».",
-            "step3": "Pega el código y guarda. Aquí verás el sitio en cuanto se conecte."
+            "step2": "Entra a «Imagina Growth» en el menú de la izquierda de tu WordPress y busca «¿Tienes un código de conexión?».",
+            "step3": "Pega el código y toca «Conectar con el código». Aquí verás el sitio en cuanto se conecte."
         },
         "actions": {
             "title": "Acciones",
-            "diagnostics": "Diagnóstico",
-            "diagnosticsTitle": "Diagnóstico de {{host}}",
-            "diagnosticsDescription": "Lo que responde el plugin ahora mismo: versiones, cola de envío y tareas programadas.",
+            "diagnostics": "Revisar el plugin",
+            "diagnosticsTitle": "Estado del plugin en {{host}}",
+            "diagnosticsDescription": "Lo que responde el plugin ahora mismo: versiones, tareas programadas y datos por enviar.",
             "backfill": "Reimportar el historial",
             "backfillTitle": "Reimportar el historial",
             "backfillDescription": "El plugin vuelve a enviar pedidos, clientes y productos. Lo que ya llegó no se duplica.",
@@ -401,16 +401,16 @@
             "plugin": "Plugin",
             "connectedAt": "Conectado",
             "lastSeen": "Último contacto",
-            "lastEvent": "Último evento",
+            "lastEvent": "Último dato recibido",
             "timezone": "Zona horaria",
             "currency": "Moneda",
-            "outbox": "Cola de envío",
+            "outbox": "Datos por enviar",
             "outboxValue": "{{pending}} pendientes · {{dead}} fallidos",
             "noHeartbeat": "Sin reporte todavía",
             "lastError": "Último error",
             "siteId": "ID del sitio",
             "publicKey": "Clave pública",
-            "restUrl": "URL de comandos",
+            "restUrl": "Dirección para comandos",
             "secretRotated": "Secreto rotado",
             "paidStatuses": "Estados pagados",
             "codGateways": "Contraentrega",
@@ -429,28 +429,29 @@
             "imagina_search": "Imagina Search"
         },
         "events": {
-            "title": "Eventos de las últimas 24 horas",
+            "title": "Lo que llegó en las últimas 24 horas",
             "description": "Lo que llegó del sitio, por tipo.",
-            "empty": "Todavía no llegan eventos.",
-            "event": "Evento",
+            "empty": "Todavía no llegan datos.",
+            "event": "Tipo de dato",
             "count": "Cantidad"
         },
         "rejections": {
-            "title": "Eventos rechazados (7 días)",
-            "description": "Eventos que no cumplían el contrato. No se reintentan; corrige el origen.",
-            "empty": "Ningún evento rechazado. Todo en orden.",
+            "title": "Datos rechazados (7 días)",
+            "description": "Datos que llegaron con un formato inesperado y no se guardaron. No se reintentan: actualiza el plugin.",
+            "empty": "Ningún dato rechazado. Todo en orden.",
             "when": "Cuándo",
             "reason": "Motivo",
             "detail": "Detalle",
             "reasons": {
-                "schema": "No cumple el esquema",
-                "decode": "JSON inválido",
-                "site_missing": "Sitio inexistente",
-                "processing": "Error al procesar",
-                "envelope": "Sobre inválido",
+                "schema": "Formato inesperado",
+                "decode": "Datos ilegibles",
+                "site_missing": "Sitio desconocido",
+                "processing": "Error al guardar",
+                "envelope": "Datos incompletos",
                 "too_large": "Demasiado grande",
-                "unknown_event": "Evento desconocido",
-                "site_mismatch": "Sitio distinto"
+                "unknown_event": "Tipo de dato desconocido",
+                "site_mismatch": "Llegó de otro sitio",
+                "not_allowed": "No permitido desde el navegador"
             }
         },
         "downloadPlugin": "Descargar plugin",
@@ -528,21 +529,88 @@
                     "action": "Mira el detalle en la pestaña «Importación» y vuelve a empezarla desde «Acciones»."
                 }
             }
+        },
+        "diagnostics": {
+            "raw": "Detalle técnico (para soporte)",
+            "versions": {
+                "title": "Plugin {{plugin}} · WordPress {{wp}} · WooCommerce {{wc}}",
+                "help": "PHP {{php}}."
+            },
+            "schedulerOk": {
+                "title": "Las tareas programadas están al día",
+                "help": "El plugin envía los datos a tiempo."
+            },
+            "schedulerLate": {
+                "title": "Las tareas programadas van {{minutes}} minutos atrasadas",
+                "help": "Las tareas programadas de WordPress (WP-Cron) solo corren cuando alguien visita el sitio. Pide a tu hosting un cron del servidor cada 5 minutos."
+            },
+            "cronDisabled": {
+                "title": "WP-Cron está apagado y no hay un cron del servidor",
+                "help": "Sin tareas programadas el plugin no envía datos. Pide a tu hosting un cron del servidor cada 5 minutos."
+            },
+            "schedulerMissing": {
+                "title": "Falta el programador de tareas del plugin",
+                "help": "Reinstala Imagina Growth Connector desde «Sitios» → «Descargar plugin»."
+            },
+            "outboxEmpty": {
+                "title": "No hay datos esperando para salir",
+                "help": "Todo lo que pasó en tu sitio ya llegó."
+            },
+            "outboxPending": {
+                "title_one": "{{count}} dato esperando para salir",
+                "title_other": "{{count}} datos esperando para salir",
+                "help": "Se envían en lotes cada minuto."
+            },
+            "outboxDead": {
+                "title_one": "{{count}} dato que el plugin no pudo enviar",
+                "title_other": "{{count}} datos que el plugin no pudo enviar",
+                "help": "Actualiza el plugin y reimporta el historial para recuperarlos."
+            },
+            "errors": {
+                "title_one": "{{count}} error reciente en el plugin",
+                "title_other": "{{count}} errores recientes en el plugin",
+                "help": "El detalle está abajo, en el detalle técnico. Si se repiten, escríbenos."
+            },
+            "noErrors": {
+                "title": "Sin errores recientes",
+                "help": "El plugin no registró fallos."
+            }
+        },
+        "eventLabels": {
+            "site_heartbeat": "Reporte de cada hora del plugin",
+            "site_changed": "Cambio en el sitio (plugins o versiones)",
+            "catalog_product_upserted": "Producto creado o actualizado",
+            "catalog_product_deleted": "Producto borrado",
+            "catalog_category_upserted": "Categoría creada o actualizada",
+            "catalog_category_deleted": "Categoría borrada",
+            "catalog_price_changed": "Cambio de precio",
+            "catalog_stock_changed": "Cambio de inventario",
+            "checkout_contact_captured": "Datos del comprador en el pago",
+            "page_vitals": "Velocidad de la página",
+            "widget_shown": "Widget mostrado",
+            "widget_closed": "Widget cerrado",
+            "quote_requested": "Cotización pedida",
+            "subscription_created": "Suscripción creada",
+            "subscription_renewed": "Suscripción renovada",
+            "subscription_cancelled": "Suscripción cancelada",
+            "subscription_expired": "Suscripción vencida",
+            "subscription_renewal_failed": "Renovación fallida",
+            "custom": "Evento personalizado"
         }
     },
     "reconciliation": {
         "title": "Conciliación con WooCommerce",
-        "description": "Pedidos y venta total por estado, en WooCommerce y en Imagina Growth.",
+        "description": "Pedidos y venta total por estado: lo que dice WooCommerce y lo que importamos.",
         "unavailable": "Aparece cuando el plugin termina la importación y envía sus totales.",
         "allMatch": "Coincide al 100 %",
         "someMismatch": "Hay diferencias",
         "whatIsCompared": "¿Qué se compara?",
-        "help": "Pedidos de WooCommerce (tipo shop_order, sin borradores ni papelera) creados entre {{from}} y {{until}}, agrupados por estado: cantidad y suma del total. Es la prueba de que la importación quedó completa.",
+        "help": "Pedidos de WooCommerce creados entre {{from}} y {{until}} (sin borradores ni papelera), agrupados por estado: cantidad y suma del total. Si todo coincide, la importación quedó completa.",
         "status": "Estado",
         "wcOrders": "Pedidos en WooCommerce",
-        "hubOrders": "Pedidos en el hub",
+        "hubOrders": "Pedidos en Imagina Growth",
         "wcTotal": "Total en WooCommerce",
-        "hubTotal": "Total en el hub",
+        "hubTotal": "Total en Imagina Growth",
         "result": "Resultado",
         "total": "Total",
         "refunds": "Reembolsos",
