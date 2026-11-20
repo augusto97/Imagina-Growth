@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Messaging;
 
 use App\Domain\Messaging\Console\RequeueDeferredCommand;
+use App\Domain\Messaging\Console\ResolveStuckMessagesCommand;
 use App\Domain\Messaging\Contracts\MessageDispatcher;
 use App\Domain\Messaging\Sending\DefaultMessageDispatcher;
 use App\Domain\Messaging\Support\DnsResolver;
@@ -25,10 +26,11 @@ final class ModuleServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([RequeueDeferredCommand::class]);
+            $this->commands([RequeueDeferredCommand::class, ResolveStuckMessagesCommand::class]);
         }
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
             $schedule->command('igr:messages:requeue')->everyMinute()->withoutOverlapping()->onOneServer();
+            $schedule->command('igr:messages:stuck')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
         });
     }
 }

@@ -67,7 +67,7 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | F6 | P1 | La salud del sitio nunca pasa a «degradado». | `SiteHealthProjector` | ⏳ |
 | F7 | P1 | Los contactos importados quedan con 0 consentimientos, sin forma de declarar el origen. | importación | ⏳ |
 | F8 | P1 | Inteligencia, RFM y atribución solo corren de noche: después de importar, todo en cero hasta el otro día. | scheduler | ✅ 0.1.7: al terminar la importación, `ProcessImportedHistory` (atribución, KPI, RFM y hallazgos) cuando la ingesta queda al día |
-| F9 | P1 | Mensajes que se quedan en `sending`. | `SendMessageJob` | ⏳ |
+| F9 | P1 | Mensajes que se quedan en `sending`. | `SendMessageJob` | ✅ (lote 3): una excepción del driver deja el mensaje `failed` (`driver_error`); `igr:messages:stuck` (cada 5 min, `ResolveStuckMessages`) toma los que llevan más de 15 min en `sending`: marketing → `failed` con `stuck_sending` (sin reintentar, para no duplicar), el resto → un reintento y luego `failed`; índice `(status, updated_at)` |
 | F10 | P1 | Se puede activar un flujo sin canal conectado. | flujos | ✅ 0.1.7: no se activa sin cuenta activa del canal que usa; desde la biblioteca queda publicado con el motivo |
 | F11 | P2 | Tablero de mensajería vacío (stub). | mensajería | ⏳ |
 | F12 | P2 | `kpi_daily` de sesiones atrasado; conversión por geografía engañosa. | analítica | ⏳ |

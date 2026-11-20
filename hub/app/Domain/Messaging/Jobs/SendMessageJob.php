@@ -22,6 +22,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Redis;
+use Throwable;
 
 /**
  * Envía un mensaje ya aprobado por SendPolicy (cola `messages:{canal}`).
@@ -33,7 +34,9 @@ use Illuminate\Support\Facades\Redis;
  * 3. Límite de velocidad por cuenta (Redis).
  * 4. Pasa a `sending` de forma atómica (un reintento nunca envía dos veces) y
  *    llama al driver. Un error transitorio vuelve a `queued` con espera; uno
- *    definitivo, o 5 transitorios, lo deja `failed` y devuelve el cupo de frecuencia.
+ *    definitivo, 5 transitorios o una excepción del driver lo deja `failed` y
+ *    devuelve el cupo de frecuencia. Si el proceso muere en medio, el mensaje
+ *    queda en `sending` y lo resuelve `igr:messages:stuck` (ResolveStuckMessages).
  */
 final class SendMessageJob implements ShouldQueue, WorkspaceAware
 {
@@ -121,19 +124,28 @@ final class SendMessageJob implements ShouldQueue, WorkspaceAware
         }
         $message->status = 'sending';
         $message->syncOriginalAttribute('status');
-        $result = $driver->send($account, new OutgoingMessage(
-            $message->publicId(),
-            (string) ($payload['to'] ?? ''),
-            $message->kind->isCommercial() && ! ($payload['test'] ?? false),
-            isset($payload['subject']) ? (string) $payload['subject'] : null,
-            isset($payload['html']) ? (string) $payload['html'] : null,
-            isset($payload['text']) ? (string) $payload['text'] : null,
-            (array) ($payload['headers'] ?? []),
-            isset($payload['wa']['name']) ? (string) $payload['wa']['name'] : null,
-            isset($payload['wa']['language']) ? (string) $payload['wa']['language'] : null,
-            array_values((array) ($payload['wa']['components'] ?? [])),
-            isset($payload['messaging_tag']) ? (string) $payload['messaging_tag'] : null,
-        ));
+        try {
+            $result = $driver->send($account, new OutgoingMessage(
+                $message->publicId(),
+                (string) ($payload['to'] ?? ''),
+                $message->kind->isCommercial() && ! ($payload['test'] ?? false),
+                isset($payload['subject']) ? (string) $payload['subject'] : null,
+                isset($payload['html']) ? (string) $payload['html'] : null,
+                isset($payload['text']) ? (string) $payload['text'] : null,
+                (array) ($payload['headers'] ?? []),
+                isset($payload['wa']['name']) ? (string) $payload['wa']['name'] : null,
+                isset($payload['wa']['language']) ? (string) $payload['wa']['language'] : null,
+                array_values((array) ($payload['wa']['components'] ?? [])),
+                isset($payload['messaging_tag']) ? (string) $payload['messaging_tag'] : null,
+            ));
+        } catch (Throwable $e) {
+            // Una excepción del driver dejaba el mensaje en `sending` para siempre (F9): queda fallido con el motivo.
+            report($e);
+            SendCaps::release($account);
+            $this->fail($message, $policy, $request, $events, __('Error inesperado al enviar (:type).', ['type' => class_basename($e)]), 'driver_error');
+
+            return;
+        }
 
         if ($result->ok) {
             $message->forceFill(['status' => 'sent', 'provider_message_id' => $result->providerMessageId, 'sent_at' => now()])->save();

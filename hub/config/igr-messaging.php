@@ -34,6 +34,8 @@ return [
         'rate_per_second' => 10,
     ],
     'smtp' => ['rate_per_second' => 5],
+    // Un mensaje con más de estos minutos en `sending` se da por trabado (F9, igr:messages:stuck cada 5 min).
+    'stuck_sending_minutes' => (int) env('IGR_MESSAGES_STUCK_MINUTES', 15),
     // Calentamiento de un dominio nuevo: tope diario por día desde que se verificó (después, sin tope).
     'warmup' => [50, 100, 250, 500, 1000, 2500, 5000, 10000, 20000, 40000],
     // Dominio de los enlaces rastreados, la baja y las preferencias (go.growth.imagina.cloud o el del cliente).
