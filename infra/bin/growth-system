@@ -34,6 +34,9 @@ MARIADB=${MARIADB:-mariadb}
 REDIS_CLI=${REDIS_CLI:-redis-cli}
 RUNUSER=${RUNUSER:-runuser}
 PROC=${GROWTH_PROC:-/proc}
+CH_PING=${GROWTH_CH_PING:-ch_ping_default}
+ch_ping_default() { curl -fsS --max-time 3 http://127.0.0.1:8123/ping; }
+NO_STAMP=0
 
 CMD=${1:-}
 MODE=${2:-}
@@ -228,6 +231,12 @@ fi
 # ── ClickHouse: configuración, memoria y prioridad ─────────────────────────────────
 
 CH_RESTART=0
+# Copia de la configuración de ClickHouse antes de tocarla: si no arranca con la nueva, se restaura (más abajo).
+CH_SNAPSHOT=""
+if [[ -d $CH_CONF_DIR && $CMD != status ]]; then
+    CH_SNAPSHOT=$(mktemp -d)
+    cp -a "$CH_CONF_DIR"/. "$CH_SNAPSHOT"/ 2>/dev/null || true
+fi
 if [[ -d $(dirname "$CH_CONF_DIR") && -d $ROOT/config/clickhouse ]]; then
     for f in igr.xml growth-listen.xml growth-backups.xml; do
         [[ -f $ROOT/config/clickhouse/$f ]] || continue
@@ -238,15 +247,12 @@ if [[ -d $(dirname "$CH_CONF_DIR") && -d $ROOT/config/clickhouse ]]; then
     if [[ $PROFILE == small ]]; then CH_PCT=25 CH_MARK_DIV=64; else CH_PCT=30 CH_MARK_DIV=32; fi
     SMALL_EXTRA=""
     if [[ $PROFILE == small ]]; then
+        # Solo cachés: los pools de fondo tienen mínimos que ClickHouse valida al arrancar (con background_pool_size
+        # bajo, la 25.8 no arranca por number_of_free_entries_in_pool_to_execute_mutation).
         SMALL_EXTRA="    <uncompressed_cache_size>0</uncompressed_cache_size>
     <compiled_expression_cache_size>16777216</compiled_expression_cache_size>
     <compiled_expression_cache_elements_size>1000</compiled_expression_cache_elements_size>
     <mmap_cache_size>256</mmap_cache_size>
-    <background_pool_size>4</background_pool_size>
-    <background_schedule_pool_size>16</background_schedule_pool_size>
-    <background_common_pool_size>4</background_common_pool_size>
-    <background_move_pool_size>2</background_move_pool_size>
-    <background_fetches_pool_size>2</background_fetches_pool_size>
 "
     fi
     put "$CH_CONF_DIR/growth-memory.xml" 0644 "root:$CH_GROUP" <<EOF && { CH_RESTART=1; note "ClickHouse: memoria del perfil $PROFILE"; }
@@ -322,6 +328,32 @@ if [[ -n $REDIS_PASS && -d $ROOT/config/redis ]]; then
     done
 fi
 
+# ClickHouse con la configuración nueva; si no vuelve a responder, se restaura la anterior y se reinicia otra vez.
+# Siempre espera (también con --hook): una configuración que ClickHouse rechaza lo dejaría caído.
+ch_up() {
+    local i
+    for i in $(seq 1 "${GROWTH_CH_WAIT:-45}"); do
+        "$CH_PING" >/dev/null 2>&1 && return 0
+        sleep 2
+    done
+    return 1
+}
+restart_clickhouse() {
+    timeout 180 "$SYSTEMCTL" restart clickhouse-server.service >/dev/null 2>&1 || true
+    ch_up && return 0
+    if [[ -n $CH_SNAPSHOT && -d $CH_SNAPSHOT ]]; then
+        warn "ClickHouse no arrancó con la configuración nueva: se restaura la anterior."
+        find "$CH_CONF_DIR" -mindepth 1 -maxdepth 1 -name '*.xml' -exec rm -f {} + 2>/dev/null || true
+        cp -a "$CH_SNAPSHOT"/. "$CH_CONF_DIR"/ 2>/dev/null || true
+        timeout 180 "$SYSTEMCTL" restart clickhouse-server.service >/dev/null 2>&1 || true
+        ch_up || warn "ClickHouse sigue sin responder; revisa journalctl -u clickhouse-server."
+        # Sin sello: la próxima corrida lo vuelve a intentar.
+        NO_STAMP=1
+    else
+        warn "ClickHouse no responde después de reiniciar."
+    fi
+}
+
 # ── Unidades y reinicios ────────────────────────────────────────────────────────────
 
 if ((UNITS_CHANGED)) && [[ $CMD != status ]]; then
@@ -332,7 +364,7 @@ if [[ $CMD != status ]]; then
         sctl restart mariadb.service || warn "No se pudo reiniciar MariaDB."
     fi
     if ((CH_RESTART)) && active clickhouse-server; then
-        sctl restart clickhouse-server.service || warn "No se pudo reiniciar ClickHouse."
+        restart_clickhouse
     fi
     for u in "${REDIS_RESTART[@]}"; do
         active "$u" && { sctl restart "$u" || warn "No se pudo reiniciar $u."; }
@@ -374,7 +406,8 @@ if ((ENV_CHANGED)) && [[ $CMD != status && $MODE != --install ]]; then
     fi
 fi
 
-if [[ $CMD != status ]]; then
+[[ -n $CH_SNAPSHOT ]] && rm -rf "$CH_SNAPSHOT"
+if [[ $CMD != status ]] && ((NO_STAMP == 0)); then
     mkdir -p "$STATE"
     chmod 0755 "$STATE"
     printf '%s\n' "$STAMP_VALUE" >"$STATE/applied"

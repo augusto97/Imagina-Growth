@@ -53,7 +53,7 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | R14 | P2 | Sin purga de retención de datos viejos. | — | ⏳ |
 | R15 | P2 | `RecomputeSegment` y RFM cargan demasiado en memoria. | Segments, Intelligence | ⏳ |
 | R16 | P3 | Sin Octane / modo worker de FrankenPHP. | `infra` | ⏳ |
-| R17 | P1 | En la prueba con 1,6 GB (Ubuntu 26.04), ClickHouse ocupa ~580 MB de RSS en reposo pese al tope del 25 %, y el contenedor queda al 94 %: bajo presión el kernel mató el ML (como se buscaba) y se reinició solo. | `infra/bin/growth-system` (`growth-memory.xml`) | ✅ (lote 3): en el perfil pequeño, sin caché sin comprimir, caché de expresiones de 16 MB y pools de fondo mínimos |
+| R17 | P1 | En la prueba con 1,6 GB (Ubuntu 26.04), ClickHouse ocupa ~580 MB de RSS en reposo pese al tope del 25 %, y el contenedor queda al 94 %: bajo presión el kernel mató el ML (como se buscaba) y se reinició solo. | `infra/bin/growth-system` (`growth-memory.xml`) | ✅ (lote 3): en el perfil pequeño, sin caché sin comprimir y caché de expresiones de 16 MB. Medido: ClickHouse usa ~165 MB de memoria anónima; el resto de su RSS son páginas del binario que el kernel recupera. Los pools de fondo no se tocan (con menos, la 25.8 no arranca) y si ClickHouse no vuelve con una configuración nueva, se restaura la anterior |
 
 ## 3. Funcionalidades
 

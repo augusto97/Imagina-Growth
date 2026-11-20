@@ -297,7 +297,8 @@ workers de ingesta y los permisos de `shared/state`. Lo aplican:
 
 Es idempotente: solo escribe lo que cambió y aplica en caliente lo que se puede (`maxmemory` y `save` de Redis con
 `CONFIG SET`, `innodb_buffer_pool_size` con `SET GLOBAL`, `oom_score_adj` de los procesos en marcha); ClickHouse se
-reinicia solo si cambió su configuración. Nunca hace fallar la actualización: si algo no se puede aplicar, lo avisa
+reinicia solo si cambió su configuración, y si no vuelve a responder en ~90 s se restaura la configuración anterior,
+se reinicia otra vez y no se sella (la próxima corrida lo reintenta). Nunca hace fallar la actualización: si algo no se puede aplicar, lo avisa
 y sigue. `growth-system status` muestra el perfil sin cambiar nada. Ampliar o reducir el servidor se ajusta solo en
 la próxima actualización (o al reiniciar `growth-app`).
 
@@ -309,7 +310,7 @@ la máquina anfitriona.
 
 | | Pequeño (menos de ~3,5 GB) | Estándar |
 |---|---|---|
-| ClickHouse (`config.d/growth-memory.xml`) | 25 % de la RAM; cachés de marcas 1/64 y 1/128; sin caché sin comprimir, caché de expresiones de 16 MB y pools de fondo mínimos (4 de fusiones) | 30 %; 1/32 y 1/64 |
+| ClickHouse (`config.d/growth-memory.xml`) | 25 % de la RAM; cachés de marcas 1/64 y 1/128; sin caché sin comprimir y caché de expresiones de 16 MB (los pools de fondo no se tocan: ClickHouse valida sus mínimos al arrancar) | 30 %; 1/32 y 1/64 |
 | MariaDB `innodb_buffer_pool_size` | 1/8 de la RAM (mínimo 128 MB) | 1/4 |
 | Workers de ingesta | `growth-ingest@1` lee los 4 shards (drop-in `growth-profile.conf`); 2 a 4 enmascarados | uno por shard (`@1..4`) |
 | Horizon (`IGR_WORKERS_PROFILE` en el `.env`) | `small`: 2 supervisores, 3 procesos de trabajo | `standard`: los supervisores de `hub/CLAUDE.md` §15 |

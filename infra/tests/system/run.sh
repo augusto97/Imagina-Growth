@@ -47,6 +47,10 @@ EOF
     export GROWTH_MARIADB_CONF_DIR="$W/etc/mysql/mariadb.conf.d" GROWTH_CH_CONF_DIR="$W/etc/clickhouse-server/config.d"
     export GROWTH_REDIS_CONF_DIR="$W/etc/redis" GROWTH_SYSTEM_STATE="$W/var/lib/growth-system" GROWTH_PROC="$W/proc"
     export SYSTEMCTL="$W/fake/systemctl" MARIADB="$W/fake/mariadb" REDIS_CLI="$W/fake/redis-cli" RUNUSER="$W/fake/runuser"
+    # ClickHouse «responde» salvo que exista $FAKE/ch-down.
+    printf '#!/usr/bin/env bash\n[[ ! -e "$FAKE/ch-down" ]]\n' >"$W/fake/ch-ping"
+    chmod 0755 "$W/fake/ch-ping"
+    export GROWTH_CH_PING="$W/fake/ch-ping" GROWTH_CH_WAIT=1
     GROWTH_USER=$(id -un)
     GROWTH_CH_GROUP=$(id -gn)
     GROWTH_REDIS_GROUP=$GROWTH_CH_GROUP
@@ -66,14 +70,14 @@ has "$GROWTH_MARIADB_CONF_DIR/90-growth.cnf" "innodb-buffer-pool-size = 204M" "M
 has "$GROWTH_MARIADB_CONF_DIR/90-growth.cnf" "204M" "buffer pool 1/8"
 has "$FAKE/calls.log" "SET GLOBAL innodb_buffer_pool_size = 213909504" "buffer pool en caliente"
 has "$GROWTH_CH_CONF_DIR/growth-memory.xml" "<max_server_memory_usage>429391872</max_server_memory_usage>" "ClickHouse 25 %"
-has "$GROWTH_CH_CONF_DIR/growth-memory.xml" "<background_pool_size>4</background_pool_size>" "pools mínimos en el perfil pequeño"
+has "$GROWTH_CH_CONF_DIR/growth-memory.xml" "<uncompressed_cache_size>0</uncompressed_cache_size>" "cachés mínimas en el perfil pequeño"
+hasnt "$GROWTH_CH_CONF_DIR/growth-memory.xml" "background_pool_size" "nunca toca los pools de fondo (ClickHouse no arrancaría)"
 has "$GROWTH_CH_CONF_DIR/igr.xml" "clickhouse" "configuración de ClickHouse de la versión"
 has "$W/etc/clickhouse-server/users.d/growth-users.xml" "$(printf '%s' clave-ch | sha256sum | cut -d' ' -f1)" "usuario igr con el sha256 del .env"
 hasnt "$W/etc/clickhouse-server/users.d/growth-users.xml" "access_management" "igr sin administración de usuarios"
 hasnt "$W/etc/clickhouse-server/users.d/growth-users.xml" "clave-ch" "la contraseña nunca en claro"
 [[ -s $GROWTH_ETC/clickhouse-default.pass ]] && ok || bad "contraseña aleatoria de default"
-has "$FAKE/calls.log" "systemctl restart clickhouse-server.service" "reinicia ClickHouse (bloqueante en --update)"
-hasnt "$FAKE/calls.log" "--no-block restart clickhouse" "sin --no-block fuera del hook"
+has "$FAKE/calls.log" "systemctl restart clickhouse-server.service" "reinicia ClickHouse y espera"
 has "$GROWTH_REDIS_CONF_DIR/redis-queue.conf" "maxmemory 327mb" "Redis de colas con tope"
 hasnt "$GROWTH_REDIS_CONF_DIR/redis-queue.conf" "__REDIS_PASSWORD__" "contraseña reemplazada"
 has "$FAKE/calls.log" "redis-cli auth=si -p 6379 CONFIG SET maxmemory 327mb" "tope en caliente, con la contraseña por entorno"
@@ -105,12 +109,24 @@ has "$GROWTH_ROOT/shared/.env" "IGR_WORKERS_PROFILE=standard" "perfil estándar"
 [[ ! -e $SYSTEMD_UNIT_DIR/growth-ingest@1.service.d/growth-profile.conf ]] && ok || bad "quita el drop-in del worker único"
 has "$FAKE/calls.log" "systemctl unmask growth-ingest@2.service" "desenmascara los workers"
 has "$FAKE/calls.log" "systemctl --no-block start growth-ingest@2.service" "los arranca sin bloquear"
-has "$FAKE/calls.log" "systemctl --no-block restart clickhouse-server.service" "ClickHouse sin bloquear"
+has "$FAKE/calls.log" "systemctl restart clickhouse-server.service" "ClickHouse se reinicia esperando que vuelva (también en el hook)"
 has "$FAKE/calls.log" "systemctl --no-block restart growth-horizon.service" "Horizon con el perfil nuevo"
 hasnt "$FAKE/calls.log" "restart growth-app" "nunca reinicia growth-app desde su propio arranque"
-hasnt "$GROWTH_CH_CONF_DIR/growth-memory.xml" "background_pool_size" "sin recortes en el perfil estándar"
+hasnt "$GROWTH_CH_CONF_DIR/growth-memory.xml" "uncompressed_cache_size" "sin recortes en el perfil estándar"
 has "$GROWTH_ETC/updater.conf" 'GROWTH_INGEST_WORKERS="1 2 3 4"' "cuatro workers"
 eq "$(grep -c '^GROWTH_INGEST_WORKERS=' "$GROWTH_ETC/updater.conf")" 1 "una sola línea de workers"
+
+# 4b. ClickHouse no arranca con la configuración nueva: se restaura la anterior y no se sella.
+cp "$GROWTH_CH_CONF_DIR/growth-memory.xml" "$W/memoria-buena.xml"
+rm -f "$GROWTH_SYSTEM_STATE/applied"
+touch "$FAKE/ch-down"
+: >"$FAKE/calls.log"
+eq "$(GROWTH_MEMORY_MB=1638 run apply --update)" 0 "nunca falla la actualización"
+has "$W/out.log" "se restaura la anterior" "avisa"
+eq "$(cat "$GROWTH_CH_CONF_DIR/growth-memory.xml")" "$(cat "$W/memoria-buena.xml")" "vuelve la configuración que funcionaba"
+eq "$(grep -c 'systemctl restart clickhouse-server.service' "$FAKE/calls.log")" 2 "reinicia otra vez con la anterior"
+[[ ! -e $GROWTH_SYSTEM_STATE/applied ]] && ok || bad "sin sello: lo reintenta la próxima vez"
+rm -f "$FAKE/ch-down"
 
 # 5. RAM: la fijada en updater.conf manda; si no, el límite del cgroup (VPS que son contenedores) recorta meminfo.
 printf 'MemTotal:       16473600 kB\n' >"$W/proc/meminfo"
