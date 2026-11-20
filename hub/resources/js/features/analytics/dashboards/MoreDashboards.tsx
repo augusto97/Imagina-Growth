@@ -137,11 +137,7 @@ export function CouponsDashboard({ response, data, fmt }: DashboardProps<'coupon
     );
 }
 
-/* 9. Mensajería (llega con la Fase 2) */
-export function MessagingDashboard({ data }: DashboardProps<'messaging'>) {
-    const { t } = useTranslation();
-    return <EmptyState icon={MessageCircle} title={t('analytics.messaging.title')} description={t('analytics.messaging.soon', { phase: data.phase ?? 2 })} />;
-}
+/* 9. Mensajería: dashboards/MessagingDashboard.tsx */
 
 /* 10. Rentabilidad */
 export function ProfitabilityDashboard({ response, data, fmt }: DashboardProps<'profitability'>) {

@@ -160,7 +160,7 @@
 6. **Búsquedas:** principales, sin resultados y conversión por término.
 7. **Geografía:** ventas y conversión por departamento, estado o ciudad, en mapa.
 8. **Cupones y descuentos:** uso, ingreso incremental estimado y dependencia de descuentos.
-9. **Mensajería:** rendimiento por flujo, campaña y canal (enviados, entregados, leídos, clics, ingresos, ingreso por mensaje, costo, ROI y bajas).
+9. **Mensajería:** rendimiento por flujo, campaña y canal (enviados, entregados, leídos, clics, ingresos, ingreso por mensaje, costo, ROI y bajas). *Hecho:* enviados (sin los que la política frenó ni el grupo de control), entregados, leídos de WhatsApp, aperturas del correo sin Apple MPP, clics, respuestas, bajas, rebotes y fallos, ventas atribuidas e ingreso por mensaje, por canal y por flujo o campaña, con la serie del periodo. *Pendiente:* costo y ROI (`messages.cost_estimated` va en USD y falta la tasa de cambio a la moneda del negocio).
 10. **Rentabilidad** (si hay costos): margen bruto por producto y pedido; MER y ROAS con gasto en anuncios.
 11. **Servicios:** leads por fuente, conversión por formulario y página, clics a WhatsApp o llamada, tiempo de primera respuesta y cierre por fuente.
 12. **Encuesta «¿cómo nos conociste?»:** respuestas contra el canal del último clic (muestra lo que la atribución digital no ve: voz a voz, radio, tienda física).

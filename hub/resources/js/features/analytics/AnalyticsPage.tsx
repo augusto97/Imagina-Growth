@@ -14,7 +14,8 @@ import { DashboardSkeleton } from './components/StatTile';
 import { ChannelsDashboard } from './dashboards/ChannelsDashboard';
 import { CustomersDashboard } from './dashboards/CustomersDashboard';
 import { FunnelDashboard } from './dashboards/FunnelDashboard';
-import { CouponsDashboard, GeographyDashboard, HdyhauDashboard, MessagingDashboard, ProfitabilityDashboard, SearchesDashboard, ServicesDashboard } from './dashboards/MoreDashboards';
+import { MessagingDashboard } from './dashboards/MessagingDashboard';
+import { CouponsDashboard, GeographyDashboard, HdyhauDashboard, ProfitabilityDashboard, SearchesDashboard, ServicesDashboard } from './dashboards/MoreDashboards';
 import { OverviewDashboard } from './dashboards/OverviewDashboard';
 import { ProductsDashboard } from './dashboards/ProductsDashboard';
 import { makeFormatters } from './format';
@@ -148,7 +149,7 @@ export function AnalyticsPage() {
                     </NavLink>
                 ))}
             </nav>
-            {slug !== 'messaging' ? <FilterBar params={params} update={update} period={result.data?.period} fmt={fmt} /> : null}
+            <FilterBar params={params} update={update} period={result.data?.period} fmt={fmt} periodOnly={slug === 'messaging'} />
             {TRAFFIC_DASHBOARDS.includes(slug) ? <SitesHealthNotice sites={(sites.data ?? []).filter((s) => trackerMissing(s.health_status))} base={base} className="igr:mb-4" /> : null}
             {result.isError ? (
                 <ErrorState error={result.error} onRetry={() => void result.refetch()} />

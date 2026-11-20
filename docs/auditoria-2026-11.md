@@ -69,7 +69,7 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | F8 | P1 | Inteligencia, RFM y atribución solo corren de noche: después de importar, todo en cero hasta el otro día. | scheduler | ✅ 0.1.7: al terminar la importación, `ProcessImportedHistory` (atribución, KPI, RFM y hallazgos) cuando la ingesta queda al día |
 | F9 | P1 | Mensajes que se quedan en `sending`. | `SendMessageJob` | ⏳ |
 | F10 | P1 | Se puede activar un flujo sin canal conectado. | flujos | ✅ 0.1.7: no se activa sin cuenta activa del canal que usa; desde la biblioteca queda publicado con el motivo |
-| F11 | P2 | Tablero de mensajería vacío (stub). | mensajería | ⏳ |
+| F11 | P2 | Tablero de mensajería vacío (stub). | mensajería | ✅ (lote 3): `MessagingDashboard` con datos reales de `messages` y sus eventos (enviados, entregados, leídos, aperturas sin Apple MPP, clics, respuestas, bajas, rebotes y fallos, ventas atribuidas e ingreso por mensaje) por canal y por flujo o campaña, con comparación y serie; índice `messages (workspace_id, direction, created_at)`. Falta costo y ROI (el costo está en USD y no hay tasa de cambio) |
 | F12 | P2 | `kpi_daily` de sesiones atrasado; conversión por geografía engañosa. | analítica | ⏳ |
 | F13 | P2 | Textos «Fase N» en la interfaz. | SPA | ✅ 0.1.7: textos reescritos y el aviso viejo del copiloto de campañas quitado |
 | F14 | P2 | Nodos de flujo bloqueados (`assign_agent`, `lead_stage`, `crm_task`). | constructor de flujos | ⏳ |
