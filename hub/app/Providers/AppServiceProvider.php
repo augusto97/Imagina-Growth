@@ -9,15 +9,20 @@ use App\Domain\Workspaces\Models\User;
 use App\Ingest\Console\IngestWorkCommand;
 use App\Ingest\Schema\SchemaRegistry;
 use App\Support\Tenancy\CurrentWorkspace;
+use App\Support\Translation\RegionalFileLoader;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Translation\Loader;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Translation\FileLoader;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,6 +31,22 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(CurrentWorkspace::class);
         $this->app->singleton(Ch::class, fn () => Ch::fromConfig());
         $this->app->singleton(SchemaRegistry::class, fn () => new SchemaRegistry((string) config('igr.ingest.schemas_path')));
+
+        // es_MX y es_VE solo llevan lo que cambia: se mezclan sobre lang/es y lang/es.json (hub/CLAUDE.md §14).
+        $this->app->extend('translation.loader', function (Loader $loader, Application $app): Loader {
+            if (! $loader instanceof FileLoader || $loader instanceof RegionalFileLoader) {
+                return $loader;
+            }
+            $regional = new RegionalFileLoader($app->make(Filesystem::class), $loader->paths());
+            foreach ($loader->jsonPaths() as $path) {
+                $regional->addJsonPath($path);
+            }
+            foreach ($loader->namespaces() as $namespace => $hint) {
+                $regional->addNamespace($namespace, $hint);
+            }
+
+            return $regional;
+        });
 
         // Cada módulo registra listeners, comandos y tareas programadas en su propio
         // proveedor (app/Domain/<Módulo>/ModuleServiceProvider.php), sin tocar este archivo.

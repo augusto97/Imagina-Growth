@@ -47,18 +47,18 @@ final class WatchesController
 
         // Serie semanal (lunes a domingo) de suscripciones y avisos enviados.
         $weeks = [];
-        $start = $from->startOfWeek();
+        $start = $from->startOfWeek(CarbonImmutable::MONDAY);
         for ($w = $start; $w->lte($now); $w = $w->addWeek()) {
             $weeks[$w->toDateString()] = ['week' => $w->toDateString(), 'created' => 0, 'notified' => 0];
         }
         foreach ((clone $base)->where('created_at', '>=', $start)->get(['created_at']) as $r) {
-            $key = CarbonImmutable::parse((string) $r->created_at)->startOfWeek()->toDateString();
+            $key = CarbonImmutable::parse((string) $r->created_at)->startOfWeek(CarbonImmutable::MONDAY)->toDateString();
             if (isset($weeks[$key])) {
                 $weeks[$key]['created']++;
             }
         }
         foreach ((clone $base)->where('status', 'notified')->where('notified_at', '>=', $start)->get(['notified_at']) as $r) {
-            $key = CarbonImmutable::parse((string) $r->notified_at)->startOfWeek()->toDateString();
+            $key = CarbonImmutable::parse((string) $r->notified_at)->startOfWeek(CarbonImmutable::MONDAY)->toDateString();
             if (isset($weeks[$key])) {
                 $weeks[$key]['notified']++;
             }

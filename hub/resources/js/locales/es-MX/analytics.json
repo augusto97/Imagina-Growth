@@ -1,6 +1,16 @@
 {
     "analytics": {
+        "descriptions": {
+            "geography": "Ventas y conversión por estado y ciudad."
+        },
         "device": { "desktop": "Computadora" },
+        "metric": {
+            "cod_pending_orders": "Pago contra entrega por confirmar"
+        },
+        "overview": {
+            "codPending_one": "{{count}} pedido de pago contra entrega por confirmar ({{amount}}). Cuenta como venta cuando se entrega y se cobra.",
+            "codPending_other": "{{count}} pedidos de pago contra entrega por confirmar ({{amount}}). Cuentan como venta cuando se entregan y se cobran."
+        },
         "geo": {
             "region": "Estado",
             "regionsTitle": "Ventas por estado"

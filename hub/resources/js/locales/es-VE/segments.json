@@ -1,5 +1,14 @@
 {
     "segments": {
+        "empty": {
+            "description": "Ya tienes los segmentos RFM y la biblioteca listos. Arma uno propio: por ejemplo, quienes compraron pinturas en Valencia y no han vuelto en 90 días."
+        },
+        "static": {
+            "placeholder": "ana@ejemplo.com\n+58 412 111 2233"
+        },
+        "form": {
+            "namePlaceholder": "Ej.: Compradores de pinturas en la región central"
+        },
         "fields": {
             "region_code": "Estado"
         },

@@ -61,7 +61,7 @@ export function ZenderDialog({ open, onClose, caps }: { open: boolean; onClose: 
                     <form id="igr-zender-form" onSubmit={submit} className="igr:grid igr:gap-3 igr:sm:grid-cols-2">
                         <div className="igr:space-y-1 igr:sm:col-span-2">
                             <Label htmlFor="z-url">{t('channels.zender.baseUrl')}</Label>
-                            <Input id="z-url" type="url" required placeholder="https://zender.tuempresa.co" value={form.base_url} onChange={(e) => setForm({ ...form, base_url: e.target.value })} />
+                            <Input id="z-url" type="url" required placeholder={t('channels.zender.baseUrlPlaceholder')} value={form.base_url} onChange={(e) => setForm({ ...form, base_url: e.target.value })} />
                             <FieldError message={fieldError(connect.error, 'base_url')} />
                         </div>
                         <div className="igr:space-y-1">

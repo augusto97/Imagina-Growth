@@ -1,0 +1,10 @@
+{
+    "reviews": {
+        "import": {
+            "fileHelp": "Hasta 5,000 filas y 5 MB. Separado por comas o punto y coma."
+        },
+        "surveys": {
+            "alertEmailsPlaceholder": "soporte@tienda.mx"
+        }
+    }
+}

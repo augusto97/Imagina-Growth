@@ -161,7 +161,7 @@ final class TemplateController
     {
         Gate::authorize('ws.viewDashboards');
 
-        return response()->json(['groups' => VariableCatalog::groups()]);
+        return response()->json(['groups' => VariableCatalog::groups($this->current->get())]);
     }
 
     /** GET templates/library?industry= */
@@ -267,7 +267,7 @@ final class TemplateController
             Gate::authorize('ws.viewAllContacts');
             $contact = ContactAccess::find((string) $data['contact_id']);
         }
-        $sample = SampleData::vars((string) (TemplateVariables::store($workspace)['url'] ?? ''));
+        $sample = SampleData::forWorkspace($workspace, (string) (TemplateVariables::store($workspace)['url'] ?? ''));
         if ($contact instanceof Contact) {
             unset($sample['contacto']);
         }

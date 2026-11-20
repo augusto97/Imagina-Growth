@@ -10,6 +10,7 @@ use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Tenancy\CurrentWorkspace;
+use App\Support\Tenancy\WorkspaceLocale;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -51,7 +52,8 @@ final class ResolveWorkspace
             app(SupportSessions::class)->onAgencyAccess($user, $workspace, $request->ip());
         }
 
-        return $next($request);
+        // Los mensajes y errores de la petición salen en el idioma del espacio de trabajo.
+        return WorkspaceLocale::run($workspace, fn (): Response => $next($request));
     }
 
     public static function roleFor(User $user, Workspace $workspace): ?WorkspaceRole

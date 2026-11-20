@@ -8,6 +8,7 @@ use App\Domain\Agency\Models\AccountBranding as BrandingModel;
 use App\Domain\Agency\Models\MonthlyReport;
 use App\Domain\Workspaces\Contracts\Branding;
 use App\Domain\Workspaces\Models\Workspace;
+use App\Support\Tenancy\WorkspaceLocale;
 use Illuminate\Support\Facades\Storage;
 use Spatie\LaravelPdf\Facades\Pdf;
 
@@ -25,13 +26,15 @@ final class MonthlyReportPdf
     {
         $path = 'agency/reports/'.$workspace->id.'/'.$report->period->format('Y-m').'.pdf';
         $brand = $this->branding->for($workspace);
-        $bytes = Pdf::view('agency.monthly-report-pdf', [
+        // En el idioma del espacio de trabajo, como el correo que lo lleva adjunto.
+        $bytes = WorkspaceLocale::run($workspace, fn (): string => Pdf::view('agency.monthly-report-pdf', [
             'report' => $report,
             'facts' => (array) $report->facts,
             'brand' => $brand,
             'logo' => self::logoDataUri((string) $workspace->account_id),
             'barColor' => self::barColor($brand->primaryColor),
-        ])->format('a4')->generatePdfContent();
+            'lang' => str_replace('_', '-', WorkspaceLocale::of($workspace)),
+        ])->format('a4')->generatePdfContent());
         Storage::disk('local')->put($path, $bytes);
 
         return $path;

@@ -1,0 +1,13 @@
+{
+    "leads": {
+        "settings": {
+            "citiesPlaceholder": "Monterrey, San Pedro Garza García, Apodaca",
+            "phonePlaceholder": "55 1234 5678"
+        },
+        "brief": {
+            "fields": {
+                "zone": "Zona o colonia"
+            }
+        }
+    }
+}

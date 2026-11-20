@@ -168,6 +168,7 @@
                 "footerHelp": "Por ejemplo, condiciones del cupón. Las casillas de consentimiento se agregan solas.",
                 "waNumber": "Número de WhatsApp",
                 "waNumberHelp": "Con el indicativo del país, sin espacios. Ej.: 573001234567.",
+                "waNumberPlaceholder": "573001234567",
                 "waText": "Mensaje prellenado",
                 "waTextHelp": "La atribución se agrega sola al final del mensaje.",
                 "teaser": "Texto de la pestaña",

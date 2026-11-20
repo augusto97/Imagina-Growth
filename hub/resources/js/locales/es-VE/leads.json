@@ -1,0 +1,13 @@
+{
+    "leads": {
+        "settings": {
+            "citiesPlaceholder": "Caracas, Los Teques, Guarenas",
+            "phonePlaceholder": "0412 123 4567"
+        },
+        "brief": {
+            "fields": {
+                "zone": "Zona o sector"
+            }
+        }
+    }
+}

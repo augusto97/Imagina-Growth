@@ -36,15 +36,23 @@ final class TemplateFilters extends FiltersProvider
             return is_scalar($input) ? (string) $input : '';
         }
         $register = $this->context->getRegister('igr');
-        $currency = strtoupper($currency ?? (is_array($register) ? (string) ($register['currency'] ?? 'COP') : 'COP'));
+        $currency = $currency ?? (is_array($register) ? (string) ($register['currency'] ?? 'COP') : 'COP');
         $locale = is_array($register) ? (string) ($register['locale'] ?? 'es_CO') : 'es_CO';
+
+        return self::money((float) $input, $currency, $locale);
+    }
+
+    /** El monto como lo muestra `moneda` (también los ejemplos del selector de variables). */
+    public static function money(float $amount, string $currency, string $locale): string
+    {
+        $currency = strtoupper($currency);
         $digits = in_array($currency, self::ZERO_DECIMALS, true) ? 0 : 2;
         $formatter = new NumberFormatter(str_replace('-', '_', $locale), NumberFormatter::CURRENCY);
         $formatter->setAttribute(NumberFormatter::FRACTION_DIGITS, $digits);
         $formatter->setAttribute(NumberFormatter::MAX_FRACTION_DIGITS, $digits);
-        $formatted = $formatter->formatCurrency((float) $input, $currency);
+        $formatted = $formatter->formatCurrency($amount, $currency);
 
-        return $formatted === false ? number_format((float) $input, $digits, ',', '.') : str_replace("\u{00A0}", ' ', $formatted);
+        return $formatted === false ? number_format($amount, $digits, ',', '.') : str_replace("\u{00A0}", ' ', $formatted);
     }
 
     public function fecha(mixed $input, string $format = 'larga'): string

@@ -115,7 +115,7 @@ export function ContentEditor({ kind, draft, variant, onVariant, onChange }: Pro
                 {kind === 'wa_widget' ? (
                     <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2">
                         <Field label={t('onsite.editor.content.waNumber')} help={t('onsite.editor.content.waNumberHelp')}>
-                            {(id) => <Input id={id} inputMode="tel" value={c.wa?.number ?? ''} onChange={(e) => setContent({ wa: { number: e.target.value, text: c.wa?.text ?? '' } })} placeholder="573001234567" />}
+                            {(id) => <Input id={id} inputMode="tel" value={c.wa?.number ?? ''} onChange={(e) => setContent({ wa: { number: e.target.value, text: c.wa?.text ?? '' } })} placeholder={t('onsite.editor.content.waNumberPlaceholder')} />}
                         </Field>
                         <Field label={t('onsite.editor.content.waText')} help={t('onsite.editor.content.waTextHelp')}>
                             {(id) => <Input id={id} value={c.wa?.text ?? ''} maxLength={300} onChange={(e) => setContent({ wa: { number: c.wa?.number ?? '', text: e.target.value } })} />}

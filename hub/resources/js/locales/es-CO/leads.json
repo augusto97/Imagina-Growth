@@ -287,6 +287,7 @@
             "sellersHelp": "Quién atiende leads, su WhatsApp para el aviso y las palabras de los servicios que atiende (para la asignación por servicio).",
             "seller": "Vendedor",
             "phone": "WhatsApp",
+            "phonePlaceholder": "300 123 4567",
             "services": "Servicios",
             "openLeads": "Abiertos",
             "active": "Activo",

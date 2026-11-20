@@ -110,7 +110,7 @@ final class NpsController
             $distribution[(string) $score] = ($distribution[(string) $score] ?? 0) + 1;
             $cat = NpsSurvey::category($kind, $score);
             $cats[$cat] = ($cats[$cat] ?? 0) + 1;
-            $week = CarbonImmutable::instance($r->created_at ?? now())->setTimezone($tz)->startOfWeek()->toDateString();
+            $week = CarbonImmutable::instance($r->created_at ?? now())->setTimezone($tz)->startOfWeek(CarbonImmutable::MONDAY)->toDateString();
             $weeks[$week][$cat] = ($weeks[$week][$cat] ?? 0) + 1;
             $weeks[$week]['_n'] = ($weeks[$week]['_n'] ?? 0) + 1;
         }

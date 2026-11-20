@@ -77,12 +77,12 @@ final class ReferralReport
     private function series($referrals, $conversions, CarbonImmutable $from, CarbonImmutable $to, string $tz): array
     {
         $monthly = $from->diffInWeeks($to) > 26;
-        $key = fn (CarbonImmutable $d) => $monthly ? $d->setTimezone($tz)->startOfMonth()->toDateString() : $d->setTimezone($tz)->startOfWeek()->toDateString();
+        $key = fn (CarbonImmutable $d) => $monthly ? $d->setTimezone($tz)->startOfMonth()->toDateString() : $d->setTimezone($tz)->startOfWeek(CarbonImmutable::MONDAY)->toDateString();
         /** @var array<string, string> $fromReferrals */
         $fromReferrals = [];
         /** @var array<string, string> $fromAffiliates */
         $fromAffiliates = [];
-        for ($d = $from->setTimezone($tz); $d->lte($to->setTimezone($tz)); $d = $monthly ? $d->addMonth()->startOfMonth() : $d->addWeek()->startOfWeek()) {
+        for ($d = $from->setTimezone($tz); $d->lte($to->setTimezone($tz)); $d = $monthly ? $d->addMonth()->startOfMonth() : $d->addWeek()->startOfWeek(CarbonImmutable::MONDAY)) {
             $fromReferrals[$key($d)] = '0.00';
             $fromAffiliates[$key($d)] = '0.00';
         }

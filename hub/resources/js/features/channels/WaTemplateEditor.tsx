@@ -192,7 +192,7 @@ export function WaTemplateEditor({ open, onClose, account, template, linksBase }
                                                 {!b.tracked && <Input aria-label={t('channels.wa_editor.buttonUrl')} type="url" placeholder="https://" value={b.url} onChange={(e) => set({ buttons: form.buttons.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)) })} />}
                                             </>
                                         )}
-                                        {b.type === 'PHONE_NUMBER' && <Input aria-label={t('channels.wa_editor.phone')} type="tel" placeholder="+573001234567" value={b.phone} onChange={(e) => set({ buttons: form.buttons.map((x, j) => (j === i ? { ...x, phone: e.target.value } : x)) })} />}
+                                        {b.type === 'PHONE_NUMBER' && <Input aria-label={t('channels.wa_editor.phone')} type="tel" placeholder={t('channels.wa_editor.phonePlaceholder')} value={b.phone} onChange={(e) => set({ buttons: form.buttons.map((x, j) => (j === i ? { ...x, phone: e.target.value } : x)) })} />}
                                         {b.type === 'COPY_CODE' && <Input aria-label={t('channels.wa_editor.code')} placeholder="CUPON10" maxLength={20} value={b.example} onChange={(e) => set({ buttons: form.buttons.map((x, j) => (j === i ? { ...x, example: e.target.value } : x)) })} />}
                                         <FieldError message={err(`buttons.${i}.text`) ?? err(`buttons.${i}.url`)} />
                                     </div>
