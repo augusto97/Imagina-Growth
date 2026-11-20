@@ -31,9 +31,16 @@ tests_add_filter(
 		require_once $igr_wc_dir . '/woocommerce.php';
 		// Plugins de formularios de wordpress.org, si están instalados junto a WooCommerce
 		// (las pruebas de cada adaptador se saltan si falta su plugin).
+		// Un plugin que pide un PHP más nuevo que el de la prueba (Contact Form 7 6.2 pide 8.3) no se carga: sus pruebas
+		// se saltan y la suite sigue corriendo con PHP 8.1, el mínimo del connector.
 		foreach ( array( 'contact-form-7/wp-contact-form-7.php', 'wpforms-lite/wpforms.php' ) as $igr_form_plugin ) {
-			if ( '1' !== getenv( 'IGR_TESTS_NO_FORMS' ) && is_readable( dirname( $igr_wc_dir ) . '/' . $igr_form_plugin ) ) {
-				require_once dirname( $igr_wc_dir ) . '/' . $igr_form_plugin;
+			$igr_form_file = dirname( $igr_wc_dir ) . '/' . $igr_form_plugin;
+			if ( '1' === getenv( 'IGR_TESTS_NO_FORMS' ) || ! is_readable( $igr_form_file ) ) {
+				continue;
+			}
+			$igr_requires = get_file_data( $igr_form_file, array( 'php' => 'Requires PHP' ) )['php'];
+			if ( '' === $igr_requires || version_compare( PHP_VERSION, $igr_requires, '>=' ) ) {
+				require_once $igr_form_file;
 			}
 		}
 		require_once dirname( __DIR__ ) . '/imagina-growth-connector.php';
