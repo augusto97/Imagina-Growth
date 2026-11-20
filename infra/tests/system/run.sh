@@ -112,6 +112,21 @@ hasnt "$GROWTH_CH_CONF_DIR/growth-memory.xml" "background_pool_size" "sin recort
 has "$GROWTH_ETC/updater.conf" 'GROWTH_INGEST_WORKERS="1 2 3 4"' "cuatro workers"
 eq "$(grep -c '^GROWTH_INGEST_WORKERS=' "$GROWTH_ETC/updater.conf")" 1 "una sola línea de workers"
 
+# 5. RAM: la fijada en updater.conf manda; si no, el límite del cgroup (VPS que son contenedores) recorta meminfo.
+printf 'MemTotal:       16473600 kB\n' >"$W/proc/meminfo"
+mkdir -p "$W/proc/1" "$W/cgroup/lxc/vps1/init.scope"
+printf '0::/lxc/vps1/init.scope\n' >"$W/proc/1/cgroup"
+echo max >"$W/cgroup/lxc/vps1/init.scope/memory.max"
+echo 1717567488 >"$W/cgroup/lxc/vps1/memory.max"
+GROWTH_CGROUP_ROOT="$W/cgroup" run status >/dev/null
+has "$W/out.log" "Perfil: small (1638 MB de RAM)" "límite del cgroup"
+echo max >"$W/cgroup/lxc/vps1/memory.max"
+GROWTH_CGROUP_ROOT="$W/cgroup" run status >/dev/null
+has "$W/out.log" "Perfil: standard (16087 MB de RAM)" "sin límite, la RAM de meminfo"
+printf 'GROWTH_MEMORY_MB=2048\n' >>"$GROWTH_ETC/updater.conf"
+GROWTH_CGROUP_ROOT="$W/cgroup" run status >/dev/null
+has "$W/out.log" "Perfil: small (2048 MB de RAM)" "la fijada en updater.conf"
+
 # 5. status no cambia nada.
 : >"$FAKE/calls.log"
 before=$(cat "$GROWTH_ROOT/shared/.env")

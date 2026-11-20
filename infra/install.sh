@@ -88,6 +88,17 @@ esac
 # MariaDB con menos memoria, un solo worker de ingesta para todos los shards y Horizon con 3 procesos de trabajo.
 # GROWTH_MEMORY_MB solo sirve para las pruebas (un contenedor ve la RAM de la máquina anfitriona).
 MEM_MB=${GROWTH_MEMORY_MB:-$(awk '/MemTotal/ {print int($2 / 1024)}' /proc/meminfo)}
+# En un contenedor (LXC u otro), /proc/meminfo muestra la RAM de la máquina anfitriona: manda el límite del cgroup
+# (el menor memory.max desde el cgroup de PID 1 hasta la raíz). La misma regla que bin/growth-system.
+if [ -z "${GROWTH_MEMORY_MB:-}" ]; then
+    CG_PATH=$(awk -F: '$1 == "0" {print $3}' /proc/1/cgroup 2>/dev/null || true)
+    while [ -n "$CG_PATH" ]; do
+        CG_MAX=$(cat "/sys/fs/cgroup${CG_PATH%/}/memory.max" 2>/dev/null || true)
+        if [[ $CG_MAX =~ ^[0-9]+$ ]] && [ $((CG_MAX / 1048576)) -lt "$MEM_MB" ]; then MEM_MB=$((CG_MAX / 1048576)); fi
+        [ "$CG_PATH" = / ] && break
+        CG_PATH=$(dirname "$CG_PATH")
+    done
+fi
 [[ $MEM_MB =~ ^[0-9]+$ ]] || die "No se pudo leer la memoria del servidor."
 if [ "$MEM_MB" -lt 1400 ]; then
     die "Este servidor tiene $MEM_MB MB de RAM; Imagina Growth necesita al menos 1,5 GB (2 GB o más para trabajar cómodo)."
@@ -524,6 +535,11 @@ log "Configuración del sistema (memoria, Redis, MariaDB, ClickHouse)"
 # bin/growth-system es el único lugar donde vive esta configuración: el botón de actualizar del panel la aplica
 # en cada versión, así que nunca hace falta volver a correr el instalador para recibirla (docs/despliegue.md §7).
 install -d -m 0750 -o redis -g redis /var/lib/redis-queue /var/lib/redis-cache
+# Una RAM fijada a mano (GROWTH_MEMORY_MB) queda en updater.conf: así cada actualización usa la misma.
+if [ -n "${GROWTH_MEMORY_MB:-}" ] && ! grep -qx "GROWTH_MEMORY_MB=$GROWTH_MEMORY_MB" "$ETC_DIR/updater.conf" 2>/dev/null; then
+    sed -i '/^GROWTH_MEMORY_MB=/d' "$ETC_DIR/updater.conf" 2>/dev/null || true
+    printf 'GROWTH_MEMORY_MB=%s\n' "$GROWTH_MEMORY_MB" >>"$ETC_DIR/updater.conf"
+fi
 SYSTEM_OUT=$(GROWTH_SYSTEM_ROOT="$TPL" GROWTH_ROOT="$GROWTH_ROOT" GROWTH_ENV_FILE="$ENV_FILE" GROWTH_ETC="$ETC_DIR" \
     GROWTH_MEMORY_MB="$MEM_MB" PHP=/usr/local/bin/growth-php bash "$TPL/bin/growth-system" apply --install 2>&1) \
     || die "No se pudo aplicar la configuración del sistema: $SYSTEM_OUT"

@@ -90,7 +90,36 @@ oom_live() { # oom_live <unidad> <valor>
 
 # ── Memoria y perfil ────────────────────────────────────────────────────────────────
 
-MEM_MB=${GROWTH_MEMORY_MB:-$(awk '/MemTotal/ {print int($2 / 1024)}' "$PROC/meminfo" 2>/dev/null)}
+# La RAM: la fijada a mano (GROWTH_MEMORY_MB en el entorno o en updater.conf) o la de /proc/meminfo, recortada al
+# límite del cgroup del sistema si lo hay (VPS que en realidad son contenedores, como LXC: meminfo muestra la RAM
+# de la máquina anfitriona).
+conf_mem() { [[ -f $ETC_DIR/updater.conf ]] && sed -n 's/^GROWTH_MEMORY_MB=\([0-9][0-9]*\).*/\1/p' "$ETC_DIR/updater.conf" | head -n1; }
+cgroup_mem() { # el menor memory.max desde el cgroup de PID 1 hasta la raíz (v2), o memory.limit_in_bytes (v1)
+    local root=${GROWTH_CGROUP_ROOT:-/sys/fs/cgroup} cg max best=""
+    cg=$(awk -F: '$1 == "0" {print $3}' "$PROC/1/cgroup" 2>/dev/null)
+    if [[ -n $cg ]]; then
+        while :; do
+            max=$(cat "$root${cg%/}/memory.max" 2>/dev/null || true)
+            [[ $max =~ ^[0-9]+$ ]] && { [[ -z $best || $max -lt $best ]] && best=$max; }
+            [[ $cg == / || -z $cg ]] && break
+            cg=$(dirname "$cg")
+        done
+    fi
+    cg=$(awk -F: '$2 ~ /(^|,)memory(,|$)/ {print $3}' "$PROC/1/cgroup" 2>/dev/null)
+    if [[ -n $cg ]]; then
+        max=$(cat "$root/memory${cg%/}/memory.limit_in_bytes" 2>/dev/null || true)
+        # v1 sin límite usa un número enorme (~2^63): solo cuenta si es menor que 1 TB.
+        [[ $max =~ ^[0-9]+$ && ${#max} -lt 13 ]] && { [[ -z $best || $max -lt $best ]] && best=$max; }
+    fi
+    [[ -n $best ]] && echo $((best / 1048576))
+    return 0
+}
+MEM_MB=${GROWTH_MEMORY_MB:-$(conf_mem)}
+if [[ -z $MEM_MB ]]; then
+    MEM_MB=$(awk '/MemTotal/ {print int($2 / 1024)}' "$PROC/meminfo" 2>/dev/null)
+    CG_MB=$(cgroup_mem)
+    [[ $CG_MB =~ ^[0-9]+$ && $CG_MB -gt 0 && $CG_MB -lt ${MEM_MB:-0} ]] && MEM_MB=$CG_MB
+fi
 [[ $MEM_MB =~ ^[0-9]+$ && $MEM_MB -gt 0 ]] || { echo "No se pudo leer la memoria del servidor." >&2; exit 1; }
 if ((MEM_MB < 3500)); then PROFILE=small; else PROFILE=standard; fi
 MEM_BYTES=$((MEM_MB * 1024 * 1024))

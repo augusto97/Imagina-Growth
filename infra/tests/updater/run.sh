@@ -434,6 +434,7 @@ test_small_profile() {
     local c
     c=$(calls)
     assert_contains "$c" "systemctl restart growth-ingest@1.service" "reinicia el worker 1"
+    assert_contains "$c" "systemctl stop growth-ml.service" "libera la memoria del ML mientras actualiza"
     assert_not_contains "$c" "growth-ingest@2.service" "no toca el worker 2 (enmascarado)"
     teardown_world
 }

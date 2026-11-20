@@ -184,7 +184,11 @@ install.sh                  el instalador
    5. `config:cache`, `route:cache`, `view:cache` y `event:cache` con la versión nueva;
    6. **copia de MariaDB** (`mariadb-dump --single-transaction`, comprimida) en `shared/backups/pre-update`;
    7. **migraciones** de MariaDB (`migrate --force`) y de ClickHouse (`igr:clickhouse:migrate`), con el código
-      nuevo, antes del cambio; tienen que ser compatibles con la versión anterior;
+      nuevo, antes del cambio; tienen que ser compatibles con la versión anterior. Antes espera a que MariaDB
+      responda (hasta 2 minutos) e `igr:clickhouse:migrate` espera a ClickHouse (`--wait`, 120 s): en un servidor
+      pequeño el kernel puede reiniciarlos por falta de memoria a mitad de la actualización. Por lo mismo, en el
+      perfil pequeño el ML se detiene desde la extracción hasta el reinicio (y vuelve a arrancar si algo falla), y
+      la copia de MariaDB se comprime con un solo hilo;
    8. **cambio** atómico del symlink (`ln -s` a un temporal y `mv -T`); instala las unidades de `systemd/` si
       cambiaron (`daemon-reload`); aplica la **configuración del sistema** de la versión (`bin/growth-system apply
       --update`, más abajo) y **reinicia sin cortes**: `growth-ingest-api@1`, espera su health-check,
@@ -297,7 +301,11 @@ reinicia solo si cambió su configuración. Nunca hace fallar la actualización:
 y sigue. `growth-system status` muestra el perfil sin cambiar nada. Ampliar o reducir el servidor se ajusta solo en
 la próxima actualización (o al reiniciar `growth-app`).
 
-**Memoria y perfil de procesos.** `growth-system` mide la RAM y elige el perfil:
+**Memoria y perfil de procesos.** `growth-system` mide la RAM y elige el perfil. La RAM es, en este orden: la fijada a
+mano (`GROWTH_MEMORY_MB` en `/etc/growth/updater.conf`; el instalador la guarda si se la pasaron), o la de
+`/proc/meminfo` recortada al límite del cgroup de PID 1 (el menor `memory.max` hasta la raíz, o
+`memory.limit_in_bytes` en cgroups v1): en VPS que en realidad son contenedores (LXC), `meminfo` muestra la RAM de
+la máquina anfitriona.
 
 | | Pequeño (menos de ~3,5 GB) | Estándar |
 |---|---|---|
@@ -317,7 +325,7 @@ En los dos perfiles ClickHouse va sin los logs de sistema que la app no usa (`tr
 conviene 4 GB o más. Los trabajos que necesitan otro número de intentos lo declaran en su clase (`$tries`), porque en
 el perfil pequeño todas las colas cortas comparten un supervisor.
 
-**Prioridad ante falta de memoria** (`OOMScoreAdjust`): primero el ML (500), después Horizon (300) y ClickHouse
+**Prioridad ante falta de memoria** (`OOMScoreAdjust`): primero el ML (900), después Horizon (300) y ClickHouse
 (200, drop-in de `growth-system`); el panel (-100), la ingesta (-200), MariaDB (-300) y los Redis (-400) son lo
 último. Todo se aplica al actualizar desde el panel.
 

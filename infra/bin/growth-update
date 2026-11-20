@@ -94,6 +94,10 @@ HEALTH_TIMEOUT=$(conf_get "$GROWTH_ETC/updater.conf" GROWTH_HEALTH_TIMEOUT 120)
 # Workers de ingesta activos: install.sh deja «1» en servidores pequeños (un worker para todos los shards).
 [[ -n $INGEST_WORKERS ]] || INGEST_WORKERS=$(conf_get "$GROWTH_ETC/updater.conf" GROWTH_INGEST_WORKERS "1 2 3 4")
 [[ $INGEST_WORKERS =~ ^[1-9]( [1-9])*$ ]] || INGEST_WORKERS="1 2 3 4"
+# Servidor pequeño (un solo worker de ingesta): durante la actualización se libera memoria (docs/despliegue.md §7).
+SMALL=0
+[[ $INGEST_WORKERS == 1 ]] && SMALL=1
+ML_STOPPED=0
 PUBKEY="$GROWTH_ETC/release-signing.pub.pem"
 [[ $REPO =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo "GROWTH_UPDATE_REPO inválido en updater.conf" >&2; exit 2; }
 
@@ -318,6 +322,11 @@ CURRENT_STEP=""
 FROM=""
 
 cleanup_partial() {
+    # El ML se detuvo para liberar memoria: si la actualización no llegó a reiniciar, vuelve a arrancar.
+    if ((ML_STOPPED)); then
+        "$SYSTEMCTL" start growth-ml.service >/dev/null 2>&1 || true
+        ML_STOPPED=0
+    fi
     [[ -n $TMP && -d $TMP ]] && rm -rf -- "$TMP"
     [[ -n $PARTIAL && -d $PARTIAL ]] && rm -rf -- "$PARTIAL"
     if [[ $PHASE == before && -n ${NEW_DIR:-} && -d $NEW_DIR && $(current_version) != "$VERSION" ]]; then
@@ -487,6 +496,11 @@ if ((SIGNED)); then done_step "Firma y sha256 válidos."; else done_step "sha256
 
 # 4. Extraer, enlazar shared/, entorno de Python y reparación del .env.
 begin extract
+# En un servidor pequeño, el ML (que se reinicia al final igual) no ocupa memoria mientras se extrae, se arman las
+# cachés y se migra: sin esto, el kernel puede matar ClickHouse en medio de la migración.
+if [[ $MODE == update ]] && ((SMALL)); then
+    "$SYSTEMCTL" stop growth-ml.service >/dev/null 2>&1 && ML_STOPPED=1
+fi
 rm -rf -- "$PARTIAL"
 mkdir -p "$PARTIAL"
 "$UNZIP" -q "$TMP/$ZIP" -d "$PARTIAL" || fail "El zip está dañado: no se pudo extraer."
@@ -551,7 +565,7 @@ else
     BACKUP="$SHARED/backups/pre-update/${FROM:-nueva}-to-$VERSION-$(date -u +%Y%m%dT%H%M%SZ).sql.zst"
     set -o pipefail
     if ! "$MARIADB_DUMP" --defaults-extra-file="$DB_CNF" --single-transaction --quick --routines --triggers --events "$DB_NAME" \
-        | "$ZSTD" -q -T0 -o "$BACKUP"; then
+        | "$ZSTD" -q "-T$((SMALL ? 1 : 0))" -o "$BACKUP"; then
         rm -f -- "$BACKUP"
         fail "No se pudo copiar MariaDB: no se migra sin copia."
     fi
@@ -562,6 +576,16 @@ rm -f -- "$DB_CNF"
 
 # 7. Migraciones (compatibles con la versión anterior) antes del cambio.
 begin migrate
+# MariaDB tiene que responder (el kernel pudo reiniciarla por falta de memoria); ClickHouse lo espera el propio
+# igr:clickhouse:migrate.
+if [[ $MODE == update ]]; then
+    write_db_cnf
+    for _ in $(seq 1 60); do
+        "$MARIADB" --defaults-extra-file="$DB_CNF" -N -B -e 'SELECT 1' >/dev/null 2>&1 && break
+        "$SLEEP" 2
+    done
+    rm -f -- "$DB_CNF"
+fi
 artisan "$NEW_DIR/hub" migrate --force
 artisan "$NEW_DIR/hub" igr:clickhouse:migrate
 done_step
@@ -587,6 +611,7 @@ if [[ $MODE == install ]]; then
 elif ! rolling_restart "$VERSION"; then
     rollback "Una réplica de ingesta no respondió con la versión $VERSION después de reiniciar."
 fi
+ML_STOPPED=0 # rolling_restart lo volvió a arrancar
 done_step
 
 # 9. Health-check de todas las piezas con la versión nueva.
