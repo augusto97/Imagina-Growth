@@ -6,8 +6,7 @@ namespace App\Http\Controllers\Spa;
 
 use App\Domain\Contacts\Http\ContactAccess;
 use App\Domain\Contacts\Models\Contact;
-use App\Support\Phone\Phone;
-use App\Support\Pii\BlindIndex;
+use App\Domain\Contacts\Queries\ContactSearch;
 use App\Support\Pii\Pii;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Database\Eloquent\Builder;
@@ -31,25 +30,7 @@ final class ContactController
         $query = Contact::query()->whereNull('merged_into_id')->orderByDesc('last_seen_at');
         $this->scopeForRole($query);
 
-        $q = trim((string) $request->query('q', ''));
-        if ($q !== '') {
-            $wsId = $this->current->id();
-            $query->where(function (Builder $w) use ($q, $wsId): void {
-                $w->where('email_bidx', BlindIndex::email($wsId, $q));
-                $digits = preg_replace('/[^0-9+]/', '', $q) ?? '';
-                if (strlen($digits) >= 7) {
-                    $e164 = Phone::toE164($digits, $this->current->get()->country);
-                    if ($e164 !== null) {
-                        $w->orWhere('phone_bidx', BlindIndex::phone($wsId, $e164));
-                    }
-                }
-                $word = mb_strtolower(explode(' ', $q)[0]);
-                if (mb_strlen($word) >= 2) {
-                    $prefix = substr(BlindIndex::value($wsId, 'name', mb_substr($word, 0, 6)), 0, 16);
-                    $w->orWhereJsonContains('name_prefix_bidx', $prefix);
-                }
-            });
-        }
+        ContactSearch::apply($query, $this->current->get(), (string) $request->query('q', ''));
 
         $filters = $request->validate([
             'stage' => ['nullable', 'string', 'max:16'],
@@ -91,6 +72,34 @@ final class ContactController
                 'tags' => $c->getAttribute('tags') ?? [],
             ]),
             'meta' => ['total' => $page->total(), 'page' => $page->currentPage(), 'per_page' => $page->perPage()],
+        ]);
+    }
+
+    /**
+     * GET /api/w/{workspace}/contacts/search?q= — la paleta ⌘K: hasta 8 contactos por nombre, correo o teléfono, sin
+     * contar el total. Mismos permisos y enmascarado que la lista.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        Gate::authorize('ws.viewAssignedContacts');
+        $q = trim((string) $request->query('q', ''));
+        if (mb_strlen($q) < 2) {
+            return response()->json(['data' => []]);
+        }
+        $query = Contact::query()->whereNull('merged_into_id');
+        $this->scopeForRole($query);
+        ContactSearch::apply($query, $this->current->get(), mb_substr($q, 0, 120));
+        $unmasked = Gate::allows('ws.exportContacts');
+
+        return response()->json([
+            'data' => $query->orderByDesc('last_seen_at')->orderByDesc('id')->limit(8)->get()->map(fn (Contact $c) => [
+                'id' => $c->publicId(),
+                'name' => $c->displayName(),
+                'email' => $c->email === null ? null : ($unmasked ? $c->email : Pii::maskEmail($c->email)),
+                'phone' => $c->phone === null ? null : ($unmasked ? $c->phone : Pii::maskPhone($c->phone)),
+                'city' => $c->getAttribute('city'),
+                'orders_count' => (int) $c->getAttribute('orders_count'),
+            ])->values(),
         ]);
     }
 

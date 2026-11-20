@@ -7,10 +7,18 @@ interface UiState {
     theme: ThemePreference;
     lastWorkspaceId: string | null;
     commandOpen: boolean;
+    /** Grupos del menú que la persona plegó (se recuerdan entre visitas). */
+    navCollapsed: string[];
+    /** Espacios de trabajo donde la persona ocultó «Primeros pasos» con todo listo. */
+    guideHidden: string[];
     setTheme: (theme: ThemePreference) => void;
     setLastWorkspace: (id: string | null) => void;
     setCommandOpen: (open: boolean) => void;
+    setNavGroupCollapsed: (key: string, collapsed: boolean) => void;
+    setGuideHidden: (workspaceId: string, hidden: boolean) => void;
 }
+
+const toggleIn = (list: string[], key: string, on: boolean): string[] => (on ? (list.includes(key) ? list : [...list, key]) : list.filter((k) => k !== key));
 
 export const useUi = create<UiState>()(
     persist(
@@ -18,13 +26,17 @@ export const useUi = create<UiState>()(
             theme: 'system',
             lastWorkspaceId: null,
             commandOpen: false,
+            navCollapsed: [],
+            guideHidden: [],
             setTheme: (theme) => set({ theme }),
             setLastWorkspace: (lastWorkspaceId) => set({ lastWorkspaceId }),
             setCommandOpen: (commandOpen) => set({ commandOpen }),
+            setNavGroupCollapsed: (key, collapsed) => set((s) => ({ navCollapsed: toggleIn(s.navCollapsed, key, collapsed) })),
+            setGuideHidden: (workspaceId, hidden) => set((s) => ({ guideHidden: toggleIn(s.guideHidden, workspaceId, hidden) })),
         }),
         {
             name: 'igr-ui',
-            partialize: (s) => ({ theme: s.theme, lastWorkspaceId: s.lastWorkspaceId }),
+            partialize: (s) => ({ theme: s.theme, lastWorkspaceId: s.lastWorkspaceId, navCollapsed: s.navCollapsed, guideHidden: s.guideHidden }),
         },
     ),
 );

@@ -1,25 +1,18 @@
-import { Check, ChevronsUpDown, LogOut, Moon, Plus, Search, ShieldCheck, Sun, SunMoon } from 'lucide-react';
+import { Check, ChevronRight, ChevronsUpDown, LogOut, Moon, Plus, Search, ShieldCheck, Sun, SunMoon } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NavLink, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Workspace } from '@/api/types';
 import { Badge } from '@/components/ui/badge';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Kbd } from '@/components/ui/kbd';
-import { Tooltip } from '@/components/ui/tooltip';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useUi, type ThemePreference } from '@/stores/ui';
 import { Logo } from './Logo';
-import { MAIN_NAV, SETTINGS_NAV, type NavItem } from './nav';
+import { activeItem, isGroupOpen, itemPath, navContext, visibleNav, type NavGroup, type NavItem } from './nav';
 
 export function workspaceInitials(name: string): string {
     return name
@@ -50,7 +43,9 @@ function WorkspaceSwitcher() {
                 <DropdownMenuLabel>{t('nav.workspaces')}</DropdownMenuLabel>
                 {me.workspaces.map((ws: Workspace) => (
                     <DropdownMenuItem key={ws.id} onSelect={() => void navigate(`/w/${ws.id}`)}>
-                        <span className="igr:flex igr:size-5 igr:items-center igr:justify-center igr:rounded igr:bg-muted igr:text-[10px] igr:font-semibold">{workspaceInitials(ws.name)}</span>
+                        <span className="igr:flex igr:size-5 igr:items-center igr:justify-center igr:rounded igr:bg-muted igr:text-[10px] igr:font-semibold">
+                            {workspaceInitials(ws.name)}
+                        </span>
                         <span className="igr:flex-1 igr:truncate">{ws.name}</span>
                         {ws.id === workspace.id ? <Check /> : null}
                     </DropdownMenuItem>
@@ -65,42 +60,79 @@ function WorkspaceSwitcher() {
     );
 }
 
-function NavEntry({ item, base }: { item: NavItem; base: string }) {
+function NavEntry({ item, base, active }: { item: NavItem; base: string; active: boolean }) {
     const { t } = useTranslation();
-    const { workspace } = useWorkspace();
     const Icon = item.icon;
-    if (item.ability && !workspace.abilities.includes(item.ability)) {
-        return null;
-    }
-    const label = t(`nav.${item.key}`);
-    if (item.to === undefined) {
-        return (
-            <Tooltip content={t('nav.comingSoon', { phase: item.phase })} side="right">
-                <span
-                    aria-disabled
-                    className="igr:flex igr:cursor-default igr:items-center igr:gap-2 igr:rounded-md igr:px-2 igr:py-1.5 igr:text-[13px] igr:text-muted-foreground/60"
-                >
-                    <Icon className="igr:size-4" />
-                    <span className="igr:flex-1 igr:truncate">{label}</span>
-                    <span className="igr:text-[10px] igr:font-medium igr:uppercase igr:tracking-wide">F{item.phase}</span>
-                </span>
-            </Tooltip>
-        );
-    }
     return (
-        <NavLink
-            to={item.to === '' ? base : `${base}/${item.to}`}
-            end={item.to === ''}
-            className={({ isActive }) =>
-                cn(
-                    'igr:flex igr:items-center igr:gap-2 igr:rounded-md igr:px-2 igr:py-1.5 igr:text-[13px] igr:transition-colors',
-                    isActive ? 'igr:bg-accent igr:font-medium igr:text-foreground' : 'igr:text-muted-foreground igr:hover:bg-accent/60 igr:hover:text-foreground',
-                )
-            }
+        <Link
+            to={itemPath(base, item)}
+            aria-current={active ? 'page' : undefined}
+            className={cn(
+                'igr:flex igr:items-center igr:gap-2 igr:rounded-md igr:px-2 igr:py-1.5 igr:text-[13px] igr:transition-colors',
+                active ? 'igr:bg-accent igr:font-medium igr:text-foreground' : 'igr:text-muted-foreground igr:hover:bg-accent/60 igr:hover:text-foreground',
+            )}
         >
             <Icon className="igr:size-4" />
-            <span className="igr:flex-1 igr:truncate">{label}</span>
-        </NavLink>
+            <span className="igr:flex-1 igr:truncate">{t(`nav.${item.key}`)}</span>
+        </Link>
+    );
+}
+
+/**
+ * Menú agrupado por tarea (docs/auditoria-2026-11.md U2): grupos plegables que se recuerdan, el de la página actual
+ * abierto, y solo las entradas que aplican al plan y al tipo de negocio (nav.ts).
+ */
+function NavGroups({ base }: { base: string }) {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const { pathname } = useLocation();
+    const collapsed = useUi((s) => s.navCollapsed);
+    const setCollapsed = useUi((s) => s.setNavGroupCollapsed);
+    // Plegar el grupo de la página actual vale mientras se siga en esa página.
+    const [closedActiveAt, setClosedActiveAt] = useState<string | null>(null);
+    const groups = useMemo(() => visibleNav(navContext(workspace)), [workspace]);
+    const current = activeItem(groups, pathname, base);
+    const activeKey = current === null ? null : (groups.find((g) => g.items.includes(current))?.key ?? null);
+
+    const toggle = (group: NavGroup, open: boolean) => {
+        if (group.key === activeKey) {
+            setClosedActiveAt(open ? pathname : null);
+        }
+        setCollapsed(group.key, open);
+    };
+
+    return (
+        <>
+            {groups.map((group) => {
+                const open = isGroupOpen(group.key, collapsed, activeKey, closedActiveAt === pathname);
+                const items = (
+                    <div id={`nav-group-${group.key}`} className="igr:space-y-0.5">
+                        {group.items.map((item) => (
+                            <NavEntry key={item.key} item={item} base={base} active={current === item} />
+                        ))}
+                    </div>
+                );
+                if (group.key === 'home') {
+                    return <div key={group.key}>{items}</div>;
+                }
+                return (
+                    <div key={group.key} className="igr:pt-3">
+                        <button
+                            type="button"
+                            aria-expanded={open}
+                            aria-controls={`nav-group-${group.key}`}
+                            onClick={() => toggle(group, open)}
+                            className="igr:group igr:flex igr:w-full igr:items-center igr:gap-1 igr:rounded-md igr:px-2 igr:py-1 igr:text-[11px] igr:font-medium igr:uppercase igr:tracking-wide igr:text-muted-foreground igr:hover:text-foreground"
+                        >
+                            <span className="igr:flex-1 igr:text-left">{t(`nav.groups.${group.key}`)}</span>
+                            {!open && group.items.some((i) => i === current) ? <span className="igr:size-1.5 igr:rounded-full igr:bg-primary" aria-hidden /> : null}
+                            <ChevronRight className={cn('igr:size-3.5 igr:transition-transform', open && 'igr:rotate-90')} aria-hidden />
+                        </button>
+                        {open ? <div className="igr:mt-0.5">{items}</div> : null}
+                    </div>
+                );
+            })}
+        </>
     );
 }
 
@@ -129,7 +161,9 @@ function UserMenu() {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger className="igr:flex igr:w-full igr:items-center igr:gap-2 igr:rounded-md igr:px-2 igr:py-1.5 igr:text-left igr:hover:bg-accent igr:data-[state=open]:bg-accent">
-                <span className="igr:flex igr:size-6 igr:items-center igr:justify-center igr:rounded-full igr:bg-secondary igr:text-[11px] igr:font-semibold">{workspaceInitials(me.user.name)}</span>
+                <span className="igr:flex igr:size-6 igr:items-center igr:justify-center igr:rounded-full igr:bg-secondary igr:text-[11px] igr:font-semibold">
+                    {workspaceInitials(me.user.name)}
+                </span>
                 <span className="igr:min-w-0 igr:flex-1">
                     <span className="igr:block igr:truncate igr:text-[13px]">{me.user.name}</span>
                     <span className="igr:block igr:truncate igr:text-[11px] igr:text-muted-foreground">{me.user.email}</span>
@@ -181,18 +215,15 @@ export function Sidebar() {
                 >
                     <Search className="igr:size-4" />
                     <span className="igr:flex-1 igr:text-left">{t('command.search')}</span>
-                    <Kbd>{isMac ? '⌘' : 'Ctrl'}</Kbd>
-                    <Kbd>K</Kbd>
+                    {/* En el celular no hay teclado: sin la pista del atajo. */}
+                    <span className="igr:hidden igr:items-center igr:gap-1 igr:md:flex">
+                        <Kbd>{isMac ? '⌘' : 'Ctrl'}</Kbd>
+                        <Kbd>K</Kbd>
+                    </span>
                 </button>
             </div>
-            <nav aria-label={t('nav.main')} className="igr:mt-3 igr:flex-1 igr:space-y-0.5 igr:overflow-y-auto igr:px-2 igr:pb-3">
-                {MAIN_NAV.map((item) => (
-                    <NavEntry key={item.key} item={item} base={base} />
-                ))}
-                <p className="igr:px-2 igr:pb-1 igr:pt-4 igr:text-[11px] igr:font-medium igr:uppercase igr:tracking-wide igr:text-muted-foreground">{t('nav.settings')}</p>
-                {SETTINGS_NAV.map((item) => (
-                    <NavEntry key={item.key} item={item} base={base} />
-                ))}
+            <nav aria-label={t('nav.main')} className="igr:mt-3 igr:flex-1 igr:overflow-y-auto igr:px-2 igr:pb-3">
+                <NavGroups base={base} />
             </nav>
             <div className="igr:border-t igr:p-2">
                 <UserMenu />

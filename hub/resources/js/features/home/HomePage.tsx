@@ -1,16 +1,14 @@
-import { Activity, ArrowRight, Check, Lightbulb, Plug, Truck, Users } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { Activity, ArrowRight, Lightbulb, Truck, Users } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { useMembers, useOverview, useSites } from '@/api/queries';
+import { useOverview, useSites } from '@/api/queries';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState, ErrorState, PageHeader } from '@/components/ui/misc';
+import { ErrorState, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
-import { cn } from '@/lib/cn';
 import { formatNumber } from '@/lib/format';
 import { useDashboard, useMetricCatalog } from '@/features/analytics/api';
 import { TrendChart } from '@/features/analytics/components/charts';
@@ -19,6 +17,8 @@ import { StatTile, TileGrid } from '@/features/analytics/components/StatTile';
 import { makeFormatters } from '@/features/analytics/format';
 import { apiQuery, readParams } from '@/features/analytics/params';
 import { SeverityBadge } from '@/features/insights/severity';
+import { SitesHealthNotice } from '@/features/sites/SiteHealth';
+import { GettingStartedCard } from './GettingStartedCard';
 
 const HOME_TILES = [
     { key: 'revenue', unit: 'money' },
@@ -27,34 +27,11 @@ const HOME_TILES = [
     { key: 'sessions', unit: 'count' },
 ] as const;
 
-function Step({ done, title, description, action }: { done: boolean; title: string; description: string; action?: ReactNode }) {
-    return (
-        <li className="igr:flex igr:items-start igr:gap-3 igr:py-3">
-            <span
-                className={cn(
-                    'igr:mt-0.5 igr:flex igr:size-5 igr:shrink-0 igr:items-center igr:justify-center igr:rounded-full igr:border',
-                    done ? 'igr:border-success igr:bg-success igr:text-white' : 'igr:border-input',
-                )}
-            >
-                {done ? <Check className="igr:size-3" /> : null}
-            </span>
-            <div className="igr:min-w-0 igr:flex-1">
-                <p className={cn('igr:text-[13px] igr:font-medium', done && 'igr:text-muted-foreground igr:line-through')}>{title}</p>
-                <p className="igr:text-xs igr:text-muted-foreground">{description}</p>
-            </div>
-            {!done && action ? <div className="igr:shrink-0">{action}</div> : null}
-        </li>
-    );
-}
-
 export function HomePage() {
     const { t } = useTranslation();
     const { workspace, me } = useWorkspace();
     const overview = useOverview(workspace.id);
-    const sites = useSites(workspace.id);
-    const canManageSites = useCan('manageSites');
-    const canManageMembers = useCan('manageMembers');
-    const members = useMembers(workspace.id);
+    const sites = useSites(workspace.id, useCan('viewSites'));
     const base = `/w/${workspace.id}`;
 
     const data = overview.data;
@@ -70,8 +47,6 @@ export function HomePage() {
         return <ErrorState error={overview.error} onRetry={() => void overview.refetch()} />;
     }
 
-    const backfillDone = (sites.data ?? []).some((s) => s.backfill?.status === 'completed');
-    const hasTeam = (members.data?.members.length ?? 0) + (members.data?.invitations.length ?? 0) > 1;
     const mode = kpis?.period.compare?.mode ?? null;
 
     return (
@@ -90,6 +65,9 @@ export function HomePage() {
                     ) : undefined
                 }
             />
+
+            <GettingStartedCard />
+            <SitesHealthNotice sites={sites.data ?? []} base={base} className="igr:mb-4" />
 
             {data && !hasSites ? null : (
                 <>
@@ -123,26 +101,8 @@ export function HomePage() {
                 </div>
             ) : null}
 
-            <div className="igr:mt-6 igr:grid igr:gap-4 igr:lg:grid-cols-[1fr_340px]">
-                {data && !hasSites ? (
-                    <EmptyState
-                        icon={Plug}
-                        title={t('home.emptyTitle')}
-                        description={t('home.emptyDescription')}
-                        action={
-                            canManageSites ? (
-                                <Button asChild>
-                                    <Link to={`${base}/sitios?conectar=1`}>
-                                        <Plug />
-                                        {t('sites.connect')}
-                                    </Link>
-                                </Button>
-                            ) : (
-                                <p className="igr:text-xs igr:text-muted-foreground">{t('home.askAdmin')}</p>
-                            )
-                        }
-                    />
-                ) : (
+            {data && !hasSites ? null : (
+                <div className="igr:mt-6 igr:grid igr:gap-4 igr:lg:grid-cols-[1fr_300px]">
                     <div className="igr:min-w-0 igr:space-y-4">
                         <Card>
                             <CardHeader>
@@ -151,7 +111,15 @@ export function HomePage() {
                             </CardHeader>
                             <CardContent>
                                 {kpis ? (
-                                    <TrendChart data={kpis.data.series} metric="revenue" label={t('analytics.metric.revenue')} unit="money" granularity={kpis.period.granularity} fmt={fmt} height={200} />
+                                    <TrendChart
+                                        data={kpis.data.series}
+                                        metric="revenue"
+                                        label={t('analytics.metric.revenue')}
+                                        unit="money"
+                                        granularity={kpis.period.granularity}
+                                        fmt={fmt}
+                                        height={200}
+                                    />
                                 ) : (
                                     <Skeleton className="igr:h-[200px]" />
                                 )}
@@ -177,7 +145,10 @@ export function HomePage() {
                                         <ul className="igr:divide-y">
                                             {kpis.data.insights.map((i) => (
                                                 <li key={i.id}>
-                                                    <Link to={`${base}/hallazgos/${i.id}`} className="igr:flex igr:items-start igr:gap-2.5 igr:py-2 igr:text-[13px] igr:hover:text-primary">
+                                                    <Link
+                                                        to={`${base}/hallazgos/${i.id}`}
+                                                        className="igr:flex igr:items-start igr:gap-2.5 igr:py-2 igr:text-[13px] igr:hover:text-primary"
+                                                    >
                                                         <SeverityBadge severity={i.severity} />
                                                         <span className="igr:min-w-0 igr:flex-1">{i.title}</span>
                                                     </Link>
@@ -190,55 +161,34 @@ export function HomePage() {
                             <MoneyGeneratedCard data={kpis?.data.attributed} money={(v) => fmt.money(v)} base={base} />
                         </div>
                     </div>
-                )}
 
-                <div className="igr:space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{t('home.stepsTitle')}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="igr:pt-0">
-                            <ul className="igr:divide-y">
-                                <Step done={me.user.two_factor_enabled} title={t('home.step2fa')} description={t('home.step2faHelp')} action={<Button asChild size="sm" variant="outline"><Link to="/seguridad">{t('common.activate')}</Link></Button>} />
-                                <Step
-                                    done={hasSites}
-                                    title={t('home.stepConnect')}
-                                    description={t('home.stepConnectHelp')}
-                                    action={canManageSites ? <Button asChild size="sm" variant="outline"><Link to={`${base}/sitios?conectar=1`}>{t('common.start')}</Link></Button> : undefined}
-                                />
-                                <Step done={backfillDone} title={t('home.stepBackfill')} description={t('home.stepBackfillHelp')} />
-                                <Step
-                                    done={hasTeam}
-                                    title={t('home.stepTeam')}
-                                    description={t('home.stepTeamHelp')}
-                                    action={canManageMembers ? <Button asChild size="sm" variant="outline"><Link to={`${base}/equipo?invitar=1`}>{t('team.invite')}</Link></Button> : undefined}
-                                />
-                            </ul>
-                        </CardContent>
-                    </Card>
-                    {data ? (
-                        <Card>
-                            <CardContent className="igr:space-y-2 igr:pt-4 igr:text-[13px]">
-                                <div className="igr:flex igr:items-center igr:justify-between igr:gap-2">
-                                    <span className="igr:flex igr:items-center igr:gap-2 igr:text-muted-foreground">
-                                        <Users className="igr:size-4" />
-                                        {t('home.contacts')}
-                                    </span>
-                                    <span className="igr:font-medium igr:tabular-nums">{formatNumber(data.contacts.total, workspace.locale)}</span>
-                                </div>
-                                <p className="igr:text-xs igr:text-muted-foreground">{t('home.contactsHint', { customers: formatNumber(data.contacts.customers, workspace.locale) })}</p>
-                                <div className="igr:flex igr:items-center igr:justify-between igr:gap-2 igr:border-t igr:pt-2">
-                                    <span className="igr:flex igr:items-center igr:gap-2 igr:text-muted-foreground">
-                                        <Activity className="igr:size-4" />
-                                        {t('home.events')}
-                                    </span>
-                                    <span className="igr:font-medium igr:tabular-nums">{data.events_24h === null ? '—' : formatNumber(data.events_24h, workspace.locale)}</span>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ) : null}
+                    <div className="igr:space-y-4">
+                        {data ? (
+                            <Card>
+                                <CardContent className="igr:space-y-2 igr:pt-4 igr:text-[13px]">
+                                    <div className="igr:flex igr:items-center igr:justify-between igr:gap-2">
+                                        <span className="igr:flex igr:items-center igr:gap-2 igr:text-muted-foreground">
+                                            <Users className="igr:size-4" />
+                                            {t('home.contacts')}
+                                        </span>
+                                        <span className="igr:font-medium igr:tabular-nums">{formatNumber(data.contacts.total, workspace.locale)}</span>
+                                    </div>
+                                    <p className="igr:text-xs igr:text-muted-foreground">
+                                        {t('home.contactsHint', { customers: formatNumber(data.contacts.customers, workspace.locale) })}
+                                    </p>
+                                    <div className="igr:flex igr:items-center igr:justify-between igr:gap-2 igr:border-t igr:pt-2">
+                                        <span className="igr:flex igr:items-center igr:gap-2 igr:text-muted-foreground">
+                                            <Activity className="igr:size-4" />
+                                            {t('home.events')}
+                                        </span>
+                                        <span className="igr:font-medium igr:tabular-nums">{data.events_24h === null ? '—' : formatNumber(data.events_24h, workspace.locale)}</span>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : null}
+                    </div>
                 </div>
-            </div>
+            )}
         </>
     );
 }

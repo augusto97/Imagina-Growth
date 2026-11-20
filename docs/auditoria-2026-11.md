@@ -64,7 +64,7 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | F3 | P1 | Webhooks de Meta (WhatsApp) responden 403 sin `IGR_META_APP_SECRET`. | `WebhookController` | ⏳ |
 | F4 | P1 | Falta la captura temprana del checkout (`checkout.contact_captured`). | tracker, plugin | ⏳ |
 | F5 | P1 | SES: error 500 sin credenciales y el configuration set `igr-events` nunca se crea. | canal de correo | 🔧 0.1.7: sin credenciales responde 422 con el motivo y el envío falla sin reintentar; falta crear el configuration set |
-| F6 | P1 | La salud del sitio nunca pasa a «degradado». | `SiteHealthProjector` | ⏳ |
+| F6 | P1 | La salud del sitio nunca pasa a «degradado». | `SiteHealthProjector` | ✅ (lote 3): `SiteHealth` calcula el semáforo y `igr:sites:health` (cada 10 min) marca `degraded` el sitio que no está al día y lo devuelve a `connected` al recuperarse |
 | F7 | P1 | Los contactos importados quedan con 0 consentimientos, sin forma de declarar el origen. | importación | ⏳ |
 | F8 | P1 | Inteligencia, RFM y atribución solo corren de noche: después de importar, todo en cero hasta el otro día. | scheduler | ✅ 0.1.7: al terminar la importación, `ProcessImportedHistory` (atribución, KPI, RFM y hallazgos) cuando la ingesta queda al día |
 | F9 | P1 | Mensajes que se quedan en `sending`. | `SendMessageJob` | ⏳ |
@@ -74,7 +74,7 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | F13 | P2 | Textos «Fase N» en la interfaz. | SPA | ✅ 0.1.7: textos reescritos y el aviso viejo del copiloto de campañas quitado |
 | F14 | P2 | Nodos de flujo bloqueados (`assign_agent`, `lead_stage`, `crm_task`). | constructor de flujos | ⏳ |
 | F15 | P2 | Avisos de actualización del plugin; `platform doctor`; `igr:admin:create`; tarifas de WhatsApp sin sembrar. | plataforma | ⏳ |
-| F16 | P2 | «Primeros pasos» no guía a la primera venta recuperada. | inicio | ⏳ |
+| F16 | P2 | «Primeros pasos» no guía a la primera venta recuperada. | inicio | ✅ (lote 3): camino de 5 pasos con datos reales (`GET getting-started`): sitio → importación → canal → flujo de carrito abandonado → primera venta recuperada con el monto (servicios: flujo «Lead de servicios» y primer lead ganado); se oculta con todo listo |
 
 ## 4. Interfaz y experiencia
 
@@ -84,9 +84,9 @@ generado sale en $0 y hay jerga técnica por todas partes. Las capturas están e
 | # | P | Hallazgo | Estado |
 |---|---|---|---|
 | U1 | P1 | Panel inutilizable en el celular (barra lateral fija). | ✅ 0.1.7: barra superior con menú lateral que se cierra al navegar; márgenes más chicos |
-| U2 | P1 | Menú de 29 entradas sin agrupar. | ⏳ |
+| U2 | P1 | Menú de 29 entradas sin agrupar. | ✅ (lote 3): grupos por tarea (Clientes, Vender, Fidelizar, Medir, Configuración) plegables y recordados, el activo abierto; oculta módulos fuera del plan, lo de tiendas sin WooCommerce y lo de servicios en una tienda (`modules` y `capabilities` en `/api/me`); igual en el celular y en ⌘K |
 | U3 | P1 | Conectar WhatsApp exige pasos técnicos (ver §6). | ⏳ |
-| U4 | P2 | KPIs en 0 sin tracker y sitio «Conectado» sin datos: falta un semáforo de salud. | ⏳ |
+| U4 | P2 | KPIs en 0 sin tracker y sitio «Conectado» sin datos: falta un semáforo de salud. | ✅ (lote 3): semáforo al día / con atraso / sin datos con causas concretas (servidor, navegador, WP-Cron, cola del plugin, versión mínima, rechazos, importación) y qué hacer, en Sitios, el detalle, el Inicio y Analítica (explica los KPI en 0 sin tracker) |
 | U5 | P2 | Jerga: «Diagnóstico» del plugin, textos de conciliación, códigos en el perfil 360, el texto del código de conexión no coincide. | ⏳ |
 | U6 | P2 | ⌘K no busca contactos; bandeja y segmentos sin estado vacío útil; errores del servidor en inglés. | ⏳ |
 | U7 | P3 | Constructor de flujos apretado; contraste de algunos tokens. | ⏳ |

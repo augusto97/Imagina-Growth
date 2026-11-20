@@ -13,7 +13,7 @@ import { useShortcuts } from '@/hooks/useShortcuts';
 import { setLocale } from '@/lib/i18n';
 import { useUi } from '@/stores/ui';
 import { CommandPalette } from './CommandPalette';
-import { MAIN_NAV, SETTINGS_NAV } from './nav';
+import { flattenNav, itemPath, navContext, visibleNav } from './nav';
 import { MobileNav } from './MobileNav';
 import { Sidebar } from './Sidebar';
 
@@ -99,9 +99,12 @@ export function WorkspaceLayout() {
     const onPalette = useCallback(() => setCommandOpen(true), [setCommandOpen]);
     const onGo = useCallback(
         (key: string) => {
-            const item = [...MAIN_NAV, ...SETTINGS_NAV].find((i) => i.shortcut === key && i.to !== undefined);
-            if (item && workspace) {
-                void navigate(item.to === '' ? `/w/${workspace.id}` : `/w/${workspace.id}/${item.to ?? ''}`);
+            if (!workspace) {
+                return;
+            }
+            const item = flattenNav(visibleNav(navContext(workspace))).find((i) => i.shortcut === key);
+            if (item) {
+                void navigate(itemPath(`/w/${workspace.id}`, item));
             }
         },
         [navigate, workspace],
