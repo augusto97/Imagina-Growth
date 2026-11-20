@@ -26,7 +26,7 @@ class Invitation extends Model
 
     protected $table = 'workspace_invitations';
 
-    protected $fillable = ['workspace_id', 'email', 'role', 'token_hash', 'invited_by', 'expires_at', 'accepted_at'];
+    protected $fillable = ['workspace_id', 'email', 'role', 'account_role', 'token_hash', 'invited_by', 'expires_at', 'accepted_at'];
 
     protected $hidden = ['token_hash'];
 

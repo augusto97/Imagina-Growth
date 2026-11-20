@@ -1,4 +1,4 @@
-import { ArrowDownUp, Building2, LogIn, OctagonAlert, TriangleAlert } from 'lucide-react';
+import { ArrowDownUp, Building2, LogIn, OctagonAlert, Plus, TriangleAlert } from 'lucide-react';
 import { type ReactNode, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -15,6 +15,7 @@ import { cn } from '@/lib/cn';
 import { formatMoney, formatNumber, formatPercent, formatRelative } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { type AgencyClient, useAgencyOverview, useEnterClient } from './api';
+import { NewClientDialog } from './NewClientDialog';
 import { type ClientFilter, type ClientSort, billingNeedsAttention, filterClients, formatDelta, healthTone, isOverLimit, shareWidth, sortClients } from './model';
 
 /*
@@ -31,6 +32,7 @@ export function ClientsTab() {
     const [sort, setSort] = useState<ClientSort>('money');
     const [dir, setDir] = useState<'asc' | 'desc'>('desc');
     const [entering, setEntering] = useState<AgencyClient | null>(null);
+    const [creating, setCreating] = useState(false);
 
     const rows = useMemo(() => sortClients(filterClients(overview.data?.clients ?? [], filter, search), sort, dir), [overview.data, filter, search, sort, dir]);
     const maxMoney = Math.max(0, ...rows.map((c) => Number(c.money.total)));
@@ -72,6 +74,10 @@ export function ClientsTab() {
             </div>
 
             <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-2">
+                <Button onClick={() => setCreating(true)} className="igr:order-last igr:ml-auto">
+                    <Plus />
+                    {t('agency.newClient.button')}
+                </Button>
                 <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('agency.filters.search')} className="igr:w-60" aria-label={t('agency.filters.search')} />
                 <Select value={filter} onChange={(e) => setFilter(e.target.value as ClientFilter)} className="igr:w-56" aria-label={t('agency.filters.all')}>
                     {(['all', 'attention', 'disconnected', 'critical', 'over_limit', 'billing'] as const).map((f) => (
@@ -83,7 +89,17 @@ export function ClientsTab() {
             </div>
 
             {data.clients.length === 0 ? (
-                <EmptyState icon={Building2} title={t('agency.empty')} />
+                <EmptyState
+                    icon={Building2}
+                    title={t('agency.empty')}
+                    description={t('agency.newClient.emptyHelp')}
+                    action={
+                        <Button onClick={() => setCreating(true)}>
+                            <Plus />
+                            {t('agency.newClient.button')}
+                        </Button>
+                    }
+                />
             ) : rows.length === 0 ? (
                 <EmptyState icon={Building2} title={t('agency.no_results')} />
             ) : (
@@ -155,6 +171,7 @@ export function ClientsTab() {
                 </div>
             )}
             <EnterDialog client={entering} onClose={() => setEntering(null)} />
+            {creating && <NewClientDialog ws={workspace.id} accounts={data.accounts} onClose={() => setCreating(false)} />}
         </div>
     );
 }

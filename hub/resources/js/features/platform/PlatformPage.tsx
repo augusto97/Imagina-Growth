@@ -1,4 +1,4 @@
-import { Download, FilePlus2, ShieldAlert } from 'lucide-react';
+import { Building2, Download, FilePlus2, Plus, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +33,8 @@ import {
     useSetBillingStatus,
     useSetFeature,
 } from './api';
+import { ClientDetailDialog, NewClientDialog } from './ClientsAdmin';
+import { PlansTab } from './PlansTab';
 import { UpdatesTab } from './UpdatesTab';
 
 const STATUSES: BillingStatus[] = ['trial', 'active', 'grace', 'suspended'];
@@ -53,6 +55,7 @@ export function PlatformPage() {
             <Tabs defaultValue="accounts">
                 <TabsList>
                     <TabsTrigger value="accounts">{t('platform.tabs.accounts')}</TabsTrigger>
+                    <TabsTrigger value="plans">{t('platform.tabs.plans')}</TabsTrigger>
                     <TabsTrigger value="health">{t('platform.tabs.health')}</TabsTrigger>
                     <TabsTrigger value="updates">{t('platform.tabs.updates')}</TabsTrigger>
                     <TabsTrigger value="invoices">{t('platform.tabs.invoices')}</TabsTrigger>
@@ -61,6 +64,9 @@ export function PlatformPage() {
                         {overview.data && overview.data.plan_requests.length > 0 ? <Badge className="igr:ml-1.5">{overview.data.plan_requests.length}</Badge> : null}
                     </TabsTrigger>
                 </TabsList>
+                <TabsContent value="plans" className="igr:mt-4">
+                    <PlansTab />
+                </TabsContent>
                 <TabsContent value="health" className="igr:mt-4">
                     <HealthTab />
                 </TabsContent>
@@ -102,10 +108,46 @@ function AccountsTab({ data }: { data: PlatformOverview }) {
     const fail = useFail();
     const [open, setOpen] = useState<string | null>(null);
     const [invoiceFor, setInvoiceFor] = useState<PlatformAccount | null>(null);
+    const [creating, setCreating] = useState(false);
+    const [detailFor, setDetailFor] = useState<string | null>(null);
 
-    if (data.accounts.length === 0) return <EmptyState icon={ShieldAlert} title={t('platform.accounts.empty')} />;
+    const dialogs = (
+        <>
+            {creating && (
+                <NewClientDialog
+                    plans={data.plans}
+                    onClose={() => setCreating(false)}
+                    onCreated={(id) => {
+                        setCreating(false);
+                        setDetailFor(id);
+                    }}
+                />
+            )}
+            {detailFor !== null && <ClientDetailDialog id={detailFor} onClose={() => setDetailFor(null)} />}
+        </>
+    );
+    const newButton = (
+        <Button onClick={() => setCreating(true)}>
+            <Plus />
+            {t('platform.clients.new')}
+        </Button>
+    );
+
+    if (data.accounts.length === 0) {
+        return (
+            <>
+                <EmptyState icon={Building2} title={t('platform.accounts.empty')} description={t('platform.clients.emptyHelp')} action={newButton} />
+                {dialogs}
+            </>
+        );
+    }
 
     return (
+        <div className="igr:space-y-3">
+        <div className="igr:flex igr:items-center igr:justify-between igr:gap-3">
+            <p className="igr:text-sm igr:text-muted-foreground">{t('platform.clients.help')}</p>
+            {newButton}
+        </div>
         <Card>
             <CardContent className="igr:overflow-x-auto igr:pt-4">
                 <Table>
@@ -148,6 +190,7 @@ function AccountsTab({ data }: { data: PlatformOverview }) {
                                     )
                                 }
                                 onInvoice={() => setInvoiceFor(a)}
+                                onDetail={() => setDetailFor(a.id)}
                                 locale={workspace.locale}
                             />
                         ))}
@@ -156,6 +199,8 @@ function AccountsTab({ data }: { data: PlatformOverview }) {
             </CardContent>
             <CreateInvoiceDialog account={invoiceFor} onClose={() => setInvoiceFor(null)} />
         </Card>
+        {dialogs}
+        </div>
     );
 }
 
@@ -168,6 +213,7 @@ function AccountRows(props: {
     onPlan: (plan: string | null) => void;
     onStatus: (s: BillingStatus) => void;
     onInvoice: () => void;
+    onDetail: () => void;
 }) {
     const { t } = useTranslation();
     const { account: a, data, locale } = props;
@@ -199,7 +245,7 @@ function AccountRows(props: {
                         className="igr:h-7 igr:w-44 igr:text-xs"
                     >
                         <option value="">{t('platform.accounts.noPlan')}</option>
-                        {data.plans.map((p) => (
+                        {data.plans.filter((p) => !p.archived || p.id === a.plan_id).map((p) => (
                             <option key={p.id} value={p.id}>
                                 {p.name}
                                 {p.public ? '' : ` (${t('platform.accounts.internal')})`}
@@ -241,7 +287,11 @@ function AccountRows(props: {
                         </Badge>
                     ) : null}
                 </TD>
-                <TD className="igr:text-right">
+                <TD className="igr:text-right igr:whitespace-nowrap">
+                    <Button size="sm" variant="ghost" onClick={props.onDetail}>
+                        <Building2 />
+                        {t('platform.clients.detail')}
+                    </Button>
                     <Button size="sm" variant="outline" onClick={props.onInvoice}>
                         <FilePlus2 />
                         {t('platform.invoices.create')}

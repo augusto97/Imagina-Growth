@@ -1,5 +1,22 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-20 — Versión 0.1.5: administración de clientes y planes
+
+El dueño no encontraba dónde crear planes ni clientes, y tenía razón: los planes solo existían en
+`config/igr-plans.php` y nunca se cargaban en producción (`igr:plans:sync` no lo corría nadie, así que el selector de
+plan salía vacío), y no había forma de dar de alta un cliente ni desde la plataforma ni desde la agencia.
+- **Plataforma → Clientes:** «Nuevo cliente» crea la empresa (negocio o agencia), su primer espacio de trabajo, le
+  asigna el plan y envía la invitación al dueño; la ficha muestra espacios, sitios, personas e invitaciones
+  pendientes, y permite editar datos, agregar espacios e invitar personas. El superadmin no queda dentro del espacio
+  del cliente.
+- **Plataforma → Planes:** crear, editar, archivar y restaurar planes (nombre, métrica, volumen, precios COP/USD,
+  módulos, límites, visibilidad). Al editar, los clientes de ese plan se actualizan. La migración carga los planes por
+  defecto si la tabla está vacía.
+- **Agencia → Clientes:** «Nuevo cliente» crea el espacio del cliente en la cuenta de la agencia y, opcional, invita a
+  su dueño.
+- Pruebas: 15 nuevas (permisos, planes, alta de clientes, invitación de dueño de agencia, alta desde la agencia) y las
+  113 de facturación, agencia, accesos y aislamiento siguen en verde. Revisado en el navegador.
+
 ## 2026-11-19 — Versión 0.1.4: todo en un solo dominio
 
 En el primer sitio real el plugin no podía enviar datos: el hub le había dado `https://in.growth.imagina.cloud` y ese

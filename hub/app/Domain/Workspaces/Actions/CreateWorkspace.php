@@ -39,6 +39,17 @@ final class CreateWorkspace
                 'status' => 'active',
             ]);
 
+            return $this->createInAccount($account, $data, $user, $user);
+        });
+    }
+
+    /**
+     * Crea el espacio en una cuenta ya resuelta, sin revisar permisos (quien llama ya los revisó). Con $owner, esa
+     * persona queda como dueña; sin él (la plataforma crea un cliente), el dueño entra por invitación.
+     */
+    public function createInAccount(Account $account, WorkspaceData $data, ?User $owner, ?User $actor): Workspace
+    {
+        return DB::transaction(function () use ($account, $data, $owner, $actor): Workspace {
             $workspace = Workspace::query()->create([
                 'account_id' => $account->id,
                 'name' => $data->name,
@@ -52,9 +63,11 @@ final class CreateWorkspace
                 'status' => 'active',
             ]);
 
-            $workspace->users()->attach($user->id, ['role' => WorkspaceRole::Owner->value]);
+            if ($owner !== null) {
+                $workspace->users()->attach($owner->id, ['role' => WorkspaceRole::Owner->value]);
+            }
 
-            $this->audit->handle('workspace.created', $workspace, ['name' => $workspace->name], $workspace->id, $account->id, $user->id);
+            $this->audit->handle('workspace.created', $workspace, ['name' => $workspace->name], $workspace->id, $account->id, $actor?->id);
 
             return $workspace->refresh();
         });

@@ -9,11 +9,11 @@ use App\Domain\Billing\Invoices\IssueInvoice;
 use App\Domain\Billing\Models\BillingInvoice;
 use App\Domain\Billing\Models\Plan;
 use App\Domain\Billing\Models\PlanChangeRequest;
+use App\Domain\Billing\Plans\AssignPlan;
 use App\Domain\Billing\Plans\PlanCatalog;
 use App\Domain\Billing\Plans\PlanResolver;
 use App\Domain\Billing\Platform\PlatformHealth;
 use App\Domain\Billing\Usage\BillingStatus;
-use App\Domain\Billing\Usage\EvaluateBillingStatus;
 use App\Domain\Billing\Usage\UsageCalculator;
 use App\Domain\Billing\Usage\UsageSummary;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
@@ -25,6 +25,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -97,7 +98,7 @@ final class PlatformController
     public function assignPlan(Request $request, string $account): JsonResponse
     {
         $model = $this->account($account);
-        $data = $request->validate(['plan_id' => ['present', 'nullable', 'string', 'exists:plans,id']]);
+        $data = $request->validate(['plan_id' => ['present', 'nullable', 'string', Rule::exists('plans', 'id')->whereNull('archived_at')]]);
         $this->applyPlan($model, $data['plan_id'], $request->user());
 
         return response()->json(['id' => $model->publicId(), 'plan_id' => $data['plan_id']]);
@@ -236,15 +237,7 @@ final class PlatformController
 
     private function applyPlan(Account $account, ?string $planId, mixed $user): void
     {
-        $from = $account->plan_id;
-        $account->forceFill(['plan_id' => $planId])->save();
-        if (BillingStatus::of($account->id) === BillingStatus::TRIAL && $planId !== null) {
-            DB::table('accounts')->where('id', $account->id)->update(['billing_status' => BillingStatus::ACTIVE, 'updated_at' => now()]);
-        }
-        $this->plans->refreshAccount($account);
-        // El nuevo volumen puede sacar a la cuenta de la gracia (o meterla).
-        app(EvaluateBillingStatus::class)->handle($account->refresh());
-        $this->audit->handle('platform.plan_assigned', $account, ['from' => $from, 'to' => $planId], null, $account->id, $user instanceof User ? $user->id : null);
+        app(AssignPlan::class)->handle($account, $planId, $user instanceof User ? $user : null);
     }
 
     private function account(string $publicId): Account

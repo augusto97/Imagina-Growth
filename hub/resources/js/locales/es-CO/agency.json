@@ -168,6 +168,20 @@
                 "failed": "Sin verificar"
             },
             "no_domains": "Sin dominios propios todavía."
+        },
+        "newClient": {
+            "button": "Nuevo cliente",
+            "title": "Nuevo cliente",
+            "help": "Se crea el espacio de trabajo del cliente dentro de tu agencia. Tu equipo lo administra desde aquí; si quieres, invitas al dueño para que también entre.",
+            "name": "Nombre del negocio",
+            "namePlaceholder": "Café Sierra",
+            "account": "Agencia",
+            "inviteEmail": "Correo del cliente (opcional)",
+            "inviteHelp": "Le llega una invitación para entrar con su correo. Puedes invitarlo después.",
+            "create": "Crear cliente",
+            "created": "Cliente «{{name}}» creado.",
+            "createdInvited": "Cliente «{{name}}» creado. Le enviamos la invitación a {{email}}.",
+            "emptyHelp": "Da de alta tu primer cliente y conecta su sitio. Aquí verás cuánto dinero le genera cada mes."
         }
     },
     "client_reports": {

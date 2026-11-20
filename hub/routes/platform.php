@@ -1,6 +1,8 @@
 <?php
 
+use App\Domain\Billing\Http\PlatformClientsController;
 use App\Domain\Billing\Http\PlatformController;
+use App\Domain\Billing\Http\PlatformPlansController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -9,6 +11,17 @@ use Illuminate\Support\Facades\Route;
  */
 Route::get('overview', [PlatformController::class, 'overview']);
 Route::get('health', [PlatformController::class, 'health']);
+// Clientes (empresas): alta con espacio, plan e invitación al dueño; detalle, edición, espacios e invitaciones.
+Route::post('accounts', [PlatformClientsController::class, 'store']);
+Route::get('accounts/{account}', [PlatformClientsController::class, 'show']);
+Route::patch('accounts/{account}', [PlatformClientsController::class, 'update']);
+Route::post('accounts/{account}/workspaces', [PlatformClientsController::class, 'addWorkspace']);
+Route::post('accounts/{account}/invitations', [PlatformClientsController::class, 'invite'])->middleware('throttle:30,1');
+// Planes: crear, editar, archivar y restaurar (no se borran).
+Route::get('plans', [PlatformPlansController::class, 'index']);
+Route::post('plans', [PlatformPlansController::class, 'store']);
+Route::patch('plans/{plan}', [PlatformPlansController::class, 'update']);
+Route::post('plans/{plan}/{action}', [PlatformPlansController::class, 'archive'])->whereIn('action', ['archive', 'restore']);
 Route::put('accounts/{account}/plan', [PlatformController::class, 'assignPlan']);
 Route::put('accounts/{account}/billing-status', [PlatformController::class, 'setBillingStatus']);
 Route::get('accounts/{account}/invoice-draft', [PlatformController::class, 'invoiceDraft']);

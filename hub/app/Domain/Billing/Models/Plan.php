@@ -26,11 +26,11 @@ class Plan extends Model
 
     protected $keyType = 'string';
 
-    protected $fillable = ['id', 'name', 'metric', 'included', 'modules', 'limits', 'price_usd', 'price_cop', 'public'];
+    protected $fillable = ['id', 'name', 'metric', 'included', 'modules', 'limits', 'price_usd', 'price_cop', 'public', 'archived_at'];
 
     protected function casts(): array
     {
-        return ['modules' => 'array', 'limits' => 'array', 'included' => 'integer', 'public' => 'boolean', 'price_usd' => 'decimal:2', 'price_cop' => 'decimal:2'];
+        return ['modules' => 'array', 'limits' => 'array', 'included' => 'integer', 'public' => 'boolean', 'price_usd' => 'decimal:2', 'price_cop' => 'decimal:2', 'archived_at' => 'datetime'];
     }
 
     /** @return array<string, mixed> */
@@ -40,6 +40,7 @@ class Plan extends Model
             'id' => $this->id, 'name' => $this->name, 'metric' => $this->metric, 'included' => $this->included,
             'modules' => array_values((array) $this->modules), 'limits' => (array) ($this->limits ?? []),
             'price_usd' => (string) $this->price_usd, 'price_cop' => $this->price_cop !== null ? (string) $this->price_cop : null,
+            'archived' => $this->archived_at !== null,
         ];
     }
 }

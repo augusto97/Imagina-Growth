@@ -28,7 +28,7 @@ export interface PlatformAccount {
 
 export interface PlatformOverview {
     accounts: PlatformAccount[];
-    plans: (PlanInfo & { public: boolean })[];
+    plans: PlatformPlan[];
     modules: string[];
     plan_requests: {
         id: string;
@@ -192,4 +192,164 @@ export function lagState(seconds: number): 'ok' | 'warning' | 'critical' {
     if (seconds >= 300) return 'critical';
     if (seconds >= 60) return 'warning';
     return 'ok';
+}
+
+/* ── Planes y clientes (administración de la plataforma) ─────────────────────────────── */
+
+export interface PlatformPlan extends PlanInfo {
+    public: boolean;
+    archived: boolean;
+    accounts?: number;
+}
+
+export interface PlansPayload {
+    plans: PlatformPlan[];
+    modules: string[];
+    limits: string[];
+}
+
+export interface PlanInput {
+    id?: string;
+    name: string;
+    metric: 'orders' | 'contacts';
+    included: number;
+    modules: string[];
+    limits: Record<string, number | null>;
+    price_usd: number;
+    price_cop: number | null;
+    public: boolean;
+}
+
+export function usePlatformPlans(enabled = true) {
+    return useQuery({
+        queryKey: ['platform', 'plans'],
+        queryFn: () => api.get<PlansPayload>(`${base}/plans`),
+        enabled,
+    });
+}
+
+export function useSavePlan() {
+    const done = useInvalidate();
+    return useMutation({
+        mutationFn: (v: { editing: string | null; plan: PlanInput }) =>
+            v.editing === null ? api.post(`${base}/plans`, v.plan) : api.patch(`${base}/plans/${v.editing}`, v.plan),
+        onSuccess: done,
+    });
+}
+
+export function usePlanArchive() {
+    const done = useInvalidate();
+    return useMutation({
+        mutationFn: (v: { plan: string; archive: boolean }) => api.post(`${base}/plans/${v.plan}/${v.archive ? 'archive' : 'restore'}`, {}),
+        onSuccess: done,
+    });
+}
+
+export interface ClientPerson {
+    name: string;
+    email: string;
+    role: string;
+}
+
+export interface ClientDetail {
+    id: string;
+    name: string;
+    type: 'direct' | 'agency';
+    legal_name: string | null;
+    country: string;
+    billing_email: string | null;
+    plan_id: string | null;
+    billing_status: BillingStatus;
+    created_at: string | null;
+    account_users: ClientPerson[];
+    workspaces: {
+        id: string;
+        name: string;
+        country: string;
+        currency: string;
+        sites: number;
+        created_at: string | null;
+        members: ClientPerson[];
+        invitations: { email: string; role: string; expires_at: string | null }[];
+    }[];
+}
+
+export interface WorkspaceInput {
+    name: string;
+    country: string;
+    currency: string;
+    timezone: string;
+}
+
+export interface NewClientInput {
+    name: string;
+    type: 'direct' | 'agency';
+    country: string;
+    plan_id: string | null;
+    owner_email: string;
+    workspace: WorkspaceInput;
+}
+
+export function useClientDetail(id: string | null) {
+    return useQuery({
+        queryKey: ['platform', 'client', id],
+        queryFn: () => api.get<{ account: ClientDetail }>(`${base}/accounts/${id}`).then((r) => r.account),
+        enabled: id !== null,
+    });
+}
+
+export function useCreateClient() {
+    const done = useInvalidate();
+    return useMutation({
+        mutationFn: (v: NewClientInput) => api.post<{ account: ClientDetail }>(`${base}/accounts`, v).then((r) => r.account),
+        onSuccess: done,
+    });
+}
+
+export function useUpdateClient() {
+    const done = useInvalidate();
+    return useMutation({
+        mutationFn: (v: { id: string; data: Partial<Pick<ClientDetail, 'name' | 'legal_name' | 'billing_email' | 'country' | 'type'>> }) =>
+            api.patch(`${base}/accounts/${v.id}`, v.data),
+        onSuccess: done,
+    });
+}
+
+export function useAddClientWorkspace() {
+    const done = useInvalidate();
+    return useMutation({
+        mutationFn: (v: { id: string; data: WorkspaceInput & { owner_email?: string } }) => api.post(`${base}/accounts/${v.id}/workspaces`, v.data),
+        onSuccess: done,
+    });
+}
+
+export function useInviteToClient() {
+    const done = useInvalidate();
+    return useMutation({
+        mutationFn: (v: { id: string; workspace_id: string; email: string; role: string; account_owner?: boolean }) =>
+            api.post(`${base}/accounts/${v.id}/invitations`, { workspace_id: v.workspace_id, email: v.email, role: v.role, account_owner: v.account_owner ?? false }),
+        onSuccess: done,
+    });
+}
+
+/** Zona horaria y moneda por defecto según el país (se pueden cambiar). */
+export const COUNTRY_DEFAULTS: Record<string, { currency: string; timezone: string }> = {
+    CO: { currency: 'COP', timezone: 'America/Bogota' },
+    MX: { currency: 'MXN', timezone: 'America/Mexico_City' },
+    VE: { currency: 'USD', timezone: 'America/Caracas' },
+    PE: { currency: 'PEN', timezone: 'America/Lima' },
+    CL: { currency: 'CLP', timezone: 'America/Santiago' },
+    EC: { currency: 'USD', timezone: 'America/Guayaquil' },
+    AR: { currency: 'ARS', timezone: 'America/Argentina/Buenos_Aires' },
+    PA: { currency: 'USD', timezone: 'America/Panama' },
+    CR: { currency: 'USD', timezone: 'America/Costa_Rica' },
+    GT: { currency: 'USD', timezone: 'America/Guatemala' },
+    DO: { currency: 'USD', timezone: 'America/Santo_Domingo' },
+    US: { currency: 'USD', timezone: 'America/New_York' },
+    ES: { currency: 'EUR', timezone: 'Europe/Madrid' },
+};
+
+/** Moneda y zona horaria sugeridas para un país (Colombia si no está en la lista). */
+export function countryDefaults(country: string): { currency: string; timezone: string } {
+    return COUNTRY_DEFAULTS[country] ?? { currency: 'COP', timezone: 'America/Bogota' };
 }

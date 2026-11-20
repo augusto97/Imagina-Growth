@@ -136,6 +136,28 @@ export function useAgencyOverview(ws: string) {
     return useQuery({ queryKey: keys.overview(ws), queryFn: ({ signal }) => api.get<AgencyOverview>(`${base(ws)}/overview`, signal) });
 }
 
+export interface NewAgencyClient {
+    account_id: string;
+    name: string;
+    country: string;
+    currency: string;
+    timezone: string;
+    invite_email?: string;
+    invite_role?: 'owner' | 'admin';
+}
+
+/** Alta de un cliente de la agencia: un espacio nuevo en su cuenta y, si se da, la invitación al dueño. */
+export function useCreateAgencyClient(ws: string) {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (body: NewAgencyClient) => api.post<{ workspace_id: string; name: string }>(`${base(ws)}/clients`, body),
+        onSuccess: () => {
+            void qc.invalidateQueries({ queryKey: keys.overview(ws) });
+            void qc.invalidateQueries({ queryKey: ['me'] });
+        },
+    });
+}
+
 export function useEnterClient(ws: string) {
     return useMutation({
         mutationFn: ({ client, reason }: { client: string; reason?: string }) =>

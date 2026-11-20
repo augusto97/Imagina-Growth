@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
  * del cliente de sus propios reportes mensuales.
  */
 Route::get('agency/overview', [AgencyController::class, 'overview']);
+Route::post('agency/clients', [AgencyController::class, 'createClient'])->middleware('throttle:30,1');
 Route::post('agency/clients/{client}/enter', [AgencyController::class, 'enter']);
 Route::get('agency/clients/{client}/items', [AgencyController::class, 'items']);
 

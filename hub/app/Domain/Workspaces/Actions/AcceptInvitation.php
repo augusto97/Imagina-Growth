@@ -29,6 +29,11 @@ final class AcceptInvitation
 
         DB::transaction(function () use ($invitation, $user, $workspace): void {
             $workspace->users()->syncWithoutDetaching([$user->id => ['role' => $invitation->role->value]]);
+            // Invitación de la plataforma al dueño de una agencia cliente: también queda en la cuenta.
+            $accountRole = $invitation->getAttribute('account_role');
+            if (is_string($accountRole) && $accountRole !== '') {
+                $user->accounts()->syncWithoutDetaching([$workspace->account_id => ['role' => $accountRole]]);
+            }
             $invitation->forceFill(['accepted_at' => now()])->save();
         });
         $this->audit->handle('member.joined', $user, ['role' => $invitation->role->value], $workspace->id, $workspace->account_id, $user->id);

@@ -15,12 +15,20 @@ final class PlanCatalog
         return array_values(array_map('strval', (array) config('igr-plans.modules', [])));
     }
 
-    /** @return int planes sincronizados */
-    public function sync(): int
+    /**
+     * Carga los planes de config/igr-plans.php. Con $overwrite = false solo crea los que faltan: los planes se
+     * editan en el panel de la plataforma y la configuración no debe pisar esos cambios.
+     *
+     * @return int planes sincronizados
+     */
+    public function sync(bool $overwrite = true): int
     {
         $count = 0;
         foreach ((array) config('igr-plans.plans', []) as $id => $def) {
             $def = (array) $def;
+            if (! $overwrite && Plan::query()->whereKey((string) $id)->exists()) {
+                continue;
+            }
             Plan::query()->updateOrCreate(['id' => (string) $id], [
                 'name' => (string) $def['name'],
                 'metric' => in_array($def['metric'] ?? 'orders', ['orders', 'contacts'], true) ? (string) $def['metric'] : 'orders',
