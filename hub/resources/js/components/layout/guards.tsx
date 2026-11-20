@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BillingBanner } from '@/features/billing/BillingBanner';
-import { Link, Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, Outlet, useLocation, useMatches, useNavigate, useParams } from 'react-router';
 import { Compass } from 'lucide-react';
 import { useMe } from '@/api/queries';
 import type { Me } from '@/api/types';
@@ -88,6 +88,8 @@ export function WorkspaceLayout() {
     const setLastWorkspace = useUi((s) => s.setLastWorkspace);
     const setCommandOpen = useUi((s) => s.setCommandOpen);
     const workspace = me?.workspaces.find((w) => w.id === workspaceId) ?? null;
+    // Pantallas de lienzo (constructor de flujos): ocupan todo el ancho, sin márgenes (ruta con `handle: { fullBleed: true }`).
+    const fullBleed = useMatches().some((m) => (m.handle as { fullBleed?: boolean } | null | undefined)?.fullBleed === true);
 
     useEffect(() => {
         if (workspace) {
@@ -144,7 +146,7 @@ export function WorkspaceLayout() {
                 </div>
                 <main className="igr:min-w-0 igr:flex-1 igr:overflow-y-auto">
                     <MobileNav />
-                    <div className="igr:mx-auto igr:max-w-6xl igr:px-4 igr:py-4 igr:md:px-8 igr:md:py-6">
+                    <div className={fullBleed ? 'igr:flex igr:min-h-0 igr:flex-col igr:md:h-full' : 'igr:mx-auto igr:max-w-6xl igr:px-4 igr:py-4 igr:md:px-8 igr:md:py-6'}>
                         <BillingBanner />
                         <Outlet />
                     </div>
