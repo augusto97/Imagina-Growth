@@ -22,8 +22,9 @@ use App\Support\Ids\PrefixedId;
  * «La ficha se completa sola» (M18): con lo que el cliente escribe en la bandeja
  * (WhatsApp, Messenger, Instagram) la IA llena la ficha del lead abierto del
  * contacto, y la ciudad del contacto si no la tenía. Si no hay lead y el cliente
- * quiere comprar por WhatsApp, lo crea con la misma regla de los leads de WhatsApp
- * (origen `whatsapp`, referencia = la conversación; se apaga en Ajustes).
+ * quiere comprar o contratar, lo crea con la misma regla de los leads de los chats
+ * (ChatLeadListener: origen = el canal, `whatsapp`, `messenger` o `instagram`;
+ * referencia = la conversación; se apaga en Ajustes).
  *
  * Nunca pisa lo que editó una persona (LeadBrief::merge) y solo guarda valores que
  * aparecen en lo que escribió el cliente. Corre en la cola `ai` con el espacio de
@@ -56,9 +57,9 @@ final class UpdateLeadBrief
             return [];
         }
         $lead = self::openLead($conversation->contact_id);
-        // Sin lead solo se puede crear uno por WhatsApp, y no de una conversación de soporte, queja o baja:
-        // ahí no vale la pena llamar al modelo.
-        if ($lead === null && ($channel !== Channel::WhatsApp || ! $settings->whatsapp_leads || in_array($conversation->intent, ['support', 'complaint', 'optout'], true))) {
+        // Sin lead se crea uno desde el chat (WhatsApp, Messenger o Instagram, con la misma regla de ChatLeadListener),
+        // pero no de una conversación de soporte, queja o baja: ahí no vale la pena llamar al modelo.
+        if ($lead === null && (! $settings->whatsapp_leads || in_array($conversation->intent, ['support', 'complaint', 'optout'], true))) {
             return [];
         }
         $result = $this->extractor->extract($workspace->id, $transcript, $workspace->name);
@@ -71,7 +72,7 @@ final class UpdateLeadBrief
                 return [];
             }
             $id = $this->intake->capture(new LeadIntakeInput(
-                workspaceId: $workspace->id, contactId: $conversation->contact_id, origin: 'whatsapp', originRef: $conversation->id, source: ['channel' => 'whatsapp'],
+                workspaceId: $workspace->id, contactId: $conversation->contact_id, origin: self::origin($channel), originRef: $conversation->id, source: ['channel' => self::origin($channel)],
             ));
             $lead = $id !== null ? Lead::query()->find($id) : null;
             if ($lead === null || ! $lead->isOpen()) {
@@ -104,6 +105,16 @@ final class UpdateLeadBrief
         }
 
         return $changed;
+    }
+
+    /** @return 'whatsapp'|'messenger'|'instagram' el origen del lead que nace en el chat */
+    private static function origin(Channel $channel): string
+    {
+        return match ($channel) {
+            Channel::Messenger => 'messenger',
+            Channel::Instagram => 'instagram',
+            default => 'whatsapp',
+        };
     }
 
     /** @return Lead|null el lead abierto más reciente del contacto */

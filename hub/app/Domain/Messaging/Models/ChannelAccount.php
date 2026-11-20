@@ -35,6 +35,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property bool $is_default
  * @property string $status
  * @property string|null $last_error
+ * @property string|null $alert_state último estado avisado por correo (expires_7d, expires_1d, expired, disconnected)
+ * @property CarbonInterface|null $alert_sent_at
  * @property CarbonInterface|null $risk_accepted_at
  * @property string|null $risk_accepted_by
  */
@@ -46,7 +48,7 @@ class ChannelAccount extends Model
 
     public const ZENDER = 'zender';
 
-    protected $fillable = ['workspace_id', 'channel', 'provider', 'display_name', 'config', 'oauth_connection_id', 'identity', 'external_id', 'quality_rating', 'messaging_limit_tier', 'warmup_started_at', 'is_default', 'status', 'last_error', 'risk_accepted_at', 'risk_accepted_by'];
+    protected $fillable = ['workspace_id', 'channel', 'provider', 'display_name', 'config', 'oauth_connection_id', 'identity', 'external_id', 'quality_rating', 'messaging_limit_tier', 'warmup_started_at', 'is_default', 'status', 'last_error', 'alert_state', 'alert_sent_at', 'risk_accepted_at', 'risk_accepted_by'];
 
     protected $hidden = ['config'];
 
@@ -58,6 +60,7 @@ class ChannelAccount extends Model
             'is_default' => 'boolean',
             'risk_accepted_at' => 'datetime',
             'warmup_started_at' => 'datetime',
+            'alert_sent_at' => 'datetime',
         ];
     }
 

@@ -7,9 +7,15 @@ namespace App\Domain\Messaging\Sending;
 use App\Domain\Consent\Policy\PolicyRequest;
 use App\Domain\Consent\Policy\SendPolicy;
 use App\Domain\Contacts\Models\Contact;
+use App\Domain\Messaging\Actions\DisconnectWhatsAppFromMeta;
 use App\Domain\Messaging\Channels\Data\StatusUpdate;
 use App\Domain\Messaging\Channels\Data\WebhookBatch;
+use App\Domain\Messaging\Coexistence\BusinessAppMessages;
+use App\Domain\Messaging\Coexistence\ImportBusinessAppHistory;
+use App\Domain\Messaging\Coexistence\RecordBusinessAppEcho;
 use App\Domain\Messaging\Inbound\InboundHandler;
+use App\Domain\Messaging\Jobs\ImportBusinessAppHistoryJob;
+use App\Domain\Messaging\Jobs\SyncBusinessAppContactsJob;
 use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Models\Message;
 use App\Domain\Messaging\Models\Suppression;
@@ -25,7 +31,8 @@ use Illuminate\Support\Facades\Log;
 /**
  * Aplica lo que trae un webhook ya verificado (hub/CLAUDE.md §8): estados de
  * los mensajes (cada evento message.* una sola vez), rebotes y quejas a la
- * supresión, mensajes entrantes, estado de las plantillas y calidad del número.
+ * supresión, mensajes entrantes, estado de las plantillas y calidad del número y, en coexistencia de WhatsApp, lo
+ * que el negocio escribe desde el celular, el historial, la libreta y la salida del número (lote 4, hub/CLAUDE.md §8).
  * Los webhooks llegan sin espacio de trabajo: se busca por el ID del proveedor
  * y se trabaja dentro del contexto del mensaje o la cuenta.
  */
@@ -37,6 +44,9 @@ final class WebhookProcessor
         private readonly InboundHandler $inbound,
         private readonly UnsubscribeService $unsubscribe,
         private readonly SendPolicy $policy,
+        private readonly RecordBusinessAppEcho $echoes,
+        private readonly ImportBusinessAppHistory $history,
+        private readonly DisconnectWhatsAppFromMeta $offboarding,
     ) {}
 
     /** @param list<string> $providers proveedores de este webhook (para buscar la cuenta) */
@@ -50,6 +60,37 @@ final class WebhookProcessor
             if ($target !== null && $target->isActive()) {
                 $this->inbound->handle($target, $item['message']);
             }
+        }
+        // Coexistencia (lote 4): lo que el negocio escribe desde el celular va en el momento; el historial y la
+        // libreta de contactos, que pueden traer cientos de filas, van a la cola (cifrados).
+        foreach ($batch->echoes as $item) {
+            $target = $account ?? $this->account($providers, $item['account']);
+            if ($target !== null && $target->isActive()) {
+                $this->echoes->handle($target, $item['message']);
+            }
+        }
+        foreach ($batch->history as $item) {
+            $target = $account ?? $this->account($providers, $item['account']);
+            if ($target !== null && $target->isActive()) {
+                ImportBusinessAppHistoryJob::dispatch($target->workspace_id, $target->id, [
+                    'phase' => $item['phase'], 'chunk' => $item['chunk'], 'progress' => $item['progress'], 'declined' => $item['declined'], 'messages' => $item['messages'],
+                ]);
+            }
+        }
+        foreach ($batch->historyMedia as $item) {
+            $target = $account ?? $this->account($providers, $item['account']);
+            if ($target !== null && $target->isActive()) {
+                $this->history->media($target, $item['message']);
+            }
+        }
+        foreach ($batch->contacts as $item) {
+            $target = $account ?? $this->account($providers, $item['account']);
+            if ($target !== null && $target->isActive()) {
+                SyncBusinessAppContactsJob::dispatch($target->workspace_id, $target->id, $item['contacts']);
+            }
+        }
+        foreach ($batch->accountUpdates as $item) {
+            $this->offboarding->handle($item['waba'], $item['event'], $item['reason']);
         }
         foreach ($batch->templates as $item) {
             $query = WaTemplate::withoutWorkspaceScope();
@@ -87,7 +128,8 @@ final class WebhookProcessor
             return;
         }
         $message = Message::withoutWorkspaceScope()->whereIn('provider', $providers)->where('provider_message_id', $update->providerMessageId)->where('direction', 'out')->first();
-        if ($message === null) {
+        // Lo escrito desde la app del celular (coexistencia) no salió por la plataforma: sus estados no emiten eventos.
+        if ($message === null || in_array($message->source_type, BusinessAppMessages::SOURCES, true)) {
             return;
         }
         $workspace = Workspace::query()->find($message->workspace_id);

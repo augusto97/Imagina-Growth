@@ -20,6 +20,7 @@ uses(ConnectionFixtures::class);
 
 beforeEach(function () {
     $this->setUpConnections();
+    $this->syncRequests = 0;
 });
 
 /** @param list<array<string, mixed>> $phones */
@@ -33,7 +34,9 @@ function waSignupFakes(object $test, array $phones, array $granular = ['whatsapp
         'graph.test/v27.0/333333/phone_numbers*' => Http::response(['data' => $phones]),
         'graph.test/v27.0/333333/message_templates*' => Http::response(['data' => [['id' => '55', 'name' => 'bienvenida', 'language' => 'es', 'category' => 'UTILITY', 'status' => 'APPROVED', 'components' => [['type' => 'BODY', 'text' => 'Hola']]]]]),
         'graph.test/v27.0/444444/register' => Http::response(['success' => true]),
-        'graph.test/v27.0/444444/smb_app_data' => Http::response(['success' => true]),
+        // La copia se pide con la cuenta ya creada y activa: los webhooks del historial se buscan por el número.
+        'graph.test/v27.0/444444/smb_app_data' => fn () => Http::response(ChannelAccount::withoutWorkspaceScope()->where('external_id', '444444')->where('status', 'active')->exists()
+            ? ['messaging_product' => 'whatsapp', 'request_id' => 'req-'.(++$test->syncRequests)] : ['error' => ['message' => 'La cuenta todavía no existe']], 200),
         'graph.test/v27.0/444444*' => Http::response(['display_phone_number' => '+57 301 4444444', 'verified_name' => 'Pinturas La 14', 'quality_rating' => 'GREEN', 'messaging_limit_tier' => 'TIER_1K']),
         'graph.test/v27.0/444445*' => Http::response(['display_phone_number' => '+57 301 4444445', 'verified_name' => 'Pinturas Norte', 'quality_rating' => 'GREEN', 'messaging_limit_tier' => 'TIER_250']),
         'graph.test/v27.0/444445/register' => Http::response(['success' => true]),
@@ -95,7 +98,12 @@ it('coexistencia: el número sigue en la app de WhatsApp Business, no se registr
     Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '444444/smb_app_data') && $r['sync_type'] === 'history');
     $account = app(CurrentWorkspace::class)->run($this->ws, fn () => ChannelAccount::query()->firstOrFail());
     expect($account->config['coexistence'])->toBeTrue()->and($account->config['synced'])->toHaveKeys(['smb_app_state_sync', 'history'])
+        ->and($account->config['sync_requests'])->toBe(['smb_app_state_sync' => 'req-1', 'history' => 'req-2'])
         ->and($account->config)->not->toHaveKey('two_step_pin');
+
+    // Volver a elegir el número no pide otra copia (Meta la da una sola vez por conexión).
+    $this->actingAs($this->owner)->postJson("{$this->api}/connections/{$res->json('connection.id')}/whatsapp-number", ['phone_number_id' => '444444'])->assertSuccessful();
+    expect($this->syncRequests)->toBe(2);
 });
 
 it('varios números: devuelve la lista y conecta el que la persona elige', function () {

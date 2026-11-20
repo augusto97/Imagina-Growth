@@ -1,7 +1,7 @@
 /* Leads (M18): tipos de la API. Las cifras de dinero llegan como texto decimal. */
 
 export type Temperature = 'cold' | 'warm' | 'hot';
-export type Origin = 'form' | 'whatsapp' | 'quote' | 'booking' | 'manual' | 'api';
+export type Origin = 'form' | 'whatsapp' | 'messenger' | 'instagram' | 'quote' | 'booking' | 'manual' | 'api';
 export type StageKind = 'open' | 'won' | 'lost';
 
 export interface Stage {
@@ -91,7 +91,17 @@ export interface LeadDetail extends LeadRow {
     pipeline_stages: Stage[];
     email: string | null;
     phone: string | null;
-    source: { channel?: string; utm_source?: string; utm_medium?: string; utm_campaign?: string; page?: string; form_name?: string; referrer_host?: string; has_gclid: boolean; has_fbclid: boolean };
+    source: {
+        channel?: string;
+        utm_source?: string;
+        utm_medium?: string;
+        utm_campaign?: string;
+        page?: string;
+        form_name?: string;
+        referrer_host?: string;
+        has_gclid: boolean;
+        has_fbclid: boolean;
+    };
     score_reasons: ScoreReason[];
     brief: Brief;
     brief_updated_at: string | null;

@@ -49,9 +49,12 @@ export interface ChatMessage {
     source: string;
     type: string;
     text: string | null;
+    /** Editado desde la app de WhatsApp Business del celular (coexistencia). */
+    edited: boolean;
     template: string | null;
     status: string;
-    author: { kind: 'ai' | 'user'; name: string } | null;
+    /** `phone`: lo escribió el negocio desde la app de WhatsApp Business del celular (coexistencia). */
+    author: { kind: 'ai' | 'user' | 'phone'; name: string } | null;
     attachments: {
         kind: string;
         mime: string | null;

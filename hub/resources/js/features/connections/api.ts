@@ -26,7 +26,17 @@ export interface Connection {
     last_error: string | null;
     used_by: {
         destinations: { id: string; platform: string; name: string | null; status: string }[];
-        channels: { id: string; channel: string; name: string; identity: string | null; external_id: string | null; status: string; last_error: string | null }[];
+        channels: {
+            id: string;
+            channel: string;
+            name: string;
+            identity: string | null;
+            external_id: string | null;
+            status: string;
+            last_error: string | null;
+            /** Coexistencia: avance de la copia del historial de la app de WhatsApp Business. */
+            history: { progress: number; messages: number; declined: boolean } | null;
+        }[];
     };
 }
 
@@ -135,6 +145,31 @@ export function useStartConnection(ws: string) {
         mutationFn: ({ provider, returnTo }: { provider: RedirectProvider; returnTo?: ReturnTo }) =>
             api.post<{ url: string }>(`${base(ws)}/${provider}/start`, { return: returnTo ?? 'conexiones' }),
         onSuccess: ({ url }) => window.location.assign(url),
+    });
+}
+
+/** Estado que avisa el hub (ConnectionAlerts): vence en 7 días o menos, vence mañana, venció o Meta desconectó la cuenta. */
+export type AlertState = 'expires_7d' | 'expires_1d' | 'expired' | 'disconnected';
+
+export interface ConnectionAlert {
+    kind: 'connection' | 'channel';
+    id: string;
+    provider: ProviderKey;
+    /** De la conexión: del espacio de trabajo, de WhatsApp o del calendario de una persona; de una cuenta: su canal. */
+    subject: 'workspace' | 'whatsapp' | 'calendar' | 'messenger' | 'instagram';
+    state: AlertState;
+    name: string | null;
+    expires_at: string | null;
+    message: string | null;
+}
+
+/** Lo que vence o se cayó, para el aviso con «Reconectar» del Inicio y de Conexiones. */
+export function useConnectionAlerts(ws: string, enabled = true) {
+    return useQuery({
+        queryKey: [...connectionKeys.all(ws), 'alerts'] as const,
+        queryFn: ({ signal }) => api.get<{ data: ConnectionAlert[] }>(`${base(ws)}/alerts`, signal),
+        enabled,
+        staleTime: 60_000,
     });
 }
 

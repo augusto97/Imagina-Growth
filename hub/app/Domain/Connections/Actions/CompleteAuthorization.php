@@ -71,6 +71,9 @@ final class CompleteAuthorization
             'last_error' => null,
             'connected_by' => $userId,
             'revoked_at' => null,
+            // Reconectada: los avisos empiezan de cero (ConnectionAlerts).
+            'alert_state' => null,
+            'alert_sent_at' => null,
         ])->save();
 
         return $connection;

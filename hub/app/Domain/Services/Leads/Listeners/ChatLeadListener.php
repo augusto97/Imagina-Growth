@@ -16,17 +16,16 @@ use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Leads desde WhatsApp (M18): una conversación de WhatsApp con intención de
- * compra de un contacto sin lead abierto crea un lead de origen `whatsapp`
- * (referencia = la conversación), si el plan incluye servicios y el espacio de
- * trabajo no lo apagó (Leads → Ajustes).
+ * Leads desde los chats de la bandeja (M18): una conversación de WhatsApp, Messenger o Instagram con intención de
+ * compra o de contratar un servicio (`purchase`) de un contacto sin lead abierto crea un lead con el canal como
+ * origen (`whatsapp`, `messenger` o `instagram`; referencia = la conversación), si el plan incluye servicios y el
+ * espacio de trabajo no lo apagó (Leads → Ajustes, «Crear leads desde los chats», `whatsapp_leads`).
  *
- * La intención la deja el clasificador de entrantes en `conversations.intent`
- * (cola `ai`), así que se escuchan dos momentos: el entrante, cuando la
- * conversación ya traía la intención, y el guardado de la conversación cuando la
+ * La intención la deja el clasificador de entrantes en `conversations.intent` (cola `ai`), así que se escuchan dos
+ * momentos: el entrante, cuando la conversación ya traía la intención, y el guardado de la conversación cuando la
  * intención pasa a `purchase`.
  */
-final class WhatsAppLeadListener
+final class ChatLeadListener
 {
     public function __construct(private readonly CurrentWorkspace $current, private readonly LeadIntake $intake, private readonly Entitlements $entitlements) {}
 
@@ -59,13 +58,30 @@ final class WhatsAppLeadListener
         $this->current->run($workspace, fn () => $this->capture($workspace, $conversation));
     }
 
+    /**
+     * El canal de la conversación si crea leads (WhatsApp, Messenger o Instagram), o null.
+     *
+     * @return 'whatsapp'|'messenger'|'instagram'|null
+     */
+    public static function channelOf(Conversation $conversation): ?string
+    {
+        $channel = DB::table('channel_accounts')->where('workspace_id', $conversation->workspace_id)->where('id', $conversation->channel_account_id)->value('channel');
+
+        return match ($channel) {
+            'whatsapp' => 'whatsapp',
+            'messenger' => 'messenger',
+            'instagram' => 'instagram',
+            default => null,
+        };
+    }
+
     private function capture(Workspace $workspace, Conversation $conversation): void
     {
         if (! $this->entitlements->allows($workspace, 'services') || ! LeadSettings::for($workspace->id)->whatsapp_leads) {
             return;
         }
-        $channel = DB::table('channel_accounts')->where('workspace_id', $workspace->id)->where('id', $conversation->channel_account_id)->value('channel');
-        if ($channel !== 'whatsapp') {
+        $channel = self::channelOf($conversation);
+        if ($channel === null) {
             return;
         }
         if (Lead::query()->where('contact_id', $conversation->contact_id)->whereNull('won_at')->whereNull('lost_at')->exists()) {
@@ -74,9 +90,9 @@ final class WhatsAppLeadListener
         $this->intake->capture(new LeadIntakeInput(
             workspaceId: $workspace->id,
             contactId: $conversation->contact_id,
-            origin: 'whatsapp',
+            origin: $channel,
             originRef: $conversation->id,
-            source: ['channel' => 'whatsapp'],
+            source: ['channel' => $channel],
         ));
     }
 }

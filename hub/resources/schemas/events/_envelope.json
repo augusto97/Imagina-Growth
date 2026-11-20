@@ -20,7 +20,8 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
       "description": "Versión del contrato (eventos.md §8). Cada versión solo agrega eventos o campos opcionales; el hub acepta todas."
     },

@@ -7,6 +7,7 @@ namespace App\Analytics\Dashboards;
 use App\Analytics\Ch;
 use App\Analytics\Semantic\Filters;
 use App\Analytics\Semantic\Period;
+use App\Domain\Messaging\Coexistence\BusinessAppMessages;
 use App\Domain\Workspaces\Models\Workspace;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +18,8 @@ use Throwable;
  * rebotes y fallos, y las ventas atribuidas, por canal y por flujo o campaña, en el periodo.
  *
  * - Mensajes: los salientes creados en el periodo (`messages`), sin los que la política negó, saltó (grupo de
- *   control) o sigue aplazando: esos nunca salieron.
+ *   control) o sigue aplazando: esos nunca salieron. Tampoco lo escrito desde la app del celular ni el historial
+ *   copiado (coexistencia de WhatsApp): no salió por la plataforma.
  * - Aperturas reales y bajas: `message.opened` sin las de Apple MPP y `message.unsubscribed` de ClickHouse (como el
  *   reporte de campañas); sin ClickHouse, la columna `opened_at` y sin bajas.
  * - Ventas: pedidos pagados del periodo atribuidos a un mensaje (`orders.attributed_message_id`, hub/CLAUDE.md §9),
@@ -62,7 +64,7 @@ final class MessagingDashboard extends Dashboard
     {
         return DB::table('messages as m')->where('m.workspace_id', $workspace->id)->where('m.direction', 'out')
             ->where('m.created_at', '>=', $period->fromUtc())->where('m.created_at', '<', $period->toUtc())
-            ->whereNotIn('m.status', self::NOT_SENT);
+            ->whereNotIn('m.status', self::NOT_SENT)->whereNotIn('m.source_type', BusinessAppMessages::SOURCES);
     }
 
     /** Pedidos pagados del periodo atribuidos a un mensaje, con el canal y el origen del mensaje. */

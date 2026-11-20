@@ -221,7 +221,7 @@ final class LeadController
             'temperature' => ['nullable', Rule::in(['cold', 'warm', 'hot'])],
             'source' => ['nullable', 'string', 'max:32'],
             'service' => ['nullable', 'string', 'max:160'],
-            'origin' => ['nullable', Rule::in(['form', 'whatsapp', 'quote', 'booking', 'manual', 'api'])],
+            'origin' => ['nullable', Rule::in(Lead::ORIGINS)],
             'status' => ['nullable', Rule::in(['open', 'won', 'lost', 'all'])],
             'contact' => ['nullable', 'string', 'max:40'],
         ]);

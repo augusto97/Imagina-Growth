@@ -13,6 +13,7 @@ use App\Domain\Contacts\Models\ContactIdentity;
 use App\Domain\Inbox\Models\ConversationEvent;
 use App\Domain\Inbox\Models\ConversationNote;
 use App\Domain\Inbox\Models\MessageAttachment;
+use App\Domain\Messaging\Coexistence\BusinessAppMessages;
 use App\Domain\Messaging\Enums\Channel;
 use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Models\Conversation;
@@ -105,24 +106,32 @@ final class InboxQuery
         foreach (ConversationEvent::query()->where('conversation_id', $c->id)->where('kind', 'message')->get() as $e) {
             $authors[(string) ($e->data['message'] ?? '')] = $e->actor;
         }
-        $names = $this->userNames(array_values(array_filter(array_unique(array_values($authors)), fn ($a) => $a !== 'ai' && $a !== 'system')));
+        $names = $this->userNames(array_values(array_filter(array_unique(array_values($authors)), fn ($a) => ! in_array($a, ['ai', 'system', BusinessAppMessages::ACTOR], true))));
         $attachments = MessageAttachment::query()->whereIn('message_id', $messages->pluck('id'))->get()->groupBy('message_id');
 
         return $this->summary($c, $contact, $this->userNames(array_filter([$c->assignee_id]))) + [
             'messages' => $messages->map(function (Message $m) use ($authors, $names, $attachments): array {
                 $payload = (array) $m->payload;
                 $author = $authors[$m->publicId()] ?? null;
+                // Coexistencia: lo que el negocio escribió en la app del celular (en el momento o en el historial copiado).
+                $fromPhone = $author === BusinessAppMessages::ACTOR || ($author === null && $m->direction === 'out' && in_array($m->source_type, BusinessAppMessages::SOURCES, true));
 
                 return [
                     'id' => $m->publicId(),
                     'direction' => $m->direction,
                     'kind' => $m->kind->value,
                     'source' => $m->source_type,
-                    'type' => (string) ($payload['type'] ?? (is_array($payload['wa'] ?? null) ? 'template' : 'text')),
+                    'type' => ! empty($payload['revoked']) ? 'revoked' : (string) ($payload['type'] ?? (is_array($payload['wa'] ?? null) ? 'template' : 'text')),
                     'text' => isset($payload['text']) && is_string($payload['text']) ? $payload['text'] : null,
+                    'edited' => ! empty($payload['edited']),
                     'template' => is_array($payload['wa'] ?? null) ? (string) ($payload['wa']['name'] ?? '') : null,
                     'status' => $m->status,
-                    'author' => $author === null ? null : ($author === 'ai' ? ['kind' => 'ai', 'name' => __('Asistente IA')] : ['kind' => 'user', 'name' => $names[$author] ?? __('Equipo')]),
+                    'author' => match (true) {
+                        $fromPhone => ['kind' => 'phone', 'name' => __('Desde el celular')],
+                        $author === null => null,
+                        $author === 'ai' => ['kind' => 'ai', 'name' => __('Asistente IA')],
+                        default => ['kind' => 'user', 'name' => $names[$author] ?? __('Equipo')],
+                    },
                     'media_url' => is_string($payload['media']['url'] ?? null) ? (string) $payload['media']['url'] : null,
                     'attachments' => ($attachments->get($m->id) ?? collect())->map(fn (MessageAttachment $a) => ['kind' => $a->kind, 'mime' => $a->mime, 'caption' => $a->caption])->values()->all(),
                     'failed_reason' => $m->getAttribute('failed_reason'),

@@ -10,6 +10,7 @@ use App\Domain\Connections\Providers\ProviderRegistry;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Token de acceso vigente de una conexión, con refresco automático: si vence en menos de un minuto, lo renueva
@@ -69,5 +70,11 @@ class ConnectionTokens
     {
         $connection->forceFill(['status' => OAuthConnection::EXPIRED, 'last_error' => mb_substr($message, 0, 500)])->save();
         Log::notice('igr.connections.expired', ['connection' => $connection->publicId(), 'provider' => $connection->provider->value]);
+        try {
+            // El aviso a dueños y administradores sale en el momento (una sola vez por cambio de estado).
+            app(ConnectionAlerts::class)->check($connection);
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 }

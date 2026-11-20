@@ -16,6 +16,7 @@ import { MoneyGeneratedCard } from '@/features/analytics/components/MoneyGenerat
 import { StatTile, TileGrid } from '@/features/analytics/components/StatTile';
 import { makeFormatters } from '@/features/analytics/format';
 import { apiQuery, readParams } from '@/features/analytics/params';
+import { ConnectionAlertsNotice } from '@/features/connections/AlertsNotice';
 import { SeverityBadge } from '@/features/insights/severity';
 import { SitesHealthNotice } from '@/features/sites/SiteHealth';
 import { GettingStartedCard } from './GettingStartedCard';
@@ -68,6 +69,7 @@ export function HomePage() {
 
             <GettingStartedCard />
             <SitesHealthNotice sites={sites.data ?? []} base={base} className="igr:mb-4" />
+            <ConnectionAlertsNotice className="igr:mb-4" />
 
             {data && !hasSites ? null : (
                 <>

@@ -99,7 +99,12 @@
             "choosePhone": "¿Qué número quieres conectar?",
             "useNumber": "Usar este número",
             "inBusinessApp": "en la app de WhatsApp Business",
-            "coexistence": "también en la app de WhatsApp Business"
+            "coexistence": "también en la app de WhatsApp Business",
+            "historyProgress_one": "Copiando el historial de la app: {{progress}} % ({{count}} mensaje).",
+            "historyProgress_other": "Copiando el historial de la app: {{progress}} % ({{count}} mensajes).",
+            "historyDone_one": "Historial de la app copiado: {{count}} mensaje de los últimos 6 meses.",
+            "historyDone_other": "Historial de la app copiado: {{count}} mensajes de los últimos 6 meses.",
+            "historyDeclined": "No compartiste el historial desde la app de WhatsApp Business: en la bandeja verás los mensajes desde que conectaste."
         },
         "pick": {
             "title": "Elige las cuentas de {{provider}}",
@@ -152,6 +157,23 @@
         "destination": {
             "connected": "Conectado con {{account}}"
         },
-        "expiresAt": "El acceso vence el {{date}}: vuelve a conectar antes para no cortar los envíos."
+        "expiresAt": "El acceso vence el {{date}}: vuelve a conectar antes para no cortar los envíos.",
+        "alerts": {
+            "reconnect": "Reconectar",
+            "askAdmin": "Pídele a quien administra el espacio de trabajo que lo vuelva a conectar.",
+            "calendar": "Google Calendar de la agenda",
+            "title": {
+                "expires_7d": "{{provider}} vence el {{date}}",
+                "expires_1d": "{{provider}} vence mañana",
+                "expired": "Hay que volver a conectar {{provider}}",
+                "disconnected": "Tu {{provider}} {{name}} se desconectó"
+            },
+            "body": {
+                "expires_7d": "Vuelve a conectarlo antes para no cortar los envíos. Toma un minuto.",
+                "expires_1d": "Vuelve a conectarlo hoy: mañana deja de funcionar lo que depende de esta conexión.",
+                "expired": "Mientras no lo vuelvas a conectar, lo que depende de esta conexión no funciona.",
+                "disconnected": "Mientras no lo vuelvas a conectar, no salen mensajes por ese número."
+            }
+        }
     }
 }

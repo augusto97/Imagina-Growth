@@ -10,7 +10,7 @@ use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Messaging\Models\Message;
 use App\Domain\Messaging\Testing\FakeMessageDispatcher;
 use App\Domain\Services\Leads\Actions\ChangeLeadStage;
-use App\Domain\Services\Leads\Listeners\WhatsAppLeadListener;
+use App\Domain\Services\Leads\Listeners\ChatLeadListener;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -90,7 +90,7 @@ it('crea un lead de WhatsApp cuando la conversación tiene intención de compra,
         ->and(collect($lead->score_reasons)->pluck('points', 'signal')->all())->toBe(['whatsapp_click' => 15]);
 
     // Otro entrante con la misma intención no duplica.
-    app(WhatsAppLeadListener::class)->inbound(new InboundMessageReceived($this->ws->id, 'MSG1', $conversation->id, $contact->id, false));
+    app(ChatLeadListener::class)->inbound(new InboundMessageReceived($this->ws->id, 'MSG1', $conversation->id, $contact->id, false));
     expect(leadsAll($this))->toHaveCount(1);
 });
 
@@ -106,6 +106,6 @@ it('no crea leads de WhatsApp si se apagó, si la intención no es de compra o s
 
     leadsSettings($this, ['whatsapp_leads' => false]);
     leadsRun($this, fn () => $conversation->forceFill(['intent' => 'purchase'])->save());
-    app(WhatsAppLeadListener::class)->inbound(new InboundMessageReceived($this->ws->id, 'MSG2', $conversation->id, $contact->id, false));
+    app(ChatLeadListener::class)->inbound(new InboundMessageReceived($this->ws->id, 'MSG2', $conversation->id, $contact->id, false));
     expect(leadsAll($this))->toHaveCount(0);
 });

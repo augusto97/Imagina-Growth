@@ -37,9 +37,25 @@ final class ConnectionPresenter
                 'destinations' => AdDestination::query()->where('oauth_connection_id', $c->id)->get()
                     ->map(fn (AdDestination $d) => ['id' => $d->publicId(), 'platform' => $d->platform->value, 'name' => $d->name, 'status' => $d->status])->values(),
                 'channels' => ChannelAccount::query()->where('oauth_connection_id', $c->id)->where('status', '!=', 'disconnected')->get()
-                    ->map(fn (ChannelAccount $a) => ['id' => $a->publicId(), 'channel' => $a->channel->value, 'name' => $a->display_name, 'identity' => $a->identity, 'external_id' => $a->external_id, 'status' => $a->status, 'last_error' => $a->last_error])->values(),
+                    ->map(fn (ChannelAccount $a) => ['id' => $a->publicId(), 'channel' => $a->channel->value, 'name' => $a->display_name, 'identity' => $a->identity, 'external_id' => $a->external_id, 'status' => $a->status, 'last_error' => $a->last_error,
+                        'history' => self::history($a)])->values(),
             ],
         ];
+    }
+
+    /**
+     * Coexistencia: cuánto del historial de la app de WhatsApp Business ya se copió (o si el negocio no lo compartió).
+     *
+     * @return array{progress: int, messages: int, declined: bool}|null
+     */
+    private static function history(ChannelAccount $a): ?array
+    {
+        $h = $a->config['history'] ?? null;
+        if (! is_array($h)) {
+            return null;
+        }
+
+        return ['progress' => (int) ($h['progress'] ?? 0), 'messages' => (int) ($h['messages'] ?? 0), 'declined' => (bool) ($h['declined'] ?? false)];
     }
 
     /**

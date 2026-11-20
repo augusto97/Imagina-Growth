@@ -52,6 +52,9 @@ class Lead extends Model
 
     public const OPEN_STAGES_EXCLUDED = ['won', 'lost'];
 
+    /** De dónde entró el lead (`lead.created.origin`, eventos.md §4.6; Messenger e Instagram desde la v7). */
+    public const ORIGINS = ['form', 'whatsapp', 'messenger', 'instagram', 'quote', 'booking', 'manual', 'api'];
+
     protected $hidden = ['brief'];
 
     protected $fillable = [

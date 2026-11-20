@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Messaging\Channels\Drivers;
 
 use App\Domain\Messaging\Channels\ChannelDriver;
+use App\Domain\Messaging\Channels\Data\BusinessAppMessage;
 use App\Domain\Messaging\Channels\Data\InboundMessage;
 use App\Domain\Messaging\Channels\Data\OutgoingMessage;
 use App\Domain\Messaging\Channels\Data\SendResult;
@@ -27,6 +28,17 @@ use Illuminate\Support\Facades\Http;
  */
 final class MetaCloudDriver implements ChannelDriver
 {
+    /**
+     * `account_update` que dejan el número fuera de la plataforma: la cuenta se dejó de compartir (`PARTNER_REMOVED`,
+     * también cuando el número en coexistencia se desconecta desde la app), se quitó la app, se borró la cuenta o el
+     * número salió de la coexistencia al cambiar de celular (`ACCOUNT_OFFBOARDED`).
+     * https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/reference/account_update
+     */
+    public const OFFBOARDING_EVENTS = ['PARTNER_REMOVED', 'PARTNER_APP_UNINSTALLED', 'ACCOUNT_DELETED', 'ACCOUNT_OFFBOARDED'];
+
+    /** Error del historial cuando el negocio no quiso compartirlo desde la app. */
+    public const HISTORY_DECLINED = '2593109';
+
     /** Errores de Meta que se reintentan: límites de velocidad y fallas temporales. */
     private const RETRYABLE = ['4', '80007', '130429', '131000', '131016', '131056', '133004'];
 
@@ -77,6 +89,19 @@ final class MetaCloudDriver implements ChannelDriver
                 $phoneId = isset($value['metadata']['phone_number_id']) ? (string) $value['metadata']['phone_number_id'] : null;
                 if ($field === 'messages') {
                     $this->parseMessages($batch, $value, $phoneId);
+                } elseif ($field === 'smb_message_echoes') {
+                    $this->parseEchoes($batch, $value, $phoneId);
+                } elseif ($field === 'history') {
+                    $this->parseHistory($batch, $value, $phoneId);
+                } elseif ($field === 'smb_app_state_sync') {
+                    $this->parseStateSync($batch, $value, $phoneId);
+                } elseif ($field === 'account_update') {
+                    $event = strtoupper(is_scalar($value['event'] ?? null) ? (string) $value['event'] : '');
+                    $waba = is_scalar($value['waba_info']['waba_id'] ?? null) ? (string) $value['waba_info']['waba_id'] : (is_scalar($entry['id'] ?? null) ? (string) $entry['id'] : '');
+                    if ($waba !== '' && in_array($event, self::OFFBOARDING_EVENTS, true)) {
+                        $reason = $value['disconnection_info']['reason'] ?? null;
+                        $batch->accountUpdates[] = ['waba' => $waba, 'event' => $event, 'reason' => is_scalar($reason) ? mb_substr((string) $reason, 0, 64) : null];
+                    }
                 } elseif ($field === 'message_template_status_update') {
                     $batch->templates[] = [
                         'account' => null,
@@ -153,6 +178,153 @@ final class MetaCloudDriver implements ChannelDriver
                 isset($media['caption']) ? (string) $media['caption'] : null,
             )];
         }
+    }
+
+    /**
+     * `smb_message_echoes`: lo que el negocio escribe desde la app de WhatsApp Business (o un dispositivo vinculado)
+     * de un número en coexistencia. `to` falta si la persona solo tiene nombre de usuario; `to_user_id` (BSUID) siempre viene.
+     * https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/reference/smb_message_echoes
+     *
+     * @param  array<string, mixed>  $value
+     */
+    private function parseEchoes(WebhookBatch $batch, array $value, ?string $phoneId): void
+    {
+        foreach ((array) ($value['message_echoes'] ?? []) as $m) {
+            $message = is_array($m) ? self::appMessage($m, true, $m['to'] ?? null, $m['to_user_id'] ?? null) : null;
+            if ($message !== null) {
+                $batch->echoes[] = ['account' => $phoneId, 'message' => $message];
+            }
+        }
+    }
+
+    /**
+     * `history`: el historial de la app (hasta 180 días; fase 0 = día 0 a 1, fase 1 = día 1 a 90, fase 2 = día 90 a
+     * 180) en partes que pueden llegar desordenadas (`chunk_order`) con `progress` de 0 a 100. Cada hilo es un cliente
+     * (`id` o `context.wa_id` = su teléfono, `context.user_id` = BSUID); un mensaje es del cliente si trae
+     * `from_user_id` o si `from` no es el número del negocio. Si el negocio no compartió el historial llega el error
+     * 2593109 sin hilos. Los adjuntos de las dos últimas semanas llegan aparte, en `value.messages` del mismo campo.
+     * https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/onboarding-business-app-users
+     *
+     * @param  array<string, mixed>  $value
+     */
+    private function parseHistory(WebhookBatch $batch, array $value, ?string $phoneId): void
+    {
+        $business = self::digits($value['metadata']['display_phone_number'] ?? null);
+        foreach ((array) ($value['messages'] ?? []) as $m) {
+            $message = is_array($m) ? self::appMessage($m, $business !== null && self::digits($m['from'] ?? null) === $business, $m['from'] ?? null, $m['from_user_id'] ?? null) : null;
+            if ($message !== null) {
+                $batch->historyMedia[] = ['account' => $phoneId, 'message' => $message];
+            }
+        }
+        foreach ((array) ($value['history'] ?? []) as $chunk) {
+            if (! is_array($chunk)) {
+                continue;
+            }
+            $declined = false;
+            foreach ((array) ($chunk['errors'] ?? []) as $error) {
+                $declined = $declined || (is_array($error) && (string) ($error['code'] ?? '') === self::HISTORY_DECLINED);
+            }
+            $messages = [];
+            foreach ((array) ($chunk['threads'] ?? []) as $thread) {
+                if (! is_array($thread)) {
+                    continue;
+                }
+                $context = is_array($thread['context'] ?? null) ? $thread['context'] : [];
+                $phone = self::digits($thread['id'] ?? $context['wa_id'] ?? null);
+                $username = is_scalar($context['username'] ?? null) ? mb_substr((string) $context['username'], 0, 100) : null;
+                foreach ((array) ($thread['messages'] ?? []) as $m) {
+                    if (! is_array($m)) {
+                        continue;
+                    }
+                    $from = self::digits($m['from'] ?? null);
+                    $outbound = ! isset($m['from_user_id']) && ($business !== null ? $from === $business : $from !== $phone);
+                    $message = self::appMessage($m, $outbound, $phone, $context['user_id'] ?? null, $username);
+                    if ($message !== null) {
+                        $messages[] = $message;
+                    }
+                }
+            }
+            $meta = is_array($chunk['metadata'] ?? null) ? $chunk['metadata'] : [];
+            $int = fn (string $k): ?int => is_numeric($meta[$k] ?? null) ? (int) $meta[$k] : null;
+            $batch->history[] = ['account' => $phoneId, 'phase' => $int('phase'), 'chunk' => $int('chunk_order'), 'progress' => $int('progress'), 'declined' => $declined, 'messages' => $messages];
+        }
+    }
+
+    /**
+     * `smb_app_state_sync`: los contactos de la app (al pedir la copia y con cada alta, cambio o baja después).
+     * `phone_number` puede faltar; `full_name` y `first_name` faltan en una baja (`action = remove`).
+     *
+     * @param  array<string, mixed>  $value
+     */
+    private function parseStateSync(WebhookBatch $batch, array $value, ?string $phoneId): void
+    {
+        $contacts = [];
+        foreach ((array) ($value['state_sync'] ?? []) as $item) {
+            if (! is_array($item) || ($item['type'] ?? null) !== 'contact' || ! is_array($item['contact'] ?? null)) {
+                continue;
+            }
+            $c = $item['contact'];
+            $str = fn (string $k, int $max): ?string => is_scalar($c[$k] ?? null) && trim((string) $c[$k]) !== '' ? mb_substr(trim((string) $c[$k]), 0, $max) : null;
+            $contacts[] = [
+                'phone' => self::digits($c['phone_number'] ?? null),
+                'user_id' => $str('user_id', 120),
+                'full_name' => $str('full_name', 200),
+                'first_name' => $str('first_name', 100),
+                'action' => ($item['action'] ?? 'add') === 'remove' ? 'remove' : 'add',
+            ];
+        }
+        if ($contacts !== []) {
+            $batch->contacts[] = ['account' => $phoneId, 'contacts' => $contacts];
+        }
+    }
+
+    /** @param array<string, mixed> $m */
+    private static function appMessage(array $m, bool $outbound, mixed $phone, mixed $userId, ?string $profileName = null): ?BusinessAppMessage
+    {
+        $id = is_scalar($m['id'] ?? null) ? (string) $m['id'] : '';
+        if ($id === '' || strlen($id) > 180) {
+            return null;
+        }
+        $type = is_scalar($m['type'] ?? null) ? (string) $m['type'] : 'other';
+        $content = is_array($m[$type] ?? null) ? $m[$type] : [];
+        $target = null;
+        $kind = $type;
+        if ($type === 'edit' || $type === 'revoke') {
+            // El mensaje editado trae el contenido nuevo en `edit.message`; la eliminación, solo el original.
+            $target = is_scalar($content['original_message_id'] ?? null) ? (string) $content['original_message_id'] : null;
+            $inner = is_array($content['message'] ?? null) ? $content['message'] : [];
+            $kind = is_scalar($inner['type'] ?? null) ? (string) $inner['type'] : 'text';
+            $content = $type === 'edit' && is_array($inner[$kind] ?? null) ? $inner[$kind] : [];
+        }
+        $text = match ($kind) {
+            'text' => $content['body'] ?? null,
+            'button' => $content['text'] ?? null,
+            'interactive' => $content['button_reply']['title'] ?? $content['list_reply']['title'] ?? null,
+            default => $content['caption'] ?? null,
+        };
+        $media = in_array($kind, ['image', 'audio', 'video', 'document', 'sticker'], true);
+
+        return new BusinessAppMessage(
+            $id,
+            $outbound,
+            self::digits($phone),
+            is_scalar($userId) && (string) $userId !== '' ? mb_substr((string) $userId, 0, 120) : null,
+            mb_substr($type, 0, 24),
+            CarbonImmutable::createFromTimestamp(is_numeric($m['timestamp'] ?? null) ? (int) $m['timestamp'] : time()),
+            is_string($text) && $text !== '' ? $text : null,
+            $media && is_scalar($content['id'] ?? null) ? (string) $content['id'] : null,
+            $media && is_scalar($content['mime_type'] ?? null) ? mb_substr((string) $content['mime_type'], 0, 100) : null,
+            $target,
+            $profileName,
+        );
+    }
+
+    /** Solo los dígitos de un teléfono de Meta (vienen sin `+`), o null. */
+    private static function digits(mixed $value): ?string
+    {
+        $digits = is_scalar($value) ? (string) preg_replace('/\D/', '', (string) $value) : '';
+
+        return $digits !== '' && strlen($digits) <= 20 ? $digits : null;
     }
 
     public function syncTemplates(ChannelAccount $account): int
