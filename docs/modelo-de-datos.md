@@ -380,3 +380,6 @@ La base es la migración `2026_11_23_000100_create_phase5_tables` (más `2026_11
   `appointments (status, starts_at)`.
 - ClickHouse `0301_events_received_at_index.sql`: índice de salto minmax `idx_received_at` en `events` para «eventos de
   las últimas 24 horas».
+- `contact_imports.kind` (`csv` o `history`) y `contact_imports.site_id` (`2026_11_25_400300`, F7): la declaración del
+  consentimiento del historial que importó el plugin queda como una «importación» de ese sitio, con sus totales.
+  `consent` guarda además `legal_basis` (cómo se obtuvo la autorización, `cumplimiento.md` §3.1).

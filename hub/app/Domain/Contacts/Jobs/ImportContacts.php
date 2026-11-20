@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Contacts\Jobs;
 
 use App\Domain\Consent\Actions\RecordConsent;
+use App\Domain\Consent\Support\ConsentDeclaration;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Contacts\Models\ContactIdentity;
 use App\Domain\Contacts\Models\ContactImport;
@@ -31,8 +32,11 @@ use Throwable;
  * Importa contactos de un CSV (modulos.md M03, cumplimiento.md §3.1). Crea o
  * completa contactos por correo o teléfono (nunca pisa datos existentes ni
  * fusiona perfiles) y registra el consentimiento solo si se declaró su
- * origen; sin esa declaración, los contactos solo pueden recibir mensajes
- * transaccionales. El archivo se borra al terminar.
+ * origen, cómo se obtuvo y su fecha; sin esa declaración, los contactos solo
+ * pueden recibir mensajes transaccionales. Con una columna `consent_<canal>`,
+ * el consentimiento de ese canal sale de cada fila (solo «sí»); sin ella, la
+ * declaración vale para todas. Nunca se le devuelve a quien revocó o se dio de
+ * baja. El archivo se borra al terminar.
  */
 final class ImportContacts implements ShouldQueue, WorkspaceAware
 {
@@ -104,7 +108,7 @@ final class ImportContacts implements ShouldQueue, WorkspaceAware
     /**
      * @param  array<int, list<string>>  $batch
      * @param  array<int, string>  $columns
-     * @param  array{channels: list<string>, source: string, date: string}|null  $consent
+     * @param  array{channels: list<string>, source: string, date: string, legal_basis?: string}|null  $consent
      * @param  array<string, int>  $totals
      * @param  list<array{row: int, message: string}>  $errors
      */
@@ -204,10 +208,14 @@ final class ImportContacts implements ShouldQueue, WorkspaceAware
                 $totals[$isNew ? 'created' : 'updated']++;
 
                 if ($consent !== null && $consentAt !== null) {
+                    $blocked = ConsentDeclaration::blockedChannels($workspace->id, $isNew ? null : $contact->id, $emailBidx, $phoneBidx);
                     foreach ($consent['channels'] as $channel) {
                         $reachable = $channel === 'email' ? $email !== null : $phone !== null;
-                        if ($reachable && $consents->handle($workspace, $contact->id, $channel, 'marketing', 'granted', 'import', null, $consentAt, [
-                            'import_id' => $import->publicId(), 'declared_source' => $consent['source'], 'filename' => $import->filename, 'row' => (int) $line,
+                        // Columna por fila: solo «sí» cuenta; un vacío o un «no» no es consentimiento.
+                        $accepted = ! array_key_exists('consent_'.$channel, $data) || self::accepted($data['consent_'.$channel]);
+                        if ($reachable && $accepted && ! in_array($channel, $blocked, true) && $consents->handle($workspace, $contact->id, $channel, 'marketing', 'granted', 'import', null, $consentAt, [
+                            'import_id' => $import->publicId(), 'declared_source' => $consent['source'], 'legal_basis' => $consent['legal_basis'] ?? null,
+                            'filename' => $import->filename, 'row' => (int) $line,
                         ])) {
                             $totals['consents']++;
                         }
@@ -215,5 +223,14 @@ final class ImportContacts implements ShouldQueue, WorkspaceAware
                 }
             }
         });
+    }
+
+    /** «Sí» en una columna de consentimiento (sí, si, yes, x, 1, true, acepto…). */
+    public static function accepted(?string $value): bool
+    {
+        $v = mb_strtolower(trim((string) $value));
+        $v = strtr($v, ['í' => 'i']);
+
+        return in_array($v, ['si', 's', 'yes', 'y', 'x', '1', 'true', 'verdadero', 'acepto', 'acepta', 'aceptado'], true);
     }
 }

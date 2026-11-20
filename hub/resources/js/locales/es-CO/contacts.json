@@ -488,7 +488,10 @@
                 "renewal_at": "Fecha de renovación",
                 "tags": "Etiquetas",
                 "custom": "Atributo personalizado…",
-                "customNamed": "Atributo «{{key}}»"
+                "customNamed": "Atributo «{{key}}»",
+                "consent_email": "Aceptó correo (sí/no)",
+                "consent_whatsapp": "Aceptó WhatsApp (sí/no)",
+                "consent_sms": "Aceptó SMS (sí/no)"
             },
             "consent": {
                 "title": "¿Estas personas aceptaron recibir marketing?",
@@ -507,7 +510,19 @@
                 "date": "Fecha del consentimiento",
                 "dateRequired": "Indica la fecha.",
                 "futureDate": "La fecha no puede ser futura.",
-                "legal": "Declaras bajo tu responsabilidad que estas personas autorizaron el tratamiento de sus datos para marketing por los canales marcados. La declaración queda en la auditoría con tu nombre."
+                "legal": "Declaras bajo tu responsabilidad que estas personas autorizaron el tratamiento de sus datos para marketing por los canales marcados. La declaración queda en la auditoría con tu nombre.",
+                "legalBasis": "¿Cómo se obtuvo la autorización?",
+                "legalBasisChoose": "Elige una opción",
+                "legalBasisRequired": "Indica cómo se obtuvo la autorización.",
+                "legalBases": {
+                    "online_form": "Formulario en línea con casilla sin marcar",
+                    "checkout_checkbox": "Casilla en la compra (checkout)",
+                    "written_form": "Formato escrito o firmado",
+                    "recorded_call": "Llamada grabada",
+                    "messaging_optin": "Aceptó por WhatsApp o SMS"
+                },
+                "perRow": "Tu archivo trae columnas de consentimiento: solo las filas con «sí» quedan con consentimiento en ese canal. La declaración de abajo dice de dónde salió y cómo se obtuvo.",
+                "needsDeclaration": "Mapeaste columnas de consentimiento: declara de dónde salió la autorización o quítalas del mapeo."
             },
             "confirm": {
                 "title": "Revisa y empieza",
@@ -554,6 +569,17 @@
                 "skipped": "Omitidos",
                 "invalid": "Con errores",
                 "consents": "Consentimientos"
+            },
+            "history": {
+                "title": "Historial importado por el plugin",
+                "description": "Los pedidos y clientes que importó el plugin llegan sin consentimiento de marketing. Si tu tienda ya pedía la autorización (por ejemplo, con una casilla en la compra), decláralo aquí: queda como constancia en cada contacto de ese historial.",
+                "none": "Sin declaración, esos contactos solo reciben mensajes transaccionales.",
+                "queued": "Declaración registrada: se está aplicando a los contactos del historial.",
+                "open": "Declarar el consentimiento del historial",
+                "site": "Sitio",
+                "chooseSite": "Elige el sitio",
+                "siteRequired": "Elige el sitio cuyo historial importaste.",
+                "declare": "Declarar"
             }
         }
     }

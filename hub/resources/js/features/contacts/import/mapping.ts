@@ -1,8 +1,22 @@
-import type { ConsentChannel, ImportConsent, ImportField } from '../api';
+import type { ConsentChannel, ImportConsent, ImportField, LegalBasis } from '../api';
 
 /* Reglas del asistente de importación (ImportController::store las vuelve a validar en el servidor). */
 
-export const STANDARD_FIELDS = ['email', 'phone', 'first_name', 'last_name', 'city', 'region_code', 'country', 'birthday', 'renewal_at', 'tags'] as const;
+export const STANDARD_FIELDS = [
+    'email',
+    'phone',
+    'first_name',
+    'last_name',
+    'city',
+    'region_code',
+    'country',
+    'birthday',
+    'renewal_at',
+    'tags',
+    'consent_email',
+    'consent_whatsapp',
+    'consent_sms',
+] as const;
 
 const CUSTOM_KEY = /^[a-z0-9_]{1,40}$/;
 
@@ -71,9 +85,10 @@ export interface ConsentDraft {
     channels: ConsentChannel[];
     source: string;
     date: string;
+    legalBasis?: LegalBasis | '';
 }
 
-export type ConsentProblem = 'chooseMode' | 'channels' | 'source' | 'date' | 'futureDate';
+export type ConsentProblem = 'chooseMode' | 'channels' | 'source' | 'legalBasis' | 'date' | 'futureDate';
 
 /** La declaración de consentimiento es obligatoria (cumplimiento.md §3.1): o se declara completa o se elige «sin consentimiento». */
 export function consentProblems(draft: ConsentDraft, today: string): ConsentProblem[] {
@@ -90,6 +105,9 @@ export function consentProblems(draft: ConsentDraft, today: string): ConsentProb
     if (draft.source.trim().length < 10) {
         problems.push('source');
     }
+    if (!draft.legalBasis) {
+        problems.push('legalBasis');
+    }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.date)) {
         problems.push('date');
     } else if (draft.date > today) {
@@ -99,5 +117,12 @@ export function consentProblems(draft: ConsentDraft, today: string): ConsentProb
 }
 
 export function consentPayload(draft: ConsentDraft): ImportConsent | null {
-    return draft.mode === 'declared' ? { channels: draft.channels, source: draft.source.trim(), date: draft.date } : null;
+    return draft.mode === 'declared'
+        ? { channels: draft.channels, source: draft.source.trim(), date: draft.date, ...(draft.legalBasis ? { legal_basis: draft.legalBasis } : {}) }
+        : null;
+}
+
+/** Columnas de consentimiento por fila del mapeo (necesitan la declaración: solo cuenta el «sí» de cada fila). */
+export function perRowConsentFields(mapping: Readonly<Record<string, ImportField>>): ImportField[] {
+    return Object.values(mapping).filter((f) => f === 'consent_email' || f === 'consent_whatsapp' || f === 'consent_sms');
 }
