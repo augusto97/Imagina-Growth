@@ -43,6 +43,8 @@ trait MessagingFixtures
             'igr-messaging.meta.graph_url' => 'https://graph.test',
             'igr-messaging.meta.app_secret' => 'meta-app-secret',
             'igr-messaging.meta.webhook_verify_token' => 'verificame',
+            // Solo se aceptan avisos de SES del tema configurado (S6).
+            'igr-messaging.ses.sns_topic_arn' => 'arn:aws:sns:us-east-1:1:igr',
         ]);
         $this->owner = $this->userWith2fa();
         $this->ws = $this->workspaceFor($this->owner);
