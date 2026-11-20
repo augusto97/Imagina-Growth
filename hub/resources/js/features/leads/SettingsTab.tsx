@@ -333,7 +333,7 @@ function SellersCard({ s }: { s: LeadSettings }) {
                     </div>
                     <div className="igr:space-y-1">
                         <Label htmlFor="seller-phone">{t('leads.settings.phone')}</Label>
-                        <Input id="seller-phone" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="300 123 4567" />
+                        <Input id="seller-phone" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t('leads.settings.phonePlaceholder')} />
                     </div>
                     <div className="igr:space-y-1">
                         <Label htmlFor="seller-services">{t('leads.settings.services')}</Label>

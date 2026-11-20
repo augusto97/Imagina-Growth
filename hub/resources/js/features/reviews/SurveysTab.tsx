@@ -399,7 +399,7 @@ function SurveyEditor({ kind, survey }: { kind: SurveyKind; survey: SurveySettin
                     </div>
                     <div>
                         <Label htmlFor={`sv-e-${kind}`}>{t('reviews.surveys.alertEmails')}</Label>
-                        <Input id={`sv-e-${kind}`} className="igr:mt-1.5" value={emails} onChange={(e) => setEmails(e.target.value)} placeholder="soporte@tienda.co" />
+                        <Input id={`sv-e-${kind}`} className="igr:mt-1.5" value={emails} onChange={(e) => setEmails(e.target.value)} placeholder={t('reviews.surveys.alertEmailsPlaceholder')} />
                         <p className="igr:mt-1 igr:text-xs igr:text-muted-foreground">{t('reviews.surveys.alertEmailsHelp')}</p>
                         {showErrors && problems.includes('alertEmails') ? <FieldError message={t('reviews.surveys.problems.alertEmails')} /> : null}
                     </div>

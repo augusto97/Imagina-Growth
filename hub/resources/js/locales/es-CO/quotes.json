@@ -138,6 +138,7 @@
             "captureRequired": "Mostrar el precio solo a cambio del contacto",
             "require": "Dato obligatorio",
             "whatsapp": "WhatsApp para seguir la conversación (opcional)",
+            "whatsappPlaceholder": "573001234567",
             "consents": "Casillas de consentimiento",
             "texts": {
                 "title": "Título del formulario",

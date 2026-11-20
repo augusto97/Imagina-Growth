@@ -192,7 +192,7 @@ export function EmailDialog({ open, onClose, dnsFor }: { open: boolean; onClose:
                         <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2">
                             <div className="igr:space-y-1">
                                 <Label htmlFor="em-from">{t('channels.email.fromEmail')}</Label>
-                                <Input id="em-from" type="email" required value={form.from_email} onChange={(e) => set({ from_email: e.target.value })} placeholder="hola@tutienda.co" />
+                                <Input id="em-from" type="email" required value={form.from_email} onChange={(e) => set({ from_email: e.target.value })} placeholder={t('channels.email.fromEmailPlaceholder')} />
                                 <FieldError message={fieldError(create.error, 'from_email')} />
                             </div>
                             <div className="igr:space-y-1">

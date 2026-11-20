@@ -490,7 +490,7 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                         id="qc-wa"
                                         className="igr:mt-1"
                                         inputMode="numeric"
-                                        placeholder="573001234567"
+                                        placeholder={t('quotes.editor.whatsappPlaceholder')}
                                         value={capture.whatsapp_number ?? ''}
                                         disabled={disabled}
                                         onChange={(e) => setC('whatsapp_number', e.target.value.replace(/\D/g, '') || null)}

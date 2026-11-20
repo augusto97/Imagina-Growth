@@ -325,6 +325,7 @@
             },
             "thresholdHelp": "Con esa nota o menos, avisamos a los dueños por correo y dejamos una tarea en el perfil del cliente. Usa −1 para no avisar.",
             "alertEmails": "Avisar también a",
+            "alertEmailsPlaceholder": "soporte@tienda.co",
             "alertEmailsHelp": "Correos separados por comas, además de los dueños.",
             "noGating": "La encuesta no decide quién deja reseñas en Google: eso se ofrece a todos por igual.",
             "saved": "Encuesta guardada",
