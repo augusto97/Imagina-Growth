@@ -13,12 +13,13 @@ use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Tenancy\SetWorkspaceContext;
 use App\Support\Tenancy\WorkspaceAware;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 
 /** AttributeOrder (hub/CLAUDE.md §9) al llegar un order.paid en vivo: canales (paso 1), mensaje (paso 2), referido o afiliado (paso 3) y widget (paso 4). */
-final class AttributeOrder implements ShouldQueue, WorkspaceAware
+final class AttributeOrder implements ShouldBeEncrypted, ShouldQueue, WorkspaceAware
 {
     use Dispatchable, InteractsWithQueue, Queueable;
 

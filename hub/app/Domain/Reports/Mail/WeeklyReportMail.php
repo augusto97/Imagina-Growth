@@ -6,13 +6,14 @@ namespace App\Domain\Reports\Mail;
 
 use App\Domain\Intelligence\Insights\Money;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
 /** Resumen semanal al dueño: 5 cifras, 3 hallazgos y 1 acción (M05). */
-final class WeeklyReportMail extends Mailable implements ShouldQueue
+final class WeeklyReportMail extends Mailable implements ShouldBeEncrypted, ShouldQueue
 {
     use Queueable;
 

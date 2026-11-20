@@ -30,8 +30,8 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | S12 | P3 | Sin `frame-ancestors` en la CSP del panel. | middleware de encabezados | ✅ 0.1.7: `FrameGuard` en las respuestas web (las páginas con política propia la conservan) |
 | S13 | P3 | El usuario `igr` de ClickHouse tiene más privilegios de los que usa. | `infra/install.sh` | ⏳ |
 | S14 | P3 | La firma HMAC no cubre el método ni la ruta. | `docs/api-connector.md` §2 | ⏳ (cambio de contrato) |
-| S15 | P3 | Horizon sin exigir 2FA; IP en el payload de `DeliverConversion` (queda en `failed_jobs`). | `HorizonServiceProvider`, `DeliverConversion` | ⏳ |
-| S16 | P3 | `/health` público con detalle de dependencias. | `routes/ingest.php` | ⏳ |
+| S15 | P3 | Horizon sin exigir 2FA; IP en el payload de `DeliverConversion` (queda en `failed_jobs`). | `HorizonServiceProvider`, `DeliverConversion` | ✅ (lote 3): `viewHorizon` exige superadmin con 2FA (si `IGR_REQUIRE_2FA`); `DeliverConversion` ya iba cifrado y ahora también `AttributeOrder` (identificadores de clic y anónimo), `FetchSocialProfile` (PSID), `InvitationMail` (token y correo), `MonthlyReportMail` y `WeeklyReportMail` (destinatarios). Una prueba revisa el payload real en Redis y otra que todo trabajo con parámetros sensibles sea `ShouldBeEncrypted` |
+| S16 | P3 | `/health` público con detalle de dependencias. | `routes/ingest.php` | ✅ (lote 3): en público `/health` y `/health/ready` solo dicen `{"status":"ok"\|"degraded"}` (200/503, `no-store`); el detalle (dependencias, streams, versión) sale desde la máquina (127.0.0.1 o ::1 sin encabezados de proxy: así lo usa `growth-update`) o con `IGR_HEALTH_TOKEN` en `X-IGR-Health-Token` o `Authorization: Bearer` (`HealthAccess`) |
 
 ## 2. Rendimiento y estabilidad
 

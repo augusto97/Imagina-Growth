@@ -8,13 +8,14 @@ use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
 /** Va por la cola: si el SMTP falla, la invitación igual queda creada y el correo se reintenta. */
-final class InvitationMail extends Mailable implements ShouldQueue
+final class InvitationMail extends Mailable implements ShouldBeEncrypted, ShouldQueue
 {
     use Queueable;
 

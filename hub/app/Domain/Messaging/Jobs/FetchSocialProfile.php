@@ -12,6 +12,7 @@ use App\Domain\Messaging\Models\ChannelAccount;
 use App\Support\Tenancy\SetWorkspaceContext;
 use App\Support\Tenancy\WorkspaceAware;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -21,7 +22,7 @@ use Illuminate\Queue\InteractsWithQueue;
  * de Meta (M11). Si la app no tiene el permiso, el contacto se queda sin nombre y
  * la bandeja muestra «Cliente de Messenger» o «Cliente de Instagram».
  */
-final class FetchSocialProfile implements ShouldQueue, WorkspaceAware
+final class FetchSocialProfile implements ShouldBeEncrypted, ShouldQueue, WorkspaceAware
 {
     use Dispatchable, InteractsWithQueue, Queueable;
 
