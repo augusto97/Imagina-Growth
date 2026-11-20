@@ -92,6 +92,134 @@
             "canvasLabel": "Lienzo del flujo",
             "leave": "Hay cambios sin guardar. ¿Salir igual?"
         },
+        "canvas": {
+            "addStep": "Agregar un paso",
+            "addAfter": "Agregar un paso después de «{{step}}»",
+            "addAfterBranch": "Agregar un paso después de «{{step}}» ({{branch}})",
+            "insertBetween": "Agregar un paso entre «{{from}}» y «{{to}}»",
+            "emptyHint": "Agrega el primer paso con el «+» debajo del disparador o desde la lista de pasos.",
+            "overlap": "Algunos pasos quedaron uno encima de otro.",
+            "dismiss": "Cerrar el aviso",
+            "paletteHelp": "Haz clic para agregarlo después del paso abierto, o arrástralo al lienzo.",
+            "searchSteps": "Buscar un paso",
+            "noSteps": "Ningún paso con ese nombre.",
+            "showPalette": "Mostrar la lista de pasos",
+            "hidePalette": "Ocultar la lista de pasos",
+            "stepPanel": "Configura este paso",
+            "flowPanel": "Cómo entran, la meta y las reglas",
+            "closePanel": "Cerrar el panel",
+            "openSettings": "Cambiar el nombre y los ajustes del flujo",
+            "more": "Más opciones",
+            "noVersions": "Todavía no hay versiones publicadas.",
+            "fullscreen": "Pantalla completa",
+            "exitFullscreen": "Salir de pantalla completa",
+            "toolbar": "Herramientas del lienzo",
+            "zoomIn": "Acercar",
+            "zoomOut": "Alejar",
+            "zoomReset": "Ver al 100 %",
+            "fit": "Ajustar a la vista",
+            "arrange": "Ordenar los pasos automáticamente",
+            "arrangeShort": "Ordenar",
+            "undo": "Deshacer",
+            "redo": "Rehacer",
+            "minimap": "Mapa del flujo",
+            "showMinimap": "Mostrar el mapa del flujo",
+            "hideMinimap": "Ocultar el mapa del flujo",
+            "shortcuts": "Atajos de teclado",
+            "shortcutsHelp": "Funcionan cuando no estás escribiendo en un campo.",
+            "or": "o",
+            "keys": {
+                "save": "Guardar el borrador",
+                "undo": "Deshacer",
+                "redo": "Rehacer",
+                "select": "Pasar de un paso a otro y abrirlo",
+                "move": "Mover el paso elegido (con Mayús, más rápido)",
+                "delete": "Quitar el paso o la conexión elegidos",
+                "close": "Cerrar el panel o salir de pantalla completa",
+                "zoom": "Acercar o alejar",
+                "fit": "Ajustar a la vista",
+                "arrange": "Ordenar los pasos automáticamente",
+                "palette": "Mostrar u ocultar la lista de pasos",
+                "minimap": "Mostrar u ocultar el mapa del flujo",
+                "fullscreen": "Pantalla completa",
+                "help": "Ver estos atajos"
+            },
+            "issueLabel": "Pendiente",
+            "moreIssues_one": "(y {{count}} más)",
+            "moreIssues_other": "(y {{count}} más)",
+            "issuesHelp": "Corrige esto para publicar. Elige uno para ir al paso.",
+            "wholeFlow": "El flujo completo",
+            "deletedStep": "Un paso que ya quitaste (guarda para actualizar)",
+            "summary": {
+                "pickCondition": "Elige la condición",
+                "question": "¿{{text}}?",
+                "webhook": "Avisa a {{host}}"
+            },
+            "paths": {
+                "last_event_props_button_payload": "El botón que respondió",
+                "last_event_props_text": "El mensaje que escribió"
+            },
+            "details": {
+                "goal": "Sale si logra: {{event}}",
+                "noGoal": "Sin meta: recorre todos los pasos",
+                "kind": {
+                    "marketing": "Marketing: respeta horario y frecuencia",
+                    "utility": "Utilidad",
+                    "transactional": "Transaccional"
+                },
+                "exitIfNo": "Si no se cumple, sale del flujo",
+                "filters_one": "Con {{count}} filtro",
+                "filters_other": "Con {{count}} filtros",
+                "channelSplit": "Usa el primero con permiso para escribirle",
+                "notifyOwners": "Por {{channel}} a los dueños",
+                "notifyOthers": "Por {{channel}} a las personas elegidas"
+            },
+            "eventBranches": {
+                "bought": {
+                    "event": "Compró",
+                    "timeout": "No compró"
+                },
+                "opened": {
+                    "event": "Abrió",
+                    "timeout": "No abrió"
+                },
+                "read": {
+                    "event": "Leyó",
+                    "timeout": "No leyó"
+                },
+                "clicked": {
+                    "event": "Hizo clic",
+                    "timeout": "No hizo clic"
+                },
+                "replied": {
+                    "event": "Respondió",
+                    "timeout": "No respondió"
+                },
+                "submitted": {
+                    "event": "Envió el formulario",
+                    "timeout": "No lo envió"
+                }
+            },
+            "mobileTitle": "Este flujo se edita en una computadora",
+            "mobileHelp": "En el celular puedes revisar sus pasos. Para cambiarlos, ábrelo desde una computadora o una tableta grande.",
+            "stepNumber": "Paso {{number}}",
+            "gotoStep": "Sigue en el paso {{number}}",
+            "branchEnds": "Termina el flujo.",
+            "orphans": "Pasos sin conectar",
+            "orphansHelp": "Nadie llega a estos pasos: conéctalos desde la computadora o quítalos.",
+            "a11y": {
+                "node": "Pulsa Enter o espacio para abrir el paso. Con las flechas lo mueves, con Suprimir lo quitas y con Esc cancelas.",
+                "edge": "Pulsa Enter o espacio para elegir la conexión. Con Suprimir la quitas y con Esc cancelas.",
+                "handle": "Salida del paso: arrástrala hasta otro paso para conectarlos",
+                "moved": "Paso movido hacia {{direction}}. Posición: {{x}}, {{y}}",
+                "directions": {
+                    "up": "arriba",
+                    "down": "abajo",
+                    "left": "la izquierda",
+                    "right": "la derecha"
+                }
+            }
+        },
         "categories": {
             "trigger": "Disparador",
             "wait": "Esperas",
