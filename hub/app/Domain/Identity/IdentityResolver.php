@@ -319,6 +319,13 @@ final class IdentityResolver
         if ($contact->first_name !== null && ($contact->isDirty('first_name') || $contact->isDirty('last_name') || $contact->name_prefix_bidx === null)) {
             $contact->name_prefix_bidx = self::namePrefixes($workspace->id, $contact->first_name.' '.($contact->last_name ?? ''));
         }
+        // Captura temprana (cumplimiento.md §3.2): el contacto que nace de ella queda marcado hasta que compra,
+        // se registra o deja un formulario; uno que ya existía no cambia.
+        if ($in->earlyCapture && ! $contact->exists) {
+            $contact->early_capture_at = $seenAt;
+        } elseif ($in->clearsEarlyCapture && $contact->early_capture_at !== null) {
+            $contact->early_capture_at = null;
+        }
         if ($contact->first_seen_at === null || $contact->first_seen_at->gt($seenAt)) {
             $contact->first_seen_at = $seenAt;
         }

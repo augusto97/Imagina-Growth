@@ -19,7 +19,7 @@ Convenciones para MariaDB:
 | Tabla | Columnas clave |
 |---|---|
 | `accounts` | id, type (`agency`, `direct`), name, legal_name, tax_id, country, billing_email, plan_id, status |
-| `workspaces` | id, ch_id, account_id, name, slug, country, timezone, currency, locale, industry, legal_name, privacy_policy_url, settings (json: estados pagados, ventanas de atribución, límites de frecuencia, captura temprana, modo de consentimiento), brand_kit (json: logo, colores, tono de voz), status |
+| `workspaces` | id, ch_id, account_id, name, slug, country, timezone, currency, locale, industry, legal_name, privacy_policy_url, settings (json: estados pagados, ventanas de atribución, límites de frecuencia, captura temprana `early_capture` y quién la aceptó `early_capture_accepted`, modo de consentimiento), brand_kit (json: logo, colores, tono de voz), status |
 | `users` | id, name, email, password, two_factor_secret, locale, last_login_at |
 | `workspace_user` | workspace_id, user_id, role (`owner`, `admin`, `marketing`, `agent`, `viewer`), notifications (json) |
 | `account_user` | account_id, user_id, role (`agency_owner`, `agency_member`) |

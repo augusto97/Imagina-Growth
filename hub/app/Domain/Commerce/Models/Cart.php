@@ -34,6 +34,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $order_id
  * @property string|null $recovered_order_id
  * @property string|null $restored_from_id
+ * @property CarbonInterface|null $contact_captured_at captura temprana del checkout (eventos.md §4.2)
  */
 class Cart extends Model
 {
@@ -41,7 +42,7 @@ class Cart extends Model
 
     public const ID_PREFIX = 'crt';
 
-    protected $fillable = ['workspace_id', 'site_id', 'token', 'contact_id', 'anonymous_id', 'items', 'items_count', 'subtotal', 'subtotal_ws', 'currency', 'coupons', 'status', 'checkout_started_at', 'abandoned_at', 'last_activity_at', 'restore_url_token', 'order_id', 'recovered_order_id', 'restored_from_id'];
+    protected $fillable = ['workspace_id', 'site_id', 'token', 'contact_id', 'anonymous_id', 'items', 'items_count', 'subtotal', 'subtotal_ws', 'currency', 'coupons', 'status', 'checkout_started_at', 'abandoned_at', 'last_activity_at', 'restore_url_token', 'order_id', 'recovered_order_id', 'restored_from_id', 'contact_captured_at'];
 
     protected function casts(): array
     {
@@ -52,6 +53,7 @@ class Cart extends Model
             'checkout_started_at' => 'datetime',
             'abandoned_at' => 'datetime',
             'last_activity_at' => 'datetime',
+            'contact_captured_at' => 'datetime',
         ];
     }
 }

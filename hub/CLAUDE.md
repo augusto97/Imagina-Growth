@@ -89,6 +89,7 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 - Los errores de esquema van a la tabla `ingest_rejections` (muestra de 7 días) y se ven en el panel del sitio.
 - **Proyección de pedidos:** `order.*` hace *upsert* en `orders` y `order_items` por (site_id, external_id). Recalcula los contadores del contacto en un job con *debounce* (5 s) por contacto.
 - **Carritos:** `cart.*` hace *upsert* en `carts`. Un job cada minuto marca `abandoned` a los carritos sin actividad durante N min (configurable, 45 por defecto) con contacto conocido o identificable, y emite `cart.abandoned` (evento interno del hub).
+- **Captura temprana del checkout** (v6, `App\Domain\Commerce\Support\EarlyCapture`, cumplimiento.md §3.2): `checkout.contact_captured` llega firmado por `/v1/s` con el correo o el teléfono en `identity`. Con la opción del espacio de trabajo apagada (`settings.early_capture`, por defecto) el worker lo rechaza con `not_allowed` antes de resolver la identidad. Encendida, `CartProjector` une el carrito con el contacto (`carts.contact_captured_at`; la captura más nueva gana) y el job de carritos ya tiene a quién escribir. No crea consentimiento: el recordatorio pasa por `SendPolicy` como todo marketing. Un contacto que nace de la captura queda con `contacts.early_capture_at` (fuera de `AudienceEligibility` y sin puntos) hasta su primer `order.*`, `customer.*` o `form.submitted`. Se enciende con `PUT consent/early-capture {enabled, accept_responsibility}` (auditoría `consent.early_capture_changed`).
 
 ## 6. Motor de segmentos
 

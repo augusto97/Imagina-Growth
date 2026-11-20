@@ -16,8 +16,10 @@ use Illuminate\Database\Query\Builder;
  *   consentimiento `ads` concedido.
  * - **Según el sitio** o **informado**: todos menos quien revocó `ads`
  *   explícitamente.
- * - Siempre fuera: contactos borrados o fusionados y quien no tiene correo ni
- *   teléfono (no hay con qué coincidir).
+ * - Siempre fuera: contactos borrados o fusionados, quien no tiene correo ni
+ *   teléfono (no hay con qué coincidir) y quien existe solo por la captura
+ *   temprana del checkout (su dato sirve para recuperar ese carrito,
+ *   cumplimiento.md §3.2).
  *
  * En `auto` no hay una señal por persona de si el sitio tenía banner, así que se
  * sigue la regla del modo elegido, no la del evento [validar con el abogado].
@@ -35,6 +37,8 @@ final class AudienceEligibility
         $consent = fn (Builder $q, string $status) => $q->selectRaw('1')->from('contact_consents as cc')
             ->whereColumn('cc.contact_id', 'c.id')->where('cc.workspace_id', $workspace->id)
             ->where('cc.channel', 'ads')->where('cc.purpose', 'marketing')->where('cc.status', $status);
+
+        $query->whereNull('c.early_capture_at');
 
         return self::requiresExplicitConsent($workspace)
             ? $query->whereExists(fn (Builder $q) => $consent($q, 'granted'))

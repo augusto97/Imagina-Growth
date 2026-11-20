@@ -62,7 +62,7 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | F1 | P0 | «Dinero generado» del inicio fijo en $0. | `OverviewDashboard.php:31` | ✅ 0.1.7: usa `MoneyGenerated` (la regla del reporte mensual) con el desglose por módulo y, en cero, el camino al flujo de carrito abandonado |
 | F2 | P0 | `MAIL_MAILER=log` en producción: las invitaciones no salen y nadie se entera. | `.env`, plataforma | ✅ 0.1.6: enlace de invitación para copiar, aviso de correo apagado y correo de prueba |
 | F3 | P1 | Webhooks de Meta (WhatsApp) responden 403 sin `IGR_META_APP_SECRET`. | `WebhookController` | ⏳ |
-| F4 | P1 | Falta la captura temprana del checkout (`checkout.contact_captured`). | tracker, plugin | ⏳ |
+| F4 | P1 | Falta la captura temprana del checkout (`checkout.contact_captured`). | tracker, plugin | ✅ (lote 3): la captura el plugin en el servidor (clásico y bloques, aviso junto al campo, debounce, una vez por carrito y dato) y viaja firmada en el contrato v6; el hub la rechaza sin la opción del espacio de trabajo, une el carrito con el contacto y no crea consentimiento. Se activa en Consentimiento aceptando la responsabilidad (plugin 0.1.3) |
 | F5 | P1 | SES: error 500 sin credenciales y el configuration set `igr-events` nunca se crea. | canal de correo | 🔧 0.1.7: sin credenciales responde 422 con el motivo y el envío falla sin reintentar; falta crear el configuration set |
 | F6 | P1 | La salud del sitio nunca pasa a «degradado». | `SiteHealthProjector` | ⏳ |
 | F7 | P1 | Los contactos importados quedan con 0 consentimientos, sin forma de declarar el origen. | importación | ⏳ |

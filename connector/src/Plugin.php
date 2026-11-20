@@ -14,6 +14,7 @@ use ImaginaGrowth\Connector\Backfill\Runner;
 use ImaginaGrowth\Connector\Catalog\CatalogCollector;
 use ImaginaGrowth\Connector\Catalog\CatalogSync;
 use ImaginaGrowth\Connector\Collectors\CartCollector;
+use ImaginaGrowth\Connector\Collectors\EarlyCapture;
 use ImaginaGrowth\Connector\Onsite\Account;
 use ImaginaGrowth\Connector\Onsite\Blocks;
 use ImaginaGrowth\Connector\Onsite\CartRestore;
@@ -134,6 +135,7 @@ final class Plugin {
 		$woo = static function (): void {
 			OrderCollector::register();
 			CartCollector::register();
+			EarlyCapture::register();
 			CatalogCollector::register();
 			CheckoutConsent::register();
 			CartRestore::register();

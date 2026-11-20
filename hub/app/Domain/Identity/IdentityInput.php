@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Identity;
 
+use App\Domain\Commerce\Support\EarlyCapture;
+
 /**
  * Identificadores y datos de perfil extraídos de un evento.
  */
@@ -22,6 +24,8 @@ final class IdentityInput
         public ?string $country = null,
         public ?string $locale = null,
         public bool $overwriteProfile = false,  // customer.updated reemplaza; el resto solo llena vacíos
+        public bool $earlyCapture = false,      // checkout.contact_captured: un contacto nuevo queda «solo captura temprana»
+        public bool $clearsEarlyCapture = true, // la persona compró, se registró o dejó un formulario (EarlyCapture::clears)
     ) {}
 
     public function hasStrongIdentifier(): bool
@@ -45,6 +49,8 @@ final class IdentityInput
             phone: self::str($identity['phone'] ?? null),
             anonymousId: self::str($identity['anonymous_id'] ?? null),
             linkToken: self::str($identity['link_token'] ?? null),
+            earlyCapture: $event === EarlyCapture::EVENT,
+            clearsEarlyCapture: EarlyCapture::clears($event),
         );
 
         $order = $props['order'] ?? null;

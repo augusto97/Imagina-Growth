@@ -64,6 +64,50 @@ final class EnvelopeContractTest extends TestCase {
 		$this->assertSame( array(), Schema::errors( $envelope ) );
 	}
 
+	public function test_captura_temprana_v6_con_el_dato_en_identity(): void {
+		$factory  = new EventFactory( self::SITE, 'woocommerce', '0.1.3' );
+		$envelope = $factory->make(
+			'checkout.contact_captured',
+			array(
+				'has_email'  => true,
+				'has_phone'  => true,
+				'cart_token' => 'a3f9c2e1b7d84f0e9c1a2b3c4d5e6f70',
+				'checkout'   => 'blocks',
+			),
+			array(
+				'identity' => array(
+					'anonymous_id' => 'c3b0f4a2-1d2e-4f5a-8b9c-0d1e2f3a4b5c',
+					'email'        => 'ana@ejemplo.com',
+					'phone'        => '+573001234567',
+				),
+				'context'  => array( 'page_type' => 'checkout' ),
+			)
+		);
+		$this->assertSame( 6, $envelope['schema_version'] );
+		$this->assertSame( array(), Schema::errors( $envelope ) );
+
+		// El dato nunca va en properties.
+		$leaky                        = $envelope;
+		$leaky['properties']['email'] = 'ana@ejemplo.com';
+		$this->assertNotSame( array(), Schema::errors( $leaky ) );
+
+		// Desde el navegador no puede viajar con el correo (eventos.md §2).
+		$browser                   = $envelope;
+		$browser['source']['type'] = 'browser';
+		$this->assertNotSame( array(), Schema::errors( $browser ) );
+
+		// Un evento de la versión anterior (sin carrito ni tipo de checkout) sigue siendo válido.
+		$old                   = $factory->make(
+			'checkout.contact_captured',
+			array(
+				'has_email' => true,
+				'has_phone' => false,
+			)
+		);
+		$old['schema_version'] = 4;
+		$this->assertSame( array(), Schema::errors( $old ) );
+	}
+
 	public function test_el_validador_detecta_un_objeto_vacio_mal_codificado(): void {
 		$factory              = new EventFactory( self::SITE, 'woocommerce', '0.1.0' );
 		$envelope             = $factory->make( 'custom.x', array( 'a' => 1 ) );

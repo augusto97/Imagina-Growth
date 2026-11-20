@@ -258,10 +258,12 @@ final class CartCollector {
 			$user_id  = get_current_user_id();
 			if ( $user_id > 0 ) {
 				$identity['customer_ref'] = 'wc:' . $user_id;
-			}
-			$email = WC()->customer instanceof \WC_Customer ? strtolower( trim( (string) WC()->customer->get_billing_email() ) ) : '';
-			if ( '' !== $email && is_email( $email ) ) {
-				$identity['email'] = $email;
+				// Solo el correo de la cuenta: el que un invitado escribe en el checkout de bloques también queda en
+				// el cliente de la sesión, y ese solo viaja como captura temprana, si el espacio la activó (EarlyCapture).
+				$email = WC()->customer instanceof \WC_Customer ? strtolower( trim( (string) WC()->customer->get_billing_email() ) ) : '';
+				if ( '' !== $email && is_email( $email ) ) {
+					$identity['email'] = $email;
+				}
 			}
 			$context = $ctx['context'];
 			if ( null !== $page_type ) {

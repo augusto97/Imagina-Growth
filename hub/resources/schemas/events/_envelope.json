@@ -19,7 +19,8 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
       "description": "Versión del contrato (eventos.md §8). Cada versión solo agrega eventos o campos opcionales; el hub acepta todas."
     },
@@ -266,7 +267,7 @@
     },
     "encrypted": {
       "type": "object",
-      "description": "Datos cifrados con la clave pública del sitio (checkout.contact_captured)",
+      "description": "Obsoleto desde la v6 (no lo envía nadie; se acepta por compatibilidad). checkout.contact_captured viaja firmado por /v1/s con el dato en identity.",
       "properties": {
         "alg": {
           "type": "string",

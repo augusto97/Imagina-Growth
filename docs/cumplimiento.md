@@ -45,6 +45,12 @@ Requisitos que se convierten en funciones:
 - Viene **desactivada por defecto**.
 - Para activarla, el espacio de trabajo tiene que mostrar un aviso visible junto al campo («Usaremos tu correo o WhatsApp para ayudarte a terminar tu compra») y aceptar la responsabilidad en la configuración (queda en la auditoría) **[validar]**.
 - El dato capturado solo se usa para recuperar *ese* carrito. No crea consentimiento de marketing.
+- **Implementación (v6):** se activa en Consentimiento con la casilla de responsabilidad (`consent.early_capture_changed`
+  en la auditoría). El plugin muestra el aviso junto al campo y envía `checkout.contact_captured` desde el servidor
+  (`eventos.md` §4.2); el hub lo rechaza si la opción está apagada. El contacto que existe solo por la captura queda
+  marcado (`contacts.early_capture_at`): no entra en audiencias de anuncios ni suma puntos hasta que compra, se registra
+  o deja un formulario. El recordatorio del carrito es marketing (§4.1): solo sale con el consentimiento del canal y en
+  la ventana legal. Usar el dato sin ese consentimiento para recuperar el carrito queda **[validar]** con el abogado.
 
 ### 3.3 Cookies y seguimiento
 - **Integración con banners:** WP Consent API (estándar, prioridad), Complianz, CookieYes, Cookiebot y Real Cookie Banner. Para Google se envía Consent Mode v2.

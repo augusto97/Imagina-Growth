@@ -1,7 +1,7 @@
 # Contrato de eventos y datos que se recogen
 
 > Fuente de verdad del dato. El hub valida cada evento contra su JSON Schema en `hub/resources/schemas/events/<evento>.json`. El connector y el tracker tienen pruebas de contrato contra esos mismos esquemas.
-> `schema_version` actual: **5** (el hub acepta de la 1 a la 5; ver §8)
+> `schema_version` actual: **6** (el hub acepta de la 1 a la 6; ver §8)
 
 ---
 
@@ -74,7 +74,7 @@ Para orientar bien las estrategias, cada espacio de trabajo debe responder estas
     "user_agent": "..."    // solo en tránsito
   },
   "properties": { /* específicas del evento (§4) */ },
-  "encrypted": { "alg": "...", "data": "..." }          // opcional: dato cifrado con la clave del sitio (checkout.contact_captured)
+  "encrypted": { "alg": "...", "data": "..." }          // obsoleto desde la v6: nadie lo envía (se acepta por compatibilidad)
 }
 ```
 
@@ -106,7 +106,7 @@ los eventos de §4.1 (`page.viewed`, `page.engaged`, `product.viewed`, `category
 `cta.clicked`, `widget.shown`, `widget.submitted`, `widget.closed`, `identify`) y `custom.*`. Cualquier otro se rechaza
 con `not_allowed`, también en el worker si ya estaba en el stream (`App\Ingest\Schema\BrowserEvents`). Pedidos,
 carritos, clientes, formularios, reseñas y catálogo solo llegan firmados por `/v1/s`. `checkout.contact_captured`
-queda fuera hasta que exista la captura temprana con el dato cifrado.
+(v6) también: lo envía el plugin desde el servidor con el dato en `identity` (§4.2).
 
 **Fechas:** un `occurred_at` más de 5 minutos en el futuro (reloj adelantado) se reemplaza por la hora de recepción,
 en cualquier origen. Del navegador, un evento de hace más de 7 días se rechaza con `stale`; la importación del plugin
@@ -128,7 +128,6 @@ Convenciones: `objeto.acción` en inglés y en pasado. Montos en la moneda del p
 | `category.viewed` | página de categoría | `category_id`, `name` |
 | `search.performed` | búsqueda en el sitio (`?s=` o Imagina Search) | `query`, `results_count?`, `engine` (`wp`, `wc`, `imagina_search`) |
 | `cta.clicked` | clic en `tel:`, `mailto:`, `wa.me`, `api.whatsapp.com`, `whatsapp://`, descargas (pdf, doc, xls, zip) o un elemento con `data-igr-cta` | `kind` (`whatsapp`, `phone`, `email`, `download`, `custom`), `target`, `label`, `wa_ref?` (token de atribución, ver §6) |
-| `checkout.contact_captured` | se escribe un correo o teléfono válido en el checkout (con *debounce* y solo si el espacio de trabajo activa la captura temprana; ver `cumplimiento.md` §3) | `has_email`, `has_phone`. El dato viaja cifrado en un campo aparte, nunca en `properties` |
 | `widget.shown` / `widget.submitted` / `widget.closed` | popups, formularios, quiz y barras del hub | `widget_id`, `variant`, `kind` |
 | `identify` | llamada explícita (login detectado, enlace con `_igr`) | `method` (`login`, `link_token`, `form`), `token?` (v2: token firmado por el sitio, `api-connector.md` §7) |
 
@@ -140,6 +139,7 @@ Convenciones: `objeto.acción` en inglés y en pasado. Montos en la moneda del p
 | `cart.item_removed` | `woocommerce_cart_item_removed` | `cart_token`, `product_id`, `qty` |
 | `cart.updated` | `woocommerce_cart_updated` (con *throttle* de 30 s) | `cart_token`, `items[]`, `subtotal`, `coupons[]`, `currency` |
 | `checkout.started` | carga del checkout clásico o de bloques | `cart_token`, `subtotal`, `items_count` |
+| `checkout.contact_captured` | v6. Un invitado escribe un correo o un teléfono válido en el checkout: clásico en `woocommerce_checkout_update_order_review`, bloques en `woocommerce_store_api_cart_update_customer_from_request`. Solo si el espacio de trabajo activó la captura temprana (`cumplimiento.md` §3.2) y con el aviso junto al campo. *Debounce* de 20 s (el último valor gana) y una vez por carrito y dato | `has_email`, `has_phone`, `cart_token?`, `checkout?` (`classic`, `blocks`). El correo y el teléfono van en `identity`, **nunca** en `properties`. El hub lo rechaza (`not_allowed`) si la opción está apagada, une el carrito con el contacto (la captura más nueva gana) y no crea consentimiento de marketing |
 | `order.created` | `woocommerce_new_order` / `woocommerce_store_api_checkout_order_processed` | `order` (§5) |
 | `order.paid` | pasa a un estado pagado (`processing`, `completed` o estados pagados configurables) por primera vez | `order` (§5) |
 | `order.status_changed` | `woocommerce_order_status_changed` | `order_id`, `from`, `to`, `order?` |
@@ -318,6 +318,7 @@ Según la especificación de Meta y Google, se aplica SHA-256 en minúsculas y s
 | 3 | 2026-11-20 | Fase 2. `order.cart_token` (el carrito del que salió el pedido) y `cart.updated.restored_from` (carrito restaurado desde un enlace). Esquemas de los eventos del hub de la Fase 2: `cart.abandoned`, `message.*` (11), `whatsapp.inbound`, `flow.entered` y `flow.exited`. Los sitios siguen enviando v2 hasta actualizar el plugin; un evento v2 sigue siendo válido. |
 | 4 | 2026-11-21 | Fase 3. `context.referral_code` y `referral_code` en el primer y el último contacto (`?ref=` de referidos y afiliados). Esquemas de los eventos del hub de la Fase 3: `points.earned`, `points.redeemed`, `points.expired`, `tier.changed`, `wallet.credited`, `wallet.debited`, `referral.shared`, `referral.converted`, `review.requested`, `review.collected`, `nps.answered`, `product_watch.created` y `product_watch.notified`. Un evento v3 sigue siendo válido. |
 | 5 | 2026-11-23 | Fase 5. Esquemas de los eventos del hub de servicios: `lead.created`, `lead.stage_changed`, `lead.won`, `lead.lost`, `appointment.booked`, `appointment.rescheduled`, `appointment.cancelled`, `appointment.completed`, `appointment.no_show` y `quote.requested`, más `page.vitals` (métricas web de Imagina Turbo por la API pública, M19; se agregó durante la Fase 5, antes de cerrarla, por eso no abre una versión 6). Los sitios no envían nada nuevo: el connector y el tracker siguen en la 4, que sigue siendo válida. |
+| 6 | 2026-11-25 | Captura temprana del checkout (auditoría F4): `checkout.contact_captured` pasa a ser un evento del plugin, firmado por `/v1/s`, con el correo o el teléfono en `identity` y los opcionales `cart_token` y `checkout`. Ya no viaja cifrado desde el navegador (`encrypted` queda obsoleto). El connector envía la 6 en todos sus eventos; el tracker sigue en la 4. Un evento v5 o anterior sigue siendo válido. |
 
 **Regla de identidad para el navegador (v2):** en eventos con `source.type = browser`, el hub **ignora** `identity.customer_ref` salvo en un `identify` con `token` válido. Así nadie puede atribuirse la identidad de otro cliente desde el navegador.
 

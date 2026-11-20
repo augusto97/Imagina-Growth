@@ -6,12 +6,14 @@ namespace App\Http\Controllers\Connector;
 
 use App\Domain\Commerce\Models\Product;
 use App\Domain\Commerce\Models\ProductCategory;
+use App\Domain\Commerce\Support\EarlyCapture;
 use App\Domain\Consent\Actions\ConsentTexts;
 use App\Domain\Consent\Support\ConsentMode;
 use App\Domain\Loyalty\Models\LoyaltyProgram;
 use App\Domain\Recommendations\Models\CommerceSettings;
 use App\Domain\Sites\Actions\UpdateBackfillState;
 use App\Domain\Sites\Models\Site;
+use App\Domain\Sites\Support\PluginRelease;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
@@ -43,7 +45,8 @@ final class SiteApiController
                 'currency' => $ws->currency,
                 'locale' => $ws->locale,
             ],
-            'settings' => $site->effectiveSettings() + ['early_capture' => (bool) $ws->setting('early_capture', false)],
+            // La captura temprana la decide el espacio de trabajo (cumplimiento.md §3.2), no el valor por defecto del sitio.
+            'settings' => array_replace($site->effectiveSettings(), ['early_capture' => EarlyCapture::enabled($ws)]),
             'consent' => [
                 'mode' => ConsentMode::chosen($ws),
                 'privacy_policy_url' => $ws->getAttribute('privacy_policy_url'),
@@ -52,6 +55,7 @@ final class SiteApiController
             'measurement' => $this->measurement(),
             'onsite' => $this->onsite(),
             'min_plugin_version' => config('igr.min_plugin_version'),
+            'plugin' => PluginRelease::forSite($site),
         ]);
     }
 

@@ -323,7 +323,7 @@ final class OnsiteTest extends WpTestCase {
 		OrderCollector::on_checkout_processed( $order->get_id(), array(), $order );
 		$created = $this->outbox( 'order.created' );
 		$this->assertNotEmpty( $created );
-		$this->assertSame( 4, $created[0]['schema_version'] );
+		$this->assertSame( 6, $created[0]['schema_version'] );
 		$this->assertSame( 'ANA7K2', $created[0]['context']['last_touch']['referral_code'] );
 		$this->assertArrayNotHasKey( 'referral_code', $created[0]['context']['first_touch'] );
 		$this->assertContract( $this->outbox_raw( 'order.created' ) );

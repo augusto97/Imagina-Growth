@@ -28,8 +28,9 @@ final class Recorder {
 	 * Registra un evento. Los errores nunca rompen la petición del sitio.
 	 *
 	 * @param array<string, mixed> $envelope Sobre.
+	 * @param int                  $delay    Segundos antes de que pueda salir (debounce de la captura temprana).
 	 */
-	public static function record( array $envelope ): bool {
+	public static function record( array $envelope, int $delay = 0 ): bool {
 		if ( self::$suppressed > 0 ) {
 			return false;
 		}
@@ -43,7 +44,7 @@ final class Recorder {
 			return false;
 		}
 		try {
-			return Outbox::insert( $envelope );
+			return Outbox::insert( $envelope, $delay );
 		} catch ( \Throwable $e ) {
 			Logger::error( 'No se pudo guardar el evento en el outbox: ' . $e->getMessage(), array( 'event' => $envelope['event'] ?? '' ) );
 			return false;

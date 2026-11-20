@@ -14,8 +14,11 @@ use App\Support\Money\Decimal;
 use Carbon\CarbonImmutable;
 
 /**
- * Proyección de carritos (hub/CLAUDE.md §5): `cart.*`, `checkout.started` y
- * `coupon.applied` hacen upsert en `carts` por (site_id, cart_token). Al llegar
+ * Proyección de carritos (hub/CLAUDE.md §5): `cart.*`, `checkout.started`,
+ * `coupon.applied` y `checkout.contact_captured` (v6, captura temprana: une el
+ * carrito con quien escribió su correo o teléfono en el checkout; la captura más
+ * nueva gana, porque la persona pudo corregir el dato) hacen upsert en `carts`
+ * por (site_id, cart_token). Al llegar
  * el pedido, el carrito queda `recovered` si se había abandonado o `converted`
  * si no, y los cupones del hub que usó quedan `redeemed`.
  *
@@ -24,7 +27,7 @@ use Carbon\CarbonImmutable;
  */
 final class CartProjector
 {
-    public const EVENTS = ['cart.item_added', 'cart.item_removed', 'cart.updated', 'checkout.started', 'coupon.applied'];
+    public const EVENTS = ['cart.item_added', 'cart.item_removed', 'cart.updated', 'checkout.started', 'coupon.applied', 'checkout.contact_captured'];
 
     /** Un pedido sin cart_token (plugin v2) cierra el carrito abandonado del contacto de los últimos días. */
     private const RECOVERY_DAYS = 7;
@@ -119,6 +122,13 @@ final class CartProjector
                 $cart->checkout_started_at ??= $at;
                 if (isset($props['subtotal']) && $newer) {
                     $this->subtotal($cart, $workspace, (string) $props['subtotal'], $props['currency'] ?? null, $at);
+                }
+                break;
+            case 'checkout.contact_captured':
+                $previous = $cart->contact_captured_at;
+                if ($contactId !== null && $cart->order_id === null && ($previous === null || $at->greaterThanOrEqualTo($previous))) {
+                    $cart->contact_id = $contactId;
+                    $cart->contact_captured_at = $at;
                 }
                 break;
             case 'coupon.applied':

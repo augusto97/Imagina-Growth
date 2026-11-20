@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Cache;
 final class DependencyIndex
 {
     /** Eventos que cambian atributos y agregados del contacto. */
-    private const PROFILE_EVENTS = ['customer.registered', 'customer.updated', 'form.submitted', 'survey.answered', 'identify'];
+    private const PROFILE_EVENTS = ['customer.registered', 'customer.updated', 'form.submitted', 'survey.answered', 'identify', 'checkout.contact_captured'];
 
     public static function key(string $workspaceId): string
     {
@@ -65,7 +65,7 @@ final class DependencyIndex
             if (str_starts_with($event, 'order.') && array_intersect($kinds, ['purchase', 'attribute', 'cart']) !== []) {
                 return true;
             }
-            if ((str_starts_with($event, 'cart.') || $event === 'checkout.started') && in_array('cart', $kinds, true)) {
+            if ((str_starts_with($event, 'cart.') || str_starts_with($event, 'checkout.')) && in_array('cart', $kinds, true)) {
                 return true;
             }
             if (in_array($event, self::PROFILE_EVENTS, true) && in_array('attribute', $kinds, true)) {
