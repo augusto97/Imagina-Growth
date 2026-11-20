@@ -116,13 +116,15 @@ cadena = "IGR-HMAC-SHA256-V2" "\n"
     volvió a una versión anterior).
   - El hub firma los comandos en v2 solo si el plugin informó la 0.1.4 o una más nueva (`plugin_version` del canje,
     de `site.heartbeat` o de `GET /v1/s/config?plugin_version=`); si no, en v1. Con la v1 apagada, siempre en v2.
-  - El hub acepta la v2 siempre y la v1 mientras `IGR_SIGNATURE_ACCEPT_V1` siga en `true` (por defecto). El plugin
+  - El hub acepta la v2 siempre y la v1 mientras «Aceptar la firma anterior del plugin» siga encendido (Plataforma →
+    Ajustes → Registro y seguridad; de respaldo `IGR_SIGNATURE_ACCEPT_V1`, `true` por defecto). El plugin
     acepta la v2 siempre y la v1 salvo que el hub anuncie `[2]`.
 - **Paso a v2 en producción:** (1) se actualiza el hub, que empieza a anunciar `[1, 2]`; (2) cada sitio instala la
   0.1.4: al cargar la versión nueva pide `/v1/s/config` en una tarea, el hub guarda su versión y desde ahí las dos
   direcciones van en v2; (3) Plataforma → Instalación (`data.signature`, también en `igr:doctor`) dice cuántos sitios
-  siguen en v1; (4) cuando no queda ninguno, `IGR_SIGNATURE_ACCEPT_V1=false` (y volver a cachear la configuración):
-  el hub rechaza la v1, anuncia `[2]` y los plugins dejan de aceptar comandos en v1. Para volver atrás, `true`.
+  siguen en v1; (4) cuando no queda ninguno, se apaga «Aceptar la firma anterior del plugin» en Plataforma → Ajustes
+  (rige enseguida, sin reiniciar): el hub rechaza la v1, anuncia `[2]` y los plugins dejan de aceptar comandos en v1.
+  Para volver atrás, se vuelve a encender.
 
 Respuestas de error comunes: `401 {"error":"signature"}` (firma inválida, fuera de ventana, nonce repetido o v1 ya
 no aceptada), `403 {"error":"site_disconnected"}`, `429` (límite), `5xx` (reintentar).

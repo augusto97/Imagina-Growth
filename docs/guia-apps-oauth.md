@@ -5,6 +5,10 @@ conectan WhatsApp, sus anuncios, Messenger, Instagram, Google Ads, Analytics, la
 clic**, sin copiar ni pegar claves. Sin ellas, cada tarjeta de **Conexiones** dice qué falta y los campos manuales
 siguen funcionando.
 
+**Todo se pega en el panel:** **Plataforma → Ajustes**, secciones **Meta**, **Google** y **TikTok** (solo quien
+administra la plataforma, con la verificación en dos pasos). Lo que guardes se usa enseguida, sin tocar el servidor
+ni reiniciar nada. Cada sección muestra también las direcciones que hay que registrar en la app, listas para copiar.
+
 Revisado contra la documentación oficial el 20 de noviembre de 2026 (enlaces al final de cada sección). Las
 pantallas de Meta, Google y TikTok cambian seguido: si un nombre no coincide, busca la opción más parecida.
 
@@ -20,7 +24,8 @@ Ten a mano:
    TikTok usa la plataforma y para qué.
 3. Un logo cuadrado (1024 × 1024 px), un correo de soporte y los datos legales de la empresa (nombre, dirección,
    teléfono y NIT o equivalente) para las verificaciones.
-4. Acceso al servidor para editar `/opt/growth/shared/.env` (§5).
+4. Tu usuario de administrador de la plataforma, con la verificación en dos pasos activa, para entrar a
+   **Plataforma → Ajustes** (§5). No hace falta entrar al servidor.
 
 **URL exactas que vas a registrar** (cópialas tal cual, sin barra al final):
 
@@ -61,8 +66,9 @@ cada cliente conecta **su propio** número y paga sus mensajes de WhatsApp a Met
    (o creada con un caso de uso que permita *Facebook Login for Business*).
 4. En **Configuración de la app → Básica**: icono, categoría, correo de contacto, URL de la política de
    privacidad, de los términos y de la eliminación de datos, y el dominio `growth.imagina.cloud`.
-5. Copia el **identificador de la app** (`IGR_META_APP_ID`) y la **clave secreta de la app**
-   (`IGR_META_APP_SECRET`). La clave secreta solo va al `.env` del servidor, nunca al repositorio.
+5. Copia el **identificador de la app** y la **clave secreta de la app** a Plataforma → Ajustes → Meta
+   («Identificador de la app» y «Clave secreta de la app»). La clave secreta se guarda cifrada y el panel nunca la
+   vuelve a mostrar; nunca va al repositorio ni a un correo.
 
 ### 1.3 Proveedor de tecnología y revisión de los permisos de WhatsApp
 
@@ -100,7 +106,7 @@ Fuente: [Embedded Signup — Implementation](https://developers.facebook.com/doc
 
 En **Facebook Login for Business → Configuraciones** crea dos:
 
-**a) WhatsApp con un clic (Embedded Signup)** → `IGR_META_ES_CONFIG_ID`
+**a) WhatsApp con un clic (Embedded Signup)** → «Configuración de WhatsApp con un clic» en Ajustes → Meta
 
 1. **Crear configuración** → nombre «Imagina Growth — WhatsApp» → variación **WhatsApp Embedded Signup**.
 2. Tipo de token: **token de acceso de usuario del sistema**. Si el panel deja elegir el vencimiento, elige
@@ -118,7 +124,7 @@ usa en la app de WhatsApp Business y lo sigue usando ahí (queda con 20 mensajes
 listas de difusión). Fuentes: [versiones](https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/versions/),
 [coexistencia](https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/onboarding-business-app-users).
 
-**b) Anuncios, píxel, Messenger e Instagram** → `IGR_META_LOGIN_CONFIG_ID`
+**b) Anuncios, píxel, Messenger e Instagram** → «Configuración de anuncios y mensajes» en Ajustes → Meta
 
 1. **Crear configuración** → nombre «Imagina Growth — Anuncios y mensajes» → variación **General**.
 2. Tipo de token: **token de acceso de usuario del sistema**, vencimiento **Nunca** (para trabajar desde el
@@ -142,7 +148,9 @@ de tecnología; hay reportes de octubre de 2026 de que dejó de pedirse **[verif
 ### 1.7 Webhooks
 
 1. En **WhatsApp → Configuración → Webhook**: URL `https://growth.imagina.cloud/webhooks/meta` y como token de
-   verificación el valor que pongas en `IGR_META_WEBHOOK_VERIFY_TOKEN` (inventa uno largo y aleatorio).
+   verificación el de Plataforma → Ajustes → Meta → «Token de verificación del webhook»: usa **Generar**, **Copiar**,
+   pégalo en Meta y **Guardar** en el panel (después de guardar no se vuelve a mostrar; si lo pierdes, genera otro y
+   cámbialo también en Meta).
 2. Suscribe los campos: `messages`, `message_template_status_update`, `phone_number_quality_update`,
    `account_update`, `history`, `smb_app_state_sync` y `smb_message_echoes` (los tres últimos son de la
    coexistencia). **Este paso es de la app y se hace una sola vez en el panel de Meta** (App Dashboard → WhatsApp →
@@ -156,7 +164,7 @@ de tecnología; hay reportes de octubre de 2026 de que dejó de pedirse **[verif
    [`account_update`](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/reference/account_update).
 3. En **Messenger** (objeto `page`) e **Instagram** (objeto `instagram`), la misma URL y el mismo token, con los
    campos `messages`, `messaging_postbacks`, `message_deliveries`, `message_reads` y `messaging_referrals`.
-4. La firma de cada aviso se comprueba con `IGR_META_APP_SECRET`: sin esa variable el hub responde 403.
+4. La firma de cada aviso se comprueba con la clave secreta de la app (Ajustes → Meta): sin ella el hub responde 403.
 
 ### 1.8 Publicar
 
@@ -197,8 +205,8 @@ acciones de conversión y su propiedad de Analytics.
 ### 2.3 Cliente OAuth
 
 **Clientes → Crear cliente → Aplicación web**, con el URI de redireccionamiento autorizado
-`https://growth.imagina.cloud/oauth/google/callback`. Copia el **ID de cliente** (`IGR_GOOGLE_CLIENT_ID`) y el
-**secreto** (`IGR_GOOGLE_CLIENT_SECRET`).
+`https://growth.imagina.cloud/oauth/google/callback`. Copia el **ID de cliente** y el **secreto** a Plataforma →
+Ajustes → Google.
 
 ### 2.4 Verificación de Google
 
@@ -247,7 +255,7 @@ Fuentes: [developer token](https://developers.google.com/google-ads/api/docs/api
    de anuncios, reportes (gasto), administración de audiencias y medición / administración de píxeles (Events API).
 3. Envía la app a revisión. TikTok no publica un tiempo oficial en las páginas que se pudieron leer; integradores
    reportan de **2 a 7 días hábiles**. Mientras tanto se puede probar con una cuenta de anuncios de prueba (sandbox).
-4. Copia el **App ID** (`IGR_TIKTOK_APP_ID`) y el **Secret** (`IGR_TIKTOK_APP_SECRET`).
+4. Copia el **App ID** y el **Secret** a Plataforma → Ajustes → TikTok.
 
 La plataforma usa la API v1.3: el anunciante autoriza en `/portal/auth`, la vuelta trae `auth_code`, se canjea en
 `/oauth2/access_token/` por un token de largo plazo que no vence hasta que se revoca (`/oauth2/revoke_token/`).
@@ -272,42 +280,29 @@ nombres exactos de los permisos y los campos de `pixel/list` y `advertiser/get` 
 
 ---
 
-## 5. Variables de entorno
+## 5. Dónde se pega cada dato
 
-Edita `/opt/growth/shared/.env` en el servidor (permisos `0600`, dueño `growth`) y agrega:
+Todo va en **Plataforma → Ajustes** (en el menú, en el grupo de la agencia y la plataforma; solo para quien administra la plataforma
+y con la verificación en dos pasos). Se guarda con **Guardar** en cada sección y se usa enseguida, sin reiniciar nada.
 
-```dotenv
-# Meta (una sola app)
-IGR_META_APP_ID=
-IGR_META_APP_SECRET=
-IGR_META_WEBHOOK_VERIFY_TOKEN=
-IGR_META_ES_CONFIG_ID=
-IGR_META_LOGIN_CONFIG_ID=
+| Lo que copiaste | Sección | Campo |
+|---|---|---|
+| Identificador de la app de Meta (1.2) | Meta | Identificador de la app |
+| Clave secreta de la app de Meta (1.2) | Meta | Clave secreta de la app |
+| Token del webhook (1.7) | Meta | Token de verificación del webhook («Generar» y «Copiar») |
+| ID de la configuración de WhatsApp (1.5 a) | Meta | Configuración de WhatsApp con un clic |
+| ID de la configuración de anuncios y mensajes (1.5 b) | Meta | Configuración de anuncios y mensajes |
+| ID de cliente de Google (2.3) | Google | ID de cliente |
+| Secreto del cliente de Google (2.3) | Google | Secreto del cliente |
+| App ID de TikTok (3) | TikTok | App ID |
+| Secret de TikTok (3) | TikTok | Secret |
 
-# Google (un solo cliente OAuth web)
-IGR_GOOGLE_CLIENT_ID=
-IGR_GOOGLE_CLIENT_SECRET=
-
-# TikTok for Business
-IGR_TIKTOK_APP_ID=
-IGR_TIKTOK_APP_SECRET=
-```
-
-Opcionales (ya traen el valor vigente; cámbialos solo si Meta o Google anuncian una versión nueva):
-
-```dotenv
-IGR_META_GRAPH_VERSION=v27.0        # Graph y Marketing API
-IGR_META_ES_VERSION=v5              # Embedded Signup
-IGR_GOOGLE_ADS_VERSION=v26
-IGR_GOOGLE_ADS_DEVELOPER_TOKEN=     # ya no se exige; si se pone, Google lo ignora
-```
-
-Después de guardar, aplica los cambios:
-
-```bash
-sudo -u growth php /opt/growth/current/hub/artisan config:cache
-sudo systemctl restart growth.target
-```
+Los secretos se guardan cifrados y no se vuelven a mostrar: el panel solo dice si están y sus últimos 4 caracteres.
+Si una instalación anterior los tenía en el `.env` del servidor (`IGR_META_*`, `IGR_GOOGLE_*`, `IGR_TIKTOK_*`), siguen
+sirviendo de respaldo y el panel dice «Valor del servidor»; lo que guardes en el panel manda. Las versiones de las API
+(Graph v27.0, Embedded Signup v5, Google Ads v26) vienen fijadas en cada versión de la plataforma y se actualizan con
+el botón de Actualizaciones. El developer token de Google Ads ya no se exige (2.5); si Google te lo pide, va en Ajustes
+→ Google.
 
 Abre **Conexiones** en el panel: cada tarjeta debe decir «Sin conectar» (lista para usar) en lugar de «No
 disponible». Prueba primero con tus propias cuentas.
@@ -318,12 +313,12 @@ disponible». Prueba primero con tus propias cuentas.
 
 | Lo que ves | Qué revisar |
 |---|---|
-| «No disponible» y el nombre de una variable | Falta esa variable en el `.env` o no corriste `config:cache`. |
+| «No disponible» y «Falta: …» | Falta ese dato en Plataforma → Ajustes (el enlace «Configurarla en Plataforma → Ajustes» de la tarjeta lleva a la sección). |
 | Meta dice «URL bloqueada» o «redirect_uri no coincide» | El URI de 1.4 debe ser exacto (https, sin barra final) y el modo estricto exige que coincida letra por letra. |
 | La ventana de WhatsApp se cierra sin conectar | El dominio no está en «Dominios permitidos» y «URI de redireccionamiento válidos», o el navegador bloquea ventanas emergentes. |
 | Google dice «Esta app no está verificada» | La verificación de 2.4 sigue en curso; mientras tanto solo entran usuarios de prueba (y sus tokens vencen a los 7 días). |
 | Las conexiones de Google se caen cada semana | La app de Google sigue en «Prueba»: pásala a «En producción» (2.2). |
-| WhatsApp conectado pero no llegan los mensajes a la bandeja | Webhook de 1.7 sin suscribir o `IGR_META_APP_SECRET` distinto al de la app. |
+| WhatsApp conectado pero no llegan los mensajes a la bandeja | Webhook de 1.7 sin suscribir o la clave secreta de Ajustes → Meta distinta a la de la app. |
 | En coexistencia no aparece lo que el negocio escribe desde el celular ni el historial | Faltan `smb_message_echoes`, `history` o `smb_app_state_sync` en 1.7. La copia del historial y de los contactos se pide una sola vez: si pasaron más de 24 h, el cliente tiene que desconectar y volver a conectar. Si Conexiones dice que no se compartió el historial, el cliente lo apagó en la app. |
 | Llegan correos de «vence el…» o «Vuelve a conectar» | El acceso tiene fecha de vencimiento (por ejemplo, la configuración de 1.5 con token de 60 días) o el proveedor lo invalidó: el cliente usa «Reconectar» en el Inicio o en Conexiones. |
 | «Meta no activó el número… PIN» | El número tiene verificación en dos pasos con otro PIN: el cliente la quita en el Administrador de WhatsApp y usa «Reintentar». |
