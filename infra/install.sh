@@ -241,7 +241,7 @@ fetch_release() {
 
 log "Paquetes base"
 "${APT[@]}" update >/dev/null
-"${APT[@]}" install ca-certificates curl gnupg openssl unzip jq zstd ufw rclone python3 python3-venv procps >/dev/null
+"${APT[@]}" install ca-certificates curl gnupg openssl unzip jq zstd ufw rclone openssh-client python3 python3-venv procps >/dev/null
 
 if [ -z "$TPL" ]; then
     fetch_release
@@ -528,7 +528,7 @@ fi
 # Copias (infra/backup): la configuración es del administrador; solo se crea si falta.
 if [ ! -f "$ETC_DIR/backup.conf" ] && [ -f "$TPL/backup/backup.conf.example" ]; then
     install -m 0600 -o root -g root "$TPL/backup/backup.conf.example" "$ETC_DIR/backup.conf"
-    info "Creado $ETC_DIR/backup.conf (completa el remoto de rclone y los heartbeats)."
+    info "Creado $ETC_DIR/backup.conf (el destino de las copias se configura en Plataforma → Copias de seguridad)."
 fi
 
 # ── 6. Configuración del sistema (la misma que aplica cada actualización) ─
@@ -603,8 +603,10 @@ for f in "$TPL"/systemd/growth*; do
 done
 systemctl daemon-reload
 systemctl enable --now growth-update.path >/dev/null 2>&1
+# Pedidos de Plataforma → Copias de seguridad (destino, prueba, copia ahora): los atiende growth-backup-dispatch.
+systemctl enable --now growth-backup.path >/dev/null 2>&1
 # growth.target se habilita al final, cuando hay una versión instalada (sin ella los servicios no arrancan).
-info "Unidades instaladas; growth-update.path habilitado."
+info "Unidades instaladas; growth-update.path y growth-backup.path habilitados."
 
 # ── 11. Caddy ───────────────────────────────────────────────────────────
 
@@ -713,4 +715,4 @@ if [ ${#MISSING_DNS[@]} -gt 0 ]; then
 fi
 info "Panel, ingesta y enlaces: https://$DOMAIN"
 info "Configuración: $ENV_FILE (solo el usuario growth) · actualizador: $ETC_DIR/updater.conf"
-info "Copias a la Storage Box: configura rclone y $ETC_DIR/backup.conf (infra/backup)."
+info "Copias a la Storage Box: se configuran en el panel, Plataforma → Copias de seguridad (infra/backup/README.md)."

@@ -1,8 +1,9 @@
 # Copia diaria (docs/despliegue.md §6). Corre como root: lee /etc/growth/backup.conf y el .env de la app con un
-# lector dotenv propio (nunca con source ni EnvironmentFile), y sube con rclone (config. en /root/.config/rclone).
+# lector dotenv propio (nunca con source ni EnvironmentFile), y sube con rclone (config. del panel en
+# /etc/growth/backup-rclone.conf o, si se configuró a mano, /root/.config/rclone). Deja su resultado en shared/state.
 [Unit]
 Description=Imagina Growth · copia de ClickHouse (BACKUP nativo, completa o incremental) al Storage Box
-After=network-online.target clickhouse-server.service
+After=network-online.target clickhouse-server.service growth-backup-mariadb.service
 Wants=network-online.target
 
 [Service]

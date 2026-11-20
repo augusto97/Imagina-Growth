@@ -37,14 +37,17 @@ finish() {
     log "La copia de ClickHouse falló (código $code)."
     # Un BACKUP a medias deja un zip incompleto: no sirve y confundiría a la siguiente incremental.
     if [ -n "$NAME" ]; then rm -f "$BASE/$NAME" "$BASE/${NAME%.zip}.manifest.json"; fi
+    job_failed "$code"
     heartbeat "$HEARTBEAT" fail
 }
 trap 'finish $?' EXIT
+job_begin clickhouse
 
-[ -n "$REMOTE" ] || die "falta GROWTH_BACKUP_REMOTE en $GROWTH_BACKUP_CONF"
-[[ $DB =~ ^[A-Za-z0-9_]+$ ]] || die "nombre de base inválido"
-if ! [[ $KEEP_DAYS =~ ^[0-9]+$ ]]; then die "retención inválida"; fi
+[ -n "$REMOTE" ] || die_code not_configured "falta GROWTH_BACKUP_REMOTE en $GROWTH_BACKUP_CONF"
+[[ $DB =~ ^[A-Za-z0-9_]+$ ]] || die_code bad_config "nombre de base inválido"
+if ! [[ $KEEP_DAYS =~ ^[0-9]+$ ]]; then die_code bad_config "retención inválida"; fi
 require "$CLIENT" rclone curl
+remote_exists "$REMOTE" || die_code not_configured "el remoto «${REMOTE%%:*}» no existe en la configuración de rclone"
 mkdir -p "$BASE"
 
 CFG=$(ch_config "$CH_HOST" "$CH_PORT" "$CH_USER" "$CH_PASS")
@@ -71,6 +74,7 @@ fi
 if [ -e "$BASE/$NAME" ]; then NAME=${NAME%.zip}-$(date -u +%H%M%S).zip; fi
 
 log "Copia $KIND de ClickHouse: $NAME (base $DB)."
+job_step dump
 BEFORE=$(counts)
 if [ "$KIND" = full ]; then
     ch "BACKUP DATABASE \`$DB\` TO Disk('backups', '$NAME')" >/dev/null
@@ -82,13 +86,16 @@ fi
 AFTER=$(counts)
 printf '{"backup":"%s","kind":"%s","base":"%s","database":"%s","before":%s,"after":%s}\n' \
     "$NAME" "$KIND" "$BASE_NAME" "$DB" "$BEFORE" "$AFTER" >"$BASE/${NAME%.zip}.manifest.json"
+SIZE=$(stat -c %s "$BASE/$NAME")
 log "Copia lista: $NAME ($(du -h "$BASE/$NAME" | cut -f1))."
 
+job_step upload
 rclone copy "$BASE" "$REMOTE/clickhouse" --include "$NAME" --include "${NAME%.zip}.manifest.json" ${BASE_NAME:+--include "$BASE_NAME"}
 log "Subida a $REMOTE/clickhouse."
 
 # Retención local: incrementales de más de 8 días y completas de más de 15, pero nunca la última completa
 # (las incrementales de la semana dependen de ella).
+job_step cleanup
 NEWEST_FULL=$(find "$BASE" -maxdepth 1 -type f -name 'full-*.zip' -printf '%f\n' | sort | tail -n 1)
 find "$BASE" -maxdepth 1 -type f \( -name 'incr-*.zip' -o -name 'incr-*.manifest.json' \) -mmin +$((8 * 1440)) -delete
 find "$BASE" -maxdepth 1 -type f \( -name 'full-*.zip' -o -name 'full-*.manifest.json' \) -mmin +$((15 * 1440)) \
@@ -97,5 +104,6 @@ find "$BASE" -maxdepth 1 -type f \( -name 'full-*.zip' -o -name 'full-*.manifest
 rclone delete "$REMOTE/clickhouse" --min-age "${KEEP_DAYS}d" --include 'incr-*'
 rclone delete "$REMOTE/clickhouse" --min-age "$((KEEP_DAYS + 7))d" --include 'full-*'
 
+job_status succeeded "" "" "$NAME" "$SIZE"
 heartbeat "$HEARTBEAT"
 log "ClickHouse: copia $NAME lista."

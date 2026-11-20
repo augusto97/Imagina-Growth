@@ -28,14 +28,17 @@ finish() {
     [ "$code" -eq 0 ] && return 0
     log "La copia de MariaDB falló (código $code)."
     rm -rf "$WORK" "$BASE/$STAMP.tar.zst.partial"
+    job_failed "$code"
     heartbeat "$HEARTBEAT" fail
 }
 trap 'finish $?' EXIT
+job_begin mariadb
 
-[ -n "$REMOTE" ] || die "falta GROWTH_BACKUP_REMOTE en $GROWTH_BACKUP_CONF"
-[[ $DB =~ ^[A-Za-z0-9_]+$ ]] || die "nombre de base inválido"
-if ! [[ $KEEP_DAYS =~ ^[0-9]+$ && $LOCAL_DAYS =~ ^[0-9]+$ ]]; then die "retención inválida"; fi
+[ -n "$REMOTE" ] || die_code not_configured "falta GROWTH_BACKUP_REMOTE en $GROWTH_BACKUP_CONF"
+[[ $DB =~ ^[A-Za-z0-9_]+$ ]] || die_code bad_config "nombre de base inválido"
+if ! [[ $KEEP_DAYS =~ ^[0-9]+$ && $LOCAL_DAYS =~ ^[0-9]+$ ]]; then die_code bad_config "retención inválida"; fi
 require mariadb-backup mariadb tar zstd rclone curl
+remote_exists "$REMOTE" || die_code not_configured "el remoto «${REMOTE%%:*}» no existe en la configuración de rclone"
 mkdir -p "$BASE/binlogs"
 # La carpeta común es 0711: ClickHouse (clickhouse/) y la instancia temporal de la prueba (restore-check/,
 # usuario mysql) tienen que poder entrar a su subcarpeta; nadie más puede listarla. Las copias de MariaDB, 0700.
@@ -62,15 +65,18 @@ counts() {
 }
 
 log "Copia de MariaDB $STAMP (base $DB)."
+job_step dump
 BEFORE=$(counts)
 mariadb-backup --backup --user=root --target-dir="$WORK"
 mariadb-backup --prepare --target-dir="$WORK"
 AFTER=$(counts)
 
+job_step compress
 tar -C "$BASE" -I 'zstd -T0 -3' -cf "$BASE/$STAMP.tar.zst.partial" "$STAMP"
 mv "$BASE/$STAMP.tar.zst.partial" "$BASE/$STAMP.tar.zst"
 rm -rf "$WORK"
 printf '{"stamp":"%s","database":"%s","before":%s,"after":%s}\n' "$STAMP" "$DB" "$BEFORE" "$AFTER" >"$BASE/$STAMP.manifest.json"
+SIZE=$(stat -c %s "$BASE/$STAMP.tar.zst")
 log "Copia lista: $STAMP.tar.zst ($(du -h "$BASE/$STAMP.tar.zst" | cut -f1))."
 
 # Binlogs cerrados: todos menos el que está en uso. Sin binlog activado, se omite.
@@ -85,14 +91,17 @@ else
     log "Sin binlogs: no se puede recuperar a un punto en el tiempo, solo a la copia diaria."
 fi
 
+job_step upload
 rclone copy "$BASE" "$REMOTE/mariadb" --include "$STAMP.tar.zst" --include "$STAMP.manifest.json" --include "binlogs/**"
 log "Subida a $REMOTE/mariadb."
 
 # Retención: local, unos días (para restaurar rápido); en el remoto, GROWTH_BACKUP_KEEP_DAYS.
+job_step cleanup
 prune_local "$BASE" '*.tar.zst' $((LOCAL_DAYS * 1440))
 prune_local "$BASE" '*.manifest.json' $((LOCAL_DAYS * 1440))
 prune_local "$BASE/binlogs" '*' $((LOCAL_DAYS * 1440))
 rclone delete "$REMOTE/mariadb" --min-age "${KEEP_DAYS}d" --include '*.tar.zst' --include '*.manifest.json' --include 'binlogs/**'
 
+job_status succeeded "" "" "$STAMP.tar.zst" "$SIZE"
 heartbeat "$HEARTBEAT"
 log "MariaDB: copia $STAMP lista."

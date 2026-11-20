@@ -35,11 +35,13 @@ setup() {
     export GROWTH_BACKUP_DIR=$TMPROOT/backups GROWTH_BACKUP_CONF=$TMPROOT/backup.conf GROWTH_ENV_FILE=$TMPROOT/.env
     export CLICKHOUSE_CLIENT=$FAKEBIN/clickhouse-client MARIADBD=$FAKEBIN/mariadbd
     export GROWTH_MYSQL_USER=- GROWTH_CLICKHOUSE_OWNER=-
-    unset FAKE_FAIL FAKE_BINLOGS FAKE_RESTORED_COUNT_contacts FAKE_CH_RESTORED_EVENTS GROWTH_BACKUP_DOW FAKE_CURL_EXIT
+    # Donde las copias dejan su resultado para el panel (shared/state).
+    export GROWTH_STATE_DIR=$TMPROOT/state
+    unset FAKE_FAIL FAKE_BINLOGS FAKE_RESTORED_COUNT_contacts FAKE_CH_RESTORED_EVENTS GROWTH_BACKUP_DOW FAKE_CURL_EXIT RCLONE_CONFIG
     make_fakes
     export PATH="$FAKEBIN:$ORIG_PATH"
     : >"$CALLS"
-    mkdir -p "$FAKE_REMOTE/growth" "$FAKE_DATADIR" "$GROWTH_BACKUP_DIR" "$TMPROOT/tmp"
+    mkdir -p "$FAKE_REMOTE/growth" "$FAKE_DATADIR" "$GROWTH_BACKUP_DIR" "$TMPROOT/tmp" "$GROWTH_STATE_DIR"
     export TMPDIR=$TMPROOT/tmp
     for n in 1 2 3; do echo "binlog $n" >"$FAKE_DATADIR/mariadb-bin.00000$n"; done
     cat >"$GROWTH_BACKUP_CONF" <<'CONF'
@@ -127,6 +129,16 @@ check "avisa al heartbeat" 'called "curl https://uptime.example/api/v1/heartbeat
 check "no escribe la URL del heartbeat en el log" '! grep -q "uptime.example" "$TMPROOT/out.log"'
 check "permisos: carpeta común 0711 (ClickHouse y mysql entran a su subcarpeta), copias de MariaDB 0700" \
     '[ "$(stat -c %a "$GROWTH_BACKUP_DIR")" = 711 ] && [ "$(stat -c %a "$GROWTH_BACKUP_DIR/mariadb")" = 700 ]'
+J=$GROWTH_STATE_DIR/backup-job-mariadb.json
+check "deja el resultado para el panel: bien, con la copia y su tamaño (0644)" \
+    '[ "$(jq -r .state "$J")" = succeeded ] && [ "$(jq -r .name "$J")" = "$STAMP" ] && [ "$(jq -r .size_bytes "$J")" -gt 0 ] && [ "$(jq -r .last_success.name "$J")" = "$STAMP" ] && [ "$(stat -c %a "$J")" = 644 ]'
+check "el resultado no trae el heartbeat" '! grep -q "uptime.example" "$J"'
+# Una corrida que falla después: el panel ve la falla en palabras y sigue viendo la última copia buena.
+export FAKE_FAIL=mariadb-backup
+"$BACKUP/growth-backup-mariadb" >/dev/null 2>&1
+check "la falla dice en qué paso, y conserva la última copia buena" \
+    '[ "$(jq -r .state "$J")" = failed ] && [ "$(jq -r .code "$J")" = dump_failed ] && jq -r .message "$J" | grep -q "base de datos" && [ "$(jq -r .last_success.name "$J")" = "$STAMP" ]'
+unset FAKE_FAIL
 teardown
 
 setup "MariaDB: si mariadb-backup falla, avisa a /fail y no deja basura"
@@ -146,6 +158,40 @@ code=$?
 check "termina con error" '[ $code -ne 0 ]'
 check "explica qué falta" 'grep -q "falta GROWTH_BACKUP_REMOTE" "$TMPROOT/out.log"'
 check "avisa a /fail" 'called "/MARIADB/fail"'
+check "el panel ve «sin destino»" '[ "$(jq -r .code "$GROWTH_STATE_DIR/backup-job-mariadb.json")" = not_configured ]'
+teardown
+
+setup "Un remoto que no existe en rclone (la plantilla vieja) es «sin destino», no una subida fallida"
+sed -i 's/^GROWTH_BACKUP_REMOTE=.*/GROWTH_BACKUP_REMOTE=storagebox-crypt:growth/' "$GROWTH_BACKUP_CONF"
+"$BACKUP/growth-backup-mariadb" >"$TMPROOT/out.log" 2>&1
+code=$?
+check "termina con error antes de copiar" '[ $code -ne 0 ] && ! called "mariadb-backup"'
+check "lo explica y el panel ve not_configured" 'grep -q "no existe en la configuración de rclone" "$TMPROOT/out.log" && [ "$(jq -r .code "$GROWTH_STATE_DIR/backup-job-mariadb.json")" = not_configured ]'
+"$BACKUP/growth-backup-clickhouse" >/dev/null 2>&1
+check "ClickHouse igual" '[ "$(jq -r .code "$GROWTH_STATE_DIR/backup-job-clickhouse.json")" = not_configured ]'
+teardown
+
+setup "El resultado para el panel nunca sigue un symlink ni hace fallar la copia"
+echo intacto >"$TMPROOT/victima"
+ln -s "$TMPROOT/victima" "$GROWTH_STATE_DIR/backup-job-mariadb.json"
+"$BACKUP/growth-backup-mariadb" >"$TMPROOT/out.log" 2>&1
+code=$?
+check "la copia termina bien" '[ $code -eq 0 ]'
+check "el archivo apuntado no cambió y el resultado quedó en su lugar" '[ "$(cat "$TMPROOT/victima")" = intacto ] && [ ! -L "$GROWTH_STATE_DIR/backup-job-mariadb.json" ] && [ "$(jq -r .state "$GROWTH_STATE_DIR/backup-job-mariadb.json")" = succeeded ]'
+rm -f "$GROWTH_STATE_DIR/backup-job-mariadb.json"
+mkdir "$GROWTH_STATE_DIR/backup-job-mariadb.json"
+"$BACKUP/growth-backup-mariadb" >"$TMPROOT/out.log" 2>&1
+check "si no se puede escribir (una carpeta en su lugar), la copia sigue bien" '[ $? -eq 0 ] && called "/MARIADB"'
+teardown
+
+setup "Con la configuración del panel, rclone usa la suya (GROWTH_RCLONE_CONFIG)"
+printf '[growth-backup]\ntype = crypt\n' >"$TMPROOT/backup-rclone.conf"
+printf 'GROWTH_RCLONE_CONFIG=%s\n' "$TMPROOT/backup-rclone.conf" >>"$GROWTH_BACKUP_CONF"
+cat >>"$FAKEBIN/rclone" <<'SH'
+echo "RCLONE_CONFIG=${RCLONE_CONFIG:-}" >>"$CALLS"
+SH
+"$BACKUP/growth-backup-mariadb" >/dev/null 2>&1
+check "rclone recibe RCLONE_CONFIG del panel" 'called "RCLONE_CONFIG=$TMPROOT/backup-rclone.conf"'
 teardown
 
 setup "MariaDB: la retención borra solo lo viejo (local 2 días, remoto 30)"
@@ -180,6 +226,9 @@ check "la contraseña va en el archivo de configuración (0600, escapada) y nunc
     'grep -q "<password>s3cr&amp;t&lt;&quot;x&gt;</password>" "$TMPROOT/last-ch-config.xml" && [ "$(cat "$TMPROOT/last-ch-config.mode")" = 600 ] && ! grep -q "s3cr" "$CALLS"'
 check "no deja el archivo de configuración temporal" '[ -z "$(ls -A "$TMPROOT/tmp")" ]'
 check "avisa al heartbeat" 'called "curl https://uptime.example/api/v1/heartbeat/CLICKHOUSE" && ! called "/CLICKHOUSE/fail"'
+check "deja el resultado para el panel (la incremental, con su tamaño)" \
+    '[ "$(jq -r .state "$GROWTH_STATE_DIR/backup-job-clickhouse.json")" = succeeded ] && [ "$(jq -r .name "$GROWTH_STATE_DIR/backup-job-clickhouse.json")" = "incr-$TODAY.zip" ] && [ "$(jq -r .size_bytes "$GROWTH_STATE_DIR/backup-job-clickhouse.json")" -gt 0 ]'
+check "sin la contraseña de ClickHouse en el resultado" '! grep -q "s3cr" "$GROWTH_STATE_DIR/backup-job-clickhouse.json"'
 teardown
 
 setup "ClickHouse: los domingos siempre es completa"
@@ -239,6 +288,7 @@ check "borró la base temporal" 'called "DROP DATABASE IF EXISTS \`growth_restor
 check "no queda la instancia temporal corriendo" '! pgrep -f "growth-fake-mariadbd" >/dev/null'
 check "no queda el datadir temporal ni lo bajado" '[ ! -e "$GROWTH_BACKUP_DIR/restore-check" ] && [ -z "$(find "$GROWTH_BACKUP_DIR/clickhouse" -type f)" ]'
 check "avisa al heartbeat" 'called "curl https://uptime.example/api/v1/heartbeat/VERIFY" && ! called "/VERIFY/fail"'
+check "deja el resultado para el panel" '[ "$(jq -r .state "$GROWTH_STATE_DIR/backup-job-verify.json")" = succeeded ] && jq -r .name "$GROWTH_STATE_DIR/backup-job-verify.json" | grep -q "incr-"'
 teardown
 
 setup "Restauración: un conteo distinto falla, avisa a /fail y limpia igual"
@@ -251,6 +301,7 @@ export FAKE_RESTORED_COUNT_contacts=999 FAKE_CH_RESTORED_EVENTS=7
 code=$?
 check "termina con error" '[ $code -ne 0 ]'
 check "dice qué no coincide (MariaDB y ClickHouse)" 'grep -q "MariaDB contacts: 999, se esperaba entre 10 y 10" "$TMPROOT/out.log" && grep -q "ClickHouse events: 7, se esperaba entre 1000 y 1000" "$TMPROOT/out.log"'
+check "el panel ve que no coincide y qué conteo" '[ "$(jq -r .code "$GROWTH_STATE_DIR/backup-job-verify.json")" = verify_mismatch ] && jq -r .message "$GROWTH_STATE_DIR/backup-job-verify.json" | grep -q "MariaDB contacts: 999"'
 check "avisa a /fail" 'called "/VERIFY/fail"'
 check "apaga la instancia temporal" '! pgrep -f "growth-fake-mariadbd" >/dev/null'
 check "borra el datadir temporal y la base temporal" '[ ! -e "$GROWTH_BACKUP_DIR/restore-check" ] && called "DROP DATABASE IF EXISTS \`growth_restore_check\` SYNC"'
@@ -268,7 +319,12 @@ code=$?
 check "termina con error" '[ $code -ne 0 ]'
 check "explica que no arrancó" 'grep -q "no arrancó" "$TMPROOT/out.log"'
 check "avisa a /fail y limpia" 'called "/VERIFY/fail" && [ ! -e "$GROWTH_BACKUP_DIR/restore-check" ]'
+check "el panel ve que la instancia no arrancó" '[ "$(jq -r .code "$GROWTH_STATE_DIR/backup-job-verify.json")" = restore_failed ]'
 teardown
 
 printf '\n%d pruebas: %d bien, %d mal\n' $((PASS + FAIL)) "$PASS" "$FAIL"
-[ "$FAIL" -eq 0 ]
+
+# El despachador de Plataforma → Copias de seguridad (pedidos del panel) tiene su propio arnés.
+PATH=$ORIG_PATH bash "$HERE/dispatch.sh"
+DISPATCH_OK=$?
+[ "$FAIL" -eq 0 ] && [ "$DISPATCH_OK" -eq 0 ]

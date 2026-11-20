@@ -55,10 +55,12 @@ test_update_ok() {
     assert_contains "$(cat "$GROWTH_LIB_DIR/bin/growth-update-dispatch")" "0.2.0" "dispatch nuevo instalado"
     assert_contains "$(cat "$GROWTH_LIB_DIR/bin/growth-env")" "0.2.0" "growth-env nuevo instalado"
     assert_contains "$(cat "$GROWTH_LIB_DIR/backup/growth-backup-mariadb")" "0.2.0" "copias nuevas instaladas"
+    assert_contains "$(cat "$GROWTH_LIB_DIR/backup/growth-backup-dispatch")" "0.2.0" "despachador de las copias del panel instalado (también si no estaba)"
     assert_eq "$(stat -c %a "$GROWTH_LIB_DIR/bin/growth-update")" 755 "modo 0755"
     assert_eq "$(find "$GROWTH_LIB_DIR" -name '.inst.*' | wc -l)" 0 "sin temporales en la carpeta de scripts"
     assert_contains "$c" "mariadb-dump igr" "copia de MariaDB"
     assert_contains "$c" "systemctl daemon-reload" "unidades nuevas"
+    assert_exists "$SYSTEMD_UNIT_DIR/growth-backup.path" "una unidad nueva de la versión (las copias del panel) se copia"
     # Orden: copia y migraciones antes del cambio; el cambio antes de los reinicios.
     local line_dump line_migrate line_restart
     line_dump=$(grep -n 'mariadb-dump' "$FAKE/calls.log" | cut -d: -f1)

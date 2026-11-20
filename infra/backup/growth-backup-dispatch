@@ -1,0 +1,692 @@
+#!/usr/bin/env bash
+# growth-backup-dispatch — atiende los pedidos de Plataforma → Copias de seguridad (docs/despliegue.md §6).
+# Lo arranca growth-backup.path (root) cuando el panel deja shared/state/backup-request.json. Vive en
+# /usr/local/lib/growth/backup como los demás scripts de root: nunca corre desde una ruta que «growth» pueda escribir.
+#
+# El pedido lo escribe la app (usuario growth) y es un dato NO confiable: se mueve primero a una carpeta solo de
+# root (mv no sigue symlinks), se valida cada campo con una lista blanca y nunca se copia tal cual a ningún lado.
+# Acciones: configure (guardar el destino), test (probar la conexión), backup_now (copia ahora), install_key
+# (instalar la llave SSH en el Storage Box con su contraseña, que no se guarda) y refresh (solo el estado).
+# Sin pedido, solo vuelve a escribir el estado (lo corre growth-system al activarlo).
+#
+# Lo que escribe (todo con un temporal + rename):
+#   /etc/growth/backup.conf            0600  destino, retención y heartbeats (lo leen las copias)
+#   /etc/growth/backup-rclone.conf     0600  remotos de rclone: sftp al Storage Box y crypt encima
+#   /etc/growth/backup-ssh/            0700  llave SSH (se genera una sola vez) y known_hosts del Storage Box
+#   /var/lib/growth-backup/            0700  el pedido mientras se atiende, el candado y el estado interno
+#   shared/state/backup-status.json    0644  estado para el panel, sin secretos
+#   shared/state/backup-job-*.json     0644  «en cola» al pedir una copia ahora (después los escriben las copias)
+# Secretos (contraseña del Storage Box, frase de cifrado, heartbeats): solo en archivos 0600 de root; nunca en la
+# línea de comandos (rclone obscure los lee de la entrada), en los logs ni en shared/state.
+# shellcheck disable=SC2016  # los filtros de jq que recibe istate_update llevan $ literales
+set -Eeuo pipefail
+umask 077
+export LC_ALL=C
+
+GROWTH_ROOT=${GROWTH_ROOT:-/opt/growth}
+ETC_DIR=${GROWTH_ETC:-/etc/growth}
+export GROWTH_STATE_DIR=${GROWTH_STATE_DIR:-$GROWTH_ROOT/shared/state}
+export GROWTH_BACKUP_CONF=${GROWTH_BACKUP_CONF:-$ETC_DIR/backup.conf}
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=growth-backup-lib.sh
+. "$(dirname "$(readlink -f "$0")")/growth-backup-lib.sh"
+
+RCLONE_CONF=${GROWTH_RCLONE_CONF:-$ETC_DIR/backup-rclone.conf}
+SSH_DIR=${GROWTH_BACKUP_SSH_DIR:-$ETC_DIR/backup-ssh}
+KEY=$SSH_DIR/id_ed25519
+KNOWN=$SSH_DIR/known_hosts
+WORK=${GROWTH_BACKUP_WORK:-/var/lib/growth-backup}
+RCLONE=${RCLONE:-rclone}
+SSH_KEYGEN=${SSH_KEYGEN:-ssh-keygen}
+SSH_KEYSCAN=${SSH_KEYSCAN:-ssh-keyscan}
+SYSTEMCTL=${SYSTEMCTL:-systemctl}
+REQUEST=$GROWTH_STATE_DIR/backup-request.json
+STATUS=$GROWTH_STATE_DIR/backup-status.json
+INTERNAL=$WORK/state.json
+PICKED=$WORK/request.json
+MAX_BYTES=32768
+# Nombres de los remotos que escribe el panel; las copias van a «growth-backup:growth» (cifradas).
+SFTP_REMOTE=growth-storagebox
+CRYPT_REMOTE=growth-backup
+REMOTE_DIR=growth
+PANEL_REMOTE=$CRYPT_REMOTE:$REMOTE_DIR
+TIMERS=(growth-backup-mariadb.timer growth-backup-clickhouse.timer growth-backup-verify.timer)
+JOB_UNITS=(growth-backup-mariadb.service growth-backup-clickhouse.service)
+
+# Listas blancas (también las aplica el panel, pero aquí mandan).
+RE_HOST='^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$'
+RE_USER='^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'
+RE_PATH='^[A-Za-z0-9][A-Za-z0-9._-]{0,63}(/[A-Za-z0-9][A-Za-z0-9._-]{0,63}){0,4}$'
+RE_HEARTBEAT='^https://(uptime\.betterstack\.com|betteruptime\.com|uptime\.betteruptime\.com)/api/v1/heartbeat/[A-Za-z0-9_-]{8,128}$'
+RE_ID='^bkp_[A-Za-z0-9]{6,40}$'
+RE_BY='^[A-Za-z0-9_]{1,64}$'
+RE_OBSCURED='^[A-Za-z0-9_-]{8,1024}$'
+
+now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+# ── Estado interno (root) y estado para el panel ─────────────────────────────────
+
+# istate_update FILTRO [argumentos de jq]: cambia el estado interno ($WORK/state.json, solo de root).
+istate_update() {
+    local filter=$1 cur tmp
+    shift
+    cur=$(cat "$INTERNAL" 2>/dev/null || true)
+    jq -e 'type == "object"' >/dev/null 2>&1 <<<"$cur" || cur='{}'
+    tmp=$(mktemp "$WORK/.state.XXXXXX")
+    jq "$@" "$filter" <<<"$cur" >"$tmp"
+    mv -fT "$tmp" "$INTERNAL"
+}
+istate() { jq -c "$1" "$INTERNAL" 2>/dev/null || echo null; }
+
+# rclone_get SECCIÓN CLAVE: valor de la configuración de rclone que escribe el panel.
+rclone_get() {
+    [[ -f $RCLONE_CONF ]] || return 0
+    awk -v s="[$1]" -v k="$2" '
+        /^\[/ { in_s = ($0 == s); next }
+        in_s {
+            line = $0; sub(/^[ \t]+/, "", line); n = index(line, "=")
+            if (n > 0) { key = substr(line, 1, n - 1); gsub(/[ \t]+$/, "", key)
+                if (key == k) { val = substr(line, n + 1); sub(/^[ \t]+/, "", val); print val; exit } }
+        }' "$RCLONE_CONF"
+}
+
+bconf() { dotenv_get "$GROWTH_BACKUP_CONF" "$1"; }
+
+# ¿Hay destino? Imprime managed (el del panel), manual (uno puesto a mano cuyo remoto existe en la configuración de
+# rclone) o none. La plantilla de backup.conf de las versiones anteriores traía un remoto de ejemplo
+# (storagebox-crypt:growth) que en un servidor sin configurar no existe: eso no cuenta como configurado.
+destination_state() {
+    local remote cfg args=()
+    remote=$(bconf GROWTH_BACKUP_REMOTE)
+    if [[ -z $remote ]]; then
+        echo none
+    elif [[ $remote == "$PANEL_REMOTE" && -f $RCLONE_CONF && -n $(bconf GROWTH_BACKUP_SFTP_HOST) ]]; then
+        echo managed
+    else
+        cfg=$(bconf GROWTH_RCLONE_CONFIG)
+        [[ $cfg == /* && -f $cfg ]] && args=(--config "$cfg")
+        if "$RCLONE" "${args[@]}" listremotes 2>/dev/null | grep -qxF -- "${remote%%:*}:"; then echo manual; else echo none; fi
+    fi
+}
+fingerprint() { "$SSH_KEYGEN" -lf "$1" 2>/dev/null | awk 'NR == 1 {print $2}' || true; }
+
+timers_enabled() {
+    local t
+    for t in "${TIMERS[@]}"; do
+        [[ $("$SYSTEMCTL" is-enabled "$t" 2>/dev/null || true) == enabled ]] || { echo false; return 0; }
+    done
+    echo true
+}
+
+# El estado para el panel: lo que dice backup.conf (sin secretos: de los secretos, solo si están), la llave
+# pública, la huella del servidor y el último pedido y la última prueba. Temporal + rename en la carpeta sticky.
+publish_status() {
+    local remote host port user path auth keep managed=false configured=false pub="" keyfp="" hostfp="" tmp dest
+    [[ -d $GROWTH_STATE_DIR ]] || return 0
+    remote=$(bconf GROWTH_BACKUP_REMOTE)
+    host=$(bconf GROWTH_BACKUP_SFTP_HOST)
+    port=$(bconf GROWTH_BACKUP_SFTP_PORT)
+    user=$(bconf GROWTH_BACKUP_SFTP_USER)
+    path=$(bconf GROWTH_BACKUP_SFTP_PATH)
+    auth=$(bconf GROWTH_BACKUP_SFTP_AUTH)
+    keep=$(bconf GROWTH_BACKUP_KEEP_DAYS)
+    dest=$(destination_state)
+    [[ $dest != none ]] && configured=true
+    [[ $dest == managed ]] && managed=true
+    [[ $port =~ ^[0-9]{1,5}$ ]] || port=""
+    [[ $keep =~ ^[0-9]{1,4}$ ]] || keep=""
+    if [[ -f $KEY.pub ]]; then
+        pub=$(head -n 1 "$KEY.pub" | tr -cd '[:print:]')
+        keyfp=$(fingerprint "$KEY.pub")
+    fi
+    [[ -s $KNOWN ]] && hostfp=$(fingerprint "$KNOWN")
+    tmp=$(mktemp "$GROWTH_STATE_DIR/.tmp.XXXXXX")
+    jq -n --arg at "$(now)" --argjson configured "$configured" --argjson managed "$managed" --arg remote "$remote" \
+        --arg host "$host" --arg port "$port" --arg user "$user" --arg path "$path" --arg auth "$auth" --arg keep "$keep" \
+        --argjson has_pass "$([[ -n $(rclone_get "$SFTP_REMOTE" pass) ]] && echo true || echo false)" \
+        --argjson has_enc "$([[ -n $(rclone_get "$CRYPT_REMOTE" password) ]] && echo true || echo false)" \
+        --argjson hb_m "$([[ -n $(bconf BETTERSTACK_HEARTBEAT_BACKUP_MARIADB) ]] && echo true || echo false)" \
+        --argjson hb_c "$([[ -n $(bconf BETTERSTACK_HEARTBEAT_BACKUP_CLICKHOUSE) ]] && echo true || echo false)" \
+        --argjson hb_v "$([[ -n $(bconf BETTERSTACK_HEARTBEAT_BACKUP_VERIFY) ]] && echo true || echo false)" \
+        --argjson timers "$(timers_enabled)" --arg pub "$pub" --arg keyfp "$keyfp" --arg hostfp "$hostfp" \
+        --argjson last_request "$(istate '.last_request // null')" --argjson last_test "$(istate '.last_test // null')" \
+        --argjson key_created "$(istate '.key_created_at // null')" '
+        def nn: if . == "" then null else . end;
+        {version: 1, updated_at: $at, configured: $configured, managed: $managed,
+         manual_remote: (if $configured and ($managed | not) then $remote else null end),
+         destination: (if $managed then {host: $host, port: ($port | nn | if . == null then null else tonumber end), user: $user,
+                        path: $path, auth: (if $auth == "password" then "password" else "key" end),
+                        keep_days: ($keep | nn | if . == null then null else tonumber end)} else null end),
+         secrets: {password: $has_pass, encryption: $has_enc},
+         heartbeats: {mariadb: $hb_m, clickhouse: $hb_c, verify: $hb_v},
+         timers_enabled: $timers,
+         ssh_key: (if $pub == "" then null else {public: $pub, fingerprint: ($keyfp | nn), created_at: $key_created} end),
+         host_key: (if $hostfp == "" then null else {fingerprint: $hostfp} end),
+         last_request: $last_request, last_test: $last_test}' >"$tmp"
+    chmod 0644 "$tmp"
+    mv -fT "$tmp" "$STATUS"
+}
+
+REQ_ID=""
+REQ_ACTION=""
+REQ_BY=""
+
+# request_state ESTADO [CÓDIGO] [MENSAJE]: el último pedido, para el panel.
+request_state() {
+    local state=$1 code=${2:-} msg=${3:-}
+    istate_update 'def nn: if . == "" then null else . end;
+        (if $id != "" and (.last_request.id // "") == $id then (.last_request.started_at // $at) else $at end) as $started
+        | .last_request = {id: ($id | nn), action: ($action | nn), requested_by: ($by | nn), state: $state,
+            code: ($code | nn), message: ($msg | nn),
+            started_at: (if $state == "running" then $at else $started end),
+            finished_at: (if $state == "running" then null else $at end)}' \
+        --arg id "$REQ_ID" --arg action "$REQ_ACTION" --arg by "$REQ_BY" --arg state "$state" --arg code "$code" \
+        --arg msg "$msg" --arg at "$(now)"
+    publish_status
+}
+
+# done_request y fail_request terminan el pedido en curso (la función que llama hace return).
+done_request() { request_state succeeded "" "$1"; }
+fail_request() {
+    log "Pedido ${REQ_ID:-sin id} (${REQ_ACTION:-?}) rechazado o fallido: $1${2:+ — $2}"
+    request_state failed "$1" "${2:-}"
+}
+
+# ── Lectura segura del pedido ────────────────────────────────────────────────────
+
+JSON=""
+# jstr RUTA (arreglo JSON): el texto; vacío si no es texto. Código 1 si trae caracteres de control.
+jstr() {
+    jq -r --argjson p "$1" 'getpath($p) | if type == "string" then (if test("[[:cntrl:]]") then error("ctrl") else . end) else empty end' <<<"$JSON" 2>/dev/null
+}
+jtype() { jq -r --argjson p "$1" 'getpath($p) | type' <<<"$JSON" 2>/dev/null || echo invalid; }
+jint() { jq -r --argjson p "$1" 'getpath($p) | if type == "number" and . == floor then tostring else empty end' <<<"$JSON" 2>/dev/null || true; }
+
+# ── Conexión ─────────────────────────────────────────────────────────────────────
+
+HOST="" PORT="" USER_NAME="" RPATH="" AUTH=""
+load_destination() {
+    HOST=$(bconf GROWTH_BACKUP_SFTP_HOST)
+    PORT=$(bconf GROWTH_BACKUP_SFTP_PORT)
+    USER_NAME=$(bconf GROWTH_BACKUP_SFTP_USER)
+    RPATH=$(bconf GROWTH_BACKUP_SFTP_PATH)
+    AUTH=$(bconf GROWTH_BACKUP_SFTP_AUTH)
+}
+
+RC_ERR=$WORK/rclone.err
+rc() { # rc <archivo de configuración o «-»> <argumentos…>: rclone con tiempos cortos; el error queda en $RC_ERR
+    local cfg=$1
+    shift
+    local args=(--contimeout 15s --timeout 30s --retries 1 --low-level-retries 1)
+    if [[ $cfg != - ]]; then args=(--config "$cfg" "${args[@]}"); fi
+    "$RCLONE" "${args[@]}" "$@" 2>"$RC_ERR"
+}
+
+TEST_CODE="" TEST_MSG=""
+# El error de rclone o de ssh-keyscan en palabras, sin secretos (rclone no imprime contraseñas).
+classify() { # classify <archivo de error>
+    local err
+    err=$(tr '\n\r' '  ' <"$1" 2>/dev/null | tr -cd '[:print:]' | tail -c 1500)
+    case ${err,,} in
+        *"no such host"* | *"name or service not known"* | *"server misbehaving"* | *"name resolution"* | *"could not resolve"*)
+            TEST_CODE=host_not_found
+            TEST_MSG="No se encontró el servidor «$HOST». Revisa el nombre (en Hetzner: uXXXXXX.your-storagebox.de)." ;;
+        *"connection refused"*)
+            TEST_CODE=connection_refused
+            TEST_MSG="El servidor rechazó la conexión en el puerto $PORT. En el Storage Box, activa SSH y usa el puerto 23." ;;
+        *knownhosts* | *"key mismatch"* | *"host key"*)
+            TEST_CODE=host_key_changed
+            TEST_MSG="La identidad del servidor cambió desde que se guardó la configuración. Si cambiaste de Storage Box, guarda el destino otra vez." ;;
+        *"unable to authenticate"* | *"no supported methods remain"* | *"auth fail"* | *"authentication fail"*)
+            TEST_CODE=auth_failed
+            if [[ $AUTH == password ]]; then
+                TEST_MSG="El Storage Box no aceptó el usuario o la contraseña."
+            else
+                TEST_MSG="El Storage Box no aceptó la llave SSH. Agrégala al Storage Box (o instálala con su contraseña) y vuelve a probar."
+            fi ;;
+        *"i/o timeout"* | *"timed out"* | *"deadline exceeded"* | *"no route to host"* | *"network is unreachable"*)
+            TEST_CODE=timeout
+            TEST_MSG="El servidor no respondió a tiempo. Revisa el nombre, el puerto y que el Storage Box acepte conexiones de afuera." ;;
+        *"permission denied"*)
+            TEST_CODE=permission_denied
+            TEST_MSG="El Storage Box no deja escribir en la carpeta «$RPATH»." ;;
+        *quota* | *"no space"* | *"disk full"*)
+            TEST_CODE=no_space
+            TEST_MSG="El Storage Box está lleno." ;;
+        *"bad password"* | *"failed to authenticate decrypted"* | *"not an encrypted file"*)
+            TEST_CODE=encryption_mismatch
+            TEST_MSG="En esa carpeta hay copias cifradas con otra frase de cifrado. Usa otra carpeta o la frase de antes." ;;
+        *)
+            TEST_CODE=unknown
+            TEST_MSG="No se pudo conectar con el Storage Box.${err:+ Detalle: ${err:0:300}}" ;;
+    esac
+}
+
+# known_hosts del Storage Box (se confía en la primera conexión: al guardar el destino se vuelve a leer).
+#   ensure_known_hosts [force]
+ensure_known_hosts() {
+    local tmp
+    [[ ${1:-} != force && -s $KNOWN ]] && return 0
+    install -d -m 0700 "$SSH_DIR"
+    tmp=$(mktemp "$SSH_DIR/.kh.XXXXXX")
+    if "$SSH_KEYSCAN" -T 10 -p "$PORT" -t ed25519,ecdsa,rsa "$HOST" >"$tmp" 2>"$WORK/keyscan.err" && grep -q '^[^#]' "$tmp"; then
+        chmod 0600 "$tmp"
+        mv -fT "$tmp" "$KNOWN"
+        return 0
+    fi
+    rm -f "$tmp"
+    classify "$WORK/keyscan.err"
+    # ssh-keyscan no dice nada cuando no hay respuesta.
+    if [[ $TEST_CODE == unknown ]]; then
+        TEST_CODE=timeout
+        TEST_MSG="El servidor «$HOST» no respondió en el puerto $PORT. Revisa el nombre, el puerto y que el Storage Box tenga SSH activado y acepte conexiones de afuera."
+    fi
+    return 1
+}
+
+# La llave SSH de las copias: se genera una sola vez (si existe, nunca se reemplaza).
+ensure_key() {
+    install -d -m 0700 "$SSH_DIR"
+    if [[ -f $KEY && ! -L $KEY ]]; then
+        if [[ ! -s $KEY.pub ]]; then
+            "$SSH_KEYGEN" -y -f "$KEY" >"$KEY.pub.tmp" && chmod 0644 "$KEY.pub.tmp" && mv -fT "$KEY.pub.tmp" "$KEY.pub"
+        fi
+        return 0
+    fi
+    rm -f "$KEY" "$KEY.pub"
+    local name
+    name=$( (hostname -s 2>/dev/null || true) | tr -cd 'A-Za-z0-9.-' | cut -c1-60)
+    "$SSH_KEYGEN" -q -t ed25519 -N "" -C "imagina-growth-backup@${name:-servidor}" -f "$KEY" </dev/null >/dev/null
+    chmod 0600 "$KEY"
+    chmod 0644 "$KEY.pub"
+    istate_update '.key_created_at = $at' --arg at "$(now)"
+    log "Llave SSH de las copias generada ($(fingerprint "$KEY.pub"))."
+}
+
+# Prueba de punta a punta: crea la carpeta, escribe un archivo pequeño (cifrado) y lo borra. Anota el resultado.
+LAST_FREE=""
+connection_test() {
+    local target cfg probe ok=false
+    TEST_CODE="" TEST_MSG="" LAST_FREE=""
+    if [[ $(destination_state) == managed ]]; then
+        load_destination
+        cfg=$RCLONE_CONF
+        target=$PANEL_REMOTE
+        ensure_known_hosts || { record_test false; return 0; }
+    else
+        # Configuración a mano (infra/backup/README.md): se prueba el remoto tal cual, con su rclone.conf.
+        target=$(bconf GROWTH_BACKUP_REMOTE)
+        cfg=-
+        local manual_cfg
+        manual_cfg=$(bconf GROWTH_RCLONE_CONFIG)
+        [[ $manual_cfg == /* && -f $manual_cfg ]] && cfg=$manual_cfg
+    fi
+    probe=$target/.prueba-de-conexion-$$
+    if ! rc "$cfg" mkdir "$target"; then
+        classify "$RC_ERR"
+    elif ! printf 'Imagina Growth: prueba de conexión\n' | rc "$cfg" rcat "$probe"; then
+        classify "$RC_ERR"
+    elif ! rc "$cfg" deletefile "$probe"; then
+        classify "$RC_ERR"
+    else
+        ok=true
+        if [[ $cfg != - ]]; then
+            LAST_FREE=$(rc "$cfg" about "$SFTP_REMOTE:" --json 2>/dev/null | jq -r '.free // empty | numbers | floor' 2>/dev/null || true)
+        fi
+    fi
+    record_test "$ok"
+}
+
+record_test() { # record_test true|false
+    istate_update '.last_test = {ok: $ok, code: ($code | if . == "" then null else . end), message: ($msg | if . == "" then null else . end),
+            at: $at, free_bytes: (if $free == "" then null else ($free | tonumber) end)}' \
+        --argjson ok "$1" --arg code "$TEST_CODE" --arg msg "$TEST_MSG" --arg at "$(now)" --arg free "$LAST_FREE"
+}
+
+obscure() { # stdin → la forma «obscured» de rclone (la contraseña nunca va en la línea de comandos)
+    local out
+    out=$("$RCLONE" obscure - 2>/dev/null) || return 1
+    [[ $out =~ $RE_OBSCURED ]] || return 1
+    printf '%s' "$out"
+}
+
+# put_secret DESTINO: escribe la entrada en DESTINO, 0600 de root, con un temporal + rename.
+put_secret() {
+    local dest=$1 tmp
+    tmp=$(mktemp "$(dirname "$dest")/.growth.XXXXXX")
+    cat >"$tmp"
+    chmod 0600 "$tmp"
+    mv -fT "$tmp" "$dest"
+}
+
+dq() { # valor entre comillas dobles en formato dotenv (lo lee dotenv_get)
+    local s=$1
+    s=${s//\\/\\\\}
+    s=${s//\"/\\\"}
+    s=${s//\$/\\\$}
+    s=${s//$'\n'/\\n}
+    printf '"%s"' "$s"
+}
+
+# ── Acciones ─────────────────────────────────────────────────────────────────────
+
+action_configure() {
+    local host port user path auth keep pw enc t hb_type hb_val k var
+    local -A hb=()
+    host=$(jstr '["config","host"]') || { fail_request invalid_request "El servidor trae caracteres no permitidos."; return 0; }
+    port=$(jint '["config","port"]')
+    user=$(jstr '["config","user"]') || { fail_request invalid_request "El usuario trae caracteres no permitidos."; return 0; }
+    path=$(jstr '["config","path"]') || { fail_request invalid_request "La carpeta trae caracteres no permitidos."; return 0; }
+    auth=$(jstr '["config","auth"]') || auth=""
+    keep=$(jint '["config","keep_days"]')
+    if ! { ((${#host} <= 253)) && [[ $host =~ $RE_HOST ]]; }; then fail_request invalid_host "El servidor no es un nombre válido."; return 0; fi
+    if ! { [[ $port =~ ^[0-9]{1,5}$ ]] && ((10#$port >= 1 && 10#$port <= 65535)); }; then fail_request invalid_port "El puerto no es válido."; return 0; fi
+    port=$((10#$port))
+    [[ $user =~ $RE_USER ]] || { fail_request invalid_user "El usuario no es válido."; return 0; }
+    [[ $path =~ $RE_PATH ]] || { fail_request invalid_path "La carpeta no es válida (solo letras, números, punto, guion y guion bajo)."; return 0; }
+    [[ $auth == key || $auth == password ]] || { fail_request invalid_auth "La forma de entrar no es válida."; return 0; }
+    if ! { [[ $keep =~ ^[0-9]{1,3}$ ]] && ((10#$keep >= 1 && 10#$keep <= 365)); }; then fail_request invalid_keep_days "Los días a conservar van de 1 a 365."; return 0; fi
+    keep=$((10#$keep))
+    pw=$(jstr '["secrets","password"]') || { fail_request invalid_password "La contraseña trae caracteres no permitidos."; return 0; }
+    enc=$(jstr '["secrets","encryption_password"]') || { fail_request invalid_encryption "La frase de cifrado trae caracteres no permitidos."; return 0; }
+    if [[ -n $pw ]] && ((${#pw} > 256)); then fail_request invalid_password "La contraseña es demasiado larga."; return 0; fi
+    if [[ -n $enc ]] && ((${#enc} < 12 || ${#enc} > 256)); then fail_request invalid_encryption "La frase de cifrado debe tener entre 12 y 256 caracteres."; return 0; fi
+    # Heartbeats: una URL la pone, "" la quita y null (o nada) deja la que había.
+    for k in mariadb clickhouse verify; do
+        var=BETTERSTACK_HEARTBEAT_BACKUP_${k^^}
+        hb_type=$(jtype "[\"config\",\"heartbeats\",\"$k\"]")
+        case $hb_type in
+            null) hb[$k]=$(bconf "$var") ;;
+            string)
+                hb_val=$(jstr "[\"config\",\"heartbeats\",\"$k\"]") || { fail_request invalid_heartbeat "El heartbeat trae caracteres no permitidos."; return 0; }
+                if [[ -n $hb_val && ! $hb_val =~ $RE_HEARTBEAT ]]; then
+                    fail_request invalid_heartbeat "El heartbeat de «$k» no es una URL de Better Stack (https://uptime.betterstack.com/api/v1/heartbeat/…)."
+                    return 0
+                fi
+                hb[$k]=$hb_val ;;
+            *) fail_request invalid_heartbeat "El heartbeat de «$k» no es válido."; return 0 ;;
+        esac
+    done
+
+    # Secretos: los nuevos se pasan a la forma de rclone; si no vienen, se conservan los que había.
+    local pass_obs="" enc_obs
+    if [[ $auth == password ]]; then
+        if [[ -n $pw ]]; then
+            pass_obs=$(printf '%s\n' "$pw" | obscure) || { fail_request internal "No se pudo guardar la contraseña (rclone)."; return 0; }
+        else
+            pass_obs=$(rclone_get "$SFTP_REMOTE" pass)
+            [[ $pass_obs =~ $RE_OBSCURED ]] || { fail_request password_required "Falta la contraseña del Storage Box."; return 0; }
+        fi
+    else
+        ensure_key
+    fi
+    if [[ -n $enc ]]; then
+        enc_obs=$(printf '%s\n' "$enc" | obscure) || { fail_request internal "No se pudo guardar la frase de cifrado (rclone)."; return 0; }
+    else
+        enc_obs=$(rclone_get "$CRYPT_REMOTE" password)
+        [[ $enc_obs =~ $RE_OBSCURED ]] || { fail_request encryption_required "Falta la frase de cifrado de las copias."; return 0; }
+    fi
+    pw="" enc=""
+
+    install -d -m 0700 "$SSH_DIR"
+    {
+        echo "# Lo escribe Plataforma → Copias de seguridad (growth-backup-dispatch). No lo edites a mano: se reemplaza."
+        echo "[$SFTP_REMOTE]"
+        echo "type = sftp"
+        echo "host = $host"
+        echo "user = $user"
+        echo "port = $port"
+        if [[ $auth == password ]]; then echo "pass = $pass_obs"; else echo "key_file = $KEY"; fi
+        echo "known_hosts_file = $KNOWN"
+        echo
+        echo "[$CRYPT_REMOTE]"
+        echo "type = crypt"
+        echo "remote = $SFTP_REMOTE:$path"
+        echo "filename_encryption = standard"
+        echo "directory_name_encryption = true"
+        echo "password = $enc_obs"
+    } | put_secret "$RCLONE_CONF"
+    pass_obs="" enc_obs=""
+
+    # backup.conf: lo que maneja el panel, más lo que se puso a mano y el panel no toca.
+    local local_days verify_remote extra=()
+    local_days=$(bconf GROWTH_BACKUP_LOCAL_DAYS)
+    [[ $local_days =~ ^[0-9]{1,3}$ ]] || local_days=2
+    verify_remote=$(bconf GROWTH_VERIFY_FROM_REMOTE)
+    [[ $verify_remote == 0 || $verify_remote == 1 ]] || verify_remote=1
+    for var in CLICKHOUSE_BACKUP_USER CLICKHOUSE_BACKUP_PASSWORD CLICKHOUSE_BACKUP_HOST CLICKHOUSE_BACKUP_PORT; do
+        t=$(bconf "$var")
+        [[ -n $t ]] && extra+=("$var=$(dq "$t")")
+    done
+    {
+        echo "# /etc/growth/backup.conf (docs/despliegue.md §6). root:root 0600."
+        echo "# Lo escribe Plataforma → Copias de seguridad; se reemplaza cada vez que se guarda el destino."
+        echo "GROWTH_BACKUP_REMOTE=$PANEL_REMOTE"
+        echo "GROWTH_RCLONE_CONFIG=$RCLONE_CONF"
+        echo "GROWTH_BACKUP_SFTP_HOST=$host"
+        echo "GROWTH_BACKUP_SFTP_PORT=$port"
+        echo "GROWTH_BACKUP_SFTP_USER=$user"
+        echo "GROWTH_BACKUP_SFTP_PATH=$path"
+        echo "GROWTH_BACKUP_SFTP_AUTH=$auth"
+        echo "GROWTH_BACKUP_KEEP_DAYS=$keep"
+        echo "GROWTH_BACKUP_LOCAL_DAYS=$local_days"
+        echo "GROWTH_VERIFY_FROM_REMOTE=$verify_remote"
+        echo "BETTERSTACK_HEARTBEAT_BACKUP_MARIADB=${hb[mariadb]}"
+        echo "BETTERSTACK_HEARTBEAT_BACKUP_CLICKHOUSE=${hb[clickhouse]}"
+        echo "BETTERSTACK_HEARTBEAT_BACKUP_VERIFY=${hb[verify]}"
+        if ((${#extra[@]} > 0)); then printf '%s\n' "${extra[@]}"; fi
+    } | put_secret "$GROWTH_BACKUP_CONF"
+
+    # Las copias automáticas quedan encendidas.
+    "$SYSTEMCTL" enable --now "${TIMERS[@]}" >/dev/null 2>&1 || log "No se pudieron encender los horarios de las copias."
+
+    # Se confía en la identidad del servidor al guardar (primera conexión) y se prueba enseguida.
+    load_destination
+    TEST_CODE="" TEST_MSG=""
+    if ensure_known_hosts force; then
+        connection_test
+    else
+        rm -f "$KNOWN"
+        record_test false
+    fi
+    log "Destino de las copias guardado: $user@$host:$port/$path ($auth)."
+    done_request "Configuración guardada."
+}
+
+action_test() {
+    if [[ $(destination_state) == none ]]; then
+        fail_request not_configured "Primero guarda el destino de las copias."
+        return 0
+    fi
+    connection_test
+    if [[ $(istate '.last_test.ok') == true ]]; then
+        done_request "La conexión funciona."
+    else
+        fail_request "${TEST_CODE:-unknown}" "$TEST_MSG"
+    fi
+}
+
+action_backup_now() {
+    local u state
+    if [[ $(destination_state) == none ]]; then
+        fail_request not_configured "Primero guarda el destino de las copias."
+        return 0
+    fi
+    for u in "${JOB_UNITS[@]}"; do
+        state=$("$SYSTEMCTL" show -p ActiveState --value "$u" 2>/dev/null || true)
+        if [[ $state == activating || $state == active || $state == reloading ]]; then
+            fail_request already_running "Ya hay una copia en curso."
+            return 0
+        fi
+    done
+    for u in mariadb clickhouse; do
+        JOB_KIND=$u JOB_STARTED=""
+        job_status queued
+    done
+    JOB_KIND=""
+    # Una después de la otra (growth-backup-clickhouse.service va después de la de MariaDB); sin esperar.
+    if ! "$SYSTEMCTL" start --no-block "${JOB_UNITS[@]}" >/dev/null 2>"$WORK/systemctl.err"; then
+        for u in mariadb clickhouse; do
+            JOB_KIND=$u
+            job_status failed start_failed "No se pudo iniciar la copia."
+        done
+        JOB_KIND=""
+        fail_request start_failed "No se pudo iniciar la copia."
+        return 0
+    fi
+    done_request "Copia iniciada: primero MariaDB y después ClickHouse."
+}
+
+action_install_key() {
+    local pw tmpcfg pass_obs existing keyline
+    load_destination
+    if [[ $(destination_state) != managed ]]; then
+        fail_request not_configured "Primero guarda el destino de las copias."
+        return 0
+    fi
+    if [[ $AUTH != key ]]; then
+        fail_request auth_not_key "El destino está configurado con contraseña: cámbialo a llave SSH para instalarla."
+        return 0
+    fi
+    pw=$(jstr '["secrets","password"]') || { fail_request invalid_password "La contraseña trae caracteres no permitidos."; return 0; }
+    if [[ -z $pw ]] || ((${#pw} > 256)); then fail_request password_required "Falta la contraseña del Storage Box."; return 0; fi
+    ensure_key
+    if ! ensure_known_hosts; then
+        record_test false
+        fail_request "$TEST_CODE" "$TEST_MSG"
+        return 0
+    fi
+    pass_obs=$(printf '%s\n' "$pw" | obscure) || { fail_request internal "No se pudo usar la contraseña (rclone)."; return 0; }
+    pw=""
+    # Configuración de un solo uso, con la contraseña, en la carpeta de root; se borra al terminar.
+    tmpcfg=$(mktemp "$WORK/.install.XXXXXX")
+    printf '[growth-install]\ntype = sftp\nhost = %s\nuser = %s\nport = %s\npass = %s\nknown_hosts_file = %s\n' \
+        "$HOST" "$USER_NAME" "$PORT" "$pass_obs" "$KNOWN" >"$tmpcfg"
+    pass_obs=""
+    AUTH=password
+    if ! rc "$tmpcfg" lsf growth-install: --max-depth 1 >/dev/null; then
+        classify "$RC_ERR"
+        rm -f "$tmpcfg"
+        fail_request "$TEST_CODE" "$TEST_MSG"
+        return 0
+    fi
+    existing=$(rc "$tmpcfg" cat growth-install:.ssh/authorized_keys 2>/dev/null | head -c 65536 || true)
+    keyline=$(head -n 1 "$KEY.pub")
+    if [[ $existing == *"$(cut -d' ' -f2 <<<"$keyline")"* ]]; then
+        log "La llave ya estaba en el Storage Box."
+    elif ! rc "$tmpcfg" mkdir growth-install:.ssh \
+        || ! { if [[ -n $existing ]]; then printf '%s\n' "$existing"; fi; printf '%s\n' "$keyline"; } | rc "$tmpcfg" rcat growth-install:.ssh/authorized_keys; then
+        classify "$RC_ERR"
+        rm -f "$tmpcfg"
+        fail_request key_install_failed "No se pudo instalar la llave en el Storage Box. ${TEST_MSG}"
+        return 0
+    fi
+    rm -f "$tmpcfg"
+    AUTH=key
+    connection_test
+    if [[ $(istate '.last_test.ok') == true ]]; then
+        done_request "Llave instalada en el Storage Box; la contraseña no se guardó."
+    else
+        fail_request "${TEST_CODE:-unknown}" "La llave se instaló, pero la prueba falló: $TEST_MSG"
+    fi
+}
+
+# ── Un pedido ────────────────────────────────────────────────────────────────────
+
+process_one() {
+    local size
+    REQ_ID="" REQ_ACTION="" REQ_BY="" JSON=""
+    rm -f "$PICKED"
+    # mv no sigue symlinks: un symlink se mueve como symlink y se rechaza abajo. Desde aquí el archivo está en una
+    # carpeta solo de root: la app ya no lo puede cambiar.
+    if ! mv -fT -- "$REQUEST" "$PICKED" 2>/dev/null; then
+        rm -f -- "$REQUEST" 2>/dev/null || true
+        fail_request invalid_request "No se pudo leer el pedido."
+        return 0
+    fi
+    if [[ -L $PICKED || ! -f $PICKED ]]; then
+        rm -rf -- "$PICKED"
+        fail_request invalid_request "El pedido no es un archivo normal."
+        return 0
+    fi
+    size=$(stat -c %s "$PICKED")
+    if ((size > MAX_BYTES)); then
+        rm -f -- "$PICKED"
+        fail_request invalid_request "El pedido es demasiado grande."
+        return 0
+    fi
+    JSON=$(cat -- "$PICKED")
+    rm -f -- "$PICKED"
+    if ! jq -e 'type == "object"' >/dev/null 2>&1 <<<"$JSON"; then
+        JSON=""
+        fail_request invalid_request "El pedido no es JSON válido."
+        return 0
+    fi
+    local id action by
+    id=$(jstr '["id"]') || id=""
+    action=$(jstr '["action"]') || action=""
+    by=$(jstr '["requested_by"]') || by=""
+    [[ $id =~ $RE_ID ]] && REQ_ID=$id
+    [[ $by =~ $RE_BY ]] && REQ_BY=$by
+    case $action in configure | test | backup_now | install_key | refresh) REQ_ACTION=$action ;; esac
+    if [[ -z $REQ_ID ]]; then JSON=""; fail_request invalid_request "El pedido no trae un identificador válido."; return 0; fi
+    if [[ -z $REQ_ACTION ]]; then JSON=""; fail_request invalid_request "Acción desconocida."; return 0; fi
+    if [[ -z $REQ_BY ]]; then JSON=""; fail_request invalid_request "El pedido no dice quién lo hizo."; return 0; fi
+    request_state running
+    log "Pedido $REQ_ID: $REQ_ACTION (de $REQ_BY)."
+    local tool
+    if [[ $REQ_ACTION != refresh ]]; then
+        for tool in "$RCLONE" "$SSH_KEYGEN" "$SSH_KEYSCAN"; do
+            if ! command -v "$tool" >/dev/null 2>&1; then
+                JSON=""
+                fail_request missing_tool "Falta el programa «${tool##*/}» en el servidor (paquetes rclone y openssh-client)."
+                return 0
+            fi
+        done
+    fi
+    case $REQ_ACTION in
+        configure) action_configure ;;
+        test) action_test ;;
+        backup_now) action_backup_now ;;
+        install_key) action_install_key ;;
+        refresh) done_request "Estado al día." ;;
+    esac
+    JSON=""
+}
+
+# ── Programa ─────────────────────────────────────────────────────────────────────
+
+MAIN_PID=$$
+# shellcheck disable=SC2317  # la llama la trampa de ERR
+on_error() {
+    local code=$? line=$1
+    [[ $BASHPID != "$MAIN_PID" ]] && exit "$code"
+    trap - ERR
+    JSON=""
+    rm -f -- "$PICKED" "$WORK"/.install.* 2>/dev/null || true
+    log "Error inesperado (línea $line, código $code)."
+    if [[ -n $REQ_ID ]]; then
+        request_state failed internal "Error inesperado en el servidor (línea $line). Vuelve a intentarlo; si sigue, revisa journalctl -u growth-backup-dispatch." || true
+    else
+        publish_status || true
+    fi
+    exit 1
+}
+trap 'on_error $LINENO' ERR
+
+install -d -m 0700 "$WORK"
+[[ -d $GROWTH_STATE_DIR ]] || { log "No existe $GROWTH_STATE_DIR."; exit 0; }
+exec 8>"$WORK/dispatch.lock"
+if ! flock -n 8; then
+    log "Ya hay otro despacho en curso; atiende también este pedido al terminar."
+    exit 0
+fi
+command -v jq >/dev/null 2>&1 || { log "Falta jq."; exit 1; }
+
+# Varios pedidos seguidos (p. ej. guardar y enseguida «copia ahora»): se atienden en orden.
+for _ in 1 2 3 4 5; do
+    [[ -e $REQUEST || -L $REQUEST ]] || break
+    process_one
+done
+publish_status
+exit 0

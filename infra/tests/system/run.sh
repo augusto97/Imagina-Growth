@@ -27,7 +27,11 @@ echo "systemctl $*" >>"$FAKE/calls.log"
 args=("$@"); [[ ${args[0]} == --no-block ]] && args=("${args[@]:1}")
 case "${args[0]}" in
     is-active) [[ ${args[1]} == --quiet ]] && u=${args[2]} || u=${args[1]}; grep -qx "$u" "$FAKE/active" 2>/dev/null; exit $? ;;
-    is-enabled) grep -qx "${args[1]}" "$FAKE/masked" 2>/dev/null && echo masked || echo enabled ;;
+    is-enabled)
+        if grep -qx "${args[1]}" "$FAKE/masked" 2>/dev/null; then echo masked
+        elif grep -qx "${args[1]}" "$FAKE/enabled" 2>/dev/null; then echo enabled
+        else echo disabled; fi ;;
+    enable) for u in "${args[@]:1}"; do [[ $u == --* ]] || echo "$u" >>"$FAKE/enabled"; done ;;
     mask) echo "${args[1]}" >>"$FAKE/masked" ;;
     unmask) sed -i "\#^${args[1]}\$#d" "$FAKE/masked" ;;
     show) u=${args[-1]}; cat "$FAKE/pid-$u" 2>/dev/null || echo 0 ;;
@@ -59,6 +63,8 @@ EOF
     GROWTH_CH_GROUP=$(id -gn)
     GROWTH_REDIS_GROUP=$GROWTH_CH_GROUP
     export PHP=${GROWTH_TEST_PHP:-php} GROWTH_USER GROWTH_CH_GROUP GROWTH_REDIS_GROUP
+    # Scripts de root y carpeta del despachador de copias, dentro del mundo falso (sin backup/: no se instala nada).
+    export GROWTH_LIB_DIR="$W/usr/local/lib/growth" GROWTH_BACKUP_WORK="$W/var/lib/growth-backup"
     unset GROWTH_SYSTEM_FORCE
 }
 run() { "$REPO/infra/bin/growth-system" "$@" >"$W/out.log" 2>&1; echo $?; }
@@ -286,6 +292,43 @@ cp "$GROWTH_CADDYFILE" "$W/caddy-antes"
 eq "$(GROWTH_MEMORY_MB=1638 run apply --install)" 0 "código de salida"
 eq "$(cat "$GROWTH_CADDYFILE")" "$(cat "$W/caddy-antes")" "lo reemplaza install.sh, no growth-system"
 [[ ! -e $GROWTH_CADDYFILE.growth.new ]] && ok || bad "sin versión nueva al lado ni aviso"
+rm -rf "$W"
+
+# 7. Copias desde el panel: un servidor de una versión anterior (sin despachador) lo recibe con la actualización.
+world "despachador de copias en una actualización"
+mkdir -p "$GROWTH_LIB_DIR/backup"
+echo "# librería vieja" >"$GROWTH_LIB_DIR/backup/growth-backup-lib.sh"
+cp "$REPO/infra/systemd/growth-backup.path" "$REPO/infra/systemd/growth-backup-dispatch.service" "$SYSTEMD_UNIT_DIR/"
+eq "$(GROWTH_MEMORY_MB=1638 run apply --update)" 0 "código de salida"
+cmp -s "$GROWTH_LIB_DIR/backup/growth-backup-dispatch" "$REPO/infra/backup/growth-backup-dispatch" && ok || bad "instala el despachador de la versión"
+cmp -s "$GROWTH_LIB_DIR/backup/growth-backup-lib.sh" "$REPO/infra/backup/growth-backup-lib.sh" && ok || bad "con su librería"
+eq "$(stat -c %a "$GROWTH_LIB_DIR/backup/growth-backup-dispatch")" 755 "permisos del despachador"
+has "$FAKE/calls.log" "systemctl enable growth-backup.path" "habilita la unidad .path"
+has "$FAKE/calls.log" "systemctl start growth-backup.path" "y la arranca"
+has "$W/out.log" "el panel ya puede configurarlas" "resumen"
+[[ -f $GROWTH_ROOT/shared/state/backup-status.json ]] && ok || bad "publica el primer estado para el panel"
+eq "$(jq -r '.configured' "$GROWTH_ROOT/shared/state/backup-status.json" 2>/dev/null)" false "sin destino todavía"
+# Ya habilitada y con el despachador: no se reinstala ni se vuelve a habilitar; uno instalado nunca se reemplaza.
+echo "# despachador de otra versión sana" >"$GROWTH_LIB_DIR/backup/growth-backup-dispatch"
+chmod 0755 "$GROWTH_LIB_DIR/backup/growth-backup-dispatch"
+: >"$FAKE/calls.log"
+rm -f "$GROWTH_SYSTEM_STATE/applied"
+eq "$(GROWTH_MEMORY_MB=1638 run apply --update)" 0 "segunda corrida"
+has "$GROWTH_LIB_DIR/backup/growth-backup-dispatch" "otra versión sana" "no reemplaza el instalado"
+hasnt "$FAKE/calls.log" "enable growth-backup.path" "no vuelve a habilitar"
+# Desde el hook (actualizador anterior): sin bloquear a systemd.
+sed -i '/growth-backup.path/d' "$FAKE/enabled"
+rm -f "$GROWTH_SYSTEM_STATE/applied"
+: >"$FAKE/calls.log"
+eq "$(GROWTH_MEMORY_MB=1638 run apply --hook)" 0 "hook"
+has "$FAKE/calls.log" "systemctl --no-block start growth-backup.path" "arranca sin esperar"
+rm -rf "$W"
+
+world "sin scripts de root (instalación a medias): no instala nada"
+cp "$REPO/infra/systemd/growth-backup.path" "$SYSTEMD_UNIT_DIR/"
+eq "$(GROWTH_MEMORY_MB=1638 run apply --update)" 0 "código de salida"
+[[ ! -e $GROWTH_LIB_DIR/backup/growth-backup-dispatch ]] && ok || bad "no crea /usr/local/lib/growth/backup"
+hasnt "$FAKE/calls.log" "enable growth-backup.path" "no habilita una unidad sin despachador"
 rm -rf "$W"
 
 # Plantilla: los marcadores y las anteriores guardadas para reconocer los Caddyfile sin editar.

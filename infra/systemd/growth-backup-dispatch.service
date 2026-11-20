@@ -1,0 +1,20 @@
+# Atiende el pedido del panel para las copias (docs/despliegue.md §6): guarda el destino en /etc/growth (0600),
+# genera la llave SSH si falta, prueba la conexión, lanza una copia ahora y deja el estado (sin secretos) en
+# shared/state. Corre como root y solo desde /usr/local/lib/growth (nunca de una ruta que growth pueda escribir).
+[Unit]
+Description=Imagina Growth · pedido de las copias de seguridad (despachador)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/usr/local/lib/growth/backup/growth-backup-dispatch
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/growth/backup/growth-backup-dispatch
+TimeoutStartSec=5min
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+SyslogIdentifier=growth-backup-dispatch

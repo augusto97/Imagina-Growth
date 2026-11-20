@@ -48,20 +48,29 @@ Todos los servicios `growth-*` tienen `PartOf=growth.target` y `WantedBy=growth.
   shared/                             growth   lo único que growth puede escribir
     .env                              0600     configuración y secretos (nunca en el repo)
     storage/                          Laravel storage: app/, framework/{cache,sessions,views}, logs/
-    state/                            pedido, estado e historial del actualizador (§5)
+    state/                            root:growth 1775 (sticky): pedidos del panel y estado que escribe root
+      update-request.json             growth 0600  pedido de actualización (§5)
+      update-status.json …            root 0644    estado, pedido en proceso e historial del actualizador (§5)
+      latest-release.json             growth       la última versión publicada que vio el panel (§5)
+      backup-request.json             growth 0600  pedido de Plataforma → Copias de seguridad; root lo toma enseguida (§6)
+      backup-status.json              root 0644    destino, llave pública, último pedido y última prueba, sin secretos (§6)
+      backup-job-<tarea>.json         root 0644    resultado de cada copia: mariadb, clickhouse y verify (§6)
     backups/pre-update/               copia de MariaDB antes de cada actualización (se conservan 5)
     tmp/                              descargas en curso
     cache/uv/  python/                caché de uv y Pythons administrados por uv
     venvs/<versión>/                  entorno de Python del ML de cada versión (`hub/ml/.venv` apunta aquí)
 /usr/local/lib/growth/                root:root 0755  scripts que corren como root (copiados de la versión verificada)
   bin/growth-update  bin/growth-update-dispatch  bin/growth-env
-  backup/growth-backup-{mariadb,clickhouse,verify}  backup/growth-backup-lib.sh
+  backup/growth-backup-{mariadb,clickhouse,verify,dispatch}  backup/growth-backup-lib.sh
 /etc/growth/                          root:root 0755
   updater.conf                        0644     repositorio y URL de la API de releases (§5)
   release-signing.pub.pem             0644     llave pública ed25519 que valida las versiones (opcional, §3)
   clickhouse-default.pass             0600     contraseña aleatoria del usuario `default` de ClickHouse (nadie lo usa)
-  backup.conf                         0600     remoto de rclone, retención y heartbeats de Better Stack (§6)
+  backup.conf                         0600     destino, retención y heartbeats de Better Stack (§6; lo escribe el panel)
+  backup-rclone.conf                  0600     remotos de rclone del panel: sftp al Storage Box y crypt encima (§6)
+  backup-ssh/                         0700     llave SSH de las copias (id_ed25519 0600, se genera una vez) y known_hosts
 /var/lib/growth/<unidad>/             estado interno de cada proceso de FrankenPHP
+/var/lib/growth-backup/               root 0700    pedido de copias mientras se atiende, candado y estado interno (§6)
 /var/lib/growth-backups/              root 0711    copias nocturnas antes de subirlas
   mariadb/                            root 0700
   clickhouse/                         clickhouse 0700 (disco `backups` de ClickHouse)
@@ -69,7 +78,9 @@ Todos los servicios `growth-*` tienen `PartOf=growth.target` y `WantedBy=growth.
 
 **Regla de seguridad:** root nunca ejecuta nada de una ruta que `growth` pueda escribir. Las versiones son de
 root y de solo lectura para la app; los scripts de root viven en `/usr/local/lib/growth/` y se reemplazan solo
-con los de una versión verificada (sha256, y la firma si el servidor tiene llave pública) que pasó el health-check.
+con los de una versión verificada (sha256, y la firma si el servidor tiene llave pública) que pasó el health-check
+(uno que todavía no existe, como el despachador de las copias en un servidor anterior, lo instala `growth-system`
+desde la versión verificada, que es de root; §6.1).
 
 En cada versión: `hub/.env -> /opt/growth/shared/.env`, `hub/storage -> /opt/growth/shared/storage` y
 `hub/public/storage -> /opt/growth/shared/storage/app/public`.
@@ -257,7 +268,8 @@ la última; 409 si ya hay un pedido o una actualización en curso).
 - `growth-backup-mariadb.timer` (03:15 UTC): `mariadb-backup --backup` + `--prepare`, comprimida, binlogs
   cerrados, subida con `rclone` al remoto de `/etc/growth/backup.conf` (Storage Box, remoto cifrado).
 - `growth-backup-clickhouse.timer` (03:45 UTC): `BACKUP DATABASE … TO Disk('backups', …)` nativo, completa los
-  domingos e incremental los demás días, subida con `rclone`.
+  domingos e incremental los demás días, subida con `rclone`. Su unidad va después de la de MariaDB
+  (`After=growth-backup-mariadb.service`): si la de MariaDB sigue corriendo, espera; «copia ahora» las corre en orden.
 - `growth-backup-verify.timer` (domingos 05:00 UTC): restaura la última copia de MariaDB en una instancia
   temporal (otro datadir y puerto) y la de ClickHouse en una base temporal (`RESTORE … AS growth_restore_check`),
   compara conteos y borra todo al terminar.
@@ -269,10 +281,99 @@ la última; 409 si ya hay un pedido o una actualización en curso).
 - `growth-monitor.timer` (cada minuto): `artisan growth:monitor` mide el atraso de los streams de Redis, la cola
   pendiente de Horizon y la salud, y avisa a los heartbeats de Better Stack solo si todo está bien (si un
   heartbeat no llega, Better Stack alerta). Cada copia y la prueba de restauración también avisan a su heartbeat
-  (y a `/fail` si fallan). Los heartbeats van en `/etc/growth/backup.conf` y en `shared/.env`, nunca en el repo.
+  (y a `/fail` si fallan). Los heartbeats de las copias los guarda el panel en `/etc/growth/backup.conf` (§6.1); los
+  de la vigilancia van en `shared/.env`. Nunca en el repo.
 - **Better Stack:** monitores de uptime sobre `https://<dominio>/health/ready` y `/health` (ingesta), y seis
   heartbeats: salud, streams y colas (cada minuto), copia de MariaDB y de ClickHouse (diarias) y verificación
   (semanal). Pasos en `infra/backup/README.md`.
+
+### 6.1 Copias desde el panel (Plataforma → Copias de seguridad, F18)
+
+Nada se configura por consola: el superadmin (con 2FA) guarda el destino, prueba la conexión, lanza una copia y ve
+el resultado de cada una desde `/plataforma` → «Copias de seguridad». La app nunca corre como root: deja un pedido y
+lo atiende un despachador de root, igual que el actualizador (§5).
+
+**Destino:** un Storage Box de Hetzner por SFTP (servidor `uXXXXXX.your-storagebox.de`, usuario, puerto 23 por
+defecto y carpeta). Entra con una **llave SSH que genera el servidor** (recomendado; el panel muestra la pública y
+los pasos) o con la contraseña del Storage Box (guardada solo del lado de root). Las copias van **cifradas** con una
+frase de cifrado que el dueño escribe (o genera en el navegador) y guarda en su gestor de contraseñas: sin ella las
+copias no se pueden leer. Además: días a conservar y los tres heartbeats de Better Stack de las copias.
+
+**Puente app → root:**
+
+1. **Pedido** (`PUT /api/platform/backups/settings`, `POST …/test`, `…/run`, `…/install-key`, `…/refresh`;
+   `App\Domain\Backups`): la app valida con las mismas listas blancas que root, pide la contraseña del panel para
+   guardar el destino o instalar la llave, y escribe (temporal + rename, **0600** de growth)
+   `shared/state/backup-request.json`. Responde 409 si hay otro pedido sin atender (uno que root no tomó en
+   10 minutos ya no bloquea: el panel avisa que el servidor no lo tomó). Los secretos se leen del cuerpo tal cual
+   (sin el recorte de espacios de Laravel) y nunca vuelven en una respuesta ni van a `audit_logs`.
+
+   ```json
+   {"id": "bkp_…", "action": "configure", "requested_by": "usr_…", "requested_at": "…",
+    "config": {"host": "u123456.your-storagebox.de", "port": 23, "user": "u123456", "path": "imagina-growth",
+               "auth": "key", "keep_days": 30,
+               "heartbeats": {"mariadb": "https://uptime.betterstack.com/api/v1/heartbeat/…", "clickhouse": null, "verify": ""}},
+    "secrets": {"password": null, "encryption_password": "…"}}
+   ```
+
+   `action`: `configure | test | backup_now | install_key | refresh`. Heartbeats: una URL la pone, `""` la quita y
+   `null` deja la guardada. Secretos: `null` conserva el guardado (`encryption_password` es obligatoria la primera
+   vez; `password`, con `auth = password` si no hay una). `install_key` solo trae `secrets.password`.
+2. **Despacho:** `growth-backup.path` (root) vigila el pedido y arranca `growth-backup-dispatch.service`
+   (`/usr/local/lib/growth/backup/growth-backup-dispatch`, oneshot, hasta 5 min). El despachador:
+   - toma un candado (`/var/lib/growth-backup/dispatch.lock`) y **mueve** el pedido a `/var/lib/growth-backup`
+     (root 0700) con `mv`, que no sigue symlinks: un symlink, una carpeta o un FIFO se rechazan y desde ahí la app ya
+     no lo puede cambiar; máximo 32 KB;
+   - valida cada campo del lado de root, sin confiar en el JSON: `id` `^bkp_[A-Za-z0-9]{6,40}$`, servidor (nombre
+     de host o IPv4, nunca empieza con guion), usuario `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`, carpeta relativa (hasta
+     5 partes que empiezan con letra o número: sin `..`, `.ssh` ni `/`), puerto 1–65535, días 1–365, heartbeats
+     `https://uptime.betterstack.com/api/v1/heartbeat/<token>` (o `betteruptime.com`), y secretos sin caracteres de
+     control (la frase, 12 a 256);
+   - `configure`: genera la llave `/etc/growth/backup-ssh/id_ed25519` **si falta** (nunca la reemplaza), anota la
+     identidad del servidor con `ssh-keyscan` (`known_hosts`; se confía en ella al guardar el destino), escribe
+     `/etc/growth/backup-rclone.conf` (remoto `growth-storagebox` sftp con la llave o la contraseña y
+     `known_hosts_file`, y `growth-backup` crypt sobre la carpeta, nombres cifrados) y `/etc/growth/backup.conf`
+     (`GROWTH_BACKUP_REMOTE=growth-backup:growth`, `GROWTH_RCLONE_CONFIG`, el destino, la retención y los heartbeats;
+     conserva lo puesto a mano que el panel no maneja: `GROWTH_BACKUP_LOCAL_DAYS`, `GROWTH_VERIFY_FROM_REMOTE` y
+     `CLICKHOUSE_BACKUP_*`), los dos **0600** con un temporal + rename; enciende los tres timers y prueba la conexión;
+   - `test`: crea la carpeta, escribe un archivo pequeño (cifrado) y lo borra, y anota el espacio libre;
+   - `backup_now`: si no hay una copia corriendo, deja las dos «en cola» y `systemctl start --no-block
+     growth-backup-mariadb.service growth-backup-clickhouse.service`;
+   - `install_key`: con la contraseña (de un solo uso, en una configuración temporal 0600 que se borra) agrega la
+     llave pública a `.ssh/authorized_keys` del Storage Box sin borrar las otras y prueba con la llave;
+   - los secretos nunca van en la línea de comandos (`rclone obscure -` los lee de la entrada) ni en los logs.
+3. **Estado** (root 0644, temporal + rename en la carpeta sticky: la app lo lee y no lo puede reemplazar):
+   `backup-status.json` (sin secretos: de cada uno solo si está):
+
+   ```json
+   {"version": 1, "updated_at": "…", "configured": true, "managed": true, "manual_remote": null,
+    "destination": {"host": "…", "port": 23, "user": "…", "path": "…", "auth": "key", "keep_days": 30},
+    "secrets": {"password": false, "encryption": true}, "heartbeats": {"mariadb": true, "clickhouse": false, "verify": false},
+    "timers_enabled": true, "ssh_key": {"public": "ssh-ed25519 …", "fingerprint": "SHA256:…", "created_at": "…"},
+    "host_key": {"fingerprint": "SHA256:…"},
+    "last_request": {"id": "bkp_…", "action": "test", "requested_by": "usr_…", "state": "running|succeeded|failed",
+                     "code": null, "message": null, "started_at": "…", "finished_at": "…"},
+    "last_test": {"ok": true, "code": null, "message": null, "at": "…", "free_bytes": 1099511627776}}
+   ```
+
+   y cada copia deja `backup-job-{mariadb,clickhouse,verify}.json`: `state` (`queued | running | succeeded |
+   failed`), fechas, `name`, `size_bytes`, `code` y `message` si falló, y `last_success` (la última buena). Los
+   códigos (`auth_failed`, `connection_refused`, `timeout`, `host_not_found`, `host_key_changed`, `upload_failed`,
+   `verify_mismatch`, `missing_tool`…) los explica el panel en palabras. El próximo horario lo calcula la app con los
+   mismos horarios de los timers (`growth.backups.schedule`).
+
+**Cómo llega a un servidor que ya está en 0.1.9, sin consola:** con el botón de actualizar. El `growth-update` de
+0.1.9 copia las unidades nuevas (`growth-backup.path`, `growth-backup-dispatch.service`) y corre el
+`bin/growth-system apply --update` de la versión nueva, que instala el despachador y su librería en
+`/usr/local/lib/growth/backup` **si faltan** (nunca reemplaza uno que ya está), habilita y arranca la unidad `.path` y
+publica el primer estado (así el panel ve también una configuración hecha a mano). Después del health-check, el
+mismo `growth-update` reemplaza los `backup/*` con los de la versión sana, como siempre. `growth-system.service`
+(`--hook`) hace lo mismo si la versión la instala un actualizador más viejo. `install.sh` lo habilita en una
+instalación nueva. Si la unidad todavía no existe, el panel dice que el servidor no respondió y pide actualizar.
+
+Una configuración hecha a mano (remoto en `/root/.config/rclone/rclone.conf`) sigue funcionando: el panel la muestra,
+la prueba y lanza copias con ella; guardar un destino en el panel la reemplaza. Para restaurar en otro servidor hacen
+falta la carpeta del Storage Box y la frase de cifrado (`infra/backup/RESTAURACION.md`).
 
 ## 7. Instalación (`install.sh`)
 
@@ -296,7 +397,7 @@ el host de ingesta no resuelve. Al terminar, avisa qué nombres en uso no tienen
 **Configuración del sistema (`bin/growth-system`): nunca hace falta la consola para recibirla.** Todo lo que depende
 de la versión y de la RAM vive en un solo script de la versión: el perfil de procesos (`IGR_WORKERS_PROFILE` en el
 `.env`), la memoria y la configuración de MariaDB, ClickHouse y Redis, las prioridades ante falta de memoria, los
-workers de ingesta, los permisos de `shared/state` y el Caddyfile. Lo aplican:
+workers de ingesta, los permisos de `shared/state`, el Caddyfile y el despachador de las copias del panel (§6.1). Lo aplican:
 
 - `install.sh` (`apply --install`), en la primera instalación y si se vuelve a correr;
 - `growth-update` en cada actualización desde el panel (`apply --update`, después del cambio y antes de reiniciar;

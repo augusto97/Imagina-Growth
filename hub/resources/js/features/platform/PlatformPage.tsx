@@ -35,6 +35,7 @@ import {
     usePlatformMail,
     useSetFeature,
 } from './api';
+import { BackupsTab } from './BackupsTab';
 import { ClientDetailDialog, NewClientDialog } from './ClientsAdmin';
 import { DoctorTab } from './DoctorTab';
 import { FxTab } from './FxTab';
@@ -64,6 +65,7 @@ export function PlatformPage() {
                     <TabsTrigger value="health">{t('platform.tabs.health')}</TabsTrigger>
                     <TabsTrigger value="doctor">{t('platform.tabs.doctor')}</TabsTrigger>
                     <TabsTrigger value="updates">{t('platform.tabs.updates')}</TabsTrigger>
+                    <TabsTrigger value="backups">{t('platform.tabs.backups')}</TabsTrigger>
                     <TabsTrigger value="fx">{t('platform.tabs.fx')}</TabsTrigger>
                     <TabsTrigger value="invoices">{t('platform.tabs.invoices')}</TabsTrigger>
                     <TabsTrigger value="requests">
@@ -82,6 +84,9 @@ export function PlatformPage() {
                 </TabsContent>
                 <TabsContent value="updates" className="igr:mt-4">
                     <UpdatesTab />
+                </TabsContent>
+                <TabsContent value="backups" className="igr:mt-4">
+                    <BackupsTab />
                 </TabsContent>
                 <TabsContent value="fx" className="igr:mt-4">
                     <FxTab />

@@ -5,7 +5,9 @@
 > simulacro completo en un servidor aparte y se deja constancia en la tabla del final.
 
 Todo es nativo (systemd), sin Docker. Rutas y nombres: `docs/despliegue.md`. Las copias están en el remoto de
-rclone de `/etc/growth/backup.conf` (`GROWTH_BACKUP_REMOTE`, p. ej. `storagebox-crypt:growth`):
+rclone de `/etc/growth/backup.conf` (`GROWTH_BACKUP_REMOTE`: `growth-backup:growth` si se configuró desde el panel,
+con la configuración de rclone en `/etc/growth/backup-rclone.conf`; a mano, p. ej. `storagebox-crypt:growth`).
+Con el panel, los comandos de rclone de abajo van con `RCLONE_CONFIG=/etc/growth/backup-rclone.conf`:
 
 ```
 <remoto>/mariadb/<AAAAMMDDTHHMMSSZ>.tar.zst          copia física preparada (mariadb-backup)
@@ -21,6 +23,12 @@ rclone de `/etc/growth/backup.conf` (`GROWTH_BACKUP_REMOTE`, p. ej. `storagebox-
 - **Simulacro:** un VPS temporal con Ubuntu 24.04 instalado con `install.sh` (otro dominio, otro `.env`, mismos
   remotos de rclone en **solo lectura**: copia `/root/.config/rclone/rclone.conf` y las dos contraseñas del
   remoto cifrado desde el gestor de contraseñas).
+- **Con el destino del panel:** en el servidor nuevo, Plataforma → Copias de seguridad con **el mismo Storage Box,
+  la misma carpeta y la misma frase de cifrado** (la del gestor de contraseñas) arma el mismo remoto
+  `growth-backup:growth`; no hagas «Copia ahora» antes de restaurar. Sin el panel, el mismo remoto a mano:
+  `rclone config create growth-storagebox sftp host=<servidor> user=<usuario> port=23 pass=<contraseña> --obscure` y
+  `rclone config create growth-backup crypt remote=growth-storagebox:<carpeta> filename_encryption=standard
+  directory_name_encryption=true password=<frase de cifrado> --obscure`.
 - **Desastre real:** el servidor nuevo instalado con `install.sh` y el `.env` original
   (`/opt/growth/shared/.env`) restaurado desde el gestor de contraseñas: **`APP_KEY` e `IGR_BLIND_INDEX_KEY`
   tienen que ser los mismos**, si no los datos cifrados y las búsquedas por correo o teléfono no funcionan.

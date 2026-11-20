@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Funciones comunes de las copias de Imagina Growth (docs/despliegue.md §6).
-# La cargan growth-backup-mariadb, growth-backup-clickhouse y growth-backup-verify con `source`.
+# La cargan growth-backup-mariadb, growth-backup-clickhouse, growth-backup-verify y growth-backup-dispatch
+# con `source`. Solo se agregan funciones: una versión anterior de esos scripts tiene que seguir funcionando con
+# esta librería (growth-system la instala junto al despachador si falta, antes que growth-update los reemplace).
 #
 # Reglas:
 # - Los archivos de configuración (.env de la app y /etc/growth/backup.conf) se leen con un lector
@@ -12,6 +14,8 @@
 GROWTH_BACKUP_CONF=${GROWTH_BACKUP_CONF:-/etc/growth/backup.conf}
 GROWTH_ENV_FILE=${GROWTH_ENV_FILE:-/opt/growth/shared/.env}
 GROWTH_BACKUP_DIR=${GROWTH_BACKUP_DIR:-/var/lib/growth-backups}
+# Donde el panel lee el resultado de cada copia (backup-job-<tarea>.json); lo escribe root (job_status).
+GROWTH_STATE_DIR=${GROWTH_STATE_DIR:-/opt/growth/shared/state}
 
 # Valor de KEY en un archivo dotenv, o vacío si no está. Admite `export KEY=…`, espacios alrededor del
 # `=`, comentarios, comillas dobles (con \" \\ \n \t y varias líneas), comillas simples literales y
@@ -124,8 +128,17 @@ log() {
 }
 
 die() {
+    JOB_ERROR=$*
     log "ERROR: $*" >&2
     exit 1
+}
+
+# Como die, con el código que muestra el panel (Plataforma → Copias de seguridad).
+#   die_code CÓDIGO MENSAJE
+die_code() {
+    JOB_CODE=$1
+    shift
+    die "$@"
 }
 
 # Aviso a un heartbeat de Better Stack. Sin URL configurada no hace nada. Nunca imprime la URL (es un
@@ -147,8 +160,17 @@ heartbeat() {
 require() {
     local cmd
     for cmd in "$@"; do
-        command -v "$cmd" >/dev/null 2>&1 || die "falta el comando «$cmd»"
+        command -v "$cmd" >/dev/null 2>&1 || die_code missing_tool "falta el comando «$cmd»"
     done
+}
+
+# ¿El remoto de rclone (la parte antes de «:») existe en su configuración? La plantilla de backup.conf de las
+# versiones anteriores traía uno de ejemplo que en un servidor sin configurar no existe: así el panel dice «sin
+# destino» y no «no se pudo subir». Una ruta local (sin «:») no se revisa.
+#   remote_exists REMOTO
+remote_exists() {
+    case $1 in *:*) ;; *) return 0 ;; esac
+    rclone listremotes 2>/dev/null | grep -qxF -- "${1%%:*}:"
 }
 
 # Quita de una carpeta local los archivos (no carpetas) que coinciden con PATRÓN y tienen más de N minutos.
@@ -200,4 +222,95 @@ ch_config() {
     printf '<config><host>%s</host><port>%s</port><user>%s</user><password>%s</password></config>\n' \
         "$(xml_escape "$1")" "$(xml_escape "$2")" "$(xml_escape "$3")" "$(xml_escape "$4")" >"$file"
     printf '%s' "$file"
+}
+
+# ── Lo que ve el panel (Plataforma → Copias de seguridad, docs/despliegue.md §6) ───────────────────────────
+
+# Configuración de rclone que escribe el panel (GROWTH_RCLONE_CONFIG en backup.conf, p. ej.
+# /etc/growth/backup-rclone.conf). Sin ella, rclone usa la suya (/root/.config/rclone/rclone.conf, la de la
+# configuración a mano de infra/backup/README.md).
+use_rclone_config() {
+    local rc
+    [ -n "${RCLONE_CONFIG:-}" ] && return 0
+    rc=$(conf GROWTH_RCLONE_CONFIG)
+    case $rc in
+        /*) if [ -f "$rc" ]; then export RCLONE_CONFIG=$rc; fi ;;
+    esac
+    return 0
+}
+use_rclone_config
+
+# Resultado de cada tarea en shared/state/backup-job-<tarea>.json (mariadb, clickhouse, verify): estado, fechas,
+# copia, tamaño y, si falló, un código y el motivo en palabras. Sin secretos. Lo escribe root con un temporal +
+# rename en la carpeta «sticky» (la app lo lee, pero no lo puede reemplazar ni borrar) y nunca sigue un symlink.
+# Nunca hace fallar la copia: si no se puede escribir, se sigue.
+JOB_KIND=""
+JOB_STARTED=""
+JOB_STEP=""
+JOB_CODE=""
+JOB_ERROR=""
+
+#   job_status ESTADO [CÓDIGO] [MENSAJE] [NOMBRE] [BYTES]        ESTADO: queued | running | succeeded | failed
+job_status() {
+    local state=$1 code=${2:-} message=${3:-} name=${4:-} size=${5:-} file prev=null tmp
+    if [ -z "$JOB_KIND" ] || [ ! -d "$GROWTH_STATE_DIR" ] || ! command -v jq >/dev/null 2>&1; then
+        return 0
+    fi
+    file=$GROWTH_STATE_DIR/backup-job-$JOB_KIND.json
+    # La última copia buena se conserva mientras corre o falla la siguiente (solo de un archivo propio).
+    if [ -f "$file" ] && [ ! -L "$file" ] && [ -O "$file" ]; then
+        prev=$(jq -c '.last_success | if type == "object" then . else null end' "$file" 2>/dev/null) || prev=null
+        [ -n "$prev" ] || prev=null
+    fi
+    [[ $size =~ ^[0-9]+$ ]] || size=""
+    tmp=$(mktemp "$GROWTH_STATE_DIR/.tmp.XXXXXX" 2>/dev/null) || return 0
+    if jq -n --arg job "$JOB_KIND" --arg state "$state" --arg code "$code" --arg msg "$message" --arg name "$name" \
+        --arg size "$size" --arg started "$JOB_STARTED" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson prev "$prev" '
+        def nn: if . == "" then null else . end;
+        ($size | if . == "" then null else tonumber end) as $bytes
+        | {job: $job, state: $state, started_at: ($started | nn),
+           finished_at: (if $state == "succeeded" or $state == "failed" then $at else null end),
+           name: ($name | nn), size_bytes: $bytes, code: ($code | nn), message: ($msg | nn),
+           last_success: (if $state == "succeeded" then {finished_at: $at, name: ($name | nn), size_bytes: $bytes} else $prev end)}' \
+        >"$tmp" 2>/dev/null && chmod 0644 "$tmp" && mv -fT "$tmp" "$file" 2>/dev/null; then
+        return 0
+    fi
+    rm -f "$tmp"
+    return 0
+}
+
+# Empieza una tarea: anota «corriendo» para el panel.
+#   job_begin TAREA
+job_begin() {
+    JOB_KIND=$1
+    JOB_STARTED=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    job_status running
+}
+
+# Paso en curso: si un comando falla (set -e), el panel dice en qué paso.
+#   job_step PASO        PASO: dump | compress | upload | cleanup | download | restore
+job_step() {
+    JOB_STEP=$1
+}
+
+# La falla para el panel: el código de die_code (o el del paso) y el motivo (el de die, o el del paso).
+#   job_failed CÓDIGO_DE_SALIDA
+job_failed() {
+    local exit_code=$1 code=$JOB_CODE message=$JOB_ERROR
+    if [ -z "$code" ]; then
+        code=${JOB_STEP:+${JOB_STEP}_failed}
+        code=${code:-unknown}
+    fi
+    if [ -z "$message" ]; then
+        case $JOB_STEP in
+            dump) message="No se pudo sacar la copia de la base de datos." ;;
+            compress) message="No se pudo comprimir la copia (¿falta espacio en el disco del servidor?)." ;;
+            upload) message="No se pudo subir la copia al Storage Box." ;;
+            cleanup) message="La copia se subió, pero no se pudieron borrar las copias viejas del Storage Box." ;;
+            download) message="No se pudo bajar la copia del Storage Box." ;;
+            restore) message="No se pudo restaurar la copia en la instancia de prueba." ;;
+            *) message="La tarea terminó con un error (código $exit_code)." ;;
+        esac
+    fi
+    job_status failed "$code" "$message"
 }
