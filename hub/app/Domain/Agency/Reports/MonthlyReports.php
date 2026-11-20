@@ -13,6 +13,7 @@ use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Pii\Pii;
 use App\Support\Tenancy\CurrentWorkspace;
+use App\Support\Tenancy\WorkspaceLocale;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
@@ -76,7 +77,7 @@ final class MonthlyReports
         }
         $owners = self::recipients($workspace);
         foreach ($owners as $user) {
-            Mail::to($user->email)->locale(str_replace('-', '_', (string) $workspace->locale))
+            Mail::to($user->email)->locale(WorkspaceLocale::of($workspace))
                 ->queue(new MonthlyReportMail($workspace->id, $report->id, $user->name));
         }
         $report->forceFill([

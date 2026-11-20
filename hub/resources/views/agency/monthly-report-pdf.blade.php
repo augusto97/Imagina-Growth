@@ -21,7 +21,7 @@
     $severity = ['critical' => __('Crítico'), 'warning' => __('Atención'), 'opportunity' => __('Oportunidad'), 'info' => __('Informativo')];
 @endphp
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{ $lang ?? 'es' }}">
 <head>
 <meta charset="utf-8">
 <title>{{ __('Reporte mensual de :business · :month', ['business' => $facts['negocio'] ?? '', 'month' => $facts['mes'] ?? '']) }}</title>

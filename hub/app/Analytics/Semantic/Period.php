@@ -66,12 +66,17 @@ final class Period
         return $this->from->getOffset();
     }
 
-    /** @return list<string> claves de los periodos (Y-m-d del inicio) para rellenar series */
+    /**
+     * Claves de los periodos (Y-m-d del inicio) para rellenar series. Las semanas empiezan el lunes, como
+     * `toMonday` en ClickHouse: Carbon toma el primer día del idioma (domingo en es_CO, es_MX y es_VE).
+     *
+     * @return list<string>
+     */
     public function buckets(): array
     {
         $out = [];
         $cursor = match ($this->granularity) {
-            'week' => $this->from->startOfWeek(),
+            'week' => $this->from->startOfWeek(CarbonImmutable::MONDAY),
             'month' => $this->from->startOfMonth(),
             default => $this->from,
         };

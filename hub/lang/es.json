@@ -3,5 +3,21 @@
     "roles.admin": "Administrador",
     "roles.marketing": "Marketing",
     "roles.agent": "Agente",
-    "roles.viewer": "Solo lectura"
+    "roles.viewer": "Solo lectura",
+    "All rights reserved.": "Todos los derechos reservados.",
+    "Hello!": "¡Hola!",
+    "Whoops!": "¡Ups!",
+    "Regards,": "Saludos,",
+    "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\ninto your web browser:": "Si el botón «:actionText» no funciona, copia esta dirección y pégala en tu navegador:",
+    "Reset your password": "Restablece tu contraseña",
+    "You are receiving this email because we received a password reset request for your account.": "Te llega este correo porque alguien pidió restablecer la contraseña de tu cuenta.",
+    "Reset Password": "Restablecer la contraseña",
+    "This password reset link will expire in :count minutes.": "El enlace vence en :count minutos.",
+    "If you did not request a password reset, no further action is required.": "Si no lo pediste tú, no tienes que hacer nada.",
+    "Verify your email address": "Confirma tu correo",
+    "Please click the button below to verify your email address.": "Toca el botón para confirmar tu correo.",
+    "Verify Email Address": "Confirmar el correo",
+    "If you did not create an account, no further action is required.": "Si no creaste una cuenta, no tienes que hacer nada.",
+    "(and :count more error)": "(y :count error más)",
+    "(and :count more errors)": "(y :count errores más)"
 }

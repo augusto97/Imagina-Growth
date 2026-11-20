@@ -8,6 +8,7 @@ use App\Domain\Intelligence\Models\Insight;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Tenancy\CurrentWorkspace;
 use App\Support\Tenancy\RedisKey;
+use App\Support\Tenancy\WorkspaceLocale;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -47,6 +48,16 @@ final class InsightEngine
     {
         $now ??= CarbonImmutable::now($workspace->timezone ?: 'UTC');
 
+        // Los títulos y supuestos se guardan ya redactados: en el idioma del espacio de trabajo («computadora» en es_MX).
+        return WorkspaceLocale::run($workspace, fn (): array => $this->detect($workspace, $now, $all, $only));
+    }
+
+    /**
+     * @param  list<string>|null  $only
+     * @return array<string, int>
+     */
+    private function detect(Workspace $workspace, CarbonImmutable $now, bool $all, ?array $only): array
+    {
         return $this->current->run($workspace, function () use ($workspace, $now, $all, $only): array {
             $summary = [];
             $runs = self::runs($workspace);

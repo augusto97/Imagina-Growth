@@ -9,13 +9,14 @@ use App\Domain\Api\Support\ApiError;
 use App\Domain\Api\Support\ApiMeter;
 use App\Domain\Api\Support\ClientResolver;
 use App\Support\Tenancy\CurrentWorkspace;
+use App\Support\Tenancy\WorkspaceLocale;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Autentica la API pública con un token del espacio de trabajo (`Authorization: Bearer igr_…`),
- * revisa que el plan incluya la API, fija el espacio de trabajo y suma la petición al medidor.
+ * revisa que el plan incluya la API, fija el espacio de trabajo y su idioma y suma la petición al medidor.
  */
 final class AuthenticateApiClient
 {
@@ -34,6 +35,6 @@ final class AuthenticateApiClient
         $this->current->set($result['workspace']);
         ApiMeter::hit($result['workspace']);
 
-        return $next($request);
+        return WorkspaceLocale::run($result['workspace'], fn (): Response => $next($request));
     }
 }

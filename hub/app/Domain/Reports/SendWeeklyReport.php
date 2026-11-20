@@ -10,6 +10,7 @@ use App\Domain\Services\Leads\Support\LeadFunnelReport;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
+use App\Support\Tenancy\WorkspaceLocale;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -46,7 +47,7 @@ final class SendWeeklyReport
         // El embudo de leads del lunes (M18): consultas → … → ganados, dónde se cae y por qué.
         $facts['leads'] = $this->leads->forWeek($workspace, $weekStart);
         foreach ($recipients as $user) {
-            Mail::to($user->email)->locale(str_replace('-', '_', $workspace->locale))->queue(new WeeklyReportMail($facts, $user->name));
+            Mail::to($user->email)->locale(WorkspaceLocale::of($workspace))->queue(new WeeklyReportMail($facts, $user->name));
         }
 
         $id = $existing->id ?? strtoupper((string) Str::ulid());
