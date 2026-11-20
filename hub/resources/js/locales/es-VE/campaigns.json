@@ -1,7 +1,7 @@
 {
     "campaigns": {
         "schedule": {
-            "legal": "En Venezuela y en Colombia, de lunes a viernes de 7:00 a 19:00 y sábados de 8:00 a 15:00, nunca domingos; en Colombia tampoco los festivos (Ley 2300). En México, de lunes a sábado de 9:00 a 20:00. Además se respeta el tope de un mensaje comercial al día por contacto."
+            "legal": "En Venezuela y en Colombia, de lunes a viernes de 7:00 a 19:00 y sábados de 8:00 a 15:00, nunca domingos ni feriados (en Colombia lo exige la Ley 2300). En México, de lunes a sábado de 9:00 a 20:00, sin domingos ni días festivos oficiales. Además se respeta el tope de un mensaje comercial al día por contacto."
         },
         "reasons": {
             "holiday": "Feriado"

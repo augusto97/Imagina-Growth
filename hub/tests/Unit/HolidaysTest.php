@@ -38,6 +38,30 @@ it('calcula los días de descanso obligatorio de México', function () {
         ->and(Holidays::forYear('MX', 2030))->toHaveKey('2030-10-01');
 });
 
+/*
+ * Venezuela (cumplimiento.md §7): artículo 184 de la LOTTT (1 de enero, lunes y martes de Carnaval, Jueves y
+ * Viernes Santo, 1 de mayo, 24, 25 y 31 de diciembre) y Ley de Fiestas Nacionales (19 de abril, 24 de junio,
+ * 5 y 24 de julio, 12 de octubre), sin traslados. 2026 coincide con el calendario publicado por Sudeban.
+ */
+dataset('feriados_venezuela', [
+    2026 => [2026, ['01-01', '02-16', '02-17', '04-02', '04-03', '04-19', '05-01', '06-24', '07-05', '07-24', '10-12', '12-24', '12-25', '12-31']],
+    2027 => [2027, ['01-01', '02-08', '02-09', '03-25', '03-26', '04-19', '05-01', '06-24', '07-05', '07-24', '10-12', '12-24', '12-25', '12-31']],
+    2028 => [2028, ['01-01', '02-28', '02-29', '04-13', '04-14', '04-19', '05-01', '06-24', '07-05', '07-24', '10-12', '12-24', '12-25', '12-31']],
+]);
+
+it('calcula los feriados nacionales de Venezuela', function (int $year, array $expected) {
+    expect(array_keys(Holidays::forYear('VE', $year)))->toBe(array_map(fn ($d) => "{$year}-{$d}", $expected));
+})->with('feriados_venezuela');
+
+it('nombra los feriados de Venezuela y no traslada los que caen en domingo', function () {
+    $list = Holidays::forYear('VE', 2026);
+    expect($list['2026-02-16'])->toBe('Lunes de Carnaval')
+        ->and($list['2026-06-24'])->toBe('Batalla de Carabobo')
+        ->and($list['2026-04-19'])->toBe('Declaración de la Independencia')   // domingo: no se mueve al lunes
+        ->and($list)->not->toHaveKey('2026-04-20')
+        ->and($list)->not->toHaveKey('2026-03-19');   // San José: solo bancario (Sudeban)
+});
+
 it('aplica excepciones de configuración', function () {
     config(['holidays.overrides' => ['CO' => ['2026' => ['2026-12-31' => 'Decretado', '2026-01-12' => null]]]]);
     Holidays::flush();

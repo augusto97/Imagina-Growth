@@ -14,7 +14,9 @@ use Carbon\CarbonImmutable;
  * - Colombia (Ley 2300 de 2023): lunes a viernes de 7:00 a 19:00 y sábados de
  *   8:00 a 15:00. Nunca domingos ni festivos.
  * - México: lunes a sábado de 9:00 a 20:00, sin festivos oficiales **[validar]**.
- * - Venezuela y el resto: el estándar de Colombia (cumplimiento.md §7).
+ * - Venezuela: el estándar de Colombia en la hora de Caracas, sin domingos ni
+ *   feriados nacionales (LOTTT art. 184 y Ley de Fiestas Nacionales, §7).
+ * - El resto: el estándar de Colombia (cumplimiento.md §7).
  *
  * El final de cada franja es **exclusivo** (a las 19:00:00 ya no se envía): es la
  * lectura más prudente de «de 7:00 a. m. a 7:00 p. m.». Los festivos son los del
