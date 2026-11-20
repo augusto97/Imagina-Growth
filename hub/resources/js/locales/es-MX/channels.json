@@ -1,0 +1,16 @@
+{
+    "channels": {
+        "email": {
+            "fromEmailPlaceholder": "hola@tutienda.mx"
+        },
+        "zender": {
+            "baseUrlPlaceholder": "https://zender.tuempresa.mx"
+        },
+        "test": {
+            "toPhone": "+52 55 0000 0000"
+        },
+        "wa_editor": {
+            "phonePlaceholder": "+525512345678"
+        }
+    }
+}

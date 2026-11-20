@@ -1,0 +1,10 @@
+{
+    "consent": {
+        "policy": {
+            "missing": "Falta: informa tu política de tratamiento de datos; tus clientes deben poder leerla antes de aceptar."
+        },
+        "requests": {
+            "description": "Pedidos de acceso o de borrado de datos (habeas data). Atiéndelos antes del plazo: 15 días hábiles."
+        }
+    }
+}

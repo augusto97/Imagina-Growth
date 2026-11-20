@@ -1,0 +1,24 @@
+{
+    "contacts": {
+        "data": {
+            "region": "Estado"
+        },
+        "orders": {
+            "cod": "Pago contra entrega"
+        },
+        "import": {
+            "upload": {
+                "tip2": "Los teléfonos sin código de país se completan con el del país del espacio de trabajo."
+            },
+            "map": {
+                "phoneHelp": "Los teléfonos se normalizan al formato internacional; si no traen código de país, se asume {{country}}."
+            },
+            "fields": {
+                "region_code": "Estado"
+            },
+            "consent": {
+                "description": "Es obligatorio declararlo. Sin consentimiento solo podrán recibir mensajes transaccionales."
+            }
+        }
+    }
+}

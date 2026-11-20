@@ -1,0 +1,13 @@
+{
+    "templates": {
+        "business": {
+            "placeholders": {
+                "name": "Pinturas El Ávila",
+                "address": "Av. Bolívar Norte, local 12, Valencia",
+                "contact": "hola@tienda.com.ve",
+                "whatsapp": "+58 412 123 4567",
+                "logo_url": "https://tienda.com.ve/logo.png"
+            }
+        }
+    }
+}

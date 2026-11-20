@@ -1,0 +1,16 @@
+{
+    "channels": {
+        "email": {
+            "fromEmailPlaceholder": "hola@tutienda.com.ve"
+        },
+        "zender": {
+            "baseUrlPlaceholder": "https://zender.tuempresa.com.ve"
+        },
+        "test": {
+            "toPhone": "+58 412 000 0000"
+        },
+        "wa_editor": {
+            "phonePlaceholder": "+584121234567"
+        }
+    }
+}

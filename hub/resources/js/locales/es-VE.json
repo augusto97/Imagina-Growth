@@ -1,13 +1,14 @@
 {
     "home": {
+        "revenueHelp": "Suma del total de los pedidos en estado pagado (procesando o completado, configurable por sitio). El pago contra entrega cuenta cuando se cobra.",
         "codPending_one": "{{count}} pedido de pago contra entrega por confirmar",
-        "codPending_other": "{{count}} pedidos de pago contra entrega por confirmar"
+        "codPending_other": "{{count}} pedidos de pago contra entrega por confirmar",
+        "codHelp": "Los pedidos de pago contra entrega cuentan como venta cuando se entregan y se cobran. Mientras tanto aparecen aparte como «venta por confirmar»."
     },
     "sites": {
         "fields": {
             "codGateways": "Pago contra entrega"
-        },
-        "downloadPlugin": "Descargar plugin"
+        }
     },
     "workspace": {
         "namePlaceholder": "Ej.: Pinturas El Ávila"

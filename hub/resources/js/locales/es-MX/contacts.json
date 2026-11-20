@@ -1,0 +1,27 @@
+{
+    "contacts": {
+        "data": {
+            "region": "Estado"
+        },
+        "orders": {
+            "cod": "Pago contra entrega"
+        },
+        "privacy": {
+            "requestsHelp": "Derechos ARCO: exportar sus datos (acceso) o borrarlos (cancelación). Quedan en la auditoría."
+        },
+        "import": {
+            "upload": {
+                "tip2": "Los teléfonos sin código de país se completan con el del país del espacio de trabajo."
+            },
+            "map": {
+                "phoneHelp": "Los teléfonos se normalizan al formato internacional; si no traen código de país, se asume {{country}}."
+            },
+            "fields": {
+                "region_code": "Estado"
+            },
+            "consent": {
+                "description": "Es obligatorio declararlo (Ley Federal de Protección de Datos Personales en Posesión de los Particulares). Sin consentimiento solo podrán recibir mensajes transaccionales."
+            }
+        }
+    }
+}

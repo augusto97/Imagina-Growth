@@ -1,0 +1,8 @@
+{
+    "agent": {
+        "policyPlaceholders": {
+            "shipping": "Ej.: envío gratis desde $999; a la CDMX llega en 2 días hábiles y al resto del país en 3 a 5.",
+            "payment_methods": "Ej.: tarjeta (hasta 6 meses sin intereses), transferencia SPEI, pago en OXXO y pago contra entrega en la CDMX."
+        }
+    }
+}

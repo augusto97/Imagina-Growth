@@ -1,0 +1,13 @@
+{
+    "reviews": {
+        "requests": {
+            "hint": "Una solicitud por pedido. Las que la política aplaza (horario legal, feriados, frecuencia) salen después."
+        },
+        "settings": {
+            "kindHelp": "La solicitud de reseña es comercial por defecto: respeta el horario legal, los feriados y el consentimiento."
+        },
+        "surveys": {
+            "alertEmailsPlaceholder": "soporte@tienda.com.ve"
+        }
+    }
+}

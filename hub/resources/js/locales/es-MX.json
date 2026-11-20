@@ -1,5 +1,6 @@
 {
     "home": {
+        "revenueHelp": "Suma del total de los pedidos en estado pagado (procesando o completado, configurable por sitio). El pago contra entrega cuenta cuando se cobra.",
         "codPending_one": "{{count}} pedido de pago contra entrega por confirmar",
         "codPending_other": "{{count}} pedidos de pago contra entrega por confirmar",
         "codHelp": "Los pedidos de pago contra entrega cuentan como venta cuando se entregan y se cobran. Mientras tanto aparecen aparte como «venta por confirmar»."
@@ -7,13 +8,12 @@
     "sites": {
         "fields": {
             "codGateways": "Pago contra entrega"
-        },
-        "downloadPlugin": "Descargar plugin"
-    },
-    "security": {
-        "description": "Protege tu cuenta con un código de tu celular además de la contraseña. Es obligatoria para dueños y administradores."
+        }
     },
     "workspace": {
         "namePlaceholder": "Ej.: Ferretería La Esperanza"
+    },
+    "settings": {
+        "privacyUrl": "URL del aviso de privacidad"
     }
 }

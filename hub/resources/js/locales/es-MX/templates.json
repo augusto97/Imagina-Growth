@@ -1,0 +1,13 @@
+{
+    "templates": {
+        "business": {
+            "placeholders": {
+                "name": "Ferretería La Esperanza",
+                "address": "Av. Juárez 120, Col. Centro, Puebla",
+                "contact": "hola@tienda.mx",
+                "whatsapp": "+52 55 1234 5678",
+                "logo_url": "https://tienda.mx/logo.png"
+            }
+        }
+    }
+}

@@ -1,0 +1,10 @@
+{
+    "onsite": {
+        "editor": {
+            "content": {
+                "waNumberHelp": "Con el código del país, sin espacios. Ej.: 584121234567.",
+                "waNumberPlaceholder": "584121234567"
+            }
+        }
+    }
+}

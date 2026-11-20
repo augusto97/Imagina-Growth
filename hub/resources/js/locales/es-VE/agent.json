@@ -1,0 +1,8 @@
+{
+    "agent": {
+        "policyPlaceholders": {
+            "shipping": "Ej.: envío gratis desde $50; a Caracas llega en 2 días hábiles y al resto del país en 3 a 5.",
+            "payment_methods": "Ej.: Pago Móvil, transferencia, Zelle, efectivo en divisas y pago contra entrega en Caracas."
+        }
+    }
+}

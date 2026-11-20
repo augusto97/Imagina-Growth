@@ -1,0 +1,11 @@
+{
+    "quotes": {
+        "editor": {
+            "questionsHelp": {
+                "service": "Cada opción puede sumar un valor o multiplicar el total (1.2 = +20 %).",
+                "area": "La pregunta de número con precio por unidad es la principal (por ejemplo, m² × $250)."
+            },
+            "whatsappPlaceholder": "525512345678"
+        }
+    }
+}
