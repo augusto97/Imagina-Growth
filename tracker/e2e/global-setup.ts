@@ -19,7 +19,13 @@ export default async function setup(): Promise<() => Promise<void>> {
         /* ya estaba desconectada */
     }
     // El modo «Próximamente» de WooCommerce oculta la tienda a los visitantes: se apaga durante la prueba.
-    const comingSoon = wp('option', 'get', 'woocommerce_coming_soon');
+    // Las versiones de WooCommerce sin ese modo no tienen la opción.
+    let comingSoon = 'no';
+    try {
+        comingSoon = wp('option', 'get', 'woocommerce_coming_soon').trim();
+    } catch {
+        /* no existe */
+    }
     wp('option', 'update', 'woocommerce_coming_soon', 'no');
     wp('igr', 'connect', 'IGR-E2E0-TEST-0001');
     // La importación histórica no hace falta aquí: 10.000 pedidos solo harían lento al hub simulado.

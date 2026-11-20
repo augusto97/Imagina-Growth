@@ -253,9 +253,10 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: tracker/package-lock.json
-      - name: Connector (dependencias de producción)
+      # Con las de desarrollo: el hub simulado valida cada evento con opis/json-schema contra los esquemas del hub.
+      - name: Connector (dependencias, con las del hub simulado)
         working-directory: connector
-        run: composer install --no-interaction --prefer-dist --no-progress --no-dev
+        run: composer install --no-interaction --prefer-dist --no-progress
       - name: Tienda WooCommerce de prueba con el connector
         run: |
           mkdir -p "$WP_DIR"
@@ -263,8 +264,13 @@ jobs:
           wp config create --path="$WP_DIR" --dbname=wp_igr --dbuser=root --dbpass=root --dbhost=127.0.0.1:3306 --allow-root \
             --extra-php <<'PHP'
           define( 'WP_ENVIRONMENT_TYPE', 'local' );
+          // La prueba apunta la tienda al hub simulado con la variable IGR_HUB_URL (playwright.config.ts).
+          if ( getenv( 'IGR_HUB_URL' ) ) {
+            define( 'IGR_HUB_URL', getenv( 'IGR_HUB_URL' ) );
+          }
           PHP
           wp core install --path="$WP_DIR" --url=http://127.0.0.1:8080 --title="Tienda E2E" --admin_user=admin --admin_password=admin --admin_email=admin@example.com --skip-email --allow-root
+          wp rewrite structure '/%postname%/' --path="$WP_DIR" --allow-root
           wp plugin install woocommerce --activate --path="$WP_DIR" --allow-root
           ln -s "$GITHUB_WORKSPACE/connector" "$WP_DIR/wp-content/plugins/imagina-growth-connector"
           wp plugin activate imagina-growth-connector --path="$WP_DIR" --allow-root

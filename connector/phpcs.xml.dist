@@ -14,6 +14,8 @@
 	<arg value="sp"/>
 	<arg name="parallel" value="8"/>
 
+	<!-- Los avisos (parámetros de hooks sin usar, nombres reservados) se muestran pero no detienen la CI; los errores sí. -->
+	<config name="ignore_warnings_on_exit" value="1"/>
 	<config name="minimum_wp_version" value="6.4"/>
 	<config name="testVersion" value="8.1-"/>
 

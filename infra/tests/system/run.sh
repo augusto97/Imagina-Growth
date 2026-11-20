@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Pruebas de bin/growth-system con un sistema falso (carpetas temporales y systemctl, mariadb y redis-cli que
 # anotan lo que se les pide). docs/despliegue.md §7.
-# shellcheck disable=SC2015  # «A && ok || bad» es la forma de las aserciones
+# shellcheck disable=SC2015,SC2016  # «A && ok || bad» son las aserciones; los falsos se escriben con $ literal
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$HERE/../../.." && pwd)

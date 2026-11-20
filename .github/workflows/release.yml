@@ -1,7 +1,8 @@
 # Publicación de una versión (docs/despliegue.md §3). Dos formas:
 #   - Automática: un push que cambia el archivo VERSION (en main o en la rama de trabajo) corre la CI completa y,
 #     si está en verde, crea el tag vX.Y.Z y el release con sus assets. Si ese release ya existe, no hace nada; una versión menor que la última se rechaza.
-#   - Manual: publicar un release con tag vX.Y.Z en GitHub; el tag debe coincidir con VERSION.
+#   - Manual: publicar un release con tag vX.Y.Z en GitHub; el tag debe coincidir con VERSION. O correr el workflow a mano
+#     (workflow_dispatch) en la rama: hace lo mismo que el push, útil si la CI falló y ya se arregló.
 # Arma el paquete, lo firma con ed25519 si existe el secreto GROWTH_RELEASE_SIGNING_KEY (opcional) y sube los
 # assets que usan install.sh y el actualizador, más el plugin de WordPress.
 name: Release
@@ -13,6 +14,8 @@ on:
     paths: [VERSION]
   release:
     types: [published]
+  # Volver a intentar la publicación de VERSION (p. ej., después de arreglar la CI) sin cambiar de versión.
+  workflow_dispatch:
 
 permissions:
   contents: write

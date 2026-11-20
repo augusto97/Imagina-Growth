@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Notification;
 
 it('envía el enlace de restablecimiento hacia la pantalla de la SPA', function () {
     Notification::fake();
+    $this->withoutVite(); // en la CI no hay public/build
     $user = User::factory()->create(['email' => 'ana@tienda.co']);
 
     $this->postJson('/auth/forgot-password', ['email' => 'ana@tienda.co'])->assertOk();

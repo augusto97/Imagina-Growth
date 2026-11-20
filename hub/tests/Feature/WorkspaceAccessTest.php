@@ -143,6 +143,7 @@ it('el enlace de restablecer usa el dominio del panel y no el Host de la peticiÃ
 });
 
 it('el panel no se deja incrustar en otro sitio (S12)', function () {
+    $this->withoutVite(); // en la CI no hay public/build
     $this->get('/login')->assertOk()
         ->assertHeader('X-Frame-Options', 'SAMEORIGIN')
         ->assertHeader('Content-Security-Policy', "frame-ancestors 'self'");

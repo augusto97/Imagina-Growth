@@ -4,12 +4,19 @@ import laravel from 'laravel-vite-plugin';
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
+// Vitest no necesita el plugin de Laravel (manifiesto y recarga), y con CI=true este se niega a arrancar en modo «serve».
+const underVitest = Boolean(process.env.VITEST);
+
 export default defineConfig({
     plugins: [
-        laravel({
-            input: ['resources/css/app.css', 'resources/js/main.tsx'],
-            refresh: true,
-        }),
+        ...(underVitest
+            ? []
+            : [
+                  laravel({
+                      input: ['resources/css/app.css', 'resources/js/main.tsx'],
+                      refresh: true,
+                  }),
+              ]),
         react(),
         tailwindcss(),
     ],

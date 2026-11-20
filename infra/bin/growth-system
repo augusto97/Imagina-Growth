@@ -35,6 +35,7 @@ REDIS_CLI=${REDIS_CLI:-redis-cli}
 RUNUSER=${RUNUSER:-runuser}
 PROC=${GROWTH_PROC:-/proc}
 CH_PING=${GROWTH_CH_PING:-ch_ping_default}
+# shellcheck disable=SC2317  # se llama por $CH_PING
 ch_ping_default() { curl -fsS --max-time 3 http://127.0.0.1:8123/ping; }
 NO_STAMP=0
 
