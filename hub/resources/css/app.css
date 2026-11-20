@@ -116,6 +116,16 @@
         height: 100%;
     }
 
+    /*
+     * Diseño adaptable (hub/CLAUDE.md §14, auditoría U9): una rejilla sin columnas declaradas para el celular
+     * (`igr:grid igr:md:grid-cols-2`) tendría una columna implícita que crece con lo más ancho de adentro (pestañas,
+     * gráficas, código) y desborda la pantalla. Aquí es una sola columna del ancho disponible; cualquier `grid-cols-*`
+     * la reemplaza (las utilidades van en una capa posterior).
+     */
+    :where(.igr\:grid) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     html {
         color-scheme: light;
     }

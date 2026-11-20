@@ -53,7 +53,10 @@ export function ProfilePage() {
         if (survivor !== null) void navigate(`/w/${workspace.id}/contactos/${survivor}`, { replace: true });
     }, [survivor, navigate, workspace.id]);
     const back = (
-        <Link to={`/w/${workspace.id}/contactos`} className="igr:mb-3 igr:inline-flex igr:items-center igr:gap-1 igr:text-[13px] igr:text-muted-foreground igr:hover:text-foreground">
+        <Link
+            to={`/w/${workspace.id}/contactos`}
+            className="igr:mb-3 igr:inline-flex igr:items-center igr:gap-1 igr:text-[13px] igr:text-muted-foreground igr:hover:text-foreground"
+        >
             <ArrowLeft className="igr:size-3.5" />
             {t('contacts.title')}
         </Link>
@@ -76,7 +79,7 @@ export function ProfilePage() {
             <>
                 {back}
                 <Skeleton className="igr:mb-4 igr:h-44" />
-                <div className="igr:grid igr:gap-4 igr:lg:grid-cols-[minmax(0,1fr)_340px]">
+                <div className="igr:grid igr:grid-cols-1 igr:gap-4 igr:lg:grid-cols-[minmax(0,1fr)_340px]">
                     <Skeleton className="igr:h-96" />
                     <Skeleton className="igr:h-96" />
                 </div>
@@ -125,7 +128,7 @@ export function ProfilePage() {
         <>
             {back}
             <ProfileHeader profile={p} actions={actions} />
-            <div className="igr:grid igr:items-start igr:gap-4 igr:lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="igr:grid igr:grid-cols-1 igr:items-start igr:gap-4 igr:lg:grid-cols-[minmax(0,1fr)_340px]">
                 <Tabs
                     value={tab}
                     onValueChange={(value) => {
