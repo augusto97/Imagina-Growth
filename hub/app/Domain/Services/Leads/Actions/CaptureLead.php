@@ -106,6 +106,7 @@ final class CaptureLead implements LeadIntake
             'contact_id' => $contact->id,
             'site_id' => $input->siteId,
             'stage' => Pipelines::firstOpen($pipeline),
+            'stage_changed_at' => now(),
             'service' => self::service($input->service),
             'value_ws' => self::value($input->value),
             'source' => $input->source !== [] ? $input->source : null,
@@ -157,6 +158,7 @@ final class CaptureLead implements LeadIntake
     {
         $from = $lead->stage;
         $lead->stage = Pipelines::firstOpen(Pipelines::for($lead));
+        $lead->stage_changed_at = now();
         $lead->lost_at = null;
         $lead->lost_reason = null;
         $lead->last_activity_at = now();

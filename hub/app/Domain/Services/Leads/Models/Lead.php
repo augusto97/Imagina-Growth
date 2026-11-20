@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property string $contact_id
  * @property string|null $site_id
  * @property string $stage
+ * @property Carbon|null $stage_changed_at
  * @property string|null $service
  * @property string|null $value_ws
  * @property string|null $owner_id
@@ -27,6 +28,8 @@ use Illuminate\Support\Carbon;
  * @property int $score
  * @property string $temperature cold | warm | hot
  * @property list<array<string, mixed>>|null $score_reasons
+ * @property array<string, array<string, mixed>>|null $brief ficha de la conversación (LeadBrief), cifrada
+ * @property Carbon|null $brief_updated_at
  * @property string $origin form | whatsapp | quote | booking | manual | api
  * @property string|null $origin_ref
  * @property Carbon|null $first_response_at
@@ -49,9 +52,11 @@ class Lead extends Model
 
     public const OPEN_STAGES_EXCLUDED = ['won', 'lost'];
 
+    protected $hidden = ['brief'];
+
     protected $fillable = [
-        'workspace_id', 'pipeline_id', 'contact_id', 'site_id', 'stage', 'service', 'value_ws', 'owner_id', 'source', 'score',
-        'temperature', 'score_reasons', 'origin', 'origin_ref', 'first_response_at', 'last_activity_at', 'won_at', 'offline_conversion_at',
+        'workspace_id', 'pipeline_id', 'contact_id', 'site_id', 'stage', 'stage_changed_at', 'service', 'value_ws', 'owner_id', 'source', 'score',
+        'temperature', 'score_reasons', 'brief', 'brief_updated_at', 'origin', 'origin_ref', 'first_response_at', 'last_activity_at', 'won_at', 'offline_conversion_at',
         'lost_at', 'lost_reason', 'next_step', 'next_step_at', 'external_crm_id',
     ];
 
@@ -60,6 +65,9 @@ class Lead extends Model
         return [
             'source' => 'array',
             'score_reasons' => 'array',
+            'brief' => 'encrypted:array',
+            'brief_updated_at' => 'datetime',
+            'stage_changed_at' => 'datetime',
             'score' => 'integer',
             'value_ws' => 'decimal:2',
             'first_response_at' => 'datetime',

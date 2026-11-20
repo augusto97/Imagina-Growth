@@ -194,7 +194,10 @@
             "lastViewed": "Último producto visto",
             "nothingViewed": "Sin visitas registradas.",
             "segments": "Segmentos",
-            "profile": "Ver perfil completo"
+            "profile": "Ver perfil completo",
+            "lead": "Lead",
+            "leadOwner": "Lo atiende {{name}}",
+            "openLead": "Abrir el lead"
         },
         "metrics": {
             "period": "Periodo",

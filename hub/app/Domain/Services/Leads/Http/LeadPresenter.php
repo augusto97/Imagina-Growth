@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Services\Leads\Http;
 
 use App\Domain\Contacts\Models\Contact;
+use App\Domain\Services\Leads\Brief\LeadBrief;
 use App\Domain\Services\Leads\Models\Lead;
 use App\Domain\Services\Leads\Models\LeadActivity;
 use App\Domain\Services\Leads\Support\LeadFacts;
@@ -53,12 +54,39 @@ final class LeadPresenter
             'channel_label' => LeadFacts::channelLabel(is_string($l->source['channel'] ?? null) ? $l->source['channel'] : null),
             'next_step' => $l->next_step,
             'next_step_at' => $l->next_step_at?->toIso8601String(),
+            'stage_changed_at' => $l->stage_changed_at?->toIso8601String(),
             'first_response_at' => $l->first_response_at?->toIso8601String(),
             'last_activity_at' => $l->last_activity_at?->toIso8601String(),
             'won_at' => $l->won_at?->toIso8601String(),
             'lost_at' => $l->lost_at?->toIso8601String(),
             'lost_reason' => $l->lost_reason,
             'created_at' => $l->created_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * El lead del contacto en el panel lateral del chat de la bandeja: etapa, temperatura y la
+     * ficha que llenó la IA con sus frases de origen. `can_open`: si quien mira puede abrir el lead.
+     *
+     * @return array<string, mixed>
+     */
+    public static function panel(Lead $l, bool $canOpen): array
+    {
+        $pipeline = Pipelines::for($l);
+        $stage = $pipeline->stage($l->stage);
+        $owner = $l->owner_id !== null ? User::query()->find($l->owner_id, ['id', 'name']) : null;
+
+        return [
+            'id' => $l->publicId(),
+            'stage' => $l->stage,
+            'stage_label' => $stage['label'] ?? $l->stage,
+            'service' => $l->service,
+            'score' => $l->score,
+            'temperature' => $l->temperature,
+            'owner' => $owner !== null ? ['id' => $owner->publicId(), 'name' => $owner->name] : null,
+            'brief' => LeadBrief::present($l->brief),
+            'brief_updated_at' => $l->brief_updated_at?->toIso8601String(),
+            'can_open' => $canOpen,
         ];
     }
 
@@ -86,6 +114,8 @@ final class LeadPresenter
                 'detail' => $r['detail'] ?? null,
                 'reason' => $r['reason'] ?? null,
             ], $l->score_reasons ?? []),
+            'brief' => LeadBrief::present($l->brief),
+            'brief_updated_at' => $l->brief_updated_at?->toIso8601String(),
             'offline_conversion_at' => $l->offline_conversion_at?->toIso8601String(),
             'external_crm_id' => $l->external_crm_id,
             'activities' => $activities->map(function (LeadActivity $a) use ($actors): array {

@@ -18,7 +18,22 @@ function has(path: string): boolean {
 }
 
 /** Funciones de config/igr-ai.php y motivos de AiUnavailable. */
-const FEATURES = ['weekly_analyst', 'ask_data', 'copilot', 'content', 'sales_agent', 'inbound_classifier', 'review_moderator', 'profile_summary', 'review_summary'];
+const FEATURES = [
+    'weekly_analyst',
+    'ask_data',
+    'copilot',
+    'content',
+    'sales_agent',
+    'inbound_classifier',
+    'review_moderator',
+    'profile_summary',
+    'review_summary',
+    'monthly_report',
+    'lead_qualifier',
+    'lead_brief',
+    'lead_followup',
+    'lead_funnel',
+];
 const REASONS = ['numbers', 'disabled', 'budget', 'provider', 'refusal', 'invalid'];
 
 describe('Inteligencia: lógica', () => {

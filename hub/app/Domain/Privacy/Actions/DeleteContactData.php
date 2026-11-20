@@ -103,7 +103,10 @@ final class DeleteContactData
             $leads = $ws('leads')->whereIn('contact_id', $ids)->pluck('id')->all();
             foreach (array_chunk($leads, 500) as $chunk) {
                 $ws('lead_activities')->whereIn('lead_id', $chunk)->delete();
+                $ws('lead_assistant_marks')->whereIn('lead_id', $chunk)->delete();
+                $ws('lead_tasks')->whereIn('lead_id', $chunk)->delete();
             }
+            $counts['lead_tasks'] = $ws('lead_tasks')->whereIn('contact_id', $ids)->delete();
             $counts['leads'] = $ws('leads')->whereIn('contact_id', $ids)->delete();
             $counts['appointments'] = $ws('appointments')->whereIn('contact_id', $ids)->delete();
             $counts['quotes'] = $ws('quotes')->where(function ($q) use ($ids, $anonymous): void {

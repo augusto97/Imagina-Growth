@@ -33,6 +33,7 @@ export interface LeadRow {
     channel_label: string | null;
     next_step: string | null;
     next_step_at: string | null;
+    stage_changed_at: string | null;
     first_response_at: string | null;
     last_activity_at: string | null;
     won_at: string | null;
@@ -58,12 +59,29 @@ export interface Activity {
     at: string;
 }
 
+/** La ficha que llena la IA con la conversación: cada campo con su frase de origen y quién lo puso. */
+export type BriefKey = 'need' | 'quantity' | 'city' | 'zone' | 'timing' | 'budget' | 'temperature';
+
+export const BRIEF_KEYS: BriefKey[] = ['need', 'quantity', 'city', 'zone', 'timing', 'budget', 'temperature'];
+
+export interface BriefField {
+    value: string | null;
+    by: 'ai' | 'user';
+    quote: string | null;
+    reason: string | null;
+    at: string | null;
+}
+
+export type Brief = Record<BriefKey, BriefField | null>;
+
 export interface LeadDetail extends LeadRow {
     pipeline_stages: Stage[];
     email: string | null;
     phone: string | null;
     source: { channel?: string; utm_source?: string; utm_medium?: string; utm_campaign?: string; page?: string; form_name?: string; referrer_host?: string; has_gclid: boolean; has_fbclid: boolean };
     score_reasons: ScoreReason[];
+    brief: Brief;
+    brief_updated_at: string | null;
     offline_conversion_at: string | null;
     external_crm_id: string | null;
     activities: Activity[];
@@ -147,16 +165,24 @@ export interface AlertRules {
     whatsapp_template_id: string | null;
 }
 
+export interface AssistantRules {
+    stale_days: number;
+    whatsapp_template_id: string | null;
+    digest: boolean;
+}
+
 export interface LeadSettings {
     scoring: ScoringRules;
     alerts: AlertRules;
     assignment: { mode: 'round_robin' | 'rules' | 'none' };
     whatsapp_leads: boolean;
     ai_qualify: boolean;
+    ai_brief: boolean;
+    assistant: AssistantRules;
     ai_available: boolean;
     signals: string[];
     sellers: Seller[];
     pipelines: Pipeline[];
-    whatsapp_templates: { id: string; name: string }[];
+    whatsapp_templates: { id: string; name: string; category: string }[];
     can_manage: boolean;
 }

@@ -1,4 +1,4 @@
-import type { BoardColumn, LeadFilters, LeadRow, Stage, Temperature } from './types';
+import { BRIEF_KEYS, type BoardColumn, type Brief, type BriefKey, type LeadFilters, type LeadRow, type Stage, type Temperature } from './types';
 
 /* Lógica pura de la pantalla de leads (probada en leads.test.ts). */
 
@@ -82,4 +82,25 @@ export function parseList(text: string, max = 300): string[] {
         if (v !== '' && !out.includes(v)) out.push(v);
     }
     return out.slice(0, max);
+}
+
+/** Cuántos datos de la ficha tienen valor. */
+export function briefFilled(brief: Brief | null | undefined): number {
+    return brief ? BRIEF_KEYS.filter((k) => (brief[k]?.value ?? null) !== null).length : 0;
+}
+
+/** Valores de la ficha para el formulario (vacío = sin dato). */
+export function briefDraft(brief: Brief): Record<BriefKey, string> {
+    return Object.fromEntries(BRIEF_KEYS.map((k) => [k, brief[k]?.value ?? ''])) as Record<BriefKey, string>;
+}
+
+/** Solo lo que la persona cambió: un campo vacío se manda como null (queda vacío a propósito). */
+export function briefEdits(brief: Brief, draft: Record<BriefKey, string>): Partial<Record<BriefKey, string | null>> {
+    const out: Partial<Record<BriefKey, string | null>> = {};
+    for (const k of BRIEF_KEYS) {
+        const next = draft[k].trim();
+        const current = brief[k]?.value ?? '';
+        if (next !== current) out[k] = next === '' ? null : next;
+    }
+    return out;
 }

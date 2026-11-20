@@ -10,7 +10,9 @@ use App\Domain\Consent\Models\ConsentEvent;
 use App\Domain\Consent\Models\ContactConsent;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Contacts\Models\ContactIdentity;
+use App\Domain\Services\Leads\Brief\LeadBrief;
 use App\Domain\Workspaces\Models\Workspace;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -110,7 +112,7 @@ final class ExportContactData
     private static function leads(Workspace $workspace, array $ids): array
     {
         $leads = DB::table('leads')->where('workspace_id', $workspace->id)->whereIn('contact_id', $ids)->orderBy('created_at')
-            ->get(['id', 'stage', 'service', 'value_ws', 'origin', 'source', 'score', 'temperature', 'created_at', 'first_response_at', 'won_at', 'lost_at', 'lost_reason']);
+            ->get(['id', 'stage', 'service', 'value_ws', 'origin', 'source', 'score', 'temperature', 'brief', 'created_at', 'first_response_at', 'won_at', 'lost_at', 'lost_reason']);
         $activities = DB::table('lead_activities')->where('workspace_id', $workspace->id)->whereIn('lead_id', $leads->pluck('id')->all())->orderBy('created_at')
             ->get(['lead_id', 'kind', 'created_at'])->groupBy('lead_id');
 
@@ -121,10 +123,27 @@ final class ExportContactData
                 'stage' => $l->stage, 'service' => $l->service, 'value' => $l->value_ws, 'origin' => $l->origin,
                 'source' => array_intersect_key($source, array_flip(['channel', 'utm_source', 'utm_medium', 'utm_campaign', 'page', 'form_name', 'referrer_host'])),
                 'score' => (int) $l->score, 'temperature' => $l->temperature,
+                // La ficha que se llenó con lo que la persona escribió en el chat (solo los valores).
+                'brief' => self::brief($l->brief),
                 'created_at' => $l->created_at, 'first_response_at' => $l->first_response_at, 'won_at' => $l->won_at, 'lost_at' => $l->lost_at, 'lost_reason' => $l->lost_reason,
                 'history' => ($activities->get($l->id) ?? collect())->map(fn ($a) => ['kind' => $a->kind, 'at' => $a->created_at, 'detail' => $a->kind === 'note' ? '(nota interna del negocio)' : null])->values()->all(),
             ];
         })->all());
+    }
+
+    /** @return array<string, string> */
+    private static function brief(mixed $raw): array
+    {
+        if (! is_string($raw) || $raw === '') {
+            return [];
+        }
+        try {
+            $decoded = json_decode(Crypt::decryptString($raw), true);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return LeadBrief::facts(is_array($decoded) ? $decoded : null);
     }
 
     /**

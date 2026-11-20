@@ -26,4 +26,5 @@ Route::delete('leads/pipelines/{pipeline}', [LeadSettingsController::class, 'des
 Route::get('leads/{lead}', [LeadController::class, 'show'])->where('lead', 'ld_[0-9A-Z]{26}');
 Route::patch('leads/{lead}', [LeadController::class, 'update'])->where('lead', 'ld_[0-9A-Z]{26}');
 Route::post('leads/{lead}/stage', [LeadController::class, 'stage'])->where('lead', 'ld_[0-9A-Z]{26}');
+Route::patch('leads/{lead}/brief', [LeadController::class, 'brief'])->where('lead', 'ld_[0-9A-Z]{26}');
 Route::post('leads/{lead}/notes', [LeadController::class, 'note'])->where('lead', 'ld_[0-9A-Z]{26}')->middleware('throttle:60,1');

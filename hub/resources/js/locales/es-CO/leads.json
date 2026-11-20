@@ -183,7 +183,9 @@
                 "system": "Imagina Growth",
                 "ai": "IA",
                 "api": "API"
-            }
+            },
+            "briefAi": "La IA completó la ficha: {{fields}}",
+            "briefUser": "Se editó la ficha: {{fields}}"
         },
         "kpis": {
             "period": "Periodo",
@@ -299,13 +301,38 @@
                 "labels": "Cada etapa necesita un nombre.",
                 "keys": "Hay etapas repetidas."
             },
-            "deletePipeline": "Borrar pipeline"
+            "deletePipeline": "Borrar pipeline",
+            "aiBrief": "Llenar la ficha con IA desde el chat",
+            "aiBriefHelp": "Mientras el cliente escribe por la bandeja, la IA anota qué necesita, cuánto, dónde, para cuándo, su presupuesto y qué tan interesado está. Solo guarda lo que el cliente dijo, con la frase de origen."
         },
         "profile": {
             "title": "Lead",
             "open": "Abrir en Leads",
             "none": "No tiene un lead.",
             "create": "Crear lead"
+        },
+        "brief": {
+            "title": "Ficha del cliente",
+            "help": "La IA la llena mientras el cliente escribe por WhatsApp, Messenger o Instagram, solo con lo que el cliente dijo. Lo que edites queda tuyo: la IA ya no lo cambia.",
+            "empty": "Todavía no hay datos. Se llena sola cuando el cliente cuenta qué necesita.",
+            "edit": "Editar",
+            "editHelp": "Deja un campo vacío si no aplica: la IA no lo vuelve a llenar.",
+            "cancel": "Cancelar",
+            "saved": "Ficha guardada",
+            "ai": "IA",
+            "aiLabel": "Lo llenó la IA",
+            "fromAi": "Lo llenó la IA con lo que escribió el cliente.",
+            "fromQuote": "Lo llenó la IA con esta frase del cliente: «{{quote}}»",
+            "byPerson": "Editado",
+            "fields": {
+                "need": "Qué necesita",
+                "quantity": "Cantidad",
+                "city": "Ciudad",
+                "zone": "Zona o barrio",
+                "timing": "Para cuándo",
+                "budget": "Presupuesto",
+                "temperature": "Interés según el chat"
+            }
         }
     }
 }

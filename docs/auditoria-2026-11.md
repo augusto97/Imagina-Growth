@@ -113,7 +113,7 @@ Casi todas tienen su base en Imagina Growth; lo que falta es que trabajen solas 
 | Función | Qué hay | Qué falta |
 |---|---|---|
 | 1. Responde al instante | Agente de ventas con IA en WhatsApp, Messenger e Instagram (modo `auto`) | Conectar WhatsApp sin fricción (§6) |
-| 2. La ficha se completa sola | Intención del mensaje, lead por intención de compra, calificación con IA del formulario | Que el agente extraiga durante el chat qué necesita, cuánto, dónde, para cuándo y la temperatura, y lo guarde en el lead |
+| 2. La ficha se completa sola | Intención del mensaje, lead por intención de compra, calificación con IA del formulario | ✅ (lote 3): la IA (`lead_brief`, en cola) llena qué necesita, cantidad, ciudad, zona, para cuándo, presupuesto y temperatura con la frase de origen, solo con lo que escribió el cliente y sin pisar lo editado; se ve en el chat y en el lead |
 | 3. Filtra a los curiosos | Reglas de asignación por intención, traspaso a humano, puntaje y aviso al vendedor «caliente» | Preguntas de calificación configurables y derivación dueño / vendedor / agente / web |
 | 4. Atiende el fin de semana | El agente agenda citas; página de reservas | Ofrecer horarios dentro del chat de WhatsApp de punta a punta |
 | 5. El seguimiento sale solo | Flujo 18 de seguimiento de leads | Cadencia día 2, 10, 20 y 40 con mensajes que aportan (IA con los datos del lead), dentro de la ventana o con plantilla |

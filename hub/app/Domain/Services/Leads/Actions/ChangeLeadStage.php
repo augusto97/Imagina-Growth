@@ -43,6 +43,7 @@ final class ChangeLeadStage
         }
         $now = now();
         $lead->stage = $to;
+        $lead->stage_changed_at = $now;
         $lead->last_activity_at = $now;
         if ($stage['kind'] === 'won') {
             $lead->won_at = $now;

@@ -8,6 +8,7 @@ use App\Domain\Contacts\Models\Contact;
 use App\Domain\Services\Contracts\LeadIntake;
 use App\Domain\Services\Data\LeadIntakeInput;
 use App\Domain\Services\Leads\Actions\ChangeLeadStage;
+use App\Domain\Services\Leads\Brief\LeadBrief;
 use App\Domain\Services\Leads\Models\Lead;
 use App\Domain\Services\Leads\Models\LeadActivity;
 use App\Domain\Services\Leads\Models\LeadPipeline;
@@ -166,6 +167,30 @@ final class LeadController
         return response()->json(LeadPresenter::detail($this->current->get(), $l));
     }
 
+    /**
+     * Una persona corrige la ficha que llenó la IA. Lo que edita queda como suyo y la IA ya
+     * no lo cambia; vaciar un campo lo deja vacío a propósito.
+     */
+    public function brief(Request $request, string $lead): JsonResponse
+    {
+        Gate::authorize('ws.useLeads');
+        $l = $this->find($lead);
+        $rules = [];
+        foreach (LeadBrief::TEXT_FIELDS as $field => $max) {
+            $rules[$field] = ['sometimes', 'nullable', 'string', 'max:'.$max];
+        }
+        $data = $request->validate($rules + ['temperature' => ['sometimes', 'nullable', Rule::in(LeadBrief::TEMPERATURES)]]);
+        $userId = (string) $request->user()?->getAuthIdentifier();
+        /** @var array<string, string|null> $data */
+        [$brief, $changed] = LeadBrief::edit($l->brief, $data, now()->toIso8601String(), $userId);
+        if ($changed !== []) {
+            $l->forceFill(['brief' => $brief, 'brief_updated_at' => now(), 'last_activity_at' => now()])->save();
+            LeadActivity::log($l, 'brief', $userId, ['fields' => $changed]);
+        }
+
+        return response()->json(LeadPresenter::detail($this->current->get(), $l));
+    }
+
     public function note(Request $request, string $lead): JsonResponse
     {
         Gate::authorize('ws.useLeads');
@@ -262,6 +287,12 @@ final class LeadController
         }
 
         return $lead;
+    }
+
+    /** ¿Quien pide puede abrir este lead? (rol agente: solo los suyos) */
+    public static function canOpen(Lead $lead, string $userId): bool
+    {
+        return Gate::allows('ws.viewAllContacts') || $lead->owner_id === $userId;
     }
 
     private function member(string $publicId): User

@@ -14,6 +14,7 @@ import { formatDateTime, formatMoney } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
 import { useAddNote, useLead, useMoveLead, useTeam, useUpdateLead } from './api';
+import { BriefCard } from './BriefCard';
 import { moveNeeds, temperatureTone } from './logic';
 import { MoveDialog } from './MoveDialog';
 import type { Activity, LeadDetail, ScoreReason, Stage } from './types';
@@ -113,6 +114,8 @@ function Detail({ lead }: { lead: LeadDetail }) {
             </section>
 
             <EditableFields lead={lead} />
+
+            <BriefCard key={lead.brief_updated_at ?? 'empty'} leadId={lead.id} brief={lead.brief} editable />
 
             <section>
                 <h3 className="igr:mb-2 igr:text-[13px] igr:font-medium">{t('leads.drawer.contact')}</h3>
@@ -284,6 +287,10 @@ function Timeline({ activities, stages, currency }: { activities: Activity[]; st
                 return t('leads.timeline.firstResponse');
             case 'conversion':
                 return t(`leads.timeline.conversion_${str(d.status, 'queued')}`);
+            case 'brief': {
+                const fields = (Array.isArray(d.fields) ? (d.fields as string[]) : []).map((f) => t(`leads.brief.fields.${f}`, { defaultValue: f })).join(', ');
+                return a.actor === 'ai' ? t('leads.timeline.briefAi', { fields }) : t('leads.timeline.briefUser', { fields });
+            }
             case 'note':
                 return str(d.body);
             default:

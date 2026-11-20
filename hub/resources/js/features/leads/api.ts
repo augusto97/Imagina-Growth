@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { wsPath } from '@/api/queries';
 import { api } from '@/lib/api';
 import { filtersQuery } from './logic';
-import type { BoardResponse, Kpis, LeadDetail, LeadFilters, LeadSettings, ListResponse, Pipeline, Seller, Stage, TeamMember } from './types';
+import type { BoardResponse, BriefKey, Kpis, LeadDetail, LeadFilters, LeadSettings, ListResponse, Pipeline, Seller, Stage, TeamMember } from './types';
 
 /* Leads (M18). */
 
@@ -63,6 +63,17 @@ export function useUpdateLead(ws: string) {
         mutationFn: ({ id, ...body }: { id: string; owner_id?: string | null; value?: string | null; service?: string | null; next_step?: string | null; next_step_at?: string | null }) =>
             api.patch<LeadDetail>(`${wsPath(ws)}/leads/${id}`, body),
         onSuccess: invalidate,
+    });
+}
+
+export function useUpdateBrief(ws: string) {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, fields }: { id: string; fields: Partial<Record<BriefKey, string | null>> }) => api.patch<LeadDetail>(`${wsPath(ws)}/leads/${id}/brief`, fields),
+        onSuccess: () => {
+            void qc.invalidateQueries({ queryKey: leadKeys.all(ws) });
+            void qc.invalidateQueries({ queryKey: ['ws', ws, 'inbox', 'panel'] });
+        },
     });
 }
 

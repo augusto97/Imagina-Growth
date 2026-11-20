@@ -23,7 +23,7 @@ export function SettingsTab() {
     if (settings.isPending) return <Skeleton className="igr:h-96" />;
     return (
         <div className="igr:space-y-4">
-            <RulesForm key={JSON.stringify([settings.data.scoring, settings.data.alerts, settings.data.assignment, settings.data.whatsapp_leads, settings.data.ai_qualify])} s={settings.data} />
+            <RulesForm key={JSON.stringify([settings.data.scoring, settings.data.alerts, settings.data.assignment, settings.data.whatsapp_leads, settings.data.ai_qualify, settings.data.ai_brief])} s={settings.data} />
             <SellersCard s={settings.data} />
             <PipelinesCard pipelines={settings.data.pipelines} />
         </div>
@@ -39,6 +39,7 @@ function RulesForm({ s }: { s: LeadSettings }) {
     const [mode, setMode] = useState(s.assignment.mode);
     const [waLeads, setWaLeads] = useState(s.whatsapp_leads);
     const [ai, setAi] = useState(s.ai_qualify);
+    const [brief, setBrief] = useState(s.ai_brief);
     const [paths, setPaths] = useState(s.scoring.pricing_paths.join(', '));
     const [cities, setCities] = useState(s.scoring.service_cities.join(', '));
     const [domains, setDomains] = useState(s.scoring.personal_domains.join(', '));
@@ -56,6 +57,7 @@ function RulesForm({ s }: { s: LeadSettings }) {
                         assignment: { mode },
                         whatsapp_leads: waLeads,
                         ai_qualify: ai,
+                        ai_brief: brief,
                     },
                     { onSuccess: () => toast.success(t('leads.settings.saved')), onError: (err) => toast.error(errorMessage(err, t)) },
                 );
@@ -108,6 +110,13 @@ function RulesForm({ s }: { s: LeadSettings }) {
                         <span>
                             {t('leads.settings.aiQualify')}
                             <span className="igr:block igr:text-xs igr:text-muted-foreground">{s.ai_available ? t('leads.settings.aiQualifyHelp') : t('leads.settings.aiUnavailable')}</span>
+                        </span>
+                    </label>
+                    <label className="igr:flex igr:items-start igr:gap-2 igr:text-[13px]">
+                        <input type="checkbox" className="igr:mt-0.5 igr:size-4" checked={brief} onChange={(e) => setBrief(e.target.checked)} />
+                        <span>
+                            {t('leads.settings.aiBrief')}
+                            <span className="igr:block igr:text-xs igr:text-muted-foreground">{s.ai_available ? t('leads.settings.aiBriefHelp') : t('leads.settings.aiUnavailable')}</span>
                         </span>
                     </label>
                 </CardContent>

@@ -13,6 +13,7 @@ use App\Domain\Services\Leads\Console\DecayLeadScoresCommand;
 use App\Domain\Services\Leads\Crm\CrmSync;
 use App\Domain\Services\Leads\Crm\NullCrmSync;
 use App\Domain\Services\Leads\Listeners\FirstResponseListener;
+use App\Domain\Services\Leads\Listeners\LeadBriefListener;
 use App\Domain\Services\Leads\Listeners\LeadSignalsListener;
 use App\Domain\Services\Leads\Listeners\WhatsAppLeadListener;
 use App\Ingest\Events\EventIngested;
@@ -38,6 +39,7 @@ final class ModuleServiceProvider extends ServiceProvider
     {
         Event::listen(EventIngested::class, LeadSignalsListener::class);
         Event::listen(InboundMessageReceived::class, [WhatsAppLeadListener::class, 'inbound']);
+        Event::listen(InboundMessageReceived::class, [LeadBriefListener::class, 'inbound']);
         Conversation::saved(fn (Conversation $c) => app(WhatsAppLeadListener::class)->conversationSaved($c));
         Message::created(fn (Message $m) => app(FirstResponseListener::class)->created($m));
 
