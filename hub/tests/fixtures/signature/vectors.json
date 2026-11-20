@@ -1,0 +1,173 @@
+{
+  "description": "Vectores de la firma entre el plugin y el hub (docs/api-connector.md §2). Los leen las pruebas del hub (tests/Contract/SignatureVectorsTest.php) y del plugin (connector/tests/Unit/SignatureVectorsTest.php). Se generaron con una implementación independiente de las dos de PHP; si cambias el formato, cambia los dos lados y vuelve a generarlos.",
+  "label": "IGR-HMAC-SHA256-V2",
+  "canonical": [
+    {
+      "target": "/v1/s",
+      "path": "/v1/s",
+      "query": ""
+    },
+    {
+      "target": "https://growth.imagina.cloud/v1/s/config?plugin_version=0.1.4",
+      "path": "/v1/s/config",
+      "query": "plugin_version=0.1.4"
+    },
+    {
+      "target": "/v1/s/catalog/hashes?type=product&cursor=&limit=1000",
+      "path": "/v1/s/catalog/hashes",
+      "query": "cursor=&limit=1000&type=product"
+    },
+    {
+      "target": "https://tienda.co/index.php?rest_route=/imagina-growth/v1/commands",
+      "path": "/index.php",
+      "query": "rest_route=%2Fimagina-growth%2Fv1%2Fcommands"
+    },
+    {
+      "target": "https://tienda.co/?rest_route=%2Fimagina-growth%2Fv1%2Fcommands",
+      "path": "/",
+      "query": "rest_route=%2Fimagina-growth%2Fv1%2Fcommands"
+    },
+    {
+      "target": "https://tienda.co",
+      "path": "/",
+      "query": ""
+    },
+    {
+      "target": "/tienda/wp-json/imagina-growth/v1/commands",
+      "path": "/tienda/wp-json/imagina-growth/v1/commands",
+      "query": ""
+    },
+    {
+      "target": "/a/%7euser/b%2fc/d+e/%C3%B1",
+      "path": "/a/~user/b%2Fc/d%2Be/%C3%B1",
+      "query": ""
+    },
+    {
+      "target": "/a/~user/b%2Fc/d%2be/ñ",
+      "path": "/a/~user/b%2Fc/d%2Be/%C3%B1",
+      "query": ""
+    },
+    {
+      "target": "/v1/s/x?b=2&a=%41&a=1&c&&d=x+y&e=%2B",
+      "path": "/v1/s/x",
+      "query": "a=1&a=A&b=2&c=&d=x%20y&e=%2B"
+    },
+    {
+      "target": "/v1/s/x?z=1#fragmento",
+      "path": "/v1/s/x",
+      "query": "z=1"
+    },
+    {
+      "target": "/v1/s/x?n=10&n=9",
+      "path": "/v1/s/x",
+      "query": "n=10&n=9"
+    },
+    {
+      "target": "http://127.0.0.1:8090/v1/s/catalog/hashes?type=category&cursor=88&limit=1000",
+      "path": "/v1/s/catalog/hashes",
+      "query": "cursor=88&limit=1000&type=category"
+    }
+  ],
+  "v2": [
+    {
+      "name": "config",
+      "secret": "sk_Zm9vYmFyYmF6cXV4Zm9vYmFyYmF6cXV4Zm9vYmFyYmE",
+      "method": "GET",
+      "url": "https://growth.imagina.cloud/v1/s/config?plugin_version=0.1.4",
+      "t": 1763420700,
+      "nonce": "9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41",
+      "body": "",
+      "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "string_to_sign": "IGR-HMAC-SHA256-V2\nGET\n/v1/s/config\nplugin_version=0.1.4\n1763420700\n9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "header": "t=1763420700,n=9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41,v2=dce76359ba69e274a2e1612118d65e080f70b50af125dbe9c57fd1ac4ffd2a49"
+    },
+    {
+      "name": "hashes",
+      "secret": "sk_Zm9vYmFyYmF6cXV4Zm9vYmFyYmF6cXV4Zm9vYmFyYmE",
+      "method": "GET",
+      "url": "https://growth.imagina.cloud/v1/s/catalog/hashes?type=product&cursor=&limit=1000",
+      "t": 1763420700,
+      "nonce": "9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41",
+      "body": "",
+      "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "string_to_sign": "IGR-HMAC-SHA256-V2\nGET\n/v1/s/catalog/hashes\ncursor=&limit=1000&type=product\n1763420700\n9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "header": "t=1763420700,n=9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41,v2=bf5316f7b8b6d3cff6bdb0186464fb9815dcff07946e3e3c4c45f1b801af8a2a"
+    },
+    {
+      "name": "ingesta_gzip",
+      "secret": "sk_Zm9vYmFyYmF6cXV4Zm9vYmFyYmF6cXV4Zm9vYmFyYmE",
+      "method": "POST",
+      "url": "https://growth.imagina.cloud/v1/s",
+      "t": 1763420700,
+      "nonce": "9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41",
+      "body_base64": "H4sIAAAAAAAC/6tWKk7NK4lPLFGyUjIyMDLTNTTUNbQIMTSwMgAhbTCppKOUWgZUVqxkFR1bCwCE/UhmMwAAAA==",
+      "body_sha256": "45a21203216b1adbee501fc438d3df02d676c452a33174a38f6d22b84af193dd",
+      "string_to_sign": "IGR-HMAC-SHA256-V2\nPOST\n/v1/s\n\n1763420700\n9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41\n45a21203216b1adbee501fc438d3df02d676c452a33174a38f6d22b84af193dd",
+      "header": "t=1763420700,n=9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41,v2=612ec41d6ea1333f52c300f41f6118630ec6e2822d4f5775baf92488202eb60b"
+    },
+    {
+      "name": "backfill",
+      "secret": "sk_Zm9vYmFyYmF6cXV4Zm9vYmFyYmF6cXV4Zm9vYmFyYmE",
+      "method": "PUT",
+      "url": "https://growth.imagina.cloud/v1/s/backfill",
+      "t": 1763420700,
+      "nonce": "9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41",
+      "body": "{\"status\":\"running\",\"phase\":\"orders\",\"error\":\"Señal ñ\"}",
+      "body_sha256": "af1f0d9e872fa0049812c8e549324b47f71d96a95a702207f3c19312c301cae5",
+      "string_to_sign": "IGR-HMAC-SHA256-V2\nPUT\n/v1/s/backfill\n\n1763420700\n9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41\naf1f0d9e872fa0049812c8e549324b47f71d96a95a702207f3c19312c301cae5",
+      "header": "t=1763420700,n=9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41,v2=9ff2e92f9572190fa88822f90ed05940c8468176e2185905ddd39e890c81a7ac"
+    },
+    {
+      "name": "saldo",
+      "secret": "sk_Zm9vYmFyYmF6cXV4Zm9vYmFyYmF6cXV4Zm9vYmFyYmE",
+      "method": "POST",
+      "url": "https://growth.imagina.cloud/v1/s/wallet/redeem",
+      "t": 1763420700,
+      "nonce": "9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41",
+      "body": "{\"customer_ref\":\"wc:77\",\"cart_total\":\"282000.00\",\"currency\":\"COP\"}",
+      "body_sha256": "aca7c2591344b6d0a4f324ffe57ae464d3eefea55e00ce61842e110915b4e627",
+      "string_to_sign": "IGR-HMAC-SHA256-V2\nPOST\n/v1/s/wallet/redeem\n\n1763420700\n9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41\naca7c2591344b6d0a4f324ffe57ae464d3eefea55e00ce61842e110915b4e627",
+      "header": "t=1763420700,n=9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41,v2=e7487b461414b2a896b53a48244cba9fd77f8c84be1b87896a3a5ab7238382b0"
+    },
+    {
+      "name": "comando",
+      "secret": "sk_Zm9vYmFyYmF6cXV4Zm9vYmFyYmF6cXV4Zm9vYmFyYmE",
+      "method": "POST",
+      "url": "https://tienda.co/wp-json/imagina-growth/v1/commands",
+      "t": 1763420700,
+      "nonce": "9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41",
+      "body": "{\"command\":\"site.diagnostics\",\"args\":{},\"request_id\":\"01JD3QG7Y2V8K6N4M5P9R0S1T2\",\"nonce\":\"9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41\",\"issued_at\":\"2026-11-18T10:00:00+00:00\"}",
+      "body_sha256": "cb6924f4e525fb15caaa095fa2abe3a700570348609a2d3fb2e4df3c84fc74b2",
+      "string_to_sign": "IGR-HMAC-SHA256-V2\nPOST\n/wp-json/imagina-growth/v1/commands\n\n1763420700\n9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41\ncb6924f4e525fb15caaa095fa2abe3a700570348609a2d3fb2e4df3c84fc74b2",
+      "header": "t=1763420700,n=9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41,v2=679f8cc6b114d5bee8a6bfbe409ddfbfef314aed095545955eeb6ff0f5b8daea"
+    },
+    {
+      "name": "comando_sin_enlaces_permanentes",
+      "secret": "sk_Zm9vYmFyYmF6cXV4Zm9vYmFyYmF6cXV4Zm9vYmFyYmE",
+      "method": "POST",
+      "url": "https://tienda.co/index.php?rest_route=/imagina-growth/v1/commands",
+      "t": 1763420700,
+      "nonce": "9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41",
+      "body": "{\"command\":\"site.diagnostics\",\"args\":{},\"request_id\":\"01JD3QG7Y2V8K6N4M5P9R0S1T2\",\"nonce\":\"9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41\",\"issued_at\":\"2026-11-18T10:00:00+00:00\"}",
+      "body_sha256": "cb6924f4e525fb15caaa095fa2abe3a700570348609a2d3fb2e4df3c84fc74b2",
+      "string_to_sign": "IGR-HMAC-SHA256-V2\nPOST\n/index.php\nrest_route=%2Fimagina-growth%2Fv1%2Fcommands\n1763420700\n9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41\ncb6924f4e525fb15caaa095fa2abe3a700570348609a2d3fb2e4df3c84fc74b2",
+      "header": "t=1763420700,n=9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41,v2=114e7feabfcc10864bb7255b6d89f67b5aefca965be77b8da3d219626a9d75ed"
+    }
+  ],
+  "v1": [
+    {
+      "name": "cuerpo",
+      "secret": "sk_secreto",
+      "t": 1763420700,
+      "body": "cuerpo",
+      "header": "t=1763420700,v1=91a0fdfde9983619736d9a3873cc61a434d6e63398fb75a1a88cbd3c0e830c13"
+    },
+    {
+      "name": "ingesta_gzip",
+      "secret": "sk_Zm9vYmFyYmF6cXV4Zm9vYmFyYmF6cXV4Zm9vYmFyYmE",
+      "t": 1763420700,
+      "body_base64": "H4sIAAAAAAAC/6tWKk7NK4lPLFGyUjIyMDLTNTTUNbQIMTSwMgAhbTCppKOUWgZUVqxkFR1bCwCE/UhmMwAAAA==",
+      "header": "t=1763420700,v1=c6eb783d2f806eb71cfd159047c6c607b265957b10388e4a430512f2637846ac"
+    }
+  ]
+}

@@ -10,7 +10,9 @@ use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Support\SesClientFactory;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Sites\Support\PluginRelease;
+use App\Domain\Sites\Support\SiteSignatures;
 use App\Domain\Workspaces\Models\User;
+use App\Support\Hmac\RequestSignature;
 use App\Support\Monitor\SystemProbe;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -246,8 +248,46 @@ final class InstallationDoctor
         }
 
         $checks[] = $this->sites();
+        $checks[] = $this->signatures();
 
         return $checks;
+    }
+
+    /**
+     * S14: los sitios con un plugin anterior a la 0.1.4 firman con v1 (sin método, ruta ni nonce). Dice cuándo se puede
+     * apagar la v1 y avisa si ya se apagó y algún sitio todavía la usa (sus datos dejan de llegar).
+     */
+    private function signatures(): DoctorCheck
+    {
+        $legacy = [];
+        try {
+            $sites = Site::withoutWorkspaceScope()->whereIn('status', [Site::STATUS_CONNECTED, Site::STATUS_DEGRADED])->orderBy('host')->limit(500)->get(['id', 'host', 'plugin_version']);
+        } catch (Throwable) {
+            $sites = collect();
+        }
+        foreach ($sites as $site) {
+            if (! SiteSignatures::speaksV2($site)) {
+                $version = $site->getAttribute('plugin_version');
+                $legacy[] = $site->host.' ('.(is_string($version) && $version !== '' ? $version : __('versión desconocida')).')';
+            }
+        }
+        $min = RequestSignature::V2_MIN_PLUGIN_VERSION;
+        if (SiteSignatures::acceptsV1()) {
+            return $legacy === []
+                ? new DoctorCheck('data.signature', 'data', DoctorCheck::INFO, __('Todos los sitios firman con la versión 2'),
+                    __('Ya puedes dejar de aceptar la firma anterior: pon IGR_SIGNATURE_ACCEPT_V1=false en el .env.'))
+                : new DoctorCheck('data.signature', 'data', DoctorCheck::INFO,
+                    trans_choice(':n sitio todavía firma con la versión 1|:n sitios todavía firman con la versión 1', count($legacy), ['n' => count($legacy)]),
+                    __('Se sigue aceptando mientras tengan un plugin anterior a la :v. Cuando todos lo actualicen, pon IGR_SIGNATURE_ACCEPT_V1=false.', ['v' => $min]),
+                    array_slice($legacy, 0, 50));
+        }
+
+        return $legacy === []
+            ? new DoctorCheck('data.signature', 'data', DoctorCheck::OK, __('Solo se acepta la firma versión 2'))
+            : new DoctorCheck('data.signature', 'data', DoctorCheck::ERROR,
+                trans_choice(':n sitio firma con la versión 1 y el hub ya no la acepta|:n sitios firman con la versión 1 y el hub ya no la acepta', count($legacy), ['n' => count($legacy)]),
+                __('Sus datos no llegan. Que instalen el plugin :v o más nuevo, o vuelve a poner IGR_SIGNATURE_ACCEPT_V1=true mientras tanto.', ['v' => $min]),
+                array_slice($legacy, 0, 50));
     }
 
     private function sites(): DoctorCheck

@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Sites\Actions;
 
 use App\Domain\Sites\Models\Site;
-use App\Support\Hmac\Signature;
+use App\Domain\Sites\Support\SiteSignatures;
+use App\Support\Hmac\RequestSignature;
 use App\Support\Net\SafeHttp;
 use App\Support\Net\UnsafeUrl;
 use Illuminate\Http\Client\ConnectionException;
@@ -13,7 +14,8 @@ use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * Comando firmado del hub al sitio (api-connector.md §6).
+ * Comando firmado del hub al sitio (api-connector.md §6). Firma v2 (método, ruta, consulta y nonce) si el plugin la
+ * entiende y v1 si es anterior a la 0.1.4 (SiteSignatures::versionFor); el nonce del cuerpo es el mismo de la firma.
  */
 final class SendSiteCommand
 {
@@ -25,13 +27,15 @@ final class SendSiteCommand
     {
         $url = $site->commandsUrl() ?? throw new RuntimeException(__('El sitio no informó su URL de comandos.'));
 
+        $nonce = RequestSignature::newNonce();
         $body = json_encode([
             'command' => $command,
             'args' => (object) $args,
             'request_id' => strtoupper((string) Str::ulid()),
-            'nonce' => bin2hex(random_bytes(16)),
+            'nonce' => $nonce,
             'issued_at' => now()->toIso8601String(),
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        $signature = RequestSignature::sign(SiteSignatures::versionFor($site), $signWith ?? $site->secret, 'POST', $url, $body, nonce: $nonce);
 
         try {
             // `rest_url` lo informa el sitio: solo direcciones públicas, resueltas al enviar y sin redirecciones (S5).
@@ -44,7 +48,7 @@ final class SendSiteCommand
             $response = $request->timeout($timeout)
                 ->withHeaders([
                     'Content-Type' => 'application/json',
-                    'X-IGR-Signature' => Signature::sign($signWith ?? $site->secret, $body),
+                    'X-IGR-Signature' => $signature,
                 ])
                 ->withBody($body, 'application/json')
                 ->post($url);

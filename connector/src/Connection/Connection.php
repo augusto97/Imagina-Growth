@@ -32,7 +32,7 @@ final class Connection {
 	/**
 	 * Estado mínimo autocargado.
 	 *
-	 * @return array{site_id?:string, db?:string, checked_at?:int}
+	 * @return array{site_id?:string, db?:string, pv?:string, checked_at?:int}
 	 */
 	public static function state(): array {
 		$state = get_option( self::STATE_OPTION, array() );
@@ -110,6 +110,66 @@ final class Connection {
 	}
 
 	/**
+	 * Versiones de la firma que anunció el hub (`signature.versions` del canje y de `/v1/s/config`,
+	 * docs/api-connector.md §2.3). Un hub que no dice nada (anterior a la firma v2) solo entiende v1.
+	 *
+	 * @return list<int>
+	 */
+	public static function hub_signature_versions(): array {
+		$data     = self::data();
+		$versions = $data['hub_signature'] ?? null;
+		if ( ! is_array( $versions ) ) {
+			return array( 1 );
+		}
+		$versions = array_values( array_intersect( array( 1, 2 ), array_map( 'intval', $versions ) ) );
+		return array() === $versions ? array( 1 ) : $versions;
+	}
+
+	/**
+	 * Versión con la que el plugin firma lo que manda al hub: v2 solo si el hub la anunció.
+	 */
+	public static function signature_version(): int {
+		return in_array( 2, self::hub_signature_versions(), true ) ? 2 : 1;
+	}
+
+	/**
+	 * ¿Se aceptan todavía comandos firmados con v1? Sí, salvo que el hub anuncie que ya no usa la v1.
+	 */
+	public static function accepts_v1(): bool {
+		return in_array( 1, self::hub_signature_versions(), true );
+	}
+
+	/**
+	 * Guarda lo que anunció el hub sobre la firma (`signature` de su respuesta; null si no dijo nada).
+	 *
+	 * @param mixed $signature Valor de `signature` en la respuesta del hub.
+	 */
+	public static function remember_hub_signature( mixed $signature ): void {
+		$versions = self::signature_versions_from( $signature );
+		$data     = self::data();
+		if ( array() === $data || ( $data['hub_signature'] ?? null ) === $versions ) {
+			return;
+		}
+		$data['hub_signature'] = $versions;
+		update_option( self::OPTION, $data, false );
+		self::$cache = $data;
+	}
+
+	/**
+	 * Versiones conocidas (1 y 2) de `signature.versions`, o null si el hub no las dijo.
+	 *
+	 * @param mixed $signature Valor de `signature`.
+	 * @return list<int>|null
+	 */
+	private static function signature_versions_from( mixed $signature ): ?array {
+		if ( ! is_array( $signature ) || ! is_array( $signature['versions'] ?? null ) ) {
+			return null;
+		}
+		$versions = array_values( array_intersect( array( 1, 2 ), array_map( 'intval', $signature['versions'] ) ) );
+		return array() === $versions ? null : $versions;
+	}
+
+	/**
 	 * Endpoint por nombre (`ingest_server`, `ingest_browser`, `api`).
 	 *
 	 * @param string $name Nombre.
@@ -159,6 +219,7 @@ final class Connection {
 			'endpoints'                  => is_array( $response['endpoints'] ?? null ) ? $response['endpoints'] : array(),
 			'hub_url'                    => self::hub_url(),
 			'connected_at'               => time(),
+			'hub_signature'              => self::signature_versions_from( $response['signature'] ?? null ),
 		);
 		update_option( self::OPTION, $data, false );
 		self::$cache = $data;

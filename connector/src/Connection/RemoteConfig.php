@@ -97,19 +97,23 @@ final class RemoteConfig {
 	}
 
 	/**
-	 * Descarga la configuración del hub (solo desde un job, nunca en la petición del visitante).
+	 * Descarga la configuración del hub (solo desde un job, nunca en la petición del visitante). Le informa la versión
+	 * del plugin (`plugin_version`, firmada en la consulta con la v2) y guarda las versiones de la firma que anuncia el
+	 * hub (`signature`, docs/api-connector.md §2.3).
 	 */
 	public static function refresh(): bool {
 		if ( ! Connection::is_connected() ) {
 			return false;
 		}
-		$response = Http::signed( 'GET', Connection::api_url( 'v1/s/config' ), null, Connection::site_id(), Connection::secret(), false, 10 );
+		$url      = add_query_arg( 'plugin_version', rawurlencode( IGR_VERSION ), Connection::api_url( 'v1/s/config' ) );
+		$response = Http::signed( 'GET', $url, null, Connection::site_id(), Connection::secret(), false, 10 );
 		if ( ! $response->ok() || ! is_array( $response->json ) ) {
 			Logger::warning( 'No se pudo leer la configuración del hub: ' . $response->describe() );
 			return false;
 		}
 		$data               = $response->json;
 		$data['fetched_at'] = time();
+		Connection::remember_hub_signature( $data['signature'] ?? null );
 		update_option( self::OPTION, $data, false );
 		self::$settings = null;
 		\ImaginaGrowth\Connector\Tracking\TrackerConfig::rebuild();

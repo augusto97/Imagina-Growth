@@ -8,6 +8,7 @@ use App\Domain\Sites\Exceptions\ConnectException;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Sites\Models\SiteConnectCode;
 use App\Domain\Sites\Support\SiteKeys;
+use App\Domain\Sites\Support\SiteSignatures;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Tenancy\CurrentWorkspace;
@@ -110,6 +111,8 @@ final class ExchangeConnectCode
                     'ingest_browser' => $ingest.'/v1/b',
                     'api' => rtrim((string) config('igr.urls.app'), '/').'/',
                 ],
+                // Versiones de la firma que acepta y usa el hub (api-connector.md §2.3): el plugin 0.1.4 firma en v2 desde ya.
+                'signature' => SiteSignatures::advertised(),
             ];
         });
     }

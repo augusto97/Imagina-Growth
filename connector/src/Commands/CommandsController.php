@@ -15,8 +15,8 @@ use ImaginaGrowth\Connector\Support\Json;
 use ImaginaGrowth\Connector\Support\Logger;
 
 /**
- * `POST /wp-json/imagina-growth/v1/commands`: firma (±300 s), nonce de 10 minutos e
- * idempotencia por `request_id` durante 24 h.
+ * `POST /wp-json/imagina-growth/v1/commands`: firma (±300 s; v2 con método, ruta, consulta y nonce, o v1 mientras el
+ * hub la use), nonce de 10 minutos e idempotencia por `request_id` durante 24 h.
  */
 final class CommandsController {
 
@@ -72,7 +72,8 @@ final class CommandsController {
 			return self::error( 'not_connected', 'El sitio no está conectado', 403 );
 		}
 		$signature = (string) $request->get_header( 'x-igr-signature' );
-		if ( '' === $signature || ! Hmac::verify( $signature, $body, Connection::valid_secrets() ) ) {
+		$verified  = '' === $signature ? null : Hmac::verify_request( $signature, $request->get_method(), self::targets(), $body, Connection::valid_secrets(), Connection::accepts_v1() );
+		if ( null === $verified ) {
 			return self::error( 'signature', 'Firma inválida o fuera de la ventana de tiempo', 401 );
 		}
 		$data = Json::decode( $body );
@@ -89,12 +90,17 @@ final class CommandsController {
 			return new \WP_REST_Response( $cached['body'], (int) $cached['status'] );
 		}
 
-		// Repetición: un nonce ya visto en los últimos 10 minutos se rechaza.
-		$nonce_key = 'igr_cmd_n_' . substr( hash( 'sha256', $data['nonce'] ), 0, 32 );
-		if ( false !== get_transient( $nonce_key ) ) {
-			return self::error( 'replay', 'Nonce repetido', 409 );
+		// Repetición: un nonce ya visto en los últimos 10 minutos se rechaza (el del cuerpo y, en v2, el de la firma;
+		// el hub manda el mismo en los dos).
+		$nonces = array_unique( array_filter( array( $data['nonce'], (string) ( $verified['nonce'] ?? '' ) ) ) );
+		foreach ( $nonces as $nonce ) {
+			if ( false !== get_transient( self::nonce_key( $nonce ) ) ) {
+				return self::error( 'replay', 'Nonce repetido', 409 );
+			}
 		}
-		set_transient( $nonce_key, 1, 10 * MINUTE_IN_SECONDS );
+		foreach ( $nonces as $nonce ) {
+			set_transient( self::nonce_key( $nonce ), 1, 10 * MINUTE_IN_SECONDS );
+		}
 
 		$class = self::COMMANDS[ $data['command'] ] ?? null;
 		if ( null === $class ) {
@@ -146,6 +152,31 @@ final class CommandsController {
 			),
 			$status
 		);
+	}
+
+	/**
+	 * Destinos con los que el hub pudo llamar al endpoint, para verificar la firma v2: el que llegó en `REQUEST_URI`
+	 * y el de `rest_url()` (el que el plugin informó al conectar; sirve también si un proxy reescribe la ruta).
+	 *
+	 * @return list<string>
+	 */
+	public static function targets(): array {
+		$targets = array();
+		if ( isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) && '' !== $_SERVER['REQUEST_URI'] ) {
+			// Sin sanitizar a propósito: se compara byte a byte con lo que firmó el hub, nunca se imprime ni se guarda.
+			$targets[] = wp_unslash( $_SERVER['REQUEST_URI'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		}
+		$targets[] = rest_url( self::NAMESPACE_V1 . '/commands' );
+		return array_values( array_unique( $targets ) );
+	}
+
+	/**
+	 * Clave del transient de un nonce ya visto.
+	 *
+	 * @param string $nonce Nonce.
+	 */
+	private static function nonce_key( string $nonce ): string {
+		return 'igr_cmd_n_' . substr( hash( 'sha256', $nonce ), 0, 32 );
 	}
 
 	/**

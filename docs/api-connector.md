@@ -2,7 +2,8 @@
 
 > Detalle «en el cable» de lo que resumen `hub/CLAUDE.md` §13 y `connector/CLAUDE.md` §4, §5, §7 y §8.
 > Si cambias algo aquí, cambia el hub y el connector en el mismo commit y agrega una prueba de contrato en ambos.
-> Versión del contrato: **1** (va junto con `schema_version` de `eventos.md`).
+> Versión del contrato: **1** (va junto con `schema_version` de `eventos.md`). Firma de las peticiones: **v2** desde el
+> plugin 0.1.4, con la v1 aceptada por compatibilidad (§2).
 
 ---
 
@@ -43,21 +44,88 @@ La importación y la conciliación (§5.3) incluyen los pedidos de tipo `shop_or
 
 ## 2. Firma de las peticiones
 
-Toda petición del sitio al hub (salvo el canje del código, §3.3) y todo comando del hub al sitio (§6) va firmada:
+Toda petición del sitio al hub (salvo el canje del código, §3.3) y todo comando del hub al sitio (§6) va firmada con el
+secreto del sitio. Hay dos versiones: la **v2** (plugin 0.1.4 en adelante) cubre el método, la ruta, la consulta, la
+hora, un nonce y el cuerpo; la **v1** solo la hora y el cuerpo, y queda por compatibilidad (S14).
 
 ```
 X-IGR-Site:      st_01JD3QG7Y2V8K6N4M5P9R0S1T2     (solo sitio → hub)
-X-IGR-Signature: t=1763420700,v1=5d41402abc4b2a76b9719d911017c592...
+X-IGR-Signature: t=1763420700,n=9f1c2b7e4a6d8c0e1f3a5b7c9d0e2f41,v2=bf5316f7b8b6d3cf...     (v2)
+X-IGR-Signature: t=1763420700,v1=5d41402abc4b2a76b9719d911017c592...                         (v1)
 ```
 
+### 2.1 Versión 2
+
+```
+v2     = hex( HMAC-SHA256( secreto, cadena ) )
+cadena = "IGR-HMAC-SHA256-V2" "\n"
+         MÉTODO               "\n"      en mayúsculas: GET, POST, PUT
+         RUTA                 "\n"      ruta canónica
+         CONSULTA             "\n"      consulta canónica ("" si no hay)
+         t                    "\n"      hora Unix del emisor
+         n                    "\n"      nonce
+         hex( SHA-256( cuerpo ) )
+```
+
+- **MÉTODO:** el de la petición, con el que la enruta quien la recibe.
+- **RUTA canónica:** la ruta de la URL que se llama (sin esquema, host, puerto ni fragmento). Cada segmento entre `/`
+  se decodifica (`%XX`) y se vuelve a codificar con RFC 3986 (`rawurlencode`: solo `A–Z a–z 0–9 - . _ ~` quedan
+  igual): `%7e` y `~` son lo mismo, `%2F` dentro de un segmento sigue siendo `%2F` y un `+` es literal (`%2B`). Una
+  ruta vacía es `/`. No se quitan barras finales ni se resuelven `.` o `..`.
+- **CONSULTA canónica:** se separa por `&` y se descartan los pedazos vacíos; cada par se parte en el primer `=` (sin
+  `=`, el valor es vacío); en el nombre y el valor `+` es un espacio, y se decodifican y vuelven a codificar como la
+  ruta. Los pares se ordenan por nombre y luego por valor comparando bytes (`strcmp`: `n=10` va antes que `n=9`) y se
+  unen con `&` como `nombre=valor`.
+- **n:** de 16 a 64 caracteres `[A-Za-z0-9_-]` (el plugin y el hub usan 32 hexadecimales), uno por petición. Quien
+  recibe lo guarda el doble de la ventana y rechaza el repetido: el hub en Redis (`ws:{id}:signonce:{sitio}:{n}`,
+  10 min), el plugin en un transient de 10 min. En los comandos (§6) el hub pone el mismo nonce en la firma y en el
+  cuerpo.
+- **cuerpo:** como en v1, los bytes exactos que viajan.
+- **Cabecera:** el orden de las claves no importa y las desconocidas se ignoran. Si trae `v2` se verifica solo la v2,
+  aunque también traiga `v1`, y exige un `n` válido.
+- Ejemplos: `GET https://growth.imagina.cloud/v1/s/catalog/hashes?type=product&cursor=&limit=1000` firma la ruta
+  `/v1/s/catalog/hashes` y la consulta `cursor=&limit=1000&type=product`; el comando a un sitio sin enlaces
+  permanentes, `POST https://tienda.co/index.php?rest_route=/imagina-growth/v1/commands`, la ruta `/index.php` y la
+  consulta `rest_route=%2Fimagina-growth%2Fv1%2Fcommands`.
+- **Vectores de prueba compartidos:** `hub/tests/fixtures/signature/vectors.json` (canonización, cadenas y cabeceras
+  calculadas con una implementación independiente). Los corren `hub/tests/Contract/SignatureVectorsTest.php` y
+  `connector/tests/Unit/SignatureVectorsTest.php`; si cambias el formato, cambia los dos lados y vuelve a generarlos.
+- Implementación: `App\Support\Hmac\RequestSignature` en el hub e `ImaginaGrowth\Connector\Support\Hmac` en el
+  plugin.
+
+### 2.2 Versión 1 (compatibilidad)
+
 - `v1 = hex( HMAC-SHA256( secreto, t + "." + cuerpo ) )`.
-- `cuerpo` son **los bytes exactos que viajan** (si van comprimidos con gzip, los bytes comprimidos). En un `GET` el cuerpo es la cadena vacía. Así el hub verifica la firma **antes** de descomprimir.
+- No cubre el método, la ruta ni la consulta y no lleva nonce: dentro de la ventana, la firma de un `GET /v1/s/config`
+  sirve para cualquier otro `GET` firmado, y la de un cuerpo, para otra ruta con el mismo cuerpo. Por eso se deja de
+  aceptar cuando todos los sitios tengan la 0.1.4 (§2.3).
+- La siguen usando los webhooks salientes del hub (`docs/api-publica.md` §9.3), que no son parte de este contrato.
+
+### 2.3 Común a las dos y negociación
+
+- `cuerpo` son **los bytes exactos que viajan** (si van comprimidos con gzip, los bytes comprimidos). En un `GET` el
+  cuerpo es la cadena vacía. Así el hub verifica la firma **antes** de descomprimir.
 - `t` es la hora Unix del emisor. Se rechaza si `|ahora − t| > 300 s`.
 - El secreto completo (`sk_…`) es la clave del HMAC, tal cual, como texto.
 - Comparación en tiempo constante (`hash_equals`).
 - **Rotación:** durante 24 h después de rotar se aceptan el secreto nuevo y el anterior (§6, `secret.rotate`).
+- **Qué versión se usa, sin cortar a nadie:**
+  - El canje (§3.3) y `/v1/s/config` (§5.1) traen `"signature": {"versions": [1, 2]}` (o `[2]` con la v1 apagada).
+    El plugin firma en v2 solo si el hub anunció la 2; un hub anterior no trae `signature` y recibe v1. Si el hub
+    rechaza una v2 con `401` y su último anuncio incluía la 1, el plugin reintenta **una** vez con v1 (un hub que
+    volvió a una versión anterior).
+  - El hub firma los comandos en v2 solo si el plugin informó la 0.1.4 o una más nueva (`plugin_version` del canje,
+    de `site.heartbeat` o de `GET /v1/s/config?plugin_version=`); si no, en v1. Con la v1 apagada, siempre en v2.
+  - El hub acepta la v2 siempre y la v1 mientras `IGR_SIGNATURE_ACCEPT_V1` siga en `true` (por defecto). El plugin
+    acepta la v2 siempre y la v1 salvo que el hub anuncie `[2]`.
+- **Paso a v2 en producción:** (1) se actualiza el hub, que empieza a anunciar `[1, 2]`; (2) cada sitio instala la
+  0.1.4: al cargar la versión nueva pide `/v1/s/config` en una tarea, el hub guarda su versión y desde ahí las dos
+  direcciones van en v2; (3) Plataforma → Instalación (`data.signature`, también en `igr:doctor`) dice cuántos sitios
+  siguen en v1; (4) cuando no queda ninguno, `IGR_SIGNATURE_ACCEPT_V1=false` (y volver a cachear la configuración):
+  el hub rechaza la v1, anuncia `[2]` y los plugins dejan de aceptar comandos en v1. Para volver atrás, `true`.
 
-Respuestas de error comunes: `401 {"error":"signature"}` (firma inválida o fuera de ventana), `403 {"error":"site_disconnected"}`, `429` (límite), `5xx` (reintentar).
+Respuestas de error comunes: `401 {"error":"signature"}` (firma inválida, fuera de ventana, nonce repetido o v1 ya
+no aceptada), `403 {"error":"site_disconnected"}`, `429` (límite), `5xx` (reintentar).
 
 ## 3. Conexión (handshake, M02)
 
@@ -106,7 +174,8 @@ Respuesta `200`:
     "ingest_server": "https://growth.imagina.cloud/v1/s",
     "ingest_browser": "https://growth.imagina.cloud/v1/b",
     "api": "https://growth.imagina.cloud/"
-  }
+  },
+  "signature": { "versions": [1, 2] }       // versiones de la firma que acepta y usa el hub (§2.3)
 }
 ```
 
@@ -155,9 +224,11 @@ Respuesta `202`:
 
 ## 5. Otros endpoints del sitio (firmados)
 
-### 5.1 `GET /v1/s/config`
+### 5.1 `GET /v1/s/config?plugin_version=0.1.4`
 
-Configuración que el plugin guarda en caché un día:
+Configuración que el plugin guarda en caché un día. Desde la 0.1.4 el plugin la pide con su versión en la consulta
+(firmada con la v2) y también justo después de actualizarse: el hub la guarda en el momento (sin esperar al latido)
+y desde ahí le firma los comandos en v2 (§2.3).
 
 ```jsonc
 {
@@ -192,10 +263,11 @@ Configuración que el plugin guarda en caché un día:
   "min_plugin_version": "0.1.0",
   "plugin": {                                     // versiones que conoce el hub (connector/CLAUDE.md §15)
     "min_version": "0.1.0",                        // la mínima compatible
-    "latest_version": "0.1.3",                     // la que trae este paquete del hub en public/downloads
+    "latest_version": "0.1.4",                     // la que trae este paquete del hub en public/downloads
     "download_url": "https://growth.imagina.cloud/downloads/imagina-growth-connector.zip",
-    "status": "current"                            // current | update_available | outdated, según la versión del último heartbeat
-  }
+    "status": "current"                            // current | update_available | outdated, según la última versión informada
+  },
+  "signature": { "versions": [1, 2] }             // versiones de la firma que acepta y usa el hub (§2.3); [2] con la v1 apagada
 }
 ```
 
@@ -270,13 +342,18 @@ La **única llamada síncrona** del plugin al hub, y la inicia la persona: el bo
 
 ## 6. Comandos del hub al sitio
 
-`POST {rest_url}commands` (`/wp-json/imagina-growth/v1/commands`), firmado con §2 (sin `X-IGR-Site`).
+`POST {rest_url}commands` (`/wp-json/imagina-growth/v1/commands`, o `/index.php?rest_route=/imagina-growth/v1/commands`
+sin enlaces permanentes), firmado con §2 (sin `X-IGR-Site`): en v2 si el plugin informó la 0.1.4 o más nueva, con la
+ruta y la consulta de esa URL y el mismo nonce del cuerpo; en v1 si no. El plugin verifica la v2 contra el
+`REQUEST_URI` con el que llegó la petición y contra su `rest_url()` (el que informó al conectar; sirve si un proxy
+reescribe la ruta).
 
 ```json
 { "command": "site.diagnostics", "args": {}, "request_id": "01JD...", "nonce": "b7e2...", "issued_at": "2026-11-18T10:00:00Z" }
 ```
 
-- El plugin rechaza un `nonce` ya visto en los últimos 10 minutos (`409 {"ok":false,"error":{"code":"replay"}}`).
+- El plugin rechaza un `nonce` ya visto en los últimos 10 minutos, el del cuerpo o el de la firma v2
+  (`409 {"ok":false,"error":{"code":"replay"}}`).
 - Idempotencia: la respuesta se guarda 24 h por `request_id`; si se repite, devuelve la misma respuesta sin ejecutar otra vez.
 - Respuesta: `200 {"ok": true, "data": {...}}` o `{"ok": false, "error": {"code": "...", "message": "..."}}` con 4xx.
 

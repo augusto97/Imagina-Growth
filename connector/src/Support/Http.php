@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace ImaginaGrowth\Connector\Support;
 
+use ImaginaGrowth\Connector\Connection\Connection;
+
 /**
  * Envoltura de `wp_remote_request` con firma HMAC y gzip (docs/api-connector.md §2).
  */
@@ -36,7 +38,9 @@ final class Http {
 	}
 
 	/**
-	 * Petición firmada.
+	 * Petición firmada (docs/api-connector.md §2): con la v2 (método, ruta, consulta y nonce) si el hub la anunció y
+	 * con la v1 si no. Si el hub rechaza la firma v2 (`401`) y todavía acepta la v1, se reintenta una vez con la v1:
+	 * así un hub que volvió a una versión anterior no deja al sitio sin enviar nada.
 	 *
 	 * @param string      $method  Método.
 	 * @param string      $url     URL.
@@ -60,8 +64,14 @@ final class Http {
 				$headers['Content-Encoding'] = 'gzip';
 			}
 		}
-		$headers['X-IGR-Signature'] = Hmac::header( $secret, $wire );
-		return self::send( $method, $url, null === $body ? null : $wire, $headers, $timeout );
+		$version                    = Connection::signature_version();
+		$headers['X-IGR-Signature'] = Hmac::sign( $version, $secret, $method, $url, $wire );
+		$response                   = self::send( $method, $url, null === $body ? null : $wire, $headers, $timeout );
+		if ( 2 === $version && 401 === $response->status && Connection::accepts_v1() ) {
+			$headers['X-IGR-Signature'] = Hmac::header( $secret, $wire );
+			$response                   = self::send( $method, $url, null === $body ? null : $wire, $headers, $timeout );
+		}
+		return $response;
 	}
 
 	/**

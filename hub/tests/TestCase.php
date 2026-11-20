@@ -12,7 +12,7 @@ use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Ingest\IngestStream;
-use App\Support\Hmac\Signature;
+use App\Support\Hmac\RequestSignature;
 use App\Support\Pii\BlindIndex;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
@@ -129,14 +129,14 @@ abstract class TestCase extends BaseTestCase
         return array_replace_recursive($order, $overrides);
     }
 
-    /** POST /v1/s firmado y comprimido como lo hace el connector. */
-    public function postSigned(Site $site, string $secret, array $events, ?int $timestamp = null, bool $gzip = true): TestResponse
+    /** POST /v1/s firmado (v2 por defecto; v1 como los plugins anteriores a la 0.1.4) y comprimido como lo hace el connector. */
+    public function postSigned(Site $site, string $secret, array $events, ?int $timestamp = null, bool $gzip = true, int $version = 2): TestResponse
     {
         $json = json_encode(['sent_at' => now()->toIso8601String(), 'events' => $events]);
         $body = $gzip ? gzencode($json) : $json;
         $headers = [
             'X-IGR-Site' => $site->publicId(),
-            'X-IGR-Signature' => Signature::sign($secret, $body, $timestamp),
+            'X-IGR-Signature' => RequestSignature::sign($version, $secret, 'POST', '/v1/s', $body, $timestamp),
             'CONTENT_TYPE' => 'application/json',
         ];
         if ($gzip) {
@@ -146,12 +146,13 @@ abstract class TestCase extends BaseTestCase
         return $this->call('POST', '/v1/s', [], [], [], $this->transformHeadersToServerVars($headers), $body);
     }
 
-    public function signedJson(string $method, string $uri, Site $site, string $secret, ?array $payload = null): TestResponse
+    /** Petición firmada a /v1/s/* como la hace el connector (v2 por defecto: método, ruta y consulta de `$uri`). */
+    public function signedJson(string $method, string $uri, Site $site, string $secret, ?array $payload = null, int $version = 2): TestResponse
     {
         $body = $payload === null ? '' : json_encode($payload);
         $headers = [
             'X-IGR-Site' => $site->publicId(),
-            'X-IGR-Signature' => Signature::sign($secret, $body),
+            'X-IGR-Signature' => RequestSignature::sign($version, $secret, $method, $uri, $body),
             'CONTENT_TYPE' => 'application/json',
             'Accept' => 'application/json',
         ];

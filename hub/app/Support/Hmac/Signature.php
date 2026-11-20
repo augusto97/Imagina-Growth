@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace App\Support\Hmac;
 
 /**
- * Firma de docs/api-connector.md §2:
+ * Firma v1 de docs/api-connector.md §2:
  *   X-IGR-Signature: t=<unix>,v1=hex(hmac_sha256(secret, t + "." + cuerpo))
  * El cuerpo son los bytes exactos que viajan (comprimidos si van con gzip).
+ *
+ * La usan los webhooks salientes (docs/api-publica.md §9.3 y el nodo webhook de los flujos). Entre el plugin y el
+ * hub manda RequestSignature (v2, que además cubre el método, la ruta, la consulta y un nonce; v1 solo por
+ * compatibilidad con plugins anteriores a la 0.1.4).
  */
 final class Signature
 {
@@ -15,7 +19,13 @@ final class Signature
     {
         $t = $timestamp ?? time();
 
-        return 't='.$t.',v1='.hash_hmac('sha256', $t.'.'.$body, $secret);
+        return 't='.$t.',v1='.self::digest($secret, $t, $body);
+    }
+
+    /** hex(HMAC-SHA256(secreto, t + "." + cuerpo)) */
+    public static function digest(string $secret, int $timestamp, string $body): string
+    {
+        return hash_hmac('sha256', $timestamp.'.'.$body, $secret);
     }
 
     /** @return array{t: int, v1: string}|null */
@@ -49,7 +59,7 @@ final class Signature
             return false;
         }
         foreach ($secrets as $secret) {
-            if ($secret !== '' && hash_equals(hash_hmac('sha256', $parsed['t'].'.'.$body, $secret), $parsed['v1'])) {
+            if ($secret !== '' && hash_equals(self::digest($secret, $parsed['t'], $body), $parsed['v1'])) {
                 return true;
             }
         }
