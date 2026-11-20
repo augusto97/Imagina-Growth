@@ -34,6 +34,9 @@
         <env name="IGR_INGEST_SHARDS" value="2"/>
         <!-- Las pruebas antiguas asumen «sin plan = todo»; las del plan por defecto (S3) fijan diagnostico. -->
         <env name="IGR_DEFAULT_PLAN" value="none"/>
+        <!-- Ninguna prueba habla con AWS: las que usan SES lo simulan (SesClientFactory con MockHandler). -->
+        <env name="AWS_ACCESS_KEY_ID" value="" force="true"/>
+        <env name="AWS_SECRET_ACCESS_KEY" value="" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

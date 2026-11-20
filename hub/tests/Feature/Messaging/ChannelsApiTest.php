@@ -142,7 +142,25 @@ it('SMS por Twilio, lista sin secretos, cambia la cuenta por defecto, desconecta
     $gone = ChannelAccount::withoutWorkspaceScope()->find($second->id);
     expect($gone->status)->toBe('disconnected')->and($gone->credential('access_token'))->toBeNull();
 
-    // Prueba por correo un domingo: el modo prueba no tiene ventana.
+    // Prueba por correo un domingo: el modo prueba no tiene ventana. Probar un canal SES prepara antes el configuration
+    // set de la plataforma (F5): SES simulado, sin depender de las credenciales del entorno.
+    app()->instance(SesClientFactory::class, new class extends SesClientFactory
+    {
+        public function configured(): bool
+        {
+            return true;
+        }
+
+        public function make(): SesV2Client
+        {
+            $h = new MockHandler;
+            foreach (range(1, 10) as $_) {
+                $h->append(fn (CommandInterface $c) => new Result([]));
+            }
+
+            return new SesV2Client(['version' => '2019-09-27', 'region' => 'us-east-1', 'credentials' => ['key' => 'k', 'secret' => 's'], 'handler' => $h]);
+        }
+    });
     $this->travelTo(CarbonImmutable::parse('2026-11-22 21:00:00', 'America/Bogota'));
     $test = $this->actingAs($this->owner)->postJson("{$this->api}/channels/{$this->email->publicId()}/test", ['to' => 'dueno@pinturas.co'])->assertOk();
     expect($test->json('status'))->toBe('queued');
