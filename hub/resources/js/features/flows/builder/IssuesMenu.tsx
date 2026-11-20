@@ -13,9 +13,10 @@ export function IssuesMenu({ issues, nodes, onFocus }: { issues: Record<string, 
     const count = Object.values(issues).reduce((acc, list) => acc + list.length, 0);
     if (count === 0) {
         return (
-            <span className="igr:inline-flex igr:shrink-0 igr:items-center igr:gap-1 igr:text-xs igr:text-success">
+            // En una barra angosta (tableta) solo el ícono: el nombre del flujo necesita el espacio.
+            <span className="igr:inline-flex igr:shrink-0 igr:items-center igr:gap-1 igr:text-xs igr:text-success" title={t('flows.builder.noIssues')}>
                 <CircleCheck className="igr:size-3.5" aria-hidden />
-                {t('flows.builder.noIssues')}
+                <span className="igr:sr-only igr:@4xl:not-sr-only">{t('flows.builder.noIssues')}</span>
             </span>
         );
     }
