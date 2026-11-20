@@ -8,7 +8,10 @@ import { ErrorState } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { formatDate, formatMoney, formatNumber } from '@/lib/format';
+import { BriefCard } from '@/features/leads/BriefCard';
+import { temperatureTone } from '@/features/leads/logic';
 import { useContactPanel } from './api';
+import type { PanelLead } from './types';
 
 /** El perfil al lado del chat: pedidos, carrito actual, puntos, segmentos, último producto visto y origen. */
 export function ContactPanel({ id, onClose }: { id: string; onClose: () => void }) {
@@ -70,6 +73,7 @@ export function ContactPanel({ id, onClose }: { id: string; onClose: () => void 
                     </Badge>
                 ) : null}
             </div>
+            {d.lead ? <LeadSection lead={d.lead} /> : null}
             <dl className="igr:grid igr:grid-cols-2 igr:gap-2">
                 <Fact label={t('inbox.panel.orders')} value={formatNumber(c.orders_count, workspace.locale)} />
                 <Fact label={t('inbox.panel.revenue')} value={money(c.revenue_total)} />
@@ -147,6 +151,31 @@ export function ContactPanel({ id, onClose }: { id: string; onClose: () => void 
                     {t('inbox.panel.profile')}
                 </Link>
             </Button>
+        </div>
+    );
+}
+
+/** El lead del contacto: etapa, temperatura y la ficha que la IA llena con este chat. */
+function LeadSection({ lead }: { lead: PanelLead }) {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    return (
+        <div className="igr:space-y-2 igr:rounded-md igr:border igr:p-2">
+            <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-1.5">
+                <span className="igr:text-[11px] igr:font-semibold igr:uppercase igr:tracking-wide igr:text-muted-foreground">{t('inbox.panel.lead')}</span>
+                <Badge variant="secondary">{lead.stage_label}</Badge>
+                <Badge variant={temperatureTone(lead.temperature)}>
+                    {lead.score} · {t(`leads.temperature.${lead.temperature}`)}
+                </Badge>
+            </div>
+            {lead.owner ? <p className="igr:text-muted-foreground">{t('inbox.panel.leadOwner', { name: lead.owner.name })}</p> : null}
+            <BriefCard key={lead.brief_updated_at ?? 'empty'} leadId={lead.id} brief={lead.brief} editable={lead.can_open} compact />
+            {lead.can_open ? (
+                <Link to={`/w/${workspace.id}/leads?lead=${lead.id}`} className="igr:inline-flex igr:items-center igr:gap-1 igr:text-primary igr:hover:underline">
+                    {t('inbox.panel.openLead')}
+                    <ExternalLink className="igr:size-3" aria-hidden />
+                </Link>
+            ) : null}
         </div>
     );
 }

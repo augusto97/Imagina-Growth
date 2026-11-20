@@ -1,5 +1,7 @@
 /* Bandeja de conversaciones (M11). Formas de la API de routes/api/inbox.php. */
 
+import type { Brief, Temperature } from '@/features/leads/types';
+
 export type ConversationStatus = 'open' | 'pending' | 'closed';
 export type AiMode = 'off' | 'assist' | 'auto';
 export type InboxView = 'all' | 'mine' | 'unassigned' | 'ai';
@@ -117,6 +119,21 @@ export interface ContactPanelData {
         source: string | null;
         first_source: Record<string, unknown> | null;
     };
+    /** El lead abierto del contacto con la ficha que llena la IA (solo con permiso de leads). */
+    lead?: PanelLead | null;
+}
+
+export interface PanelLead {
+    id: string;
+    stage: string;
+    stage_label: string;
+    service: string | null;
+    score: number;
+    temperature: Temperature;
+    owner: { id: string; name: string } | null;
+    brief: Brief;
+    brief_updated_at: string | null;
+    can_open: boolean;
 }
 
 export type SendType = 'text' | 'template' | 'product' | 'cart_link' | 'payment_link' | 'coupon';

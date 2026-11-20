@@ -33,6 +33,7 @@ export interface LeadRow {
     channel_label: string | null;
     next_step: string | null;
     next_step_at: string | null;
+    stage_changed_at: string | null;
     first_response_at: string | null;
     last_activity_at: string | null;
     won_at: string | null;
@@ -58,12 +59,43 @@ export interface Activity {
     at: string;
 }
 
+/** La ficha que llena la IA con la conversación: cada campo con su frase de origen y quién lo puso. */
+export type BriefKey = 'need' | 'quantity' | 'city' | 'zone' | 'timing' | 'budget' | 'temperature';
+
+export const BRIEF_KEYS: BriefKey[] = ['need', 'quantity', 'city', 'zone', 'timing', 'budget', 'temperature'];
+
+export interface BriefField {
+    value: string | null;
+    by: 'ai' | 'user';
+    quote: string | null;
+    reason: string | null;
+    at: string | null;
+}
+
+export type Brief = Record<BriefKey, BriefField | null>;
+
+/** Tarea o llamada del vendedor (salen en «Hoy»). */
+export interface LeadTask {
+    id: string;
+    kind: 'task' | 'call';
+    title: string;
+    note: string | null;
+    status: 'open' | 'done';
+    source: 'user' | 'flow';
+    due_at: string;
+    done_at: string | null;
+    owner_id: string | null;
+}
+
 export interface LeadDetail extends LeadRow {
     pipeline_stages: Stage[];
     email: string | null;
     phone: string | null;
     source: { channel?: string; utm_source?: string; utm_medium?: string; utm_campaign?: string; page?: string; form_name?: string; referrer_host?: string; has_gclid: boolean; has_fbclid: boolean };
     score_reasons: ScoreReason[];
+    brief: Brief;
+    brief_updated_at: string | null;
+    tasks: LeadTask[];
     offline_conversion_at: string | null;
     external_crm_id: string | null;
     activities: Activity[];
@@ -115,6 +147,40 @@ export interface Kpis {
     funnel: { stage: string; label: string; kind: StageKind; leads: number; rate: number | null }[];
 }
 
+/** El embudo de leads del lunes (leads/funnel): la semana frente a la anterior. */
+export interface FunnelStage {
+    key: string;
+    label: string;
+    kind: StageKind;
+    reached: number;
+    previous: number;
+    conversion: number | null;
+    previous_conversion: number | null;
+    change_points: number | null;
+}
+
+export interface FirstResponseWeek {
+    leads: number;
+    answered: number;
+    median_seconds: number | null;
+    within_15m_rate: number | null;
+}
+
+export interface LeadFunnelWeek {
+    pipeline: { id: string; name: string };
+    week: { from: string; to: string };
+    previous_week: { from: string; to: string };
+    stages: FunnelStage[];
+    drop: { from: string; from_label: string; to: string; to_label: string; conversion: number; entered: number; passed: number; cohort: number; days: number } | null;
+    lost: { count: number; previous: number; reasons: { reason: string | null; count: number }[]; by_stage: { stage: string; label: string; count: number }[] };
+    stalled: { stage: string; label: string; count: number; max_days: number; buckets: { up_to_14: number; from_15_to_30: number; over_30: number } }[];
+    stale_days: number;
+    first_response: { week: FirstResponseWeek; previous: FirstResponseWeek };
+    won: { week: { count: number; value: string }; previous: { count: number; value: string } };
+    conclusion: { text: string; source: 'ai' | 'fallback' };
+    currency: string;
+}
+
 export interface TeamMember {
     id: string;
     name: string;
@@ -147,16 +213,24 @@ export interface AlertRules {
     whatsapp_template_id: string | null;
 }
 
+export interface AssistantRules {
+    stale_days: number;
+    whatsapp_template_id: string | null;
+    digest: boolean;
+}
+
 export interface LeadSettings {
     scoring: ScoringRules;
     alerts: AlertRules;
     assignment: { mode: 'round_robin' | 'rules' | 'none' };
     whatsapp_leads: boolean;
     ai_qualify: boolean;
+    ai_brief: boolean;
+    assistant: AssistantRules;
     ai_available: boolean;
     signals: string[];
     sellers: Seller[];
     pipelines: Pipeline[];
-    whatsapp_templates: { id: string; name: string }[];
+    whatsapp_templates: { id: string; name: string; category: string }[];
     can_manage: boolean;
 }

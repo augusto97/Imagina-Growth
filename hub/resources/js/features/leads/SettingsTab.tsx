@@ -23,7 +23,8 @@ export function SettingsTab() {
     if (settings.isPending) return <Skeleton className="igr:h-96" />;
     return (
         <div className="igr:space-y-4">
-            <RulesForm key={JSON.stringify([settings.data.scoring, settings.data.alerts, settings.data.assignment, settings.data.whatsapp_leads, settings.data.ai_qualify])} s={settings.data} />
+            <RulesForm key={JSON.stringify([settings.data.scoring, settings.data.alerts, settings.data.assignment, settings.data.whatsapp_leads, settings.data.ai_qualify, settings.data.ai_brief])} s={settings.data} />
+            <AssistantCard key={JSON.stringify(settings.data.assistant)} s={settings.data} />
             <SellersCard s={settings.data} />
             <PipelinesCard pipelines={settings.data.pipelines} />
         </div>
@@ -39,6 +40,7 @@ function RulesForm({ s }: { s: LeadSettings }) {
     const [mode, setMode] = useState(s.assignment.mode);
     const [waLeads, setWaLeads] = useState(s.whatsapp_leads);
     const [ai, setAi] = useState(s.ai_qualify);
+    const [brief, setBrief] = useState(s.ai_brief);
     const [paths, setPaths] = useState(s.scoring.pricing_paths.join(', '));
     const [cities, setCities] = useState(s.scoring.service_cities.join(', '));
     const [domains, setDomains] = useState(s.scoring.personal_domains.join(', '));
@@ -56,6 +58,7 @@ function RulesForm({ s }: { s: LeadSettings }) {
                         assignment: { mode },
                         whatsapp_leads: waLeads,
                         ai_qualify: ai,
+                        ai_brief: brief,
                     },
                     { onSuccess: () => toast.success(t('leads.settings.saved')), onError: (err) => toast.error(errorMessage(err, t)) },
                 );
@@ -108,6 +111,13 @@ function RulesForm({ s }: { s: LeadSettings }) {
                         <span>
                             {t('leads.settings.aiQualify')}
                             <span className="igr:block igr:text-xs igr:text-muted-foreground">{s.ai_available ? t('leads.settings.aiQualifyHelp') : t('leads.settings.aiUnavailable')}</span>
+                        </span>
+                    </label>
+                    <label className="igr:flex igr:items-start igr:gap-2 igr:text-[13px]">
+                        <input type="checkbox" className="igr:mt-0.5 igr:size-4" checked={brief} onChange={(e) => setBrief(e.target.checked)} />
+                        <span>
+                            {t('leads.settings.aiBrief')}
+                            <span className="igr:block igr:text-xs igr:text-muted-foreground">{s.ai_available ? t('leads.settings.aiBriefHelp') : t('leads.settings.aiUnavailable')}</span>
                         </span>
                     </label>
                 </CardContent>
@@ -171,6 +181,65 @@ function RulesForm({ s }: { s: LeadSettings }) {
             <Button type="submit" disabled={save.isPending}>
                 {t('common.save')}
             </Button>
+        </form>
+    );
+}
+
+/** «Hoy» y el seguimiento: días para «quieto» y la plantilla de WhatsApp para escribir fuera de la ventana de 24 h. */
+function AssistantCard({ s }: { s: LeadSettings }) {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const save = useSaveLeadSettings(workspace.id);
+    const [days, setDays] = useState(s.assistant.stale_days);
+    const [template, setTemplate] = useState(s.assistant.whatsapp_template_id ?? '');
+    const [digest, setDigest] = useState(s.assistant.digest);
+    const marketing = s.whatsapp_templates.filter((tpl) => tpl.category === 'marketing');
+    return (
+        <form
+            onSubmit={(e) => {
+                e.preventDefault();
+                save.mutate(
+                    { assistant: { stale_days: days, whatsapp_template_id: template || null, digest } },
+                    { onSuccess: () => toast.success(t('leads.settings.saved')), onError: (err) => toast.error(errorMessage(err, t)) },
+                );
+            }}
+        >
+            <Card>
+                <CardHeader>
+                    <CardTitle>{t('leads.settings.assistantTitle')}</CardTitle>
+                    <CardDescription>{t('leads.settings.assistantHelp')}</CardDescription>
+                </CardHeader>
+                <CardContent className="igr:space-y-3">
+                    <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2">
+                        <div className="igr:space-y-1">
+                            <Label htmlFor="stale-days">{t('leads.settings.staleDays')}</Label>
+                            <Input id="stale-days" type="number" min={1} max={90} value={days} onChange={(e) => setDays(Math.max(1, Math.min(90, Number(e.target.value) || 1)))} />
+                        </div>
+                        <div className="igr:space-y-1">
+                            <Label htmlFor="followup-template">{t('leads.settings.followupTemplate')}</Label>
+                            <Select id="followup-template" value={template} onChange={(e) => setTemplate(e.target.value)}>
+                                <option value="">{t('leads.settings.followupTemplateDefault')}</option>
+                                {marketing.map((tpl) => (
+                                    <option key={tpl.id} value={tpl.id}>
+                                        {tpl.name}
+                                    </option>
+                                ))}
+                            </Select>
+                            <p className="igr:text-xs igr:text-muted-foreground">{t('leads.settings.followupTemplateHelp')}</p>
+                        </div>
+                    </div>
+                    <label className="igr:flex igr:items-start igr:gap-2 igr:text-[13px]">
+                        <input type="checkbox" className="igr:mt-0.5 igr:size-4" checked={digest} onChange={(e) => setDigest(e.target.checked)} />
+                        <span>
+                            {t('leads.settings.digest')}
+                            <span className="igr:block igr:text-xs igr:text-muted-foreground">{t('leads.settings.digestHelp')}</span>
+                        </span>
+                    </label>
+                    <Button type="submit" size="sm" disabled={save.isPending}>
+                        {t('common.save')}
+                    </Button>
+                </CardContent>
+            </Card>
         </form>
     );
 }

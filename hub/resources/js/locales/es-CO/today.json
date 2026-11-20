@@ -1,0 +1,74 @@
+{
+    "today": {
+        "title": "Hoy",
+        "description": "A quién escribirle hoy y qué decirle. La IA sugiere cada mensaje con lo que pidió el cliente; tú lo revisas y lo envías con un clic.",
+        "forbidden": "Tu rol no atiende leads.",
+        "owner": "De",
+        "owners": {
+            "all": "Todo el equipo",
+            "me": "Mis leads",
+            "none": "Sin asignar"
+        },
+        "summary_one": "{{count}} cosa pendiente para hoy",
+        "summary_other": "{{count}} cosas pendientes para hoy",
+        "emptyTitle": "Todo al día",
+        "emptyHelp": "Aquí aparecen los clientes que esperan respuesta, los leads calientes sin contactar, tus tareas y llamadas de hoy y los leads que llevan {{days}} días quietos en una etapa.",
+        "noName": "Sin nombre",
+        "unassigned": "Sin asignar",
+        "kinds": {
+            "reply": "Esperan tu respuesta",
+            "first_contact": "Calientes sin contactar",
+            "task": "Tareas y llamadas de hoy",
+            "next_step": "Próximos pasos de hoy",
+            "stale": "Leads quietos"
+        },
+        "reasons": {
+            "replyNow": "Te acaba de escribir y espera respuesta.",
+            "replyHours_one": "Te escribió hace {{count}} hora y espera respuesta.",
+            "replyHours_other": "Te escribió hace {{count}} horas y espera respuesta.",
+            "firstContact": "Está muy interesado y nadie le ha escrito. Llegó el {{since}}.",
+            "due": "para el {{at}}",
+            "overdue": "venció el {{at}}",
+            "fromFlow": "la creó un flujo",
+            "nextStep": "Próximo paso: {{step}}",
+            "noStep": "sin descripción",
+            "stale_one": "Lleva {{count}} día en «{{stage}}» sin moverse.",
+            "stale_other": "Lleva {{count}} días en «{{stage}}» sin moverse."
+        },
+        "suggest": "Sugerir mensaje",
+        "message": "Mensaje para el cliente",
+        "byAi": "Sugerido con IA",
+        "noAi": "Sin IA",
+        "edited": "Editado por ti",
+        "reach": {
+            "text": "Sale por {{channel}} en la conversación (la ventana de 24 h está abierta).",
+            "template": "Sale por WhatsApp con la plantilla de seguimiento: la ventana de 24 h está cerrada.",
+            "email": "Sale por correo.",
+            "none": "No hay por dónde escribirle ahora."
+        },
+        "noReach": {
+            "no_template": "Elige en Ajustes de leads la plantilla de WhatsApp para seguimientos.",
+            "no_channel": "No tiene WhatsApp ni correo.",
+            "window_closed": "En Messenger e Instagram solo se responde dentro de las 24 h del último mensaje del cliente.",
+            "no_contact": "El contacto ya no existe.",
+            "no_lead": "No tiene un lead."
+        },
+        "channels": {
+            "whatsapp": "WhatsApp",
+            "email": "correo",
+            "messenger": "Messenger",
+            "instagram": "Instagram",
+            "none": "—"
+        },
+        "send": "Enviar",
+        "sent": "Mensaje enviado por {{channel}}",
+        "sentAlready": "Ese mensaje ya se había enviado",
+        "done": "Hecho",
+        "doneToast": "Listo, salió de tu lista",
+        "snooze": "Posponer",
+        "snoozeDays_one": "Hasta mañana",
+        "snoozeDays_other": "{{count}} días",
+        "snoozed": "Vuelve a aparecer el {{date}}",
+        "openLead": "Abrir el lead"
+    }
+}

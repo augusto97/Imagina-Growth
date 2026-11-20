@@ -10,6 +10,7 @@ import { BarList } from '@/features/analytics/components/charts';
 import { StatTile, TileGrid } from '@/features/analytics/components/StatTile';
 import { useFormatters } from '@/features/analytics/format';
 import { useLeadKpis } from './api';
+import { FunnelWeek } from './FunnelWeek';
 import { duration } from './logic';
 
 const PERIODS = [7, 30, 90, 365] as const;
@@ -120,6 +121,7 @@ export function KpisTab({ pipeline }: { pipeline: string }) {
                     </TBody>
                 </Table>
             </Card>
+            <FunnelWeek pipeline={pipeline} />
         </>
     );
 }

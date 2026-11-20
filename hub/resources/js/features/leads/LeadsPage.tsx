@@ -1,6 +1,7 @@
-import { Target } from 'lucide-react';
+import { ListTodo, Target } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
+import { Button } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/misc';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,6 +22,7 @@ export const CHANNELS = ['paid_google', 'paid_meta', 'paid_tiktok', 'ctwa', 'org
 /** Leads (modulos.md M18): tablero por etapas, lista, indicadores y ajustes. `?lead=` abre el detalle. */
 export function LeadsPage() {
     const { t } = useTranslation();
+    const { workspace } = useWorkspace();
     const canManage = useCan('manageServices');
     const [params, setParams] = useSearchParams();
     const tabs = TABS.filter((k) => canManage || k !== 'ajustes');
@@ -43,7 +45,18 @@ export function LeadsPage() {
 
     return (
         <>
-            <PageHeader title={t('leads.title')} description={t('leads.description')} />
+            <PageHeader
+                title={t('leads.title')}
+                description={t('leads.description')}
+                actions={
+                    <Button asChild variant="outline" size="sm">
+                        <Link to={`/w/${workspace.id}/hoy`}>
+                            <ListTodo aria-hidden />
+                            {t('leads.today')}
+                        </Link>
+                    </Button>
+                }
+            />
             <Tabs value={tab} onValueChange={(v) => set('tab', v === 'tablero' ? null : v)}>
                 <TabsList>
                     {tabs.map((k) => (

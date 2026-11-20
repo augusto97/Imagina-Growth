@@ -62,6 +62,17 @@ final class LeadDefaults
         'reassign_unanswered_minutes' => null,
     ];
 
+    /**
+     * «Hoy» del vendedor: días sin moverse de etapa para que un lead salga como «quieto», la
+     * plantilla de WhatsApp aprobada (marketing) para escribirle fuera de la ventana de 24 h
+     * (si no, la de `library_key` wa_lead_followup) y el resumen matutino al vendedor.
+     */
+    public const ASSISTANT = [
+        'stale_days' => 7,
+        'whatsapp_template_id' => null,
+        'digest' => false,
+    ];
+
     /** Días en los que un lead perdido se reabre si la persona vuelve a escribir. */
     public const REOPEN_LOST_DAYS = 30;
 }

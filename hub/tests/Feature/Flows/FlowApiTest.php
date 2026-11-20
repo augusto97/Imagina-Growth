@@ -28,14 +28,14 @@ function flowGraphErrors($test, array $graph): array
     return app(CurrentWorkspace::class)->run($test->ws, fn () => app(GraphValidator::class)->validate(Graph::fromArray($graph), $test->ws->id));
 }
 
-it('valida el grafo: disparador único, todo conectado, ciclos con espera, ramas, plantillas y fases', function () {
+it('valida el grafo: disparador único, todo conectado, ciclos con espera, ramas, plantillas y personas del equipo', function () {
     $t = ['id' => 'trigger', 'type' => 'trigger', 'config' => []];
     $send = ['id' => 'wa', 'type' => 'send_whatsapp', 'config' => ['template_key' => 'no_existe']];
-    $errors = flowGraphErrors($this, ['nodes' => [$t, $send, ['id' => 'x', 'type' => 'tag', 'config' => ['add' => ['vip']]], ['id' => 'p', 'type' => 'assign_agent', 'config' => []]], 'edges' => [['from' => 'trigger', 'to' => 'wa'], ['from' => 'wa', 'to' => 'p', 'branch' => 'quizas']]]);
+    $errors = flowGraphErrors($this, ['nodes' => [$t, $send, ['id' => 'x', 'type' => 'tag', 'config' => ['add' => ['vip']]], ['id' => 'p', 'type' => 'assign_agent', 'config' => ['mode' => 'user', 'user_id' => 'usr_01JDZZZZZZZZZZZZZZZZZZZZZZ']]], 'edges' => [['from' => 'trigger', 'to' => 'wa'], ['from' => 'wa', 'to' => 'p', 'branch' => 'quizas']]]);
     expect($errors['wa'])->toContain('Elige una plantilla de WhatsApp para este envío.')
         ->and(implode(' ', $errors['wa']))->toContain('Rama no válida')
         ->and($errors['x'])->toContain('Este paso no está conectado al flujo.')
-        ->and($errors['p'])->toContain('Este paso llega en la Fase 4.');
+        ->and($errors['p'])->toContain('Elige una persona del equipo.');
 
     // Un ciclo sin espera no se puede publicar; con una espera, sí.
     $loop = fn (string $type, array $config) => ['nodes' => [$t, ['id' => 'a', 'type' => 'tag', 'config' => ['add' => ['x']]], ['id' => 'b', 'type' => $type, 'config' => $config]],

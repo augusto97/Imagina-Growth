@@ -29,6 +29,8 @@ final class FlowLibrary
         'wa_replenishment', 'wa_winback_coupon', 'wa_birthday', 'wa_vip_welcome', 'wa_points_expiring', 'wa_referral_invite',
         // Fase 5
         'wa_lead_reply', 'wa_renewal_reminder',
+        // Seguimiento de leads fuera de la ventana de 24 h (opcional: sin ella sale por correo).
+        'wa_lead_followup',
     ];
 
     /** Plantillas de correo de la biblioteca de M08 (TemplateLibrary) que usan los flujos listos. */
@@ -339,10 +341,14 @@ final class FlowLibrary
     /**
      * M18: un lead nuevo de un formulario o de WhatsApp (los de reservas, cotizador, API
      * o manuales ya tienen su propio camino). Respuesta al instante por WhatsApp o correo
-     * y dos toques más por correo; sale cuando un vendedor lo mueve de «Nuevo». El aviso
-     * al vendedor no va aquí: lo envía el módulo de leads (AlertSeller), una vez por lead.
-     * Los tres mensajes son de marketing: el seguimiento comercial es ambiguo y por
-     * defecto se trata como marketing (cumplimiento.md §4.1), con consentimiento y ventana legal.
+     * y **seguimiento con IA los días 2, 10, 20 y 40** (`lead_followup`: la IA escribe
+     * cada toque con lo que pidió el lead; texto dentro de la ventana de 24 h, plantilla
+     * fuera de ella, correo si WhatsApp no se puede). Cada espera es «esperar a que
+     * escriba por WhatsApp»: si el cliente responde, el run sale y lo atiende el vendedor
+     * («Hoy»); la meta es cualquier cambio de etapa (avanza, se gana o se pierde). El
+     * aviso al vendedor no va aquí: lo envía el módulo de leads (AlertSeller), una vez por
+     * lead. Todo es marketing: el seguimiento comercial es ambiguo y por defecto se trata
+     * como marketing (cumplimiento.md §4.1), con consentimiento, ventana legal y frecuencia.
      *
      * @return array<string, mixed>
      */
@@ -352,18 +358,26 @@ final class FlowLibrary
             ->node('split', 'channel_split', ['channels' => ['whatsapp', 'email']])
             ->node('wa', 'send_whatsapp', self::send('wa_lead_reply'))
             ->node('em1', 'send_email', self::send('lead_followup_1'))
-            ->node('w1', 'wait', self::wait(1, 'days'))
-            ->node('em2', 'send_email', self::send('lead_followup_2'))
-            ->node('w2', 'wait', self::wait(2, 'days'))
-            ->node('em3', 'send_email', self::send('lead_followup_3'))
+            ->node('w1', 'wait_event', self::untilReply(2))
+            ->node('f1', 'lead_followup', ['channels' => ['whatsapp', 'email'], 'step' => 1])
+            ->node('w2', 'wait_event', self::untilReply(8))
+            ->node('f2', 'lead_followup', ['channels' => ['whatsapp', 'email'], 'step' => 2])
+            ->node('w3', 'wait_event', self::untilReply(10))
+            ->node('f3', 'lead_followup', ['channels' => ['whatsapp', 'email'], 'step' => 3])
+            ->node('w4', 'wait_event', self::untilReply(20))
+            ->node('f4', 'lead_followup', ['channels' => ['whatsapp', 'email'], 'step' => 4])
+            ->node('replied', 'exit', [])
             ->chain('trigger', 'split')
             ->edge('split', 'wa', 'whatsapp')->edge('split', 'em1', 'email')
             ->edge('wa', 'w1')->edge('wa', 'em1', 'failed')->edge('em1', 'w1')
-            ->chain('w1', 'em2', 'w2', 'em3');
+            ->edge('w1', 'f1', 'timeout')->edge('w1', 'replied', 'event')
+            ->edge('f1', 'w2')->edge('w2', 'f2', 'timeout')->edge('w2', 'replied', 'event')
+            ->edge('f2', 'w3')->edge('w3', 'f3', 'timeout')->edge('w3', 'replied', 'event')
+            ->edge('f3', 'w4')->edge('w4', 'f4', 'timeout')->edge('w4', 'replied', 'event');
 
-        return self::flow(18, 'service_lead', 'Lead de servicios', 'Formulario o WhatsApp entrante: respuesta al instante y seguimiento de 3 toques (día 1 y día 3). Sale cuando un vendedor lo mueve de «Nuevo»; el aviso al vendedor lo envía el módulo de leads.',
+        return self::flow(18, 'service_lead', 'Lead de servicios', 'Formulario o WhatsApp entrante: respuesta al instante y seguimiento con IA los días 2, 10, 20 y 40 con lo que pidió el lead. Se detiene si el cliente responde por WhatsApp o si el lead cambia de etapa (avanza, se gana o se pierde).',
             ['type' => 'event', 'event' => 'lead.created', 'filters' => [['prop' => 'origin', 'operator' => 'in', 'value' => ['form', 'whatsapp']]]],
-            ['event' => 'lead.stage_changed', 'filters' => [['prop' => 'from', 'operator' => 'eq', 'value' => 'new']]],
+            ['event' => 'lead.stage_changed'],
             ['mode' => 'every_days', 'days' => 30], $g, 5);
     }
 
@@ -399,6 +413,16 @@ final class FlowLibrary
     private static function send(string $templateKey): array
     {
         return ['template_key' => $templateKey, 'kind' => 'marketing'];
+    }
+
+    /**
+     * Espera a que el cliente escriba por WhatsApp, como máximo `days` días (el seguimiento de leads).
+     *
+     * @return array<string, mixed>
+     */
+    private static function untilReply(int $days): array
+    {
+        return ['event' => 'whatsapp.inbound', 'timeout' => ['value' => $days, 'unit' => 'days'], 'filters' => []];
     }
 
     /** @return array<string, mixed> */

@@ -8,6 +8,7 @@
             "indicadores": "Indicadores",
             "ajustes": "Ajustes"
         },
+        "today": "Hoy: a quién escribirle",
         "noName": "Sin nombre",
         "noService": "Sin servicio",
         "unassigned": "Sin asignar",
@@ -183,7 +184,14 @@
                 "system": "Imagina Growth",
                 "ai": "IA",
                 "api": "API"
-            }
+            },
+            "briefAi": "La IA completó la ficha: {{fields}}",
+            "briefUser": "Se editó la ficha: {{fields}}",
+            "fromToday": "Mensaje enviado desde «Hoy» por {{channel}}",
+            "task": "Tarea nueva",
+            "call": "Llamada programada",
+            "followup": "Seguimiento {{step}} con IA enviado por {{channel}}",
+            "followupDenied": "El seguimiento {{step}} no pudo salir solo: quedó como tarea en «Hoy»"
         },
         "kpis": {
             "period": "Periodo",
@@ -299,13 +307,92 @@
                 "labels": "Cada etapa necesita un nombre.",
                 "keys": "Hay etapas repetidas."
             },
-            "deletePipeline": "Borrar pipeline"
+            "deletePipeline": "Borrar pipeline",
+            "assistantTitle": "«Hoy» y seguimiento",
+            "assistantHelp": "La lista diaria de cada vendedor y el seguimiento automático del flujo «Lead de servicios» (días 2, 10, 20 y 40, editables en el flujo).",
+            "staleDays": "Días quieto en una etapa para avisar",
+            "followupTemplate": "Plantilla de WhatsApp para seguimientos",
+            "followupTemplateDefault": "La de la biblioteca (wa_lead_followup), si existe",
+            "followupTemplateHelp": "Pasadas 24 horas desde el último mensaje del cliente, WhatsApp solo deja escribir con una plantilla aprobada. Debe ser de marketing; el texto que escribe la IA va en la variable seguimiento.mensaje.",
+            "digest": "Resumen matutino a cada vendedor",
+            "digestHelp": "De lunes a sábado a las 7:00, cuántos clientes esperan respuesta, calientes sin contactar, tareas y leads quietos, con el enlace a «Hoy». Por WhatsApp con la plantilla de avisos al equipo, o por correo. Sin datos de los clientes.",
+            "aiBrief": "Llenar la ficha con IA desde el chat",
+            "aiBriefHelp": "Mientras el cliente escribe por la bandeja, la IA anota qué necesita, cuánto, dónde, para cuándo, su presupuesto y qué tan interesado está. Solo guarda lo que el cliente dijo, con la frase de origen."
         },
         "profile": {
             "title": "Lead",
             "open": "Abrir en Leads",
             "none": "No tiene un lead.",
             "create": "Crear lead"
+        },
+        "funnelWeek": {
+            "title": "Embudo de la semana",
+            "range": "Del {{from}} al {{to}}, frente a la semana anterior",
+            "week": "Semana",
+            "last": "Semana pasada",
+            "current": "Esta semana (hasta hoy)",
+            "byAi": "Escrito con IA con estas cifras",
+            "noAi": "Sin IA",
+            "inquiries": "Consultas",
+            "won": "Ganados",
+            "lost": "Perdidos",
+            "dropTitle": "Dónde se cae la venta:",
+            "drop": "entre «{{from}}» y «{{to}}» pasa {{rate}} ({{passed}} de {{entered}} leads de los últimos {{days}} días).",
+            "caption": "Leads que llegaron a cada etapa en la semana y en la anterior, y cuántos pasaron de la etapa anterior",
+            "cols": {
+                "stage": "Etapa",
+                "week": "Esta semana",
+                "previous": "Anterior",
+                "passed": "Pasaron",
+                "passedPrevious": "Pasaron antes",
+                "change": "Cambio"
+            },
+            "points": "{{value}} pts",
+            "reasons_one": "Por qué se perdió ({{count}} lead)",
+            "reasons_other": "Por qué se perdieron ({{count}} leads)",
+            "noReason": "Sin motivo",
+            "lostFrom": "Salieron de: {{stages}}",
+            "stalled": "Quietos más de {{days}} días, por etapa",
+            "buckets": "hasta 14 días: {{a}} · de 15 a 30: {{b}} · más de 30: {{c}} · el más viejo, {{max}} días"
+        },
+        "tasks": {
+            "title": "Tareas y llamadas",
+            "today": "Ver «Hoy»",
+            "new": "Nueva tarea",
+            "placeholder": "Llamar para confirmar la visita",
+            "kind": "Tipo",
+            "kinds": {
+                "task": "Tarea",
+                "call": "Llamada"
+            },
+            "due": "Para el día",
+            "add": "Agregar",
+            "created": "Tarea creada: sale en «Hoy» el día que vence",
+            "markDone": "Marcar «{{title}}» como hecha",
+            "fromFlow": "la creó un flujo"
+        },
+        "brief": {
+            "title": "Ficha del cliente",
+            "help": "La IA la llena mientras el cliente escribe por WhatsApp, Messenger o Instagram, solo con lo que el cliente dijo. Lo que edites queda tuyo: la IA ya no lo cambia.",
+            "empty": "Todavía no hay datos. Se llena sola cuando el cliente cuenta qué necesita.",
+            "edit": "Editar",
+            "editHelp": "Deja un campo vacío si no aplica: la IA no lo vuelve a llenar.",
+            "cancel": "Cancelar",
+            "saved": "Ficha guardada",
+            "ai": "IA",
+            "aiLabel": "Lo llenó la IA",
+            "fromAi": "Lo llenó la IA con lo que escribió el cliente.",
+            "fromQuote": "Lo llenó la IA con esta frase del cliente: «{{quote}}»",
+            "byPerson": "Editado",
+            "fields": {
+                "need": "Qué necesita",
+                "quantity": "Cantidad",
+                "city": "Ciudad",
+                "zone": "Zona o barrio",
+                "timing": "Para cuándo",
+                "budget": "Presupuesto",
+                "temperature": "Interés según el chat"
+            }
         }
     }
 }

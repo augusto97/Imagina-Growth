@@ -21,6 +21,7 @@ import {
     UserCheck,
     Briefcase,
     ListTodo,
+    Sparkles,
 } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import { formatNumber } from '@/lib/format';
@@ -67,15 +68,19 @@ export const NODE_META: Record<string, NodeMeta> = {
     exit: { icon: Flag, category: 'control', branches: [], defaults: () => ({}) },
     give_points: { icon: Award, category: 'action', branches: [null], defaults: () => ({ points: 100 }) },
     give_wallet: { icon: Wallet, category: 'action', branches: [null], defaults: () => ({ amount: '10000' }) },
-    assign_agent: { icon: UserCheck, category: 'action', phase: 4, branches: [null], defaults: () => ({}) },
-    lead_stage: { icon: Briefcase, category: 'action', phase: 5, branches: [null], defaults: () => ({}) },
-    crm_task: { icon: ListTodo, category: 'action', phase: 5, branches: [null], defaults: () => ({}) },
+    assign_agent: { icon: UserCheck, category: 'action', branches: [null, 'failed'], defaults: () => ({ mode: 'auto' }) },
+    lead_stage: { icon: Briefcase, category: 'action', branches: [null, 'failed'], defaults: () => ({ stage: 'contacted' }) },
+    crm_task: { icon: ListTodo, category: 'action', branches: [null], defaults: () => ({ title: '', kind: 'task', due_in: { value: 1, unit: 'days' }, assign: 'lead_owner' }) },
+    lead_followup: { icon: Sparkles, category: 'action', branches: [null, 'failed'], defaults: () => ({ channels: ['whatsapp', 'email'], step: 1 }) },
 };
 
 export const PALETTE: { category: Category; types: string[] }[] = [
     { category: 'wait', types: ['wait', 'wait_event'] },
     { category: 'logic', types: ['condition', 'ab_split', 'channel_split'] },
-    { category: 'action', types: ['send_whatsapp', 'send_email', 'send_sms', 'coupon', 'tag', 'update_attribute', 'notify_team', 'webhook', 'give_points', 'give_wallet', 'assign_agent', 'lead_stage', 'crm_task'] },
+    {
+        category: 'action',
+        types: ['send_whatsapp', 'send_email', 'send_sms', 'lead_followup', 'coupon', 'tag', 'update_attribute', 'notify_team', 'webhook', 'give_points', 'give_wallet', 'assign_agent', 'lead_stage', 'crm_task'],
+    },
     { category: 'control', types: ['exit'] },
 ];
 
@@ -109,6 +114,9 @@ export function branchLabel(t: TFunction, type: string, branch: string | null): 
     }
     if (type === 'channel_split') {
         return t(`flows.channels.${branch}`);
+    }
+    if (branch === 'failed' && (type === 'assign_agent' || type === 'lead_stage')) {
+        return t('flows.branches.notDone');
     }
     return t(`flows.branches.${branch}`);
 }
@@ -174,6 +182,25 @@ export function summarize(t: TFunction, node: GraphNode, options: FlowOptions | 
             return num(c.points, 0) > 0 ? t('loyalty.flowNode.summaryPoints', { points: num(c.points, 0) }) : t('loyalty.flowNode.missing');
         case 'give_wallet':
             return Number(s(c.amount)) > 0 ? t('loyalty.flowNode.summaryWallet', { amount: formatNumber(Number(s(c.amount))) }) : t('loyalty.flowNode.missing');
+        case 'assign_agent': {
+            if (c.mode !== 'user') return t('flows.summary.assignAuto');
+            const person = options?.team?.find((m) => m.id === c.user_id);
+            return person ? t('flows.summary.assignUser', { name: person.name }) : t('flows.summary.pickPerson');
+        }
+        case 'lead_stage': {
+            const stage = options?.lead_stages?.find((st) => st.key === c.stage);
+            return s(c.stage) !== '' ? t('flows.summary.leadStage', { stage: stage?.label ?? s(c.stage) }) : t('flows.summary.pickStage');
+        }
+        case 'crm_task': {
+            const title = s(c.title);
+            if (title === '') return t('flows.summary.noTask');
+            const text = c.due_in ? t('flows.summary.task', { title, duration: durationText(t, c.due_in) }) : t('flows.summary.taskToday', { title });
+            return c.kind === 'call' ? t('flows.summary.call', { title: text }) : text;
+        }
+        case 'lead_followup': {
+            const channels = (Array.isArray(c.channels) ? (c.channels as string[]) : []).map((ch) => t(`flows.channels.${ch}`)).join(' → ');
+            return t('flows.summary.followUp', { step: num(c.step, 1), channels });
+        }
         case 'exit':
             return t('flows.summary.exit');
         default:

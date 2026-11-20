@@ -100,8 +100,11 @@ final class LibraryAdapter
         }
         $nodes = array_values(array_filter($nodes, fn (array $n) => ($n['type'] ?? null) !== 'send_whatsapp'));
 
-        // Las divisiones por canal dejan de ofrecer WhatsApp.
+        // Las divisiones por canal dejan de ofrecer WhatsApp; el seguimiento con IA sale por correo.
         foreach ($nodes as $i => $node) {
+            if (($node['type'] ?? null) === 'lead_followup') {
+                $nodes[$i]['config']['channels'] = array_values(array_filter((array) ($node['config']['channels'] ?? []), fn ($c) => $c !== 'whatsapp')) ?: ['email'];
+            }
             if (($node['type'] ?? null) === 'channel_split') {
                 $nodes[$i]['config']['channels'] = array_values(array_filter((array) ($node['config']['channels'] ?? []), fn ($c) => $c !== 'whatsapp'));
                 $edges = array_values(array_filter($edges, fn (array $e) => ! ($e['from'] === $node['id'] && ($e['branch'] ?? null) === 'whatsapp')));

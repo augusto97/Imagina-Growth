@@ -15,6 +15,9 @@ use App\Domain\Messaging\Data\DispatchResult;
 use App\Domain\Messaging\Enums\Channel;
 use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Models\Conversation;
+use App\Domain\Services\Leads\Brief\UpdateLeadBrief;
+use App\Domain\Services\Leads\Http\LeadController;
+use App\Domain\Services\Leads\Http\LeadPresenter;
 use App\Domain\Templates\Models\Template;
 use App\Domain\Workspaces\Models\User;
 use App\Support\Ids\PrefixedId;
@@ -63,7 +66,15 @@ final class InboxController
     /** GET inbox/conversations/{id}/panel */
     public function panel(Request $request, string $conversation): JsonResponse
     {
-        return response()->json($this->query->panel($this->current->get(), $this->find($request, $conversation)));
+        $c = $this->find($request, $conversation);
+        $data = $this->query->panel($this->current->get(), $c);
+        // La ficha del lead que la IA llena con esta conversación (M18).
+        if ($data !== [] && Gate::allows('ws.useLeads')) {
+            $lead = UpdateLeadBrief::openLead($c->contact_id);
+            $data['lead'] = $lead !== null ? LeadPresenter::panel($lead, LeadController::canOpen($lead, $this->userId($request))) : null;
+        }
+
+        return response()->json($data);
     }
 
     /** POST inbox/conversations/{id}/messages */
@@ -275,7 +286,8 @@ final class InboxController
         return array_values(array_unique($keys));
     }
 
-    private static function denied(string $reason, ?Channel $channel = null): string
+    /** El motivo de una negación del despachador en palabras del usuario (lo usa también «Hoy» de leads). */
+    public static function denied(string $reason, ?Channel $channel = null): string
     {
         if ($channel !== null && $channel->isSocial()) {
             $name = $channel === Channel::Instagram ? 'Instagram' : 'Messenger';

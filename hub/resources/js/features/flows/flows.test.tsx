@@ -134,7 +134,12 @@ describe('catálogo de nodos', () => {
         expect(summarize(t, { id: 'g', type: 'tag', config: { add: ['vip'], remove: [] } }, options)).toBe('+ vip');
         expect(summarize(t, { id: 'p', type: 'give_points', config: { points: 250 } }, options)).toBe('+250 puntos');
         expect(summarize(t, { id: 'p', type: 'give_wallet', config: {} }, options)).toBe('Indica la cantidad');
-        expect(summarize(t, { id: 'p', type: 'assign_agent', config: {} }, options)).toBe('Todavía no disponible');
+        expect(summarize(t, { id: 'p', type: 'assign_agent', config: {} }, options)).toBe('Por turnos (bandeja y leads)');
+        expect(summarize(t, { id: 'p', type: 'assign_agent', config: { mode: 'user', user_id: 'usr_1' } }, { ...options, team: [{ id: 'usr_1', name: 'Laura' }] })).toBe('A Laura');
+        expect(summarize(t, { id: 's', type: 'lead_stage', config: { stage: 'proposal' } }, { ...options, lead_stages: [{ key: 'proposal', label: 'Propuesta', kind: 'open', pipeline: 'Ventas' }] })).toBe('A «Propuesta»');
+        expect(summarize(t, { id: 'k', type: 'crm_task', config: { title: 'Llamar', kind: 'call', due_in: { value: 2, unit: 'days' } } }, options)).toBe('Llamada: Llamar · vence en 2 días');
+        expect(summarize(t, { id: 'f', type: 'lead_followup', config: { channels: ['whatsapp', 'email'], step: 2 } }, options)).toBe('Toque 2 · WhatsApp → Correo');
+        expect(branchLabel(t, 'lead_stage', 'failed')).toBe('Si no se pudo');
         for (const [type, meta] of Object.entries(NODE_META)) {
             expect(summarize(t, { id: 'x', type, config: meta.defaults() }, options), type).not.toMatch(/flows\./);
         }

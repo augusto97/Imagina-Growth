@@ -14,6 +14,8 @@ import { formatDateTime, formatMoney } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
 import { useAddNote, useLead, useMoveLead, useTeam, useUpdateLead } from './api';
+import { BriefCard } from './BriefCard';
+import { TasksCard } from './TasksCard';
 import { moveNeeds, temperatureTone } from './logic';
 import { MoveDialog } from './MoveDialog';
 import type { Activity, LeadDetail, ScoreReason, Stage } from './types';
@@ -113,6 +115,10 @@ function Detail({ lead }: { lead: LeadDetail }) {
             </section>
 
             <EditableFields lead={lead} />
+
+            <BriefCard key={lead.brief_updated_at ?? 'empty'} leadId={lead.id} brief={lead.brief} editable />
+
+            <TasksCard leadId={lead.id} tasks={lead.tasks} />
 
             <section>
                 <h3 className="igr:mb-2 igr:text-[13px] igr:font-medium">{t('leads.drawer.contact')}</h3>
@@ -281,9 +287,17 @@ function Timeline({ activities, stages, currency }: { activities: Activity[]; st
             case 'value':
                 return t('leads.timeline.value', { value: d.value ? formatMoney(str(d.value), currency, workspace.locale) : '—' });
             case 'message':
-                return t('leads.timeline.firstResponse');
+                return d.from === 'today' ? t('leads.timeline.fromToday', { channel: t(`today.channels.${str(d.channel, 'none')}`) }) : t('leads.timeline.firstResponse');
+            case 'task':
+                return t(d.kind === 'call' ? 'leads.timeline.call' : 'leads.timeline.task');
+            case 'followup':
+                return d.denied ? t('leads.timeline.followupDenied', { step: Number(d.step ?? 1) }) : t('leads.timeline.followup', { step: Number(d.step ?? 1), channel: t(`today.channels.${str(d.channel, 'none')}`) });
             case 'conversion':
                 return t(`leads.timeline.conversion_${str(d.status, 'queued')}`);
+            case 'brief': {
+                const fields = (Array.isArray(d.fields) ? (d.fields as string[]) : []).map((f) => t(`leads.brief.fields.${f}`, { defaultValue: f })).join(', ');
+                return a.actor === 'ai' ? t('leads.timeline.briefAi', { fields }) : t('leads.timeline.briefUser', { fields });
+            }
             case 'note':
                 return str(d.body);
             default:

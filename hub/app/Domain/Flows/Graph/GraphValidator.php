@@ -7,8 +7,12 @@ namespace App\Domain\Flows\Graph;
 use App\Domain\Flows\Support\TemplateRef;
 use App\Domain\Segments\Definition\DefinitionValidator;
 use App\Domain\Segments\Definition\InvalidDefinition;
+use App\Domain\Services\Leads\Support\LeadDefaults;
+use App\Domain\Workspaces\Models\User;
 use App\Ingest\Schema\SchemaRegistry;
+use App\Support\Ids\PrefixedId;
 use App\Support\Net\SafeUrl;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Valida el grafo antes de publicar (hub/CLAUDE.md §7): un solo disparador,
@@ -51,12 +55,6 @@ final class GraphValidator
             }
             if (! NodeTypes::exists($node['type'])) {
                 $this->add($id, __('Tipo de nodo desconocido.'));
-
-                continue;
-            }
-            $phase = NodeTypes::phase($node['type']);
-            if ($phase !== null) {
-                $this->add($id, __('Este paso llega en la Fase :phase.', ['phase' => $phase]));
 
                 continue;
             }
@@ -194,8 +192,91 @@ final class GraphValidator
             NodeTypes::WEBHOOK => $this->webhookConfig($id, $c),
             NodeTypes::GIVE_POINTS => $this->givePointsConfig($id, $c),
             NodeTypes::GIVE_WALLET => $this->giveWalletConfig($id, $c),
+            NodeTypes::CRM_TASK => $this->crmTaskConfig($id, $c, $workspaceId),
+            NodeTypes::ASSIGN_AGENT => $this->assignConfig($id, $c, $workspaceId),
+            NodeTypes::LEAD_STAGE => $this->leadStageConfig($id, $c, $workspaceId),
+            NodeTypes::LEAD_FOLLOWUP => $this->followUpConfig($id, $c, $workspaceId),
             default => null,
         };
+    }
+
+    /** @param array<string, mixed> $c */
+    private function crmTaskConfig(string $id, array $c, string $workspaceId): void
+    {
+        $title = trim((string) ($c['title'] ?? ''));
+        if ($title === '' || mb_strlen($title) > 160) {
+            $this->add($id, __('Escribe la tarea (máximo 160 caracteres).'));
+        }
+        if (! in_array($c['kind'] ?? 'task', ['task', 'call'], true)) {
+            $this->add($id, __('La tarea es una tarea o una llamada.'));
+        }
+        $due = $c['due_in'] ?? null;
+        if ($due !== null && ((Durations::seconds($due) ?? PHP_INT_MAX) > 90 * 86400)) {
+            $this->add($id, __('La tarea debe vencer entre 1 minuto y 90 días después.'));
+        }
+        $this->assigneeConfig($id, (string) ($c['assign'] ?? 'lead_owner'), ['lead_owner', 'user'], $c['user_id'] ?? null, $workspaceId);
+    }
+
+    /** @param array<string, mixed> $c */
+    private function assignConfig(string $id, array $c, string $workspaceId): void
+    {
+        $this->assigneeConfig($id, (string) ($c['mode'] ?? 'auto'), ['auto', 'user'], $c['user_id'] ?? null, $workspaceId);
+    }
+
+    /** @param list<string> $modes */
+    private function assigneeConfig(string $id, string $mode, array $modes, mixed $userId, string $workspaceId): void
+    {
+        if (! in_array($mode, $modes, true)) {
+            $this->add($id, __('Elige a quién se asigna.'));
+
+            return;
+        }
+        if ($mode !== 'user') {
+            return;
+        }
+        $user = PrefixedId::decode(User::ID_PREFIX, is_string($userId) ? $userId : null);
+        if ($user === null || ! DB::table('workspace_user')->where('workspace_id', $workspaceId)->where('user_id', $user)->exists()) {
+            $this->add($id, __('Elige una persona del equipo.'));
+        }
+    }
+
+    /** @param array<string, mixed> $c */
+    private function leadStageConfig(string $id, array $c, string $workspaceId): void
+    {
+        $stage = $c['stage'] ?? null;
+        $exists = false;
+        if (is_string($stage) && $stage !== '') {
+            foreach (DB::table('lead_pipelines')->where('workspace_id', $workspaceId)->pluck('stages') as $raw) {
+                foreach ((array) json_decode((string) $raw, true) as $s) {
+                    $exists = $exists || (is_array($s) && ($s['key'] ?? null) === $stage);
+                }
+            }
+            // Sin pipelines todavía, vale una etapa del pipeline simple (se crea con el primer lead).
+            $exists = $exists || in_array($stage, array_column(LeadDefaults::STAGES, 'key'), true);
+        }
+        if (! $exists) {
+            $this->add($id, __('Elige una etapa de tus pipelines de leads.'));
+        }
+        if (mb_strlen((string) ($c['lost_reason'] ?? '')) > 120) {
+            $this->add($id, __('El motivo de pérdida tiene máximo 120 caracteres.'));
+        }
+    }
+
+    /** @param array<string, mixed> $c */
+    private function followUpConfig(string $id, array $c, string $workspaceId): void
+    {
+        $channels = (array) ($c['channels'] ?? ['whatsapp', 'email']);
+        if ($channels === [] || array_diff($channels, ['whatsapp', 'email']) !== [] || count(array_unique($channels)) !== count($channels)) {
+            $this->add($id, __('Elige por qué canales sale el seguimiento: WhatsApp, correo o los dos.'));
+        }
+        $template = $c['template_id'] ?? null;
+        if (is_string($template) && $template !== '' && TemplateRef::resolve($workspaceId, 'whatsapp', $template, null) === null) {
+            $this->add($id, __('Esa plantilla de WhatsApp no existe.'));
+        }
+        $step = $c['step'] ?? 1;
+        if (! is_int($step) || $step < 1 || $step > 10) {
+            $this->add($id, __('Indica qué número de seguimiento es (1 a 10).'));
+        }
     }
 
     /** @param array<string, mixed> $c */

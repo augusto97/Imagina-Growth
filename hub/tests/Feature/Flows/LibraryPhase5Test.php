@@ -3,14 +3,16 @@
 use App\Domain\Flows\Actions\CreateFlowFromLibrary;
 use App\Domain\Flows\Library\FlowLibrary;
 use App\Domain\Flows\Models\FlowRun;
+use App\Domain\Intelligence\Ai\Testing\FakeAiGateway;
 use App\Domain\Messaging\Testing\FakeMessageDispatcher;
+use App\Domain\Services\Leads\Models\Lead;
 use App\Ingest\HubEvents;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
 use Tests\Feature\Flows\Support\FlowFixtures;
 
 /*
- * Flujos de la biblioteca de la Fase 5 (modulos.md M09): 18 «Lead de servicios»,
+ * Flujos de la biblioteca de la Fase 5 (modulos.md M09): 18 «Lead de servicios» (con el seguimiento con IA),
  * 19 «Recordatorio de cita» (lo envía la agenda) y 20 «Renovación».
  */
 uses(FlowFixtures::class);
@@ -42,35 +44,67 @@ it('el 19 lleva a la página de reservas de la agenda y el 18 y el 20 son flujos
         ->and($library->firstWhere('key', 'appointment_reminder')['module'])->toBe('agenda?tab=pagina');
 });
 
-it('flujo 18: un lead de formulario recibe respuesta al instante y seguimiento; sale cuando un vendedor lo mueve', function () {
+it('flujo 18: respuesta al instante y seguimiento con IA el día 2; si el cliente responde por WhatsApp, sale', function () {
     $this->travelTo(p5Bogota('2026-11-17 09:00:00'));
     $fake = FakeMessageDispatcher::install();
+    $ai = FakeAiGateway::install();
+    $ai->replyJson(['mensaje' => 'Hola Ana, para la valoración de ortodoncia tenemos espacio esta semana en la sede de Chapinero. ¿Te sirve el jueves en la tarde?']);
     $created = app(CurrentWorkspace::class)->run($this->ws, fn () => app(CreateFlowFromLibrary::class)->handle('service_lead', true));
     expect($created['activated'])->toBeTrue()->and($created['issues'])->toBe([]);
+    $lead = app(CurrentWorkspace::class)->run($this->ws, fn () => Lead::query()->create([
+        'workspace_id' => $this->ws->id, 'contact_id' => $this->contact->id, 'stage' => 'new', 'origin' => 'form', 'service' => 'Ortodoncia',
+        'score' => 55, 'temperature' => 'warm', 'score_reasons' => [], 'brief' => ['zone' => ['value' => 'Chapinero', 'quote' => 'vivo en Chapinero', 'by' => 'ai']],
+    ]));
 
     // Un lead de la agenda o del cotizador no entra: ya tiene su propio camino.
     app(HubEvents::class)->emit($this->ws, 'lead.created', ['lead_id' => 'ld_01JRESERVA', 'origin' => 'booking', 'score' => 40, 'temperature' => 'warm'], $this->contact->id, $this->site);
     expect(p5Runs($this))->toHaveCount(0);
 
-    app(HubEvents::class)->emit($this->ws, 'lead.created', ['lead_id' => 'ld_01JFORMULARIO', 'origin' => 'form', 'score' => 55, 'temperature' => 'warm', 'service' => 'Ortodoncia'], $this->contact->id, $this->site);
+    app(HubEvents::class)->emit($this->ws, 'lead.created', ['lead_id' => $lead->publicId(), 'origin' => 'form', 'score' => 55, 'temperature' => 'warm', 'service' => 'Ortodoncia'], $this->contact->id, $this->site);
     flowTick($this);
     $run = p5Runs($this)->sole();
     expect($fake->dispatched)->toHaveCount(1)
         ->and($fake->dispatched[0]->channel->value)->toBe('whatsapp')
         ->and($fake->dispatched[0]->kind->value)->toBe('marketing');
 
+    // Día 1: todavía nada. Día 2: el primer seguimiento, escrito por la IA con lo que pidió.
+    $this->travel(1)->days();
+    flowTick($this);
+    expect($fake->dispatched)->toHaveCount(1);
     $this->travel(1)->days();
     $this->travel(5)->minutes();
     flowTick($this);
-    expect($fake->dispatched)->toHaveCount(2)->and($fake->dispatched[1]->channel->value)->toBe('email');
+    expect($fake->dispatched)->toHaveCount(2);
+    $followUp = $fake->dispatched[1];
+    // Sin conversación abierta: plantilla de marketing aprobada (fuera de la ventana de 24 h) con el texto de la IA.
+    expect($followUp->channel->value)->toBe('whatsapp')->and($followUp->kind->value)->toBe('marketing')
+        ->and($followUp->templateId)->not->toBeNull()->and($followUp->flowId)->toBe($run->flow_id)
+        ->and($followUp->context['seguimiento']['mensaje'])->toContain('ortodoncia');
+    $facts = $ai->requests[0]['request']->messages[0]['content'];
+    expect($ai->requests[0]['request']->feature)->toBe('lead_followup')->and($facts)->toContain('Ortodoncia')->and($facts)->toContain('Chapinero');
 
-    // El vendedor lo pasa a «Contactado»: sale con la meta y no hay tercer toque.
-    app(HubEvents::class)->emit($this->ws, 'lead.stage_changed', ['lead_id' => 'ld_01JFORMULARIO', 'from' => 'new', 'to' => 'contacted', 'by' => 'user'], $this->contact->id, $this->site);
+    // El cliente responde por WhatsApp: el run sale y no hay más toques.
+    app(HubEvents::class)->emit($this->ws, 'whatsapp.inbound', ['message_id' => 'msg_01JRESPUESTA', 'type' => 'text'], $this->contact->id);
+    $run = app(CurrentWorkspace::class)->run($this->ws, fn () => $run->refresh());
+    expect($run->status)->toBe('completed')->and($run->exit_reason)->toBe('exit_node');
+    $this->travel(9)->days();
+    flowTick($this);
+    expect($fake->dispatched)->toHaveCount(2);
+});
+
+it('flujo 18: sale cuando el lead cambia de etapa (avanza, se gana o se pierde)', function () {
+    $this->travelTo(p5Bogota('2026-11-17 09:00:00'));
+    $fake = FakeMessageDispatcher::install();
+    app(CurrentWorkspace::class)->run($this->ws, fn () => app(CreateFlowFromLibrary::class)->handle('service_lead', true));
+    app(HubEvents::class)->emit($this->ws, 'lead.created', ['lead_id' => 'ld_01JFORMULARIO', 'origin' => 'form', 'score' => 55, 'temperature' => 'warm'], $this->contact->id, $this->site);
+    flowTick($this);
+    $run = p5Runs($this)->sole();
+    app(HubEvents::class)->emit($this->ws, 'lead.stage_changed', ['lead_id' => 'ld_01JFORMULARIO', 'from' => 'new', 'to' => 'proposal', 'by' => 'user'], $this->contact->id, $this->site);
     $run = app(CurrentWorkspace::class)->run($this->ws, fn () => $run->refresh());
     expect($run->status)->toBe('completed')->and($run->exit_reason)->toBe('goal_reached');
     $this->travel(3)->days();
     flowTick($this);
-    expect($fake->dispatched)->toHaveCount(2);
+    expect($fake->dispatched)->toHaveCount(1);
 });
 
 it('flujo 20: entra 15 días antes de la renovación y avisa al equipo si un día antes no ha renovado', function () {

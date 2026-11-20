@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { wsPath } from '@/api/queries';
 import { api } from '@/lib/api';
 import { filtersQuery } from './logic';
-import type { BoardResponse, Kpis, LeadDetail, LeadFilters, LeadSettings, ListResponse, Pipeline, Seller, Stage, TeamMember } from './types';
+import type { BoardResponse, BriefKey, Kpis, LeadFunnelWeek, LeadTask, LeadDetail, LeadFilters, LeadSettings, ListResponse, Pipeline, Seller, Stage, TeamMember } from './types';
 
 /* Leads (M18). */
 
@@ -12,6 +12,7 @@ export const leadKeys = {
     list: (ws: string, f: LeadFilters) => ['ws', ws, 'leads', 'list', f] as const,
     detail: (ws: string, id: string) => ['ws', ws, 'leads', 'detail', id] as const,
     kpis: (ws: string, days: number, pipeline: string) => ['ws', ws, 'leads', 'kpis', days, pipeline] as const,
+    funnel: (ws: string, week: string, pipeline: string) => ['ws', ws, 'leads', 'funnel', week, pipeline] as const,
     settings: (ws: string) => ['ws', ws, 'leads', 'settings'] as const,
     team: (ws: string) => ['ws', ws, 'leads', 'team'] as const,
 };
@@ -32,6 +33,14 @@ export function useLeadKpis(ws: string, days: number, pipeline: string) {
     return useQuery({
         queryKey: leadKeys.kpis(ws, days, pipeline),
         queryFn: ({ signal }) => api.get<Kpis>(`${wsPath(ws)}/leads/kpis?days=${days}${pipeline ? `&pipeline=${encodeURIComponent(pipeline)}` : ''}`, signal),
+    });
+}
+
+export function useLeadFunnel(ws: string, week: 'last' | 'current', pipeline: string) {
+    return useQuery({
+        queryKey: leadKeys.funnel(ws, week, pipeline),
+        staleTime: 5 * 60_000,
+        queryFn: ({ signal }) => api.get<LeadFunnelWeek>(`${wsPath(ws)}/leads/funnel?week=${week}${pipeline ? `&pipeline=${encodeURIComponent(pipeline)}` : ''}`, signal),
     });
 }
 
@@ -64,6 +73,34 @@ export function useUpdateLead(ws: string) {
             api.patch<LeadDetail>(`${wsPath(ws)}/leads/${id}`, body),
         onSuccess: invalidate,
     });
+}
+
+export function useUpdateBrief(ws: string) {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, fields }: { id: string; fields: Partial<Record<BriefKey, string | null>> }) => api.patch<LeadDetail>(`${wsPath(ws)}/leads/${id}/brief`, fields),
+        onSuccess: () => {
+            void qc.invalidateQueries({ queryKey: leadKeys.all(ws) });
+            void qc.invalidateQueries({ queryKey: ['ws', ws, 'inbox', 'panel'] });
+        },
+    });
+}
+
+export function useLeadTasks(ws: string) {
+    const qc = useQueryClient();
+    const refresh = () => {
+        void qc.invalidateQueries({ queryKey: leadKeys.all(ws) });
+    };
+    return {
+        create: useMutation({
+            mutationFn: ({ lead, ...body }: { lead: string; title: string; kind: 'task' | 'call'; due_at: string; note?: string | null }) => api.post<LeadTask>(`${wsPath(ws)}/leads/${lead}/tasks`, body),
+            onSuccess: refresh,
+        }),
+        update: useMutation({
+            mutationFn: ({ id, ...body }: { id: string; status?: 'open' | 'done'; due_at?: string }) => api.patch<LeadTask>(`${wsPath(ws)}/leads/tasks/${id}`, body),
+            onSuccess: refresh,
+        }),
+    };
 }
 
 export function useAddNote(ws: string) {

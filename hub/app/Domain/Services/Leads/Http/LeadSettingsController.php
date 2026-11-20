@@ -46,13 +46,15 @@ final class LeadSettingsController
             'assignment' => $s->assignmentRules(),
             'whatsapp_leads' => $s->whatsapp_leads,
             'ai_qualify' => $s->ai_qualify,
+            'ai_brief' => $s->ai_brief,
+            'assistant' => $s->assistantRules(),
             'ai_available' => $ai->available($ws->id),
             'signals' => LeadDefaults::SIGNALS,
             'free_email_domains' => LeadDefaults::FREE_EMAIL_DOMAINS,
             'sellers' => $this->sellers(),
             'pipelines' => LeadPipeline::query()->orderByDesc('is_default')->orderBy('created_at')->get()->map(fn (LeadPipeline $p) => LeadController::pipelinePayload($p))->values()->all(),
             'whatsapp_templates' => DB::table('templates')->where('workspace_id', $ws->id)->where('channel', 'whatsapp')->where('status', '!=', 'archived')
-                ->orderBy('name')->limit(100)->get(['id', 'name'])->map(fn ($t) => ['id' => TemplateRef::encode((string) $t->id), 'name' => (string) $t->name])->values()->all(),
+                ->orderBy('name')->limit(100)->get(['id', 'name', 'category'])->map(fn ($t) => ['id' => TemplateRef::encode((string) $t->id), 'name' => (string) $t->name, 'category' => (string) $t->category])->values()->all(),
             'can_manage' => Gate::allows('ws.manageServices'),
         ]);
     }
@@ -84,6 +86,11 @@ final class LeadSettingsController
             'assignment.mode' => ['sometimes', Rule::in(['round_robin', 'rules', 'none'])],
             'whatsapp_leads' => ['sometimes', 'boolean'],
             'ai_qualify' => ['sometimes', 'boolean'],
+            'ai_brief' => ['sometimes', 'boolean'],
+            'assistant' => ['sometimes', 'array'],
+            'assistant.stale_days' => ['sometimes', 'integer', 'between:1,90'],
+            'assistant.whatsapp_template_id' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'assistant.digest' => ['sometimes', 'boolean'],
         ]);
         $ws = $this->current->get();
         $s = LeadSettings::for($ws->id);
@@ -108,10 +115,22 @@ final class LeadSettingsController
             }
             $s->alerts = $alerts;
         }
+        if (isset($data['assistant'])) {
+            $assistant = array_replace((array) ($s->assistant ?? []), array_intersect_key($data['assistant'], LeadDefaults::ASSISTANT));
+            $tpl = $assistant['whatsapp_template_id'] ?? null;
+            if (is_string($tpl) && $tpl !== '') {
+                $id = TemplateRef::resolve($ws->id, 'whatsapp', $tpl, null);
+                // El seguimiento es comercial: la plantilla debe ser de marketing (no se disfraza de utilidad).
+                if ($id === null || DB::table('templates')->where('workspace_id', $ws->id)->where('id', $id)->value('category') !== 'marketing') {
+                    throw ValidationException::withMessages(['assistant.whatsapp_template_id' => __('Elige una plantilla de WhatsApp de marketing aprobada.')]);
+                }
+            }
+            $s->assistant = $assistant;
+        }
         if (isset($data['assignment'])) {
             $s->assignment = array_replace((array) ($s->assignment ?? []), $data['assignment']);
         }
-        foreach (['whatsapp_leads', 'ai_qualify'] as $flag) {
+        foreach (['whatsapp_leads', 'ai_qualify', 'ai_brief'] as $flag) {
             if (array_key_exists($flag, $data)) {
                 $s->{$flag} = (bool) $data[$flag];
             }

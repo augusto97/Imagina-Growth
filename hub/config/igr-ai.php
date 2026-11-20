@@ -9,7 +9,7 @@
  * proxy ajeno. Sin clave, la IA queda apagada y cada función usa su plantilla
  * sin IA.
  */
-return [
+$config = [
     'enabled' => (bool) env('IGR_AI_ENABLED', true),
     'api_key' => env('IGR_ANTHROPIC_API_KEY'),
     'base_url' => env('IGR_ANTHROPIC_BASE_URL', 'https://api.anthropic.com'),
@@ -52,3 +52,17 @@ return [
         'free_integers' => [1, 2, 3],
     ],
 ];
+
+/*
+ * Bloque «ARM» de leads (M18): la ficha que se llena desde el chat, los mensajes de
+ * seguimiento y sugeridos de «Hoy», y la conclusión del embudo semanal. Funciones
+ * económicas: usan el mismo modelo que la calificación de leads.
+ */
+$economy = $config['features']['lead_qualifier']['model'];
+$config['features'] += [
+    'lead_brief' => ['model' => $economy, 'effort' => 'low', 'max_tokens' => 900],     // qué necesita, cantidad, ciudad, cuándo, presupuesto y temperatura
+    'lead_followup' => ['model' => $economy, 'effort' => 'low', 'max_tokens' => 700],  // seguimiento con IA y mensaje sugerido de «Hoy»
+    'lead_funnel' => ['model' => $economy, 'effort' => 'low', 'max_tokens' => 600],    // conclusión del embudo de leads del lunes
+];
+
+return $config;

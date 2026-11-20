@@ -111,6 +111,9 @@ export interface FlowOptions {
     flows: { id: string; name: string }[];
     date_attributes: string[];
     threshold_metrics: string[];
+    /** Para asignar, crear tareas y mover la etapa del lead. */
+    team?: { id: string; name: string }[];
+    lead_stages?: { key: string; label: string; kind: 'open' | 'won' | 'lost'; pipeline: string }[];
 }
 
 export interface LibraryFlow {

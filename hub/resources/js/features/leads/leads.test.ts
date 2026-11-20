@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { duration, filtersQuery, moveCard, moveNeeds, parseList, pipelineErrors, stageKey, temperatureTone } from './logic';
-import type { BoardColumn, LeadRow } from './types';
+import { briefDraft, briefEdits, briefFilled, duration, signedPoints, filtersQuery, moveCard, moveNeeds, parseList, pipelineErrors, stageKey, temperatureTone } from './logic';
+import type { BoardColumn, Brief, LeadRow } from './types';
 
 const lead = (id: string, stage: string): LeadRow => ({
     id, stage, pipeline_id: null, contact: { id: 'ct_1', name: 'Ana', city: null }, service: null, value: null, currency: 'COP', owner: null, score: 40, temperature: 'warm',
-    origin: 'form', channel: null, channel_label: null, next_step: null, next_step_at: null, first_response_at: null, last_activity_at: null, won_at: null, lost_at: null, lost_reason: null, created_at: null,
+    origin: 'form', channel: null, channel_label: null, next_step: null, next_step_at: null, stage_changed_at: null, first_response_at: null, last_activity_at: null, won_at: null, lost_at: null, lost_reason: null, created_at: null,
 });
 const col = (key: string, leads: LeadRow[]): BoardColumn => ({ key, label: key, kind: key === 'won' ? 'won' : key === 'lost' ? 'lost' : 'open', count: leads.length, value: '0.00', leads });
 
@@ -49,5 +49,29 @@ describe('leads', () => {
         expect(stageKey('Visita técnica', ['visita_tecnica'])).toBe('visita_tecnica_2');
         expect(stageKey('123', [])).toBe('etapa');
         expect(parseList(' Bogotá, Chía ;Cota,Bogotá ')).toEqual(['Bogotá', 'Chía', 'Cota']);
+    });
+
+    it('la ficha cuenta lo que tiene y solo manda lo que la persona cambió (vacío = null)', () => {
+        const brief: Brief = {
+            need: { value: 'pintura azul', by: 'ai', quote: 'necesito pintura azul', reason: null, at: null },
+            quantity: null,
+            city: { value: 'Bogotá', by: 'ai', quote: 'en Bogotá', reason: null, at: null },
+            zone: null,
+            timing: null,
+            budget: { value: null, by: 'user', quote: null, reason: null, at: null },
+            temperature: { value: 'hot', by: 'ai', quote: 'para el viernes', reason: 'Lo quiere pronto', at: null },
+        };
+        expect(briefFilled(brief)).toBe(3);
+        expect(briefFilled(null)).toBe(0);
+        const draft = briefDraft(brief);
+        expect(draft.need).toBe('pintura azul');
+        expect(draft.budget).toBe('');
+        expect(briefEdits(brief, { ...draft, city: 'Medellín', need: '', timing: '  ' })).toEqual({ city: 'Medellín', need: null });
+    });
+
+    it('escribe el cambio en puntos con su signo', () => {
+        expect(signedPoints(25)).toBe('+25');
+        expect(signedPoints(-5.26)).toBe('−5,3');
+        expect(signedPoints(0)).toBe('0');
     });
 });
