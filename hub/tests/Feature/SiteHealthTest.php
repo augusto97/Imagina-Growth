@@ -88,9 +88,10 @@ it('pendiente, desconectado o conectado sin ningún evento: sin datos', function
         ->and(causeKeys(SiteHealth::evaluate(healthySite(['status' => Site::STATUS_DISCONNECTED]), [], CarbonImmutable::now())))->toBe(['disconnected']);
     $never = healthySite(['last_event_at' => null, 'last_seen_at' => null, 'health' => [], 'connected_at' => now()->subHour()]);
     expect(causeKeys(SiteHealth::evaluate($never, signalsNow(['server_at' => null, 'browser_at' => null]), CarbonImmutable::now())))->toBe(['never_received']);
-    // Recién conectado: todavía no es un problema.
+    // Recién conectado: todavía no es un error, pero tampoco está al día.
     $fresh = healthySite(['last_event_at' => null, 'last_seen_at' => null, 'health' => [], 'connected_at' => now()->subMinutes(3)]);
-    expect(SiteHealth::evaluate($fresh, [], CarbonImmutable::now())['state'])->toBe(SiteHealth::OK);
+    $r = SiteHealth::evaluate($fresh, [], CarbonImmutable::now());
+    expect($r['state'])->toBe(SiteHealth::NO_DATA)->and(causeKeys($r))->toBe(['waiting_first_data'])->and($r['causes'][0]['severity'])->toBe('warning');
 });
 
 it('el panel muestra el semáforo con datos reales y el comando marca el sitio degradado y lo recupera', function () {

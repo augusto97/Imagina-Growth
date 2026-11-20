@@ -48,7 +48,7 @@ final class SiteHealth
     public const BACKFILL_STALL_MINUTES = 30;
 
     /** Causas que dejan el sitio sin datos (no solo atrasado). */
-    private const NO_DATA_CAUSES = ['disconnected', 'pending', 'never_received', 'server_silent'];
+    private const NO_DATA_CAUSES = ['disconnected', 'pending', 'never_received', 'waiting_first_data', 'server_silent'];
 
     /**
      * El semáforo de varios sitios del mismo espacio de trabajo.
@@ -163,9 +163,9 @@ final class SiteHealth
         $usesClickHouse = (bool) ($signals['clickhouse'] ?? false);
 
         if ($lastEvent === null && $heartbeat === null) {
-            if ($connectedAt === null || $connectedAt->diffInMinutes($now) >= 15) {
-                $add('never_received', 'error');
-            }
+            // Recién conectado: todavía no es un error, pero tampoco está «al día».
+            $late = $connectedAt === null || $connectedAt->diffInMinutes($now) >= 15;
+            $add($late ? 'never_received' : 'waiting_first_data', $late ? 'error' : 'warning');
 
             return self::result($causes, $now);
         }

@@ -127,6 +127,7 @@ export type SiteHealthCauseKey =
     | 'disconnected'
     | 'pending'
     | 'never_received'
+    | 'waiting_first_data'
     | 'server_late'
     | 'server_silent'
     | 'cron_late'
