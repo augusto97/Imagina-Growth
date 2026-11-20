@@ -302,5 +302,16 @@ Si el servidor ya se quedó sin memoria (la app no responde), primero `systemctl
 y después el instalador: con la memoria llena ni `apt` avanza. Al terminar, el instalador vuelve a arrancar la app
 (`systemctl enable --now growth.target`) y rearma la caché de configuración, como `growth-update`.
 
+**Primer administrador y revisión.** Después de instalar, desde el servidor:
+
+- `growth-php artisan igr:admin:create admin@ejemplo.com` crea (o promueve, si ya existe) a quien administra la
+  plataforma. Pide la contraseña dos veces sin mostrarla; con `--generate` la genera y la muestra una sola vez (sin
+  terminal, `--generate` es obligatorio). Sus cuentas sin plan quedan con el plan `plataforma`. Al entrar, se le pide
+  la verificación en dos pasos.
+- `growth-php artisan igr:doctor` dice qué falta configurar y cómo (correo, SES y `IGR_SES_SNS_TOPIC_ARN`, secreto y
+  token del webhook de Meta, clave de Anthropic, Google Calendar, Reverb, ML, Horizon, programador, colas, tarifas de
+  WhatsApp, planes y la versión del plugin de cada sitio). Sale con código 1 si hay errores; `--json` para scripts.
+  Lo mismo se ve en Plataforma → Instalación.
+
 **Python del ML:** `uv sync --frozen` usa el Python 3.12 de Ubuntu si cumple `requires-python`; si una versión
 necesitara otro, `uv` lo baja de GitHub (el servidor necesita salida a GitHub).

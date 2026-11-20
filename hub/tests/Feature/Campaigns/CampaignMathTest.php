@@ -4,6 +4,7 @@ use App\Domain\Campaigns\Queries\CampaignReport;
 use App\Domain\Campaigns\Support\CommercialCalendar;
 use App\Domain\Campaigns\Support\WaRateCard;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 
 it('el incremento usa una diferencia de proporciones con IC del 95%', function () {
     $r = CampaignReport::compare(1000, 60, 3_000_000, 1000, 40, 2_000_000);
@@ -18,6 +19,9 @@ it('el incremento usa una diferencia de proporciones con IC del 95%', function (
 });
 
 it('tarifas de WhatsApp: por país, con «otros» de respaldo, y aviso cuando pasa un trimestre', function () {
+    // La migración 2026_11_25_300200 las carga; se vacía la tabla para ver el caso sin tarifas.
+    expect(WaRateCard::rate('CO'))->toBe(0.0125);
+    DB::table('wa_rates')->delete();
     expect(WaRateCard::rate('CO'))->toBeNull();   // tabla vacía
     WaRateCard::seed();
     expect(WaRateCard::rate('CO'))->toBe(0.0125)

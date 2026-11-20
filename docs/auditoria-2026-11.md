@@ -61,7 +61,7 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 |---|---|---|---|---|
 | F1 | P0 | «Dinero generado» del inicio fijo en $0. | `OverviewDashboard.php:31` | ✅ 0.1.7: usa `MoneyGenerated` (la regla del reporte mensual) con el desglose por módulo y, en cero, el camino al flujo de carrito abandonado |
 | F2 | P0 | `MAIL_MAILER=log` en producción: las invitaciones no salen y nadie se entera. | `.env`, plataforma | ✅ 0.1.6: enlace de invitación para copiar, aviso de correo apagado y correo de prueba |
-| F3 | P1 | Webhooks de Meta (WhatsApp) responden 403 sin `IGR_META_APP_SECRET`. | `WebhookController` | ⏳ |
+| F3 | P1 | Webhooks de Meta (WhatsApp) responden 403 sin `IGR_META_APP_SECRET`. | `WebhookController` | ✅ (lote 3): `igr:doctor` y Plataforma → Instalación lo marcan como error si hay cuentas de Meta conectadas (aviso si no), con dónde sacar el secreto, y también el token de verificación y la URL del webhook |
 | F4 | P1 | Falta la captura temprana del checkout (`checkout.contact_captured`). | tracker, plugin | ⏳ |
 | F5 | P1 | SES: error 500 sin credenciales y el configuration set `igr-events` nunca se crea. | canal de correo | 🔧 0.1.7: sin credenciales responde 422 con el motivo y el envío falla sin reintentar; falta crear el configuration set |
 | F6 | P1 | La salud del sitio nunca pasa a «degradado». | `SiteHealthProjector` | ⏳ |
@@ -73,7 +73,7 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | F12 | P2 | `kpi_daily` de sesiones atrasado; conversión por geografía engañosa. | analítica | ⏳ |
 | F13 | P2 | Textos «Fase N» en la interfaz. | SPA | ✅ 0.1.7: textos reescritos y el aviso viejo del copiloto de campañas quitado |
 | F14 | P2 | Nodos de flujo bloqueados (`assign_agent`, `lead_stage`, `crm_task`). | constructor de flujos | ⏳ |
-| F15 | P2 | Avisos de actualización del plugin; `platform doctor`; `igr:admin:create`; tarifas de WhatsApp sin sembrar. | plataforma | ⏳ |
+| F15 | P2 | Avisos de actualización del plugin; `platform doctor`; `igr:admin:create`; tarifas de WhatsApp sin sembrar. | plataforma | ✅ (lote 3): `igr:doctor` (`--json`; código 1 con errores) y la pestaña «Instalación» de Plataforma (`GET /api/platform/doctor`): llaves, correo, SES y su tema de SNS, Meta, Anthropic, Google Calendar, Reverb, ML, Horizon, programador (latido cada minuto), colas, trabajos fallidos, ingesta, tarifas, superadmins sin 2FA, cuentas sin plan y sitios con el plugin viejo (contra el zip del panel). `igr:admin:create` crea o promueve (contraseña pedida dos veces o `--generate`). La migración `2026_11_25_300200` siembra `wa_rates` si está vacía |
 | F16 | P2 | «Primeros pasos» no guía a la primera venta recuperada. | inicio | ⏳ |
 
 ## 4. Interfaz y experiencia

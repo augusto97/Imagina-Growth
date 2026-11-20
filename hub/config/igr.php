@@ -96,6 +96,12 @@ return [
             : in_array(env('APP_ENV', 'production'), ['local', 'testing'], true),
     ],
 
+    // GET /health y /health/ready (S16): en público solo dicen ok o fallo; el detalle de dependencias sale desde la
+    // propia máquina (127.0.0.1, sin pasar por Caddy) o con este token en `X-IGR-Health-Token` o `Authorization: Bearer`.
+    'health' => [
+        'token' => env('IGR_HEALTH_TOKEN'),
+    ],
+
     // Dominios propios de las agencias (M22): el CNAME al que deben apuntar el panel, los enlaces y la página de reservas.
     'custom_domains' => [
         // A dónde apuntan con CNAME los dominios propios de las agencias: por defecto, el dominio del panel.

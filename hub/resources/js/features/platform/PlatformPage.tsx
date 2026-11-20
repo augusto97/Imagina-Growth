@@ -36,6 +36,7 @@ import {
     useSetFeature,
 } from './api';
 import { ClientDetailDialog, NewClientDialog } from './ClientsAdmin';
+import { DoctorTab } from './DoctorTab';
 import { PlansTab } from './PlansTab';
 import { UpdatesTab } from './UpdatesTab';
 
@@ -60,6 +61,7 @@ export function PlatformPage() {
                     <TabsTrigger value="accounts">{t('platform.tabs.accounts')}</TabsTrigger>
                     <TabsTrigger value="plans">{t('platform.tabs.plans')}</TabsTrigger>
                     <TabsTrigger value="health">{t('platform.tabs.health')}</TabsTrigger>
+                    <TabsTrigger value="doctor">{t('platform.tabs.doctor')}</TabsTrigger>
                     <TabsTrigger value="updates">{t('platform.tabs.updates')}</TabsTrigger>
                     <TabsTrigger value="invoices">{t('platform.tabs.invoices')}</TabsTrigger>
                     <TabsTrigger value="requests">
@@ -72,6 +74,9 @@ export function PlatformPage() {
                 </TabsContent>
                 <TabsContent value="health" className="igr:mt-4">
                     <HealthTab />
+                </TabsContent>
+                <TabsContent value="doctor" className="igr:mt-4">
+                    <DoctorTab />
                 </TabsContent>
                 <TabsContent value="updates" className="igr:mt-4">
                     <UpdatesTab />
