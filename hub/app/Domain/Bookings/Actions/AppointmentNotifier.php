@@ -28,7 +28,8 @@ use Throwable;
  * supresión. Por WhatsApp solo con una plantilla de utilidad aprobada elegida en los
  * ajustes (fuera de la ventana de 24 h no hay texto libre); si no, por correo.
  * Clave de idempotencia: `appt:{cita}:{tipo}:{inicio}`, así un cambio de hora vuelve
- * a avisar.
+ * a avisar. Con `whatsapp: false` (lo que se agenda en el chat, que ya confirma ahí
+ * mismo) solo sale el correo.
  */
 final class AppointmentNotifier
 {
@@ -37,10 +38,10 @@ final class AppointmentNotifier
     public function __construct(private readonly MessageDispatcher $dispatcher, private readonly Branding $branding) {}
 
     /** Un aviso que falla no deshace la cita: se reporta y sigue. */
-    public function send(Workspace $workspace, Appointment $appointment, string $kind): ?DispatchResult
+    public function send(Workspace $workspace, Appointment $appointment, string $kind, bool $whatsapp = true): ?DispatchResult
     {
         try {
-            return $this->deliver($workspace, $appointment, $kind);
+            return $this->deliver($workspace, $appointment, $kind, $whatsapp);
         } catch (Throwable $e) {
             report($e);
 
@@ -48,7 +49,7 @@ final class AppointmentNotifier
         }
     }
 
-    private function deliver(Workspace $workspace, Appointment $appointment, string $kind): ?DispatchResult
+    private function deliver(Workspace $workspace, Appointment $appointment, string $kind, bool $whatsapp): ?DispatchResult
     {
         $contact = Contact::query()->find($appointment->contact_id);
         $service = BookingService::query()->find($appointment->service_id);
@@ -63,7 +64,7 @@ final class AppointmentNotifier
         $waTemplate = ($settings['whatsapp_templates'][$templateKey] ?? null);
         $template = is_string($waTemplate) ? Template::findByPublicId($waTemplate) : null;
 
-        if ($template !== null && $contact->phone !== null) {
+        if ($whatsapp && $template !== null && $contact->phone !== null) {
             $result = $this->dispatcher->dispatch(new OutboundMessage(
                 workspaceId: $workspace->id, contactId: $contact->id, channel: Channel::WhatsApp, kind: MessageKind::Utility,
                 sourceType: 'system', sourceId: $appointment->publicId(), templateId: $template->id, context: ['cita' => $vars], idempotencyKey: $key.':wa',

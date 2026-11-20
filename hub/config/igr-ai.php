@@ -63,6 +63,7 @@ $config['features'] += [
     'lead_brief' => ['model' => $economy, 'effort' => 'low', 'max_tokens' => 900],     // qué necesita, cantidad, ciudad, cuándo, presupuesto y temperatura
     'lead_followup' => ['model' => $economy, 'effort' => 'low', 'max_tokens' => 700],  // seguimiento con IA y mensaje sugerido de «Hoy»
     'lead_funnel' => ['model' => $economy, 'effort' => 'low', 'max_tokens' => 600],    // conclusión del embudo de leads del lunes
+    'reactivation' => ['model' => $economy, 'effort' => 'low', 'max_tokens' => 700],   // nodo «Reactivar con IA»: retomar según la última conversación y las compras
 ];
 
 return $config;

@@ -22,9 +22,11 @@ import {
     Briefcase,
     ListTodo,
     Sparkles,
+    Sunrise,
 } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import { formatNumber } from '@/lib/format';
+import { AI_REACTIVATE_DEFAULTS, aiReactivateSummary } from './builder/nodes/AiReactivateConfig';
 import type { FlowOptions, GraphNode, Trigger } from './types';
 
 /* Catálogo de nodos de modulos.md M09 para el constructor. Las ramas y la validación son del servidor (NodeTypes). */
@@ -72,6 +74,7 @@ export const NODE_META: Record<string, NodeMeta> = {
     lead_stage: { icon: Briefcase, category: 'action', branches: [null, 'failed'], defaults: () => ({ stage: 'contacted' }) },
     crm_task: { icon: ListTodo, category: 'action', branches: [null], defaults: () => ({ title: '', kind: 'task', due_in: { value: 1, unit: 'days' }, assign: 'lead_owner' }) },
     lead_followup: { icon: Sparkles, category: 'action', branches: [null, 'failed'], defaults: () => ({ channels: ['whatsapp', 'email'], step: 1 }) },
+    ai_reactivate: { icon: Sunrise, category: 'action', branches: [null, 'failed'], defaults: AI_REACTIVATE_DEFAULTS },
 };
 
 export const PALETTE: { category: Category; types: string[] }[] = [
@@ -79,7 +82,7 @@ export const PALETTE: { category: Category; types: string[] }[] = [
     { category: 'logic', types: ['condition', 'ab_split', 'channel_split'] },
     {
         category: 'action',
-        types: ['send_whatsapp', 'send_email', 'send_sms', 'lead_followup', 'coupon', 'tag', 'update_attribute', 'notify_team', 'webhook', 'give_points', 'give_wallet', 'assign_agent', 'lead_stage', 'crm_task'],
+        types: ['send_whatsapp', 'send_email', 'send_sms', 'lead_followup', 'ai_reactivate', 'coupon', 'tag', 'update_attribute', 'notify_team', 'webhook', 'give_points', 'give_wallet', 'assign_agent', 'lead_stage', 'crm_task'],
     },
     { category: 'control', types: ['exit'] },
 ];
@@ -201,6 +204,8 @@ export function summarize(t: TFunction, node: GraphNode, options: FlowOptions | 
             const channels = (Array.isArray(c.channels) ? (c.channels as string[]) : []).map((ch) => t(`flows.channels.${ch}`)).join(' → ');
             return t('flows.summary.followUp', { step: num(c.step, 1), channels });
         }
+        case 'ai_reactivate':
+            return aiReactivateSummary(t, c);
         case 'exit':
             return t('flows.summary.exit');
         default:

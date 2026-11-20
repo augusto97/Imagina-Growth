@@ -1,5 +1,6 @@
 /* Bandeja de conversaciones (M11). Formas de la API de routes/api/inbox.php. */
 
+import type { LeadQualification } from '@/features/leads/qualification';
 import type { Brief, Temperature } from '@/features/leads/types';
 
 export type ConversationStatus = 'open' | 'pending' | 'closed';
@@ -136,6 +137,7 @@ export interface PanelLead {
     owner: { id: string; name: string } | null;
     brief: Brief;
     brief_updated_at: string | null;
+    qualification?: LeadQualification | null;
     can_open: boolean;
 }
 

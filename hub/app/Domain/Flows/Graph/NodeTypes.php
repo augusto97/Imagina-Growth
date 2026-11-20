@@ -53,6 +53,8 @@ final class NodeTypes
 
     public const LEAD_FOLLOWUP = 'lead_followup';
 
+    public const AI_REACTIVATE = 'ai_reactivate';
+
     /** @var array<string, array{category: string, branches: list<string|null>|'dynamic'}> */
     public const TYPES = [
         self::TRIGGER => ['category' => 'trigger', 'branches' => [null]],
@@ -79,6 +81,8 @@ final class NodeTypes
         self::LEAD_STAGE => ['category' => 'action', 'branches' => [null, 'failed']],
         self::CRM_TASK => ['category' => 'action', 'branches' => [null]],
         self::LEAD_FOLLOWUP => ['category' => 'action', 'branches' => [null, 'failed']],
+        // «Reactivar con IA» (auditoría §5.1 función 7): mensaje según la última conversación y las compras.
+        self::AI_REACTIVATE => ['category' => 'action', 'branches' => [null, 'failed']],
     ];
 
     /** Nodos de espera: un ciclo solo es válido si pasa por uno. */

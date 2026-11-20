@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { formatDate, formatMoney, formatNumber } from '@/lib/format';
 import { BriefCard } from '@/features/leads/BriefCard';
+import { QualificationCard } from '@/features/leads/QualificationCard';
 import { temperatureTone } from '@/features/leads/logic';
 import { useContactPanel } from './api';
 import type { PanelLead } from './types';
@@ -170,6 +171,7 @@ function LeadSection({ lead }: { lead: PanelLead }) {
             </div>
             {lead.owner ? <p className="igr:text-muted-foreground">{t('inbox.panel.leadOwner', { name: lead.owner.name })}</p> : null}
             <BriefCard key={lead.brief_updated_at ?? 'empty'} leadId={lead.id} brief={lead.brief} editable={lead.can_open} compact />
+            <QualificationCard qualification={lead.qualification} compact />
             {lead.can_open ? (
                 <Link to={`/w/${workspace.id}/leads?lead=${lead.id}`} className="igr:inline-flex igr:items-center igr:gap-1 igr:text-primary igr:hover:underline">
                     {t('inbox.panel.openLead')}

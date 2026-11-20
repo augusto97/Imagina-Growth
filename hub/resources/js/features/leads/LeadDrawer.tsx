@@ -15,6 +15,7 @@ import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
 import { useAddNote, useLead, useMoveLead, useTeam, useUpdateLead } from './api';
 import { BriefCard } from './BriefCard';
+import { QualificationCard } from './QualificationCard';
 import { TasksCard } from './TasksCard';
 import { moveNeeds, temperatureTone } from './logic';
 import { MoveDialog } from './MoveDialog';
@@ -117,6 +118,8 @@ function Detail({ lead }: { lead: LeadDetail }) {
             <EditableFields lead={lead} />
 
             <BriefCard key={lead.brief_updated_at ?? 'empty'} leadId={lead.id} brief={lead.brief} editable />
+
+            <QualificationCard qualification={lead.qualification} />
 
             <TasksCard leadId={lead.id} tasks={lead.tasks} />
 
@@ -249,7 +252,9 @@ function ReasonRow({ reason }: { reason: ScoreReason }) {
                 ? detail.city
                 : reason.signal === 'ai'
                   ? reason.reason
-                  : null;
+                  : reason.signal === 'qualification'
+                    ? t('leads.reasons.answered', { count: Number(detail.answered ?? 0) })
+                    : null;
     return (
         <li className="igr:flex igr:items-start igr:justify-between igr:gap-3 igr:text-[13px]">
             <span>
@@ -298,6 +303,10 @@ function Timeline({ activities, stages, currency }: { activities: Activity[]; st
                 const fields = (Array.isArray(d.fields) ? (d.fields as string[]) : []).map((f) => t(`leads.brief.fields.${f}`, { defaultValue: f })).join(', ');
                 return a.actor === 'ai' ? t('leads.timeline.briefAi', { fields }) : t('leads.timeline.briefUser', { fields });
             }
+            case 'qualification':
+                return d.disqualified ? t('leads.timeline.qualificationOut') : t('leads.timeline.qualification');
+            case 'routed':
+                return t(`leads.timeline.routed_${str(d.action, 'agent')}`, { defaultValue: t('leads.timeline.routed_agent') });
             case 'note':
                 return str(d.body);
             default:

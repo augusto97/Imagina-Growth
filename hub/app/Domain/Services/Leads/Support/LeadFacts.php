@@ -47,9 +47,11 @@ final class LeadFacts
 
     public static function alertText(Lead $lead, ?Contact $contact, string $reason): string
     {
-        $title = $reason === 'hot'
-            ? __('Lead caliente (puntaje :score)', ['score' => $lead->score])
-            : __('Lead nuevo (puntaje :score)', ['score' => $lead->score]);
+        $title = match ($reason) {
+            'hot' => __('Lead caliente (puntaje :score)', ['score' => $lead->score]),
+            'qualified' => __('Lead calificado en el chat (puntaje :score)', ['score' => $lead->score]),
+            default => __('Lead nuevo (puntaje :score)', ['score' => $lead->score]),
+        };
         $who = array_values(array_filter([
             $contact !== null && $contact->displayName() !== '' ? $contact->displayName() : __('Sin nombre'),
             $contact !== null && is_string($contact->getAttribute('city')) && $contact->getAttribute('city') !== '' ? (string) $contact->getAttribute('city') : null,

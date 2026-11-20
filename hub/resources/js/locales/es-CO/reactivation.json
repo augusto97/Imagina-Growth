@@ -1,0 +1,15 @@
+{
+    "reactivation": {
+        "summary": "Mensaje según su última conversación · {{channels}}",
+        "summaryOffer": "Mensaje con tu oferta según su última conversación · {{channels}}",
+        "help": "Para clientes que hace tiempo no escriben ni compran. La IA escribe un mensaje según lo último que hablaron y lo que compraron, sin inventar cifras ni ofertas. Solo sale a quien aceptó recibir mensajes por ese canal y en horario permitido; lo demás se aplaza o sigue por «Si no se envía». Dentro de las 24 h desde su último mensaje sale como texto; después, en la plantilla de marketing aprobada.",
+        "channels": "Canales, en orden",
+        "template": "Plantilla de WhatsApp de marketing (fuera de las 24 h)",
+        "templateDefault": "La de la biblioteca (wa_reactivation), si existe",
+        "templateHelp": "El mensaje de la IA va en esta variable de la plantilla; el resto es el texto que aprobó Meta:",
+        "offer": "Oferta que puede mencionar (opcional)",
+        "offerPlaceholder": "10% en tu próxima compra con el código VUELVE10",
+        "offerHelp": "Sin oferta, la IA no ofrece descuentos, cupones ni regalos.",
+        "lookback": "Buscar la última conversación de hasta (días)"
+    }
+}

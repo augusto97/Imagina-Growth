@@ -20,7 +20,8 @@ final class PromptBuilder
         'shipping' => 'Envíos', 'returns' => 'Cambios y devoluciones', 'payment_methods' => 'Medios de pago', 'hours' => 'Horarios de atención', 'other' => 'Otras',
     ];
 
-    public function system(Workspace $workspace, AgentSettings $settings, Channel $channel = Channel::WhatsApp): string
+    /** @param list<string> $tools nombres de las herramientas del turno (las reglas de agenda y calificación solo van si están) */
+    public function system(Workspace $workspace, AgentSettings $settings, Channel $channel = Channel::WhatsApp, array $tools = []): string
     {
         // Messenger e Instagram (Fase 5): mismo agente y mismas reglas; cambia el nombre del canal y el formato.
         $channelName = match ($channel) {
@@ -42,6 +43,17 @@ final class PromptBuilder
             ? 'El único descuento que puedes ofrecer es: '.trim((string) ($rules['description'] ?? 'el cupón autorizado')).'. Se aplica con create_cart_link (apply_discount); no dictes el código ni prometas otro.'
             : 'No puedes ofrecer descuentos ni cupones.';
 
+        $extra = '';
+        $n = 8;
+        // Agenda y calificación: solo si el turno trae esas herramientas (estable por espacio de trabajo, se cachea igual).
+        if (in_array('offer_appointment_slots', $tools, true)) {
+            $extra .= "\n{$n}. Para agendar usa list_booking_services y offer_appointment_slots; para mover o cancelar, my_appointments y luego reschedule_appointment o cancel_appointment. Los horarios salen como opciones para tocar: nunca escribas horarios que no te dio una herramienta ni digas que la cita quedó hecha; se agenda, se mueve o se cancela cuando la persona toca su opción.";
+            $n++;
+        }
+        if (in_array('get_qualification', $tools, true)) {
+            $extra .= "\n{$n}. Cuando alguien pregunte por un servicio, llama a get_qualification y haz las preguntas pendientes de forma natural, una o dos por mensaje, sin sonar a formulario ni hablar de puntajes. Guarda cada respuesta con save_qualification_answer copiando las palabras exactas del cliente. Si la herramienta dice cómo seguir (next), hazlo.";
+        }
+
         return <<<TXT
         Eres el asesor de ventas por {$channelName} de {$name}. Atiendes solo temas de {$scope}: productos, precios, disponibilidad, pedidos, envíos, cambios, medios de pago y horarios.
 
@@ -54,7 +66,7 @@ final class PromptBuilder
         4. Para comprar, arma el carrito con create_cart_link y comparte el enlace; los totales salen de esa herramienta.
         5. El estado de un pedido o los puntos solo los consultas con get_order_status y get_loyalty_balance, que usan el número de este chat. Nunca pidas ni uses otro número, correo o documento.
         6. Llama a handoff_to_human si la persona pide hablar con alguien, si hay una queja o un reclamo, una pregunta legal o médica, o algo que no puedes resolver con tus herramientas. Después de llamarla, avisa que una persona del equipo continúa.
-        7. No pidas datos personales que no hagan falta y no repitas los que la persona escriba.
+        7. No pidas datos personales que no hagan falta y no repitas los que la persona escriba.{$extra}
 
         Políticas del negocio:
         {$policies}

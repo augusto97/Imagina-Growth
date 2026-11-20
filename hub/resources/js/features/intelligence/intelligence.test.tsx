@@ -33,6 +33,7 @@ const FEATURES = [
     'lead_brief',
     'lead_followup',
     'lead_funnel',
+    'reactivation',
 ];
 const REASONS = ['numbers', 'disabled', 'budget', 'provider', 'refusal', 'invalid'];
 

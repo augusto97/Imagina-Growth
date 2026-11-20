@@ -61,6 +61,10 @@ final class MetaCloudDriver implements ChannelDriver
                 'language' => ['code' => $message->waLanguage ?? 'es'],
                 'components' => $message->waComponents,
             ], fn ($v) => $v !== []);
+        } elseif ($message->interactive !== null) {
+            // Botones de respuesta o lista (WhatsAppInteractive, límites de Meta ya aplicados).
+            $body['type'] = 'interactive';
+            $body['interactive'] = $message->interactive;
         } else {
             $body['type'] = 'text';
             $body['text'] = ['body' => (string) $message->text, 'preview_url' => true];

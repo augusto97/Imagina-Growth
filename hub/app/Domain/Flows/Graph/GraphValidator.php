@@ -196,6 +196,7 @@ final class GraphValidator
             NodeTypes::ASSIGN_AGENT => $this->assignConfig($id, $c, $workspaceId),
             NodeTypes::LEAD_STAGE => $this->leadStageConfig($id, $c, $workspaceId),
             NodeTypes::LEAD_FOLLOWUP => $this->followUpConfig($id, $c, $workspaceId),
+            NodeTypes::AI_REACTIVATE => $this->reactivateConfig($id, $c, $workspaceId),
             default => null,
         };
     }
@@ -276,6 +277,30 @@ final class GraphValidator
         $step = $c['step'] ?? 1;
         if (! is_int($step) || $step < 1 || $step > 10) {
             $this->add($id, __('Indica qué número de seguimiento es (1 a 10).'));
+        }
+    }
+
+    /** @param array<string, mixed> $c */
+    private function reactivateConfig(string $id, array $c, string $workspaceId): void
+    {
+        $channels = (array) ($c['channels'] ?? ['whatsapp', 'email']);
+        if ($channels === [] || array_diff($channels, ['whatsapp', 'email']) !== [] || count(array_unique($channels)) !== count($channels)) {
+            $this->add($id, __('Elige por qué canales sale el mensaje: WhatsApp, correo o los dos.'));
+        }
+        $template = $c['template_id'] ?? null;
+        if (is_string($template) && $template !== '') {
+            $found = TemplateRef::resolve($workspaceId, 'whatsapp', $template, null);
+            // Fuera de la ventana de 24 h el mensaje es una plantilla de marketing: no se disfraza de utilidad.
+            if ($found === null || DB::table('templates')->where('workspace_id', $workspaceId)->where('id', $found)->value('category') !== 'marketing') {
+                $this->add($id, __('Elige una plantilla de WhatsApp de marketing aprobada.'));
+            }
+        }
+        if (mb_strlen(trim((string) ($c['offer'] ?? ''))) > 200) {
+            $this->add($id, __('La oferta tiene máximo 200 caracteres.'));
+        }
+        $days = $c['lookback_days'] ?? 365;
+        if (! is_int($days) || $days < 7 || $days > 730) {
+            $this->add($id, __('La última conversación se busca entre 7 y 730 días atrás.'));
         }
     }
 

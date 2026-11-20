@@ -14,6 +14,7 @@ use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Models\Message;
 use App\Domain\Messaging\Support\MessageEvents;
 use App\Domain\Messaging\Support\SendCaps;
+use App\Domain\Messaging\Support\WhatsAppInteractive;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Tenancy\SetWorkspaceContext;
 use App\Support\Tenancy\WorkspaceAware;
@@ -138,6 +139,7 @@ final class SendMessageJob implements ShouldQueue, WorkspaceAware
                 isset($payload['wa']['language']) ? (string) $payload['wa']['language'] : null,
                 array_values((array) ($payload['wa']['components'] ?? [])),
                 isset($payload['messaging_tag']) ? (string) $payload['messaging_tag'] : null,
+                WhatsAppInteractive::valid($payload['interactive'] ?? null) ? (array) $payload['interactive'] : null,
             ));
         } catch (Throwable $e) {
             // Una excepción del driver dejaba el mensaje en `sending` para siempre (F9): queda fallido con el motivo.

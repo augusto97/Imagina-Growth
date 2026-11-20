@@ -12,6 +12,7 @@ import { BuilderContext } from '@/features/segments/builder/context';
 import { AddConditionMenu, GroupEditor } from '@/features/segments/builder/GroupEditor';
 import type { Group } from '@/features/segments/types';
 import { metaOf } from '../catalog';
+import { AiReactivateConfig } from './nodes/AiReactivateConfig';
 import type { Filter, FlowOptions, GraphNode } from '../types';
 
 type Config = Record<string, unknown>;
@@ -505,6 +506,9 @@ export function NodePanel({ node, options, issues, readOnly, webhookSecret, onCh
                 );
                 break;
             }
+            case 'ai_reactivate':
+                body = <AiReactivateConfig nodeId={node.id} config={c} options={options} readOnly={readOnly} onChange={set} />;
+                break;
             case 'exit':
                 body = <p className="igr:text-[13px] igr:text-muted-foreground">{t('flows.config.exitHelp')}</p>;
                 break;

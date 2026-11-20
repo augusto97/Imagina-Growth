@@ -1,4 +1,5 @@
 /* Leads (M18): tipos de la API. Las cifras de dinero llegan como texto decimal. */
+import type { LeadQualification } from './qualification';
 
 export type Temperature = 'cold' | 'warm' | 'hot';
 export type Origin = 'form' | 'whatsapp' | 'messenger' | 'instagram' | 'quote' | 'booking' | 'manual' | 'api';
@@ -105,6 +106,7 @@ export interface LeadDetail extends LeadRow {
     score_reasons: ScoreReason[];
     brief: Brief;
     brief_updated_at: string | null;
+    qualification?: LeadQualification | null;
     tasks: LeadTask[];
     offline_conversion_at: string | null;
     external_crm_id: string | null;

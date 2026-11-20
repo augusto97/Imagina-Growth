@@ -25,8 +25,11 @@ final class ChangeAppointment
 {
     public function __construct(private readonly SlotFinder $slots, private readonly AppointmentNotifier $notifier) {}
 
-    /** @param 'contact'|'staff'|'system' $by */
-    public function reschedule(Workspace $workspace, Appointment $appointment, CarbonImmutable $start, string $by): Appointment
+    /**
+     * @param  'contact'|'staff'|'system'  $by
+     * @param  bool  $confirmedInChat  el cambio se confirmó en el chat: el aviso sale solo por correo
+     */
+    public function reschedule(Workspace $workspace, Appointment $appointment, CarbonImmutable $start, string $by, bool $confirmedInChat = false): Appointment
     {
         if (! $appointment->isActive()) {
             throw new InvalidArgumentException(__('Esta cita ya no se puede cambiar.'));
@@ -50,13 +53,13 @@ final class ChangeAppointment
         });
         AppointmentEvents::rescheduled($workspace, $appointment, $from, $by);
         SyncAppointmentCalendar::dispatch($workspace->id, $appointment->id)->afterCommit();
-        $this->notifier->send($workspace, $appointment, 'rescheduled');
+        $this->notifier->send($workspace, $appointment, 'rescheduled', whatsapp: ! $confirmedInChat);
 
         return $appointment;
     }
 
     /** @param 'contact'|'staff'|'system' $by */
-    public function cancel(Workspace $workspace, Appointment $appointment, string $by, ?string $reason = null): Appointment
+    public function cancel(Workspace $workspace, Appointment $appointment, string $by, ?string $reason = null, bool $confirmedInChat = false): Appointment
     {
         if ($appointment->status === 'cancelled') {
             return $appointment;
@@ -67,7 +70,7 @@ final class ChangeAppointment
         $appointment->forceFill(['status' => 'cancelled'])->save();
         AppointmentEvents::cancelled($workspace, $appointment, $by, $reason !== null ? mb_substr($reason, 0, 120) : null);
         SyncAppointmentCalendar::dispatch($workspace->id, $appointment->id)->afterCommit();
-        $this->notifier->send($workspace, $appointment, 'cancelled');
+        $this->notifier->send($workspace, $appointment, 'cancelled', whatsapp: ! $confirmedInChat);
 
         return $appointment;
     }

@@ -25,6 +25,7 @@ use App\Domain\Messaging\Support\LinkRewriter;
 use App\Domain\Messaging\Support\MessageEvents;
 use App\Domain\Messaging\Support\SocialIdentity;
 use App\Domain\Messaging\Support\WaTemplateText;
+use App\Domain\Messaging\Support\WhatsAppInteractive;
 use App\Domain\Templates\Contracts\TemplateRenderer;
 use App\Domain\Templates\Data\RenderContext;
 use App\Domain\Templates\Data\RenderedMessage;
@@ -135,6 +136,10 @@ final class DefaultMessageDispatcher implements MessageDispatcher
                     'test' => $message->isTest,
                     'attempts' => 0,
                 ];
+                // Botones o lista de WhatsApp (mensaje de servicio, dentro de la ventana): `text` ya trae las opciones.
+                if ($message->channel === Channel::WhatsApp && $message->templateId === null && WhatsAppInteractive::valid($message->context['interactive'] ?? null)) {
+                    $payload['interactive'] = $message->context['interactive'];
+                }
                 // Messenger fuera de las 24 h: SendPolicy ya comprobó que lo escribe una persona y que no pasaron 7 días.
                 if ($message->channel === Channel::Messenger && $message->humanAgent && $contact !== null
                     && ConversationWindow::forContact($workspace->id, $contact->id, $account, $now) === ConversationWindow::HUMAN_AGENT) {

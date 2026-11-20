@@ -30,6 +30,8 @@ use Illuminate\Support\Carbon;
  * @property list<array<string, mixed>>|null $score_reasons
  * @property array<string, array<string, mixed>>|null $brief ficha de la conversación (LeadBrief), cifrada
  * @property Carbon|null $brief_updated_at
+ * @property array<string, mixed>|null $qualification respuestas a las preguntas de calificación (Qualification), cifradas
+ * @property Carbon|null $qualified_at cuándo se aplicó la derivación
  * @property string $origin form | whatsapp | quote | booking | manual | api
  * @property string|null $origin_ref
  * @property Carbon|null $first_response_at
@@ -55,11 +57,11 @@ class Lead extends Model
     /** De dónde entró el lead (`lead.created.origin`, eventos.md §4.6; Messenger e Instagram desde la v7). */
     public const ORIGINS = ['form', 'whatsapp', 'messenger', 'instagram', 'quote', 'booking', 'manual', 'api'];
 
-    protected $hidden = ['brief'];
+    protected $hidden = ['brief', 'qualification'];
 
     protected $fillable = [
         'workspace_id', 'pipeline_id', 'contact_id', 'site_id', 'stage', 'stage_changed_at', 'service', 'value_ws', 'owner_id', 'source', 'score',
-        'temperature', 'score_reasons', 'brief', 'brief_updated_at', 'origin', 'origin_ref', 'first_response_at', 'last_activity_at', 'won_at', 'offline_conversion_at',
+        'temperature', 'score_reasons', 'brief', 'brief_updated_at', 'qualification', 'qualified_at', 'origin', 'origin_ref', 'first_response_at', 'last_activity_at', 'won_at', 'offline_conversion_at',
         'lost_at', 'lost_reason', 'next_step', 'next_step_at', 'external_crm_id',
     ];
 
@@ -70,6 +72,8 @@ class Lead extends Model
             'score_reasons' => 'array',
             'brief' => 'encrypted:array',
             'brief_updated_at' => 'datetime',
+            'qualification' => 'encrypted:array',
+            'qualified_at' => 'datetime',
             'stage_changed_at' => 'datetime',
             'score' => 'integer',
             'value_ws' => 'decimal:2',

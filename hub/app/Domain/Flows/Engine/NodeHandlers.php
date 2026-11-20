@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Flows\Engine;
 
 use App\Domain\Flows\Engine\Handlers\AbSplitHandler;
+use App\Domain\Flows\Engine\Handlers\AiReactivateHandler;
 use App\Domain\Flows\Engine\Handlers\AssignAgentHandler;
 use App\Domain\Flows\Engine\Handlers\ChannelSplitHandler;
 use App\Domain\Flows\Engine\Handlers\ConditionHandler;
@@ -49,6 +50,7 @@ final class NodeHandlers
         NodeTypes::LEAD_STAGE => LeadStageHandler::class,
         NodeTypes::CRM_TASK => CrmTaskHandler::class,
         NodeTypes::LEAD_FOLLOWUP => LeadFollowUpHandler::class,
+        NodeTypes::AI_REACTIVATE => AiReactivateHandler::class,
     ];
 
     public function for(string $type): ?NodeHandler

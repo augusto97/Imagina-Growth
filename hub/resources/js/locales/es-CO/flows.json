@@ -248,7 +248,8 @@
             "assign_agent": "Asignar a una persona",
             "lead_stage": "Mover etapa del lead",
             "crm_task": "Crear tarea",
-            "lead_followup": "Seguimiento con IA"
+            "lead_followup": "Seguimiento con IA",
+            "ai_reactivate": "Reactivar con IA"
         },
         "branches": {
             "next": "Siguiente",
