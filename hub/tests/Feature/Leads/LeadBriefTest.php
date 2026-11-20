@@ -5,11 +5,14 @@ use App\Domain\Inbox\Support\HeuristicInboundClassifier;
 use App\Domain\Intelligence\Ai\Testing\FakeAiGateway;
 use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Messaging\Models\Message;
+use App\Domain\Privacy\Actions\DeleteContactData;
+use App\Domain\Privacy\Actions\ExportContactData;
 use App\Domain\Services\Leads\Brief\LeadBrief;
 use App\Domain\Services\Leads\Brief\UpdateLeadBrief;
 use App\Domain\Services\Leads\Models\Lead;
 use App\Domain\Services\Leads\Models\LeadActivity;
 use App\Domain\Services\Leads\Models\LeadSettings;
+use App\Domain\Services\Leads\Models\LeadTask;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
@@ -172,4 +175,18 @@ it('valida las frases sin tildes ni mayúsculas y por palabras completas', funct
         ->and(LeadBrief::containsWords('necesito 300 metros', '3'))->toBeFalse()
         ->and(LeadBrief::ground('3 galones', null, ['quiero 3 galones. Gracias']))->toBe(['quote' => 'quiero 3 galones.', 'index' => 0])
         ->and(LeadBrief::ground('Cali', 'en Cali', ['vivo en Bogotá']))->toBeNull();
+});
+
+it('el acceso del titular exporta la ficha y la supresión la borra con sus tareas', function () {
+    $this->ai->replyJson(briefReply(['necesidad' => ['pintura azul', 'Necesito pintura azul'], 'ciudad' => ['Cali', 'vivo en Cali']]));
+    briefInbound($this, 'Necesito pintura azul, vivo en Cali')->assertOk();
+    $lead = briefLead($this);
+    ($this->in)(fn () => LeadTask::query()->create(['workspace_id' => $this->ws->id, 'lead_id' => $lead->id, 'contact_id' => $this->contact->id,
+        'kind' => 'call', 'title' => 'Llamar', 'due_at' => now(), 'status' => 'open', 'source' => 'user']));
+    $export = ($this->in)(fn () => app(ExportContactData::class)->handle($this->ws, $this->contact->fresh()));
+    expect($export['leads'][0]['brief'])->toBe(['need' => 'pintura azul', 'city' => 'Cali']);
+
+    ($this->in)(fn () => app(DeleteContactData::class)->handle($this->ws, $this->contact->fresh()));
+    expect(DB::table('leads')->where('workspace_id', $this->ws->id)->count())->toBe(0)
+        ->and(DB::table('lead_tasks')->where('workspace_id', $this->ws->id)->count())->toBe(0);
 });

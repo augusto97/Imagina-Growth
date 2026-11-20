@@ -314,6 +314,8 @@
             "followupTemplate": "Plantilla de WhatsApp para seguimientos",
             "followupTemplateDefault": "La de la biblioteca (wa_lead_followup), si existe",
             "followupTemplateHelp": "Pasadas 24 horas desde el último mensaje del cliente, WhatsApp solo deja escribir con una plantilla aprobada. Debe ser de marketing; el texto que escribe la IA va en la variable seguimiento.mensaje.",
+            "digest": "Resumen matutino a cada vendedor",
+            "digestHelp": "De lunes a sábado a las 7:00, cuántos clientes esperan respuesta, calientes sin contactar, tareas y leads quietos, con el enlace a «Hoy». Por WhatsApp con la plantilla de avisos al equipo, o por correo. Sin datos de los clientes.",
             "aiBrief": "Llenar la ficha con IA desde el chat",
             "aiBriefHelp": "Mientras el cliente escribe por la bandeja, la IA anota qué necesita, cuánto, dónde, para cuándo, su presupuesto y qué tan interesado está. Solo guarda lo que el cliente dijo, con la frase de origen."
         },

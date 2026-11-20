@@ -192,13 +192,14 @@ function AssistantCard({ s }: { s: LeadSettings }) {
     const save = useSaveLeadSettings(workspace.id);
     const [days, setDays] = useState(s.assistant.stale_days);
     const [template, setTemplate] = useState(s.assistant.whatsapp_template_id ?? '');
+    const [digest, setDigest] = useState(s.assistant.digest);
     const marketing = s.whatsapp_templates.filter((tpl) => tpl.category === 'marketing');
     return (
         <form
             onSubmit={(e) => {
                 e.preventDefault();
                 save.mutate(
-                    { assistant: { stale_days: days, whatsapp_template_id: template || null } },
+                    { assistant: { stale_days: days, whatsapp_template_id: template || null, digest } },
                     { onSuccess: () => toast.success(t('leads.settings.saved')), onError: (err) => toast.error(errorMessage(err, t)) },
                 );
             }}
@@ -227,6 +228,13 @@ function AssistantCard({ s }: { s: LeadSettings }) {
                             <p className="igr:text-xs igr:text-muted-foreground">{t('leads.settings.followupTemplateHelp')}</p>
                         </div>
                     </div>
+                    <label className="igr:flex igr:items-start igr:gap-2 igr:text-[13px]">
+                        <input type="checkbox" className="igr:mt-0.5 igr:size-4" checked={digest} onChange={(e) => setDigest(e.target.checked)} />
+                        <span>
+                            {t('leads.settings.digest')}
+                            <span className="igr:block igr:text-xs igr:text-muted-foreground">{t('leads.settings.digestHelp')}</span>
+                        </span>
+                    </label>
                     <Button type="submit" size="sm" disabled={save.isPending}>
                         {t('common.save')}
                     </Button>

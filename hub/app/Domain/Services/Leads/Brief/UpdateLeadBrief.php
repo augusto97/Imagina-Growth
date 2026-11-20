@@ -56,8 +56,9 @@ final class UpdateLeadBrief
             return [];
         }
         $lead = self::openLead($conversation->contact_id);
-        // Sin lead solo se puede crear uno por WhatsApp: en otro canal no vale la pena llamar al modelo.
-        if ($lead === null && ($channel !== Channel::WhatsApp || ! $settings->whatsapp_leads)) {
+        // Sin lead solo se puede crear uno por WhatsApp, y no de una conversación de soporte, queja o baja:
+        // ahí no vale la pena llamar al modelo.
+        if ($lead === null && ($channel !== Channel::WhatsApp || ! $settings->whatsapp_leads || in_array($conversation->intent, ['support', 'complaint', 'optout'], true))) {
             return [];
         }
         $result = $this->extractor->extract($workspace->id, $transcript, $workspace->name);

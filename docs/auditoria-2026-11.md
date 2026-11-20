@@ -117,7 +117,7 @@ Casi todas tienen su base en Imagina Growth; lo que falta es que trabajen solas 
 | 3. Filtra a los curiosos | Reglas de asignación por intención, traspaso a humano, puntaje y aviso al vendedor «caliente» | Preguntas de calificación configurables y derivación dueño / vendedor / agente / web |
 | 4. Atiende el fin de semana | El agente agenda citas; página de reservas | Ofrecer horarios dentro del chat de WhatsApp de punta a punta |
 | 5. El seguimiento sale solo | Flujo 18 de seguimiento de leads | ✅ (lote 3): el flujo 18 sigue los días 2, 10, 20 y 40 con el nodo «Seguimiento con IA» (texto en la ventana, plantilla fuera, correo de respaldo); sale si el cliente responde o el lead cambia de etapa |
-| 6. Asistente del vendedor | Aviso al vendedor por WhatsApp | ✅ (lote 3): «Hoy» (`/hoy`) con respuestas pendientes, calientes sin contactar, tareas, próximos pasos y leads quietos; mensaje sugerido por la IA, envío con un clic por el despachador, hecho y posponer. Falta el resumen matutino al vendedor |
+| 6. Asistente del vendedor | Aviso al vendedor por WhatsApp | ✅ (lote 3): «Hoy» (`/hoy`) con respuestas pendientes, calientes sin contactar, tareas, próximos pasos y leads quietos; mensaje sugerido por la IA, envío con un clic por el despachador, hecho y posponer; resumen matutino opcional al vendedor por WhatsApp o correo |
 | 7. Despierta la base dormida | RFM, flujos de reactivación y campañas con copiloto | Mensaje personalizado según lo último que habló cada contacto; solo a quien dio consentimiento y en horario legal |
 | 8. Postventa y recompra | Pedido de reseña (también de Google), NPS, predicción de próxima compra | — |
 | 9. El dueño ve todo | Informe semanal con IA y hallazgos 21–23 de leads | ✅ (lote 3): embudo del lunes por pipeline (llegaron a cada etapa y pasaron a la siguiente frente a la semana anterior), dónde se cae (90 días), motivos de pérdida, quietos por etapa y antigüedad y primera respuesta; en el informe semanal y en Leads → Indicadores, con conclusión de IA validada |
@@ -125,7 +125,7 @@ Casi todas tienen su base en Imagina Growth; lo que falta es que trabajen solas 
 **Decisión propuesta:** terminar la estabilización y después hacer un bloque «ARM» con las brechas de las funciones
 2, 5, 6 y 9, que reutilizan el agente, los flujos, los leads y el informe semanal. **Hecho en el lote 3** (las cuatro funciones; ver
 modulos.md M09 y M18): la ficha desde el chat, el seguimiento con IA del flujo 18, «Hoy» con los nodos `crm_task`,
-`assign_agent` y `lead_stage`, y el embudo del lunes. Queda el resumen matutino al vendedor (opcional). La diferencia frente a un ARM
+`assign_agent` y `lead_stage` (y el resumen matutino opcional), y el embudo del lunes. La diferencia frente a un ARM
 genérico: todo respeta consentimiento, ventana de 24 h y horarios legales de cada país (CLAUDE.md §3.5), y cada venta
 cerrada sale atribuida en el dinero generado.
 
