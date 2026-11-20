@@ -31,7 +31,7 @@ final class CreateClientAccount
 
     /**
      * @param  array{name: string, type: string, country: string, billing_email?: string|null, plan_id?: string|null, owner_email: string}  $account
-     * @return array{account: Account, workspace: Workspace, invitation: Invitation}
+     * @return array{account: Account, workspace: Workspace, invitation: Invitation, invite_url: string}
      */
     public function handle(User $actor, array $account, WorkspaceData $workspace): array
     {
@@ -53,7 +53,7 @@ final class CreateClientAccount
         if (! empty($account['plan_id'])) {
             $this->assignPlan->handle($model, $account['plan_id'], $actor);
         }
-        $invitation = $this->invite->handle(
+        $issued = $this->invite->handle(
             $space,
             $actor,
             $account['owner_email'],
@@ -61,6 +61,6 @@ final class CreateClientAccount
             $type === AccountType::Agency ? AccountRole::AgencyOwner : null,
         );
 
-        return ['account' => $model->refresh(), 'workspace' => $space, 'invitation' => $invitation];
+        return ['account' => $model->refresh(), 'workspace' => $space, 'invitation' => $issued->invitation, 'invite_url' => $issued->url];
     }
 }

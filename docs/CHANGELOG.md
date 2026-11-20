@@ -1,5 +1,14 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-20 — Invitaciones con enlace para copiar y aviso de correo apagado
+
+En producción `MAIL_MAILER` era `log`: las invitaciones a los clientes nunca salían y nadie lo sabía.
+- Al crear un cliente, invitar a una persona desde la ficha o dar de alta un cliente desde la agencia, el panel
+  muestra el enlace de la invitación con un botón para copiarlo.
+- La plataforma avisa cuando el correo no está configurado, con el ejemplo de variables para SES o SMTP, y, cuando sí
+  lo está, permite enviar un correo de prueba que muestra el error exacto del proveedor si falla.
+- Pruebas: enlace devuelto en las tres altas, estado del correo y prueba de envío (éxito y error).
+
 ## 2026-11-20 — Versión 0.1.5: administración de clientes y planes
 
 El dueño no encontraba dónde crear planes ni clientes, y tenía razón: los planes solo existían en

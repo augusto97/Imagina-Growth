@@ -48,7 +48,7 @@ final class PlatformClientsController
 
         $result = $create->handle(self::actor($request), $data, self::workspaceData($data['workspace']));
 
-        return response()->json(['account' => $this->detail($result['account'])], 201);
+        return response()->json(['account' => $this->detail($result['account']), 'invite_url' => $result['invite_url']], 201);
     }
 
     /** GET /api/platform/accounts/{account} */
@@ -80,11 +80,12 @@ final class PlatformClientsController
         $model = $this->account($account);
         $data = $request->validate(self::workspaceRules('') + ['owner_email' => ['nullable', 'email', 'max:190']]);
         $workspace = $create->createInAccount($model, self::workspaceData($data), null, self::actor($request));
+        $url = null;
         if (! empty($data['owner_email'])) {
-            $invite->handle($workspace, self::actor($request), (string) $data['owner_email'], WorkspaceRole::Owner);
+            $url = $invite->handle($workspace, self::actor($request), (string) $data['owner_email'], WorkspaceRole::Owner)->url;
         }
 
-        return response()->json(['account' => $this->detail($model)], 201);
+        return response()->json(['account' => $this->detail($model), 'invite_url' => $url], 201);
     }
 
     /** POST /api/platform/accounts/{account}/invitations */
@@ -100,9 +101,9 @@ final class PlatformClientsController
         $workspace = Workspace::findByPublicId($data['workspace_id']);
         abort_if($workspace === null || $workspace->account_id !== $model->id, 404);
         $accountRole = ($data['account_owner'] ?? false) && $model->type === AccountType::Agency ? AccountRole::AgencyOwner : null;
-        $invite->handle($workspace, self::actor($request), $data['email'], WorkspaceRole::from($data['role']), $accountRole);
+        $issued = $invite->handle($workspace, self::actor($request), $data['email'], WorkspaceRole::from($data['role']), $accountRole);
 
-        return response()->json(['account' => $this->detail($model)], 201);
+        return response()->json(['account' => $this->detail($model), 'invite_url' => $issued->url], 201);
     }
 
     /** @return array<string, mixed> */

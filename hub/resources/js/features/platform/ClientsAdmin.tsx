@@ -1,23 +1,16 @@
-import { Building2, MailPlus, Plus } from "lucide-react";
-import { useState, type SyntheticEvent } from "react";
-import { useTranslation } from "react-i18next";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import { Input, Select } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ErrorState } from "@/components/ui/misc";
-import { Skeleton } from "@/components/ui/skeleton";
-import { isApiError } from "@/lib/api";
-import { formatDate } from "@/lib/format";
-import { toast } from "@/stores/toast";
+import { Building2, Copy, MailPlus, Plus } from 'lucide-react';
+import { useState, type SyntheticEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input, Select } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ErrorState } from '@/components/ui/misc';
+import { Skeleton } from '@/components/ui/skeleton';
+import { isApiError } from '@/lib/api';
+import { formatDate } from '@/lib/format';
+import { toast } from '@/stores/toast';
 import {
     COUNTRY_DEFAULTS,
     countryDefaults,
@@ -30,72 +23,42 @@ import {
     useCreateClient,
     useInviteToClient,
     useUpdateClient,
-} from "./api";
+} from './api';
 
 const COUNTRIES = Object.keys(COUNTRY_DEFAULTS);
-const CURRENCIES = ["COP", "MXN", "USD", "PEN", "CLP", "ARS", "EUR", "VES"];
-const ROLES = ["owner", "admin", "marketing", "agent", "viewer"] as const;
+const CURRENCIES = ['COP', 'MXN', 'USD', 'PEN', 'CLP', 'ARS', 'EUR', 'VES'];
+const ROLES = ['owner', 'admin', 'marketing', 'agent', 'viewer'] as const;
 
 function useApiErrors() {
     const { t } = useTranslation();
     const [errors, setErrors] = useState<Record<string, string>>({});
     const onError = (e: unknown) => {
-        if (isApiError(e) && Object.keys(e.fieldErrors).length > 0)
-            setErrors(e.fieldErrors);
-        else
-            toast.error(
-                t("errors.title"),
-                isApiError(e) ? e.message : undefined,
-            );
+        if (isApiError(e) && Object.keys(e.fieldErrors).length > 0) setErrors(e.fieldErrors);
+        else toast.error(t('errors.title'), isApiError(e) ? e.message : undefined);
     };
     return { errors, setErrors, onError };
 }
 
 function FieldError({ message }: { message?: string }) {
-    return message ? (
-        <p className="igr:text-xs igr:text-destructive">{message}</p>
-    ) : null;
+    return message ? <p className="igr:text-xs igr:text-destructive">{message}</p> : null;
 }
 
 /** Campos del espacio de trabajo: al cambiar el país se sugieren su moneda y su zona horaria. */
-function WorkspaceFields({
-    value,
-    onChange,
-    errors,
-    prefix,
-}: {
-    value: WorkspaceInput;
-    onChange: (v: WorkspaceInput) => void;
-    errors: Record<string, string>;
-    prefix: string;
-}) {
+function WorkspaceFields({ value, onChange, errors, prefix }: { value: WorkspaceInput; onChange: (v: WorkspaceInput) => void; errors: Record<string, string>; prefix: string }) {
     const { t } = useTranslation();
     const id = (k: string) => `${prefix}-${k}`;
     return (
         <>
             <div className="igr:space-y-1.5 igr:sm:col-span-2">
-                <Label htmlFor={id("ws-name")}>
-                    {t("platform.clients.workspaceName")}
-                </Label>
-                <Input
-                    id={id("ws-name")}
-                    required
-                    value={value.name}
-                    onChange={(e) =>
-                        onChange({ ...value, name: e.target.value })
-                    }
-                />
-                <p className="igr:text-xs igr:text-muted-foreground">
-                    {t("platform.clients.workspaceHelp")}
-                </p>
+                <Label htmlFor={id('ws-name')}>{t('platform.clients.workspaceName')}</Label>
+                <Input id={id('ws-name')} required value={value.name} onChange={(e) => onChange({ ...value, name: e.target.value })} />
+                <p className="igr:text-xs igr:text-muted-foreground">{t('platform.clients.workspaceHelp')}</p>
                 <FieldError message={errors[`${prefix}name`]} />
             </div>
             <div className="igr:space-y-1.5">
-                <Label htmlFor={id("country")}>
-                    {t("platform.clients.country")}
-                </Label>
+                <Label htmlFor={id('country')}>{t('platform.clients.country')}</Label>
                 <Select
-                    id={id("country")}
+                    id={id('country')}
                     value={value.country}
                     onChange={(e) =>
                         onChange({
@@ -113,16 +76,8 @@ function WorkspaceFields({
                 </Select>
             </div>
             <div className="igr:space-y-1.5">
-                <Label htmlFor={id("currency")}>
-                    {t("platform.clients.currency")}
-                </Label>
-                <Select
-                    id={id("currency")}
-                    value={value.currency}
-                    onChange={(e) =>
-                        onChange({ ...value, currency: e.target.value })
-                    }
-                >
+                <Label htmlFor={id('currency')}>{t('platform.clients.currency')}</Label>
+                <Select id={id('currency')} value={value.currency} onChange={(e) => onChange({ ...value, currency: e.target.value })}>
                     {CURRENCIES.map((c) => (
                         <option key={c} value={c}>
                             {c}
@@ -135,29 +90,21 @@ function WorkspaceFields({
 }
 
 /** Alta de un cliente: empresa, primer espacio, plan e invitación al dueño. */
-export function NewClientDialog({
-    plans,
-    onClose,
-    onCreated,
-}: {
-    plans: PlatformPlan[];
-    onClose: () => void;
-    onCreated: (id: string) => void;
-}) {
+export function NewClientDialog({ plans, onClose, onCreated }: { plans: PlatformPlan[]; onClose: () => void; onCreated: (id: string, inviteUrl: string) => void }) {
     const { t } = useTranslation();
     const create = useCreateClient();
     const { errors, onError } = useApiErrors();
     const [form, setForm] = useState<NewClientInput>({
-        name: "",
-        type: "direct",
-        country: "CO",
+        name: '',
+        type: 'direct',
+        country: 'CO',
         plan_id: null,
-        owner_email: "",
+        owner_email: '',
         workspace: {
-            name: "",
-            country: "CO",
-            currency: "COP",
-            timezone: "America/Bogota",
+            name: '',
+            country: 'CO',
+            currency: 'COP',
+            timezone: 'America/Bogota',
         },
     });
     const [wsTouched, setWsTouched] = useState(false);
@@ -167,13 +114,13 @@ export function NewClientDialog({
         create.mutate(
             { ...form, country: form.workspace.country },
             {
-                onSuccess: (account) => {
+                onSuccess: (r) => {
                     toast.success(
-                        t("platform.clients.created", {
+                        t('platform.clients.created', {
                             email: form.owner_email,
                         }),
                     );
-                    onCreated(account.id);
+                    onCreated(r.account.id, r.invite_url);
                 },
                 onError,
             },
@@ -185,25 +132,17 @@ export function NewClientDialog({
             <DialogContent className="igr:max-w-xl">
                 <form onSubmit={submit}>
                     <DialogHeader>
-                        <DialogTitle>
-                            {t("platform.clients.newTitle")}
-                        </DialogTitle>
-                        <DialogDescription>
-                            {t("platform.clients.newHelp")}
-                        </DialogDescription>
+                        <DialogTitle>{t('platform.clients.newTitle')}</DialogTitle>
+                        <DialogDescription>{t('platform.clients.newHelp')}</DialogDescription>
                     </DialogHeader>
                     <div className="igr:grid igr:max-h-[65vh] igr:gap-4 igr:overflow-y-auto igr:py-4 igr:sm:grid-cols-2">
                         <div className="igr:space-y-1.5 igr:sm:col-span-2">
-                            <Label htmlFor="client-name">
-                                {t("platform.clients.company")}
-                            </Label>
+                            <Label htmlFor="client-name">{t('platform.clients.company')}</Label>
                             <Input
                                 id="client-name"
                                 required
                                 value={form.name}
-                                placeholder={t(
-                                    "platform.clients.companyPlaceholder",
-                                )}
+                                placeholder={t('platform.clients.companyPlaceholder')}
                                 onChange={(e) =>
                                     setForm((f) => ({
                                         ...f,
@@ -220,35 +159,26 @@ export function NewClientDialog({
                             <FieldError message={errors.name} />
                         </div>
                         <div className="igr:space-y-1.5">
-                            <Label htmlFor="client-type">
-                                {t("platform.clients.type")}
-                            </Label>
+                            <Label htmlFor="client-type">{t('platform.clients.type')}</Label>
                             <Select
                                 id="client-type"
                                 value={form.type}
                                 onChange={(e) =>
                                     setForm((f) => ({
                                         ...f,
-                                        type: e.target
-                                            .value as NewClientInput["type"],
+                                        type: e.target.value as NewClientInput['type'],
                                     }))
                                 }
                             >
-                                <option value="direct">
-                                    {t("platform.clients.types.direct")}
-                                </option>
-                                <option value="agency">
-                                    {t("platform.clients.types.agency")}
-                                </option>
+                                <option value="direct">{t('platform.clients.types.direct')}</option>
+                                <option value="agency">{t('platform.clients.types.agency')}</option>
                             </Select>
                         </div>
                         <div className="igr:space-y-1.5">
-                            <Label htmlFor="client-plan">
-                                {t("platform.clients.plan")}
-                            </Label>
+                            <Label htmlFor="client-plan">{t('platform.clients.plan')}</Label>
                             <Select
                                 id="client-plan"
-                                value={form.plan_id ?? ""}
+                                value={form.plan_id ?? ''}
                                 onChange={(e) =>
                                     setForm((f) => ({
                                         ...f,
@@ -256,9 +186,7 @@ export function NewClientDialog({
                                     }))
                                 }
                             >
-                                <option value="">
-                                    {t("platform.clients.trial")}
-                                </option>
+                                <option value="">{t('platform.clients.trial')}</option>
                                 {plans
                                     .filter((p) => !p.archived)
                                     .map((p) => (
@@ -269,9 +197,7 @@ export function NewClientDialog({
                             </Select>
                         </div>
                         <div className="igr:space-y-1.5 igr:sm:col-span-2">
-                            <Label htmlFor="client-owner">
-                                {t("platform.clients.ownerEmail")}
-                            </Label>
+                            <Label htmlFor="client-owner">{t('platform.clients.ownerEmail')}</Label>
                             <Input
                                 id="client-owner"
                                 type="email"
@@ -285,9 +211,7 @@ export function NewClientDialog({
                                 }
                             />
                             <p className="igr:text-xs igr:text-muted-foreground">
-                                {form.type === "agency"
-                                    ? t("platform.clients.ownerHelpAgency")
-                                    : t("platform.clients.ownerHelp")}
+                                {form.type === 'agency' ? t('platform.clients.ownerHelpAgency') : t('platform.clients.ownerHelp')}
                             </p>
                             <FieldError message={errors.owner_email} />
                         </div>
@@ -302,15 +226,11 @@ export function NewClientDialog({
                         />
                     </div>
                     <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={onClose}
-                        >
-                            {t("common.cancel")}
+                        <Button type="button" variant="outline" onClick={onClose}>
+                            {t('common.cancel')}
                         </Button>
                         <Button type="submit" loading={create.isPending}>
-                            {t("platform.clients.create")}
+                            {t('platform.clients.create')}
                         </Button>
                     </DialogFooter>
                 </form>
@@ -320,27 +240,21 @@ export function NewClientDialog({
 }
 
 /** Ficha del cliente: datos, espacios, personas e invitaciones; agregar espacios e invitar. */
-export function ClientDetailDialog({
-    id,
-    onClose,
-}: {
-    id: string;
-    onClose: () => void;
-}) {
+export function ClientDetailDialog({ id, inviteUrl, onClose }: { id: string; inviteUrl?: string | null; onClose: () => void }) {
     const { t } = useTranslation();
     const detail = useClientDetail(id);
-    const [mode, setMode] = useState<"view" | "edit" | "workspace" | "invite">(
-        "view",
-    );
+    const [mode, setMode] = useState<'view' | 'edit' | 'workspace' | 'invite'>('view');
+    const [link, setLink] = useState<string | null>(inviteUrl ?? null);
+    const done = (url?: string | null) => {
+        if (url) setLink(url);
+        setMode('view');
+    };
 
     return (
         <Dialog open onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="igr:max-w-2xl">
                 {detail.isError ? (
-                    <ErrorState
-                        error={detail.error}
-                        onRetry={() => void detail.refetch()}
-                    />
+                    <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />
                 ) : detail.isPending ? (
                     <Skeleton className="igr:h-64" />
                 ) : (
@@ -349,57 +263,39 @@ export function ClientDetailDialog({
                             <DialogTitle className="igr:flex igr:items-center igr:gap-2">
                                 <Building2 className="igr:size-4" />
                                 {detail.data.name}
-                                <Badge variant="outline">
-                                    {t(
-                                        `platform.clients.types.${detail.data.type}`,
-                                    )}
-                                </Badge>
+                                <Badge variant="outline">{t(`platform.clients.types.${detail.data.type}`)}</Badge>
                             </DialogTitle>
                             <DialogDescription>
-                                {t("platform.clients.since", {
+                                {t('platform.clients.since', {
                                     date: formatDate(detail.data.created_at),
                                 })}
-                                {detail.data.billing_email
-                                    ? ` · ${detail.data.billing_email}`
-                                    : ""}
+                                {detail.data.billing_email ? ` · ${detail.data.billing_email}` : ''}
                             </DialogDescription>
                         </DialogHeader>
-                        {mode === "edit" ? (
-                            <EditClientForm
-                                client={detail.data}
-                                onDone={() => setMode("view")}
-                            />
-                        ) : mode === "workspace" ? (
-                            <AddWorkspaceForm
-                                client={detail.data}
-                                onDone={() => setMode("view")}
-                            />
-                        ) : mode === "invite" ? (
-                            <InviteForm
-                                client={detail.data}
-                                onDone={() => setMode("view")}
-                            />
+                        {mode === 'edit' ? (
+                            <EditClientForm client={detail.data} onDone={() => setMode('view')} />
+                        ) : mode === 'workspace' ? (
+                            <AddWorkspaceForm client={detail.data} onDone={done} />
+                        ) : mode === 'invite' ? (
+                            <InviteForm client={detail.data} onDone={done} />
                         ) : (
-                            <ClientSummary client={detail.data} />
+                            <>
+                                {link && <InviteLink url={link} />}
+                                <ClientSummary client={detail.data} />
+                            </>
                         )}
-                        {mode === "view" && (
+                        {mode === 'view' && (
                             <DialogFooter className="igr:flex-wrap igr:gap-2">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setMode("edit")}
-                                >
-                                    {t("platform.clients.edit")}
+                                <Button variant="outline" onClick={() => setMode('edit')}>
+                                    {t('platform.clients.edit')}
                                 </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setMode("workspace")}
-                                >
+                                <Button variant="outline" onClick={() => setMode('workspace')}>
                                     <Plus />
-                                    {t("platform.clients.addWorkspace")}
+                                    {t('platform.clients.addWorkspace')}
                                 </Button>
-                                <Button onClick={() => setMode("invite")}>
+                                <Button onClick={() => setMode('invite')}>
                                     <MailPlus />
-                                    {t("platform.clients.invite")}
+                                    {t('platform.clients.invite')}
                                 </Button>
                             </DialogFooter>
                         )}
@@ -416,61 +312,34 @@ function ClientSummary({ client }: { client: ClientDetail }) {
         <div className="igr:max-h-[55vh] igr:space-y-4 igr:overflow-y-auto igr:py-2">
             {client.account_users.length > 0 && (
                 <section>
-                    <h4 className="igr:mb-1 igr:text-sm igr:font-medium">
-                        {t("platform.clients.accountPeople")}
-                    </h4>
+                    <h4 className="igr:mb-1 igr:text-sm igr:font-medium">{t('platform.clients.accountPeople')}</h4>
                     <ul className="igr:text-sm">
                         {client.account_users.map((u) => (
                             <li key={u.email}>
-                                {u.name} ·{" "}
-                                <span className="igr:text-muted-foreground">
-                                    {u.email}
-                                </span>{" "}
-                                · {t(`platform.clients.accountRoles.${u.role}`)}
+                                {u.name} · <span className="igr:text-muted-foreground">{u.email}</span> · {t(`platform.clients.accountRoles.${u.role}`)}
                             </li>
                         ))}
                     </ul>
                 </section>
             )}
             {client.workspaces.map((ws) => (
-                <section
-                    key={ws.id}
-                    className="igr:rounded-md igr:border igr:p-3"
-                >
+                <section key={ws.id} className="igr:rounded-md igr:border igr:p-3">
                     <div className="igr:flex igr:flex-wrap igr:items-center igr:justify-between igr:gap-2">
                         <h4 className="igr:font-medium">{ws.name}</h4>
                         <span className="igr:text-xs igr:text-muted-foreground">
-                            {t(`platform.clients.countries.${ws.country}`)} ·{" "}
-                            {ws.currency} ·{" "}
-                            {t("platform.clients.sites", { count: ws.sites })}
+                            {t(`platform.clients.countries.${ws.country}`)} · {ws.currency} · {t('platform.clients.sites', { count: ws.sites })}
                         </span>
                     </div>
                     <ul className="igr:mt-2 igr:space-y-0.5 igr:text-sm">
-                        {ws.members.length === 0 &&
-                            ws.invitations.length === 0 && (
-                                <li className="igr:text-muted-foreground">
-                                    {t("platform.clients.nobody")}
-                                </li>
-                            )}
+                        {ws.members.length === 0 && ws.invitations.length === 0 && <li className="igr:text-muted-foreground">{t('platform.clients.nobody')}</li>}
                         {ws.members.map((m) => (
                             <li key={m.email}>
-                                {m.name} ·{" "}
-                                <span className="igr:text-muted-foreground">
-                                    {m.email}
-                                </span>{" "}
-                                · {t(`platform.clients.roles.${m.role}`)}
+                                {m.name} · <span className="igr:text-muted-foreground">{m.email}</span> · {t(`platform.clients.roles.${m.role}`)}
                             </li>
                         ))}
                         {ws.invitations.map((i) => (
-                            <li
-                                key={i.email}
-                                className="igr:text-muted-foreground"
-                            >
-                                {i.email} ·{" "}
-                                {t(`platform.clients.roles.${i.role}`)} ·{" "}
-                                <Badge variant="warning">
-                                    {t("platform.clients.pending")}
-                                </Badge>
+                            <li key={i.email} className="igr:text-muted-foreground">
+                                {i.email} · {t(`platform.clients.roles.${i.role}`)} · <Badge variant="warning">{t('platform.clients.pending')}</Badge>
                             </li>
                         ))}
                     </ul>
@@ -480,20 +349,14 @@ function ClientSummary({ client }: { client: ClientDetail }) {
     );
 }
 
-function EditClientForm({
-    client,
-    onDone,
-}: {
-    client: ClientDetail;
-    onDone: () => void;
-}) {
+function EditClientForm({ client, onDone }: { client: ClientDetail; onDone: () => void }) {
     const { t } = useTranslation();
     const update = useUpdateClient();
     const { errors, onError } = useApiErrors();
     const [form, setForm] = useState({
         name: client.name,
-        legal_name: client.legal_name ?? "",
-        billing_email: client.billing_email ?? "",
+        legal_name: client.legal_name ?? '',
+        billing_email: client.billing_email ?? '',
         type: client.type,
     });
     const submit = (e: SyntheticEvent) => {
@@ -509,7 +372,7 @@ function EditClientForm({
             },
             {
                 onSuccess: () => {
-                    toast.success(t("platform.saved"));
+                    toast.success(t('platform.saved'));
                     onDone();
                 },
                 onError,
@@ -517,96 +380,59 @@ function EditClientForm({
         );
     };
     return (
-        <form
-            onSubmit={submit}
-            className="igr:grid igr:gap-4 igr:py-2 igr:sm:grid-cols-2"
-        >
+        <form onSubmit={submit} className="igr:grid igr:gap-4 igr:py-2 igr:sm:grid-cols-2">
             <div className="igr:space-y-1.5 igr:sm:col-span-2">
-                <Label htmlFor="edit-name">
-                    {t("platform.clients.company")}
-                </Label>
-                <Input
-                    id="edit-name"
-                    required
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                />
+                <Label htmlFor="edit-name">{t('platform.clients.company')}</Label>
+                <Input id="edit-name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
                 <FieldError message={errors.name} />
             </div>
             <div className="igr:space-y-1.5">
-                <Label htmlFor="edit-legal">
-                    {t("platform.clients.legalName")}
-                </Label>
-                <Input
-                    id="edit-legal"
-                    value={form.legal_name}
-                    onChange={(e) =>
-                        setForm({ ...form, legal_name: e.target.value })
-                    }
-                />
+                <Label htmlFor="edit-legal">{t('platform.clients.legalName')}</Label>
+                <Input id="edit-legal" value={form.legal_name} onChange={(e) => setForm({ ...form, legal_name: e.target.value })} />
             </div>
             <div className="igr:space-y-1.5">
-                <Label htmlFor="edit-billing">
-                    {t("platform.clients.billingEmail")}
-                </Label>
-                <Input
-                    id="edit-billing"
-                    type="email"
-                    value={form.billing_email}
-                    onChange={(e) =>
-                        setForm({ ...form, billing_email: e.target.value })
-                    }
-                />
+                <Label htmlFor="edit-billing">{t('platform.clients.billingEmail')}</Label>
+                <Input id="edit-billing" type="email" value={form.billing_email} onChange={(e) => setForm({ ...form, billing_email: e.target.value })} />
                 <FieldError message={errors.billing_email} />
             </div>
             <div className="igr:space-y-1.5">
-                <Label htmlFor="edit-type">{t("platform.clients.type")}</Label>
+                <Label htmlFor="edit-type">{t('platform.clients.type')}</Label>
                 <Select
                     id="edit-type"
                     value={form.type}
                     onChange={(e) =>
                         setForm({
                             ...form,
-                            type: e.target.value as ClientDetail["type"],
+                            type: e.target.value as ClientDetail['type'],
                         })
                     }
                 >
-                    <option value="direct">
-                        {t("platform.clients.types.direct")}
-                    </option>
-                    <option value="agency">
-                        {t("platform.clients.types.agency")}
-                    </option>
+                    <option value="direct">{t('platform.clients.types.direct')}</option>
+                    <option value="agency">{t('platform.clients.types.agency')}</option>
                 </Select>
             </div>
             <div className="igr:flex igr:justify-end igr:gap-2 igr:sm:col-span-2">
-                <Button type="button" variant="outline" onClick={onDone}>
-                    {t("common.cancel")}
+                <Button type="button" variant="outline" onClick={() => onDone()}>
+                    {t('common.cancel')}
                 </Button>
                 <Button type="submit" loading={update.isPending}>
-                    {t("platform.clients.save")}
+                    {t('platform.clients.save')}
                 </Button>
             </div>
         </form>
     );
 }
 
-function AddWorkspaceForm({
-    client,
-    onDone,
-}: {
-    client: ClientDetail;
-    onDone: () => void;
-}) {
+function AddWorkspaceForm({ client, onDone }: { client: ClientDetail; onDone: (inviteUrl?: string | null) => void }) {
     const { t } = useTranslation();
     const add = useAddClientWorkspace();
     const { errors, onError } = useApiErrors();
     const [ws, setWs] = useState<WorkspaceInput>({
-        name: "",
+        name: '',
         country: client.country,
         ...countryDefaults(client.country),
     });
-    const [owner, setOwner] = useState("");
+    const [owner, setOwner] = useState('');
     const submit = (e: SyntheticEvent) => {
         e.preventDefault();
         add.mutate(
@@ -615,63 +441,42 @@ function AddWorkspaceForm({
                 data: { ...ws, ...(owner ? { owner_email: owner } : {}) },
             },
             {
-                onSuccess: () => {
-                    toast.success(t("platform.clients.workspaceAdded"));
-                    onDone();
+                onSuccess: (r) => {
+                    toast.success(t('platform.clients.workspaceAdded'));
+                    onDone(r.invite_url);
                 },
                 onError,
             },
         );
     };
     return (
-        <form
-            onSubmit={submit}
-            className="igr:grid igr:gap-4 igr:py-2 igr:sm:grid-cols-2"
-        >
-            <WorkspaceFields
-                prefix=""
-                value={ws}
-                onChange={setWs}
-                errors={errors}
-            />
+        <form onSubmit={submit} className="igr:grid igr:gap-4 igr:py-2 igr:sm:grid-cols-2">
+            <WorkspaceFields prefix="" value={ws} onChange={setWs} errors={errors} />
             <div className="igr:space-y-1.5 igr:sm:col-span-2">
-                <Label htmlFor="ws-owner">
-                    {t("platform.clients.ownerEmailOptional")}
-                </Label>
-                <Input
-                    id="ws-owner"
-                    type="email"
-                    value={owner}
-                    onChange={(e) => setOwner(e.target.value)}
-                />
+                <Label htmlFor="ws-owner">{t('platform.clients.ownerEmailOptional')}</Label>
+                <Input id="ws-owner" type="email" value={owner} onChange={(e) => setOwner(e.target.value)} />
                 <FieldError message={errors.owner_email} />
             </div>
             <div className="igr:flex igr:justify-end igr:gap-2 igr:sm:col-span-2">
-                <Button type="button" variant="outline" onClick={onDone}>
-                    {t("common.cancel")}
+                <Button type="button" variant="outline" onClick={() => onDone()}>
+                    {t('common.cancel')}
                 </Button>
                 <Button type="submit" loading={add.isPending}>
-                    {t("platform.clients.addWorkspace")}
+                    {t('platform.clients.addWorkspace')}
                 </Button>
             </div>
         </form>
     );
 }
 
-function InviteForm({
-    client,
-    onDone,
-}: {
-    client: ClientDetail;
-    onDone: () => void;
-}) {
+function InviteForm({ client, onDone }: { client: ClientDetail; onDone: (inviteUrl?: string | null) => void }) {
     const { t } = useTranslation();
     const invite = useInviteToClient();
     const { errors, onError } = useApiErrors();
     const [form, setForm] = useState({
-        workspace_id: client.workspaces[0]?.id ?? "",
-        email: "",
-        role: "admin",
+        workspace_id: client.workspaces[0]?.id ?? '',
+        email: '',
+        role: 'admin',
         account_owner: false,
     });
     const submit = (e: SyntheticEvent) => {
@@ -679,45 +484,24 @@ function InviteForm({
         invite.mutate(
             { id: client.id, ...form },
             {
-                onSuccess: () => {
-                    toast.success(
-                        t("platform.clients.invited", { email: form.email }),
-                    );
-                    onDone();
+                onSuccess: (r) => {
+                    toast.success(t('platform.clients.invited', { email: form.email }));
+                    onDone(r.invite_url);
                 },
                 onError,
             },
         );
     };
     return (
-        <form
-            onSubmit={submit}
-            className="igr:grid igr:gap-4 igr:py-2 igr:sm:grid-cols-2"
-        >
+        <form onSubmit={submit} className="igr:grid igr:gap-4 igr:py-2 igr:sm:grid-cols-2">
             <div className="igr:space-y-1.5 igr:sm:col-span-2">
-                <Label htmlFor="inv-email">{t("platform.clients.email")}</Label>
-                <Input
-                    id="inv-email"
-                    type="email"
-                    required
-                    value={form.email}
-                    onChange={(e) =>
-                        setForm({ ...form, email: e.target.value })
-                    }
-                />
+                <Label htmlFor="inv-email">{t('platform.clients.email')}</Label>
+                <Input id="inv-email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
                 <FieldError message={errors.email} />
             </div>
             <div className="igr:space-y-1.5">
-                <Label htmlFor="inv-ws">
-                    {t("platform.clients.workspace")}
-                </Label>
-                <Select
-                    id="inv-ws"
-                    value={form.workspace_id}
-                    onChange={(e) =>
-                        setForm({ ...form, workspace_id: e.target.value })
-                    }
-                >
+                <Label htmlFor="inv-ws">{t('platform.clients.workspace')}</Label>
+                <Select id="inv-ws" value={form.workspace_id} onChange={(e) => setForm({ ...form, workspace_id: e.target.value })}>
                     {client.workspaces.map((ws) => (
                         <option key={ws.id} value={ws.id}>
                             {ws.name}
@@ -726,12 +510,8 @@ function InviteForm({
                 </Select>
             </div>
             <div className="igr:space-y-1.5">
-                <Label htmlFor="inv-role">{t("platform.clients.role")}</Label>
-                <Select
-                    id="inv-role"
-                    value={form.role}
-                    onChange={(e) => setForm({ ...form, role: e.target.value })}
-                >
+                <Label htmlFor="inv-role">{t('platform.clients.role')}</Label>
+                <Select id="inv-role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
                     {ROLES.map((r) => (
                         <option key={r} value={r}>
                             {t(`platform.clients.roles.${r}`)}
@@ -739,7 +519,7 @@ function InviteForm({
                     ))}
                 </Select>
             </div>
-            {client.type === "agency" && (
+            {client.type === 'agency' && (
                 <label className="igr:flex igr:items-center igr:gap-2 igr:text-sm igr:sm:col-span-2">
                     <input
                         type="checkbox"
@@ -751,17 +531,36 @@ function InviteForm({
                             })
                         }
                     />
-                    {t("platform.clients.accountOwner")}
+                    {t('platform.clients.accountOwner')}
                 </label>
             )}
             <div className="igr:flex igr:justify-end igr:gap-2 igr:sm:col-span-2">
-                <Button type="button" variant="outline" onClick={onDone}>
-                    {t("common.cancel")}
+                <Button type="button" variant="outline" onClick={() => onDone()}>
+                    {t('common.cancel')}
                 </Button>
                 <Button type="submit" loading={invite.isPending}>
-                    {t("platform.clients.sendInvite")}
+                    {t('platform.clients.sendInvite')}
                 </Button>
             </div>
         </form>
+    );
+}
+
+/** Enlace de la invitación recién creada: se puede copiar y enviar por WhatsApp si el correo no llega. */
+export function InviteLink({ url }: { url: string }) {
+    const { t } = useTranslation();
+    const copy = () => void navigator.clipboard.writeText(url).then(() => toast.success(t('common.copied')));
+    return (
+        <div className="igr:space-y-2 igr:rounded-md igr:border igr:border-primary/30 igr:bg-primary/5 igr:p-3">
+            <p className="igr:text-sm igr:font-medium">{t('platform.clients.inviteLinkTitle')}</p>
+            <p className="igr:text-xs igr:text-muted-foreground">{t('platform.clients.inviteLinkHelp')}</p>
+            <div className="igr:flex igr:gap-2">
+                <Input readOnly value={url} aria-label={t('platform.clients.inviteLinkTitle')} onFocus={(e) => e.currentTarget.select()} className="igr:font-mono igr:text-xs" />
+                <Button type="button" variant="outline" onClick={copy}>
+                    <Copy />
+                    {t('common.copy')}
+                </Button>
+            </div>
+        </div>
     );
 }

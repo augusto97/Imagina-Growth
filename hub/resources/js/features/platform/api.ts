@@ -301,7 +301,7 @@ export function useClientDetail(id: string | null) {
 export function useCreateClient() {
     const done = useInvalidate();
     return useMutation({
-        mutationFn: (v: NewClientInput) => api.post<{ account: ClientDetail }>(`${base}/accounts`, v).then((r) => r.account),
+        mutationFn: (v: NewClientInput) => api.post<{ account: ClientDetail; invite_url: string }>(`${base}/accounts`, v),
         onSuccess: done,
     });
 }
@@ -318,7 +318,8 @@ export function useUpdateClient() {
 export function useAddClientWorkspace() {
     const done = useInvalidate();
     return useMutation({
-        mutationFn: (v: { id: string; data: WorkspaceInput & { owner_email?: string } }) => api.post(`${base}/accounts/${v.id}/workspaces`, v.data),
+        mutationFn: (v: { id: string; data: WorkspaceInput & { owner_email?: string } }) =>
+            api.post<{ invite_url: string | null }>(`${base}/accounts/${v.id}/workspaces`, v.data),
         onSuccess: done,
     });
 }
@@ -327,7 +328,12 @@ export function useInviteToClient() {
     const done = useInvalidate();
     return useMutation({
         mutationFn: (v: { id: string; workspace_id: string; email: string; role: string; account_owner?: boolean }) =>
-            api.post(`${base}/accounts/${v.id}/invitations`, { workspace_id: v.workspace_id, email: v.email, role: v.role, account_owner: v.account_owner ?? false }),
+            api.post<{ invite_url: string }>(`${base}/accounts/${v.id}/invitations`, {
+                workspace_id: v.workspace_id,
+                email: v.email,
+                role: v.role,
+                account_owner: v.account_owner ?? false,
+            }),
         onSuccess: done,
     });
 }
@@ -352,4 +358,21 @@ export const COUNTRY_DEFAULTS: Record<string, { currency: string; timezone: stri
 /** Moneda y zona horaria sugeridas para un país (Colombia si no está en la lista). */
 export function countryDefaults(country: string): { currency: string; timezone: string } {
     return COUNTRY_DEFAULTS[country] ?? { currency: 'COP', timezone: 'America/Bogota' };
+}
+
+/* ── Correo del sistema ─────────────────────────────────────────────────────────────── */
+
+export interface PlatformMail {
+    configured: boolean;
+    mailer: string;
+    from_address: string;
+    from_name: string;
+}
+
+export function usePlatformMail(enabled = true) {
+    return useQuery({ queryKey: ['platform', 'mail'], queryFn: () => api.get<PlatformMail>(`${base}/mail`), enabled });
+}
+
+export function useMailTest() {
+    return useMutation({ mutationFn: () => api.post<{ sent: boolean; to: string }>(`${base}/mail/test`, {}) });
 }

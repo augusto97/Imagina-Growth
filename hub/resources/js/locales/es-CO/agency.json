@@ -181,7 +181,10 @@
             "create": "Crear cliente",
             "created": "Cliente «{{name}}» creado.",
             "createdInvited": "Cliente «{{name}}» creado. Le enviamos la invitación a {{email}}.",
-            "emptyHelp": "Da de alta tu primer cliente y conecta su sitio. Aquí verás cuánto dinero le genera cada mes."
+            "emptyHelp": "Da de alta tu primer cliente y conecta su sitio. Aquí verás cuánto dinero le genera cada mes.",
+            "doneTitle": "Cliente creado",
+            "doneHelp": "Le enviamos la invitación por correo. Si no le llega, cópiale este enlace.",
+            "done": "Listo"
         }
     },
     "client_reports": {

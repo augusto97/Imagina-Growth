@@ -150,7 +150,7 @@ export interface NewAgencyClient {
 export function useCreateAgencyClient(ws: string) {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (body: NewAgencyClient) => api.post<{ workspace_id: string; name: string }>(`${base(ws)}/clients`, body),
+        mutationFn: (body: NewAgencyClient) => api.post<{ workspace_id: string; name: string; invite_url: string | null }>(`${base(ws)}/clients`, body),
         onSuccess: () => {
             void qc.invalidateQueries({ queryKey: keys.overview(ws) });
             void qc.invalidateQueries({ queryKey: ['me'] });

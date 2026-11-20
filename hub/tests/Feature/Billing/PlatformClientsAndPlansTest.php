@@ -133,3 +133,25 @@ it('la agencia da de alta un cliente en su cuenta e invita al dueño; otra perso
     // Un dueño de otro espacio (sin rol en la agencia) no crea clientes en ella.
     $this->actingAs($this->owner)->postJson('/api/w/'.$this->ws->publicId().'/agency/clients', $body)->assertForbidden();
 });
+
+it('devuelve el enlace de la invitación a quien la crea (por si el correo no llega)', function () {
+    $res = $this->actingAs($this->admin)->postJson('/api/platform/accounts', clientPayload())->assertCreated();
+    $url = (string) $res->json('invite_url');
+    expect($url)->toContain('/invitacion/');
+    $token = substr($url, strrpos($url, '/') + 1);
+    expect(Invitation::withoutWorkspaceScope()->where('token_hash', hash('sha256', $token))->exists())->toBeTrue();
+
+    $id = (string) $res->json('account.id');
+    $ws = (string) $res->json('account.workspaces.0.id');
+    $this->actingAs($this->admin)->postJson('/api/platform/accounts/'.$id.'/invitations', ['workspace_id' => $ws, 'email' => 'otra@eltornillo.co', 'role' => 'admin'])
+        ->assertCreated()->assertJsonPath('invite_url', fn ($v) => is_string($v) && str_contains($v, '/invitacion/'));
+});
+
+it('dice si el correo de la plataforma está configurado y prueba el envío', function () {
+    config(['mail.default' => 'log']);
+    $this->actingAs($this->admin)->getJson('/api/platform/mail')->assertOk()->assertJsonPath('configured', false);
+    config(['mail.default' => 'smtp']);
+    $this->actingAs($this->admin)->getJson('/api/platform/mail')->assertOk()->assertJsonPath('configured', true);
+    $this->actingAs($this->admin)->postJson('/api/platform/mail/test')->assertOk()->assertJsonPath('sent', true);
+    $this->actingAs($this->owner)->getJson('/api/platform/mail')->assertForbidden();
+});

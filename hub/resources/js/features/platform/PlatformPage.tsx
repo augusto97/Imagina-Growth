@@ -31,6 +31,8 @@ import {
     usePlatformHealth,
     usePlatformOverview,
     useSetBillingStatus,
+    useMailTest,
+    usePlatformMail,
     useSetFeature,
 } from './api';
 import { ClientDetailDialog, NewClientDialog } from './ClientsAdmin';
@@ -52,6 +54,7 @@ export function PlatformPage() {
     return (
         <div>
             <PageHeader title={t('platform.title')} description={t('platform.description')} />
+            <MailBanner />
             <Tabs defaultValue="accounts">
                 <TabsList>
                     <TabsTrigger value="accounts">{t('platform.tabs.accounts')}</TabsTrigger>
@@ -110,6 +113,7 @@ function AccountsTab({ data }: { data: PlatformOverview }) {
     const [invoiceFor, setInvoiceFor] = useState<PlatformAccount | null>(null);
     const [creating, setCreating] = useState(false);
     const [detailFor, setDetailFor] = useState<string | null>(null);
+    const [newInvite, setNewInvite] = useState<string | null>(null);
 
     const dialogs = (
         <>
@@ -117,13 +121,23 @@ function AccountsTab({ data }: { data: PlatformOverview }) {
                 <NewClientDialog
                     plans={data.plans}
                     onClose={() => setCreating(false)}
-                    onCreated={(id) => {
+                    onCreated={(id, inviteUrl) => {
                         setCreating(false);
+                        setNewInvite(inviteUrl);
                         setDetailFor(id);
                     }}
                 />
             )}
-            {detailFor !== null && <ClientDetailDialog id={detailFor} onClose={() => setDetailFor(null)} />}
+            {detailFor !== null && (
+                <ClientDetailDialog
+                    id={detailFor}
+                    inviteUrl={newInvite}
+                    onClose={() => {
+                        setDetailFor(null);
+                        setNewInvite(null);
+                    }}
+                />
+            )}
         </>
     );
     const newButton = (
@@ -807,5 +821,38 @@ function RequestsTab({ data }: { data: PlatformOverview }) {
                 </Table>
             </CardContent>
         </Card>
+    );
+}
+
+/** Aviso fijo mientras el correo de la plataforma esté en «log»: sin él no salen invitaciones ni recuperaciones. */
+function MailBanner() {
+    const { t } = useTranslation();
+    const mail = usePlatformMail();
+    const test = useMailTest();
+    if (!mail.data || mail.data.configured) {
+        return mail.data?.configured ? (
+            <div className="igr:mb-4 igr:flex igr:items-center igr:justify-end">
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    loading={test.isPending}
+                    onClick={() =>
+                        test.mutate(undefined, {
+                            onSuccess: (r) => toast.success(t('platform.mail.sent', { to: r.to })),
+                            onError: (e) => toast.error(t('platform.mail.failed'), isApiError(e) ? e.message : undefined),
+                        })
+                    }
+                >
+                    {t('platform.mail.test')}
+                </Button>
+            </div>
+        ) : null;
+    }
+    return (
+        <div role="alert" className="igr:mb-4 igr:rounded-lg igr:border igr:border-warning/40 igr:bg-warning/10 igr:p-4 igr:text-sm">
+            <p className="igr:font-medium">{t('platform.mail.offTitle')}</p>
+            <p className="igr:mt-1 igr:text-muted-foreground">{t('platform.mail.offBody')}</p>
+            <pre className="igr:mt-2 igr:overflow-x-auto igr:rounded igr:bg-muted igr:p-2 igr:text-xs">{t('platform.mail.offExample')}</pre>
+        </div>
     );
 }

@@ -163,7 +163,9 @@
                 "DO": "República Dominicana",
                 "US": "Estados Unidos",
                 "ES": "España"
-            }
+            },
+            "inviteLinkTitle": "Enlace de la invitación",
+            "inviteLinkHelp": "También le enviamos un correo. Si no le llega, cópiale este enlace por WhatsApp: vale 14 días y solo sirve con su correo."
         },
         "plans": {
             "help": "Los planes que ves aquí son los que asignas a tus clientes. Puedes crear los tuyos o ajustar los que vienen.",
@@ -212,6 +214,14 @@
             "private": "Interno",
             "archivedToast": "Plan archivado: ya no se puede asignar a clientes nuevos.",
             "restored": "Plan restaurado."
+        },
+        "mail": {
+            "offTitle": "El correo de la plataforma no está configurado",
+            "offBody": "Mientras tanto no salen invitaciones, recuperaciones de contraseña ni informes. Para activarlo, pon tus datos de SMTP (o de Amazon SES) en /opt/growth/shared/.env del servidor y reinicia la app con «systemctl restart growth.target». Hasta entonces, comparte las invitaciones con el enlace que aparece al crearlas.",
+            "offExample": "MAIL_MAILER=smtp\nMAIL_HOST=smtp.tu-proveedor.com\nMAIL_PORT=587\nMAIL_USERNAME=usuario\nMAIL_PASSWORD=contraseña\nMAIL_FROM_ADDRESS=hola@growth.imagina.cloud",
+            "test": "Enviar correo de prueba",
+            "sent": "Correo de prueba enviado a {{to}}.",
+            "failed": "No se pudo enviar el correo de prueba"
         }
     }
 }

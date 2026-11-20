@@ -73,11 +73,12 @@ final class AgencyController
             locale: in_array($country, ['MX', 'VE'], true) ? 'es-'.$country : 'es-CO',
             industry: isset($data['industry']) && $data['industry'] !== '' ? (string) $data['industry'] : null,
         ), null, $user);
+        $url = null;
         if (! empty($data['invite_email'])) {
-            $invite->handle($workspace, $user, (string) $data['invite_email'], WorkspaceRole::from((string) ($data['invite_role'] ?? WorkspaceRole::Owner->value)));
+            $url = $invite->handle($workspace, $user, (string) $data['invite_email'], WorkspaceRole::from((string) ($data['invite_role'] ?? WorkspaceRole::Owner->value)))->url;
         }
 
-        return response()->json(['workspace_id' => $workspace->publicId(), 'name' => $workspace->name], 201);
+        return response()->json(['workspace_id' => $workspace->publicId(), 'name' => $workspace->name, 'invite_url' => $url], 201);
     }
 
     /** POST agency/clients/{client}/enter — abre una sesión de soporte auditada si no es miembro directo. */

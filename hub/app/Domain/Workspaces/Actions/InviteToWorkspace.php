@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Workspaces\Actions;
 
+use App\Domain\Workspaces\Data\IssuedInvitation;
 use App\Domain\Workspaces\Enums\AccountRole;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Mail\InvitationMail;
@@ -23,7 +24,7 @@ final class InviteToWorkspace
 {
     public function __construct(private readonly RecordAuditLog $audit) {}
 
-    public function handle(Workspace $workspace, User $inviter, string $email, WorkspaceRole $role, ?AccountRole $accountRole = null): Invitation
+    public function handle(Workspace $workspace, User $inviter, string $email, WorkspaceRole $role, ?AccountRole $accountRole = null): IssuedInvitation
     {
         $email = mb_strtolower(trim($email));
         if ($workspace->users()->where('users.email', $email)->exists()) {
@@ -45,6 +46,6 @@ final class InviteToWorkspace
         Mail::to($email)->send(new InvitationMail($workspace, $inviter, $token, $role));
         $this->audit->handle('member.invited', $invitation, ['email' => $email, 'role' => $role->value, 'account_role' => $accountRole?->value], $workspace->id, $workspace->account_id, $inviter->id);
 
-        return $invitation;
+        return new IssuedInvitation($invitation, rtrim((string) config('igr.urls.app'), '/').'/invitacion/'.$token);
     }
 }
