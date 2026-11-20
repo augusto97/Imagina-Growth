@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Consent\Console;
 
+use App\Domain\Platform\Settings\PlatformSettings;
 use App\Support\Holidays\Holidays;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
@@ -12,8 +13,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Excepciones de festivos que edita el admin de la plataforma (cumplimiento.md
  * §4.2): agregar un festivo (p. ej. un día cívico decretado), quitar uno o listar
- * el calendario efectivo de un año. Los workers toman el cambio al reiniciarse
- * (`horizon:terminate`); este proceso lo aplica en el acto.
+ * el calendario efectivo de un año. Lo mismo se hace sin consola en Plataforma →
+ * Ajustes → Festivos. Los workers toman el cambio sin reiniciarse (F17).
  */
 final class HolidayOverrideCommand extends Command
 {
@@ -51,6 +52,7 @@ final class HolidayOverrideCommand extends Command
             );
         }
         Holidays::flush();
+        app(PlatformSettings::class)->touch();
         $this->info(Holidays::isHoliday($country, $day)
             ? __(':date es festivo en :country.', ['date' => $day->toDateString(), 'country' => $country])
             : __(':date no es festivo en :country.', ['date' => $day->toDateString(), 'country' => $country]));

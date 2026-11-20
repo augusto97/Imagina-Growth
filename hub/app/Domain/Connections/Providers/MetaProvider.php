@@ -40,12 +40,12 @@ final class MetaProvider implements OAuthProvider
 
     public function missing(): array
     {
-        $required = ['IGR_META_APP_ID' => 'app_id', 'IGR_META_APP_SECRET' => 'app_secret'];
-        $required += $this->provider === ConnectionProvider::MetaWhatsApp ? ['IGR_META_ES_CONFIG_ID' => 'whatsapp_config_id'] : ['IGR_META_LOGIN_CONFIG_ID' => 'login_config_id'];
+        $required = ['meta.app_id' => 'app_id', 'meta.app_secret' => 'app_secret'];
+        $required += $this->provider === ConnectionProvider::MetaWhatsApp ? ['meta.es_config_id' => 'whatsapp_config_id'] : ['meta.login_config_id' => 'login_config_id'];
         $missing = [];
-        foreach ($required as $env => $key) {
+        foreach ($required as $setting => $key) {
             if ((string) config('igr-connections.meta.'.$key) === '') {
-                $missing[] = $env;
+                $missing[] = $setting;
             }
         }
 

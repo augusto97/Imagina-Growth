@@ -52,11 +52,12 @@ it('avisa lo que falta, con el cómo, y sale con error si algo impide funcionar'
     $report = doctorJson();
     expect($report['status'])->toBe('error')
         ->and(doctorCheck($report, 'whatsapp.app_secret'))->toMatchArray(['status' => 'error'])
-        ->and(doctorCheck($report, 'whatsapp.app_secret')['detail'])->toContain('IGR_META_APP_SECRET')->toContain('403')
+        ->and(doctorCheck($report, 'whatsapp.app_secret')['detail'])->toContain('Plataforma → Ajustes → Meta')->toContain('403')
+        ->and(doctorCheck($report, 'whatsapp.app_secret')['link'])->toBe('pestana=ajustes&seccion=meta')
         ->and(doctorCheck($report, 'email.mailer')['status'])->toBe('warning')
-        ->and(doctorCheck($report, 'email.mailer')['detail'])->toContain('MAIL_MAILER')
+        ->and(doctorCheck($report, 'email.mailer')['detail'])->toContain('Plataforma → Ajustes → Correo')->not->toContain('MAIL_MAILER')
         ->and(doctorCheck($report, 'ai.key')['status'])->toBe('warning')
-        ->and(doctorCheck($report, 'ai.key')['detail'])->toContain('IGR_ANTHROPIC_API_KEY')
+        ->and(doctorCheck($report, 'ai.key')['detail'])->toContain('Plataforma → Ajustes → IA')
         ->and(doctorCheck($report, 'integrations.reverb')['status'])->toBe('info')
         // Las migraciones sembraron las tarifas de WhatsApp (vigentes desde el 1 oct 2026).
         ->and(doctorCheck($report, 'whatsapp.rates')['status'])->toBe('ok')

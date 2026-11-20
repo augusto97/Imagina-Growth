@@ -2,7 +2,7 @@
 
 /*
  * Canales de mensajería (M07, hub/CLAUDE.md §8). Las credenciales de la
- * plataforma (SES, app de Meta) van en el .env; las de cada cliente, cifradas en
+ * plataforma (SES, app de Meta) van en Plataforma → Ajustes (F17; el .env es el respaldo); las de cada cliente, cifradas en
  * channel_accounts.config. Lo marcado [verificar] necesita una cuenta real.
  */
 return [

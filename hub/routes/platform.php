@@ -33,6 +33,7 @@ Route::post('accounts/{account}/invitations', [PlatformClientsController::class,
 // Planes: crear, editar, archivar y restaurar (no se borran).
 Route::get('plans', [PlatformPlansController::class, 'index']);
 Route::post('plans', [PlatformPlansController::class, 'store']);
+Route::post('plans/sync', [PlatformPlansController::class, 'syncMissing'])->middleware('throttle:6,1');
 Route::patch('plans/{plan}', [PlatformPlansController::class, 'update']);
 Route::post('plans/{plan}/{action}', [PlatformPlansController::class, 'archive'])->whereIn('action', ['archive', 'restore']);
 Route::put('accounts/{account}/plan', [PlatformController::class, 'assignPlan']);

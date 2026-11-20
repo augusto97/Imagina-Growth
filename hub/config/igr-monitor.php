@@ -2,7 +2,8 @@
 
 /*
  * Vigilancia de producción (docs/despliegue.md §6): `growth:monitor --ping` cada minuto. Las URLs de los
- * heartbeats de Better Stack van en el .env del servidor, nunca en el repositorio. Sin URL, ese aviso no se
+ * heartbeats de Better Stack y los umbrales van en Plataforma → Ajustes → Monitoreo (F17; el .env es el respaldo), nunca
+ * en el repositorio. Sin URL, ese aviso no se
  * envía.
  */
 return [

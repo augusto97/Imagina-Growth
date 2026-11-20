@@ -30,9 +30,9 @@ final class TikTokProvider implements OAuthProvider
     public function missing(): array
     {
         $missing = [];
-        foreach (['IGR_TIKTOK_APP_ID' => 'app_id', 'IGR_TIKTOK_APP_SECRET' => 'app_secret'] as $env => $key) {
+        foreach (['tiktok.app_id' => 'app_id', 'tiktok.app_secret' => 'app_secret'] as $setting => $key) {
             if ((string) config('igr-connections.tiktok.'.$key) === '') {
-                $missing[] = $env;
+                $missing[] = $setting;
             }
         }
 

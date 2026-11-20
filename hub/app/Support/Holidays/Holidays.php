@@ -14,8 +14,10 @@ use Throwable;
  * Venezuela. Los usan SendPolicy (no sale marketing en festivo), la agenda
  * (se cierra sola), los plazos de las solicitudes de datos y los datos de prueba.
  *
- * Las excepciones que publique el Gobierno (un festivo decretado o movido) se
- * agregan en config/holidays.php sin desplegar código.
+ * Las excepciones que publique el Gobierno (un festivo decretado o movido) las
+ * agrega el superadmin en Plataforma → Ajustes → Festivos (`holiday_overrides`;
+ * llegan a los workers sin reiniciar, F17). config/holidays.php sigue sirviendo
+ * para las que vengan con el código.
  */
 final class Holidays
 {
@@ -208,6 +210,24 @@ final class Holidays
             $date(12, 25) => 'Navidad',
             $date(12, 31) => 'Fin de Año',
         ];
+    }
+
+    /** Países con calendario propio (los demás no tienen festivos). */
+    public const COUNTRIES = ['CO', 'MX', 'VE'];
+
+    /**
+     * Los festivos de la ley, sin las excepciones (Plataforma → Ajustes → Festivos los muestra aparte).
+     *
+     * @return array<string, string> fecha Y-m-d => nombre
+     */
+    public static function statutory(string $country, int $year): array
+    {
+        return match (strtoupper($country)) {
+            'CO' => self::colombia($year),
+            'MX' => self::mexico($year),
+            'VE' => self::venezuela($year),
+            default => [],
+        };
     }
 
     public static function flush(): void

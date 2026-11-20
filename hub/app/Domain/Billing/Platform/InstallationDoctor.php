@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Billing\Platform;
 
 use App\Domain\Billing\Plans\PlanCatalog;
+use App\Domain\Bookings\Google\GoogleCalendar;
 use App\Domain\Campaigns\Support\WaRateCard;
 use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Support\SesClientFactory;
@@ -63,10 +64,10 @@ final class InstallationDoctor
         $production = app()->environment('production');
         $checks = [];
         $checks[] = (string) config('app.key') === ''
-            ? new DoctorCheck('app.key', 'installation', DoctorCheck::ERROR, __('Falta la llave de la aplicación'), __('Sin APP_KEY no se pueden cifrar sesiones ni datos. Genérala una sola vez con «php artisan key:generate» y no la cambies después.'))
+            ? new DoctorCheck('app.key', 'installation', DoctorCheck::ERROR, __('Falta la llave de la aplicación'), __('Sin APP_KEY no se pueden cifrar sesiones ni datos. La crea el instalador una sola vez y no se cambia: vuelve a correr el instalador en el servidor (no pisa lo que ya existe).'))
             : new DoctorCheck('app.key', 'installation', DoctorCheck::OK, __('Llave de la aplicación configurada'));
         $checks[] = (string) config('igr.blind_index_key') === ''
-            ? new DoctorCheck('app.blind_index', 'installation', DoctorCheck::ERROR, __('Falta la llave de búsqueda de datos cifrados'), __('Sin IGR_BLIND_INDEX_KEY no se pueden buscar contactos por correo o teléfono. Se genera una vez al instalar y no se cambia.'))
+            ? new DoctorCheck('app.blind_index', 'installation', DoctorCheck::ERROR, __('Falta la llave de búsqueda de datos cifrados'), __('Sin IGR_BLIND_INDEX_KEY no se pueden buscar contactos por correo o teléfono. La crea el instalador una sola vez y no se cambia.'))
             : new DoctorCheck('app.blind_index', 'installation', DoctorCheck::OK, __('Llave de búsqueda de datos cifrados configurada'));
         if ($production && (bool) config('app.debug')) {
             $checks[] = new DoctorCheck('app.debug', 'installation', DoctorCheck::ERROR, __('El modo de depuración está prendido en producción'), __('Con APP_DEBUG=true los errores muestran datos internos. Pon APP_DEBUG=false en el .env.'));
@@ -76,7 +77,7 @@ final class InstallationDoctor
             ? new DoctorCheck('app.url', 'installation', DoctorCheck::WARNING, __('La dirección del panel no usa HTTPS'), __('APP_URL debe ser la dirección pública con https:// (los enlaces de invitación y de recuperación de contraseña salen de ahí).'))
             : new DoctorCheck('app.url', 'installation', DoctorCheck::OK, __('Dirección del panel: :url', ['url' => $url]));
         $checks[] = (string) config('igr.health.token') === ''
-            ? new DoctorCheck('app.health_token', 'installation', DoctorCheck::INFO, __('El detalle de /health solo se ve desde el servidor'), __('Para ver el detalle desde un monitor externo, define IGR_HEALTH_TOKEN y envíalo en el encabezado X-IGR-Health-Token. Sin token, en público solo responde si está bien o no.'))
+            ? new DoctorCheck('app.health_token', 'installation', DoctorCheck::INFO, __('El detalle de /health solo se ve desde el servidor'), __('Para ver el detalle desde un monitor externo, genera el token en Plataforma → Ajustes → Registro y seguridad y envíalo en el encabezado X-IGR-Health-Token. Sin token, en público solo responde si está bien o no.'), [], DoctorCheck::settings('security'))
             : new DoctorCheck('app.health_token', 'installation', DoctorCheck::OK, __('Token del detalle de /health configurado'));
 
         return $checks;
@@ -122,7 +123,7 @@ final class InstallationDoctor
             $checks[] = $failed === 0
                 ? new DoctorCheck('services.failed_jobs', 'services', DoctorCheck::OK, __('Sin trabajos fallidos en las últimas 24 horas'))
                 : new DoctorCheck('services.failed_jobs', 'services', DoctorCheck::WARNING, trans_choice(':n trabajo falló en las últimas 24 horas|:n trabajos fallaron en las últimas 24 horas', $failed, ['n' => $failed]),
-                    __('Revísalos en Horizon (Trabajos fallidos) y reintenta los que correspondan con «php artisan queue:retry all».'));
+                    __('Revísalos en Horizon (/horizon → Trabajos fallidos) y reintenta ahí los que correspondan.'));
         }
 
         $streams = $this->probe->streams();
@@ -145,22 +146,29 @@ final class InstallationDoctor
         $mailer = (string) config('mail.default');
         $checks[] = in_array($mailer, ['log', 'array'], true)
             ? new DoctorCheck('email.mailer', 'email', DoctorCheck::WARNING, __('El correo del sistema está apagado'),
-                __('Con MAIL_MAILER=:m no salen las invitaciones, la recuperación de contraseña ni los informes (sí se puede copiar el enlace de invitación). Configura MAIL_MAILER=smtp con MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD y MAIL_FROM_ADDRESS, o MAIL_MAILER=ses con las credenciales de AWS, y prueba con «Enviar correo de prueba».', ['m' => $mailer]))
+                __('Con el correo en «:m» no salen las invitaciones, la recuperación de contraseña ni los informes (sí se puede copiar el enlace de invitación). Configúralo en Plataforma → Ajustes → Correo (SMTP o Amazon SES) y prueba con «Enviar correo de prueba».', ['m' => $mailer]), [], DoctorCheck::settings('mail'))
             : new DoctorCheck('email.mailer', 'email', DoctorCheck::OK, __('Correo del sistema configurado (:m)', ['m' => $mailer]));
+        if ($mailer === 'ses' && ! $this->ses->configured()) {
+            $checks[] = new DoctorCheck('email.mailer_ses', 'email', DoctorCheck::ERROR, __('El correo del sistema usa Amazon SES, pero SES no está configurado'),
+                __('Pon la llave y el secreto de AWS en Plataforma → Ajustes → Amazon SES, o elige otra forma de envío en Ajustes → Correo.'), [], DoctorCheck::settings('ses'));
+        } elseif ($mailer === 'smtp' && (string) config('mail.mailers.smtp.host') === '') {
+            $checks[] = new DoctorCheck('email.mailer_smtp', 'email', DoctorCheck::ERROR, __('Falta el servidor de correo (SMTP)'),
+                __('Escribe el servidor, el puerto, el usuario y la contraseña de tu proveedor en Plataforma → Ajustes → Correo.'), [], DoctorCheck::settings('mail'));
+        }
         $from = (string) config('mail.from.address');
         if ($from === '' || str_ends_with($from, '@example.com')) {
-            $checks[] = new DoctorCheck('email.from', 'email', DoctorCheck::WARNING, __('Falta el remitente del correo del sistema'), __('Define MAIL_FROM_ADDRESS y MAIL_FROM_NAME con un dominio verificado.'));
+            $checks[] = new DoctorCheck('email.from', 'email', DoctorCheck::WARNING, __('Falta el remitente del correo del sistema'), __('Escribe el correo y el nombre del remitente, con un dominio verificado, en Plataforma → Ajustes → Correo.'), [], DoctorCheck::settings('mail'));
         }
 
         if (! $this->ses->configured()) {
             $checks[] = new DoctorCheck('email.ses', 'email', DoctorCheck::INFO, __('Amazon SES no está configurado'),
-                __('Los clientes solo pueden enviar correo por su propio SMTP. Para enviar con la cuenta de SES de la plataforma: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, IGR_SES_REGION y el configuration set IGR_SES_CONFIGURATION_SET con sus eventos hacia un tema de SNS.'));
+                __('Los clientes solo pueden enviar correo por su propio SMTP. Para enviar con la cuenta de SES de la plataforma, pon la llave, el secreto y la región de AWS y el tema de SNS en Plataforma → Ajustes → Amazon SES.'), [], DoctorCheck::settings('ses'));
         } else {
             $checks[] = new DoctorCheck('email.ses', 'email', DoctorCheck::OK, __('Amazon SES configurado (configuration set :set)', ['set' => (string) config('igr-messaging.ses.configuration_set')]));
             $topics = array_filter(array_map('trim', explode(',', (string) config('igr-messaging.ses.sns_topic_arn'))));
             $checks[] = $topics === []
                 ? new DoctorCheck('email.sns_topic', 'email', DoctorCheck::ERROR, __('Falta el tema de SNS de los eventos de SES'),
-                    __('Sin IGR_SES_SNS_TOPIC_ARN los avisos de SES (entregas, rebotes y quejas) se rechazan y no se suprimen los correos que rebotan. Pon el ARN del tema al que publica el configuration set y suscribe :url.', ['url' => rtrim((string) config('app.url'), '/').'/webhooks/ses']))
+                    __('Sin el tema de SNS los avisos de SES (entregas, rebotes y quejas) se rechazan y no se suprimen los correos que rebotan. Pon el ARN del tema en Plataforma → Ajustes → Amazon SES y suscribe :url.', ['url' => rtrim((string) config('app.url'), '/').'/webhooks/ses']), [], DoctorCheck::settings('ses'))
                 : new DoctorCheck('email.sns_topic', 'email', DoctorCheck::OK, __('Eventos de SES desde el tema configurado'));
             $checks[] = $this->sesEvents();
         }
@@ -176,23 +184,23 @@ final class InstallationDoctor
         $webhook = rtrim((string) config('app.url'), '/').'/webhooks/meta';
         if ((string) config('igr-messaging.meta.app_secret') === '') {
             $checks[] = new DoctorCheck('whatsapp.app_secret', 'whatsapp', $metaAccounts > 0 ? DoctorCheck::ERROR : DoctorCheck::WARNING, __('Falta el secreto de la app de Meta'),
-                __('Sin IGR_META_APP_SECRET los webhooks de Meta responden 403: no llegan los estados de los mensajes ni los mensajes entrantes de WhatsApp, Messenger e Instagram. Cópialo de la app de Meta (Configuración → Básica → Clave secreta).'));
+                __('Sin el secreto de la app de Meta los webhooks responden 403: no llegan los estados de los mensajes ni los mensajes entrantes de WhatsApp, Messenger e Instagram. Cópialo de la app de Meta (Configuración → Básica → Clave secreta) a Plataforma → Ajustes → Meta.'), [], DoctorCheck::settings('meta'));
         } else {
             $checks[] = new DoctorCheck('whatsapp.app_secret', 'whatsapp', DoctorCheck::OK, __('Secreto de la app de Meta configurado'));
         }
         $checks[] = (string) config('igr-messaging.meta.webhook_verify_token') === ''
             ? new DoctorCheck('whatsapp.verify_token', 'whatsapp', DoctorCheck::WARNING, __('Falta el token de verificación del webhook de Meta'),
-                __('Define IGR_META_WEBHOOK_VERIFY_TOKEN (una frase al azar) y úsalo al registrar :url en la app de Meta.', ['url' => $webhook]))
+                __('Genera el token en Plataforma → Ajustes → Meta y úsalo al registrar :url en la app de Meta.', ['url' => $webhook]), [], DoctorCheck::settings('meta'))
             : new DoctorCheck('whatsapp.verify_token', 'whatsapp', DoctorCheck::OK, __('Webhook de Meta: :url', ['url' => $webhook]));
         if ((string) config('igr-messaging.meta.app_id') === '') {
             $checks[] = new DoctorCheck('whatsapp.app_id', 'whatsapp', DoctorCheck::INFO, __('Sin app de Meta para conectar WhatsApp con un clic'),
-                __('Mientras no haya IGR_META_APP_ID, los clientes conectan su número a mano (identificador de la cuenta, del número y un token permanente).'));
+                __('Mientras no esté la app de Meta (Plataforma → Ajustes → Meta), los clientes conectan su número a mano (identificador de la cuenta, del número y un token permanente).'), [], DoctorCheck::settings('meta'));
         }
         $rates = WaRateCard::latestEffectiveFrom();
         $checks[] = $rates === null
-            ? new DoctorCheck('whatsapp.rates', 'whatsapp', DoctorCheck::WARNING, __('Faltan las tarifas de WhatsApp'), __('Sin ellas las campañas no estiman su costo. Cárgalas con «php artisan igr:wa-rates --seed».'))
+            ? new DoctorCheck('whatsapp.rates', 'whatsapp', DoctorCheck::WARNING, __('Faltan las tarifas de WhatsApp'), __('Sin ellas las campañas no estiman su costo. Cárgalas en Plataforma → Ajustes → Tarifas de WhatsApp.'), [], DoctorCheck::settings('wa_rates'))
             : (WaRateCard::isStale()
-                ? new DoctorCheck('whatsapp.rates', 'whatsapp', DoctorCheck::WARNING, __('Las tarifas de WhatsApp son del :date', ['date' => $rates->toDateString()]), __('Meta las cambia cada trimestre: revisa :url y actualízalas.', ['url' => WaRateCard::SOURCE_URL]))
+                ? new DoctorCheck('whatsapp.rates', 'whatsapp', DoctorCheck::WARNING, __('Las tarifas de WhatsApp son del :date', ['date' => $rates->toDateString()]), __('Meta las cambia cada trimestre: revisa :url y actualízalas en Plataforma → Ajustes → Tarifas de WhatsApp.', ['url' => WaRateCard::SOURCE_URL]), [], DoctorCheck::settings('wa_rates'))
                 : new DoctorCheck('whatsapp.rates', 'whatsapp', DoctorCheck::OK, __('Tarifas de WhatsApp vigentes desde el :date', ['date' => $rates->toDateString()])));
 
         return $checks;
@@ -203,17 +211,16 @@ final class InstallationDoctor
     {
         $checks = [];
         if (! (bool) config('igr-ai.enabled')) {
-            $checks[] = new DoctorCheck('ai.key', 'integrations', DoctorCheck::INFO, __('La IA está apagada'), __('IGR_AI_ENABLED=false: los informes y resúmenes usan plantillas sin IA.'));
+            $checks[] = new DoctorCheck('ai.key', 'integrations', DoctorCheck::INFO, __('La IA está apagada'), __('Está apagada en Plataforma → Ajustes → IA: los informes y resúmenes usan plantillas sin IA.'), [], DoctorCheck::settings('ai'));
         } else {
             $checks[] = (string) config('igr-ai.api_key') === ''
-                ? new DoctorCheck('ai.key', 'integrations', DoctorCheck::WARNING, __('Falta la clave de Anthropic'), __('Sin IGR_ANTHROPIC_API_KEY la IA queda apagada: el analista semanal, «Pregúntale a tus datos» y el agente de ventas no funcionan, y los informes usan plantillas.'))
+                ? new DoctorCheck('ai.key', 'integrations', DoctorCheck::WARNING, __('Falta la clave de Anthropic'), __('Sin la clave de Anthropic la IA queda apagada: el analista semanal, «Pregúntale a tus datos» y el agente de ventas no funcionan, y los informes usan plantillas. Pégala en Plataforma → Ajustes → IA.'), [], DoctorCheck::settings('ai'))
                 : new DoctorCheck('ai.key', 'integrations', DoctorCheck::OK, __('Clave de Anthropic configurada'));
         }
-        $google = (string) config('igr-bookings.google.client_id') !== '' && (string) config('igr-bookings.google.client_secret') !== '';
-        $checks[] = $google
+        $checks[] = GoogleCalendar::configured()
             ? new DoctorCheck('integrations.google_calendar', 'integrations', DoctorCheck::OK, __('Google Calendar configurado para la agenda'))
             : new DoctorCheck('integrations.google_calendar', 'integrations', DoctorCheck::INFO, __('Google Calendar no está configurado'),
-                __('La agenda funciona sin él, pero no revisa la disponibilidad del calendario de cada persona. Define IGR_GOOGLE_CALENDAR_CLIENT_ID e IGR_GOOGLE_CALENDAR_CLIENT_SECRET (credenciales OAuth de Google Cloud).'));
+                __('La agenda funciona sin él, pero no revisa la disponibilidad del calendario de cada persona. Pon el cliente de Google en Plataforma → Ajustes → Google (el mismo sirve para Google Ads y Analytics).'), [], DoctorCheck::settings('google'));
         $broadcast = (string) config('broadcasting.default');
         if ($broadcast !== 'reverb') {
             $checks[] = new DoctorCheck('integrations.reverb', 'integrations', DoctorCheck::INFO, __('Tiempo real apagado'), __('Sin Reverb (BROADCAST_CONNECTION=reverb) la bandeja se actualiza cada 5 segundos en lugar de al instante.'));
@@ -223,7 +230,7 @@ final class InstallationDoctor
                 : new DoctorCheck('integrations.reverb', 'integrations', DoctorCheck::OK, __('Tiempo real con Reverb'));
         }
         $checks[] = (string) config('igr-predictions.ml.token') === ''
-            ? new DoctorCheck('integrations.ml', 'integrations', DoctorCheck::INFO, __('El servicio de predicciones no tiene token'), __('Sin IGR_ML_TOKEN las predicciones de valor futuro y próxima compra usan solo la heurística.'))
+            ? new DoctorCheck('integrations.ml', 'integrations', DoctorCheck::INFO, __('El servicio de predicciones no tiene token'), __('Sin IGR_ML_TOKEN (lo crea el instalador) las predicciones de valor futuro y próxima compra usan solo la heurística. Vuelve a correr el instalador en el servidor para que lo cree.'))
             : new DoctorCheck('integrations.ml', 'integrations', DoctorCheck::OK, __('Servicio de predicciones configurado'));
 
         return $checks;
@@ -236,7 +243,7 @@ final class InstallationDoctor
         $admins = $this->count(fn () => User::query()->where('is_platform_admin', true)->count());
         $without2fa = $this->count(fn () => User::query()->where('is_platform_admin', true)->whereNull('two_factor_confirmed_at')->count());
         $checks[] = $admins === 0
-            ? new DoctorCheck('data.admins', 'data', DoctorCheck::ERROR, __('Nadie administra la plataforma'), __('Crea o promueve a quien administra con «php artisan igr:admin:create».'))
+            ? new DoctorCheck('data.admins', 'data', DoctorCheck::ERROR, __('Nadie administra la plataforma'), __('Nadie puede abrir Plataforma: crea a la primera persona en el servidor con «growth-php artisan igr:admin:create correo». Las demás se agregan en Plataforma → Ajustes → Administradores.'))
             : ($without2fa > 0
                 ? new DoctorCheck('data.admins', 'data', DoctorCheck::WARNING, trans_choice(':n administrador sin verificación en dos pasos|:n administradores sin verificación en dos pasos', $without2fa, ['n' => $without2fa]), __('Sin ella no entran a Plataforma ni a Horizon. Se activa en Seguridad.'))
                 : new DoctorCheck('data.admins', 'data', DoctorCheck::OK, trans_choice(':n persona administra la plataforma|:n personas administran la plataforma', $admins, ['n' => $admins])));
@@ -245,7 +252,7 @@ final class InstallationDoctor
         $unassigned = $this->count(fn () => DB::table('accounts')->where(fn ($q) => $q->whereNull('plan_id')->orWhere('plan_id', ''))->count());
         if ($default === null) {
             $checks[] = new DoctorCheck('data.default_plan', 'data', app()->environment('production') ? DoctorCheck::ERROR : DoctorCheck::INFO, __('Sin plan, todo está permitido'),
-                __('IGR_DEFAULT_PLAN=none da todos los módulos, IA y correo por la plataforma a cualquier cuenta sin plan. Úsalo solo en desarrollo; en producción quítalo (rige Diagnóstico).'));
+                __('Con «none» cualquier cuenta sin plan recibe todos los módulos, la IA y el correo por la plataforma. Úsalo solo en desarrollo; en producción elige el plan por defecto en Plataforma → Ajustes → Registro y seguridad (Diagnóstico es el gratuito).'), [], DoctorCheck::settings('security'));
         } elseif ($unassigned > 0) {
             $checks[] = new DoctorCheck('data.default_plan', 'data', DoctorCheck::INFO, trans_choice(':n cuenta sin plan usa el plan gratuito|:n cuentas sin plan usan el plan gratuito', $unassigned, ['n' => $unassigned]),
                 __('Asígnales su plan en Plataforma → Clientes.'), $this->unassignedAccounts());
@@ -264,6 +271,34 @@ final class InstallationDoctor
      */
     private function signatures(): DoctorCheck
     {
+        $legacy = $this->legacySignatureSites();
+        $min = RequestSignature::V2_MIN_PLUGIN_VERSION;
+        $link = DoctorCheck::settings('security');
+        if (SiteSignatures::acceptsV1()) {
+            return $legacy === []
+                ? new DoctorCheck('data.signature', 'data', DoctorCheck::INFO, __('Todos los sitios firman con la versión 2'),
+                    __('Ya puedes dejar de aceptar la firma anterior: apaga «Aceptar la firma anterior del plugin» en Plataforma → Ajustes → Registro y seguridad.'), [], $link)
+                : new DoctorCheck('data.signature', 'data', DoctorCheck::INFO,
+                    trans_choice(':n sitio todavía firma con la versión 1|:n sitios todavía firman con la versión 1', count($legacy), ['n' => count($legacy)]),
+                    __('Se sigue aceptando mientras tengan un plugin anterior a la :v. Cuando todos lo actualicen, apaga «Aceptar la firma anterior del plugin» en Plataforma → Ajustes → Registro y seguridad.', ['v' => $min]),
+                    array_slice($legacy, 0, 50), $link);
+        }
+
+        return $legacy === []
+            ? new DoctorCheck('data.signature', 'data', DoctorCheck::OK, __('Solo se acepta la firma versión 2'))
+            : new DoctorCheck('data.signature', 'data', DoctorCheck::ERROR,
+                trans_choice(':n sitio firma con la versión 1 y el hub ya no la acepta|:n sitios firman con la versión 1 y el hub ya no la acepta', count($legacy), ['n' => count($legacy)]),
+                __('Sus datos no llegan. Que instalen el plugin :v o más nuevo, o vuelve a encender «Aceptar la firma anterior del plugin» en Plataforma → Ajustes → Registro y seguridad mientras tanto.', ['v' => $min]),
+                array_slice($legacy, 0, 50), $link);
+    }
+
+    /**
+     * Los sitios conectados que todavía firman con la v1 (plugin anterior a la 0.1.4), como «host (versión)».
+     *
+     * @return list<string>
+     */
+    public function legacySignatureSites(): array
+    {
         $legacy = [];
         try {
             $sites = Site::withoutWorkspaceScope()->whereIn('status', [Site::STATUS_CONNECTED, Site::STATUS_DEGRADED])->orderBy('host')->limit(500)->get(['id', 'host', 'plugin_version']);
@@ -276,23 +311,8 @@ final class InstallationDoctor
                 $legacy[] = $site->host.' ('.(is_string($version) && $version !== '' ? $version : __('versión desconocida')).')';
             }
         }
-        $min = RequestSignature::V2_MIN_PLUGIN_VERSION;
-        if (SiteSignatures::acceptsV1()) {
-            return $legacy === []
-                ? new DoctorCheck('data.signature', 'data', DoctorCheck::INFO, __('Todos los sitios firman con la versión 2'),
-                    __('Ya puedes dejar de aceptar la firma anterior: pon IGR_SIGNATURE_ACCEPT_V1=false en el .env.'))
-                : new DoctorCheck('data.signature', 'data', DoctorCheck::INFO,
-                    trans_choice(':n sitio todavía firma con la versión 1|:n sitios todavía firman con la versión 1', count($legacy), ['n' => count($legacy)]),
-                    __('Se sigue aceptando mientras tengan un plugin anterior a la :v. Cuando todos lo actualicen, pon IGR_SIGNATURE_ACCEPT_V1=false.', ['v' => $min]),
-                    array_slice($legacy, 0, 50));
-        }
 
-        return $legacy === []
-            ? new DoctorCheck('data.signature', 'data', DoctorCheck::OK, __('Solo se acepta la firma versión 2'))
-            : new DoctorCheck('data.signature', 'data', DoctorCheck::ERROR,
-                trans_choice(':n sitio firma con la versión 1 y el hub ya no la acepta|:n sitios firman con la versión 1 y el hub ya no la acepta', count($legacy), ['n' => count($legacy)]),
-                __('Sus datos no llegan. Que instalen el plugin :v o más nuevo, o vuelve a poner IGR_SIGNATURE_ACCEPT_V1=true mientras tanto.', ['v' => $min]),
-                array_slice($legacy, 0, 50));
+        return $legacy;
     }
 
     /** F5: el configuration set y su destino de eventos (lo deja `igr:ses:setup` o el alta y la prueba de un canal SES). */
@@ -302,15 +322,15 @@ final class InstallationDoctor
         $set = SesEventSetup::configurationSet();
         if ($last === null) {
             return new DoctorCheck('email.ses_events', 'email', DoctorCheck::WARNING, __('El configuration set :set no se ha revisado', ['set' => $set]),
-                __('Se prepara solo cada noche (03:47) y al conectar o probar un canal SES; para no esperar, corre «php artisan igr:ses:setup».'));
+                __('Se prepara solo cada noche (03:47) y al conectar o probar un canal SES; para no esperar, usa «Preparar ahora» en Plataforma → Ajustes → Amazon SES.'), [], DoctorCheck::settings('ses'));
         }
         $when = is_string($last['checked_at'] ?? null) ? (string) $last['checked_at'] : '';
 
         return match ($last['status'] ?? 'error') {
             'ok' => new DoctorCheck('email.ses_events', 'email', DoctorCheck::OK, __('Configuration set :set con eventos hacia SNS', ['set' => $set])),
-            'no_topic' => new DoctorCheck('email.ses_events', 'email', DoctorCheck::WARNING, __('El configuration set :set no tiene destino de eventos', ['set' => $set]), (string) ($last['message'] ?? '')),
+            'no_topic' => new DoctorCheck('email.ses_events', 'email', DoctorCheck::WARNING, __('El configuration set :set no tiene destino de eventos', ['set' => $set]), (string) ($last['message'] ?? ''), [], DoctorCheck::settings('ses')),
             default => new DoctorCheck('email.ses_events', 'email', DoctorCheck::ERROR, __('No se pudo preparar el configuration set :set', ['set' => $set]),
-                trim((string) ($last['message'] ?? '').' '.__('Última revisión: :at. Corrige y corre «php artisan igr:ses:setup».', ['at' => $when]))),
+                trim((string) ($last['message'] ?? '').' '.__('Última revisión: :at. Corrige y usa «Preparar ahora» en Plataforma → Ajustes → Amazon SES.', ['at' => $when])), [], DoctorCheck::settings('ses')),
         };
     }
 
@@ -330,17 +350,17 @@ final class InstallationDoctor
                 }
             }
         } catch (Throwable) {
-            return new DoctorCheck('data.fx', 'data', DoctorCheck::WARNING, __('No se pudieron revisar las tasas de cambio'), __('Revisa la base de datos y corre «php artisan igr:fx:update».'));
+            return new DoctorCheck('data.fx', 'data', DoctorCheck::WARNING, __('No se pudieron revisar las tasas de cambio'), __('Revisa la base de datos y usa «Actualizar ahora» en Plataforma → Tasas de cambio.'), [], 'pestana=fx');
         }
         $status = UpdateExchangeRates::status();
         $error = is_array($status) && ($status['ok'] ?? true) === false ? ' '.__('Último error: :error', ['error' => (string) ($status['error'] ?? '')]) : '';
         if ($missing !== []) {
             return new DoctorCheck('data.fx', 'data', DoctorCheck::WARNING, __('Faltan tasas de cambio'),
-                __('Sin ellas el costo de los mensajes se muestra en dólares. Corre «php artisan igr:fx:update» o fija la tasa a mano en Plataforma → Tasas de cambio.').$error, $missing);
+                __('Sin ellas el costo de los mensajes se muestra en dólares. Usa «Actualizar ahora» o fija la tasa a mano en Plataforma → Tasas de cambio.').$error, $missing, 'pestana=fx');
         }
         if ($stale !== []) {
             return new DoctorCheck('data.fx', 'data', DoctorCheck::WARNING, __('Tasas de cambio desactualizadas'),
-                __('Rige la última tasa conocida. Revisa que el programador corra «igr:fx:update» y que el servidor llegue a la fuente, o fija la tasa a mano.').$error, $stale);
+                __('Rige la última tasa conocida. Revisa que las tareas programadas corran y que el servidor llegue a la fuente (Plataforma → Ajustes → Tasas de cambio), o fija la tasa a mano en Plataforma → Tasas de cambio.').$error, $stale, 'pestana=fx');
         }
 
         return new DoctorCheck('data.fx', 'data', DoctorCheck::OK, __('Tasas de cambio al día'));

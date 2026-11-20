@@ -22,7 +22,8 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
-    // Notificaciones push de la PWA de la bandeja (M11). Llaves con `php artisan igr:push:vapid`.
+    // Notificaciones push de la PWA de la bandeja (M11). Llaves con «Generar llaves» en Plataforma → Ajustes → Avisos en el
+    // celular (F17; el .env es el respaldo) o con `php artisan igr:push:vapid`.
     'webpush' => [
         'public_key' => env('IGR_PUSH_VAPID_PUBLIC_KEY'),
         'private_key' => env('IGR_PUSH_VAPID_PRIVATE_KEY'),

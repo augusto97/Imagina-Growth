@@ -2,7 +2,8 @@
 
 /*
  * Conexiones con un clic (docs/auditoria-2026-11.md §6, docs/guia-apps-oauth.md): las apps de
- * desarrollador de la plataforma (Meta, Google, TikTok) van en el .env del servidor; los tokens de cada
+ * desarrollador de la plataforma (Meta, Google, TikTok) van en Plataforma → Ajustes (F17; este archivo lee el .env de
+ * respaldo y el panel lo pisa al arrancar); los tokens de cada
  * cliente, cifrados en oauth_connections. Sin el client_id de un proveedor, su botón explica qué falta y
  * los campos manuales siguen disponibles.
  *

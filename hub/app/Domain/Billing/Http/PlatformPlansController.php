@@ -55,6 +55,20 @@ final class PlatformPlansController
         return response()->json(['plan' => $model->toPublicArray() + ['public' => $model->public]]);
     }
 
+    /**
+     * POST /api/platform/plans/sync: crea los planes incluidos que falten, sin pisar los editados (lo de
+     * `igr:plans:sync --missing`, sin consola).
+     */
+    public function syncMissing(Request $request, PlanCatalog $catalog): JsonResponse
+    {
+        $created = $catalog->sync(false);
+        if ($created > 0) {
+            $this->audit->handle('platform.plans_synced', null, ['created' => $created], null, null, self::actor($request)?->id);
+        }
+
+        return response()->json(['created' => $created] + $this->index()->getData(true));
+    }
+
     /** POST /api/platform/plans/{plan}/archive | restore */
     public function archive(Request $request, string $plan, string $action): JsonResponse
     {

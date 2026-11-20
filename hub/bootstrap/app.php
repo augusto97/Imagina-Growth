@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Platform\Http\RefreshPlatformSettings;
 use App\Http\Middleware\FrameGuard;
 use App\Http\Middleware\ResolveWorkspace;
 use Illuminate\Foundation\Application;
@@ -27,6 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
     // sesión de Sanctum en /api/broadcasting/auth (statefulApi pone sesión y CSRF).
     ->withBroadcasting(__DIR__.'/../routes/channels.php', ['prefix' => 'api', 'middleware' => ['api', 'auth:sanctum']])
     ->withMiddleware(function (Middleware $middleware): void {
+        // Ajustes de la plataforma (F17): si cambiaron en otro proceso desde que este los aplicó, los vuelve a aplicar.
+        $middleware->prepend(RefreshPlatformSettings::class);
         $middleware->statefulApi();
         $middleware->web(append: [FrameGuard::class]);
         $middleware->alias(['workspace' => ResolveWorkspace::class]);
