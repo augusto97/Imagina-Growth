@@ -100,7 +100,8 @@ La ley aplica a los mensajes **comerciales o publicitarios** por SMS, mensajerí
 ## 5. WhatsApp: políticas de Meta, precios y conexión no oficial
 
 ### 5.1 Conexión oficial (recomendada)
-- **Cada cliente conecta su propio número** con Embedded Signup y asocia **su propio método de pago** en su cuenta de WhatsApp Business. Imagina Growth no revende mensajes. Hay que darse de alta como proveedor de tecnología de Meta o integrarse a través de un BSP (por ejemplo 360dialog o Infobip) **[decidir]**.
+- **Cada cliente conecta su propio número** con Embedded Signup y asocia **su propio método de pago** en su cuenta de WhatsApp Business. Imagina Growth no revende mensajes. El código va como **proveedor de tecnología de Meta** (Tech Provider, lote 3): Embedded Signup v5, con coexistencia si el número sigue en la app de WhatsApp Business. Integrarse por un BSP (360dialog, Infobip) sigue siendo posible con la conexión manual. Pasos y revisiones en `docs/guia-apps-oauth.md`.
+- **Tokens de los clientes:** el token del negocio que entrega Embedded Signup (y los de Login for Business, Google y TikTok) se guarda cifrado en `oauth_connections`, nunca vuelve a la SPA ni va a los logs, y al desconectar se revoca en el proveedor (WhatsApp: se quita la suscripción de la app a la WABA).
 - **Opt-in:** Meta exige consentimiento antes de mensajes iniciados por la empresa. Se cumple con §3.
 - **Categorías de plantilla:** `marketing`, `utility` y `authentication`. Meta revisa y puede reclasificar. **Prohibido** disfrazar marketing de utilidad para pagar menos: el editor lo advierte.
 - **Precios:**

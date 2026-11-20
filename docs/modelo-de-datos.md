@@ -368,3 +368,13 @@ La base es la migración `2026_11_23_000100_create_phase5_tables` (más `2026_11
 - `webhook_subscriptions`: además de §7, `consecutive_failures`, `last_success_at` y `created_by`.
 - `webhook_deliveries` (nueva): cada intento de entrega con su código, duración y siguiente intento (registro visible).
 - `api_clients` (nueva): los clientes de la API y del servidor MCP con sus alcances; los tokens son de Sanctum.
+
+## 16. Conexiones con un clic (lote 3 de la auditoría)
+
+| Tabla | Columnas clave |
+|---|---|
+| `oauth_connections` (prefijo `oac`) | id, workspace_id, provider (`meta`, `meta_whatsapp`, `google`, `tiktok`), subject (`''` = el espacio de trabajo, `staff:{id}` = una persona de la agenda, `waba:{id}` = una cuenta de WhatsApp), status (`active`, `expired`, `revoked`, `error`), external_id?, account_name?, scopes (json), credentials (cifrado: access_token, refresh_token), assets (json: cuentas autorizadas, sin secretos), expires_at?, refreshed_at?, checked_at?, last_error?, connected_by?, revoked_at?; único por (workspace_id, provider, subject) |
+| `oauth_states` | id (sha256 del nonce), workspace_id, user_id, provider, payload (cifrado: uso, sujeto, retorno, verificador PKCE), expires_at. Se borra al usarse: un solo uso |
+
+- `ad_destinations.oauth_connection_id` y `channel_accounts.oauth_connection_id`: el destino o la cuenta toma el token de la conexión (siempre del mismo espacio de trabajo) y cae al pegado a mano si la conexión se cierra.
+- `booking_staff.calendar.connection_id`: la persona de la agenda usa la conexión de Google con sujeto `staff:{id}`.
