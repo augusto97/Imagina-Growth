@@ -22,7 +22,8 @@ use Illuminate\Support\Str;
  * Agenda una cita sin doble reserva (M18): candado por persona en Redis y, dentro
  * de la transacción, se vuelve a revisar que el horario siga libre y dentro de la
  * disponibilidad. Después crea el lead (`LeadIntake`, origen booking), emite
- * `appointment.booked`, sincroniza Google Calendar en cola y manda la confirmación.
+ * `appointment.booked`, sincroniza Google Calendar en cola y manda la confirmación
+ * (con `confirmedInChat`, la del chat ya salió: solo el correo).
  */
 final class BookAppointment
 {
@@ -38,7 +39,7 @@ final class BookAppointment
      * @throws SlotTaken
      */
     public function handle(Workspace $workspace, BookingService $service, CarbonImmutable $start, ?string $staffId, string $contactId,
-        string $channel = 'page', ?string $notes = null, array $source = [], ?string $siteId = null): Appointment
+        string $channel = 'page', ?string $notes = null, array $source = [], ?string $siteId = null, bool $confirmedInChat = false): Appointment
     {
         $start = $start->utc()->startOfMinute();
         $lock = Cache::lock('igr:booking:'.$workspace->id.':'.$service->id.':'.($staffId ?? 'any'), 10);
@@ -80,7 +81,7 @@ final class BookAppointment
         }
         AppointmentEvents::booked($workspace, $appointment, $service);
         SyncAppointmentCalendar::dispatch($workspace->id, $appointment->id)->afterCommit();
-        $this->notifier->send($workspace, $appointment, 'confirmation');
+        $this->notifier->send($workspace, $appointment, 'confirmation', whatsapp: ! $confirmedInChat);
 
         return $appointment;
     }

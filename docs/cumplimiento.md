@@ -88,7 +88,7 @@ La ley aplica a los mensajes **comerciales o publicitarios** por SMS, mensajerí
 | Tipo | Ejemplos | ¿Aplica la ventana? |
 |---|---|---|
 | `transactional` | confirmación de pedido, envío, factura, OTP, respuesta a una pregunta del cliente, confirmar contraentrega, recordatorio de una cita agendada por la persona | No (art. 8) **[validar el caso de la cita]** |
-| `marketing` | promociones, campañas, carrito abandonado, navegación abandonada, recuperación, cumpleaños, puntos, reseñas, referidos | **Sí** |
+| `marketing` | promociones, campañas, carrito abandonado, navegación abandonada, recuperación y reactivación de la base dormida (nodo «Reactivar con IA»), cumpleaños, puntos, reseñas, referidos | **Sí** |
 | Ambiguo → **marketing por defecto** | recordatorio de pago pendiente, aviso de stock solicitado por la persona | Sí por defecto; el cliente puede reclasificarlo con una justificación (auditoría) **[validar]** |
 
 ### 4.2 Reglas del motor (`SendPolicy`)
@@ -127,6 +127,7 @@ La ley aplica a los mensajes **comerciales o publicitarios** por SMS, mensajerí
 - **Límites de frecuencia de Meta por usuario** para marketing: si un mensaje no se entrega por ese motivo (código 131049), se registra con su código y no se reintenta de inmediato.
 - **La persona detiene el marketing desde WhatsApp** (código 131050): se revoca el consentimiento de marketing de WhatsApp de ese contacto, como una baja. Los mensajes transaccionales siguen.
 - **Marketing Messages API:** se usa para el marketing por su entrega optimizada y sus métricas. La Cloud API queda para servicio, utilidad y conversaciones.
+- **Botones y listas (lote 4):** los horarios que ofrece el agente para agendar, mover o cancelar una cita son mensajes interactivos de **servicio**: solo salen dentro de la ventana de 24 h de una conversación que abrió la persona (SendPolicy), con los límites de Meta verificados (`WhatsAppInteractive`). La reactivación con IA es **marketing**: consentimiento del canal, ventana legal y frecuencia, y fuera de las 24 h solo con una plantilla de marketing aprobada con la personalización en sus variables.
 - **IA en WhatsApp:** desde el 15 de enero de 2026 Meta prohíbe los asistentes de IA de propósito general en la plataforma empresarial. Los agentes limitados a la operación del negocio (ventas, soporte, citas, pedidos) están permitidos. El agente de M11 debe quedarse **siempre dentro del alcance del negocio**, por diseño y por prompt.
 - **Calidad del número:** se monitorea. Si baja a «media», se frenan las campañas de marketing de ese número y se avisa.
 

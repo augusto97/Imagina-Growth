@@ -4,6 +4,7 @@ use App\Domain\Billing\Http\RequirePlanModule;
 use App\Domain\Services\Leads\Http\LeadController;
 use App\Domain\Services\Leads\Http\LeadFunnelController;
 use App\Domain\Services\Leads\Http\LeadKpiController;
+use App\Domain\Services\Leads\Http\LeadQualificationController;
 use App\Domain\Services\Leads\Http\LeadSettingsController;
 use App\Domain\Services\Leads\Http\LeadTaskController;
 use App\Domain\Services\Leads\Http\TodayController;
@@ -26,6 +27,10 @@ Route::post('leads/today/send', [TodayController::class, 'send'])->middleware('t
 Route::post('leads/today/done', [TodayController::class, 'done']);
 Route::post('leads/today/snooze', [TodayController::class, 'snooze']);
 Route::patch('leads/tasks/{task}', [LeadTaskController::class, 'update'])->where('task', 'ltk_[0-9A-Z]{26}');
+Route::get('leads/qualification', [LeadQualificationController::class, 'index']);
+Route::post('leads/qualification', [LeadQualificationController::class, 'store']);
+Route::put('leads/qualification/{set}', [LeadQualificationController::class, 'update'])->where('set', 'lqs_[0-9A-Z]{26}');
+Route::delete('leads/qualification/{set}', [LeadQualificationController::class, 'destroy'])->where('set', 'lqs_[0-9A-Z]{26}');
 Route::get('leads/settings', [LeadSettingsController::class, 'show']);
 Route::put('leads/settings', [LeadSettingsController::class, 'update']);
 Route::post('leads/sellers', [LeadSettingsController::class, 'storeSeller']);

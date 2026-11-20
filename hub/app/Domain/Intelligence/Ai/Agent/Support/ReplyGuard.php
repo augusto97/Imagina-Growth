@@ -15,13 +15,21 @@ use App\Domain\Intelligence\Ai\Support\NumberValidator;
  * 2. Si la respuesta habla de precio (un monto que no es de las políticas,
  *    «cuesta», «precio») o de stock («unidades», «agotado», «quedan»), en el turno
  *    tuvo que haber una consulta en vivo exitosa (`get_product` o
- *    `create_cart_link`).
+ *    `create_cart_link`; para el precio de un servicio de la agenda,
+ *    `list_booking_services`).
  */
 final class ReplyGuard
 {
     private const MONEY = '/(?:\$|US\$|COP|MXN)\s?\d/u';
 
     private const PRICE_WORDS = '/\b(precio|cuesta|cuestan|valor|vale|valen)\b/iu';
+
+    /**
+     * Consultas en vivo: el producto, el carrito, los servicios de la agenda (precio que fija el
+     * negocio) y los horarios libres (un «quedan estos horarios» habla de la agenda, no de stock).
+     * Las cifras igual deben salir de lo que devolvieron.
+     */
+    private const LIVE_LOOKUPS = ['get_product', 'create_cart_link', 'list_booking_services', 'offer_appointment_slots', 'reschedule_appointment'];
 
     private const STOCK_WORDS = '/\b(agotad[oa]s?|existencias|sin stock|en stock|hay stock|quedan|inventario)\b|\d+\s+unidades?\b/iu';
 
@@ -40,7 +48,7 @@ final class ReplyGuard
         $facts[] = ['customer' => $this->customerNumbers($customerTexts)];
         $validation = $this->numbers->validate($reply, $facts);
 
-        $lookedUp = collect($toolCalls)->contains(fn (array $c) => in_array($c['name'], ['get_product', 'create_cart_link'], true)
+        $lookedUp = collect($toolCalls)->contains(fn (array $c) => in_array($c['name'], self::LIVE_LOOKUPS, true)
             && $c['error'] === null && ($c['output']['found'] ?? $c['output']['ok'] ?? true) !== false);
         // Si todas las cifras son de las políticas (p. ej. «el envío cuesta $12.000»), no es un precio de producto.
         $onlyPolicyNumbers = $this->numbers->validate($reply, [$policies])->ok();

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Intelligence\Ai\Agent\Tools;
 
+use App\Domain\Bookings\Chat\BookingAgentTools;
 use App\Domain\Commerce\Models\Cart;
 use App\Domain\Commerce\Models\Product;
 use App\Domain\Commerce\Models\ProductCategory;
@@ -12,6 +13,7 @@ use App\Domain\Intelligence\Ai\Agent\Support\AgentRun;
 use App\Domain\Intelligence\Ai\Data\AiTool;
 use App\Domain\Loyalty\Contracts\LoyaltyLedger;
 use App\Domain\Loyalty\Models\LoyaltyProgram;
+use App\Domain\Services\Leads\Qualification\QualificationAgentTools;
 use App\Domain\Sites\Actions\SendSiteCommand;
 use App\Support\Money\Decimal;
 use Illuminate\Support\Str;
@@ -28,12 +30,18 @@ use RuntimeException;
  * - El estado del pedido y los puntos son del contacto verificado del chat (su
  *   número de WhatsApp), nunca de un dato que escriba la persona.
  * - El carrito solo lleva cupón si las reglas de descuento lo permiten.
+ * - Agenda (BookingAgentTools): ofrece horarios para tocar; la cita la hace el toque.
+ * - Calificación (QualificationAgentTools): las preguntas del dueño y la derivación.
  */
 final class AgentToolbox
 {
     private const LOOKUP_TIMEOUT = 8;
 
-    public function __construct(private readonly SendSiteCommand $command) {}
+    public function __construct(
+        private readonly SendSiteCommand $command,
+        private readonly BookingAgentTools $bookings,
+        private readonly QualificationAgentTools $qualification,
+    ) {}
 
     /** @return list<AiTool> */
     public function for(AgentRun $run): array
@@ -45,7 +53,8 @@ final class AgentToolbox
             $this->createCartLink($run),
             $this->getPolicies($run),
             $this->getLoyaltyBalance($run),
-            $this->bookAppointment(),
+            ...$this->bookings->for($run),
+            ...$this->qualification->for($run),
             $this->handoff($run),
         ];
     }
@@ -245,12 +254,6 @@ final class AgentToolbox
                 return ['available' => true, 'points' => $ledger->pointsBalance($run->contact->id), 'wallet' => $ledger->walletBalance($run->contact->id),
                     'points_name' => (string) (LoyaltyProgram::query()->value('currency_name') ?: 'puntos'), 'currency' => $run->workspace->currency];
             });
-    }
-
-    private function bookAppointment(): AiTool
-    {
-        return new AiTool('book_appointment', 'Agendar una cita (servicios).', self::schema(['when' => ['type' => ['string', 'null']]]),
-            fn (array $in) => ['available' => false, 'message' => 'La agenda de citas todavía no está disponible; ofrece pasar con una persona.']);
     }
 
     private function handoff(AgentRun $run): AiTool

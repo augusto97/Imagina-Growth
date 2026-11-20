@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Intelligence\Ai\Agent;
 
+use App\Domain\Bookings\Chat\ChatBookingIds;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Inbox\Contracts\ConversationAgent;
 use App\Domain\Inbox\Contracts\InboundClassifier;
@@ -16,6 +17,7 @@ use App\Domain\Intelligence\Ai\Agent\Tools\AgentToolbox;
 use App\Domain\Intelligence\Ai\Contracts\AiGateway;
 use App\Domain\Intelligence\Ai\Data\AiRequest;
 use App\Domain\Intelligence\Ai\Data\AiResult;
+use App\Domain\Intelligence\Ai\Data\AiTool;
 use App\Domain\Intelligence\Ai\Exceptions\AiUnavailable;
 use App\Domain\Messaging\Contracts\MessageDispatcher;
 use App\Domain\Messaging\Data\OutboundMessage;
@@ -24,6 +26,7 @@ use App\Domain\Messaging\Enums\MessageKind;
 use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Messaging\Models\Message;
+use App\Domain\Messaging\Support\WhatsAppInteractive;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Models\Workspace;
 use Carbon\CarbonImmutable;
@@ -43,6 +46,10 @@ use Illuminate\Support\Str;
  * Modos: `auto` responde (mensaje de servicio, solo con la ventana abierta),
  * `assist` deja una sugerencia cifrada para el agente humano, `off` no hace nada.
  * Cada turno queda en `ai_agent_turns`.
+ *
+ * Agenda en el chat (M18): si una herramienta armó horarios para tocar, la respuesta
+ * sale como botones o lista de WhatsApp; los toques los atiende `ChatBookingReply`, no
+ * el modelo. Calificación: si la derivación manda a la web, la respuesta lleva el enlace.
  */
 final class SalesAgent implements ConversationAgent
 {
@@ -64,6 +71,10 @@ final class SalesAgent implements ConversationAgent
         $settings = AgentSettings::current($conversation->workspace_id);
         $mode = (string) ($conversation->ai_mode ?: 'off');
         if (! $settings->enabled || ! in_array($mode, ['assist', 'auto'], true) || $inbound->direction !== 'in' || $inbound->conversation_id !== $conversation->id) {
+            return;
+        }
+        // El toque a un horario de la agenda lo atiende ChatBookingReply: el agente no le contesta encima.
+        if (ChatBookingIds::is(((array) $inbound->payload)['button_payload'] ?? null)) {
             return;
         }
         $this->turn($conversation, $inbound, $mode, $settings);
@@ -122,6 +133,7 @@ final class SalesAgent implements ConversationAgent
         $current = $inbound !== null ? trim((string) (((array) $inbound->payload)['text'] ?? '')) : null;
         $last = $current ?? ($history !== [] ? (string) end($history)['content'] : '');
         $customerTexts = array_values(array_map(fn (array $m) => (string) $m['content'], array_filter($history, fn (array $m) => $m['role'] === 'user')));
+        $run->customerTexts = $customerTexts;
 
         $blocked = $this->guards($run, $turn, $mode, $last);
         if ($blocked !== null) {
@@ -129,8 +141,9 @@ final class SalesAgent implements ConversationAgent
         }
 
         $channel = $run->conversation !== null ? ChannelAccount::query()->find($run->conversation->channel_account_id)?->channel : null;
-        $request = new AiRequest($run->workspace->id, 'sales_agent', $this->prompts->system($run->workspace, $run->settings, $channel ?? Channel::WhatsApp), $history);
         $tools = $this->toolbox->for($run);
+        $request = new AiRequest($run->workspace->id, 'sales_agent', $this->prompts->system($run->workspace, $run->settings, $channel ?? Channel::WhatsApp,
+            array_map(fn (AiTool $t) => $t->name, $tools)), $history);
         $calls = [];
         $usage = ['in' => 0, 'out' => 0];
         $model = null;
@@ -176,8 +189,14 @@ final class SalesAgent implements ConversationAgent
             return $this->finish($turn, $started, $mode === 'auto' ? $this->handoff($run, $turn, $mode, 'ai_unavailable') : 'failed');
         }
 
+        // La derivación a la web de la calificación: el enlace va siempre, aunque el modelo no lo escriba.
+        if ($run->requiredLink !== null && ! str_contains($reply, $run->requiredLink)) {
+            $reply = rtrim($reply)."\n".$run->requiredLink;
+        }
         if ($mode === 'assist') {
-            $turn->forceFill(['status' => 'suggested', 'suggestion' => $reply]);
+            // La persona del equipo envía texto: las opciones para tocar van escritas.
+            $suggestion = $run->interactive !== null ? WhatsAppInteractive::asText(WhatsAppInteractive::withBody($run->interactive, $reply)) : $reply;
+            $turn->forceFill(['status' => 'suggested', 'suggestion' => $suggestion]);
 
             return $this->finish($turn, $started, null);
         }
@@ -274,10 +293,16 @@ final class SalesAgent implements ConversationAgent
         }
         $account = ChannelAccount::query()->find($conversation->channel_account_id);
         $channel = $account !== null ? $account->channel : Channel::WhatsApp;
+        $context = ['text' => $text];
+        // Horarios para tocar (agenda): botones o lista de WhatsApp con la respuesta como cuerpo; el texto lleva las opciones.
+        if ($keySuffix === '' && $run->interactive !== null && $channel === Channel::WhatsApp) {
+            $interactive = WhatsAppInteractive::withBody($run->interactive, $text);
+            $context = ['text' => WhatsAppInteractive::asText($interactive), 'interactive' => $interactive];
+        }
         // Sin humanAgent: la IA nunca usa la etiqueta HUMAN_AGENT de Messenger (solo responde dentro de las 24 h).
         $result = $this->dispatcher->dispatch(new OutboundMessage(
             $run->workspace->id, $conversation->contact_id, $channel instanceof Channel ? $channel : Channel::from((string) $channel), MessageKind::Service, 'inbox',
-            sourceId: $conversation->id, context: ['text' => $text], idempotencyKey: 'agent:'.$turn->id.$keySuffix,
+            sourceId: $conversation->id, context: $context, idempotencyKey: 'agent:'.$turn->id.$keySuffix,
             channelAccountId: $conversation->channel_account_id,
         ));
         if (! $result->sent() || $result->messageId === null) {

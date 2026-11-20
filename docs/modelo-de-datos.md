@@ -343,6 +343,7 @@ La base es la migración `2026_11_23_000100_create_phase5_tables` (más `2026_11
 - `lead_pipelines`: las etapas son JSON con su tipo (`open`, `won`, `lost`), para pipelines propios además del simple.
 - `leads`: además de §8, `pipeline_id`, `site_id`, `service` (lo que pidió), `temperature` (frío, tibio o caliente), `score_reasons` (cada señal con sus puntos; la de IA con su razón visible), `origin` y `origin_ref` (formulario, WhatsApp, cotización, cita, panel o API: la entrada es idempotente por ese par), `first_response_at` y `external_crm_id` (Imagina CRM, Base o Proposals).
 - `lead_activities` (nueva): la historia del lead (creado, etapa, nota, puntaje, aviso, llamada, mensaje, vendedor).
+- Lote 4 de la auditoría (`2026_11_26_500100`, «filtra a los curiosos»): `lead_qualification_sets` (prefijo `lqs`) con las preguntas de calificación del chat por pipeline (`pipeline_id`) o por palabras del servicio (`services`), `questions` (JSON: clave, texto, tipo `choice`/`yes_no`/`number`/`text`, obligatoria, opciones con puntos y si descalifican, rango del número), `routing` (reglas en orden y la acción por defecto: dueño, vendedor, agente o web con su enlace), `active` y `position`. En `leads`, `qualification` (cifrada: cada respuesta con la frase del cliente, el puntaje, si quedó descalificado y la derivación) y `qualified_at` (cuándo se derivó).
 
 **Agenda y cotizador (M18)**
 - `booking_staff` (nueva): las personas que atienden, con o sin usuario del panel; `calendar` guarda cifrada la conexión con Google Calendar.

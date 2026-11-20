@@ -6,6 +6,7 @@
             "tablero": "Tablero",
             "lista": "Lista",
             "indicadores": "Indicadores",
+            "calificacion": "Calificación",
             "ajustes": "Ajustes"
         },
         "today": "Hoy: a quién escribirle",
@@ -161,10 +162,19 @@
             "views_one": "{{count}} vista",
             "views_other": "{{count}} vistas",
             "weeks_one": "{{count}} semana",
-            "weeks_other": "{{count}} semanas"
+            "weeks_other": "{{count}} semanas",
+            "qualification": "Preguntas de calificación",
+            "answered_one": "{{count}} respuesta",
+            "answered_other": "{{count}} respuestas"
         },
         "timeline": {
             "created": "Lead creado desde {{origin}} con {{score}} puntos",
+            "qualification": "Respondió una pregunta de calificación en el chat",
+            "qualificationOut": "Una respuesta en el chat lo descalificó",
+            "routed_owner": "La IA lo pasó al dueño del negocio",
+            "routed_seller": "La IA lo pasó a un vendedor",
+            "routed_agent": "La IA sigue atendiéndolo",
+            "routed_web": "La IA le envió un enlace para seguir en la web",
             "intake": "Volvió a escribir ({{origin}})",
             "reopened": "Se reabrió el lead",
             "stage": "De «{{from}}» a «{{to}}»",

@@ -9,6 +9,7 @@ use App\Domain\Services\Leads\Brief\LeadBrief;
 use App\Domain\Services\Leads\Models\Lead;
 use App\Domain\Services\Leads\Models\LeadActivity;
 use App\Domain\Services\Leads\Models\LeadTask;
+use App\Domain\Services\Leads\Qualification\Qualification;
 use App\Domain\Services\Leads\Support\LeadFacts;
 use App\Domain\Services\Leads\Support\Pipelines;
 use App\Domain\Workspaces\Models\User;
@@ -87,6 +88,7 @@ final class LeadPresenter
             'owner' => $owner !== null ? ['id' => $owner->publicId(), 'name' => $owner->name] : null,
             'brief' => LeadBrief::present($l->brief),
             'brief_updated_at' => $l->brief_updated_at?->toIso8601String(),
+            'qualification' => Qualification::present($l->qualification),
             'can_open' => $canOpen,
         ];
     }
@@ -117,6 +119,7 @@ final class LeadPresenter
             ], $l->score_reasons ?? []),
             'brief' => LeadBrief::present($l->brief),
             'brief_updated_at' => $l->brief_updated_at?->toIso8601String(),
+            'qualification' => Qualification::present($l->qualification),
             'tasks' => LeadTask::query()->where('lead_id', $l->id)->orderByRaw("status = 'done'")->orderBy('due_at')->limit(20)->get()
                 ->map(fn (LeadTask $t) => LeadTaskController::present($t))->values()->all(),
             'offline_conversion_at' => $l->offline_conversion_at?->toIso8601String(),

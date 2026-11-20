@@ -11,10 +11,11 @@ import { Board } from './Board';
 import { KpisTab } from './KpisTab';
 import { LeadDrawer } from './LeadDrawer';
 import { LeadList } from './LeadList';
+import { QualificationTab } from './QualificationTab';
 import { SettingsTab } from './SettingsTab';
 import type { LeadFilters, Temperature } from './types';
 
-const TABS = ['tablero', 'lista', 'indicadores', 'ajustes'] as const;
+const TABS = ['tablero', 'lista', 'indicadores', 'calificacion', 'ajustes'] as const;
 type Tab = (typeof TABS)[number];
 
 export const CHANNELS = ['paid_google', 'paid_meta', 'paid_tiktok', 'ctwa', 'organic_search', 'organic_social', 'whatsapp', 'email', 'referral', 'direct', 'manual'];
@@ -25,7 +26,7 @@ export function LeadsPage() {
     const { workspace } = useWorkspace();
     const canManage = useCan('manageServices');
     const [params, setParams] = useSearchParams();
-    const tabs = TABS.filter((k) => canManage || k !== 'ajustes');
+    const tabs = TABS.filter((k) => canManage || (k !== 'ajustes' && k !== 'calificacion'));
     const raw = params.get('tab');
     const tab: Tab = (tabs as readonly string[]).includes(raw ?? '') ? (raw as Tab) : 'tablero';
     const set = (key: string, value: string | null) => {
@@ -79,6 +80,11 @@ export function LeadsPage() {
                 <TabsContent value="indicadores" className="igr:mt-3">
                     <KpisTab pipeline={filters.pipeline ?? ''} />
                 </TabsContent>
+                {canManage ? (
+                    <TabsContent value="calificacion" className="igr:mt-4">
+                        <QualificationTab />
+                    </TabsContent>
+                ) : null}
                 {canManage ? (
                     <TabsContent value="ajustes" className="igr:mt-4">
                         <SettingsTab />

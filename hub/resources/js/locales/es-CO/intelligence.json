@@ -36,7 +36,8 @@
             "lead_qualifier": "Calificar leads",
             "lead_brief": "Ficha de leads desde el chat",
             "lead_followup": "Seguimiento de leads",
-            "lead_funnel": "Embudo de leads del lunes"
+            "lead_funnel": "Embudo de leads del lunes",
+            "reactivation": "Reactivar con IA"
         },
         "usage": {
             "title": "Uso de IA este mes",

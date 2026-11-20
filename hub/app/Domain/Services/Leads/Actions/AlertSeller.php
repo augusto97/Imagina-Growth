@@ -27,17 +27,19 @@ use Throwable;
  * vendedor con la plantilla aprobada `team_alert` y el enlace al lead en el
  * panel; si no hay plantilla de WhatsApp, teléfono o el envío no sale, por correo.
  * Sin vendedor asignado va a los dueños por correo. Un aviso por lead y motivo.
+ * `qualified` es la derivación de las preguntas de calificación del chat al dueño o a
+ * un vendedor (Qualification): sale siempre, sin depender de los ajustes de avisos.
  * Corre con el espacio de trabajo activo.
  */
 final class AlertSeller
 {
     public function __construct(private readonly MessageDispatcher $dispatcher) {}
 
-    /** @param 'hot'|'new' $reason */
+    /** @param 'hot'|'new'|'qualified' $reason */
     public function handle(Workspace $workspace, Lead $lead, LeadSettings $settings, string $reason): ?string
     {
         $rules = $settings->alertRules();
-        if (! (bool) ($reason === 'hot' ? $rules['on_hot'] : $rules['on_new'])) {
+        if ($reason !== 'qualified' && ! (bool) ($reason === 'hot' ? $rules['on_hot'] : $rules['on_new'])) {
             return null;
         }
         if (LeadActivity::query()->where('lead_id', $lead->id)->where('kind', 'alert')->where('data->reason', $reason)->exists()) {
@@ -47,7 +49,11 @@ final class AlertSeller
         $text = LeadFacts::alertText($lead, $contact, $reason);
         $url = rtrim((string) config('app.url'), '/').'/w/'.$workspace->publicId().'/leads?lead='.$lead->publicId();
         $context = ['aviso' => [
-            'titulo' => $reason === 'hot' ? __('Lead caliente') : __('Lead nuevo'),
+            'titulo' => match ($reason) {
+                'hot' => __('Lead caliente'),
+                'qualified' => __('Lead calificado en el chat'),
+                default => __('Lead nuevo'),
+            },
             'resumen' => $text, 'detalle' => $text, 'texto' => $text, 'url' => $url,
         ]];
 

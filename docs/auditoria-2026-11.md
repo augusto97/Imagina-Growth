@@ -114,18 +114,34 @@ Casi todas tienen su base en Imagina Growth; lo que falta es que trabajen solas 
 |---|---|---|
 | 1. Responde al instante | Agente de ventas con IA en WhatsApp, Messenger e Instagram (modo `auto`) | ✅ (lote 3) WhatsApp, Messenger e Instagram con un clic (§6); faltan las apps de Meta reales |
 | 2. La ficha se completa sola | Intención del mensaje, lead por intención de compra, calificación con IA del formulario | ✅ (lote 3): la IA (`lead_brief`, en cola) llena qué necesita, cantidad, ciudad, zona, para cuándo, presupuesto y temperatura con la frase de origen, solo con lo que escribió el cliente y sin pisar lo editado; se ve en el chat y en el lead |
-| 3. Filtra a los curiosos | Reglas de asignación por intención, traspaso a humano, puntaje y aviso al vendedor «caliente» | Preguntas de calificación configurables y derivación dueño / vendedor / agente / web |
-| 4. Atiende el fin de semana | El agente agenda citas; página de reservas | Ofrecer horarios dentro del chat de WhatsApp de punta a punta |
+| 3. Filtra a los curiosos | Reglas de asignación por intención, traspaso a humano, puntaje y aviso al vendedor «caliente» | ✅ (lote 4): Leads → Calificación con preguntas por pipeline o servicio (opciones, sí o no, número o texto; obligatorias, puntos y qué descalifica); el agente las hace en el chat y guarda cada respuesta en la ficha con la frase del cliente (lo que no escribió se rechaza); al completar o descalificar deriva por reglas de respuesta y puntaje al dueño, a un vendedor (reglas de asignación, con aviso y traspaso), sigue la IA o envía a la web (catálogo, cotizador, reservas u otra página) |
+| 4. Atiende el fin de semana | El agente agenda citas; página de reservas | ✅ (lote 4): el agente ofrece horarios libres de la agenda como botones o lista de WhatsApp (dentro de las 24 h, límites de Meta verificados); el toque del cliente agenda sin cruces en la zona del negocio, confirma en el chat y deja la cita en el lead y en Google Calendar; mover y cancelar también por toque (cancelar pide confirmar). Antes, la herramienta de agendar del agente no estaba conectada |
 | 5. El seguimiento sale solo | Flujo 18 de seguimiento de leads | ✅ (lote 3): el flujo 18 sigue los días 2, 10, 20 y 40 con el nodo «Seguimiento con IA» (texto en la ventana, plantilla fuera, correo de respaldo); sale si el cliente responde o el lead cambia de etapa |
 | 6. Asistente del vendedor | Aviso al vendedor por WhatsApp | ✅ (lote 3): «Hoy» (`/hoy`) con respuestas pendientes, calientes sin contactar, tareas, próximos pasos y leads quietos; mensaje sugerido por la IA, envío con un clic por el despachador, hecho y posponer; resumen matutino opcional al vendedor por WhatsApp o correo |
-| 7. Despierta la base dormida | RFM, flujos de reactivación y campañas con copiloto | Mensaje personalizado según lo último que habló cada contacto; solo a quien dio consentimiento y en horario legal |
+| 7. Despierta la base dormida | RFM, flujos de reactivación y campañas con copiloto | ✅ (lote 4): nodo de flujo «Reactivar con IA» que escribe según la última conversación y las compras, con cifras, enlaces y ofertas validadas; revisa SendPolicy antes de llamar a la IA (consentimiento del canal, horario legal y frecuencia); fuera de la ventana de 24 h solo en una plantilla de marketing aprobada, con el texto en su variable. Como opción de campaña no: se usa con un flujo que inscribe un segmento |
 | 8. Postventa y recompra | Pedido de reseña (también de Google), NPS, predicción de próxima compra | — |
 | 9. El dueño ve todo | Informe semanal con IA y hallazgos 21–23 de leads | ✅ (lote 3): embudo del lunes por pipeline (llegaron a cada etapa y pasaron a la siguiente frente a la semana anterior), dónde se cae (90 días), motivos de pérdida, quietos por etapa y antigüedad y primera respuesta; en el informe semanal y en Leads → Indicadores, con conclusión de IA validada |
 
 **Decisión propuesta:** terminar la estabilización y después hacer un bloque «ARM» con las brechas de las funciones
 2, 5, 6 y 9, que reutilizan el agente, los flujos, los leads y el informe semanal. **Hecho en el lote 3** (las cuatro funciones; ver
 modulos.md M09 y M18): la ficha desde el chat, el seguimiento con IA del flujo 18, «Hoy» con los nodos `crm_task`,
-`assign_agent` y `lead_stage` (y el resumen matutino opcional), y el embudo del lunes. La diferencia frente a un ARM
+`assign_agent` y `lead_stage` (y el resumen matutino opcional), y el embudo del lunes. **Hecho en el lote 4** (funciones 3, 4 y
+7; ver modulos.md M09, M11 y M18): las preguntas de calificación con derivación, la agenda dentro del chat de WhatsApp y el
+nodo «Reactivar con IA».
+
+**Verificado en la documentación oficial de Meta (20 nov 2026) para el lote 4:** listas interactivas con hasta 10
+secciones y 10 filas en total, título de fila y de sección de 24, descripción de 72, botón de 20 y cuerpo de 4.096
+([listas](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/interactive-list-messages));
+botones de respuesta hasta 3, título de 20 (únicos), ID de 256 y cuerpo de 1.024
+([botones](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/interactive-reply-buttons-messages));
+los dos son mensajes de servicio, solo dentro de la ventana de 24 h, y fuera de ella solo salen plantillas aprobadas
+([enviar mensajes](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages),
+[plantillas](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/overview)). En las
+plantillas de marketing lo que cambia por persona son los parámetros del cuerpo (posicionales o con nombre, con ejemplo al
+crearla; cuerpo hasta 1.024) ([marketing](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/marketing-templates/custom-marketing-templates/),
+[componentes](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/components)); que un
+parámetro no lleve saltos de línea, tabulaciones ni más de 4 espacios seguidos lo dicen proveedores y errores de la API,
+no esas páginas **[verificar]**, y el hub ya lo cumple (`WhatsAppComponents`). La diferencia frente a un ARM
 genérico: todo respeta consentimiento, ventana de 24 h y horarios legales de cada país (CLAUDE.md §3.5), y cada venta
 cerrada sale atribuida en el dinero generado.
 
