@@ -70,7 +70,12 @@ it('la caché usa su propia instancia de Redis si se configura, y la de las cola
 
         return [$config['redis']['default'], $config['redis']['cache']];
     };
-    $before = ['REDIS_HOST' => getenv('REDIS_HOST'), 'REDIS_PORT' => getenv('REDIS_PORT')];
+    // Se guarda todo lo que la prueba toca (getenv, $_ENV y $_SERVER): env() lee primero $_SERVER y $_ENV, y si ahí
+    // quedaran REDIS_HOST=10.0.0.5 y REDIS_PORT=6390, las pruebas que siguen en el mismo proceso no encontrarían Redis.
+    $before = [];
+    foreach (['REDIS_HOST', 'REDIS_PORT', 'REDIS_PASSWORD', 'REDIS_CACHE_HOST', 'REDIS_CACHE_PORT', 'REDIS_CACHE_PASSWORD'] as $k) {
+        $before[$k] = ['env' => getenv($k), 'env_array' => $_ENV[$k] ?? null, 'server' => $_SERVER[$k] ?? null];
+    }
 
     [$default, $cache] = $resolve(['REDIS_HOST' => '127.0.0.1', 'REDIS_PORT' => '6379', 'REDIS_CACHE_HOST' => '127.0.0.1', 'REDIS_CACHE_PORT' => '6380', 'REDIS_CACHE_PASSWORD' => 'c-secret']);
     expect($default['port'])->toBe('6379')->and($cache['port'])->toBe('6380')->and($cache['password'])->toBe('c-secret');
@@ -79,6 +84,16 @@ it('la caché usa su propia instancia de Redis si se configura, y la de las cola
     expect($cache['host'])->toBe('10.0.0.5')->and($cache['port'])->toBe('6390')->and($cache['password'])->toBe('q-secret');
 
     foreach ($before as $k => $v) {
-        $v === false ? putenv($k) : putenv("{$k}={$v}");
+        $v['env'] === false ? putenv($k) : putenv("{$k}={$v['env']}");
+        if ($v['env_array'] === null) {
+            unset($_ENV[$k]);
+        } else {
+            $_ENV[$k] = $v['env_array'];
+        }
+        if ($v['server'] === null) {
+            unset($_SERVER[$k]);
+        } else {
+            $_SERVER[$k] = $v['server'];
+        }
     }
 });
