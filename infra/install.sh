@@ -327,8 +327,10 @@ PHP_BIN=/usr/bin/php-zts
 ln -sfn "$PHP_BIN" /usr/local/bin/growth-php
 put_file "$TPL/config/php/90-growth.ini" /etc/php-zts/conf.d/90-growth.ini || true
 missing=""
+# La lista se lee una sola vez: «php -m | grep -q» con pipefail falla al azar (grep termina antes y PHP recibe SIGPIPE).
+PHP_MODULES=$(growth-php -m)
 for ext in pdo_mysql redis intl zip pcntl 'Zend OPcache' sockets gd exif gmp bcmath sodium; do
-    growth-php -m | grep -qx "$ext" || missing="$missing $ext"
+    grep -qx "$ext" <<<"$PHP_MODULES" || missing="$missing $ext"
 done
 [ -z "$missing" ] || die "Faltan extensiones de PHP:$missing"
 info "$(growth-php -v | head -1)"
