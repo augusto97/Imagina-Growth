@@ -34,8 +34,13 @@ final class SavePlan
     public function update(Plan $plan, array $data, ?User $actor): Plan
     {
         $plan->fill($this->attributes($data))->save();
-        foreach (Account::query()->where('plan_id', $plan->id)->get() as $account) {
-            $this->plans->refreshAccount($account);
+        if ($plan->id === PlanCatalog::defaultPlanId() || $plan->id === PlanCatalog::platformPlanId()) {
+            // El plan por defecto rige también a las cuentas sin plan: se olvidan los módulos de todos.
+            $this->plans->refreshAll();
+        } else {
+            foreach (Account::query()->where('plan_id', $plan->id)->get() as $account) {
+                $this->plans->refreshAccount($account);
+            }
         }
         $this->audit->handle('platform.plan_updated', $plan, ['id' => $plan->id, 'changes' => array_keys($plan->getChanges())], null, null, $actor?->id);
 

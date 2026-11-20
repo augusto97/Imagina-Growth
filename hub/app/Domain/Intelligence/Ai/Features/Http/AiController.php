@@ -50,7 +50,8 @@ final class AiController
             'available' => $ai->available($ws->id),
             'configured' => (bool) config('igr-ai.enabled') && (string) config('igr-ai.api_key') !== '',
             'spent_usd' => round($meter->spentThisMonth($ws->id), 6),
-            'budget_usd' => (float) config('igr-ai.monthly_budget_usd'),
+            // El tope del plan (S3), no el de la configuración: sin plan rige el plan gratuito.
+            'budget_usd' => $meter->budget($ws->id),
             'features' => $rows->map(fn (object $r) => [
                 'feature' => (string) $r->feature, 'requests' => (int) $r->requests, 'tokens_in' => (int) $r->tokens_in,
                 'tokens_out' => (int) $r->tokens_out, 'cost_usd' => round((float) $r->cost_usd, 6),

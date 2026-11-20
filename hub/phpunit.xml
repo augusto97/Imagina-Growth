@@ -32,6 +32,8 @@
         <env name="IGR_BLIND_INDEX_KEY" value="base64:q4G6cQ4v8m1y2C7bq0aJYw1Zr3bQwJYk7R0x2y9u6pE="/>
         <env name="IGR_REQUIRE_2FA" value="true"/>
         <env name="IGR_INGEST_SHARDS" value="2"/>
+        <!-- Las pruebas antiguas asumen «sin plan = todo»; las del plan por defecto (S3) fijan diagnostico. -->
+        <env name="IGR_DEFAULT_PLAN" value="none"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

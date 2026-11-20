@@ -48,6 +48,16 @@ it('valida el grafo: disparador único, todo conectado, ciclos con espera, ramas
     expect(implode(' ', flowGraphErrors($this, $util)['u']))->toContain('por qué este mensaje no es de marketing');
 });
 
+it('el paso de webhook solo acepta HTTPS públicas (S5)', function () {
+    config(['igr.webhooks.allow_private_urls' => false]);
+    $graph = fn (string $url) => ['nodes' => [['id' => 'trigger', 'type' => 'trigger', 'config' => []], ['id' => 'w', 'type' => 'webhook', 'config' => ['url' => $url]]],
+        'edges' => [['from' => 'trigger', 'to' => 'w']]];
+    foreach (['https://10.0.0.1/hook', 'https://[::1]/hook', 'https://169.254.169.254/latest', 'https://intranet.local/hook'] as $url) {
+        expect(flowGraphErrors($this, $graph($url)))->toHaveKey('w');
+    }
+    expect(flowGraphErrors($this, $graph('https://hooks.ejemplo.com/igr')))->toBe([]);
+});
+
 it('todos los flujos listos de la biblioteca son válidos con las plantillas de M08', function () {
     $available = array_filter(FlowLibrary::all(), fn ($f) => $f['graph'] !== null);
     $modules = array_column(array_filter(FlowLibrary::all(), fn ($f) => $f['module'] !== null), 'module', 'key');

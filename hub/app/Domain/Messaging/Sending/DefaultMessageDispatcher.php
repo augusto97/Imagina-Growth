@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Messaging\Sending;
 
 use App\Domain\Billing\Contracts\Entitlements;
+use App\Domain\Billing\Support\PlatformSending;
 use App\Domain\Consent\Policy\PolicyDecision;
 use App\Domain\Consent\Policy\PolicyRequest;
 use App\Domain\Consent\Policy\SendPolicy;
@@ -82,6 +83,10 @@ final class DefaultMessageDispatcher implements MessageDispatcher
             : ChannelAccount::defaultFor($message->channel);
         if ($account === null || $account->channel !== $message->channel) {
             return DispatchResult::denied(PolicyDecision::CHANNEL_UNAVAILABLE);
+        }
+        // El correo por la cuenta de SES de la plataforma solo con un plan que lo incluya (S3).
+        if ($account->provider === 'ses' && ! PlatformSending::emailAllowed($workspace)) {
+            return DispatchResult::denied(PlatformSending::DENIED);
         }
         $to = $this->recipient($message, $contact, $workspace, $account);
         if ($to === null) {

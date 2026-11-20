@@ -20,7 +20,7 @@
             "usage": "Uso del mes",
             "invoices": "Facturas abiertas",
             "actions": "Acciones",
-            "noPlan": "Sin plan",
+            "noPlan": "Sin plan (rige el plan gratuito)",
             "internal": "interno",
             "graceUntil": "Gracia hasta el {{date}}",
             "overdue_one": "{{count}} vencida",

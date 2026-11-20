@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Domain\Webhooks\Actions;
 
 use App\Domain\Webhooks\Models\WebhookSubscription;
-use App\Domain\Webhooks\Support\SafeUrl;
 use App\Domain\Webhooks\Support\SubscriptionIndex;
 use App\Domain\Webhooks\Support\WebhookEvents;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
+use App\Support\Net\SafeUrl;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 

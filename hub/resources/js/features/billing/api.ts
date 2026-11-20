@@ -64,6 +64,7 @@ export interface BillingOverview {
         trial_ends_at: string | null;
     };
     plan: PlanInfo | null;
+    plan_source: 'assigned' | 'default' | 'unrestricted';
     usage: Usage;
     modules: { key: string; enabled: boolean; in_plan: boolean }[];
     plans: PlanInfo[];

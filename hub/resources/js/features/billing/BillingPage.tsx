@@ -152,11 +152,14 @@ function PlanCard({ data }: { data: BillingOverview }) {
                             <span className="igr:text-muted-foreground"> {t('billing.plan.perMonth')}</span>
                         </p>
                         <p className="igr:text-muted-foreground">
-                            {t(`billing.plan.included_${plan.metric}`, {
-                                count: plan.included,
-                                n: formatNumber(plan.included, workspace.locale),
-                            })}
+                            {plan.included > 0
+                                ? t(`billing.plan.included_${plan.metric}`, {
+                                      count: plan.included,
+                                      n: formatNumber(plan.included, workspace.locale),
+                                  })
+                                : t(`billing.plan.unlimited_${plan.metric}`)}
                         </p>
+                        {data.plan_source === 'default' ? <p className="igr:text-muted-foreground">{t('billing.plan.defaultHelp')}</p> : null}
                     </>
                 ) : (
                     <p className="igr:text-muted-foreground">{t('billing.plan.noneHelp')}</p>

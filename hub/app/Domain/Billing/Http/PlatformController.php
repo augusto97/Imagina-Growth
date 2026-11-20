@@ -55,6 +55,8 @@ final class PlatformController
 
             return [
                 'id' => $account->publicId(), 'name' => $account->name, 'type' => $account->type->value, 'plan_id' => $account->plan_id,
+                // Sin plan asignado rige el plan por defecto (S3).
+                'effective_plan_id' => $account->plan_id ?: PlanCatalog::defaultPlanId(),
                 'billing_status' => (string) ($b->billing_status ?? BillingStatus::ACTIVE),
                 'grace_ends_at' => isset($b->grace_ends_at) ? CarbonImmutable::parse((string) $b->grace_ends_at)->toIso8601String() : null,
                 'open_invoices' => (int) ($inv->open_count ?? 0), 'overdue_invoices' => (int) ($inv->overdue ?? 0),

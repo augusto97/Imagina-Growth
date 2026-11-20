@@ -9,8 +9,9 @@ use App\Domain\Flows\Engine\Outcome;
 use App\Domain\Flows\Engine\RunState;
 use App\Domain\Flows\Support\FlowSecrets;
 use App\Support\Hmac\Signature;
+use App\Support\Net\SafeHttp;
+use App\Support\Net\UnsafeUrl;
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Support\Facades\Http;
 
 /**
  * Webhook saliente firmado (`X-IGR-Signature: t=…,v1=…`, como api-connector.md
@@ -33,12 +34,19 @@ final class WebhookHandler implements NodeHandler
             'data' => $state->run->context['props'] ?? (object) [],
             'sent_at' => $state->now->toIso8601String(),
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $url = (string) ($node['config']['url'] ?? '');
         try {
-            $response = Http::timeout(5)->withHeaders([
+            // Solo HTTPS públicas, con el DNS resuelto al enviar y sin redirecciones (S5).
+            $request = SafeHttp::for($url);
+        } catch (UnsafeUrl $e) {
+            return Outcome::next('failed', 'failed', ['reason' => $e->reason], fallback: true);
+        }
+        try {
+            $response = $request->timeout(5)->withHeaders([
                 'Content-Type' => 'application/json',
                 'X-IGR-Signature' => Signature::sign(FlowSecrets::webhookSecret($state->flow), $body),
                 'X-IGR-Delivery' => $state->idempotencyKey($node['id']),
-            ])->withBody($body, 'application/json')->post((string) ($node['config']['url'] ?? ''));
+            ])->withBody($body, 'application/json')->post($url);
         } catch (ConnectionException $e) {
             return Outcome::next('failed', 'failed', ['reason' => 'connection', 'error' => mb_substr($e->getMessage(), 0, 200)], fallback: true);
         }

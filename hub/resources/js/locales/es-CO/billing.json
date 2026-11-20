@@ -34,7 +34,10 @@
             "included_orders_one": "{{n}} pedido al mes incluido",
             "included_orders_other": "{{n}} pedidos al mes incluidos",
             "included_contacts_one": "{{n}} contacto activo al mes incluido",
-            "included_contacts_other": "{{n}} contactos activos al mes incluidos"
+            "included_contacts_other": "{{n}} contactos activos al mes incluidos",
+            "unlimited_orders": "Sin tope de pedidos al mes",
+            "unlimited_contacts": "Sin tope de contactos al mes",
+            "defaultHelp": "Es el plan gratuito con el que empieza toda cuenta: analítica, segmentos, RFM y hallazgos. Elige un plan para enviar correos y mensajes desde la plataforma y activar más módulos."
         },
         "usage": {
             "title": "Uso de este mes",
