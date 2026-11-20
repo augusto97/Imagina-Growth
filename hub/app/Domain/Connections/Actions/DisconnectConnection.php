@@ -27,7 +27,7 @@ final class DisconnectConnection
 
     public function handle(OAuthConnection $connection, bool $revokeRemote = true): void
     {
-        if ($revokeRemote && $connection->secret('access_token') !== null) {
+        if ($revokeRemote && $connection->secret('access_token') !== null && ! $this->sharedGrant($connection)) {
             try {
                 $this->providers->for($connection->provider)->revoke($connection);
             } catch (ConnectionError $e) {
@@ -67,5 +67,23 @@ final class DisconnectConnection
         });
 
         $this->audit->handle('connection.disconnected', $connection, ['provider' => $connection->provider->value], $connection->workspace_id);
+    }
+
+    /**
+     * ¿Otra conexión activa usa el mismo permiso en el proveedor? Revocar en Google quita el acceso de esa cuenta a todo
+     * el proyecto (https://developers.google.com/identity/protocols/oauth2/web-server#tokenrevoke), y en Meta el permiso es
+     * del mismo usuario del sistema o de la misma WABA: si una agencia conectó la misma cuenta en dos espacios de
+     * trabajo (o la misma persona conectó su calendario), revocar aquí rompería la otra. Solo se borra en el hub.
+     */
+    private function sharedGrant(OAuthConnection $connection): bool
+    {
+        $others = OAuthConnection::withoutWorkspaceScope()->where('provider', $connection->provider->value)
+            ->where('status', OAuthConnection::ACTIVE)->whereKeyNot($connection->id);
+
+        return match (true) {
+            str_starts_with($connection->subject, 'waba:') => $others->where('subject', $connection->subject)->exists(),
+            $connection->external_id !== null && $connection->external_id !== '' => $others->where('external_id', $connection->external_id)->exists(),
+            default => false,
+        };
     }
 }

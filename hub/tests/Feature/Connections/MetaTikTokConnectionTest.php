@@ -23,7 +23,7 @@ beforeEach(function () {
     $this->setUpConnections();
 });
 
-function connectMeta(object $test): OAuthConnection
+function connectMetaLogin(object $test): OAuthConnection
 {
     Http::fake([
         'graph.test/v27.0/oauth/access_token*' => Http::response(['access_token' => 'EAAsys-usuario-sistema', 'token_type' => 'bearer']),
@@ -45,7 +45,7 @@ function connectMeta(object $test): OAuthConnection
 }
 
 it('Meta: Login for Business, elige el conjunto de datos y la cuenta, y la Conversions API usa el token de la conexión', function () {
-    $connection = connectMeta($this);
+    $connection = connectMetaLogin($this);
     expect($connection->account_name)->toBe('Pinturas La 14 SAS')->and($connection->expires_at)->toBeNull()
         ->and($connection->asset('granted'))->toMatchArray(['ads_management' => ['998877']]);
 
@@ -85,7 +85,7 @@ it('Meta: Login for Business, elige el conjunto de datos y la cuenta, y la Conve
 });
 
 it('Meta: conecta Messenger e Instagram de una página autorizada con su token de página', function () {
-    $connection = connectMeta($this);
+    $connection = connectMetaLogin($this);
     Http::fake([
         'graph.test/v27.0/5555555/subscribed_apps' => Http::response(['success' => true]),
         'graph.test/v27.0/5555555*' => Http::response(['id' => '5555555', 'name' => 'Pinturas La 14', 'access_token' => 'EAApagina', 'instagram_business_account' => ['id' => '17840001', 'username' => 'pinturasla14']]),
@@ -116,7 +116,7 @@ it('Meta: conecta Messenger e Instagram de una página autorizada con su token d
 });
 
 it('Meta: un token revocado se detecta al revisar y la conexión queda vencida', function () {
-    $connection = connectMeta($this);
+    $connection = connectMetaLogin($this);
     $this->refake(['graph.test/v27.0/debug_token*' => Http::response(['data' => ['app_id' => '1234', 'is_valid' => false, 'error' => ['code' => 190, 'message' => 'Error validating access token']]])]);
     $this->actingAs($this->owner)->postJson("{$this->api}/connections/{$connection->publicId()}/check")->assertUnprocessable()->assertJsonPath('reason', 'expired');
     expect($connection->fresh()?->status)->toBe('expired');

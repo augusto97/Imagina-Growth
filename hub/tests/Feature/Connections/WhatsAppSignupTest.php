@@ -23,7 +23,7 @@ beforeEach(function () {
 });
 
 /** @param list<array<string, mixed>> $phones */
-function fakeMeta(object $test, array $phones, array $granular = ['whatsapp_business_management' => ['333333'], 'whatsapp_business_messaging' => ['333333']], string $appId = '1234'): void
+function waSignupFakes(object $test, array $phones, array $granular = ['whatsapp_business_management' => ['333333'], 'whatsapp_business_messaging' => ['333333']], string $appId = '1234'): void
 {
     Http::fake([
         'graph.test/v27.0/oauth/access_token*' => Http::response(['access_token' => 'EAAbiz-negocio', 'token_type' => 'bearer']),
@@ -40,7 +40,7 @@ function fakeMeta(object $test, array $phones, array $granular = ['whatsapp_busi
     ]);
 }
 
-function phone(string $id, bool $coexistence = false): array
+function waPhone(string $id, bool $coexistence = false): array
 {
     return ['id' => $id, 'display_phone_number' => '+57 301 '.$id, 'verified_name' => 'Pinturas La 14', 'quality_rating' => 'GREEN', 'is_on_biz_app' => $coexistence, 'platform_type' => 'CLOUD_API'];
 }
@@ -55,7 +55,7 @@ it('entrega a la SPA el state y los datos públicos de la ventana de Meta (Embed
 });
 
 it('FINISH: canjea el código, revisa el token, suscribe la app, registra el número y sincroniza las plantillas', function () {
-    fakeMeta($this, [phone('444444')]);
+    waSignupFakes($this, [waPhone('444444')]);
     $state = $this->actingAs($this->owner)->postJson("{$this->api}/connections/meta_whatsapp/start")->json('state');
     $body = ['state' => $state, 'code' => 'AQB-codigo', 'event' => 'FINISH', 'waba_id' => '333333', 'phone_number_id' => '444444', 'business_id' => '999111'];
 
@@ -83,7 +83,7 @@ it('FINISH: canjea el código, revisa el token, suscribe la app, registra el nú
 });
 
 it('coexistencia: el número sigue en la app de WhatsApp Business, no se registra y se piden los contactos y el historial', function () {
-    fakeMeta($this, [phone('444444', true)]);
+    waSignupFakes($this, [waPhone('444444', true)]);
     $state = $this->actingAs($this->owner)->postJson("{$this->api}/connections/meta_whatsapp/start")->json('state');
     $res = $this->actingAs($this->owner)->postJson("{$this->api}/connections/meta_whatsapp/complete", [
         'state' => $state, 'code' => 'AQB', 'event' => 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING', 'waba_id' => '333333',
@@ -99,7 +99,7 @@ it('coexistencia: el número sigue en la app de WhatsApp Business, no se registr
 });
 
 it('varios números: devuelve la lista y conecta el que la persona elige', function () {
-    fakeMeta($this, [phone('444444'), phone('444445')]);
+    waSignupFakes($this, [waPhone('444444'), waPhone('444445')]);
     $state = $this->actingAs($this->owner)->postJson("{$this->api}/connections/meta_whatsapp/start")->json('state');
     $res = $this->actingAs($this->owner)->postJson("{$this->api}/connections/meta_whatsapp/complete", ['state' => $state, 'code' => 'AQB', 'event' => 'FINISH', 'waba_id' => '333333'])->assertOk();
     expect($res->json('data'))->toBeNull()->and($res->json('phones'))->toHaveCount(2);
@@ -110,7 +110,7 @@ it('varios números: devuelve la lista y conecta el que la persona elige', funct
 });
 
 it('si Meta no activa el número queda en error con el motivo, y se puede reintentar', function () {
-    fakeMeta($this, [phone('444444')]);
+    waSignupFakes($this, [waPhone('444444')]);
     $this->refake([
         'graph.test/v27.0/444444/register' => Http::sequence()
             ->push(['error' => ['message' => 'Two step verification PIN mismatch', 'code' => 133005]], 400)
@@ -119,7 +119,7 @@ it('si Meta no activa el número queda en error con el motivo, y se puede reinte
         'graph.test/v27.0/debug_token*' => Http::response($this->debugToken(['whatsapp_business_management', 'whatsapp_business_messaging'], ['whatsapp_business_management' => ['333333']])),
         'graph.test/v27.0/me?*' => Http::response(['id' => '777', 'name' => 'Pinturas']),
         'graph.test/v27.0/333333/subscribed_apps' => Http::response(['success' => true]),
-        'graph.test/v27.0/333333/phone_numbers*' => Http::response(['data' => [phone('444444')]]),
+        'graph.test/v27.0/333333/phone_numbers*' => Http::response(['data' => [waPhone('444444')]]),
         'graph.test/v27.0/333333/message_templates*' => Http::response(['data' => []]),
         'graph.test/v27.0/444444*' => Http::response(['display_phone_number' => '+57 301 4444444', 'verified_name' => 'Pinturas', 'quality_rating' => 'GREEN', 'messaging_limit_tier' => 'TIER_1K']),
     ]);
@@ -139,7 +139,7 @@ it('rechaza una cuenta de WhatsApp que no se autorizó, permisos incompletos y t
     $start = fn () => $this->actingAs($this->owner)->postJson("{$this->api}/connections/meta_whatsapp/start")->json('state');
     $body = fn () => ['state' => $start(), 'code' => 'AQB', 'event' => 'FINISH', 'waba_id' => '333333', 'phone_number_id' => '444444'];
 
-    fakeMeta($this, [phone('444444')], ['whatsapp_business_management' => ['888888'], 'whatsapp_business_messaging' => ['888888']]);
+    waSignupFakes($this, [waPhone('444444')], ['whatsapp_business_management' => ['888888'], 'whatsapp_business_messaging' => ['888888']]);
     $this->actingAs($this->owner)->postJson("{$this->api}/connections/meta_whatsapp/complete", $body())->assertUnprocessable()->assertJsonPath('reason', 'asset');
 
     $this->refake(['graph.test/v27.0/oauth/access_token*' => Http::response(['access_token' => 'EAA']), 'graph.test/v27.0/debug_token*' => Http::response($this->debugToken(['whatsapp_business_management'])), 'graph.test/v27.0/me?*' => Http::response(['name' => 'x'])]);
@@ -169,7 +169,7 @@ it('cancelar o un error en la ventana queda en la auditoría y el state no se pu
 });
 
 it('el state de un espacio de trabajo no sirve en otro', function () {
-    fakeMeta($this, [phone('444444')]);
+    waSignupFakes($this, [waPhone('444444')]);
     $state = $this->actingAs($this->owner)->postJson("{$this->api}/connections/meta_whatsapp/start")->json('state');
     $wsB = $this->workspaceFor($this->owner, 'Otra tienda');
     $this->actingAs($this->owner)->postJson("/api/w/{$wsB->publicId()}/connections/meta_whatsapp/complete", ['state' => $state, 'code' => 'AQB', 'event' => 'FINISH', 'waba_id' => '333333'])
@@ -178,7 +178,7 @@ it('el state de un espacio de trabajo no sirve en otro', function () {
 });
 
 it('desconectar el canal revoca la conexión de WhatsApp y deja de recibir sus webhooks', function () {
-    fakeMeta($this, [phone('444444')]);
+    waSignupFakes($this, [waPhone('444444')]);
     $state = $this->actingAs($this->owner)->postJson("{$this->api}/connections/meta_whatsapp/start")->json('state');
     $id = $this->actingAs($this->owner)->postJson("{$this->api}/connections/meta_whatsapp/complete", ['state' => $state, 'code' => 'AQB', 'event' => 'FINISH', 'waba_id' => '333333'])->assertCreated()->json('data.id');
     $this->refake(['graph.test/v27.0/333333/subscribed_apps' => Http::response(['success' => true])]);

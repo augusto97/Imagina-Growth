@@ -25,7 +25,7 @@ beforeEach(function () {
     $this->setUpConnections();
 });
 
-function googleConnection(): OAuthConnection
+function googleWorkspaceConnection(): OAuthConnection
 {
     return OAuthConnection::withoutWorkspaceScope()->where('provider', 'google')->where('subject', '')->firstOrFail();
 }
@@ -44,7 +44,7 @@ it('autoriza con state y PKCE, guarda los tokens cifrados y vuelve al panel sin 
         ->and($q['scope'])->toContain('https://www.googleapis.com/auth/datamanager')->toContain('https://www.googleapis.com/auth/adwords')->toContain('https://www.googleapis.com/auth/analytics.edit');
 
     $location = (string) $this->actingAs($this->owner)->get('/oauth/google/callback?'.http_build_query(['state' => $q['state'], 'code' => '4/c0de', 'scope' => 'x']))->assertRedirect()->headers->get('Location');
-    $connection = googleConnection();
+    $connection = googleWorkspaceConnection();
     expect($location)->toBe("https://growth.test/w/{$this->ws->publicId()}/medicion?conexion=google&estado=ok&id={$connection->publicId()}")
         ->and($location)->not->toContain('c0de')->not->toContain('ya29');
 
@@ -132,7 +132,7 @@ it('solo dueño y administración conectan; el resto ve el estado', function () 
 
 it('elige la cuenta de Ads y el flujo de Analytics, crea el secreto del Measurement Protocol y Data Manager usa la conexión', function () {
     $this->connectGoogle();
-    $c = googleConnection();
+    $c = googleWorkspaceConnection();
     Http::fake([
         'googleads.googleapis.com/v26/customers:listAccessibleCustomers' => Http::response(['resourceNames' => ['customers/1234567890', 'customers/5550001111']]),
         'googleads.googleapis.com/v26/customers/1234567890/googleAds:search' => Http::sequence()
@@ -173,7 +173,7 @@ it('elige la cuenta de Ads y el flujo de Analytics, crea el secreto del Measurem
 
 it('el token vencido se renueva solo (una vez) y si Google lo revocó la conexión queda vencida con el aviso', function () {
     $this->connectGoogle();
-    $destination = $this->destination($this->ws, Platform::Google, ['config' => ['ads_customer_id' => '1234567890', 'conversion_action_purchase' => '555'], 'oauth_connection_id' => googleConnection()->id]);
+    $destination = $this->destination($this->ws, Platform::Google, ['config' => ['ads_customer_id' => '1234567890', 'conversion_action_purchase' => '555'], 'oauth_connection_id' => googleWorkspaceConnection()->id]);
     $tokens = app(GoogleAccessToken::class);
     expect($tokens->for($destination))->toBe('ya29.primero');
 
@@ -182,17 +182,17 @@ it('el token vencido se renueva solo (una vez) y si Google lo revocó la conexi�
     expect($tokens->for($destination->fresh()))->toBe('ya29.segundo')->and($tokens->for($destination->fresh()))->toBe('ya29.segundo');
     Http::assertSentCount(1);
     Http::assertSent(fn (Request $r) => $r['grant_type'] === 'refresh_token' && $r['refresh_token'] === 'rt-google' && $r['client_id'] === 'google-client');
-    expect(googleConnection()->secret('refresh_token'))->toBe('rt-google')->and(googleConnection()->refreshed_at)->not->toBeNull();
+    expect(googleWorkspaceConnection()->secret('refresh_token'))->toBe('rt-google')->and(googleWorkspaceConnection()->refreshed_at)->not->toBeNull();
 
     $this->travel(2)->hours();
     $this->refake(['oauth2.googleapis.com/token' => Http::response(['error' => 'invalid_grant', 'error_description' => 'Token has been expired or revoked.'], 400)]);
     expect(fn () => $tokens->for($destination->fresh()))->toThrow(RuntimeException::class, 'Vuelve a conectarla');
-    expect(googleConnection()->status)->toBe('expired')->and(googleConnection()->last_error)->toContain('Vuelve a conectarla');
+    expect(googleWorkspaceConnection()->status)->toBe('expired')->and(googleWorkspaceConnection()->last_error)->toContain('Vuelve a conectarla');
 });
 
 it('desconectar revoca en Google, borra los tokens y el destino sin datos a mano queda en pausa', function () {
     $this->connectGoogle();
-    $c = googleConnection();
+    $c = googleWorkspaceConnection();
     $destination = $this->destination($this->ws, Platform::Google, ['config' => ['ads_customer_id' => '1234567890'], 'oauth_connection_id' => $c->id]);
     Http::fake(['oauth2.googleapis.com/revoke' => Http::response([])]);
 
@@ -210,12 +210,12 @@ it('la revisión diaria marca vencida la conexión que Google ya no renueva', fu
     $this->connectGoogle();
     $this->refake(['oauth2.googleapis.com/token' => Http::response(['error' => 'invalid_grant'], 400)]);
     $this->artisan('igr:connections:check')->assertSuccessful();
-    expect(googleConnection()->status)->toBe('expired')->and(googleConnection()->checked_at)->not->toBeNull();
+    expect(googleWorkspaceConnection()->status)->toBe('expired')->and(googleWorkspaceConnection()->checked_at)->not->toBeNull();
 });
 
 it('una conexión de otro espacio de trabajo no se ve, no se usa y no presta sus tokens', function () {
     $this->connectGoogle();
-    $mine = googleConnection();
+    $mine = googleWorkspaceConnection();
     $other = $this->userWith2fa();
     $wsB = $this->workspaceFor($other, 'Ferretería B');
     $apiB = "/api/w/{$wsB->publicId()}";
@@ -232,4 +232,20 @@ it('una conexión de otro espacio de trabajo no se ve, no se usa y no presta sus
     $meta = $this->destination($wsB, Platform::Meta, ['config' => ['dataset_id' => '1'], 'oauth_connection_id' => $mine->id]);
     expect($meta->credential('access_token'))->toBeNull();
     expect($mine->fresh()?->status)->toBe('active');
+});
+
+it('si la misma cuenta de Google está conectada en otro espacio de trabajo, desconectar aquí no la revoca en Google', function () {
+    $this->connectGoogle();
+    $mine = googleWorkspaceConnection();
+    // La misma persona (mismo `sub` de Google) conectó también otra tienda de la agencia.
+    $wsB = $this->workspaceFor($this->owner, 'Otra tienda');
+    $this->api = "/api/w/{$wsB->publicId()}";
+    $this->connectGoogle();
+    $this->api = "/api/w/{$this->ws->publicId()}";
+
+    $this->refake(['oauth2.googleapis.com/revoke' => Http::response([])]);
+    $this->actingAs($this->owner)->deleteJson("{$this->api}/connections/{$mine->publicId()}")->assertOk();
+    Http::assertNotSent(fn (Request $r) => str_contains($r->url(), 'revoke'));
+    expect($mine->fresh()?->status)->toBe('revoked')
+        ->and(OAuthConnection::withoutWorkspaceScope()->where('workspace_id', $wsB->id)->value('status'))->toBe('active');
 });

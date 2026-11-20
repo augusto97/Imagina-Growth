@@ -37,7 +37,7 @@ final class ConnectionPresenter
                 'destinations' => AdDestination::query()->where('oauth_connection_id', $c->id)->get()
                     ->map(fn (AdDestination $d) => ['id' => $d->publicId(), 'platform' => $d->platform->value, 'name' => $d->name, 'status' => $d->status])->values(),
                 'channels' => ChannelAccount::query()->where('oauth_connection_id', $c->id)->where('status', '!=', 'disconnected')->get()
-                    ->map(fn (ChannelAccount $a) => ['id' => $a->publicId(), 'channel' => $a->channel->value, 'name' => $a->display_name, 'identity' => $a->identity, 'status' => $a->status])->values(),
+                    ->map(fn (ChannelAccount $a) => ['id' => $a->publicId(), 'channel' => $a->channel->value, 'name' => $a->display_name, 'identity' => $a->identity, 'external_id' => $a->external_id, 'status' => $a->status, 'last_error' => $a->last_error])->values(),
             ],
         ];
     }

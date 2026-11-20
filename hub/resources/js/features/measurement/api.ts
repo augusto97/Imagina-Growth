@@ -22,6 +22,8 @@ export interface Destination {
     credentials: Record<string, string | null>;
     endpoints: Record<string, boolean>;
     spend_import: boolean;
+    /** Conexión con un clic que da los tokens (Conexiones), o null si los datos se pegaron a mano. */
+    connection: { id: string; provider: string; status: string; account_name: string | null } | null;
     created_at: string | null;
 }
 
