@@ -87,10 +87,13 @@ abstract class WpTestCase extends \WP_UnitTestCase {
 
 	/**
 	 * Simula una conexión vigente sin pasar por el canje.
+	 *
+	 * @param list<int>|null $signature Versiones de la firma que anuncia el hub (null: un hub anterior a la v2).
 	 */
-	protected function connect(): void {
+	protected function connect( ?array $signature = null ): void {
 		Connection::store(
 			array(
+				'signature'  => null === $signature ? null : array( 'versions' => $signature ),
 				'site_id'    => self::SITE_ID,
 				'public_key' => 'pk_' . str_repeat( 'a', 32 ),
 				'secret'     => self::SECRET,

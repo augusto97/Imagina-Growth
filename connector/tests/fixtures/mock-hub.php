@@ -5,8 +5,9 @@
  * Uso:
  *   MOCK_HUB_DATA=/tmp/mockhub php -S 127.0.0.1:8090 tests/fixtures/mock-hub.php
  *
- * Implementa el canje del código, la ingesta firmada `/v1/s` (verifica la firma sobre los bytes
- * comprimidos, valida cada evento contra hub/resources/schemas/events y deduplica por event_id),
+ * Implementa el canje del código, la ingesta firmada `/v1/s` (verifica la firma v1 o v2 sobre los bytes
+ * comprimidos, con el método, la ruta y la consulta, rechaza un nonce v2 repetido, valida cada evento contra
+ * hub/resources/schemas/events y deduplica por event_id),
  * `/v1/s/config`, `/v1/s/catalog/hashes`, `PUT /v1/s/backfill` y `POST /v1/s/privacy/requests`.
  * Del lado del navegador (Fase 1): `/v1/b` (CORS, clave pública, mismo validador; verifica el token
  * de `identify`), `GET /p/{pk}/widgets.json` y `POST /p/{pk}/surveys/{id}/answers` (token de igrOrder).
@@ -15,8 +16,10 @@
  * `reviews` (+ `badges`), `points`, `banner` y `POST /v1/s/wallet/redeem` (crea el cupón en el sitio con
  * `coupon.create` firmado antes de responder, como el hub).
  * Guarda agregados en `$MOCK_HUB_DATA/state.json` para que las pruebas los inspeccionen (`GET /_state`).
+ * Como el hub, anuncia las versiones de la firma (`signature`, por defecto v1 y v2) y firma `coupon.create` en v2 si
+ * el plugin es 0.1.4 o más nuevo. `/_state` cuenta las firmas por versión (`signature_versions`).
  * `POST /_config` reemplaza claves de primer nivel: la respuesta de `/v1/s/config` (`measurement`, `consent`, `plugin`, `early_capture`,
- * `onsite`), los widgets (`widgets`), los productos de `reco` (`reco`) y el saldo (`wallet_balance`).
+ * `onsite`, `signature`), los widgets (`widgets`), los productos de `reco` (`reco`) y el saldo (`wallet_balance`).
  *
  * @package ImaginaGrowth\Connector
  */
@@ -68,6 +71,7 @@ $state = is_array( $state ) ? $state : array(
 $state += array( 'browser' => array(), 'browser_batches' => 0, 'identified' => array(), 'bad_tokens' => 0, 'survey_answers' => array(), 'privacy' => array(), 'overrides' => array() );
 $state += array( 'submits' => array(), 'watches' => array(), 'redeems' => array(), 'shares' => array(), 'wallet_redeems' => array(), 'public_requests' => array() );
 $state += array( 'quotes' => array() );
+$state += array( 'signature_versions' => array(), 'sig_nonces' => array() );
 
 $respond = static function ( int $status, array $payload ) use ( &$state, $state_file, $lock ): void {
 	file_put_contents( $state_file, json_encode( $state ) );
@@ -78,14 +82,33 @@ $respond = static function ( int $status, array $payload ) use ( &$state, $state
 	exit;
 };
 
-$verify = static function () use ( &$state, $body ): bool {
-	$site = $_SERVER['HTTP_X_IGR_SITE'] ?? '';
-	$sig  = $_SERVER['HTTP_X_IGR_SIGNATURE'] ?? '';
-	$ok   = is_array( $state['site'] ) && $site === $state['site']['site_id'] && Hmac::verify( $sig, $body, array( $state['site']['secret'] ) );
-	if ( ! $ok ) {
-		++$state['bad_signatures'];
+// Versiones de la firma que anuncia (y acepta) el hub simulado; se cambian con POST /_config {"signature": {...}}.
+$signature_versions = static function () use ( &$state ): array {
+	$versions = $state['overrides']['signature']['versions'] ?? array( 1, 2 );
+	return is_array( $versions ) ? array_values( array_map( 'intval', $versions ) ) : array( 1, 2 );
+};
+
+$verify = static function () use ( &$state, $body, $method, $signature_versions ): bool {
+	$site     = $_SERVER['HTTP_X_IGR_SITE'] ?? '';
+	$sig      = $_SERVER['HTTP_X_IGR_SIGNATURE'] ?? '';
+	$verified = is_array( $state['site'] ) && $site === $state['site']['site_id']
+		? Hmac::verify_request( $sig, $method, array( (string) ( $_SERVER['REQUEST_URI'] ?? '/' ) ), $body, array( $state['site']['secret'] ), in_array( 1, $signature_versions(), true ) )
+		: null;
+	if ( null !== $verified && 2 === $verified['version'] ) {
+		// Como el hub: un nonce v2 vale una sola vez mientras dura la ventana.
+		$state['sig_nonces'] = array_filter( $state['sig_nonces'], static fn( int $at ): bool => $at > time() - 600 );
+		if ( isset( $state['sig_nonces'][ $verified['nonce'] ] ) ) {
+			$verified = null;
+		} else {
+			$state['sig_nonces'][ $verified['nonce'] ] = time();
+		}
 	}
-	return $ok;
+	if ( null === $verified ) {
+		++$state['bad_signatures'];
+		return false;
+	}
+	$state['signature_versions'][ 'v' . $verified['version'] ] = ( $state['signature_versions'][ 'v' . $verified['version'] ] ?? 0 ) + 1;
+	return true;
 };
 
 // Token de igrUser / igrOrder (api-connector.md §7.1): base64url(JSON) "." hex(HMAC-SHA256).
@@ -193,6 +216,7 @@ if ( 'POST' === $method && '/api/connect/exchange' === $path ) {
 				'ingest_browser' => $base . '/v1/b',
 				'api'            => $base . '/',
 			),
+			'signature'  => array( 'versions' => $signature_versions() ),
 		)
 	);
 }
@@ -272,6 +296,9 @@ if ( 'GET' === $method && '/v1/s/config' === $path ) {
 	if ( ! $verify() ) {
 		$respond( 401, array( 'error' => 'signature' ) );
 	}
+	if ( isset( $_GET['plugin_version'] ) && 1 === preg_match( '/^\d+\.\d+\.\d+$/', (string) $_GET['plugin_version'] ) ) {
+		$state['site']['request']['plugin_version'] = (string) $_GET['plugin_version'];
+	}
 	$respond(
 		200,
 		array(
@@ -299,10 +326,11 @@ if ( 'GET' === $method && '/v1/s/config' === $path ) {
 			'min_plugin_version' => '0.1.0',
 			'plugin'             => $state['overrides']['plugin'] ?? array(
 				'min_version'    => '0.1.0',
-				'latest_version' => '0.1.3',
+				'latest_version' => '0.1.4',
 				'download_url'   => 'http://' . ( $_SERVER['HTTP_HOST'] ?? '127.0.0.1:8090' ) . '/downloads/imagina-growth-connector.zip',
 				'status'         => 'current',
 			),
+			'signature'          => array( 'versions' => $signature_versions() ),
 		)
 	);
 }
@@ -750,17 +778,22 @@ if ( 'POST' === $method && '/v1/s/wallet/redeem' === $path ) {
 	}
 	$amount  = number_format( min( $balance, (float) $req['cart_total'] ), 2, '.', '' );
 	$code    = 'SALDO-' . strtoupper( bin2hex( random_bytes( 4 ) ) );
+	$nonce   = Hmac::nonce();
 	$command = json_encode(
 		array(
 			'command'    => 'coupon.create',
 			'args'       => array( 'code' => $code, 'kind' => 'fixed_cart', 'amount' => $amount, 'expires_at' => gmdate( 'Y-m-d', time() + 86400 ), 'usage_limit' => 1, 'individual_use' => false, 'description' => 'Saldo a favor' ),
 			'request_id' => 'wr_' . bin2hex( random_bytes( 8 ) ),
-			'nonce'      => bin2hex( random_bytes( 16 ) ),
+			'nonce'      => $nonce,
 			'issued_at'  => gmdate( 'c' ),
 		)
 	);
-	$ch = curl_init( rtrim( (string) $state['site']['request']['rest_url'], '/' ) . '/commands' );
-	curl_setopt_array( $ch, array( CURLOPT_POST => true, CURLOPT_POSTFIELDS => $command, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 2, CURLOPT_HTTPHEADER => array( 'Content-Type: application/json', 'X-IGR-Signature: ' . Hmac::header( $state['site']['secret'], $command ) ) ) );
+	// Como el hub: v2 solo si el plugin dijo que la entiende (0.1.4 o más nuevo) o si la v1 está apagada.
+	$commands_url = rtrim( (string) $state['site']['request']['rest_url'], '/' ) . '/commands';
+	$speaks_v2    = version_compare( (string) ( $state['site']['request']['plugin_version'] ?? '0' ), '0.1.4', '>=' ) || ! in_array( 1, $signature_versions(), true );
+	$header       = $speaks_v2 ? Hmac::header_v2( $state['site']['secret'], 'POST', $commands_url, $command, null, $nonce ) : Hmac::header( $state['site']['secret'], $command );
+	$ch           = curl_init( $commands_url );
+	curl_setopt_array( $ch, array( CURLOPT_POST => true, CURLOPT_POSTFIELDS => $command, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 2, CURLOPT_HTTPHEADER => array( 'Content-Type: application/json', 'X-IGR-Signature: ' . $header ) ) );
 	$res    = (string) curl_exec( $ch );
 	$status = (int) curl_getinfo( $ch, CURLINFO_RESPONSE_CODE );
 	curl_close( $ch );

@@ -48,8 +48,18 @@ imagina-growth-connector/
 
 - **Handshake:** ver `docs/modulos.md` M02. El código de un solo uso se canjea con `POST hub/api/connect/exchange` y devuelve `site_id`, `public_key` y `secret`.
 - El **secreto** se guarda cifrado en `igr_connection` (`autoload = no`) con `sodium_crypto_secretbox`, usando una clave derivada de `wp_salt('auth')`.
-- **Todas las llamadas al hub** van firmadas: `X-IGR-Site`, `X-IGR-Signature: t=<unix>,v1=<hmac_sha256(secret, t.body)>`.
-- **Comandos entrantes:** igual que arriba, más una ventana de ±300 s y un **nonce** guardado 10 minutos (transient) para impedir repeticiones.
+- **Todas las llamadas al hub** van firmadas (`Support\Http::signed`, docs/api-connector.md §2): `X-IGR-Site` y
+  `X-IGR-Signature`. Desde la 0.1.4, en **v2** (`t=<unix>,n=<nonce>,v2=<hmac>` sobre método, ruta y consulta canónicas,
+  hora, nonce y SHA-256 del cuerpo; `Support\Hmac::header_v2`) si el hub la anunció en el canje o en `/v1/s/config`
+  (`signature.versions`, guardado en `igr_connection['hub_signature']`; `Connection::signature_version()`); si no, en
+  v1 (`t=<unix>,v1=<hmac_sha256(secret, t.body)>`). Si el hub rechaza una v2 con `401` y todavía anuncia la v1, se
+  reintenta una vez en v1 (un hub que volvió atrás).
+- **Comandos entrantes:** v2 o v1 (la v1 hasta que el hub anuncie `[2]`, `Connection::accepts_v1()`), ventana de
+  ±300 s y **nonce** guardado 10 minutos (transient; el del cuerpo y el de la firma v2) para impedir repeticiones. La
+  v2 se verifica contra `REQUEST_URI` y contra `rest_url( 'imagina-growth/v1/commands' )` (`CommandsController::targets`).
+- **Versión del plugin hacia el hub:** va en el canje, en el latido y en `GET /v1/s/config?plugin_version=`; al cargar
+  una versión nueva (`igr_state['pv']`), `Installer::maybe_upgrade` pide la configuración en una tarea para que el hub
+  pase a firmarle en v2 sin esperar al día siguiente.
 - **Rotación:** el hub puede pedir una rotación con un comando; durante 24 h valen los dos secretos.
 - **Desconectar:** borra las claves y opcionalmente las tablas locales.
 
@@ -246,7 +256,7 @@ Menú «Imagina Growth» con estas pestañas:
 
 ### 14.1 Cómo correr las pruebas
 
-- **Unitarias** (sin WordPress: firma, UUID, JSON, montos, cifrado, PII, backoff y contrato del sobre): `vendor/bin/phpunit`.
+- **Unitarias** (sin WordPress: firma v1 y v2 con los vectores compartidos de `hub/tests/fixtures/signature/vectors.json`, UUID, JSON, montos, cifrado, PII, backoff y contrato del sobre): `vendor/bin/phpunit`.
 - **Con WordPress y WooCommerce reales** (contrato de cada evento contra `hub/resources/schemas/events`, outbox y envío, comandos, importación y conciliación). Usan una base de datos dedicada que la suite vacía:
 
   ```bash
@@ -257,7 +267,7 @@ Menú «Imagina Growth» con estas pestañas:
 - **PHPCS:** `vendor/bin/phpcs` (WordPress-Extra, `phpcs.xml.dist`; los avisos se muestran y solo los errores cortan la CI). Cuidado con `phpcbf`: `CapitalPDangit` cambia el valor del contrato `'wordpress'` por `'WordPress'`; esas líneas llevan `phpcs:ignore`.
 - **Plugins de formularios en la suite de WordPress:** si `contact-form-7` y `wpforms-lite` están instalados junto a WooCommerce (`WC_PLUGIN_DIR/..`), el arranque los carga y `FormsTest` hace envíos reales con cada uno; si faltan, esas pruebas se saltan (`IGR_TESTS_NO_FORMS=1` los ignora).
 - **Navegador de punta a punta (Playwright):** desde `tracker/`, `IGR_E2E_WP_DIR=/ruta/wordpress IGR_E2E_WP_CLI="wp --allow-root" npm run e2e -- --trace off`. Levanta la tienda (8080) y el hub simulado (8090), conecta el sitio, prueba vistas, `_igr`, WhatsApp, banner, encuesta, `identify` y el píxel de compra, y al final lo desconecta. La tienda necesita enlaces permanentes `/%postname%/`, el connector con las dependencias de desarrollo (el hub simulado valida con `opis/json-schema`) y en `wp-config.php` `if ( getenv( 'IGR_HUB_URL' ) ) { define( 'IGR_HUB_URL', getenv( 'IGR_HUB_URL' ) ); }`: el plugin no lee variables de entorno, y así la prueba lo apunta al hub simulado (así la arma la CI).
-- **Hub simulado** para probar de punta a punta sin el hub real: `MOCK_HUB_DATA=/tmp/mockhub php -S 127.0.0.1:8090 tests/fixtures/mock-hub.php`. Valida cada evento contra los esquemas y expone `GET /_state` (eventos, pedidos por estado, conciliación recibida) y `POST /_reset`. **Fase 3:** sirve los endpoints públicos de §8.3 con datos de prueba (`visitor.json`, `widgets/{id}/submit`, `reco`, `watch`, `me` con `redeem` y `share`, `reviews` con `badges`, `points`, `program`, `banner`) con la misma forma que el hub real (la fija `hub/tests/Contract/PublicEndpointsContractTest.php`), y `POST /v1/s/wallet/redeem`, que crea el cupón en el sitio con `coupon.create` firmado antes de responder. `POST /_config` reemplaza claves de primer nivel (`widgets`, `reco`, `wallet_balance`, `onsite`, `consent`, `measurement`).
+- **Hub simulado** para probar de punta a punta sin el hub real: `MOCK_HUB_DATA=/tmp/mockhub php -S 127.0.0.1:8090 tests/fixtures/mock-hub.php`. Verifica la firma v1 o v2 como el hub (nonce v2 de un solo uso; anuncia `signature`, que se cambia con `POST /_config`, y cuenta las firmas por versión en `signature_versions`), valida cada evento contra los esquemas y expone `GET /_state` (eventos, pedidos por estado, conciliación recibida) y `POST /_reset`. **Fase 3:** sirve los endpoints públicos de §8.3 con datos de prueba (`visitor.json`, `widgets/{id}/submit`, `reco`, `watch`, `me` con `redeem` y `share`, `reviews` con `badges`, `points`, `program`, `banner`) con la misma forma que el hub real (la fija `hub/tests/Contract/PublicEndpointsContractTest.php`), y `POST /v1/s/wallet/redeem`, que crea el cupón en el sitio con `coupon.create` firmado antes de responder. `POST /_config` reemplaza claves de primer nivel (`widgets`, `reco`, `wallet_balance`, `onsite`, `consent`, `measurement`).
 - **Recorrido local:** `IGR_HUB_URL=http://127.0.0.1:8090 wp igr connect IGR-XXXX-XXXX-XXXX`, `wp igr backfill --now --flush --delay=0`, `wp igr status`, `wp igr flush --all`, `wp igr disconnect --wipe`. `wp igr demo-store` (solo con `WP_ENVIRONMENT_TYPE=local`) crea la tienda de prueba.
 - **Objetos JSON vacíos:** `identity`, `context`, `properties`, `order.meta`, `billing`, `shipping`… deben viajar como `{}`. Usa `Json::obj()` o `new \stdClass()` y valida siempre el JSON exacto del outbox (decodificarlo como arreglo convierte `{}` en `[]`).
 

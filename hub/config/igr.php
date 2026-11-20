@@ -23,9 +23,13 @@ return [
         'allow_insecure_site_urls' => (bool) env('IGR_ALLOW_HTTP_SITES', env('APP_ENV') !== 'production'),
     ],
 
+    // Firma entre el plugin y el hub (docs/api-connector.md §2). La v2 cubre el método, la ruta, la consulta y un
+    // nonce; la v1 (plugins anteriores a la 0.1.4) solo el cuerpo y la hora. Cuando todos los sitios tengan la 0.1.4 o
+    // más nueva (Plataforma → Instalación lo dice), IGR_SIGNATURE_ACCEPT_V1=false deja de aceptar la v1.
     'signature' => [
         'tolerance_seconds' => 300,
         'previous_secret_grace_hours' => 24,
+        'accept_v1' => (bool) env('IGR_SIGNATURE_ACCEPT_V1', true),
     ],
 
     // Registro abierto a cualquiera (true) o solo por invitación (false, por defecto). La primera persona de una
@@ -71,7 +75,7 @@ return [
     // Versión del plugin que trae este paquete del hub en public/downloads (infra/release/build.sh). Una prueba la
     // compara con la cabecera de connector/imagina-growth-connector.php: suben juntas.
     'plugin' => [
-        'latest_version' => env('IGR_PLUGIN_LATEST_VERSION', '0.1.3'),
+        'latest_version' => env('IGR_PLUGIN_LATEST_VERSION', '0.1.4'),
         'download_path' => '/downloads/imagina-growth-connector.zip',
     ],
 

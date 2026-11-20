@@ -35,13 +35,28 @@ final class Installer {
 	}
 
 	/**
-	 * Crea o actualiza la tabla si cambió la versión del esquema.
+	 * Crea o actualiza la tabla si cambió la versión del esquema y, con una versión nueva del plugin, pide la
+	 * configuración del hub enseguida (sin esperar al día siguiente): así el hub conoce la versión y los dos pasan a la
+	 * firma v2 en cuanto se actualiza (docs/api-connector.md §2.3). Sin consultas: todo está en `igr_state`.
 	 */
 	public static function maybe_upgrade(): void {
 		$state = Connection::state();
 		if ( ( $state['db'] ?? null ) !== IGR_DB_VERSION ) {
 			self::install();
 		}
+		if ( ( $state['pv'] ?? null ) !== IGR_VERSION ) {
+			Connection::update_state( array( 'pv' => IGR_VERSION ) );
+			if ( Connection::is_connected() ) {
+				add_action( 'init', array( self::class, 'after_update' ), 20 );
+			}
+		}
+	}
+
+	/**
+	 * Tras actualizar el plugin: renueva la configuración en una tarea (nunca en la petición del visitante).
+	 */
+	public static function after_update(): void {
+		Scheduler::async( Scheduler::CONFIG );
 	}
 
 	/**

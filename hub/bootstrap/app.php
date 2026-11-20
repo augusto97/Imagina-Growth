@@ -30,7 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
         $middleware->web(append: [FrameGuard::class]);
         $middleware->alias(['workspace' => ResolveWorkspace::class]);
-        $middleware->trustProxies(at: '*');
+        // Proxies de confianza (S8): solo los de IGR_TRUSTED_PROXIES (config/trustedproxy.php, por defecto el Caddy de la
+        // máquina en 127.0.0.1 y ::1) y solo los encabezados que ese Caddy escribe; Prefix, Port y los de AWS no.
+        $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST | Request::HEADER_X_FORWARDED_PROTO);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

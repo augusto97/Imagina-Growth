@@ -14,6 +14,7 @@ use App\Domain\Recommendations\Models\CommerceSettings;
 use App\Domain\Sites\Actions\UpdateBackfillState;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Sites\Support\PluginRelease;
+use App\Domain\Sites\Support\SiteSignatures;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
@@ -28,12 +29,19 @@ final class SiteApiController
 {
     public function __construct(private readonly CurrentWorkspace $current, private readonly ConsentTexts $consentTexts) {}
 
-    /** GET /v1/s/config */
+    /**
+     * GET /v1/s/config[?plugin_version=X.Y.Z]. Desde la 0.1.4 el plugin informa aquí su versión (va firmada en la
+     * consulta con la v2): el hub la guarda enseguida, sin esperar al latido, y desde ahí le firma los comandos en v2.
+     */
     public function config(Request $request): JsonResponse
     {
         $site = $this->site($request);
         /** @var Workspace $ws */
         $ws = $this->current->get();
+        $reported = $request->query('plugin_version');
+        if (is_string($reported) && preg_match('/^\d{1,4}\.\d{1,4}\.\d{1,4}$/', $reported) === 1 && $reported !== $site->getAttribute('plugin_version')) {
+            $site->forceFill(['plugin_version' => $reported])->save();
+        }
 
         return response()->json([
             'site_id' => $site->publicId(),
@@ -56,6 +64,8 @@ final class SiteApiController
             'onsite' => $this->onsite(),
             'min_plugin_version' => config('igr.min_plugin_version'),
             'plugin' => PluginRelease::forSite($site),
+            // Versiones de la firma que acepta y usa el hub (api-connector.md §2.3).
+            'signature' => SiteSignatures::advertised(),
         ]);
     }
 

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Ingest\Http;
 
 use App\Domain\Sites\Models\Site;
+use App\Domain\Sites\Support\SiteSignatures;
 use App\Ingest\IngestStream;
-use App\Support\Hmac\Signature;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,6 +19,7 @@ final class ServerIngestController
         private readonly SiteResolver $sites,
         private readonly EnvelopeChecker $checker,
         private readonly IngestStream $stream,
+        private readonly SiteSignatures $signatures,
     ) {}
 
     public function __invoke(Request $request): JsonResponse
@@ -34,8 +35,9 @@ final class ServerIngestController
         }
         [$site, $wsChId] = $resolved;
 
-        // La firma se verifica sobre los bytes recibidos, antes de descomprimir.
-        if (! Signature::verify($request->header('X-IGR-Signature'), $raw, $site->verificationSecrets(), (int) config('igr.signature.tolerance_seconds'))) {
+        // La firma (v2: método, ruta, consulta y nonce; v1 mientras se acepte) se verifica sobre los bytes recibidos,
+        // antes de descomprimir.
+        if ($this->signatures->verify($request, $site, $raw) === null) {
             return response()->json(['error' => 'signature'], 401);
         }
         if (! $site->isActive()) {
