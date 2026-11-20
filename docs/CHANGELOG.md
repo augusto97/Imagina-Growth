@@ -1,5 +1,33 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-20 — Versión 0.1.10: todo desde el panel, celular y actualizaciones que no se traban
+
+Se instala con el botón de actualizar.
+
+**Todo desde el panel, sin consola ni archivos:**
+- **Plataforma → Ajustes** (solo superadmin con 2FA): correo de la plataforma (SMTP, Amazon SES o solo registro,
+  con prueba), Amazon SES (con «Preparar ahora»), apps de Meta, Google y TikTok, IA, registro y seguridad (registro
+  abierto, 2FA obligatoria, plan por defecto, token de /health, firma v1 del plugin), avisos en el celular (llaves
+  VAPID), facturación, monitoreo, retención y fuente de las tasas de cambio. Lo del panel manda sobre el `.env` y se
+  aplica en caliente (peticiones, colas y workers de ingesta), sin reiniciar. Los secretos van cifrados y nunca se
+  muestran. El `.env` queda solo para el arranque que escribe el instalador (docs/despliegue.md §9).
+- **Lo que eran comandos:** administradores de la plataforma, festivos extra o quitados por país, tarifas de
+  WhatsApp vigentes y «Agregar los planes incluidos que falten».
+- **Copias de seguridad** (Plataforma → Copias de seguridad): destino en el Storage Box con llave SSH que genera el
+  servidor, días a conservar, heartbeats, «Probar conexión», «Hacer una copia ahora» y el estado de cada copia. La
+  app deja un pedido que valida y aplica un despachador de root (como el de actualizar); llega con la actualización.
+- `igr:doctor` / Plataforma → Instalación dice dónde se arregla cada punto, con un botón que abre la sección.
+
+**Celular, tableta y laptop:** por debajo de 1024 px siempre la barra superior con el menú (antes, en un celular en
+horizontal o una tableta la barra lateral quedaba fija); desde 1024 px la barra lateral se contrae a íconos (botón,
+⌘B o ⌘K) y se recuerda. La barra superior siempre visible, ninguna pantalla desborda el ancho (tablas con scroll
+propio, pestañas desplazables, encabezados que se acomodan) y la Bandeja en el celular muestra la lista o el chat a
+pantalla completa con «Volver».
+
+**Actualizaciones que no se traban:** un pedido de actualización que ya terminó o que el servidor nunca tomó ya no
+deja el panel «en curso» ni bloquea la siguiente; el actualizador borra el pedido apenas termina y, en cada arranque,
+el servidor limpia uno que haya quedado y reactiva el vigilante de pedidos si se cayó.
+
 ## 2026-11-20 — Versión 0.1.9: auditoría, cuarto lote (lo pendiente)
 
 Se instala con el botón de actualizar, sin consola. Contrato de eventos v7 (connector en v6, tracker en v4).
