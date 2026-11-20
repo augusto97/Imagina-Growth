@@ -1,5 +1,5 @@
 import { Bot, MessageCircle, Search, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { Badge } from '@/components/ui/badge';
@@ -79,6 +79,16 @@ export function ConversationListPane({ selected, onSelect }: { selected: string 
     const filters: ListFilters = { view, status, q, label: '', intent, channel };
     const list = useConversations(workspace.id, filters);
     const counts = list.data?.counts;
+    // Al volver del chat (celular), el foco regresa a la conversación que se abrió.
+    const listRef = useRef<HTMLDivElement>(null);
+    const previous = useRef(selected);
+    useEffect(() => {
+        const left = previous.current;
+        previous.current = selected;
+        if (left !== undefined && selected === undefined) {
+            listRef.current?.querySelector<HTMLElement>(`[data-conversation="${CSS.escape(left)}"]`)?.focus({ preventScroll: true });
+        }
+    }, [selected]);
 
     return (
         <div className="igr:flex igr:h-full igr:flex-col">
@@ -133,7 +143,12 @@ export function ConversationListPane({ selected, onSelect }: { selected: string 
                             </option>
                         ))}
                     </Select>
-                    <Select value={channel} onChange={(e) => setChannel(e.target.value as InboxChannel | '')} aria-label={t('inbox.list.channel')} className="igr:col-span-2 igr:h-7 igr:text-xs">
+                    <Select
+                        value={channel}
+                        onChange={(e) => setChannel(e.target.value as InboxChannel | '')}
+                        aria-label={t('inbox.list.channel')}
+                        className="igr:col-span-2 igr:h-7 igr:text-xs"
+                    >
                         <option value="">{t('inbox.list.anyChannel')}</option>
                         {(['whatsapp', 'messenger', 'instagram'] as const).map((ch) => (
                             <option key={ch} value={ch}>
@@ -143,7 +158,7 @@ export function ConversationListPane({ selected, onSelect }: { selected: string 
                     </Select>
                 </div>
             </div>
-            <div className="igr:min-h-0 igr:flex-1 igr:overflow-y-auto">
+            <div ref={listRef} className="igr:min-h-0 igr:flex-1 igr:overflow-y-auto">
                 {list.isError ? (
                     <div className="igr:p-3">
                         <ErrorState error={list.error} onRetry={() => void list.refetch()} />
@@ -173,6 +188,7 @@ export function ConversationListPane({ selected, onSelect }: { selected: string 
                             <li key={c.id}>
                                 <button
                                     type="button"
+                                    data-conversation={c.id}
                                     onClick={() => onSelect(c.id)}
                                     aria-current={selected === c.id ? 'true' : undefined}
                                     className={cn(

@@ -1,16 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { Command } from 'cmdk';
-import { Loader2, Moon, Plug, Plus, Sun, SunMoon, User, UserPlus } from 'lucide-react';
+import { Loader2, Moon, PanelLeftClose, PanelLeftOpen, Plug, Plus, Sun, SunMoon, User, UserPlus } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { wsPath } from '@/api/queries';
 import { useDebounced } from '@/hooks/useDebounced';
+import { DESKTOP_QUERY, useMedia } from '@/hooks/useMedia';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { api } from '@/lib/api';
 import { useUi } from '@/stores/ui';
-import { workspaceInitials } from './Sidebar';
+import { isMacPlatform, workspaceInitials } from './Sidebar';
 import { itemPath, navContext, visibleNav } from './nav';
 
 interface ContactHit {
@@ -53,7 +54,8 @@ export function CommandPalette() {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const { workspace, me } = useWorkspace();
-    const { commandOpen, setCommandOpen, setTheme } = useUi();
+    const { commandOpen, setCommandOpen, setTheme, sidebarCollapsed, setSidebarCollapsed } = useUi();
+    const desktop = useMedia(DESKTOP_QUERY);
     const canSearchContacts = useCan('viewAssignedContacts');
     const [query, setQuery] = useState('');
     const contacts = useContactSearch(workspace.id, query, commandOpen && canSearchContacts);
@@ -188,6 +190,19 @@ export function CommandPalette() {
                                     <SunMoon />
                                     {t('command.themeSystem')}
                                 </Item>
+                                {desktop ? (
+                                    <Item
+                                        value={sidebarCollapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')}
+                                        onSelect={() => {
+                                            setSidebarCollapsed(!sidebarCollapsed);
+                                            close(false);
+                                        }}
+                                    >
+                                        {sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+                                        {sidebarCollapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')}
+                                        <span className="igr:ml-auto igr:text-[11px] igr:text-muted-foreground">{isMacPlatform() ? '⌘B' : 'Ctrl+B'}</span>
+                                    </Item>
+                                ) : null}
                             </Command.Group>
                             {me.workspaces.length > 1 ? (
                                 <Command.Group heading={t('nav.workspaces')} className={groupClass}>

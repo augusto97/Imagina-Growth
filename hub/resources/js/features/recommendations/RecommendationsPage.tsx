@@ -102,7 +102,11 @@ function StatusStrip({ overview }: { overview: RecoOverview }) {
                     ))}
                 </dl>
                 <div className="igr:space-y-1.5 igr:text-xs igr:text-muted-foreground igr:md:w-56 igr:md:text-right">
-                    <p>{s.stats_computed_at ? t('onsiteCommerce.reco.stats.updated', { when: formatRelative(s.stats_computed_at, workspace.locale) }) : t('onsiteCommerce.reco.stats.never')}</p>
+                    <p>
+                        {s.stats_computed_at
+                            ? t('onsiteCommerce.reco.stats.updated', { when: formatRelative(s.stats_computed_at, workspace.locale) })
+                            : t('onsiteCommerce.reco.stats.never')}
+                    </p>
                     {canManage ? (
                         <Button
                             variant="outline"
@@ -139,13 +143,15 @@ function BlocksGrid({ overview }: { overview: RecoOverview }) {
                 {t('onsiteCommerce.reco.blocks.title')}
             </h2>
             <p className="igr:mb-3 igr:text-[13px] igr:text-muted-foreground">{t('onsiteCommerce.reco.blocks.help')}</p>
-            <div className="igr:grid igr:gap-3 igr:md:grid-cols-2 igr:xl:grid-cols-3">
+            <div className="igr:grid igr:grid-cols-1 igr:gap-3 igr:md:grid-cols-2 igr:xl:grid-cols-3">
                 {overview.kinds.map((k) => (
                     <Card key={k.kind} className={k.enabled ? '' : 'igr:opacity-70'}>
                         <CardHeader className="igr:space-y-1 igr:pb-2">
                             <div className="igr:flex igr:items-start igr:justify-between igr:gap-2">
                                 <CardTitle className="igr:text-sm">{t(`onsiteCommerce.kinds.${k.kind}.name`)}</CardTitle>
-                                <Badge variant={k.personal ? 'default' : 'secondary'}>{k.personal ? t('onsiteCommerce.reco.blocks.personal') : t('onsiteCommerce.reco.blocks.shared')}</Badge>
+                                <Badge variant={k.personal ? 'default' : 'secondary'}>
+                                    {k.personal ? t('onsiteCommerce.reco.blocks.personal') : t('onsiteCommerce.reco.blocks.shared')}
+                                </Badge>
                             </div>
                             <CardDescription className="igr:text-xs">{t(`onsiteCommerce.kinds.${k.kind}.logic`)}</CardDescription>
                         </CardHeader>
@@ -165,12 +171,19 @@ function BlocksGrid({ overview }: { overview: RecoOverview }) {
                                         type="checkbox"
                                         checked={k.enabled}
                                         disabled={save.isPending}
-                                        onChange={(e) => save.mutate({ kinds: { [k.kind]: e.target.checked } }, { onError: (err) => toast.error(t('errors.title'), isApiError(err) ? err.message : undefined) })}
+                                        onChange={(e) =>
+                                            save.mutate(
+                                                { kinds: { [k.kind]: e.target.checked } },
+                                                { onError: (err) => toast.error(t('errors.title'), isApiError(err) ? err.message : undefined) },
+                                            )
+                                        }
                                     />
                                     {k.enabled ? t('onsiteCommerce.reco.blocks.on') : t('onsiteCommerce.reco.blocks.off')}
                                 </label>
                             ) : (
-                                <span className="igr:text-xs igr:text-muted-foreground">{k.enabled ? t('onsiteCommerce.reco.blocks.on') : t('onsiteCommerce.reco.blocks.off')}</span>
+                                <span className="igr:text-xs igr:text-muted-foreground">
+                                    {k.enabled ? t('onsiteCommerce.reco.blocks.on') : t('onsiteCommerce.reco.blocks.off')}
+                                </span>
                             )}
                         </CardContent>
                     </Card>
@@ -227,11 +240,21 @@ function PreviewCard({ overview }: { overview: RecoOverview }) {
                         ) : needs === 'cart' ? (
                             <>
                                 <Label>{t('onsiteCommerce.reco.preview.cart')}</Label>
-                                <ProductPicker site={overview.site_id} value={null} onChange={(p) => p && setCart((c) => (c.some((x) => x.id === p.id) ? c : [...c, p]))} label={t('onsiteCommerce.reco.preview.cart')} />
+                                <ProductPicker
+                                    site={overview.site_id}
+                                    value={null}
+                                    onChange={(p) => p && setCart((c) => (c.some((x) => x.id === p.id) ? c : [...c, p]))}
+                                    label={t('onsiteCommerce.reco.preview.cart')}
+                                />
                                 {cart.length > 0 ? (
                                     <div className="igr:flex igr:flex-wrap igr:gap-1.5">
                                         {cart.map((p) => (
-                                            <button key={p.id} type="button" onClick={() => setCart((c) => c.filter((x) => x.id !== p.id))} className="igr:rounded-full igr:bg-muted igr:px-2 igr:py-0.5 igr:text-xs igr:hover:line-through">
+                                            <button
+                                                key={p.id}
+                                                type="button"
+                                                onClick={() => setCart((c) => c.filter((x) => x.id !== p.id))}
+                                                className="igr:rounded-full igr:bg-muted igr:px-2 igr:py-0.5 igr:text-xs igr:hover:line-through"
+                                            >
                                                 {p.name}
                                             </button>
                                         ))}
@@ -242,7 +265,12 @@ function PreviewCard({ overview }: { overview: RecoOverview }) {
                             canSeeContacts ? (
                                 <>
                                     <Label htmlFor="reco-contact">{t('onsiteCommerce.reco.preview.contact')}</Label>
-                                    <Input id="reco-contact" placeholder={t('onsiteCommerce.reco.preview.contactPlaceholder')} value={contactQ} onChange={(e) => setContactQ(e.target.value)} />
+                                    <Input
+                                        id="reco-contact"
+                                        placeholder={t('onsiteCommerce.reco.preview.contactPlaceholder')}
+                                        value={contactQ}
+                                        onChange={(e) => setContactQ(e.target.value)}
+                                    />
                                     {contactQ.trim() !== '' ? (
                                         <div className="igr:flex igr:flex-wrap igr:gap-1.5">
                                             {(contacts.data?.data ?? []).slice(0, 6).map((c) => (
@@ -268,7 +296,9 @@ function PreviewCard({ overview }: { overview: RecoOverview }) {
                 </div>
 
                 {!ready ? (
-                    <p className="igr:rounded-md igr:border igr:border-dashed igr:p-6 igr:text-center igr:text-[13px] igr:text-muted-foreground">{t(`onsiteCommerce.reco.preview.need.${needs ?? 'product'}`)}</p>
+                    <p className="igr:rounded-md igr:border igr:border-dashed igr:p-6 igr:text-center igr:text-[13px] igr:text-muted-foreground">
+                        {t(`onsiteCommerce.reco.preview.need.${needs ?? 'product'}`)}
+                    </p>
                 ) : preview.isError ? (
                     <ErrorState error={preview.error} onRetry={() => void preview.refetch()} />
                 ) : preview.isPending ? (
@@ -286,7 +316,9 @@ function PreviewCard({ overview }: { overview: RecoOverview }) {
                             </p>
                         ) : null}
                         {preview.data.products.length === 0 ? (
-                            <p className="igr:rounded-md igr:border igr:border-dashed igr:p-6 igr:text-center igr:text-[13px] igr:text-muted-foreground">{t(`onsiteCommerce.reco.preview.empty.${kind}`)}</p>
+                            <p className="igr:rounded-md igr:border igr:border-dashed igr:p-6 igr:text-center igr:text-[13px] igr:text-muted-foreground">
+                                {t(`onsiteCommerce.reco.preview.empty.${kind}`)}
+                            </p>
                         ) : (
                             <div className="igr:grid igr:grid-cols-2 igr:gap-3 igr:md:grid-cols-4">
                                 {preview.data.products.map((p) => (
@@ -332,7 +364,9 @@ function RulesCard({ overview }: { overview: RecoOverview }) {
                 ) : rules.isPending ? (
                     <Skeleton className="igr:h-40" />
                 ) : rules.data.data.length === 0 ? (
-                    <p className="igr:rounded-md igr:border igr:border-dashed igr:p-6 igr:text-center igr:text-[13px] igr:text-muted-foreground">{t('onsiteCommerce.reco.rules.empty', { min: overview.config.min_pair_orders })}</p>
+                    <p className="igr:rounded-md igr:border igr:border-dashed igr:p-6 igr:text-center igr:text-[13px] igr:text-muted-foreground">
+                        {t('onsiteCommerce.reco.rules.empty', { min: overview.config.min_pair_orders })}
+                    </p>
                 ) : (
                     <>
                         <div className="igr:overflow-x-auto">

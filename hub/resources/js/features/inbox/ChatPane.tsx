@@ -1,4 +1,4 @@
-import { ArrowLeft, Bot, Check, CheckCheck, Clock, PanelRight, Smartphone, Sparkles, StickyNote, UserRound } from 'lucide-react';
+import { ArrowLeft, Bot, Check, CheckCheck, Clock, PanelRight, SlidersHorizontal, Smartphone, Sparkles, StickyNote, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -79,6 +79,8 @@ function ChatHeader({
     const actions = useConversationActions(workspace.id, c.id);
     const agents = useInboxAgents(workspace.id);
     const [labels, setLabels] = useState(c.labels.join(', '));
+    // Celular: la asignación, la IA y las etiquetas van plegadas para dejarle la pantalla a los mensajes.
+    const [tools, setTools] = useState(false);
     const fail = (e: unknown) => toast.error(errorMessage(e, t));
 
     return (
@@ -106,14 +108,26 @@ function ChatHeader({
                         </option>
                     ))}
                 </Select>
+                <Button
+                    size="icon"
+                    variant={tools ? 'secondary' : 'ghost'}
+                    className="igr:relative igr:md:hidden"
+                    onClick={() => setTools((v) => !v)}
+                    aria-expanded={tools}
+                    aria-controls={`chat-tools-${c.id}`}
+                    aria-label={t('inbox.chat.tools')}
+                >
+                    <SlidersHorizontal aria-hidden />
+                    {c.handoff_reason ? <span className="igr:absolute igr:top-1 igr:right-1 igr:size-1.5 igr:rounded-full igr:bg-warning" aria-hidden /> : null}
+                </Button>
                 <Button size="icon" variant={showNotes ? 'secondary' : 'ghost'} onClick={onToggleNotes} aria-pressed={showNotes} aria-label={t('inbox.notes.toggle')}>
                     <StickyNote aria-hidden />
                 </Button>
-                <Button size="icon" variant="ghost" className="igr:xl:hidden" onClick={onTogglePanel} aria-label={t('inbox.panel.toggle')}>
+                <Button size="icon" variant="ghost" className="igr:xl:hidden" onClick={onTogglePanel} aria-label={t('inbox.panel.toggle')} aria-haspopup="dialog">
                     <PanelRight aria-hidden />
                 </Button>
             </div>
-            <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-2 igr:text-xs">
+            <div id={`chat-tools-${c.id}`} className={cn('igr:flex igr:flex-wrap igr:items-center igr:gap-2 igr:text-xs', !tools && 'igr:max-md:hidden')}>
                 <label className="igr:flex igr:items-center igr:gap-1">
                     <UserRound className="igr:size-3.5 igr:text-muted-foreground" aria-hidden />
                     <span className="igr:sr-only">{t('inbox.chat.assignee')}</span>

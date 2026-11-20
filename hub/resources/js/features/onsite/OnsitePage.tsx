@@ -34,14 +34,20 @@ export function OnsiteTabs() {
         { to: `${base}/cotizador`, label: t('onsite.tabs.quotes'), end: false },
     ];
     return (
-        <nav aria-label={t('onsite.tabs.label')} className="igr:mb-4 igr:inline-flex igr:h-9 igr:items-center igr:rounded-lg igr:bg-muted igr:p-1 igr:text-muted-foreground">
+        <nav
+            aria-label={t('onsite.tabs.label')}
+            className="igr:mb-4 igr:inline-flex igr:h-9 igr:max-w-full igr:items-center igr:overflow-x-auto igr:rounded-lg igr:bg-muted igr:p-1 igr:text-muted-foreground igr:[scrollbar-width:none] igr:[&::-webkit-scrollbar]:hidden"
+        >
             {tabs.map((tab) => (
                 <NavLink
                     key={tab.to}
                     to={tab.to}
                     end={tab.end}
                     className={({ isActive }) =>
-                        cn('igr:inline-flex igr:h-7 igr:items-center igr:rounded-md igr:px-3 igr:text-[13px] igr:font-medium igr:transition-colors', isActive ? 'igr:bg-background igr:text-foreground igr:shadow-sm' : 'igr:hover:text-foreground')
+                        cn(
+                            'igr:inline-flex igr:h-7 igr:shrink-0 igr:items-center igr:rounded-md igr:px-3 igr:text-[13px] igr:font-medium igr:whitespace-nowrap igr:transition-colors',
+                            isActive ? 'igr:bg-background igr:text-foreground igr:shadow-sm' : 'igr:hover:text-foreground',
+                        )
                     }
                 >
                     {tab.label}

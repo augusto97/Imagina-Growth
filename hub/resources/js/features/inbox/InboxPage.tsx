@@ -1,11 +1,13 @@
 import { Bot, Inbox as InboxIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/ui/misc';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PHONE_QUERY, useMedia, XL_QUERY } from '@/hooks/useMedia';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { cn } from '@/lib/cn';
 import { usePrivateChannel } from '@/lib/realtime';
@@ -30,9 +32,28 @@ export function InboxPage() {
     const navigate = useNavigate();
     const raw = params.get('tab');
     const tab: Tab = raw === 'metricas' || (raw === 'ajustes' && canManage) ? raw : 'conversaciones';
-    const [panelOpen, setPanelOpen] = useState(false);
+    // El perfil del contacto: columna fija desde xl; por debajo, una hoja aparte que se abre para la conversación actual.
+    const wide = useMedia(XL_QUERY);
+    const phone = useMedia(PHONE_QUERY);
+    const [panelFor, setPanelFor] = useState<string | null>(null);
+    const sheetOpen = !wide && conversation !== undefined && panelFor === conversation;
+    // En el celular, con un chat abierto, el chat ocupa la pantalla (debajo de la barra del menú): sin encabezado ni pestañas.
+    const chatOnly = conversation !== undefined && tab === 'conversaciones';
+    const chatRef = useRef<HTMLDivElement>(null);
+    // Al cerrar la hoja del perfil, el foco vuelve al botón que la abrió (la hoja no usa Dialog.Trigger).
+    const panelOpener = useRef<HTMLElement | null>(null);
+    const togglePanel = () => {
+        panelOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        setPanelFor((v) => (v === conversation || conversation === undefined ? null : conversation));
+    };
 
     useEffect(() => installPwa(), []);
+    // Celular: al abrir un chat la lista queda oculta, así que el foco pasa al chat (y al volver, a la conversación en la lista).
+    useEffect(() => {
+        if (phone && conversation !== undefined) {
+            chatRef.current?.focus({ preventScroll: true });
+        }
+    }, [phone, conversation]);
     // Tiempo real: cada cambio de una conversación vuelve a pedir la bandeja (el evento solo trae IDs).
     const queryClient = useQueryClient();
     usePrivateChannel(`workspace.${workspace.id}.inbox`, 'inbox.updated', () => {
@@ -48,44 +69,60 @@ export function InboxPage() {
     const open = (id: string | null) => void navigate(id ? `/w/${workspace.id}/bandeja/${id}` : `/w/${workspace.id}/bandeja`);
 
     return (
-        // En el celular la bandeja ocupa toda la pantalla (la PWA): tapa el menú lateral.
-        <div className="igr:max-md:fixed igr:max-md:inset-0 igr:max-md:z-30 igr:max-md:overflow-y-auto igr:max-md:bg-background igr:max-md:px-3 igr:max-md:py-3">
-            <PageHeader
-                title={t('inbox.title')}
-                description={t('inbox.description')}
-                actions={
-                    <div className="igr:flex igr:items-center igr:gap-2">
-                        <Availability />
-                        <Button asChild size="sm" variant="outline">
-                            <Link to={`/w/${workspace.id}/bandeja/agente`}>
-                                <Bot aria-hidden />
-                                {t('inbox.aiAgentLink')}
-                            </Link>
-                        </Button>
-                    </div>
-                }
-            />
-            <Tabs value={tab} onValueChange={setTab} className="igr:mt-2">
-                <TabsList>
+        /*
+         * La ruta llena el alto de la pantalla (`handle: { fill: true }`): la lista y el chat se desplazan cada uno por su
+         * cuenta. Celular: la lista o el chat (con «Volver»); tableta: lista y chat; desde xl, también el perfil.
+         */
+        <div className="igr:flex igr:min-h-0 igr:flex-1 igr:flex-col">
+            <div className={cn('igr:px-3 igr:pt-3 igr:md:p-0', chatOnly && 'igr:max-md:hidden')}>
+                <PageHeader
+                    title={t('inbox.title')}
+                    description={t('inbox.description')}
+                    actions={
+                        <>
+                            <Availability />
+                            <Button asChild size="sm" variant="outline">
+                                <Link to={`/w/${workspace.id}/bandeja/agente`}>
+                                    <Bot aria-hidden />
+                                    {t('inbox.aiAgentLink')}
+                                </Link>
+                            </Button>
+                        </>
+                    }
+                />
+            </div>
+            <Tabs value={tab} onValueChange={setTab} className="igr:flex igr:min-h-0 igr:flex-1 igr:flex-col igr:md:mt-2">
+                <TabsList className={cn('igr:max-md:px-3', chatOnly && 'igr:max-md:hidden')}>
                     {TABS.filter((k) => k !== 'ajustes' || canManage).map((k) => (
                         <TabsTrigger key={k} value={k}>
                             {t(`inbox.tabs.${k}`)}
                         </TabsTrigger>
                     ))}
                 </TabsList>
-                <TabsContent value="conversaciones" className="igr:mt-3">
+                <TabsContent value="conversaciones" className="igr:min-h-0 igr:flex-1 igr:max-md:pt-0 igr:md:pt-3">
                     <div
                         className={cn(
-                            'igr:grid igr:h-[calc(100vh-13rem)] igr:min-h-[480px] igr:overflow-hidden igr:rounded-lg igr:border igr:bg-card igr:max-md:h-[calc(100dvh-14rem)] igr:max-md:min-h-0',
-                            'igr:grid-cols-1 igr:md:grid-cols-[280px_1fr] igr:xl:grid-cols-[280px_1fr_260px]',
+                            'igr:grid igr:h-full igr:min-h-72 igr:grid-rows-[minmax(0,1fr)] igr:overflow-hidden igr:bg-card igr:md:min-h-[420px] igr:md:rounded-lg igr:md:border',
+                            'igr:grid-cols-1 igr:md:grid-cols-[280px_minmax(0,1fr)] igr:xl:grid-cols-[280px_minmax(0,1fr)_260px]',
+                            chatOnly && 'igr:max-md:min-h-0',
                         )}
                     >
-                        <div className={cn('igr:min-h-0 igr:border-r', conversation ? 'igr:hidden igr:md:block' : 'igr:block')}>
+                        {/* En el celular el chat se pinta encima de la lista, que sigue montada e invisible: al volver conserva filtros y posición. */}
+                        <div className={cn('igr:col-start-1 igr:row-start-1 igr:min-h-0 igr:md:border-r', conversation !== undefined && 'igr:max-md:invisible')}>
                             <ConversationListPane selected={conversation} onSelect={open} />
                         </div>
-                        <div className={cn('igr:min-h-0 igr:min-w-0', conversation ? 'igr:flex' : 'igr:hidden igr:md:flex', 'igr:flex-col')}>
-                            {conversation ? (
-                                <ChatPane key={conversation} id={conversation} onBack={() => open(null)} onTogglePanel={() => setPanelOpen((v) => !v)} />
+                        <div
+                            ref={chatRef}
+                            tabIndex={-1}
+                            role="region"
+                            aria-label={t('inbox.chatRegion')}
+                            className={cn(
+                                'igr:col-start-1 igr:row-start-1 igr:min-h-0 igr:min-w-0 igr:flex-col igr:bg-card igr:outline-none igr:md:col-start-2',
+                                conversation !== undefined ? 'igr:flex' : 'igr:hidden igr:md:flex',
+                            )}
+                        >
+                            {conversation !== undefined ? (
+                                <ChatPane key={conversation} id={conversation} onBack={() => open(null)} onTogglePanel={togglePanel} />
                             ) : (
                                 <div className="igr:flex igr:flex-1 igr:flex-col igr:items-center igr:justify-center igr:gap-2 igr:p-8 igr:text-center igr:text-muted-foreground">
                                     <InboxIcon className="igr:size-8" aria-hidden />
@@ -94,26 +131,33 @@ export function InboxPage() {
                                 </div>
                             )}
                         </div>
-                        {conversation ? (
-                            <aside
-                                className={cn(
-                                    'igr:min-h-0 igr:overflow-y-auto igr:border-l igr:bg-background',
-                                    panelOpen
-                                        ? 'igr:fixed igr:inset-y-0 igr:right-0 igr:z-40 igr:w-[min(320px,90vw)] igr:shadow-xl igr:xl:static igr:xl:w-auto igr:xl:shadow-none'
-                                        : 'igr:hidden igr:xl:block',
-                                )}
-                                aria-label={t('inbox.panel.title')}
-                            >
-                                <ContactPanel id={conversation} onClose={() => setPanelOpen(false)} />
+                        {conversation !== undefined && wide ? (
+                            <aside className="igr:col-start-3 igr:row-start-1 igr:min-h-0 igr:overflow-y-auto igr:border-l igr:bg-background" aria-label={t('inbox.panel.title')}>
+                                <ContactPanel id={conversation} />
                             </aside>
                         ) : null}
                     </div>
+                    <Dialog open={sheetOpen} onOpenChange={(o) => setPanelFor(o && conversation !== undefined ? conversation : null)}>
+                        <DialogContent
+                            aria-describedby={undefined}
+                            onCloseAutoFocus={(e) => {
+                                e.preventDefault();
+                                panelOpener.current?.focus();
+                            }}
+                            className="igr:top-0 igr:right-0 igr:left-auto igr:flex igr:h-dvh igr:w-full igr:max-w-sm igr:translate-x-0 igr:flex-col igr:rounded-none igr:border-y-0 igr:border-r-0 igr:p-0"
+                        >
+                            <div className="igr:flex igr:h-12 igr:shrink-0 igr:items-center igr:border-b igr:pr-10 igr:pl-3">
+                                <DialogTitle className="igr:text-sm">{t('inbox.panel.title')}</DialogTitle>
+                            </div>
+                            <div className="igr:min-h-0 igr:flex-1 igr:overflow-y-auto">{conversation !== undefined ? <ContactPanel id={conversation} /> : null}</div>
+                        </DialogContent>
+                    </Dialog>
                 </TabsContent>
-                <TabsContent value="metricas" className="igr:mt-4">
+                <TabsContent value="metricas" className="igr:pb-6 igr:max-md:px-3">
                     <MetricsTab />
                 </TabsContent>
                 {canManage ? (
-                    <TabsContent value="ajustes" className="igr:mt-4">
+                    <TabsContent value="ajustes" className="igr:pb-6 igr:max-md:px-3">
                         <SettingsTab />
                     </TabsContent>
                 ) : null}

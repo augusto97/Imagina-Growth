@@ -54,6 +54,9 @@ export function IntelligencePage() {
     );
 }
 
+/** Insignia con una frase: se parte en líneas en lugar de salirse de la tarjeta angosta. */
+const LONG_BADGE = 'igr:max-w-full igr:rounded-md igr:leading-snug igr:whitespace-normal';
+
 function UsageCard() {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
@@ -74,7 +77,15 @@ function UsageCard() {
                     <Skeleton className="igr:h-24" />
                 ) : (
                     <div className="igr:space-y-3">
-                        {!usage.data.configured ? <Badge variant="outline">{t('intelligence.usage.notConfigured')}</Badge> : !usage.data.available ? <Badge variant="warning">{t('intelligence.usage.budgetReached')}</Badge> : null}
+                        {!usage.data.configured ? (
+                            <Badge variant="outline" className={LONG_BADGE}>
+                                {t('intelligence.usage.notConfigured')}
+                            </Badge>
+                        ) : !usage.data.available ? (
+                            <Badge variant="warning" className={LONG_BADGE}>
+                                {t('intelligence.usage.budgetReached')}
+                            </Badge>
+                        ) : null}
                         <div>
                             <p className="igr:text-xl igr:font-semibold igr:tabular-nums">{usd(usage.data.spent_usd)}</p>
                             <p className="igr:text-xs igr:text-muted-foreground">{t('intelligence.usage.ofBudget', { budget: usd(usage.data.budget_usd) })}</p>
@@ -86,7 +97,13 @@ function UsageCard() {
                                 aria-valuenow={usage.data.spent_usd}
                                 aria-label={t('intelligence.usage.title')}
                             >
-                                <div className="igr:h-2 igr:rounded-full" style={{ width: `${Math.max(budgetShare(usage.data.spent_usd, usage.data.budget_usd) * 100, usage.data.spent_usd > 0 ? 2 : 0)}%`, background: theme.series[0] }} />
+                                <div
+                                    className="igr:h-2 igr:rounded-full"
+                                    style={{
+                                        width: `${Math.max(budgetShare(usage.data.spent_usd, usage.data.budget_usd) * 100, usage.data.spent_usd > 0 ? 2 : 0)}%`,
+                                        background: theme.series[0],
+                                    }}
+                                />
                             </div>
                         </div>
                         {usage.data.features.length > 0 ? (
@@ -161,7 +178,13 @@ function SavedQuery({ query }: { query: AskAnswer }) {
                     </Button>
                 ) : null}
             </div>
-            {run.isError ? <ErrorState error={run.error} onRetry={() => void run.refetch()} /> : run.isPending ? <Skeleton className="igr:h-20" /> : <AnswerResult result={run.data} granularity={query.query?.granularity} />}
+            {run.isError ? (
+                <ErrorState error={run.error} onRetry={() => void run.refetch()} />
+            ) : run.isPending ? (
+                <Skeleton className="igr:h-20" />
+            ) : (
+                <AnswerResult result={run.data} granularity={query.query?.granularity} />
+            )}
         </section>
     );
 }

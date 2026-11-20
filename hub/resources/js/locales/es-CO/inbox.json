@@ -6,6 +6,7 @@
         "available": "Disponible",
         "unavailable": "No disponible",
         "back": "Volver a la lista",
+        "chatRegion": "Conversación",
         "cancel": "Cancelar",
         "unknownContact": "Contacto sin nombre",
         "pickTitle": "Elige una conversación",
@@ -81,6 +82,7 @@
             "unassigned": "Sin asignar",
             "labels": "Etiquetas",
             "labelsPlaceholder": "Etiquetas, separadas por comas",
+            "tools": "Asignación, IA y etiquetas",
             "messages": "Mensajes",
             "noMessages": "Todavía no hay mensajes.",
             "template": "Plantilla «{{name}}»",
@@ -187,7 +189,6 @@
         "panel": {
             "title": "Perfil del contacto",
             "toggle": "Ver perfil",
-            "close": "Cerrar perfil",
             "fromAd": "Vino de un anuncio",
             "orders": "Pedidos",
             "revenue": "Compras",

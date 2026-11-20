@@ -3,7 +3,7 @@ import { cn } from '@/lib/cn';
 
 export function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>) {
     return (
-        <div className="igr:w-full igr:overflow-x-auto">
+        <div className="igr:relative igr:w-full igr:overflow-x-auto">
             <table className={cn('igr:w-full igr:caption-bottom igr:text-[13px]', className)} {...props} />
         </div>
     );
