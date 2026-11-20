@@ -1,5 +1,57 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-20 — Versión 0.1.9: auditoría, cuarto lote (lo pendiente)
+
+Se instala con el botón de actualizar, sin consola. Contrato de eventos v7 (connector en v6, tracker en v4).
+
+**Vendedor con IA (auditoría §5.1, funciones 3, 4 y 7):**
+- **Calificación en el chat:** Leads → Calificación con preguntas por pipeline o servicio (opciones, sí o no, número
+  o texto; obligatorias, puntos y qué descalifica). El agente las hace en el chat, guarda cada respuesta con la frase
+  del cliente y, al terminar, deriva al dueño, a un vendedor (con aviso y traspaso), sigue con la IA o manda a la web.
+- **Citas dentro de WhatsApp:** el agente ofrece horarios libres de la agenda como botones o lista; el toque del
+  cliente agenda sin cruces, confirma, deja la cita en el lead y en Google Calendar, y también la mueve o cancela.
+  El modelo nunca agenda por su cuenta.
+- **Reactivar con IA:** nodo de flujo que escribe según la última conversación y las compras de cada contacto, solo
+  con consentimiento y en horario legal; fuera de las 24 h va en una plantilla de marketing aprobada.
+
+**Bandeja de WhatsApp en coexistencia:** lo que el dueño escribe desde la app de WhatsApp Business del celular
+aparece en la bandeja («Desde el celular»), cuenta como respuesta y saca a la IA del modo automático; se copia el
+historial compartido (sin disparar nada ni crear consentimiento) y la libreta de contactos. Si Meta desconecta el
+número, queda desconectado con el motivo y se avisa. **Messenger e Instagram** ya crean leads como WhatsApp (v7).
+
+**Avisos de conexiones:** correo a dueños y administradores 7 días y 1 día antes de que venza una conexión, y
+cuando vence o se cae; aviso con «Reconectar» en el Inicio y en Conexiones.
+
+**Costo y retorno de los mensajes (F11):** tasas de cambio diarias (Exchange Rate API, con ajuste manual en
+Plataforma → Tasas de cambio), tarifas de WhatsApp vigentes desde el 1 oct 2026, y costo, retorno y costo por venta
+estimados en Mensajería, en cada campaña y en cada flujo.
+
+**Constructor de flujos (U7):** lienzo a todo el ancho y pantalla completa, lista de pasos plegable, panel del paso
+como cajón, pasos con resumen en palabras y pendientes sobre el paso, ramas con nombre, «+» en cada conexión,
+ordenar automáticamente, deshacer y rehacer, atajos de teclado y vista de solo lectura en el celular.
+
+**México y Venezuela:** el panel, los correos, los hallazgos, el reporte mensual y los ejemplos de las plantillas en
+el español de cada país (medios de pago, «estado», «computadora», ejemplos, lo legal); los correos de Laravel en
+español; **feriados de Venezuela** en la política de envío y la agenda (no sale marketing en feriado).
+
+**Seguridad:**
+- **Firma v2 entre plugin y hub (S14):** cubre método, ruta, consulta, tiempo, nonce y cuerpo, en las dos
+  direcciones. **Plugin 0.1.4.** El hub sigue aceptando la firma anterior de los plugins viejos, así que nada se corta;
+  Plataforma → Instalación dice cuántos sitios faltan por actualizar.
+- **IP real (S8):** el hub solo confía en el Caddy local; Caddy toma la IP del visitante de Cloudflare solo desde
+  sus rangos (renovados en cada actualización).
+- **Registros de Caddy (S7):** sin consulta, sin tokens de las rutas públicas, sin cookies, Referer ni IP completas.
+- El Caddyfile se mantiene al día con el botón de actualizar mientras nadie lo edite a mano (si se editó, la versión
+  nueva queda en `Caddyfile.growth.new`).
+
+**Operación:** el configuration set de SES con su destino de eventos se crea solo (F5); los KPI de visitas del día
+se ponen al día cada 10 minutos (F12); el informe semanal sale en paralelo por espacio de trabajo (R10); los mensajes
+de más de 24 meses se archivan como conteos sin datos personales (R14).
+
+**Para el dueño:** descargar el plugin 0.1.4 en Sitios. Al crear la app de Meta, suscribir también `history`,
+`smb_app_state_sync`, `smb_message_echoes` y `account_update` (`docs/guia-apps-oauth.md` §1.7). Los feriados de
+Venezuela y su fuente quedan marcados para validar en `docs/cumplimiento.md` §7.
+
 ## 2026-11-20 — Versión 0.1.8: auditoría, tercer lote
 
 **Actualizar sin consola.** Desde esta versión el botón «Actualizar» de Plataforma → Actualizaciones aplica también
