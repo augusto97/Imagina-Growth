@@ -73,7 +73,7 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | F12 | P2 | `kpi_daily` de sesiones atrasado; conversión por geografía engañosa. | analítica | ⏳ |
 | F13 | P2 | Textos «Fase N» en la interfaz. | SPA | ✅ 0.1.7: textos reescritos y el aviso viejo del copiloto de campañas quitado |
 | F14 | P2 | Nodos de flujo bloqueados (`assign_agent`, `lead_stage`, `crm_task`). | constructor de flujos | ⏳ |
-| F15 | P2 | Avisos de actualización del plugin; `platform doctor`; `igr:admin:create`; tarifas de WhatsApp sin sembrar. | plataforma | ⏳ |
+| F15 | P2 | Avisos de actualización del plugin; `platform doctor`; `igr:admin:create`; tarifas de WhatsApp sin sembrar. | plataforma | 🔧 (lote 3): el plugin avisa en el admin de WordPress si su versión es menor que la mínima o si hay una nueva, con el enlace de descarga del hub (llega en `/v1/s/config`, sin HTTP extra). Falta `platform doctor`, `igr:admin:create` y las tarifas |
 | F16 | P2 | «Primeros pasos» no guía a la primera venta recuperada. | inicio | ⏳ |
 
 ## 4. Interfaz y experiencia
@@ -87,7 +87,7 @@ generado sale en $0 y hay jerga técnica por todas partes. Las capturas están e
 | U2 | P1 | Menú de 29 entradas sin agrupar. | ⏳ |
 | U3 | P1 | Conectar WhatsApp exige pasos técnicos (ver §6). | ⏳ |
 | U4 | P2 | KPIs en 0 sin tracker y sitio «Conectado» sin datos: falta un semáforo de salud. | ⏳ |
-| U5 | P2 | Jerga: «Diagnóstico» del plugin, textos de conciliación, códigos en el perfil 360, el texto del código de conexión no coincide. | ⏳ |
+| U5 | P2 | Jerga: «Diagnóstico» del plugin, textos de conciliación, códigos en el perfil 360, el texto del código de conexión no coincide. | 🔧 (lote 3): pestañas Estado y Diagnóstico del plugin en palabras de la tienda (eventos con nombre, errores explicados, informe técnico plegado; plugin 0.1.3). Falta lo del panel: conciliación, perfil 360 y el código de conexión |
 | U6 | P2 | ⌘K no busca contactos; bandeja y segmentos sin estado vacío útil; errores del servidor en inglés. | ⏳ |
 | U7 | P3 | Constructor de flujos apretado; contraste de algunos tokens. | ⏳ |
 

@@ -108,6 +108,7 @@ final class Plugin {
 		if ( is_admin() ) {
 			AdminPage::register();
 			Admin\SyncNow::register();
+			Admin\UpdateNotice::register();
 		}
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
