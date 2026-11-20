@@ -96,6 +96,12 @@ return [
             : in_array(env('APP_ENV', 'production'), ['local', 'testing'], true),
     ],
 
+    // Eventos del hub hacia ClickHouse (R4): auto = por la cola dentro de una petición web y en el momento en consola
+    // (con la cola de respaldo si ClickHouse falla); queue = siempre por la cola; direct = siempre en el momento.
+    'hub_events' => [
+        'write' => env('IGR_HUB_EVENTS_WRITE', 'auto'),
+    ],
+
     // GET /health y /health/ready (S16): en público solo dicen ok o fallo; el detalle de dependencias sale desde la
     // propia máquina (127.0.0.1, sin pasar por Caddy) o con este token en `X-IGR-Health-Token` o `Authorization: Bearer`.
     'health' => [

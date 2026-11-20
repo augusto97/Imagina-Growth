@@ -88,7 +88,8 @@ POST /v1/s (connector)┴→ IngestController (≤ 50 ms p95)
 - Los eventos `source.type=import` saltan el paso 10 (no disparan nada).
 - Los errores de esquema van a la tabla `ingest_rejections` (muestra de 7 días) y se ven en el panel del sitio.
 - **Proyección de pedidos:** `order.*` hace *upsert* en `orders` y `order_items` por (site_id, external_id). Recalcula los contadores del contacto en un job con *debounce* (5 s) por contacto.
-- **Carritos:** `cart.*` hace *upsert* en `carts`. Un job cada minuto marca `abandoned` a los carritos sin actividad durante N min (configurable, 45 por defecto) con contacto conocido o identificable, y emite `cart.abandoned` (evento interno del hub).
+- **Carritos:** `cart.*` hace *upsert* en `carts`. Un job cada minuto marca `abandoned` a los carritos sin actividad durante N min (configurable, 45 por defecto) con contacto conocido o identificable, y emite `cart.abandoned` (evento interno del hub). Emite **antes** de marcar, con un `event_id` determinista (UUID v5 del carrito y su última actividad): si emitir falla, el carrito sigue activo y se reintenta; si se emite dos veces, es el mismo evento.
+- **Eventos del hub hacia ClickHouse** (`HubEvents` → `HubEventWriter`, R4): dentro de una petición web (webhooks, clics en `/c/`) nunca se espera a ClickHouse: las filas van a la cola `projections` (`WriteHubEventRows`, cifrado, reintentos durante 24 h). En consola y en los jobs se insertan en el momento y, si ClickHouse falla, también van a la cola. `EventIngested` se publica igual, en el momento. `igr.hub_events.write` (`IGR_HUB_EVENTS_WRITE`): `auto`, `queue` o `direct`.
 
 ## 6. Motor de segmentos
 

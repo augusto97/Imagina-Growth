@@ -1,5 +1,6 @@
 <?php
 
+use App\Analytics\Ch;
 use App\Domain\Commerce\Actions\DetectAbandonedCarts;
 use App\Domain\Commerce\Contracts\CouponIssuer;
 use App\Domain\Commerce\Data\CouponSpec;
@@ -9,12 +10,15 @@ use App\Domain\Commerce\Models\CouponIssued;
 use App\Domain\Commerce\Support\CartRestoreLink;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Contacts\Models\ContactIdentity;
+use App\Ingest\HubEvents;
+use App\Ingest\HubEventWriter;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Ramsey\Uuid\Uuid;
 
 /*
  * Carritos (hub/CLAUDE.md §5): proyección, abandono con cart.abandoned,
@@ -71,6 +75,38 @@ it('proyecta el carrito, lo marca abandonado a los 45 minutos y emite cart.aband
     expect($sig)->toBe(hash_hmac('sha256', $payload, $this->secret));
     $data = json_decode(base64_decode(strtr($payload, '-_', '+/')), true);
     expect($data['items'])->toBe([['product_id' => '88', 'variation_id' => null, 'qty' => 2]])->and($data['cart'])->toBe($cart->publicId());
+});
+
+it('si emitir cart.abandoned falla, el carrito no queda marcado y se reintenta en la siguiente vuelta (R4)', function () {
+    $this->postSigned($this->site, $this->secret, [
+        cartEvent($this, 'cart.updated', ['cart_token' => 'c_token_ana', 'items' => [['product_id' => '88', 'qty' => 1, 'price' => '150000.00']], 'subtotal' => '150000.00', 'coupons' => [], 'currency' => 'COP'], '2026-11-18 14:00:00'),
+    ]);
+    $this->runWorker();
+    // Ni ClickHouse ni la cola de respaldo responden: emitir falla.
+    app()->instance(HubEventWriter::class, new class(app(Ch::class)) extends HubEventWriter
+    {
+        public function write(array $rows): void
+        {
+            throw new RuntimeException('caído');
+        }
+    });
+    app()->forgetInstance(HubEvents::class);
+    app()->forgetInstance(DetectAbandonedCarts::class);
+    expect(app(DetectAbandonedCarts::class)->handle(CarbonImmutable::parse('2026-11-18 14:50:00'))['abandoned'])->toBe(0);
+    $cart = fn () => app(CurrentWorkspace::class)->run($this->ws, fn () => Cart::query()->firstOrFail());
+    expect($cart()->status)->toBe('active')->and($cart()->abandoned_at)->toBeNull();
+
+    app()->forgetInstance(HubEventWriter::class);
+    app()->forgetInstance(HubEvents::class);
+    app()->forgetInstance(DetectAbandonedCarts::class);
+    expect(app(DetectAbandonedCarts::class)->handle(CarbonImmutable::parse('2026-11-18 14:51:00'))['abandoned'])->toBe(1);
+    expect($cart()->status)->toBe('abandoned');
+    $rows = $this->chRows($this->ws, "SELECT toString(event_id) AS id FROM events WHERE workspace_id = {workspace_id:UInt32} AND event = 'cart.abandoned'");
+    expect($rows)->toHaveCount(1);
+
+    // El event_id sale del carrito y de su última actividad: si se emite dos veces, es el mismo evento.
+    $again = Uuid::uuid5(Uuid::NAMESPACE_URL, 'igr:cart.abandoned:'.$cart()->id.':'.$cart()->last_activity_at->getTimestamp())->toString();
+    expect($rows[0]['id'])->toBe($again);
 });
 
 it('el pedido con cart_token recupera el carrito abandonado y redime el cupón del hub', function () {
