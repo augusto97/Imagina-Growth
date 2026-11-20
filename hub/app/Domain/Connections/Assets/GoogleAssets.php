@@ -122,7 +122,7 @@ final class GoogleAssets
     /** @return list<array<string, mixed>> */
     private function customers(string $token): array
     {
-        $response = $this->send('get', GoogleAdsHeaders::url('customers:listAccessibleCustomers'), [], $token, []);
+        $response = $this->send('get', GoogleAdsHeaders::url('customers:listAccessibleCustomers'), [], $token, GoogleAdsHeaders::build(null, null));
         $out = [];
         foreach (array_slice((array) $response->json('resourceNames', []), 0, self::MAX_CUSTOMERS) as $name) {
             $id = (string) preg_replace('/\D/', '', (string) $name);
