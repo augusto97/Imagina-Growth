@@ -8,11 +8,11 @@ completo (procesos, puertos, rutas, paquete, actualizador, copias y vigilancia) 
 | Carpeta o archivo | Para qué |
 |---|---|
 | `install.sh` | Instalador para un servidor limpio: repositorios oficiales, MariaDB 11.4 (11.8 en 26.04), ClickHouse 25.8, dos Redis 7.4 (8 en 26.04), FrankenPHP con PHP 8.4, uv, Caddy, usuario `growth`, `/opt/growth`, `.env` con secretos, unidades, firewall y la última versión. Idempotente |
-| `systemd/` | Unidades: `growth.target`, `growth-app`, `growth-ingest-api@`, `growth-ingest@`, `growth-horizon`, `growth-reverb`, `growth-scheduler`, `growth-ml`, `growth-update.path` + `growth-update-dispatch`, `growth-system` (configuración del sistema antes de `growth-app`), las copias y la vigilancia (timers) y nuestra plantilla `redis-server@` |
-| `bin/` | Scripts del servidor: `growth-update` (actualiza o instala una versión), `growth-update-dispatch` (atiende el pedido del panel con `systemd-run`), `growth-env` (lee y repara el `.env` sin `source`), `growth-system` (memoria, Redis, MariaDB, ClickHouse, prioridades y perfil de procesos; lo aplican el instalador y cada actualización), `growth-web` (FrankenPHP con los hilos del perfil) y los envoltorios de los servicios |
+| `systemd/` | Unidades: `growth.target`, `growth-app`, `growth-ingest-api@`, `growth-ingest@`, `growth-horizon`, `growth-reverb`, `growth-scheduler`, `growth-ml`, `growth-update.path` + `growth-update-dispatch`, `growth-backup.path` + `growth-backup-dispatch` (pedidos de Plataforma → Copias de seguridad), `growth-system` (configuración del sistema antes de `growth-app`), las copias y la vigilancia (timers) y nuestra plantilla `redis-server@` |
+| `bin/` | Scripts del servidor: `growth-update` (actualiza o instala una versión), `growth-update-dispatch` (atiende el pedido del panel con `systemd-run`), `growth-env` (lee y repara el `.env` sin `source`), `growth-system` (memoria, Redis, MariaDB, ClickHouse, prioridades, perfil de procesos y el despachador de las copias; lo aplican el instalador y cada actualización), `growth-web` (FrankenPHP con los hilos del perfil) y los envoltorios de los servicios |
 | `config/` | Plantillas de PHP, MariaDB, ClickHouse, Redis (colas y caché) y el Caddyfile interno de FrankenPHP |
 | `caddy/Caddyfile` | Caddy de entrada: panel, ingesta (dos réplicas con reintento), Reverb y dominios de clientes con TLS bajo demanda; IP real detrás de Cloudflare y registros sin tokens. `install.sh` lo escribe si no existe y `growth-system` lo pone al día en cada actualización mientras nadie lo edite a mano (si no, deja `Caddyfile.growth.new`). `caddy/history/` guarda las plantillas anteriores para reconocerlo y `caddy/cloudflare-ips.txt` es la lista de respaldo |
-| `backup/` | Copias de MariaDB y ClickHouse al Storage Box, prueba semanal de restauración y guías (`README.md`, `RESTAURACION.md`) |
+| `backup/` | Copias de MariaDB y ClickHouse al Storage Box, prueba semanal de restauración, `growth-backup-dispatch` (atiende los pedidos de Plataforma → Copias de seguridad como root: destino, llave SSH, prueba y copia ahora) y guías (`README.md`, `RESTAURACION.md`) |
 | `release/` | Paquete de versión: `build.sh`, `sign.sh`, `verify.sh`, `keygen.sh` y `env.json` (las variables del `.env`) |
 | `dev/` | Desarrollo local sin Docker: `setup-local.sh` y su guía |
 | `tests/` | Pruebas de los scripts: `release/`, `updater/` (el «deployer falso»), `backup/` e `install/` (Ubuntu limpio en un contenedor desechable, solo para verificar) |
@@ -56,8 +56,11 @@ Después:
   mismo dominio, y los dominios propios de las agencias le apuntan con CNAME. El instalador avisa al final si el
   dominio todavía no tiene DNS.
 - Completar en `/opt/growth/shared/.env` lo que no se puede generar: correo (SES), Meta, Anthropic.
-- Configurar `rclone` y `/etc/growth/backup.conf` para las copias ([`backup/README.md`](backup/README.md)) y los
-  heartbeats y monitores de Better Stack.
+- Configurar las copias desde el panel, **Plataforma → Copias de seguridad**: Storage Box de Hetzner (servidor,
+  usuario, puerto 23 y carpeta), llave SSH que genera el servidor o contraseña, frase de cifrado (guárdala en el
+  gestor de contraseñas), días a conservar y heartbeats de Better Stack; «Probar conexión» y «Hacer una copia
+  ahora». Sin consola ([`backup/README.md`](backup/README.md)). Los monitores de Better Stack se crean en Better
+  Stack.
 - Crear el primer administrador de la plataforma (`growth-php artisan tinker` como `growth`).
 
 Correr `install.sh` otra vez no pisa el `.env`, las bases, el Caddyfile ni la versión instalada.
