@@ -1,0 +1,167 @@
+{
+    "platform": {
+        "tabs": {
+            "backups": "Copias de seguridad"
+        },
+        "backups": {
+            "failed": "No se pudo completar",
+            "done": {
+                "configure": "Destino guardado.",
+                "test": "La conexión con el Storage Box funciona.",
+                "backup_now": "Copia iniciada: primero la base de datos principal y después la de eventos.",
+                "install_key": "Llave instalada y probada. La contraseña no se guardó.",
+                "refresh": "Estado al día."
+            },
+            "working": {
+                "configure": "El servidor está guardando el destino y probando la conexión…",
+                "test": "Probando la conexión con el Storage Box…",
+                "backup_now": "Iniciando la copia…",
+                "install_key": "Instalando la llave en el Storage Box…",
+                "refresh": "Consultando al servidor…"
+            },
+            "lastFailed": {
+                "configure": "No se pudo guardar el destino:",
+                "backup_now": "No se pudo iniciar la copia:",
+                "install_key": "No se pudo instalar la llave:",
+                "refresh": "El servidor no pudo responder:"
+            },
+            "notAnswered": {
+                "title": "El servidor todavía no respondió",
+                "body": "Si acabas de actualizar, espera unos segundos. Si no cambia, instala la última versión desde «Actualizaciones»: trae lo que el servidor necesita para las copias.",
+                "ask": "Consultar al servidor"
+            },
+            "stale": "El servidor no tomó el último pedido. Si sigue así, instala la última versión desde «Actualizaciones».",
+            "timersOff": "Las copias automáticas están apagadas en el servidor. Guarda el destino otra vez para encenderlas.",
+            "manual": "Las copias se configuraron a mano en el servidor (destino «{{remote}}»). Puedes probar la conexión y hacer una copia ahora; si guardas un destino aquí, reemplaza esa configuración.",
+            "status": {
+                "title": "Copias de seguridad",
+                "description": "Cada noche se copian la base de datos principal y la de eventos al Storage Box, cifradas, y cada domingo se prueba restaurarlas. Horas en tu zona horaria.",
+                "runNow": "Hacer una copia ahora",
+                "testNow": "Probar conexión",
+                "notConfigured": "Todavía no hay copias: completa el destino y guárdalo.",
+                "task": "Tarea",
+                "result": "Resultado",
+                "last": "Última vez",
+                "size": "Tamaño",
+                "next": "Próxima",
+                "never": "Todavía no",
+                "lastGood": "Última copia buena: {{date}}",
+                "noTest": "Todavía no se probó la conexión.",
+                "testOk": "La conexión funciona (probada {{date}})",
+                "testFailed": "La última prueba de conexión falló ({{date}})",
+                "free": "espacio libre en el Storage Box: {{size}}"
+            },
+            "jobs": {
+                "mariadb": "Base de datos principal (MariaDB)",
+                "clickhouse": "Eventos y analítica (ClickHouse)",
+                "verify": "Prueba de restauración (semanal)"
+            },
+            "states": {
+                "queued": "En cola",
+                "running": "En curso",
+                "succeeded": "Bien",
+                "failed": "Falló",
+                "never": "Sin datos"
+            },
+            "form": {
+                "title": "Destino: Storage Box de Hetzner",
+                "description": "Las copias se cifran en este servidor antes de salir y se guardan por SFTP en tu Storage Box.",
+                "host": "Servidor",
+                "hostHint": "Está en la consola de Hetzner, en los datos del Storage Box.",
+                "hostPlaceholder": "u123456.your-storagebox.de",
+                "port": "Puerto",
+                "portHint": "Hetzner usa el 23.",
+                "user": "Usuario",
+                "userPlaceholder": "u123456",
+                "path": "Carpeta",
+                "pathHint": "Dentro del Storage Box; se crea sola.",
+                "auth": "Cómo entra el servidor al Storage Box",
+                "authKey": "Llave SSH (recomendado)",
+                "authKeyHelp": "El servidor crea su propia llave; tú la agregas una vez al Storage Box.",
+                "authPassword": "Contraseña",
+                "authPasswordHelp": "La contraseña del Storage Box, guardada solo en el servidor.",
+                "password": "Contraseña del Storage Box",
+                "passwordStored": "Ya hay una guardada en el servidor. Déjala vacía para conservarla.",
+                "encryption": "Frase de cifrado",
+                "encryptionHelp": "Cifra las copias. Sin esta frase las copias no se pueden leer, ni siquiera desde el Storage Box: guárdala en tu gestor de contraseñas.",
+                "encryptionStored": "Ya hay una guardada en el servidor. Déjala vacía para conservarla. Si la cambias, para leer las copias anteriores hace falta la frase de antes.",
+                "encryptionSave": "Antes de guardar, copia esta frase en tu gestor de contraseñas. El panel no la vuelve a mostrar.",
+                "generate": "Generar una",
+                "keepDays": "Días a conservar",
+                "keepDaysHint": "Las copias más viejas se borran del Storage Box.",
+                "heartbeats": "Avisos de Better Stack (opcional)",
+                "heartbeatsHelp": "Pega la URL de un heartbeat de Better Stack para cada tarea: si una copia no avisa a tiempo o falla, Better Stack te alerta.",
+                "heartbeatSet": "Configurado",
+                "heartbeatKeep": "Configurado: escribe otra URL para cambiarlo",
+                "heartbeatPlaceholder": "https://uptime.betterstack.com/api/v1/heartbeat/…",
+                "heartbeatRemove": "Quitar",
+                "heartbeatUndo": "Conservar",
+                "save": "Guardar destino"
+            },
+            "confirm": {
+                "title": "Confirma con tu contraseña",
+                "body": "Por seguridad, escribe la contraseña con la que entras al panel. Después el servidor guarda el destino y prueba la conexión.",
+                "password": "Tu contraseña del panel",
+                "submit": "Guardar"
+            },
+            "key": {
+                "title": "Llave SSH del servidor",
+                "description": "El servidor entra al Storage Box con esta llave. La parte privada nunca sale del servidor.",
+                "none": "La llave se crea al guardar el destino con «Llave SSH».",
+                "fingerprint": "Huella de la llave: {{value}}",
+                "hostKey": "Identidad del Storage Box: {{value}}",
+                "stepsTitle": "Cómo agregarla al Storage Box",
+                "step1": "En la consola de Hetzner, abre tu Storage Box y activa «SSH» y el acceso desde afuera («External reachability»).",
+                "step2": "Agrega la llave: con el botón de abajo y la contraseña del Storage Box (la contraseña no se guarda), o pegándola en el archivo .ssh/authorized_keys del Storage Box.",
+                "step3": "Pulsa «Probar conexión».",
+                "install": "Instalar la llave con la contraseña",
+                "passwordMode": "El destino entra con contraseña. Para usar la llave, elige «Llave SSH» en el destino y guárdalo."
+            },
+            "install": {
+                "title": "Instalar la llave en el Storage Box",
+                "body": "El servidor entra una sola vez con la contraseña del Storage Box, agrega la llave y prueba la conexión con ella. La contraseña no se guarda.",
+                "password": "Contraseña del Storage Box",
+                "submit": "Instalar"
+            },
+            "errors": {
+                "not_configured": "Todavía no hay un destino para las copias. Complétalo y guárdalo.",
+                "invalid_request": "El servidor rechazó el pedido. Vuelve a intentarlo desde el panel.",
+                "invalid_host": "El servidor no es un nombre válido.",
+                "invalid_port": "El puerto no es válido.",
+                "invalid_user": "El usuario no es válido.",
+                "invalid_path": "La carpeta no es válida: usa letras, números, punto, guion o guion bajo.",
+                "invalid_auth": "La forma de entrar no es válida.",
+                "invalid_keep_days": "Los días a conservar van de 1 a 365.",
+                "invalid_heartbeat": "Ese aviso no es una dirección de heartbeat de Better Stack.",
+                "invalid_password": "La contraseña tiene caracteres que no se pueden usar (saltos de línea o tabuladores).",
+                "invalid_encryption": "La frase de cifrado debe tener entre 12 y 256 caracteres, sin saltos de línea.",
+                "password_required": "Falta la contraseña del Storage Box.",
+                "encryption_required": "Falta la frase de cifrado de las copias.",
+                "missing_tool": "Al servidor le falta un programa para las copias. Instala la última versión desde «Actualizaciones».",
+                "host_not_found": "No se encontró el servidor. Revisa el nombre (en Hetzner es como u123456.your-storagebox.de).",
+                "connection_refused": "El Storage Box rechazó la conexión. En la consola de Hetzner activa «SSH» y usa el puerto 23.",
+                "timeout": "El Storage Box no respondió a tiempo. Revisa el nombre y el puerto, y que tenga activado el acceso desde afuera («External reachability»).",
+                "host_key_changed": "La identidad del Storage Box cambió desde que se guardó el destino. Si cambiaste de Storage Box, guarda el destino otra vez.",
+                "auth_failed": "El Storage Box no aceptó la llave o la contraseña. Revisa el usuario y que la llave esté agregada.",
+                "permission_denied": "El Storage Box no deja escribir en esa carpeta.",
+                "no_space": "El Storage Box está lleno.",
+                "encryption_mismatch": "En esa carpeta hay copias cifradas con otra frase. Usa otra carpeta o la frase de antes.",
+                "already_running": "Ya hay una copia en curso.",
+                "start_failed": "El servidor no pudo iniciar la copia.",
+                "auth_not_key": "El destino entra con contraseña: elige «Llave SSH» para instalar la llave.",
+                "key_install_failed": "No se pudo instalar la llave en el Storage Box.",
+                "internal": "Hubo un error inesperado en el servidor. Vuelve a intentarlo.",
+                "bad_config": "La configuración de las copias en el servidor no es válida. Guarda el destino otra vez.",
+                "dump_failed": "No se pudo sacar la copia de la base de datos.",
+                "compress_failed": "No se pudo comprimir la copia. Puede faltar espacio en el disco del servidor.",
+                "upload_failed": "La copia se hizo, pero no se pudo subir al Storage Box.",
+                "cleanup_failed": "La copia se subió, pero no se pudieron borrar las copias viejas del Storage Box.",
+                "download_failed": "No se pudo bajar la copia del Storage Box para probarla.",
+                "restore_failed": "No se pudo restaurar la copia de prueba.",
+                "no_backups": "Todavía no hay copias para probar.",
+                "verify_mismatch": "La copia restaurada no coincide con lo que se copió.",
+                "unknown": "Algo falló."
+            }
+        }
+    }
+}

@@ -16,4 +16,16 @@ return [
         // Una actualización «en curso» sin señales de vida por más de esto se considera abandonada.
         'stale_after_minutes' => (int) env('GROWTH_UPDATE_STALE_MINUTES', 120),
     ],
+
+    // Copias de seguridad desde el panel (docs/despliegue.md §6): el pedido lo atiende growth-backup-dispatch (root).
+    'backups' => [
+        // Los horarios de los timers de systemd, en UTC (infra/systemd/growth-backup-*.timer): solo para mostrarlos.
+        'schedule' => [
+            'mariadb' => '03:15',
+            'clickhouse' => '03:45',
+            'verify' => 'sun 05:00',
+        ],
+        // Un pedido que root no tomó en este tiempo (el servidor no tiene el despachador) ya no bloquea uno nuevo.
+        'stale_after_minutes' => (int) env('GROWTH_BACKUP_STALE_MINUTES', 10),
+    ],
 ];
