@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, Layers, Pencil, Plus } from 'lucide-react';
+import { Archive, ArchiveRestore, Layers, Pencil, Plus, RefreshCw } from 'lucide-react';
 import { useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -14,12 +14,14 @@ import { isApiError } from '@/lib/api';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { type PlanInput, type PlatformPlan, usePlanArchive, usePlatformPlans, useSavePlan } from './api';
+import { useSyncPlans } from './settings-api';
 
 /** Planes de la plataforma: crear, editar, archivar y restaurar (no se borran: hay cuentas y facturas que los nombran). */
 export function PlansTab() {
     const { t } = useTranslation();
     const plans = usePlatformPlans();
     const archive = usePlanArchive();
+    const sync = useSyncPlans();
     const [editing, setEditing] = useState<PlatformPlan | 'new' | null>(null);
 
     if (plans.isError) return <ErrorState error={plans.error} onRetry={() => void plans.refetch()} />;
@@ -38,10 +40,25 @@ export function PlansTab() {
         <div className="igr:space-y-3">
             <div className="igr:flex igr:items-center igr:justify-between igr:gap-3">
                 <p className="igr:text-sm igr:text-muted-foreground">{t('platform.plans.help')}</p>
-                <Button onClick={() => setEditing('new')}>
-                    <Plus />
-                    {t('platform.plans.new')}
-                </Button>
+                <div className="igr:flex igr:flex-wrap igr:gap-2">
+                    <Button
+                        variant="outline"
+                        loading={sync.isPending}
+                        onClick={() =>
+                            sync.mutate(undefined, {
+                                onSuccess: (r) => toast.success(r.created > 0 ? t('platformSettings.plansSync.done', { count: r.created }) : t('platformSettings.plansSync.none')),
+                                onError: (e) => toast.error(t('errors.title'), isApiError(e) ? e.message : undefined),
+                            })
+                        }
+                    >
+                        <RefreshCw />
+                        {t('platformSettings.plansSync.button')}
+                    </Button>
+                    <Button onClick={() => setEditing('new')}>
+                        <Plus />
+                        {t('platform.plans.new')}
+                    </Button>
+                </div>
             </div>
             {plans.data.plans.length === 0 ? (
                 <EmptyState icon={Layers} title={t('platform.plans.empty')} />

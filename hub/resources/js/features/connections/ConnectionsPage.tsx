@@ -20,6 +20,12 @@ import { WhatsAppOneClick } from './WhatsAppOneClick';
 const ORDER: ProviderKey[] = ['meta_whatsapp', 'meta', 'google', 'tiktok'];
 const MANUAL_PATH: Record<ProviderKey, string> = { meta_whatsapp: 'canales?tab=whatsapp', meta: 'medicion', google: 'medicion', tiktok: 'medicion' };
 
+/** Plataforma → Ajustes, en la sección de la app que falta (`meta.app_id` → `meta`). Solo la ve quien administra la plataforma. */
+function settingsPath(info: ProviderInfo): string {
+    const section = info.missing[0]?.split('.')[0] ?? (info.key === 'meta_whatsapp' ? 'meta' : info.key);
+    return `plataforma?pestana=ajustes&seccion=${section}`;
+}
+
 /**
  * Configuración → Conexiones: Meta (WhatsApp, anuncios, Messenger e Instagram), Google (Ads, Analytics) y TikTok con
  * un clic. Si la instalación no tiene la app de un proveedor, la tarjeta dice qué falta y lleva a los campos manuales.
@@ -100,7 +106,7 @@ export function ConnectionsPage() {
 
 function ProviderCard({ info, onPick }: { info: ProviderInfo; onPick: (c: Connection) => void }) {
     const { t } = useTranslation();
-    const { workspace } = useWorkspace();
+    const { workspace, me } = useWorkspace();
     const canManage = useCan('manageWorkspace');
     const start = useStartConnection(workspace.id);
     const check = useCheckConnection(workspace.id);
@@ -144,8 +150,13 @@ function ProviderCard({ info, onPick }: { info: ProviderInfo; onPick: (c: Connec
                     <div className="igr:space-y-1 igr:rounded-md igr:bg-muted igr:p-2.5 igr:text-xs igr:text-muted-foreground">
                         <p>{t('connections.unavailable', { provider: t(`connections.provider.${info.key}.name`) })}</p>
                         <p>
-                            {t('connections.missing')} <code className="igr:font-mono">{info.missing.join(', ')}</code>
+                            {t('connections.missing')} {info.missing.map((key) => t(`platformSettings.fields.${key}.label`, { defaultValue: key })).join(', ')}
                         </p>
+                        {me.user.is_platform_admin ? (
+                            <Link className="igr:block igr:text-primary igr:underline-offset-4 igr:hover:underline" to={`/w/${workspace.id}/${settingsPath(info)}`}>
+                                {t('connections.configure')}
+                            </Link>
+                        ) : null}
                         <Link className="igr:text-primary igr:underline-offset-4 igr:hover:underline" to={`/w/${workspace.id}/${MANUAL_PATH[info.key]}`}>
                             {t('connections.manual')}
                         </Link>

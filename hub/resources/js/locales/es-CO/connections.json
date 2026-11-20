@@ -5,7 +5,8 @@
         "account": "Cuenta:",
         "allows": "Sirve para:",
         "usedByLabel": "La usan:",
-        "unavailable": "Esta instalación todavía no tiene la app de {{provider}}. Quien administra la plataforma debe crearla y configurarla en el servidor.",
+        "unavailable": "Esta instalación todavía no tiene la app de {{provider}}. Quien administra la plataforma debe crearla y ponerla en Plataforma → Ajustes.",
+        "configure": "Configurarla en Plataforma → Ajustes",
         "missing": "Falta:",
         "manual": "Mientras tanto, conecta pegando los datos a mano",
         "status": {

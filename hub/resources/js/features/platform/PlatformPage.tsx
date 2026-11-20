@@ -1,6 +1,7 @@
 import { Building2, Download, FilePlus2, Plus, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +40,7 @@ import { ClientDetailDialog, NewClientDialog } from './ClientsAdmin';
 import { DoctorTab } from './DoctorTab';
 import { FxTab } from './FxTab';
 import { PlansTab } from './PlansTab';
+import { SettingsTab } from './SettingsTab';
 import { UpdatesTab } from './UpdatesTab';
 
 const STATUSES: BillingStatus[] = ['trial', 'active', 'grace', 'suspended'];
@@ -48,6 +50,16 @@ export function PlatformPage() {
     const { me } = useWorkspace();
     const isAdmin = me.user.is_platform_admin;
     const overview = usePlatformOverview(isAdmin);
+    // La pestaña va en la dirección (?pestana=ajustes&seccion=mail) para que Instalación y Conexiones lleven directo.
+    const [params, setParams] = useSearchParams();
+    const tab = params.get('pestana') ?? 'accounts';
+    const setTab = (next: string) => {
+        const p = new URLSearchParams(params);
+        if (next === 'accounts') p.delete('pestana');
+        else p.set('pestana', next);
+        if (next !== 'ajustes') p.delete('seccion');
+        setParams(p, { replace: true });
+    };
 
     if (!isAdmin) {
         return <EmptyState icon={ShieldAlert} title={t('platform.forbidden')} description={t('platform.forbiddenHelp')} />;
@@ -57,12 +69,13 @@ export function PlatformPage() {
         <div>
             <PageHeader title={t('platform.title')} description={t('platform.description')} />
             <MailBanner />
-            <Tabs defaultValue="accounts">
+            <Tabs value={tab} onValueChange={setTab}>
                 <TabsList>
                     <TabsTrigger value="accounts">{t('platform.tabs.accounts')}</TabsTrigger>
                     <TabsTrigger value="plans">{t('platform.tabs.plans')}</TabsTrigger>
                     <TabsTrigger value="health">{t('platform.tabs.health')}</TabsTrigger>
                     <TabsTrigger value="doctor">{t('platform.tabs.doctor')}</TabsTrigger>
+                    <TabsTrigger value="ajustes">{t('platform.tabs.settings')}</TabsTrigger>
                     <TabsTrigger value="updates">{t('platform.tabs.updates')}</TabsTrigger>
                     <TabsTrigger value="fx">{t('platform.tabs.fx')}</TabsTrigger>
                     <TabsTrigger value="invoices">{t('platform.tabs.invoices')}</TabsTrigger>
@@ -79,6 +92,9 @@ export function PlatformPage() {
                 </TabsContent>
                 <TabsContent value="doctor" className="igr:mt-4">
                     <DoctorTab />
+                </TabsContent>
+                <TabsContent value="ajustes" className="igr:mt-4">
+                    <SettingsTab />
                 </TabsContent>
                 <TabsContent value="updates" className="igr:mt-4">
                     <UpdatesTab />
@@ -834,11 +850,18 @@ function RequestsTab({ data }: { data: PlatformOverview }) {
     );
 }
 
-/** Aviso fijo mientras el correo de la plataforma esté en «log»: sin él no salen invitaciones ni recuperaciones. */
+/** Aviso fijo mientras el correo de la plataforma esté en «log»: sin él no salen invitaciones ni recuperaciones. Lleva a Ajustes → Correo. */
 function MailBanner() {
     const { t } = useTranslation();
     const mail = usePlatformMail();
     const test = useMailTest();
+    const [params, setParams] = useSearchParams();
+    const configure = () => {
+        const p = new URLSearchParams(params);
+        p.set('pestana', 'ajustes');
+        p.set('seccion', 'mail');
+        setParams(p, { replace: true });
+    };
     if (!mail.data || mail.data.configured) {
         return mail.data?.configured ? (
             <div className="igr:mb-4 igr:flex igr:items-center igr:justify-end">
@@ -862,7 +885,11 @@ function MailBanner() {
         <div role="alert" className="igr:mb-4 igr:rounded-lg igr:border igr:border-warning/40 igr:bg-warning/10 igr:p-4 igr:text-sm">
             <p className="igr:font-medium">{t('platform.mail.offTitle')}</p>
             <p className="igr:mt-1 igr:text-muted-foreground">{t('platform.mail.offBody')}</p>
-            <pre className="igr:mt-2 igr:overflow-x-auto igr:rounded igr:bg-muted igr:p-2 igr:text-xs">{t('platform.mail.offExample')}</pre>
+            {params.get('pestana') !== 'ajustes' || params.get('seccion') !== 'mail' ? (
+                <Button size="sm" className="igr:mt-3" onClick={configure}>
+                    {t('platform.mail.configure')}
+                </Button>
+            ) : null}
         </div>
     );
 }

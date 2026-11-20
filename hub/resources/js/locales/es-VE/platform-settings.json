@@ -1,0 +1,21 @@
+{
+    "platformSettings": {
+        "sections": {
+            "push": {
+                "description": "Las llaves con las que la bandeja avisa en el celular o la computadora cuando llega un mensaje nuevo."
+            },
+            "holidays": {
+                "title": "Feriados",
+                "description": "Los feriados de cada país. Ese día no sale publicidad y la agenda se cierra. Los de la ley ya están; agrega los que decrete el Gobierno o quita uno que ese año no aplique."
+            }
+        },
+        "holidays": {
+            "add": "Agregar feriado",
+            "addTitle": "Agregar un feriado",
+            "remove": "No es feriado este año",
+            "added": "Feriado agregado.",
+            "removedToast": "Ese día ya no cuenta como feriado.",
+            "empty": "No hay feriados para ese año."
+        }
+    }
+}
