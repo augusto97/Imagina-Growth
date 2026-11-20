@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Messaging\Actions\ArchiveOldMessages;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -79,4 +80,71 @@ it('las entregas de conversiones en ClickHouse vencen a los 90 días', function 
     $this->useIngestInfrastructure();
     $rows = $this->chRows($this->ws, 'SELECT create_table_query AS q FROM system.tables WHERE database = currentDatabase() AND name = {t:String} AND {workspace_id:UInt32} > 0', ['t' => 'conversion_deliveries']);
     expect($rows[0]['q'] ?? '')->toContain('TTL')->toContain('toIntervalDay(90)');
+});
+
+/** Un mensaje para la retención, con su fecha de creación y de última actividad. */
+function retentionMessage(string $workspaceId, array $attrs): string
+{
+    $id = (string) Str::ulid();
+    $at = $attrs['created_at'] ?? now();
+    DB::table('messages')->insert(array_replace([
+        'id' => $id, 'workspace_id' => $workspaceId, 'contact_id' => (string) Str::ulid(), 'channel' => 'whatsapp', 'direction' => 'out', 'kind' => 'marketing',
+        'source_type' => 'flow', 'status' => 'delivered', 'sent_at' => $at, 'delivered_at' => $at, 'cost_estimated' => 0.0125, 'cost_currency' => 'USD',
+        'payload' => 'cifrado', 'created_at' => $at, 'updated_at' => $at,
+    ], $attrs));
+
+    return $id;
+}
+
+it('R14: los mensajes de más de 24 meses pasan al archivo agregado y se borran con lo que depende de ellos', function () {
+    $ws = $this->ws->id;
+    $old = now()->subDays(800)->startOfDay()->addHours(15);
+    $flow = (string) Str::ulid();
+    $campaign = (string) Str::ulid();
+    $wa = retentionMessage($ws, ['flow_id' => $flow, 'created_at' => $old, 'clicked_at' => $old]);
+    retentionMessage($ws, ['flow_id' => $flow, 'created_at' => $old->copy()->addHour(), 'status' => 'sent', 'delivered_at' => null]);   // sin entregar: Meta no cobra
+    retentionMessage($ws, ['channel' => 'email', 'source_type' => 'campaign', 'campaign_id' => $campaign, 'created_at' => $old, 'status' => 'bounced', 'cost_estimated' => 0.0001]);
+    retentionMessage($ws, ['created_at' => $old, 'status' => 'denied', 'sent_at' => null, 'delivered_at' => null, 'cost_estimated' => null]);   // nunca salió: no se archiva
+    retentionMessage($ws, ['direction' => 'in', 'source_type' => 'inbox', 'kind' => 'service', 'created_at' => $old, 'status' => 'received', 'cost_estimated' => null]);
+    // Se queda: reciente, o viejo con actividad dentro del margen de la atribución (un clic tardío en un enlace viejo).
+    $recent = retentionMessage($ws, ['flow_id' => $flow, 'created_at' => now()->subDays(10)]);
+    $active = retentionMessage($ws, ['flow_id' => $flow, 'created_at' => $old, 'clicked_at' => now()->subDays(2), 'updated_at' => now()->subDays(2)]);
+    DB::table('tracked_links')->insert([
+        ['code' => 'abcd1234', 'workspace_id' => $ws, 'message_id' => $wa, 'contact_id' => null, 'url' => 'https://tienda.co/carrito', 'created_at' => $old],
+        ['code' => 'efgh5678', 'workspace_id' => $ws, 'message_id' => $recent, 'contact_id' => null, 'url' => 'https://tienda.co/', 'created_at' => now()],
+    ]);
+    DB::table('message_attachments')->insert(['id' => (string) Str::ulid(), 'workspace_id' => $ws, 'message_id' => $wa, 'kind' => 'image', 'created_at' => $old]);
+
+    $this->artisan('igr:retention:purge', ['--dry-run' => true])->expectsOutput('messages: 5')->assertSuccessful();
+    expect(DB::table('messages')->count())->toBe(7)->and(DB::table('message_archive_daily')->count())->toBe(0);
+
+    $this->artisan('igr:retention:purge')->expectsOutput('messages: 5')->expectsOutput('tracked_links: 1')->expectsOutput('message_attachments: 1')->assertSuccessful();
+    expect(DB::table('messages')->pluck('id')->all())->toEqualCanonicalizing([$recent, $active])
+        ->and(DB::table('tracked_links')->pluck('code')->all())->toBe(['efgh5678'])
+        ->and(DB::table('message_attachments')->count())->toBe(0);
+    $archive = DB::table('message_archive_daily')->where('workspace_id', $ws)->get()->keyBy(fn ($r) => $r->channel.':'.$r->direction);
+    expect($archive)->toHaveCount(3)
+        ->and($archive['whatsapp:out'])->toMatchObject(['date' => $old->toDateString(), 'kind' => 'marketing', 'source_type' => 'flow', 'flow_id' => $flow, 'campaign_id' => '',
+            'total' => 2, 'sent' => 2, 'delivered' => 1, 'clicked' => 1])
+        ->and((float) $archive['whatsapp:out']->cost_usd)->toBe(0.0125)
+        ->and($archive['email:out'])->toMatchObject(['campaign_id' => $campaign, 'total' => 1, 'sent' => 1, 'bounced' => 1])
+        ->and((float) $archive['email:out']->cost_usd)->toBe(0.0001)
+        ->and($archive['whatsapp:in'])->toMatchObject(['source_type' => 'inbox', 'total' => 1]);
+
+    // Otra corrida no suma dos veces.
+    $this->artisan('igr:retention:purge')->expectsOutput('messages: 0')->assertSuccessful();
+    expect((int) DB::table('message_archive_daily')->sum('total'))->toBe(4);
+});
+
+it('R14: el plazo de los mensajes nunca baja de lo que necesita la atribución', function () {
+    config(['igr.retention.messages' => 30]);
+    // La ventana de clic más larga es de 45 días: se protegen 45 + 60 = 105.
+    $this->ws->forceFill(['settings' => array_replace_recursive($this->ws->settings ?? [], ['attribution' => ['click_days' => 45]])])->save();
+    expect(ArchiveOldMessages::retentionDays())->toBe(105);
+    $kept = retentionMessage($this->ws->id, ['created_at' => now()->subDays(100)]);
+    retentionMessage($this->ws->id, ['created_at' => now()->subDays(110)]);
+    $this->artisan('igr:retention:purge')->assertSuccessful();
+    expect(DB::table('messages')->pluck('id')->all())->toBe([$kept]);
+    config(['igr.retention.messages' => 730]);
+    expect(ArchiveOldMessages::retentionDays())->toBe(730);
 });

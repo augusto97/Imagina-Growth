@@ -91,11 +91,14 @@ trait MessagingFixtures
             public function make(): SesV2Client
             {
                 $handler = new MockHandler;
-                $handler->append(function (CommandInterface $cmd) {
-                    $this->sent[] = ['name' => $cmd->getName()] + $cmd->toArray();
+                // Varias respuestas: probar un canal SES prepara antes el configuration set con el mismo cliente (F5).
+                foreach (range(1, 10) as $_) {
+                    $handler->append(function (CommandInterface $cmd) {
+                        $this->sent[] = ['name' => $cmd->getName()] + $cmd->toArray();
 
-                    return new Result(['MessageId' => 'ses-'.count($this->sent)]);
-                });
+                        return new Result(['MessageId' => 'ses-'.count($this->sent)]);
+                    });
+                }
 
                 return new SesV2Client(['version' => '2019-09-27', 'region' => 'us-east-1', 'credentials' => ['key' => 'k', 'secret' => 's'], 'handler' => $handler]);
             }

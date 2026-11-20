@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { wsPath } from '@/api/queries';
 import { api } from '@/lib/api';
+import type { CostFields, CostMeta } from './cost';
 
 /* Tipos y consultas de Analítica (M05). Rutas en hub/routes/api/analytics.php. */
 
@@ -264,7 +265,8 @@ export interface HdyhauData {
 }
 
 /* 9. Mensajería */
-export interface MessagingCounts {
+/** Conteos de mensajería con su costo estimado y retorno (F11). */
+export interface MessagingCounts extends CostFields {
     total: number;
     sent: number;
     delivered: number;
@@ -289,6 +291,8 @@ export interface MessagingData {
     series: { date: string; sent: number; delivered: number; clicked: number }[];
     /** Las aperturas no cuentan las automáticas de Apple (con ClickHouse disponible). */
     opens_exclude_mpp: boolean;
+    /** Moneda y tasa de cambio del costo estimado. */
+    cost: CostMeta;
 }
 
 export interface DashboardDataMap {

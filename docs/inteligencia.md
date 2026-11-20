@@ -24,6 +24,9 @@
 | Recuperación | carritos abandonados que terminan en pedido en 7 días ÷ abandonados |
 | Ingresos atribuidos a Imagina Growth | pedidos con `attributed_message_id`, de un widget, de referidos o de afiliados según las ventanas configuradas (`modulos.md` M06) |
 | Incremento | (conversión del grupo expuesto − conversión del grupo de control) × expuestos × ticket |
+| Costo estimado de los mensajes | Σ lo que cobra cada proveedor según sus tarifas públicas: Meta por WhatsApp **entregado** (por país y categoría), SES por correo enviado y Twilio por SMS enviado; en USD al enviar y en la moneda del espacio de trabajo con la tasa del día de cada mensaje. Es una estimación: el cobro real es el de la factura de cada proveedor |
+| Retorno de los mensajes | ventas atribuidas a los mensajes ÷ su costo estimado (cuántas veces las ventas cubren lo que costó enviarlos); sin costo, no se calcula |
+| Costo por venta | costo estimado de los mensajes ÷ pedidos atribuidos a ellos |
 
 **Contraentrega:** la venta se cuenta como «por confirmar» hasta que se cobra (ver `eventos.md` §5).
 

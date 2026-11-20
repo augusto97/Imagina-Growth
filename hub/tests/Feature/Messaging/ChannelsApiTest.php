@@ -64,9 +64,12 @@ it('el correo por SES pide los registros DKIM, SPF y DMARC y se activa al verifi
         public function make(): SesV2Client
         {
             $h = new MockHandler;
-            $h->append(fn (CommandInterface $c) => new Result($c->getName() === 'CreateEmailIdentity'
-                ? ['DkimAttributes' => ['Tokens' => ['tok1', 'tok2', 'tok3'], 'Status' => 'PENDING']]
-                : ['DkimAttributes' => ['Tokens' => ['tok1', 'tok2', 'tok3'], 'Status' => 'SUCCESS']]));
+            // Una respuesta por llamada: antes de la identidad se prepara el configuration set (F5).
+            foreach (range(1, 10) as $_) {
+                $h->append(fn (CommandInterface $c) => new Result($c->getName() === 'CreateEmailIdentity'
+                    ? ['DkimAttributes' => ['Tokens' => ['tok1', 'tok2', 'tok3'], 'Status' => 'PENDING']]
+                    : ['DkimAttributes' => ['Tokens' => ['tok1', 'tok2', 'tok3'], 'Status' => 'SUCCESS']]));
+            }
 
             return new SesV2Client(['version' => '2019-09-27', 'region' => 'us-east-1', 'credentials' => ['key' => 'k', 'secret' => 's'], 'handler' => $h]);
         }

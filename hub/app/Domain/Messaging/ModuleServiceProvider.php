@@ -6,6 +6,7 @@ namespace App\Domain\Messaging;
 
 use App\Domain\Messaging\Console\RequeueDeferredCommand;
 use App\Domain\Messaging\Console\ResolveStuckMessagesCommand;
+use App\Domain\Messaging\Console\SesSetupCommand;
 use App\Domain\Messaging\Contracts\MessageDispatcher;
 use App\Domain\Messaging\Sending\DefaultMessageDispatcher;
 use App\Domain\Messaging\Support\DnsResolver;
@@ -26,7 +27,7 @@ final class ModuleServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([RequeueDeferredCommand::class, ResolveStuckMessagesCommand::class]);
+            $this->commands([RequeueDeferredCommand::class, ResolveStuckMessagesCommand::class, SesSetupCommand::class]);
         }
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
             $schedule->command('igr:messages:requeue')->everyMinute()->withoutOverlapping()->onOneServer();

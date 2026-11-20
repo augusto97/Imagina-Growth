@@ -37,6 +37,7 @@ import {
 } from './api';
 import { ClientDetailDialog, NewClientDialog } from './ClientsAdmin';
 import { DoctorTab } from './DoctorTab';
+import { FxTab } from './FxTab';
 import { PlansTab } from './PlansTab';
 import { UpdatesTab } from './UpdatesTab';
 
@@ -63,6 +64,7 @@ export function PlatformPage() {
                     <TabsTrigger value="health">{t('platform.tabs.health')}</TabsTrigger>
                     <TabsTrigger value="doctor">{t('platform.tabs.doctor')}</TabsTrigger>
                     <TabsTrigger value="updates">{t('platform.tabs.updates')}</TabsTrigger>
+                    <TabsTrigger value="fx">{t('platform.tabs.fx')}</TabsTrigger>
                     <TabsTrigger value="invoices">{t('platform.tabs.invoices')}</TabsTrigger>
                     <TabsTrigger value="requests">
                         {t('platform.tabs.requests')}
@@ -80,6 +82,9 @@ export function PlatformPage() {
                 </TabsContent>
                 <TabsContent value="updates" className="igr:mt-4">
                     <UpdatesTab />
+                </TabsContent>
+                <TabsContent value="fx" className="igr:mt-4">
+                    <FxTab />
                 </TabsContent>
                 {overview.isError ? (
                     <ErrorState error={overview.error} onRetry={() => void overview.refetch()} />

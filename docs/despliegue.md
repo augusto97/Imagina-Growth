@@ -348,8 +348,33 @@ y después el instalador: con la memoria llena ni `apt` avanza. Al terminar, el 
   la verificación en dos pasos.
 - `growth-php artisan igr:doctor` dice qué falta configurar y cómo (correo, SES y `IGR_SES_SNS_TOPIC_ARN`, secreto y
   token del webhook de Meta, clave de Anthropic, Google Calendar, Reverb, ML, Horizon, programador, colas, tarifas de
-  WhatsApp, planes y la versión del plugin de cada sitio). Sale con código 1 si hay errores; `--json` para scripts.
-  Lo mismo se ve en Plataforma → Instalación.
+  WhatsApp, tasas de cambio, configuration set de SES, planes y la versión del plugin de cada sitio). Sale con código 1
+  si hay errores; `--json` para scripts. Lo mismo se ve en Plataforma → Instalación.
+- `growth-php artisan igr:ses:setup` deja listo el SES de la plataforma (§8).
+- `growth-php artisan igr:fx:update` trae las tasas de cambio del día (lo hace solo el programador dos veces al día; la
+  fuente es `IGR_FX_URL`, por defecto el acceso libre de ExchangeRate-API, sin llave).
 
 **Python del ML:** `uv sync --frozen` usa el Python 3.12 de Ubuntu si cumple `requires-python`; si una versión
 necesitara otro, `uv` lo baja de GitHub (el servidor necesita salida a GitHub).
+
+## 8. Amazon SES de la plataforma
+
+Los clientes que envían correo con el SES de la plataforma verifican su dominio en esa cuenta de AWS, y todo correo
+sale con el configuration set `IGR_SES_CONFIGURATION_SET` (`igr-events`). Sus eventos (entregas, rebotes, quejas,
+aperturas, rechazos) llegan por un tema de SNS a `https://<panel>/webhooks/ses`.
+
+1. **Tema de SNS** estándar (SES no admite FIFO) en la misma región que `IGR_SES_REGION`, con su ARN en
+   `IGR_SES_SNS_TOPIC_ARN` y una suscripción HTTPS a `https://<panel>/webhooks/ses` (el hub confirma la suscripción
+   solo). Su política debe dejar publicar a SES:
+   `{"Effect": "Allow", "Principal": {"Service": "ses.amazonaws.com"}, "Action": "sns:Publish", "Resource": "<ARN del tema>",
+   "Condition": {"StringEquals": {"AWS:SourceAccount": "<cuenta>", "AWS:SourceArn": "arn:aws:ses:<región>:<cuenta>:configuration-set/igr-events"}}}`
+   (https://docs.aws.amazon.com/ses/latest/dg/event-publishing-add-event-destination-sns.html).
+2. **Usuario de IAM** de `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, además de enviar (`ses:SendEmail` sobre las
+   identidades y el configuration set) y crear identidades (`ses:CreateEmailIdentity`, `ses:GetEmailIdentity`), necesita
+   `ses:CreateConfigurationSet`, `ses:GetConfigurationSet`, `ses:GetConfigurationSetEventDestinations`,
+   `ses:CreateConfigurationSetEventDestination` y `ses:UpdateConfigurationSetEventDestination` sobre
+   `arn:aws:ses:<región>:<cuenta>:configuration-set/igr-events`
+   (https://docs.aws.amazon.com/service-authorization/latest/reference/list_sesv2.html).
+3. `growth-php artisan igr:ses:setup` crea el configuration set y su destino de eventos `igr-sns` si faltan, o corrige
+   el destino si apunta a otro tema (idempotente). Lo mismo pasa solo al conectar un dominio por SES o al probar un canal
+   SES; si a IAM le falta un permiso, el mensaje dice cuál.

@@ -58,8 +58,8 @@ it('avisa lo que falta, con el cómo, y sale con error si algo impide funcionar'
         ->and(doctorCheck($report, 'ai.key')['status'])->toBe('warning')
         ->and(doctorCheck($report, 'ai.key')['detail'])->toContain('IGR_ANTHROPIC_API_KEY')
         ->and(doctorCheck($report, 'integrations.reverb')['status'])->toBe('info')
-        // La migración sembró las tarifas de WhatsApp.
-        ->and(doctorCheck($report, 'whatsapp.rates')['status'])->not->toBe('ok')
+        // Las migraciones sembraron las tarifas de WhatsApp (vigentes desde el 1 oct 2026).
+        ->and(doctorCheck($report, 'whatsapp.rates')['status'])->toBe('ok')
         ->and(DB::table('wa_rates')->count())->toBeGreaterThan(0)
         // Plugin más viejo que el mínimo: error, con el sitio en la lista.
         ->and(doctorCheck($report, 'data.plugin')['status'])->toBe('error')

@@ -10,6 +10,7 @@ import { ErrorState, FieldError, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { Tooltip } from '@/components/ui/tooltip';
+import { CostNote, formatCost, formatCostPerSale, formatRoi } from '@/features/analytics/cost';
 import { errorMessage } from '@/features/contacts/errors';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { formatDateTime, formatMoney, formatNumber, formatPercent } from '@/lib/format';
@@ -197,6 +198,18 @@ function Overview({ campaign, report }: { campaign: CampaignDetail; report: Camp
                 <Stat label={t('campaigns.report.sent')} value={formatNumber(d.sent, locale)} hint={t('campaigns.report.deliveredHint', { n: formatNumber(d.delivered, locale) })} />
                 <Stat label={t('campaigns.report.clicks')} value={formatNumber(d.clicked, locale)} hint={d.click_rate !== null ? t('campaigns.report.clickRate', { pct: formatPercent(d.click_rate, locale, 1) }) : undefined} />
                 <Stat label={t('campaigns.report.revenue')} value={formatMoney(report.revenue.total, report.currency, locale)} hint={t('campaigns.report.orders', { count: report.revenue.orders })} />
+            </div>
+            <div className="igr:space-y-2">
+                <div className="igr:grid igr:gap-3 igr:sm:grid-cols-3">
+                    <Stat
+                        label={t('analytics.cost.cost')}
+                        value={formatCost(report.cost, report.cost.meta.currency, locale)}
+                        hint={report.cost.cost === null ? t('analytics.cost.inUsd') : t('analytics.cost.estimated')}
+                    />
+                    <Stat label={t('analytics.cost.roi')} value={formatRoi(report.cost.roi, locale)} hint={t('analytics.cost.roiHelp')} />
+                    <Stat label={t('analytics.cost.perSale')} value={formatCostPerSale(report.cost, report.cost.meta.currency, locale)} hint={t('analytics.cost.estimated')} />
+                </div>
+                <CostNote meta={report.cost.meta} locale={locale} />
             </div>
             <div className="igr:grid igr:gap-4 igr:lg:grid-cols-2">
                 <Funnel campaign={campaign} report={report} />

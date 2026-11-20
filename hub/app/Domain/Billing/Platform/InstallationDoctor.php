@@ -8,9 +8,12 @@ use App\Domain\Billing\Plans\PlanCatalog;
 use App\Domain\Campaigns\Support\WaRateCard;
 use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Support\SesClientFactory;
+use App\Domain\Messaging\Support\SesEventSetup;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Sites\Support\PluginRelease;
 use App\Domain\Workspaces\Models\User;
+use App\Support\Money\ExchangeRates;
+use App\Support\Money\UpdateExchangeRates;
 use App\Support\Monitor\SystemProbe;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -157,6 +160,7 @@ final class InstallationDoctor
                 ? new DoctorCheck('email.sns_topic', 'email', DoctorCheck::ERROR, __('Falta el tema de SNS de los eventos de SES'),
                     __('Sin IGR_SES_SNS_TOPIC_ARN los avisos de SES (entregas, rebotes y quejas) se rechazan y no se suprimen los correos que rebotan. Pon el ARN del tema al que publica el configuration set y suscribe :url.', ['url' => rtrim((string) config('app.url'), '/').'/webhooks/ses']))
                 : new DoctorCheck('email.sns_topic', 'email', DoctorCheck::OK, __('Eventos de SES desde el tema configurado'));
+            $checks[] = $this->sesEvents();
         }
 
         return $checks;
@@ -246,8 +250,60 @@ final class InstallationDoctor
         }
 
         $checks[] = $this->sites();
+        $checks[] = $this->exchangeRates();
 
         return $checks;
+    }
+
+    /** F5: el configuration set y su destino de eventos (lo deja `igr:ses:setup` o el alta y la prueba de un canal SES). */
+    private function sesEvents(): DoctorCheck
+    {
+        $last = SesEventSetup::lastResult();
+        $set = SesEventSetup::configurationSet();
+        if ($last === null) {
+            return new DoctorCheck('email.ses_events', 'email', DoctorCheck::WARNING, __('El configuration set :set no se ha revisado', ['set' => $set]),
+                __('Corre «php artisan igr:ses:setup»: crea el configuration set y su destino de eventos hacia SNS si faltan (también pasa al conectar o probar un canal SES).'));
+        }
+        $when = is_string($last['checked_at'] ?? null) ? (string) $last['checked_at'] : '';
+
+        return match ($last['status'] ?? 'error') {
+            'ok' => new DoctorCheck('email.ses_events', 'email', DoctorCheck::OK, __('Configuration set :set con eventos hacia SNS', ['set' => $set])),
+            'no_topic' => new DoctorCheck('email.ses_events', 'email', DoctorCheck::WARNING, __('El configuration set :set no tiene destino de eventos', ['set' => $set]), (string) ($last['message'] ?? '')),
+            default => new DoctorCheck('email.ses_events', 'email', DoctorCheck::ERROR, __('No se pudo preparar el configuration set :set', ['set' => $set]),
+                trim((string) ($last['message'] ?? '').' '.__('Última revisión: :at. Corrige y corre «php artisan igr:ses:setup».', ['at' => $when]))),
+        };
+    }
+
+    /** F11: tasas de cambio para mostrar el costo de los mensajes en la moneda de cada espacio de trabajo. */
+    private function exchangeRates(): DoctorCheck
+    {
+        try {
+            $rates = app(ExchangeRates::class);
+            $missing = [];
+            $stale = [];
+            foreach (ExchangeRates::currencies() as $currency) {
+                $d = $rates->describe($currency);
+                if ($d['rate'] === null) {
+                    $missing[] = $currency;
+                } elseif ($d['stale']) {
+                    $stale[] = $currency.' ('.$d['date'].')';
+                }
+            }
+        } catch (Throwable) {
+            return new DoctorCheck('data.fx', 'data', DoctorCheck::WARNING, __('No se pudieron revisar las tasas de cambio'), __('Revisa la base de datos y corre «php artisan igr:fx:update».'));
+        }
+        $status = UpdateExchangeRates::status();
+        $error = is_array($status) && ($status['ok'] ?? true) === false ? ' '.__('Último error: :error', ['error' => (string) ($status['error'] ?? '')]) : '';
+        if ($missing !== []) {
+            return new DoctorCheck('data.fx', 'data', DoctorCheck::WARNING, __('Faltan tasas de cambio'),
+                __('Sin ellas el costo de los mensajes se muestra en dólares. Corre «php artisan igr:fx:update» o fija la tasa a mano en Plataforma → Tasas de cambio.').$error, $missing);
+        }
+        if ($stale !== []) {
+            return new DoctorCheck('data.fx', 'data', DoctorCheck::WARNING, __('Tasas de cambio desactualizadas'),
+                __('Rige la última tasa conocida. Revisa que el programador corra «igr:fx:update» y que el servidor llegue a la fuente, o fija la tasa a mano.').$error, $stale);
+        }
+
+        return new DoctorCheck('data.fx', 'data', DoctorCheck::OK, __('Tasas de cambio al día'));
     }
 
     private function sites(): DoctorCheck

@@ -123,7 +123,9 @@ La ley aplica a los mensajes **comerciales o publicitarios** por SMS, mensajerí
 - **Precios:**
   - Desde el 1 de julio de 2025 Meta cobra por mensaje entregado, según la categoría y el país.
   - Desde el 1 de octubre de 2026 también cobra los mensajes de servicio y las plantillas de utilidad dentro de la ventana de 24 h. Hay 1.000 mensajes de servicio gratis al mes por número.
-  - La tabla `wa_rates` se actualiza cada trimestre (Meta cambia las tarifas el 1 de enero, abril, julio y octubre). Sirve para estimar costos antes de cada campaña.
+  - La tabla `wa_rates` se actualiza cada trimestre (Meta cambia las tarifas el 1 de enero, abril, julio y octubre). Sirve para estimar costos antes de cada campaña y el costo de cada mensaje enviado (que se muestra marcado como estimado; el cobro real es el de la factura de Meta).
+  - Tabla vigente desde el 1 de octubre de 2026, en USD por mensaje (verificada el 20 nov 2026 en la tabla oficial «USD list rates» de https://developers.facebook.com/docs/whatsapp/pricing): Colombia, marketing 0,0125 y utilidad, autenticación y servicio 0,0008; México, marketing 0,0397 y el resto 0,0085; resto de América Latina (con Venezuela), marketing 0,074 y el resto 0,0113.
+  - Dentro de la ventana gratuita que abre un anuncio de clic a WhatsApp (hasta 7 días) los mensajes no se cobran; el estimado todavía no la distingue.
 - **Límites de frecuencia de Meta por usuario** para marketing: si un mensaje no se entrega por ese motivo (código 131049), se registra con su código y no se reintenta de inmediato.
 - **La persona detiene el marketing desde WhatsApp** (código 131050): se revoca el consentimiento de marketing de WhatsApp de ese contacto, como una baja. Los mensajes transaccionales siguen.
 - **Marketing Messages API:** se usa para el marketing por su entrega optimizada y sus métricas. La Cloud API queda para servicio, utilidad y conversaciones.
@@ -196,7 +198,7 @@ Venezuela no tiene una ley general de protección de datos personales equivalent
 | Dato | Retención |
 |---|---|
 | Vistas de página crudas | 25 meses |
-| Mensajes | 24 meses (después, archivo agregado) |
+| Mensajes | 24 meses (después, archivo agregado: `message_archive_daily`, sin datos personales; `igr:retention:purge`, `IGR_RETENTION_MESSAGES_DAYS`) |
 | Pasos de flujos | 6 meses |
 | Evidencia de consentimiento | mientras exista la relación + el periodo que defina el abogado **[validar]** |
 | Datos de un espacio de trabajo cancelado | exportación disponible 30 días y borrado completo a los 60 |

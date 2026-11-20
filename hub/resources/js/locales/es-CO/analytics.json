@@ -437,7 +437,8 @@
                 "email": "Correo",
                 "sms": "SMS",
                 "messenger": "Messenger",
-                "instagram": "Instagram"
+                "instagram": "Instagram",
+                "archived": "Mensajes archivados"
             },
             "source": {
                 "inbox": "Bandeja",
@@ -501,6 +502,23 @@
             "detail": "{{share}} de las respuestas · {{revenue}} en ventas",
             "matrixTitle": "Lo que dicen frente a lo que mide el sitio",
             "matrixDescription": "Cada fila es una respuesta; cada columna, el canal de último clic registrado en el pedido."
+        },
+        "cost": {
+            "cost": "Costo estimado",
+            "costCol": "Costo (estimado)",
+            "costHelp": "Lo que cobra cada proveedor por los mensajes, según sus tarifas públicas: Meta por cada WhatsApp entregado (por país y categoría), Amazon SES por cada correo y Twilio por cada SMS. Es una estimación: el cobro real llega en la factura de cada proveedor.",
+            "roi": "Retorno",
+            "roiHelp": "Ventas atribuidas divididas entre el costo estimado de los mensajes: cuántas veces las ventas cubren lo que costó enviarlos.",
+            "perSale": "Costo por venta",
+            "perSaleHelp": "Costo estimado de los mensajes dividido entre las ventas atribuidas.",
+            "estimated": "Estimado",
+            "inUsd": "Estimado en dólares: falta la tasa de cambio",
+            "note": "Costo estimado en {{currency}} con la tasa de cambio del {{date}} (1 USD = {{rate}} {{currency}}) para los mensajes de hoy; cada mensaje usa la tasa de su día.",
+            "noteManual": "Costo estimado en {{currency}} con la tasa fijada por la plataforma desde el {{date}} (1 USD = {{rate}} {{currency}}).",
+            "noteUsd": "Costo estimado en dólares con las tarifas públicas de cada proveedor.",
+            "noRate": "Todavía no hay tasa de cambio para {{currency}}: el costo estimado se muestra en dólares y el retorno no se calcula.",
+            "stale": "La tasa no se ha actualizado en los últimos días.",
+            "attribution": "Tasas de Exchange Rate API"
         }
     }
 }

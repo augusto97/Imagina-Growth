@@ -1,6 +1,8 @@
 import { CircleCheck, CircleDashed, Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Select } from '@/components/ui/input';
+import { Tooltip } from '@/components/ui/tooltip';
+import { CostNote, formatCost, formatCostPerSale, formatRoi } from '@/features/analytics/cost';
 import { formatMoney, formatNumber, formatPercent } from '@/lib/format';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import type { FlowAnalytics } from '../types';
@@ -15,6 +17,7 @@ export function ResultsBar({ data, days, onDays, loading }: { data: FlowAnalytic
     const points = (v: number | undefined) =>
         v === undefined ? '—' : new Intl.NumberFormat(workspace.locale, { signDisplay: 'exceptZero', minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(v * 100);
     const control = data?.holdout.entered ?? 0;
+    const costCurrency = data?.cost_meta.currency ?? workspace.currency;
 
     return (
         <div className="igr:flex igr:flex-wrap igr:items-stretch igr:gap-2 igr:border-b igr:bg-card igr:px-3 igr:py-2" aria-busy={loading}>
@@ -31,6 +34,15 @@ export function ResultsBar({ data, days, onDays, loading }: { data: FlowAnalytic
             <Tile label={t('flows.analytics.converted')} value={s ? formatNumber(s.converted, workspace.locale) : '—'} sub={s ? `${t('flows.analytics.rate')}: ${pct(s.conversion_rate)}` : undefined} />
             <Tile label={t('flows.analytics.goalRevenue')} value={s ? formatMoney(s.goal_revenue, workspace.currency, workspace.locale) : '—'} />
             <Tile label={t('flows.analytics.attributedRevenue')} value={s ? formatMoney(s.attributed_revenue, workspace.currency, workspace.locale) : '—'} />
+            <Tooltip content={data ? <CostNote meta={data.cost_meta} locale={workspace.locale} className="igr:text-xs" /> : t('analytics.cost.costHelp')}>
+                <div>
+                    <Tile
+                        label={t('analytics.cost.cost')}
+                        value={s ? formatCost(s, costCurrency, workspace.locale) : '—'}
+                        sub={s ? `${t('analytics.cost.roi')}: ${formatRoi(s.roi, workspace.locale)} · ${t('analytics.cost.perSale')}: ${formatCostPerSale(s, costCurrency, workspace.locale)}` : undefined}
+                    />
+                </div>
+            </Tooltip>
             <div className="igr:min-w-56 igr:flex-1 igr:rounded-md igr:border igr:px-3 igr:py-1.5">
                 <div className="igr:text-[11px] igr:text-muted-foreground">{t('flows.analytics.uplift')}</div>
                 {u?.available ? (

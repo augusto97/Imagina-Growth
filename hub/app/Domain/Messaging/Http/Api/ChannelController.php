@@ -20,6 +20,7 @@ use App\Domain\Messaging\Enums\MessageKind;
 use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Support\EmailDomain;
 use App\Domain\Messaging\Support\SesClientFactory;
+use App\Domain\Messaging\Support\SesEventSetup;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Support\Net\SafeUrl;
@@ -66,7 +67,7 @@ final class ChannelController
     }
 
     /** POST /api/w/{ws}/channels/email — SES (con dominio) o SMTP. */
-    public function storeEmail(Request $request, SesDriver $ses): JsonResponse
+    public function storeEmail(Request $request, SesDriver $ses, SesEventSetup $setup): JsonResponse
     {
         Gate::authorize('ws.manageWorkspace');
         $data = $request->validate([
@@ -90,6 +91,7 @@ final class ChannelController
             'host' => $data['host'] ?? null, 'port' => $data['port'] ?? null, 'username' => $data['username'] ?? null,
             'password' => $data['password'] ?? null, 'encryption' => $data['encryption'] ?? null,
         ], fn ($v) => $v !== null);
+        $events = null;
         if ($data['provider'] === 'ses') {
             if (! PlatformSending::emailAllowed($this->current->get())) {
                 throw ValidationException::withMessages(['provider' => PlatformSending::message()]);
@@ -97,6 +99,12 @@ final class ChannelController
             // Sin las credenciales de SES de la plataforma, el SDK lanzaba CredentialsException y la API respondía 500.
             if (! app(SesClientFactory::class)->configured()) {
                 throw ValidationException::withMessages(['provider' => __('Esta instalación todavía no tiene Amazon SES configurado. Conecta tu correo por SMTP o pide a quien administra la plataforma que configure SES.')]);
+            }
+            // F5: la identidad del dominio se crea con el configuration set y todo envío sale por él; se prepara antes
+            // (idempotente). Sin él SES rechaza; sin su destino de eventos el canal funciona pero sin rebotes ni quejas.
+            $events = $setup->ensure();
+            if ($events['status'] === 'error') {
+                throw ValidationException::withMessages(['provider' => self::sesProblem($events['message'])]);
             }
             try {
                 $config['dkim_tokens'] = $ses->ensureDomainIdentity($domain);
@@ -110,7 +118,8 @@ final class ChannelController
             $data['provider'] === 'smtp' ? 'active' : 'pending');
         $this->audit->handle('channel.created', $account, ['provider' => $data['provider'], 'domain' => $domain], $account->workspace_id);
 
-        return response()->json(['data' => ChannelAccountPresenter::present($account), 'dns' => app(EmailDomain::class)->records($account)], 201);
+        return response()->json(['data' => ChannelAccountPresenter::present($account), 'dns' => app(EmailDomain::class)->records($account),
+            'ses_events' => $events !== null ? ['status' => $events['status'], 'message' => $events['message']] : null], 201);
     }
 
     /** GET /api/w/{ws}/channels/{id}/dns — verifica los registros en vivo y activa el dominio. */
@@ -282,13 +291,21 @@ final class ChannelController
     }
 
     /** POST /api/w/{ws}/channels/{id}/test — mensaje de prueba (modo prueba: sin ventana ni frecuencia). */
-    public function test(Request $request, string $channel, MessageDispatcher $dispatcher): JsonResponse
+    public function test(Request $request, string $channel, MessageDispatcher $dispatcher, SesEventSetup $setup): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
         $account = $this->find($channel);
         $data = $request->validate([
             'to' => ['required', 'string', 'max:190', $account->channel === Channel::Email ? 'email:rfc' : 'regex:/^[+\d\s()-]{7,20}$/'],
         ]);
+        // F5: probar un canal SES también deja listo el configuration set y sus eventos (si faltan, la prueba no saldría).
+        $events = null;
+        if ($account->provider === 'ses') {
+            $events = $setup->ensure();
+            if ($events['status'] === 'error') {
+                throw ValidationException::withMessages(['to' => self::sesProblem($events['message'])]);
+            }
+        }
         $workspace = $this->current->get();
         $text = __('Mensaje de prueba de :name desde Imagina Growth. Si lo recibiste, el canal funciona.', ['name' => $workspace->name]);
         $result = $dispatcher->dispatch(new OutboundMessage(
@@ -297,7 +314,8 @@ final class ChannelController
             channelAccountId: $account->id, to: $data['to'], isTest: true,
         ));
 
-        return response()->json(['status' => $result->status, 'message_id' => $result->messageId !== null ? 'msg_'.$result->messageId : null, 'reason' => $result->reason]);
+        return response()->json(['status' => $result->status, 'message_id' => $result->messageId !== null ? 'msg_'.$result->messageId : null, 'reason' => $result->reason,
+            'ses_events' => $events !== null ? ['status' => $events['status'], 'message' => $events['message']] : null]);
     }
 
     /** @param array<string, mixed> $config */
@@ -327,6 +345,12 @@ final class ChannelController
         if (! $hasDefault && $account->provider !== ChannelAccount::ZENDER) {
             $account->forceFill(['is_default' => true])->save();
         }
+    }
+
+    /** El motivo técnico va para quien administra la plataforma; el cliente no puede arreglarlo. */
+    private static function sesProblem(string $detail): string
+    {
+        return __('Esta instalación no pudo preparar el envío por Amazon SES. Avisa a quien administra la plataforma: :detail', ['detail' => $detail]);
     }
 
     private function find(string $publicId): ChannelAccount

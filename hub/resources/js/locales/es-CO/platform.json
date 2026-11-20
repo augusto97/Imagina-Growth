@@ -11,7 +11,8 @@
             "invoices": "Facturas",
             "requests": "Pedidos de plan",
             "plans": "Planes",
-            "doctor": "Instalación"
+            "doctor": "Instalación",
+            "fx": "Tasas de cambio"
         },
         "accounts": {
             "empty": "Todavía no hay clientes.",
@@ -251,6 +252,37 @@
                 "error_one": "{{count}} error",
                 "error_other": "{{count}} errores"
             }
+        },
+        "fx": {
+            "title": "Tasas de cambio",
+            "description": "El costo de los mensajes se estima en dólares (tarifas de Meta, Amazon SES y Twilio) y se muestra en la moneda de cada negocio con la tasa del día. Se actualizan solas dos veces al día; si la fuente falla, rige la última tasa conocida y se avisa cuando pasan más de {{days}} días.",
+            "refresh": "Actualizar ahora",
+            "refreshed": "Tasas actualizadas",
+            "refreshFailed": "No se pudieron traer las tasas",
+            "neverUpdated": "Todavía no se han traído tasas. Usa «Actualizar ahora» o espera a la próxima actualización automática.",
+            "lastOk": "Última actualización: {{at}} (tasas del {{date}}).",
+            "lastError": "La última actualización falló ({{at}}): {{error}}",
+            "source": "Fuente automática:",
+            "currency": "Moneda",
+            "current": "Tasa que rige",
+            "from": "Desde",
+            "auto": "Última automática",
+            "manual": "Manual",
+            "stale": "Sin actualizar",
+            "none": "Sin tasa",
+            "perUsd": "1 USD = {{rate}} {{currency}}",
+            "setManual": "Fijar a mano la tasa de {{currency}}",
+            "useAuto": "Volver a la tasa automática de {{currency}}",
+            "removed": "{{currency}} vuelve a la tasa automática",
+            "saved": "Tasa de {{currency}} guardada",
+            "vesHelp": "Para el bolívar, la referencia legal en Venezuela es la tasa oficial del BCV, que no tiene servicio automático: la fuente la sigue de cerca, y si la necesitas exacta, fíjala a mano.",
+            "dialogTitle": "Tasa manual de {{currency}}",
+            "dialogHelp": "Manda sobre la automática desde la fecha que elijas hasta que la quites. Los mensajes de antes de esa fecha siguen con la tasa de su día.",
+            "rateLabel": "Cuántos {{currency}} vale 1 USD",
+            "fromLabel": "Rige desde",
+            "noteLabel": "Nota (opcional)",
+            "notePlaceholder": "Por ejemplo: tasa oficial del BCV",
+            "invalidRate": "Escribe una tasa mayor que cero, por ejemplo 3950,5."
         }
     }
 }

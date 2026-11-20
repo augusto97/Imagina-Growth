@@ -16,6 +16,10 @@ const counts = (c: Partial<MessagingCounts>): MessagingCounts => ({
     failed: 0,
     orders: 0,
     revenue: 0,
+    cost: null,
+    cost_usd: 0,
+    roi: null,
+    cost_per_sale: null,
     ...c,
 });
 

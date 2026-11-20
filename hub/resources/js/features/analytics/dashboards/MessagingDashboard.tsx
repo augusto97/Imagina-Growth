@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/misc';
 import type { MessagingCounts, MessagingData } from '../api';
 import { TrendChart } from '../components/charts';
+import { CostNote, formatCost, formatRoi } from '../cost';
 import { DataTable } from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import { Notice, Section } from '../components/Section';
@@ -38,6 +39,7 @@ export function MessagingDashboard({ response, data, fmt, base }: DashboardProps
     const exporter = useExporter(response);
     const mode = compareModeOf(response);
     const channelName = (c: string) => t(`analytics.messaging.channel.${c}`, { defaultValue: c });
+    const costMeta = data.cost;
 
     if (data.empty) {
         return (
@@ -111,6 +113,29 @@ export function MessagingDashboard({ response, data, fmt, base }: DashboardProps
         },
         countCol('orders', t('analytics.messaging.orders')),
         { key: 'revenue', label: t('analytics.messaging.revenue'), align: 'right', render: (row) => fmt.money(row.revenue), value: (row) => row.revenue },
+        {
+            key: 'cost',
+            label: t('analytics.cost.costCol'),
+            help: t('analytics.cost.costHelp'),
+            align: 'right',
+            render: (row) => <span className="igr:tabular-nums">{formatCost(row, data.cost.currency, fmt.locale)}</span>,
+            value: (row) => row.cost ?? row.cost_usd,
+        },
+        {
+            key: 'roi',
+            label: t('analytics.cost.roi'),
+            help: t('analytics.cost.roiHelp'),
+            align: 'right',
+            render: (row) => <span className="igr:tabular-nums">{formatRoi(row.roi, fmt.locale)}</span>,
+            value: (row) => row.roi,
+        },
+        {
+            key: 'cost_per_sale',
+            label: t('analytics.cost.perSale'),
+            align: 'right',
+            render: (row) => <span className="igr:tabular-nums">{row.cost_per_sale === null ? '—' : fmt.money(row.cost_per_sale)}</span>,
+            value: (row) => row.cost_per_sale,
+        },
     ];
     const channelColumns: Column<ChannelRow>[] = [
         { key: 'channel', label: t('analytics.messaging.channelCol'), render: (row) => channelName(row.channel), value: (row) => channelName(row.channel) },
@@ -226,6 +251,43 @@ export function MessagingDashboard({ response, data, fmt, base }: DashboardProps
                     help={t('analytics.messaging.problemsHelp')}
                 />
             </TileGrid>
+            <TileGrid className="igr:lg:grid-cols-3">
+                <StatTile
+                    label={t('analytics.cost.cost')}
+                    unit="money"
+                    value={tot.cost}
+                    previous={prev?.cost ?? null}
+                    compareMode={mode}
+                    fmt={fmt}
+                    better="down"
+                    help={t('analytics.cost.costHelp')}
+                    display={formatCost(tot, costMeta.currency, fmt.locale)}
+                    hint={tot.cost === null ? t('analytics.cost.inUsd') : t('analytics.cost.estimated')}
+                />
+                <StatTile
+                    label={t('analytics.cost.roi')}
+                    unit="count"
+                    value={tot.roi}
+                    previous={prev?.roi ?? null}
+                    compareMode={mode}
+                    fmt={fmt}
+                    help={t('analytics.cost.roiHelp')}
+                    display={formatRoi(tot.roi, fmt.locale)}
+                    hint={t('analytics.cost.estimated')}
+                />
+                <StatTile
+                    label={t('analytics.cost.perSale')}
+                    unit="money"
+                    value={tot.cost_per_sale}
+                    previous={prev?.cost_per_sale ?? null}
+                    compareMode={mode}
+                    fmt={fmt}
+                    better="down"
+                    help={t('analytics.cost.perSaleHelp')}
+                    hint={t('analytics.cost.estimated')}
+                />
+            </TileGrid>
+            <CostNote meta={costMeta} locale={fmt.locale} />
             <Section title={t('analytics.messaging.seriesTitle')} description={t('analytics.messaging.seriesDescription')}>
                 <TrendChart data={data.series} metric="sent" label={t('analytics.messaging.sent')} unit="count" granularity={response.period.granularity} fmt={fmt} height={200} />
             </Section>

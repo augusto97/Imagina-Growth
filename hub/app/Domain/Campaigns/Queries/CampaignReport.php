@@ -7,6 +7,7 @@ namespace App\Domain\Campaigns\Queries;
 use App\Analytics\Ch;
 use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Campaigns\Models\CampaignRecipient;
+use App\Domain\Messaging\Queries\MessageCosts;
 use App\Domain\Workspaces\Models\Workspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -24,9 +25,14 @@ use Throwable;
  *   atribución desde el inicio) de los destinatarios frente al grupo de control,
  *   con intervalo de confianza del 95% (aproximación normal). Es por intención de
  *   tratar: cuentan todos los asignados, aunque la política no les haya enviado.
+ * - Costo (F11, estimado): lo que cobra el proveedor por los mensajes de la campaña en la moneda del espacio de
+ *   trabajo (MessageCosts), con el retorno (ingresos ÷ costo) y el costo por venta. Los mensajes de más de 24 meses
+ *   se suman desde el archivo agregado (`message_archive_daily`).
  */
 final class CampaignReport
 {
+    public function __construct(private readonly MessageCosts $costs) {}
+
     /** @return array<string, mixed> */
     public function handle(Workspace $workspace, Campaign $campaign): array
     {
@@ -55,30 +61,43 @@ final class CampaignReport
                 SUM(CASE WHEN clicked_at IS NOT NULL THEN 1 ELSE 0 END) AS clicked,
                 SUM(CASE WHEN status IN ('failed','bounced') THEN 1 ELSE 0 END) AS failed")
             ->first();
+        // Lo que ya pasó al archivo agregado (R14).
+        $archived = DB::table('message_archive_daily')->where('workspace_id', $workspace->id)->where('campaign_id', $campaign->id)->where('direction', 'out')
+            ->selectRaw('SUM(total) AS queued, SUM(sent) AS sent, SUM(delivered) AS delivered, SUM(read_count) AS read_count, SUM(opened) AS opened_column,
+                SUM(clicked) AS clicked, SUM(failed) + SUM(bounced) AS failed')
+            ->first();
+        $count = fn (string $k) => (int) ($messages->{$k} ?? 0) + (int) ($archived->{$k} ?? 0);
         $events = $this->events($workspace, $campaign);
         $orders = DB::table('orders')->where('workspace_id', $workspace->id)->where('attributed_campaign_id', $campaign->id)->where('is_paid', true)
             ->selectRaw('COUNT(*) AS n, COALESCE(SUM(total_ws), 0) AS revenue')->first();
+        $currency = $workspace->currency ?: 'USD';
+        $cost = MessageCosts::merge(
+            $this->costs->sum(DB::table('messages as m')->where('m.workspace_id', $workspace->id)->where('m.campaign_id', $campaign->id)->where('m.direction', 'out'), $currency),
+            $this->costs->sum(DB::table('message_archive_daily as m')->where('m.workspace_id', $workspace->id)->where('m.campaign_id', $campaign->id)->where('m.direction', 'out'), $currency, null, true),
+        );
+        $revenue = round((float) ($orders->revenue ?? 0), 2);
 
-        $sent = (int) ($messages->sent ?? 0);
-        $clicked = (int) ($messages->clicked ?? 0);
-        $opened = $events['opened'] ?? (int) ($messages->opened_column ?? 0);
+        $sent = $count('sent');
+        $clicked = $count('clicked');
+        $opened = $events['opened'] ?? $count('opened_column');
 
         return [
             'currency' => $workspace->currency,
             'recipients' => ['total' => $total, 'holdout' => $holdout, 'by_status' => $byStatus, 'reasons' => $reasons],
             'delivery' => [
-                'queued' => (int) ($messages->queued ?? 0),
+                'queued' => $count('queued'),
                 'sent' => $sent,
-                'delivered' => (int) ($messages->delivered ?? 0),
-                'read' => (int) ($messages->read_count ?? 0),
+                'delivered' => $count('delivered'),
+                'read' => $count('read_count'),
                 'opened' => $opened,
                 'opened_excludes_mpp' => isset($events['opened']),
                 'clicked' => $clicked,
                 'unsubscribed' => $events['unsubscribed'] ?? 0,
-                'failed' => (int) ($messages->failed ?? 0),
+                'failed' => $count('failed'),
                 'click_rate' => $sent > 0 ? round($clicked / $sent, 4) : null,
             ],
-            'revenue' => ['orders' => (int) ($orders->n ?? 0), 'total' => round((float) ($orders->revenue ?? 0), 2)],
+            'revenue' => ['orders' => (int) ($orders->n ?? 0), 'total' => $revenue],
+            'cost' => MessageCosts::returns($cost[''] ?? null, $revenue, (int) ($orders->n ?? 0)) + ['meta' => $this->costs->meta($currency)],
             'variants' => VariantScores::for($campaign),
             'winner_variant' => $campaign->winner_variant,
             'uplift' => $this->uplift($workspace, $campaign),

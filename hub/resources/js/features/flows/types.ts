@@ -1,3 +1,4 @@
+import type { CostMeta } from '@/features/analytics/cost';
 /* Formas de la API de flujos (hub/app/Domain/Flows/Http, modulos.md M09). */
 
 export type FlowStatus = 'draft' | 'active' | 'paused' | 'archived';
@@ -173,7 +174,13 @@ export interface FlowAnalytics {
         goal_revenue: string;
         attributed_orders: number;
         attributed_revenue: string;
+        /** Costo estimado de los mensajes del flujo en el periodo y su retorno (F11). */
+        cost: number | null;
+        cost_usd: number;
+        roi: number | null;
+        cost_per_sale: number | null;
     };
+    cost_meta: CostMeta;
     treatment: GroupStats;
     holdout: GroupStats;
     uplift: Uplift;

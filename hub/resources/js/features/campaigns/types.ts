@@ -1,3 +1,4 @@
+import type { CostFields, CostMeta } from '@/features/analytics/cost';
 /* Formas JSON de la API de campañas (hub/routes/api/campaigns.php, modulos.md M10). */
 
 export type CampaignChannel = 'email' | 'whatsapp' | 'sms';
@@ -159,6 +160,8 @@ export interface CampaignReport {
         click_rate: number | null;
     };
     revenue: { orders: number; total: number };
+    /** Costo estimado de los mensajes de la campaña y su retorno (F11). */
+    cost: CostFields & { meta: CostMeta };
     variants: Record<string, VariantScore>;
     winner_variant: VariantKey | null;
     uplift: Uplift | null;
