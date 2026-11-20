@@ -130,6 +130,25 @@ it('widgets.json publica los widgets activos con la encuesta, sin probabilidades
     expect($thanks)->toContain('hdyhau_survey', 'spin_wheel')->not->toContain('popup');
 });
 
+it('widgets.json queda en caché y se renueva al guardar o borrar lo que lo arma (R11)', function () {
+    $popup = onsiteWidget($this, 'popup');
+    $url = "/p/{$this->key}/widgets.json?page_type=home&path=/";
+    expect(array_column($this->getJson($url)->json('widgets'), 'id'))->toBe([$popup]);
+
+    // Un cambio directo en la base (sin pasar por el modelo) no se ve: la respuesta sale de la caché, sin consultar los widgets.
+    DB::table('onsite_widgets')->update(['status' => 'paused']);
+    DB::enableQueryLog();
+    expect(array_column($this->getJson($url)->json('widgets'), 'id'))->toBe([$popup]);
+    expect(collect(DB::getQueryLog())->pluck('query')->filter(fn (string $q) => str_contains($q, 'onsite_widgets'))->all())->toBe([]);
+    DB::disableQueryLog();
+
+    // Guardar un widget desde el panel renueva la caché de ese espacio de trabajo.
+    $bar = onsiteWidget($this, 'popup');
+    expect(array_column($this->getJson($url)->json('widgets'), 'id'))->toBe([$bar]);
+    // Otra ruta es otra entrada de la caché.
+    expect(array_column($this->getJson("/p/{$this->key}/widgets.json?page_type=home&path=/otra")->json('widgets'), 'id'))->toBe([$bar]);
+});
+
 it('visitor.json responde privado y sin datos personales: conocido, suscrito, país y segmentos en uso', function () {
     $segment = onsiteInWs($this, fn () => Segment::query()->create(['name' => 'VIP', 'kind' => 'static']));
     $unused = onsiteInWs($this, fn () => Segment::query()->create(['name' => 'Otro', 'kind' => 'static']));

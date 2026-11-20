@@ -47,7 +47,7 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | R8 | P2 | Cada `page.viewed` reevalúa todos los segmentos. | evaluación de segmentos | ⏳ |
 | R9 | P2 | La clave de caché del tablero incluye `max(last_event_at)`: con tráfico nunca hay acierto. | `MetricQueryRunner::remember` | ✅ 0.1.7: versión redondeada al minuto |
 | R10 | P2 | Informe semanal en serie y `isDue` con `hour === 7` (se salta si el scheduler se atrasa). | `WeeklyReport` | 🔧 0.1.7: sale el lunes desde las 7 en la primera corrida y una sola vez por semana; sigue en serie |
-| R11 | P2 | `widgets.json` sin caché. | endpoint público de widgets | ⏳ |
+| R11 | P2 | `widgets.json` sin caché. | endpoint público de widgets | ✅ (lote 3): `WidgetsCache` guarda la respuesta 5 min por sitio, tipo de página y ruta (`ws:{id}:widgets:…`), con una versión por espacio de trabajo que se renueva al guardar o borrar un widget, un quiz, una encuesta o un texto legal; si la caché falla, se arma en el momento |
 | R12 | P2 | Índices faltantes en consultas frecuentes; paginación por `OFFSET`; escaneos por `received_at`. | varias | ⏳ |
 | R13 | P2 | Uso de facturación cada 5 minutos para todos los espacios. | scheduler de Billing | ⏳ |
 | R14 | P2 | Sin purga de retención de datos viejos. | — | ⏳ |

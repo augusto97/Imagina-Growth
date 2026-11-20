@@ -7,6 +7,7 @@ namespace App\Domain\Surveys\Http;
 use App\Domain\Identity\SiteToken;
 use App\Domain\Onsite\Models\OnsiteWidget;
 use App\Domain\Onsite\Support\PublicWidgetConfig;
+use App\Domain\Onsite\Support\WidgetsCache;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Surveys\Actions\HdyhauSurvey;
 use App\Domain\Surveys\Actions\RecordSurveyAnswer;
@@ -39,32 +40,33 @@ final class PublicWidgetsController
             return response()->json(['widgets' => []], 404);
         }
 
-        $widgets = [];
-        if ($request->query('page_type') === 'thankyou') {
-            $survey = $this->current->run($workspace, fn () => $hdyhau->for($workspace));
-            if ($survey->status === 'active') {
-                $q = $survey->questions;
-                $widgets[] = [
-                    'id' => $survey->publicId(), 'kind' => 'hdyhau_survey', 'slot' => 'thankyou',
-                    'title' => $q['title'] ?? '', 'question' => $q['question'] ?? '', 'options' => $q['options'] ?? [],
-                    'allow_other' => (bool) ($q['allow_other'] ?? false), 'other_label' => $q['other_label'] ?? '', 'thanks' => $q['thanks'] ?? '',
-                ];
-            }
-        }
-        // M12: widgets activos del sitio para ese tipo de página y ruta (nunca en el checkout).
         $pageType = is_string($request->query('page_type')) ? (string) $request->query('page_type') : null;
         $path = is_string($request->query('path')) ? mb_substr((string) $request->query('path'), 0, 500) : null;
-        $consents = $this->current->run($workspace, function () use ($onsite, $workspace, $site, $pageType, $path, &$widgets): array {
+        // R11: la misma respuesta por sitio, tipo de página y ruta durante 5 min; guardar un widget la renueva.
+        $payload = WidgetsCache::remember($site, $pageType, $path, fn (): array => $this->current->run($workspace, function () use ($hdyhau, $onsite, $workspace, $site, $pageType, $path): array {
+            $widgets = [];
+            if ($pageType === 'thankyou') {
+                $survey = $hdyhau->for($workspace);
+                if ($survey->status === 'active') {
+                    $q = $survey->questions;
+                    $widgets[] = [
+                        'id' => $survey->publicId(), 'kind' => 'hdyhau_survey', 'slot' => 'thankyou',
+                        'title' => $q['title'] ?? '', 'question' => $q['question'] ?? '', 'options' => $q['options'] ?? [],
+                        'allow_other' => (bool) ($q['allow_other'] ?? false), 'other_label' => $q['other_label'] ?? '', 'thanks' => $q['thanks'] ?? '',
+                    ];
+                }
+            }
+            // M12: widgets activos del sitio para ese tipo de página y ruta (nunca en el checkout).
             foreach ($onsite->live($site, $pageType, $path) as $widget) {
                 /** @var OnsiteWidget $widget */
                 $widgets[] = $onsite->entry($workspace, $widget);
             }
 
             // Textos legales vigentes para los formularios que no son widgets («avísame»).
-            return $onsite->legalConsents($workspace);
-        });
+            return ['widgets' => $widgets, 'consents' => $onsite->legalConsents($workspace)];
+        }));
 
-        return response()->json(['widgets' => $widgets, 'consents' => $consents])
+        return response()->json($payload)
             ->withHeaders($this->cors($request, $site) + ['Cache-Control' => 'public, max-age=300']);
     }
 
