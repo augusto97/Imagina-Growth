@@ -248,7 +248,9 @@
             "measure": "Medir",
             "settings": "Configuración",
             "admin": "Agencia y plataforma"
-        }
+        },
+        "today": "Hoy",
+        "connections": "Conexiones"
     },
     "command": {
         "title": "Paleta de comandos",

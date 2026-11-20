@@ -1,4 +1,6 @@
 import {
+    Link2,
+    ListChecks,
     BarChart3,
     Building2,
     Calculator,
@@ -78,6 +80,7 @@ export const NAV: NavGroup[] = [
         items: [
             { key: 'contacts', to: 'contactos', icon: Users, ability: 'viewAssignedContacts', shortcut: 'c' },
             { key: 'segments', to: 'segmentos', icon: Shapes, ability: 'viewAllContacts', shortcut: 'n' },
+            { key: 'today', to: 'hoy', icon: ListChecks, ability: 'useLeads', module: 'services', audience: 'services', shortcut: 'y' },
             { key: 'leads', to: 'leads', icon: Target, ability: 'useLeads', module: 'services', audience: 'services', shortcut: 'd' },
             { key: 'agenda', to: 'agenda', icon: CalendarDays, ability: 'useLeads', module: 'bookings', audience: 'services', shortcut: 'g' },
         ],
@@ -117,6 +120,7 @@ export const NAV: NavGroup[] = [
         items: [
             { key: 'sites', to: 'sitios', icon: Plug, ability: 'viewSites', shortcut: 's' },
             { key: 'channels', to: 'canales', icon: RadioTower, ability: 'viewWorkspace' },
+            { key: 'connections', to: 'conexiones', icon: Link2, ability: 'viewWorkspace' },
             { key: 'team', to: 'equipo', icon: UsersRound, ability: 'viewWorkspace', shortcut: 'e' },
             { key: 'workspace', to: 'ajustes', icon: Settings2, ability: 'viewWorkspace' },
             { key: 'consent', to: 'consentimiento', icon: ShieldCheck, ability: 'viewWorkspace' },
