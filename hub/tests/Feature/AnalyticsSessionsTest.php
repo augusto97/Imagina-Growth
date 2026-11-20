@@ -2,6 +2,7 @@
 
 use App\Analytics\Builders\KpiDailyBuilder;
 use App\Analytics\Builders\SessionsBuilder;
+use App\Analytics\Ch;
 use Carbon\CarbonImmutable;
 
 beforeEach(function () {
@@ -54,4 +55,32 @@ it('no cierra una sesión con actividad reciente', function () {
     $this->runWorker();
     app(SessionsBuilder::class)->build($this->ws, now()->subHour());
     expect($this->chRows($this->ws, 'SELECT count() AS c FROM sessions FINAL WHERE workspace_id = {workspace_id:UInt32}')[0]['c'])->toBe(0);
+});
+
+it('R7: volver a pasar por la ventana solo reinserta la sesión que cambió', function () {
+    $at = CarbonImmutable::now()->subHours(3);
+    $id = ['anonymous_id' => 'anon-3', 'session_id' => 's_3'];
+    $browser = fn (string $event, array $props, int $minutes) => $this->envelope($this->site, $event, $props, ['source' => ['type' => 'browser', 'sdk' => 'tracker/0.1.0'], 'identity' => $id, 'occurred_at' => $at->addMinutes($minutes)->toIso8601String()]);
+    ($this->postBrowser)([$browser('page.viewed', ['page_type' => 'home'], 0), $browser('page.viewed', ['page_type' => 'product'], 2)]);
+    $this->runWorker();
+    $raw = fn () => (int) $this->chRows($this->ws, 'SELECT count() AS c FROM sessions WHERE workspace_id = {workspace_id:UInt32}')[0]['c'];
+    // Sin fusiones de fondo: count() sin FINAL es lo que se escribió.
+    app(Ch::class)->statement('SYSTEM STOP MERGES sessions');
+    try {
+        // El programador corre cada 10 minutos con la ventana de 180: la misma sesión cerrada se vuelve a ver.
+        foreach ([0, 10, 20] as $shift) {
+            app(SessionsBuilder::class)->build($this->ws, $at->subMinutes(60 - $shift), $at->addMinutes(60 + $shift));
+        }
+        expect($raw())->toBe(1);
+
+        // Llega tarde un clic de esa sesión: la sesión cambió y se escribe otra vez (una sola).
+        ($this->postBrowser)([$browser('cta.clicked', ['kind' => 'whatsapp', 'target' => 'https://wa.me/573001234567', 'label' => 'WhatsApp'], 3)]);
+        $this->runWorker();
+        app(SessionsBuilder::class)->build($this->ws, $at->subMinutes(30), $at->addMinutes(90));
+        app(SessionsBuilder::class)->build($this->ws, $at->subMinutes(20), $at->addMinutes(100));
+        expect($raw())->toBe(2);
+    } finally {
+        app(Ch::class)->statement('SYSTEM START MERGES sessions');
+    }
+    expect($this->chRows($this->ws, 'SELECT pageviews, cta_clicks FROM sessions FINAL WHERE workspace_id = {workspace_id:UInt32}'))->toBe([['pageviews' => 2, 'cta_clicks' => 1]]);
 });

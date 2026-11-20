@@ -131,8 +131,8 @@ final class SyncAudience
         $country = (string) $workspace->setting('default_phone_country', $workspace->country ?: 'CO');
 
         $desired = [];
-        AudienceEligibility::apply(clone $base, $workspace)->orderBy('c.id')->select('c.id')
-            ->chunk(1000, function ($rows) use (&$desired, $platform, $country): void {
+        AudienceEligibility::apply(clone $base, $workspace)->select('c.id')
+            ->chunkById(1000, function ($rows) use (&$desired, $platform, $country): void {
                 $contacts = Contact::query()->whereIn('id', $rows->pluck('id')->all())->get(['id', 'email', 'phone', 'country']);
                 foreach ($contacts as $contact) {
                     $identifiers = $platform->identifiers($contact->email, $contact->phone, (string) ($contact->getAttribute('country') ?: $country));
@@ -141,7 +141,7 @@ final class SyncAudience
                         $desired[$contact->id] = $identifiers;
                     }
                 }
-            });
+            }, 'c.id', 'id');
         $eligible = AudienceEligibility::apply(clone $base, $workspace)->count();
 
         return [$desired, max(0, $alive - $eligible)];

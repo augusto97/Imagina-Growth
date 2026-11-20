@@ -25,6 +25,9 @@ final class RecomputeSegment
         private readonly CurrentWorkspace $current,
     ) {}
 
+    /** Contactos por evento emitido y por página al recorrer las diferencias. */
+    private const EMIT_CHUNK = 500;
+
     /** @return array{members: int, entered: int, exited: int} */
     public function handle(Segment $segment, bool $emit = true): array
     {
@@ -35,41 +38,44 @@ final class RecomputeSegment
             return ['members' => $segment->member_count, 'entered' => 0, 'exited' => 0];
         }
 
+        // R15: miembros y diferencias en tablas temporales de la sesión de MariaDB; PHP solo ve
+        // páginas de 500 IDs al emitir los eventos (antes cargaba toda la membresía, dos veces).
         $ctx = new CompileContext($workspace, timeoutSeconds: 120);
         try {
-            /** @var list<string> $ids */
-            $ids = $this->compiler->query((array) $segment->definition, $ctx)->pluck('c.id')->map(fn ($id) => (string) $id)->all();
+            [$now, $members] = $ctx->materializeIds($this->compiler->query((array) $segment->definition, $ctx));
+            $current = fn () => DB::table('segment_memberships as m')->where('m.workspace_id', $workspace->id)->where('m.segment_id', $segment->id);
+
+            $entered = $ctx->idTable();
+            $enteredCount = DB::table($entered)->insertUsing(['contact_id'], DB::table($now.' as n')->select('n.contact_id')
+                ->whereNotExists($current()->selectRaw('1')->whereColumn('m.contact_id', 'n.contact_id')));
+            $exited = $ctx->idTable();
+            $exitedCount = DB::table($exited)->insertUsing(['contact_id'], $current()->select('m.contact_id')
+                ->whereNotExists(DB::table($now.' as n')->selectRaw('1')->whereColumn('n.contact_id', 'm.contact_id')));
+            $firstTime = $segment->last_computed_at === null;
+
+            DB::transaction(function () use ($segment, $workspace, $entered, $exited, $enteredCount, $exitedCount): void {
+                if ($enteredCount > 0) {
+                    DB::table('segment_memberships')->insertOrIgnoreUsing(
+                        ['segment_id', 'contact_id', 'workspace_id', 'entered_at'],
+                        DB::table($entered)->selectRaw('?, contact_id, ?, ?', [$segment->id, $workspace->id, now()]),
+                    );
+                }
+                if ($exitedCount > 0) {
+                    DB::table('segment_memberships as m')->join($exited.' as x', 'x.contact_id', '=', 'm.contact_id')
+                        ->where('m.workspace_id', $workspace->id)->where('m.segment_id', $segment->id)->delete();
+                }
+            });
+            $this->refreshStats($segment);
+
+            if ($emit && ! $firstTime) {
+                $this->emit($segment, $entered, 'segment.entered');
+                $this->emit($segment, $exited, 'segment.exited');
+            }
         } finally {
             $ctx->cleanup();
         }
 
-        $current = DB::table('segment_memberships')->where('workspace_id', $workspace->id)->where('segment_id', $segment->id)
-            ->pluck('contact_id')->map(fn ($id) => (string) $id)->all();
-        $now = array_flip($ids);
-        $before = array_flip($current);
-        $entered = array_values(array_filter($ids, fn (string $id) => ! isset($before[$id])));
-        $exited = array_values(array_filter($current, fn (string $id) => ! isset($now[$id])));
-        $firstTime = $segment->last_computed_at === null;
-
-        DB::transaction(function () use ($segment, $workspace, $entered, $exited): void {
-            $at = now();
-            foreach (array_chunk($entered, 1000) as $chunk) {
-                DB::table('segment_memberships')->insertOrIgnore(array_map(fn (string $id) => [
-                    'segment_id' => $segment->id, 'contact_id' => $id, 'workspace_id' => $workspace->id, 'entered_at' => $at,
-                ], $chunk));
-            }
-            foreach (array_chunk($exited, 1000) as $chunk) {
-                DB::table('segment_memberships')->where('workspace_id', $workspace->id)->where('segment_id', $segment->id)->whereIn('contact_id', $chunk)->delete();
-            }
-        });
-        $this->refreshStats($segment);
-
-        if ($emit && ! $firstTime) {
-            $this->emit($segment, $entered, 'segment.entered');
-            $this->emit($segment, $exited, 'segment.exited');
-        }
-
-        return ['members' => count($ids), 'entered' => count($entered), 'exited' => count($exited)];
+        return ['members' => $members, 'entered' => $enteredCount, 'exited' => $exitedCount];
     }
 
     /** Conteo, valor y contactos alcanzables por canal a partir de la membresía guardada. */
@@ -101,16 +107,21 @@ final class RecomputeSegment
         ])->save();
     }
 
-    /** @param list<string> $contactIds */
-    private function emit(Segment $segment, array $contactIds, string $event): void
+    /** Recorre la tabla temporal por páginas (clave, no OFFSET) y emite un lote por página. */
+    private function emit(Segment $segment, string $table, string $event): void
     {
         $workspace = $this->current->get();
-        foreach (array_chunk($contactIds, 500) as $chunk) {
-            $this->events->emitMany($workspace, array_map(fn (string $id) => [
-                'event' => $event,
-                'properties' => ['segment_id' => $segment->publicId(), 'segment_name' => mb_substr($segment->name, 0, 200), 'is_system' => $segment->is_system],
-                'contact_id' => $id,
-            ], $chunk));
-        }
+        $properties = ['segment_id' => $segment->publicId(), 'segment_name' => mb_substr($segment->name, 0, 200), 'is_system' => $segment->is_system];
+        $after = '';
+        do {
+            /** @var list<string> $chunk */
+            $chunk = DB::table($table)->where('contact_id', '>', $after)->orderBy('contact_id')->limit(self::EMIT_CHUNK)
+                ->pluck('contact_id')->map(fn ($id) => (string) $id)->all();
+            if ($chunk === []) {
+                break;
+            }
+            $this->events->emitMany($workspace, array_map(fn (string $id) => ['event' => $event, 'properties' => $properties, 'contact_id' => $id], $chunk));
+            $after = (string) end($chunk);
+        } while (count($chunk) === self::EMIT_CHUNK);
     }
 }

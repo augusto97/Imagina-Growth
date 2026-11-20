@@ -48,47 +48,70 @@ final class DependencyIndex
     }
 
     /**
+     * El índice si ya está en caché (sin tocar la base): así el listener no carga el espacio de
+     * trabajo con cada evento.
+     *
+     * @return list<array{id: string, events: list<string>, kinds: list<string>}>|null
+     */
+    public static function cached(string $workspaceId): ?array
+    {
+        $index = Cache::get(self::key($workspaceId));
+
+        /** @var list<array{id: string, events: list<string>, kinds: list<string>}>|null */
+        return is_array($index) ? $index : null;
+    }
+
+    /**
      * ¿Algún segmento depende de este evento?
      *
      * @param  list<array{id: string, events: list<string>, kinds: list<string>}>  $index
      */
     public static function isRelevant(array $index, string $event): bool
     {
+        return self::relevantSegments($index, $event) !== [];
+    }
+
+    /**
+     * Los segmentos que dependen de este evento (R8: solo esos se recalculan para el contacto).
+     *
+     * @param  list<array{id: string, events: list<string>, kinds: list<string>}>  $index
+     * @return list<string>
+     */
+    public static function relevantSegments(array $index, string $event): array
+    {
         if (str_starts_with($event, 'segment.')) {
-            return false; // evita cascadas: lo de segmentos que dependen de segmentos lo resuelve el recálculo nocturno
+            return []; // evita cascadas: lo de segmentos que dependen de segmentos lo resuelve el recálculo nocturno
         }
+        $ids = [];
         foreach ($index as $entry) {
-            if (in_array($event, $entry['events'], true)) {
-                return true;
-            }
-            $kinds = $entry['kinds'];
-            if (str_starts_with($event, 'order.') && array_intersect($kinds, ['purchase', 'attribute', 'cart']) !== []) {
-                return true;
-            }
-            if ((str_starts_with($event, 'cart.') || str_starts_with($event, 'checkout.')) && in_array('cart', $kinds, true)) {
-                return true;
-            }
-            if (in_array($event, self::PROFILE_EVENTS, true) && in_array('attribute', $kinds, true)) {
-                return true;
-            }
-            if (str_starts_with($event, 'consent.') && in_array('consent', $kinds, true)) {
-                return true;
-            }
-            if ((str_starts_with($event, 'message.') || $event === 'whatsapp.inbound') && in_array('messaging', $kinds, true)) {
-                return true;
-            }
-            if (str_starts_with($event, 'lead.') && in_array('lead', $kinds, true)) {
-                return true;
-            }
-            if (str_starts_with($event, 'appointment.') && in_array('service', $kinds, true)) {
-                return true;
-            }
-            if (self::isLoyaltyEvent($event) && in_array('loyalty', $kinds, true)) {
-                return true;
+            if (self::dependsOn($entry, $event)) {
+                $ids[] = $entry['id'];
             }
         }
 
-        return false;
+        return $ids;
+    }
+
+    /** @param array{id: string, events: list<string>, kinds: list<string>} $entry */
+    private static function dependsOn(array $entry, string $event): bool
+    {
+        if (in_array($event, $entry['events'], true)) {
+            return true;
+        }
+        $kinds = $entry['kinds'];
+
+        return match (true) {
+            str_starts_with($event, 'order.') => array_intersect($kinds, ['purchase', 'attribute', 'cart']) !== [],
+            str_starts_with($event, 'cart.') || str_starts_with($event, 'checkout.') => in_array('cart', $kinds, true)
+                || (in_array($event, self::PROFILE_EVENTS, true) && in_array('attribute', $kinds, true)),
+            in_array($event, self::PROFILE_EVENTS, true) => in_array('attribute', $kinds, true),
+            str_starts_with($event, 'consent.') => in_array('consent', $kinds, true),
+            str_starts_with($event, 'message.') || $event === 'whatsapp.inbound' => in_array('messaging', $kinds, true),
+            str_starts_with($event, 'lead.') => in_array('lead', $kinds, true),
+            str_starts_with($event, 'appointment.') => in_array('service', $kinds, true),
+            self::isLoyaltyEvent($event) => in_array('loyalty', $kinds, true),
+            default => false,
+        };
     }
 
     /** Eventos que mueven puntos, saldo, nivel o referidos (Fase 3). */

@@ -43,15 +43,15 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | R4 | P1 | `HubEvents` inserta en ClickHouse de forma síncrona dentro de peticiones web (webhooks, clics en `/c/`); `DetectAbandonedCarts` marca antes de emitir. | `HubEvents`, `DetectAbandonedCarts` | ⏳ |
 | R5 | P1 | Perfil pequeño: siguen 2 réplicas de ingesta, FrankenPHP con hilos por defecto, ML con más de un worker, sin `MemoryHigh` ni `OOMScoreAdjust`. | `infra/install.sh`, unidades systemd | ✅ 0.1.7: 2 hilos de PHP por proceso y un proceso de ML en el perfil pequeño, y prioridades ante falta de memoria (las dos réplicas de ingesta se quedan: permiten reiniciar sin cortar) |
 | R6 | P1 | Trabajos de 300 s en la conexión `redis` con `retry_after` 90: se ejecutan dos veces (`SendMonthlyReportJob`, `SendCampaignBatch`, `NotifyProductWatchesJob` y el agente de IA, de 120 s). | `config/queue.php`, jobs | ✅ 0.1.7: `retry_after` de 330 s y una prueba que revisa el timeout de cada job contra su conexión |
-| R7 | P2 | `SessionsBuilder` reinserta cada sesión ~15 veces. | `Analytics/SessionsBuilder` | ⏳ |
-| R8 | P2 | Cada `page.viewed` reevalúa todos los segmentos. | evaluación de segmentos | ⏳ |
+| R7 | P2 | `SessionsBuilder` reinserta cada sesión ~15 veces. | `Analytics/SessionsBuilder` | ✅ (lote 3): solo inserta la sesión nueva o cambiada (huella de las columnas contra `sessions`, sin FINAL); con la tienda demo y el programador cada 10 min, de 12,9 a 1,0 escrituras por sesión |
+| R8 | P2 | Cada `page.viewed` reevalúa todos los segmentos. | evaluación de segmentos | ✅ (lote 3): cada evento anota solo los segmentos que dependen de él (`PendingSegmentEvaluation`) y el job reevalúa esos; en la demo, de 17 segmentos y 22 consultas por `page.viewed` a 1 segmento y 5 consultas |
 | R9 | P2 | La clave de caché del tablero incluye `max(last_event_at)`: con tráfico nunca hay acierto. | `MetricQueryRunner::remember` | ✅ 0.1.7: versión redondeada al minuto |
 | R10 | P2 | Informe semanal en serie y `isDue` con `hour === 7` (se salta si el scheduler se atrasa). | `WeeklyReport` | 🔧 0.1.7: sale el lunes desde las 7 en la primera corrida y una sola vez por semana; sigue en serie |
 | R11 | P2 | `widgets.json` sin caché. | endpoint público de widgets | ⏳ |
-| R12 | P2 | Índices faltantes en consultas frecuentes; paginación por `OFFSET`; escaneos por `received_at`. | varias | ⏳ |
+| R12 | P2 | Índices faltantes en consultas frecuentes; paginación por `OFFSET`; escaneos por `received_at`. | varias | ✅ (lote 3): índices para las tareas de cada minuto y cada 5 minutos (carritos, mensajes aplazados, reintentos y purga de webhooks, reseñas, encuestas, citas; con 300.000 filas, de ~90 ms a 0,5 ms), `chunkById` en campañas, audiencias, niveles y la exportación de segmentos, y un índice minmax de `received_at` en ClickHouse |
 | R13 | P2 | Uso de facturación cada 5 minutos para todos los espacios. | scheduler de Billing | ⏳ |
 | R14 | P2 | Sin purga de retención de datos viejos. | — | ⏳ |
-| R15 | P2 | `RecomputeSegment` y RFM cargan demasiado en memoria. | Segments, Intelligence | ⏳ |
+| R15 | P2 | `RecomputeSegment` y RFM cargan demasiado en memoria. | Segments, Intelligence | ✅ (lote 3): membresía y diferencias en tablas temporales de MariaDB con eventos por páginas de 500; RFM en una tabla temporal y escrito por lotes. Con 100.000 contactos: el segmento de todos pasa de 53 MB a 0,1 MB de pico, y el RFM, que fallaba (más de 65.535 marcadores), termina con 0,3 MB |
 | R16 | P3 | Sin Octane / modo worker de FrankenPHP. | `infra` | ⏳ |
 | R17 | P1 | En la prueba con 1,6 GB (Ubuntu 26.04), ClickHouse ocupa ~580 MB de RSS en reposo pese al tope del 25 %, y el contenedor queda al 94 %: bajo presión el kernel mató el ML (como se buscaba) y se reinició solo. Falta bajar el piso de ClickHouse (cachés y pools de fondo). | `infra/install.sh` (`growth-memory.xml`) | ⏳ |
 

@@ -102,6 +102,35 @@ final class CompileContext
         return [$name, $rows];
     }
 
+    /**
+     * Tabla temporal vacía de IDs de contacto (para las diferencias de membresía de RecomputeSegment).
+     */
+    public function idTable(): string
+    {
+        $name = 'igr_seg_tmp_'.getmypid().'_'.(++self::$seq);
+        Schema::create($name, function (Blueprint $table): void {
+            $table->temporary();
+            $table->char('contact_id', 26)->primary();
+        });
+        $this->tempTables[] = $name;
+
+        return $name;
+    }
+
+    /**
+     * Ejecuta la consulta de miembros una sola vez y guarda solo los IDs en una tabla temporal, sin
+     * pasar por la memoria de PHP (R15). Recibe la consulta del compilador sobre `contacts as c`.
+     *
+     * @return array{0: string, 1: int} [tabla, filas]
+     */
+    public function materializeIds(Builder $base): array
+    {
+        $name = $this->idTable();
+        $rows = DB::table($name)->insertUsing(['contact_id'], $base->select('c.id'));
+
+        return [$name, $rows];
+    }
+
     /** Borra las tablas temporales (también se borran solas al cerrar la conexión). */
     public function cleanup(): void
     {

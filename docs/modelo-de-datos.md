@@ -368,3 +368,15 @@ La base es la migración `2026_11_23_000100_create_phase5_tables` (más `2026_11
 - `webhook_subscriptions`: además de §7, `consecutive_failures`, `last_success_at` y `created_by`.
 - `webhook_deliveries` (nueva): cada intento de entrega con su código, duración y siguiente intento (registro visible).
 - `api_clients` (nueva): los clientes de la API y del servidor MCP con sus alcances; los tokens son de Sanctum.
+
+## 16. Columnas e índices de la estabilización (noviembre de 2026)
+
+- `carts.contact_captured_at` y `contacts.early_capture_at` (`2026_11_25_400100`): captura temprana del checkout
+  (`eventos.md` §4.2, `cumplimiento.md` §3.2). El contacto con `early_capture_at` existe solo por esa captura: no entra en
+  audiencias de anuncios ni suma puntos hasta que compra, se registra o deja un formulario.
+- Índices para las tareas programadas que buscan en todos los espacios de trabajo (`2026_11_25_400200`, R12):
+  `carts (status, last_activity_at)`, `messages (status, deferred_until)`, `webhook_deliveries (next_attempt_at)` y
+  `(created_at)`, `review_requests (status, scheduled_for)`, `survey_requests (status, scheduled_for)` y
+  `appointments (status, starts_at)`.
+- ClickHouse `0301_events_received_at_index.sql`: índice de salto minmax `idx_received_at` en `events` para «eventos de
+  las últimas 24 horas».
