@@ -17,18 +17,18 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | # | P | Hallazgo | Dónde | Estado |
 |---|---|---|---|---|
 | S1 | P0 | La ruta pública del tracker (`/v1/b`, con la clave pública que está en el HTML) aceptaba cualquier evento con `source.type = browser`: pedidos, clientes, formularios y reseñas falsas que se proyectaban como reales (ventas, contactos con consentimiento, reseñas «verificadas», puntos y conversiones a Meta). | `Ingest/Http/EnvelopeChecker.php`, `Ingest/Pipeline/IngestProcessor.php` | ✅ 0.1.6: solo eventos de navegación (`BrowserEvents`), segunda barrera en el worker, fechas futuras corregidas y del navegador nada de hace más de 7 días |
-| S2 | P1 | El actualizador corre como root y usa `shared/tmp` y `shared/state`, que también escribe el usuario `growth` (carrera de enlaces simbólicos y `chown` por ruta); acepta bajar de versión sin avisar. | `infra/bin/growth-update` | ⏳ |
+| S2 | P1 | El actualizador corre como root y usa `shared/tmp` y `shared/state`, que también escribe el usuario `growth` (carrera de enlaces simbólicos y `chown` por ruta); acepta bajar de versión sin avisar. | `infra/bin/growth-update` | ✅ (lote 3): descargas en `/var/lib/growth-update` (solo root), estado e historial de root con temporal + rename en un `shared/state` sticky, sin `chown` por ruta, y rechaza versiones anteriores |
 | S3 | P1 | Registro abierto y «sin plan = todo»: cualquiera crea una cuenta con todos los módulos, IA (tope de USD 25) y envío por SES a cargo de la plataforma. | `config/fortify.php`, `PlanResolver`, `AiMeter` | 🔧 0.1.7: registro solo por invitación (la primera persona de una instalación nueva sí; `IGR_OPEN_REGISTRATION=true` lo abre). Falta: sin plan = módulos mínimos |
 | S4 | P1 | Envenenamiento del encabezado `Host` en el restablecimiento de contraseña: `trustProxies('*')`, sin `trustHosts`, y Caddy responde cualquier nombre. | `bootstrap/app.php`, `infra/caddy/Caddyfile` | ✅ 0.1.7: el enlace de restablecer usa siempre `APP_URL` |
 | S5 | P2 | SSRF: URLs de webhooks, `rest_url` del sitio, Zender y SMTP sin bloquear redes internas; `SafeUrl` solo mira IPv4. | `WebhookHandler`, `SafeUrl` | ⏳ |
 | S6 | P2 | Webhooks de SES sin verificar `TopicArn`. | `Messaging/.../SesWebhook` | ⏳ |
 | S7 | P2 | Los registros de Caddy guardan tokens de consulta y `Set-Cookie`. | `infra/caddy/Caddyfile` | ⏳ |
 | S8 | P2 | Rangos de Cloudflare fijos en la configuración de proxies de confianza. | `bootstrap/app.php` | ⏳ |
-| S9 | P2 | El release se publica desde la rama sin esperar a CI. | `.github/workflows/release.yml` | ⏳ |
+| S9 | P2 | El release se publica desde la rama sin esperar a CI. | `.github/workflows/release.yml` | ✅ (lote 3): el release corre la CI completa (`workflow_call`) y solo publica en verde |
 | S10 | P2 | Inyección de fórmulas en la exportación CSV de segmentos (`=`, `+`, `-`, `@`). | `SegmentController.php:154-160` | ✅ 0.1.7: `App\Support\Csv` en las dos exportaciones |
 | S11 | P2 | Cambio de correo de la cuenta sin pedir la contraseña. | perfil de usuario | ⏳ |
 | S12 | P3 | Sin `frame-ancestors` en la CSP del panel. | middleware de encabezados | ✅ 0.1.7: `FrameGuard` en las respuestas web (las páginas con política propia la conservan) |
-| S13 | P3 | El usuario `igr` de ClickHouse tiene más privilegios de los que usa. | `infra/install.sh` | ⏳ |
+| S13 | P3 | El usuario `igr` de ClickHouse tiene más privilegios de los que usa. | `infra/install.sh` | ✅ (lote 3): sin `access_management` ni `named_collection_control`; los usuarios los escribe `growth-system` en cada actualización |
 | S14 | P3 | La firma HMAC no cubre el método ni la ruta. | `docs/api-connector.md` §2 | ⏳ (cambio de contrato) |
 | S15 | P3 | Horizon sin exigir 2FA; IP en el payload de `DeliverConversion` (queda en `failed_jobs`). | `HorizonServiceProvider`, `DeliverConversion` | ⏳ |
 | S16 | P3 | `/health` público con detalle de dependencias. | `routes/ingest.php` | ⏳ |
@@ -53,7 +53,7 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | R14 | P2 | Sin purga de retención de datos viejos. | — | ⏳ |
 | R15 | P2 | `RecomputeSegment` y RFM cargan demasiado en memoria. | Segments, Intelligence | ⏳ |
 | R16 | P3 | Sin Octane / modo worker de FrankenPHP. | `infra` | ⏳ |
-| R17 | P1 | En la prueba con 1,6 GB (Ubuntu 26.04), ClickHouse ocupa ~580 MB de RSS en reposo pese al tope del 25 %, y el contenedor queda al 94 %: bajo presión el kernel mató el ML (como se buscaba) y se reinició solo. Falta bajar el piso de ClickHouse (cachés y pools de fondo). | `infra/install.sh` (`growth-memory.xml`) | ⏳ |
+| R17 | P1 | En la prueba con 1,6 GB (Ubuntu 26.04), ClickHouse ocupa ~580 MB de RSS en reposo pese al tope del 25 %, y el contenedor queda al 94 %: bajo presión el kernel mató el ML (como se buscaba) y se reinició solo. | `infra/bin/growth-system` (`growth-memory.xml`) | ✅ (lote 3): en el perfil pequeño, sin caché sin comprimir, caché de expresiones de 16 MB y pools de fondo mínimos |
 
 ## 3. Funcionalidades
 
@@ -126,6 +126,13 @@ Casi todas tienen su base en Imagina Growth; lo que falta es que trabajen solas 
 2, 5, 6 y 9, que reutilizan el agente, los flujos, los leads y el informe semanal. La diferencia frente a un ARM
 genérico: todo respeta consentimiento, ventana de 24 h y horarios legales de cada país (CLAUDE.md §3.5), y cada venta
 cerrada sale atribuida en el dinero generado.
+
+### 5.2 Actualizar sin consola
+
+Hasta la 0.1.7, los cambios de configuración del servidor (memoria de Redis, MariaDB y ClickHouse, prioridades,
+perfil de procesos) solo llegaban volviendo a correr el instalador. Desde el lote 3 viven en `infra/bin/growth-system`,
+que aplican el instalador, cada actualización desde el panel y una unidad que corre antes de `growth-app` (así llega
+incluso cuando actualiza el actualizador anterior). El botón de actualizar es el único paso.
 
 ## 6. Conexiones con terceros
 

@@ -1,5 +1,5 @@
-# MariaDB para Imagina Growth (/etc/mysql/mariadb.conf.d/90-growth.cnf). Lo instala infra/install.sh;
-# __BUFFER_POOL__ se calcula al instalar (~25 % de la memoria).
+# MariaDB para Imagina Growth (/etc/mysql/mariadb.conf.d/90-growth.cnf). Lo instala infra/bin/growth-system (al instalar y en cada actualización);
+# __BUFFER_POOL__ lo calcula infra/bin/growth-system según la RAM (1/4; 1/8 en servidores pequeños).
 [mariadbd]
 bind-address = 127.0.0.1
 character-set-server = utf8mb4

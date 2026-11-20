@@ -5,6 +5,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Release la llama antes de publicar: una versión solo sale con el CI en verde.
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -186,11 +188,13 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y -q jq zstd zip unzip shellcheck php-cli
       - name: shellcheck de los scripts del servidor y del arnés
-        run: shellcheck -x infra/bin/growth-update infra/bin/growth-update-dispatch infra/tests/updater/run.sh infra/tests/updater/lib.sh infra/tests/updater/fakes/*
+        run: shellcheck -x infra/bin/growth-update infra/bin/growth-update-dispatch infra/bin/growth-system infra/bin/growth-web infra/tests/updater/run.sh infra/tests/updater/lib.sh infra/tests/updater/fakes/* infra/tests/system/run.sh
       - name: growth-env (sintaxis de PHP)
         run: php -l infra/bin/growth-env
       - name: Escenarios del actualizador (actualiza, vuelve atrás, sin espacio, zip roto, candado, despacho, .env)
         run: bash infra/tests/updater/run.sh
+      - name: Configuración del sistema (perfil, memoria, prioridades) con un sistema falso
+        run: sudo bash infra/tests/system/run.sh
 
   backup-scripts:
     name: Copias · scripts de respaldo, prueba de restauración y shellcheck

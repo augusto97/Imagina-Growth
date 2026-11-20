@@ -1,6 +1,6 @@
 # Publicación de una versión (docs/despliegue.md §3). Dos formas:
-#   - Automática: un push que cambia el archivo VERSION (en main o en la rama de trabajo) crea el tag vX.Y.Z y el
-#     release con sus assets. Si ese release ya existe, no hace nada; una versión menor que la última se rechaza.
+#   - Automática: un push que cambia el archivo VERSION (en main o en la rama de trabajo) corre la CI completa y,
+#     si está en verde, crea el tag vX.Y.Z y el release con sus assets. Si ese release ya existe, no hace nada; una versión menor que la última se rechaza.
 #   - Manual: publicar un release con tag vX.Y.Z en GitHub; el tag debe coincidir con VERSION.
 # Arma el paquete, lo firma con ed25519 si existe el secreto GROWTH_RELEASE_SIGNING_KEY (opcional) y sube los
 # assets que usan install.sh y el actualizador, más el plugin de WordPress.
@@ -61,9 +61,16 @@ jobs:
           fi
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
+  # Nada se publica en rojo (CLAUDE.md §6): la misma CI de main y de los PR, antes de armar el paquete.
+  ci:
+    name: CI antes de publicar
+    needs: prepare
+    if: needs.prepare.outputs.skip != '1'
+    uses: ./.github/workflows/ci.yml
+
   package:
     name: Paquete de la versión
-    needs: prepare
+    needs: [prepare, ci]
     if: needs.prepare.outputs.skip != '1'
     runs-on: ubuntu-24.04
     env:

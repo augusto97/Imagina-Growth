@@ -1,6 +1,8 @@
-<!-- Usuarios de ClickHouse (/etc/clickhouse-server/users.d/growth-users.xml). Lo genera infra/install.sh:
+<!-- Usuarios de ClickHouse (/etc/clickhouse-server/users.d/growth-users.xml). Lo genera infra/bin/growth-system
+     (al instalar y en cada actualización):
      __IGR_SHA256__ y __DEFAULT_SHA256__ son el sha256 de las contraseñas (nunca van en claro).
      - igr: el de la app (CLICKHOUSE_PASSWORD del .env); también hace las copias y la prueba de restauración.
+       Sin administración de usuarios ni de colecciones con nombre: la app no las usa (auditoría S13).
      - default: con contraseña aleatoria y solo desde la máquina (no lo usa nadie). -->
 <clickhouse>
     <users>
@@ -20,8 +22,6 @@
             </networks>
             <profile>default</profile>
             <quota>default</quota>
-            <access_management>1</access_management>
-            <named_collection_control>1</named_collection_control>
         </igr>
     </users>
 </clickhouse>

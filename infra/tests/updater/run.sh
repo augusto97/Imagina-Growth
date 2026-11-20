@@ -72,7 +72,7 @@ test_update_ok() {
     # Limpieza: 3 versiones (la nueva, la anterior y la más nueva del resto), 5 copias, sin descargas.
     assert_eq "$(find "$GROWTH_ROOT/releases" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort -V | tr '\n' ' ')" "0.0.3 0.1.0 0.2.0 " "quedan 3 versiones"
     assert_eq "$(find "$GROWTH_ROOT/shared/backups/pre-update" -type f | wc -l)" 5 "quedan 5 copias"
-    assert_eq "$(find "$GROWTH_ROOT/shared/tmp" -mindepth 1 | wc -l)" 0 "sin descargas"
+    assert_eq "$(find "$GROWTH_UPDATE_TMP" -mindepth 1 | wc -l)" 0 "sin descargas"
     assert_eq "$(wc -l <"$GROWTH_ROOT/shared/state/update-history.jsonl")" 1 "una línea de historial"
     assert_missing "$GROWTH_ROOT/shared/state/update-request.processing.json" "pedido en proceso borrado"
     # .env reparado sin pisar valores
@@ -131,7 +131,7 @@ test_no_space() {
     assert_contains "$(status .error)" "Espacio insuficiente" "mensaje"
     assert_not_contains "$(calls)" "download growth-0.2.0.zip" "no bajó el zip"
     assert_missing "$GROWTH_ROOT/releases/0.2.0" "sin carpeta nueva"
-    assert_eq "$(find "$GROWTH_ROOT/shared/tmp" -mindepth 1 | wc -l)" 0 "sin restos en tmp"
+    assert_eq "$(find "$GROWTH_UPDATE_TMP" -mindepth 1 | wc -l)" 0 "sin restos en tmp"
     assert_eq "$(status '.steps[] | select(.key == "preflight") | .status')" failed "paso preflight"
     teardown_world
 
@@ -151,7 +151,7 @@ check_nothing_left() {
     assert_eq "$(status .state)" failed "estado"
     assert_missing "$GROWTH_ROOT/releases/0.2.0" "sin carpeta de la versión"
     assert_missing "$GROWTH_ROOT/releases/0.2.0.partial" "sin carpeta a medio extraer"
-    assert_eq "$(find "$GROWTH_ROOT/shared/tmp" -mindepth 1 | wc -l)" 0 "sin zip ni restos en tmp"
+    assert_eq "$(find "$GROWTH_UPDATE_TMP" -mindepth 1 | wc -l)" 0 "sin zip ni restos en tmp"
     assert_not_contains "$(calls)" "systemctl restart" "no reinició nada"
     [[ ${1:-} == migrated ]] || assert_not_contains "$(calls)" "artisan migrate" "no migró"
     lib_is_original && ok || bad "los scripts de root no cambiaron"
@@ -438,7 +438,41 @@ test_small_profile() {
     teardown_world
 }
 
-for t in test_update_ok test_small_profile test_unsigned test_health_fails_rollback test_ingest_replica_fails_rollback test_no_space test_bad_packages \
+test_system_and_hardening() {
+    setup_world "configuración del sistema, sin bajar de versión y archivos de estado de root"
+    install_release 0.1.0
+    make_release 0.2.0
+    # Un symlink plantado donde va el historial no debe hacer que root escriba en otro archivo.
+    echo "intacto" >"$WORLD/victima"
+    ln -s "$WORLD/victima" "$GROWTH_ROOT/shared/state/update-history.jsonl"
+    local code c
+    code=$(run_update 0.2.0)
+    assert_eq "$code" 0 "código de salida"
+    c=$(calls)
+    assert_contains "$c" "growth-system apply --update" "aplica la configuración del sistema de la versión"
+    assert_contains "$(status '.steps[] | select(.key == "switch") | .message')" "Sistema al día (prueba 0.2.0)" "el panel ve el resultado"
+    assert_eq "$(cat "$WORLD/victima")" "intacto" "el symlink del historial no se siguió"
+    [[ -f $GROWTH_ROOT/shared/state/update-history.jsonl && ! -L $GROWTH_ROOT/shared/state/update-history.jsonl ]] && ok || bad "el historial quedó como archivo normal"
+    assert_eq "$(wc -l <"$GROWTH_ROOT/shared/state/update-history.jsonl")" 1 "una línea de historial"
+    assert_not_contains "$c" "chown growth:growth $GROWTH_ROOT/shared/state" "los archivos de estado quedan de root"
+    assert_eq "$(find "$GROWTH_UPDATE_TMP" -mindepth 1 | wc -l)" 0 "sin restos en la carpeta temporal de root"
+    assert_missing "$GROWTH_ROOT/shared/tmp/update-0.2.0" "nada en shared/tmp"
+
+    teardown_world
+
+    # Volver a una versión anterior por este camino no se permite (después de una actualización, los scripts de
+    # root son los de la versión nueva —en este arnés, trampas—: mundo nuevo).
+    setup_world "no baja de versión"
+    install_release 0.2.0
+    make_release 0.1.5
+    code=$(run_update 0.1.5)
+    assert_eq "$code" 1 "no baja de versión"
+    assert_contains "$(status .error)" "anterior a la instalada" "explica por qué"
+    assert_eq "$(current)" 0.2.0 "sigue la instalada"
+    teardown_world
+}
+
+for t in test_system_and_hardening test_update_ok test_small_profile test_unsigned test_health_fails_rollback test_ingest_replica_fails_rollback test_no_space test_bad_packages \
     test_lock_held test_first_install test_dispatch test_env_reader; do
     "$t"
 done

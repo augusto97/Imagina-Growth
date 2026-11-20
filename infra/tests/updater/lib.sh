@@ -29,7 +29,7 @@ setup_world() {
     WORLD=$(mktemp -d)
     export FAKE="$WORLD/fake" GROWTH_ROOT="$WORLD/opt/growth" GROWTH_ETC="$WORLD/etc/growth"
     export SYSTEMD_UNIT_DIR="$WORLD/etc/systemd/system" GROWTH_LOCK_FILE="$WORLD/run/growth-update.lock"
-    export GROWTH_LIB_DIR="$WORLD/usr/local/lib/growth"
+    export GROWTH_LIB_DIR="$WORLD/usr/local/lib/growth" GROWTH_UPDATE_TMP="$WORLD/var/lib/growth-update"
     export SYSTEMCTL="$HERE/fakes/systemctl" SYSTEMD_RUN="$HERE/fakes/systemd-run" CURL="$HERE/fakes/curl" PHP="$HERE/fakes/php"
     export UV="$HERE/fakes/uv" MARIADB="$HERE/fakes/mariadb" MARIADB_DUMP="$HERE/fakes/mariadb-dump" RUNUSER="$HERE/fakes/runuser"
     export CHOWN="$HERE/fakes/chown" DF="$HERE/fakes/df" SLEEP="$HERE/fakes/sleep"
@@ -75,6 +75,9 @@ make_release() {
         printf '#!/usr/bin/env bash\n# TRAMPA %s %s\necho "TRAMPA %s" >>"$FAKE/calls.log"\n' "$trap" "$v" "$trap" >"$src/$trap"
         chmod 0755 "$src/$trap"
     done
+    # La configuración del sistema de la versión (bin/growth-system): la falsa solo anota que la llamaron.
+    printf '#!/usr/bin/env bash\necho "growth-system $*" >>"$FAKE/calls.log"\necho "Sistema al día (prueba %s)."\n' "$v" >"$src/bin/growth-system"
+    chmod 0755 "$src/bin/growth-system"
     printf '[Unit]\nDescription=growth-app %s\n' "$v" >"$src/systemd/growth-app.service"
     printf '[Unit]\nDescription=growth.target\n' >"$src/systemd/growth.target"
     local unpacked=1000000 files=200

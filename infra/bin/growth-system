@@ -1,0 +1,360 @@
+#!/usr/bin/env bash
+# growth-system — la configuración del servidor que depende de la versión y de la RAM (docs/despliegue.md §7):
+# perfil de procesos, MariaDB, ClickHouse, Redis, prioridades ante falta de memoria, workers de ingesta y
+# permisos de shared/state. Idempotente: solo escribe lo que cambió y solo reinicia lo que hace falta.
+#
+#   growth-system apply --install   desde install.sh (primera vez o al volver a correrlo)
+#   growth-system apply --update    desde growth-update, después de activar la versión y antes de reiniciar
+#   growth-system apply --hook      desde growth-system.service antes de growth-app (así llega también con un
+#                                   actualizador anterior, que copia las unidades nuevas y reinicia growth-app)
+#   growth-system status            imprime el perfil y lo que aplicaría, sin cambiar nada
+#
+# Corre como root. Lee las plantillas de la versión (config/, systemd/) junto a este script; el .env con
+# growth-env (nunca con `source`). Con --hook no bloquea a systemd: los reinicios van con --no-block, y si ya se
+# aplicó para esta versión y esta RAM (sello en $STATE) termina enseguida. Nunca falla la actualización: si algo
+# no se puede aplicar, lo dice y sigue.
+set -Euo pipefail
+umask 022
+
+ROOT=${GROWTH_SYSTEM_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}
+GROWTH_ROOT=${GROWTH_ROOT:-/opt/growth}
+ENV_FILE=${GROWTH_ENV_FILE:-$GROWTH_ROOT/shared/.env}
+ETC_DIR=${GROWTH_ETC:-/etc/growth}
+STATE=${GROWTH_SYSTEM_STATE:-/var/lib/growth-system}
+UNIT_DIR=${SYSTEMD_UNIT_DIR:-/etc/systemd/system}
+MARIADB_CONF_DIR=${GROWTH_MARIADB_CONF_DIR:-/etc/mysql/mariadb.conf.d}
+CH_CONF_DIR=${GROWTH_CH_CONF_DIR:-/etc/clickhouse-server/config.d}
+REDIS_CONF_DIR=${GROWTH_REDIS_CONF_DIR:-/etc/redis}
+GROWTH_USER=${GROWTH_USER:-growth}
+CH_GROUP=${GROWTH_CH_GROUP:-clickhouse}
+REDIS_GROUP=${GROWTH_REDIS_GROUP:-redis}
+SYSTEMCTL=${SYSTEMCTL:-systemctl}
+PHP=${PHP:-/usr/local/bin/growth-php}
+MARIADB=${MARIADB:-mariadb}
+REDIS_CLI=${REDIS_CLI:-redis-cli}
+RUNUSER=${RUNUSER:-runuser}
+PROC=${GROWTH_PROC:-/proc}
+
+CMD=${1:-}
+MODE=${2:-}
+case "$CMD $MODE" in
+    "apply --install" | "apply --update" | "apply --hook" | "status ") ;;
+    *)
+        echo "Uso: growth-system apply --install|--update|--hook  ·  growth-system status" >&2
+        exit 2
+        ;;
+esac
+FORCE=${GROWTH_SYSTEM_FORCE:-0}
+
+SUMMARY=()
+note() { SUMMARY+=("$*"); }
+warn() { printf '[growth-system] aviso: %s\n' "$*" >&2; SUMMARY+=("aviso: $*"); }
+
+env_get() { "$PHP" "$ROOT/bin/growth-env" get "$1" "$ENV_FILE" 2>/dev/null || true; }
+
+# put <destino> <modo> <dueño:grupo>: escribe stdin en destino solo si cambió. Código 0 = cambió.
+put() {
+    local dest=$1 mode=$2 owner=$3 tmp
+    tmp=$(mktemp)
+    cat >"$tmp"
+    if [[ -f $dest && ! -L $dest ]] && cmp -s "$tmp" "$dest"; then
+        rm -f "$tmp"
+        return 1
+    fi
+    [[ $CMD == status ]] && { rm -f "$tmp"; return 0; }
+    local dir new
+    dir=$(dirname "$dest")
+    mkdir -p "$dir"
+    # Temporal con punto y sin extensión en la misma carpeta: ni MariaDB, ni ClickHouse, ni systemd lo leen.
+    new=$(mktemp "$dir/.growth.XXXXXX")
+    install -m "$mode" -o "${owner%%:*}" -g "${owner##*:}" "$tmp" "$new" && mv -f "$new" "$dest"
+    rm -f "$tmp" "$new"
+    return 0
+}
+
+# systemctl según el modo: con --hook nunca espera (estamos dentro del arranque de growth-app).
+sctl() {
+    [[ $CMD == status ]] && return 0
+    if [[ $MODE == --hook ]]; then "$SYSTEMCTL" --no-block "$@"; else "$SYSTEMCTL" "$@"; fi
+}
+active() { "$SYSTEMCTL" is-active --quiet "$1" 2>/dev/null; }
+
+# Prioridad del proceso en marcha (sin reiniciarlo): el drop-in vale para los próximos arranques.
+oom_live() { # oom_live <unidad> <valor>
+    local pid
+    [[ $CMD == status ]] && return 0
+    pid=$("$SYSTEMCTL" show -p MainPID --value "$1" 2>/dev/null || echo 0)
+    [[ $pid =~ ^[0-9]+$ && $pid -gt 0 && -w $PROC/$pid/oom_score_adj ]] || return 0
+    printf '%s\n' "$2" >"$PROC/$pid/oom_score_adj" 2>/dev/null || true
+}
+
+# ── Memoria y perfil ────────────────────────────────────────────────────────────────
+
+MEM_MB=${GROWTH_MEMORY_MB:-$(awk '/MemTotal/ {print int($2 / 1024)}' "$PROC/meminfo" 2>/dev/null)}
+[[ $MEM_MB =~ ^[0-9]+$ && $MEM_MB -gt 0 ]] || { echo "No se pudo leer la memoria del servidor." >&2; exit 1; }
+if ((MEM_MB < 3500)); then PROFILE=small; else PROFILE=standard; fi
+MEM_BYTES=$((MEM_MB * 1024 * 1024))
+VERSION=$({ tr -d '[:space:]' <"$ROOT/VERSION"; } 2>/dev/null || echo dev)
+SELF_SUM=$(cat "$0" "$ROOT"/config/mariadb/* "$ROOT"/config/clickhouse/* "$ROOT"/config/redis/* "$ROOT"/systemd/redis-server@.service 2>/dev/null | sha256sum | cut -c1-16)
+STAMP_VALUE="$VERSION $MEM_MB $SELF_SUM"
+
+if [[ $CMD == status ]]; then
+    printf 'Perfil: %s (%s MB de RAM) · versión %s\n' "$PROFILE" "$MEM_MB" "$VERSION"
+fi
+# Con --hook, una sola vez por versión y RAM: growth-app se reinicia a menudo y no hace falta repetir.
+if [[ $MODE == --hook && $FORCE != 1 && -f $STATE/applied && $(cat "$STATE/applied" 2>/dev/null) == "$STAMP_VALUE" ]]; then
+    exit 0
+fi
+
+ENV_CHANGED=0
+UNITS_CHANGED=0
+
+# ── .env: perfil de procesos (Horizon, hilos de PHP, ML) ────────────────────────────
+
+if [[ -f $ENV_FILE ]]; then
+    if [[ $(env_get IGR_WORKERS_PROFILE) != "$PROFILE" ]]; then
+        if [[ $CMD != status ]]; then
+            if grep -q '^IGR_WORKERS_PROFILE=' "$ENV_FILE"; then
+                sed -i "s/^IGR_WORKERS_PROFILE=.*/IGR_WORKERS_PROFILE=$PROFILE/" "$ENV_FILE"
+            else
+                printf 'IGR_WORKERS_PROFILE=%s\n' "$PROFILE" >>"$ENV_FILE"
+            fi
+            chown "$GROWTH_USER:$GROWTH_USER" "$ENV_FILE" 2>/dev/null || true
+            chmod 0600 "$ENV_FILE"
+        fi
+        ENV_CHANGED=1
+        note "perfil de procesos: $PROFILE"
+    fi
+fi
+
+# ── Actualizador: workers de ingesta que reinicia ──────────────────────────────────
+
+if [[ $PROFILE == small ]]; then WANT_WORKERS=1; else WANT_WORKERS="1 2 3 4"; fi
+if [[ -f $ETC_DIR/updater.conf ]] && ! grep -qx "GROWTH_INGEST_WORKERS=\"$WANT_WORKERS\"" "$ETC_DIR/updater.conf"; then
+    if [[ $CMD != status ]]; then
+        sed -i '/^GROWTH_INGEST_WORKERS=/d' "$ETC_DIR/updater.conf"
+        printf 'GROWTH_INGEST_WORKERS="%s"\n' "$WANT_WORKERS" >>"$ETC_DIR/updater.conf"
+    fi
+    note "workers de ingesta del actualizador: $WANT_WORKERS"
+fi
+
+# ── Workers de ingesta: en el perfil pequeño, uno solo para todos los shards ───────
+
+INGEST_CHANGED=0
+DROPIN=$UNIT_DIR/growth-ingest@1.service.d/growth-profile.conf
+if [[ $PROFILE == small ]]; then
+    put "$DROPIN" 0644 root:root <<'EOF' && INGEST_CHANGED=1
+# Perfil pequeño (lo escribe growth-system): un solo worker de ingesta para todos los shards.
+[Service]
+ExecStart=
+ExecStart=/usr/local/bin/growth-php /opt/growth/current/hub/artisan igr:ingest:work
+EOF
+    for i in 2 3 4; do
+        if [[ $("$SYSTEMCTL" is-enabled "growth-ingest@$i.service" 2>/dev/null || true) != masked ]]; then
+            if [[ $CMD != status ]]; then
+                sctl stop "growth-ingest@$i.service" >/dev/null 2>&1 || true
+                "$SYSTEMCTL" mask "growth-ingest@$i.service" >/dev/null 2>&1 || true
+            fi
+            INGEST_CHANGED=1
+        fi
+    done
+else
+    if [[ -f $DROPIN ]]; then
+        [[ $CMD != status ]] && rm -f "$DROPIN"
+        INGEST_CHANGED=1
+    fi
+    for i in 2 3 4; do
+        if [[ $("$SYSTEMCTL" is-enabled "growth-ingest@$i.service" 2>/dev/null || true) == masked ]]; then
+            [[ $CMD != status ]] && "$SYSTEMCTL" unmask "growth-ingest@$i.service" >/dev/null 2>&1
+            INGEST_CHANGED=1
+        fi
+    done
+fi
+((INGEST_CHANGED)) && { UNITS_CHANGED=1; note "workers de ingesta: perfil $PROFILE"; }
+
+# ── MariaDB: memoria de InnoDB y prioridad ──────────────────────────────────────────
+
+if [[ $PROFILE == small ]]; then POOL_MB=$((MEM_MB / 8)); else POOL_MB=$((MEM_MB / 4)); fi
+((POOL_MB < 128)) && POOL_MB=128
+MARIADB_RESTART=0
+if [[ -f $ROOT/config/mariadb/90-growth.cnf && -d $(dirname "$MARIADB_CONF_DIR") ]]; then
+    if sed "s/__BUFFER_POOL__/${POOL_MB}M/" "$ROOT/config/mariadb/90-growth.cnf" | put "$MARIADB_CONF_DIR/90-growth.cnf" 0644 root:root; then
+        note "MariaDB: innodb-buffer-pool-size=${POOL_MB}M"
+        # El tamaño del buffer pool se cambia en caliente; el resto del archivo, en el próximo arranque.
+        if [[ $MODE == --install ]] && active mariadb; then
+            MARIADB_RESTART=1
+        elif [[ $CMD != status ]] && active mariadb; then
+            "$MARIADB" -e "SET GLOBAL innodb_buffer_pool_size = $((POOL_MB * 1024 * 1024))" >/dev/null 2>&1 \
+                || MARIADB_RESTART=1
+        fi
+    fi
+    if printf '[Service]\n# Lo escribe growth-system: lo último que el kernel mata si falta memoria.\nOOMScoreAdjust=-300\n' \
+        | put "$UNIT_DIR/mariadb.service.d/growth-oom.conf" 0644 root:root; then
+        UNITS_CHANGED=1
+        note "MariaDB: prioridad ante falta de memoria"
+    fi
+    oom_live mariadb.service -300
+fi
+
+# ── ClickHouse: configuración, memoria y prioridad ─────────────────────────────────
+
+CH_RESTART=0
+if [[ -d $(dirname "$CH_CONF_DIR") && -d $ROOT/config/clickhouse ]]; then
+    for f in igr.xml growth-listen.xml growth-backups.xml; do
+        [[ -f $ROOT/config/clickhouse/$f ]] || continue
+        put "$CH_CONF_DIR/$f" 0644 "root:$CH_GROUP" <"$ROOT/config/clickhouse/$f" && { CH_RESTART=1; note "ClickHouse: $f"; }
+    done
+    # Sin límite, ClickHouse toma hasta el 90 % de la RAM y el kernel lo mata en bucle. En el perfil pequeño,
+    # además, cachés y pools de fondo mínimos (docs/auditoria-2026-11.md R17).
+    if [[ $PROFILE == small ]]; then CH_PCT=25 CH_MARK_DIV=64; else CH_PCT=30 CH_MARK_DIV=32; fi
+    SMALL_EXTRA=""
+    if [[ $PROFILE == small ]]; then
+        SMALL_EXTRA="    <uncompressed_cache_size>0</uncompressed_cache_size>
+    <compiled_expression_cache_size>16777216</compiled_expression_cache_size>
+    <compiled_expression_cache_elements_size>1000</compiled_expression_cache_elements_size>
+    <mmap_cache_size>256</mmap_cache_size>
+    <background_pool_size>4</background_pool_size>
+    <background_schedule_pool_size>16</background_schedule_pool_size>
+    <background_common_pool_size>4</background_common_pool_size>
+    <background_move_pool_size>2</background_move_pool_size>
+    <background_fetches_pool_size>2</background_fetches_pool_size>
+"
+    fi
+    put "$CH_CONF_DIR/growth-memory.xml" 0644 "root:$CH_GROUP" <<EOF && { CH_RESTART=1; note "ClickHouse: memoria del perfil $PROFILE"; }
+<!-- Lo escribe growth-system según la RAM del servidor ($MEM_MB MB, perfil $PROFILE); se reescribe al actualizar. -->
+<clickhouse>
+    <max_server_memory_usage>$((MEM_BYTES * CH_PCT / 100))</max_server_memory_usage>
+    <mark_cache_size>$((MEM_BYTES / CH_MARK_DIV))</mark_cache_size>
+    <index_mark_cache_size>$((MEM_BYTES / CH_MARK_DIV / 2))</index_mark_cache_size>
+${SMALL_EXTRA}    <trace_log remove="1"/>
+    <text_log remove="1"/>
+    <metric_log remove="1"/>
+    <asynchronous_metric_log remove="1"/>
+    <query_thread_log remove="1"/>
+    <processors_profile_log remove="1"/>
+    <opentelemetry_span_log remove="1"/>
+    <latency_log remove="1"/>
+    <error_log remove="1"/>
+</clickhouse>
+EOF
+    # Usuarios (users.d, ClickHouse los recarga solo): igr con el sha256 de CLICKHOUSE_PASSWORD; default con una
+    # contraseña aleatoria que no usa nadie y solo desde la máquina.
+    CH_PASS=$(env_get CLICKHOUSE_PASSWORD)
+    if [[ -n $CH_PASS && -f $ROOT/config/clickhouse/growth-users.xml ]]; then
+        if [[ ! -s $ETC_DIR/clickhouse-default.pass && $CMD != status ]]; then
+            mkdir -p "$ETC_DIR"
+            install -m 0600 /dev/null "$ETC_DIR/clickhouse-default.pass"
+            openssl rand -hex 24 >"$ETC_DIR/clickhouse-default.pass"
+        fi
+        IGR_SHA=$(printf '%s' "$CH_PASS" | sha256sum | cut -d' ' -f1)
+        DEFAULT_SHA=$({ tr -d '\n' <"$ETC_DIR/clickhouse-default.pass"; } 2>/dev/null | sha256sum | cut -d' ' -f1)
+        sed -e "s/__IGR_SHA256__/$IGR_SHA/" -e "s/__DEFAULT_SHA256__/$DEFAULT_SHA/" "$ROOT/config/clickhouse/growth-users.xml" \
+            | put "${GROWTH_CH_USERS_DIR:-$(dirname "$CH_CONF_DIR")/users.d}/growth-users.xml" 0640 "root:$CH_GROUP" \
+            && note "ClickHouse: usuarios"
+    fi
+    if printf '[Service]\n# Lo escribe growth-system: si falta memoria, ClickHouse se sacrifica antes que MariaDB y Redis.\nOOMScoreAdjust=200\n' \
+        | put "$UNIT_DIR/clickhouse-server.service.d/growth-oom.conf" 0644 root:root; then
+        UNITS_CHANGED=1
+        note "ClickHouse: prioridad ante falta de memoria"
+    fi
+    oom_live clickhouse-server.service 200
+fi
+
+# ── Redis: colas (sin desalojo, con tope) y caché ──────────────────────────────────
+
+REDIS_RESTART=()
+if [[ -f $ROOT/systemd/redis-server@.service ]] && put "$UNIT_DIR/redis-server@.service" 0644 root:root <"$ROOT/systemd/redis-server@.service"; then
+    UNITS_CHANGED=1
+    note "Redis: unidad"
+fi
+REDIS_PASS=$(env_get REDIS_PASSWORD)
+CACHE_MB=$((MEM_MB / 10)); ((CACHE_MB < 64)) && CACHE_MB=64
+QUEUE_MB=$((MEM_MB / 5)); ((QUEUE_MB < 192)) && QUEUE_MB=192
+if [[ -n $REDIS_PASS && -d $ROOT/config/redis ]]; then
+    for inst in queue cache; do
+        [[ -f $ROOT/config/redis/redis-$inst.conf ]] || continue
+        # La contraseña va en el archivo (0640 "root:$REDIS_GROUP"), nunca en la línea de comandos.
+        if sed -e "s/__REDIS_PASSWORD__/$REDIS_PASS/" -e "s/__MAXMEMORY__/${CACHE_MB}mb/" -e "s/__QUEUE_MAXMEMORY__/${QUEUE_MB}mb/" \
+            "$ROOT/config/redis/redis-$inst.conf" | put "$REDIS_CONF_DIR/redis-$inst.conf" 0640 "root:$REDIS_GROUP"; then
+            note "Redis ($inst): configuración"
+            if [[ $MODE == --install ]]; then
+                REDIS_RESTART+=("redis-server@$inst.service")
+            elif [[ $CMD != status ]] && active "redis-server@$inst.service"; then
+                # En caliente lo que cambia con el perfil; lo demás, en el próximo arranque de Redis.
+                port=6379
+                [[ $inst == cache ]] && port=6380
+                mem=$QUEUE_MB
+                [[ $inst == cache ]] && mem=$CACHE_MB
+                REDISCLI_AUTH=$REDIS_PASS "$REDIS_CLI" -p "$port" CONFIG SET maxmemory "${mem}mb" >/dev/null 2>&1 || warn "Redis $inst: no se pudo aplicar maxmemory en caliente."
+                REDISCLI_AUTH=$REDIS_PASS "$REDIS_CLI" -p "$port" CONFIG SET save "" >/dev/null 2>&1 || true
+            fi
+        fi
+        oom_live "redis-server@$inst.service" -400
+    done
+fi
+
+# ── Unidades y reinicios ────────────────────────────────────────────────────────────
+
+if ((UNITS_CHANGED)) && [[ $CMD != status ]]; then
+    "$SYSTEMCTL" daemon-reload >/dev/null 2>&1 || true
+fi
+if [[ $CMD != status ]]; then
+    if ((MARIADB_RESTART)) && active mariadb; then
+        sctl restart mariadb.service || warn "No se pudo reiniciar MariaDB."
+    fi
+    if ((CH_RESTART)) && active clickhouse-server; then
+        sctl restart clickhouse-server.service || warn "No se pudo reiniciar ClickHouse."
+    fi
+    for u in "${REDIS_RESTART[@]}"; do
+        active "$u" && { sctl restart "$u" || warn "No se pudo reiniciar $u."; }
+    done
+    # Workers de ingesta del perfil estándar: arrancan si la app ya corre.
+    if ((INGEST_CHANGED)) && [[ $PROFILE == standard ]] && active growth.target; then
+        sctl start growth-ingest@2.service growth-ingest@3.service growth-ingest@4.service || true
+    fi
+fi
+
+# ── shared/state: el panel deja pedidos; lo de root no lo puede tocar (sticky) ──────
+
+if [[ -d $GROWTH_ROOT/shared/state && $CMD != status ]]; then
+    chown root:"$GROWTH_USER" "$GROWTH_ROOT/shared/state" 2>/dev/null || true
+    chmod 1775 "$GROWTH_ROOT/shared/state" 2>/dev/null || true
+fi
+
+# ── Caché de configuración si cambió el .env ────────────────────────────────────────
+
+rebuild_config_cache() {
+    local hub cache
+    hub=$(readlink -f "$GROWTH_ROOT/current" 2>/dev/null)/hub
+    cache=$hub/bootstrap/cache
+    [[ -f $hub/artisan && -d $cache ]] || return 0
+    chown "$GROWTH_USER:$GROWTH_USER" "$cache"
+    (cd "$hub" && "$RUNUSER" -u "$GROWTH_USER" -- env HOME=/tmp "$PHP" artisan config:cache --no-interaction >/dev/null 2>&1) \
+        || warn "No se pudo rearmar la caché de configuración."
+    find "$cache" -mindepth 1 ! -type f -exec rm -rf -- {} + 2>/dev/null || true
+    chown -R -h root:root "$cache"
+    chmod -R u+rwX,go+rX,go-w "$cache"
+}
+
+if ((ENV_CHANGED)) && [[ $CMD != status && $MODE != --install ]]; then
+    rebuild_config_cache
+    # Con --update el actualizador reinicia todo enseguida; con --hook, lo que ya arrancó con el perfil viejo.
+    if [[ $MODE == --hook ]] && active growth.target; then
+        sctl restart growth-horizon.service growth-scheduler.service growth-ml.service \
+            growth-ingest-api@1.service growth-ingest-api@2.service growth-ingest@1.service || true
+    fi
+fi
+
+if [[ $CMD != status ]]; then
+    mkdir -p "$STATE"
+    chmod 0755 "$STATE"
+    printf '%s\n' "$STAMP_VALUE" >"$STATE/applied"
+fi
+
+if ((${#SUMMARY[@]} == 0)); then
+    echo "Sistema al día (perfil $PROFILE, $MEM_MB MB)."
+else
+    joined=$(printf '%s; ' "${SUMMARY[@]}")
+    printf 'Perfil %s (%s MB): %s\n' "$PROFILE" "$MEM_MB" "${joined%; }"
+fi
+exit 0

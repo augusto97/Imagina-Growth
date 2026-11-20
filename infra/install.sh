@@ -162,8 +162,6 @@ wait_for() { # descripción comando...
     die "No responde: $what"
 }
 
-UNITS_CHANGED=0
-SERVICE_RESTART=()
 
 # ── 1. Plantillas (del repositorio o de la versión publicada) ───────────
 
@@ -335,9 +333,13 @@ install -d -m 0755 -o root -g root "$GROWTH_ROOT" "$GROWTH_ROOT/releases" "$ETC_
 install -d -m 0755 -o growth -g growth "$SHARED"
 for d in storage storage/app storage/app/public storage/app/private storage/framework storage/framework/cache \
     storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs \
-    state backups backups/pre-update tmp cache cache/uv python run; do
+    backups backups/pre-update tmp cache cache/uv python run; do
     install -d -m 0750 -o growth -g growth "$SHARED/$d"
 done
+# shared/state: el panel deja pedidos; lo que escribe root (estado e historial de actualizaciones) no lo puede
+# tocar «growth» (sticky). El actualizador baja y descomprime en una carpeta solo de root.
+install -d -m 1775 -o root -g growth "$SHARED/state"
+install -d -m 0700 -o root -g root /var/lib/growth-update
 install -d -m 0711 -o root -g root "$BACKUP_DIR"
 install -d -m 0700 -o root -g root "$BACKUP_DIR/mariadb"
 
@@ -465,16 +467,6 @@ fi
 env_add IGR_ANTHROPIC_API_KEY ""
 env_add GROWTH_UPDATE_REPO "$REPO"
 env_add GROWTH_UPDATE_API "$API"
-# El perfil de procesos lo decide el instalador por la RAM: se reescribe en cada corrida.
-PROFILE_CHANGED=0
-if [ "$(env_get IGR_WORKERS_PROFILE)" != "$PROFILE" ]; then
-    if env_has IGR_WORKERS_PROFILE; then
-        sed -i "s/^IGR_WORKERS_PROFILE=.*/IGR_WORKERS_PROFILE=$PROFILE/" "$ENV_FILE"
-    else
-        printf 'IGR_WORKERS_PROFILE=%s\n' "$PROFILE" >>"$ENV_FILE"
-    fi
-    PROFILE_CHANGED=1
-fi
 chown growth:growth "$ENV_FILE"
 chmod 0600 "$ENV_FILE"
 if [ "$NEW_ENV" = 1 ]; then
@@ -491,122 +483,7 @@ else
 fi
 
 
-# ── 5. MariaDB ──────────────────────────────────────────────────────────
-
-log "MariaDB"
-if [ "$PROFILE" = small ]; then POOL_MB=$((MEM_MB / 8)); else POOL_MB=$((MEM_MB / 4)); fi
-[ "$POOL_MB" -lt 128 ] && POOL_MB=128
-if sed "s/__BUFFER_POOL__/${POOL_MB}M/" "$TPL/config/mariadb/90-growth.cnf" | put_content /etc/mysql/mariadb.conf.d/90-growth.cnf; then
-    SERVICE_RESTART+=(mariadb)
-fi
-# Si falta memoria, el kernel sacrifica antes ClickHouse, el ML y Horizon que la base transaccional.
-install -d -m 0755 /etc/systemd/system/mariadb.service.d
-if printf '[Service]\nOOMScoreAdjust=-300\n' | put_content /etc/systemd/system/mariadb.service.d/growth-oom.conf 0644 root:root; then
-    systemctl daemon-reload
-    SERVICE_RESTART+=(mariadb)
-fi
-systemctl enable mariadb >/dev/null 2>&1
-if [[ " ${SERVICE_RESTART[*]} " == *" mariadb "* ]] && systemctl is-active --quiet mariadb; then
-    systemctl restart mariadb
-else
-    systemctl start mariadb
-fi
-wait_for MariaDB mariadb-admin ping
-DB_PASS=$(env_get DB_PASSWORD)
-mariadb <<SQL
-CREATE DATABASE IF NOT EXISTS igr CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS 'igr'@'localhost' IDENTIFIED BY '$DB_PASS';
-CREATE USER IF NOT EXISTS 'igr'@'127.0.0.1' IDENTIFIED BY '$DB_PASS';
-GRANT ALL PRIVILEGES ON igr.* TO 'igr'@'localhost';
-GRANT ALL PRIVILEGES ON igr.* TO 'igr'@'127.0.0.1';
-SQL
-if ! MYSQL_PWD=$DB_PASS mariadb -h 127.0.0.1 -u igr igr -e 'SELECT 1' >/dev/null 2>&1; then
-    # El usuario ya existía con otra contraseña (p. ej. se borró el .env): manda el .env.
-    warn "La contraseña de MariaDB no coincidía con el .env; se actualizó."
-    mariadb -e "ALTER USER 'igr'@'localhost' IDENTIFIED BY '$DB_PASS'; ALTER USER 'igr'@'127.0.0.1' IDENTIFIED BY '$DB_PASS';"
-fi
-info "Base igr y usuario igr listos (innodb_buffer_pool_size=${POOL_MB}M)."
-
-# ── 6. ClickHouse ───────────────────────────────────────────────────────
-
-log "ClickHouse"
-install -d -m 0700 -o clickhouse -g clickhouse "$BACKUP_DIR/clickhouse"
-CH_CHANGED=0
-put_file "$TPL/config/clickhouse/igr.xml" /etc/clickhouse-server/config.d/igr.xml 0644 root:clickhouse && CH_CHANGED=1
-put_file "$TPL/config/clickhouse/growth-listen.xml" /etc/clickhouse-server/config.d/growth-listen.xml 0644 root:clickhouse && CH_CHANGED=1
-put_file "$TPL/config/clickhouse/growth-backups.xml" /etc/clickhouse-server/config.d/growth-backups.xml 0644 root:clickhouse && CH_CHANGED=1
-# Memoria de ClickHouse según la RAM (sin esto toma hasta el 90 % y el kernel lo mata): 30 % para el servidor
-# (25 % en el perfil pequeño), cachés de marcas proporcionales y sin los logs de sistema que la app no usa.
-MEM_BYTES=$((MEM_MB * 1024 * 1024))
-if [ "$PROFILE" = small ]; then CH_PCT=25 CH_MARK_DIV=64; else CH_PCT=30 CH_MARK_DIV=32; fi
-put_content /etc/clickhouse-server/config.d/growth-memory.xml 0644 root:clickhouse <<EOF && CH_CHANGED=1
-<!-- Lo escribe infra/install.sh según la RAM del servidor ($MEM_MB MB); se reescribe en cada corrida. -->
-<clickhouse>
-    <max_server_memory_usage>$((MEM_BYTES * CH_PCT / 100))</max_server_memory_usage>
-    <mark_cache_size>$((MEM_BYTES / CH_MARK_DIV))</mark_cache_size>
-    <index_mark_cache_size>$((MEM_BYTES / CH_MARK_DIV / 2))</index_mark_cache_size>
-    <trace_log remove="1"/>
-    <text_log remove="1"/>
-    <metric_log remove="1"/>
-    <asynchronous_metric_log remove="1"/>
-    <query_thread_log remove="1"/>
-    <processors_profile_log remove="1"/>
-    <opentelemetry_span_log remove="1"/>
-    <latency_log remove="1"/>
-    <error_log remove="1"/>
-</clickhouse>
-EOF
-if [ ! -s "$ETC_DIR/clickhouse-default.pass" ]; then
-    install -m 0600 /dev/null "$ETC_DIR/clickhouse-default.pass"
-    rand_hex 24 >"$ETC_DIR/clickhouse-default.pass"
-fi
-CH_PASS=$(env_get CLICKHOUSE_PASSWORD)
-IGR_SHA=$(printf '%s' "$CH_PASS" | sha256sum | cut -d' ' -f1)
-DEFAULT_SHA=$(tr -d '\n' <"$ETC_DIR/clickhouse-default.pass" | sha256sum | cut -d' ' -f1)
-# Las contraseñas de ClickHouse cambian aquí con el .env; el archivo es solo legible por ClickHouse.
-sed -e "s/__IGR_SHA256__/$IGR_SHA/" -e "s/__DEFAULT_SHA256__/$DEFAULT_SHA/" "$TPL/config/clickhouse/growth-users.xml" \
-    | put_content /etc/clickhouse-server/users.d/growth-users.xml 0640 root:clickhouse && CH_CHANGED=1
-install -d -m 0755 /etc/systemd/system/clickhouse-server.service.d
-if printf '[Service]\nOOMScoreAdjust=200\n' | put_content /etc/systemd/system/clickhouse-server.service.d/growth-oom.conf 0644 root:root; then
-    systemctl daemon-reload
-    CH_CHANGED=1
-fi
-systemctl enable clickhouse-server >/dev/null 2>&1
-if [ "$CH_CHANGED" = 1 ] && systemctl is-active --quiet clickhouse-server; then
-    systemctl restart clickhouse-server
-else
-    systemctl start clickhouse-server
-fi
-wait_for ClickHouse curl -fsS http://127.0.0.1:8123/ping
-ch_query() { curl -fsS -u "igr:$CH_PASS" http://127.0.0.1:8123/ --data-binary "$1"; }
-wait_for "ClickHouse (usuario igr)" ch_query 'SELECT 1'
-ch_query 'CREATE DATABASE IF NOT EXISTS igr' >/dev/null
-info "Base igr y usuario igr listos."
-
-# ── 7. Redis: colas y caché ─────────────────────────────────────────────
-
-log "Redis (colas en 6379 y caché en 6380)"
-REDIS_PASS=$(env_get REDIS_PASSWORD)
-CACHE_MB=$((MEM_MB / 10)); [ "$CACHE_MB" -lt 64 ] && CACHE_MB=64
-QUEUE_MB=$((MEM_MB / 5)); [ "$QUEUE_MB" -lt 192 ] && QUEUE_MB=192
-install -d -m 0750 -o redis -g redis /var/lib/redis-queue /var/lib/redis-cache
-put_file "$TPL/systemd/redis-server@.service" /etc/systemd/system/redis-server@.service && UNITS_CHANGED=1
-[ "$UNITS_CHANGED" = 1 ] && systemctl daemon-reload
-for inst in queue cache; do
-    if sed -e "s/__REDIS_PASSWORD__/$REDIS_PASS/" -e "s/__MAXMEMORY__/${CACHE_MB}mb/" -e "s/__QUEUE_MAXMEMORY__/${QUEUE_MB}mb/" "$TPL/config/redis/redis-$inst.conf" \
-        | put_content "/etc/redis/redis-$inst.conf" 0640 root:redis; then
-        systemctl enable "redis-server@$inst" >/dev/null 2>&1
-        systemctl restart "redis-server@$inst"
-    else
-        systemctl enable --now "redis-server@$inst" >/dev/null 2>&1
-    fi
-done
-for port in 6379 6380; do
-    wait_for "Redis $port" env REDISCLI_AUTH="$REDIS_PASS" redis-cli -p "$port" ping
-done
-info "Colas: $(REDISCLI_AUTH=$REDIS_PASS redis-cli -p 6379 config get maxmemory-policy | tail -1) + AOF (${QUEUE_MB} MB) · caché: $(REDISCLI_AUTH=$REDIS_PASS redis-cli -p 6380 config get maxmemory-policy | tail -1) (${CACHE_MB} MB)"
-
-# ── 8. Actualizador: repositorio y llave ────────────────────────────────
+# ── 5. Actualizador: repositorio y llave ────────────────────────────────
 
 log "Actualizador ($ETC_DIR)"
 if [ ! -f "$ETC_DIR/updater.conf" ] || [ "$REPO_GIVEN" = 1 ] || [ "$API_GIVEN" = 1 ]; then
@@ -635,57 +512,83 @@ if [ -n "$PUBKEY_PEM" ]; then
 else
     info "Sin llave pública: las versiones se validan solo con sha256. Para exigir firma, instala $ETC_DIR/release-signing.pub.pem (--pubkey)."
 fi
-# Workers de ingesta que reinicia el actualizador (perfil pequeño: uno solo para todos los shards).
-if [ "$PROFILE" = small ]; then WANT_WORKERS=1; else WANT_WORKERS="1 2 3 4"; fi
-if ! grep -qx "GROWTH_INGEST_WORKERS=\"$WANT_WORKERS\"" "$ETC_DIR/updater.conf" 2>/dev/null; then
-    sed -i '/^GROWTH_INGEST_WORKERS=/d' "$ETC_DIR/updater.conf"
-    printf 'GROWTH_INGEST_WORKERS="%s"\n' "$WANT_WORKERS" >>"$ETC_DIR/updater.conf"
-fi
 # Copias (infra/backup): la configuración es del administrador; solo se crea si falta.
 if [ ! -f "$ETC_DIR/backup.conf" ] && [ -f "$TPL/backup/backup.conf.example" ]; then
     install -m 0600 -o root -g root "$TPL/backup/backup.conf.example" "$ETC_DIR/backup.conf"
     info "Creado $ETC_DIR/backup.conf (completa el remoto de rclone y los heartbeats)."
 fi
 
-# ── 9. Servicios de systemd ─────────────────────────────────────────────
+# ── 6. Configuración del sistema (la misma que aplica cada actualización) ─
+
+log "Configuración del sistema (memoria, Redis, MariaDB, ClickHouse)"
+# bin/growth-system es el único lugar donde vive esta configuración: el botón de actualizar del panel la aplica
+# en cada versión, así que nunca hace falta volver a correr el instalador para recibirla (docs/despliegue.md §7).
+install -d -m 0750 -o redis -g redis /var/lib/redis-queue /var/lib/redis-cache
+SYSTEM_OUT=$(GROWTH_SYSTEM_ROOT="$TPL" GROWTH_ROOT="$GROWTH_ROOT" GROWTH_ENV_FILE="$ENV_FILE" GROWTH_ETC="$ETC_DIR" \
+    GROWTH_MEMORY_MB="$MEM_MB" PHP=/usr/local/bin/growth-php bash "$TPL/bin/growth-system" apply --install 2>&1) \
+    || die "No se pudo aplicar la configuración del sistema: $SYSTEM_OUT"
+info "$SYSTEM_OUT"
+PROFILE_CHANGED=0
+case "$SYSTEM_OUT" in *"perfil de procesos"* | *"workers de ingesta"*) PROFILE_CHANGED=1 ;; esac
+
+# ── 7. MariaDB ──────────────────────────────────────────────────────────
+
+log "MariaDB"
+systemctl enable --now mariadb >/dev/null 2>&1
+wait_for MariaDB mariadb-admin ping
+DB_PASS=$(env_get DB_PASSWORD)
+mariadb <<SQL
+CREATE DATABASE IF NOT EXISTS igr CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'igr'@'localhost' IDENTIFIED BY '$DB_PASS';
+CREATE USER IF NOT EXISTS 'igr'@'127.0.0.1' IDENTIFIED BY '$DB_PASS';
+GRANT ALL PRIVILEGES ON igr.* TO 'igr'@'localhost';
+GRANT ALL PRIVILEGES ON igr.* TO 'igr'@'127.0.0.1';
+SQL
+if ! MYSQL_PWD=$DB_PASS mariadb -h 127.0.0.1 -u igr igr -e 'SELECT 1' >/dev/null 2>&1; then
+    # El usuario ya existía con otra contraseña (p. ej. se borró el .env): manda el .env.
+    warn "La contraseña de MariaDB no coincidía con el .env; se actualizó."
+    mariadb -e "ALTER USER 'igr'@'localhost' IDENTIFIED BY '$DB_PASS'; ALTER USER 'igr'@'127.0.0.1' IDENTIFIED BY '$DB_PASS';"
+fi
+info "Base igr y usuario igr listos."
+
+# ── 8. ClickHouse ───────────────────────────────────────────────────────
+
+log "ClickHouse"
+install -d -m 0700 -o clickhouse -g clickhouse "$BACKUP_DIR/clickhouse"
+# La configuración, la memoria y los usuarios de ClickHouse los escribe growth-system (sección 6), que también lo
+# reinicia si ya corría y la configuración cambió.
+CH_PASS=$(env_get CLICKHOUSE_PASSWORD)
+systemctl enable --now clickhouse-server >/dev/null 2>&1
+wait_for ClickHouse curl -fsS http://127.0.0.1:8123/ping
+ch_query() { curl -fsS -u "igr:$CH_PASS" http://127.0.0.1:8123/ --data-binary "$1"; }
+wait_for "ClickHouse (usuario igr)" ch_query 'SELECT 1'
+ch_query 'CREATE DATABASE IF NOT EXISTS igr' >/dev/null
+info "Base igr y usuario igr listos."
+
+# ── 9. Redis: colas y caché ─────────────────────────────────────────────
+
+log "Redis (colas en 6379 y caché en 6380)"
+REDIS_PASS=$(env_get REDIS_PASSWORD)
+for inst in queue cache; do
+    systemctl enable --now "redis-server@$inst" >/dev/null 2>&1
+done
+for port in 6379 6380; do
+    wait_for "Redis $port" env REDISCLI_AUTH="$REDIS_PASS" redis-cli -p "$port" ping
+done
+info "Colas: $(REDISCLI_AUTH=$REDIS_PASS redis-cli -p 6379 config get maxmemory-policy | tail -1) + AOF (maxmemory $(REDISCLI_AUTH=$REDIS_PASS redis-cli -p 6379 config get maxmemory | tail -1)) · caché: $(REDISCLI_AUTH=$REDIS_PASS redis-cli -p 6380 config get maxmemory-policy | tail -1)"
+
+# ── 10. Servicios de systemd ─────────────────────────────────────────────
 
 log "Servicios de systemd"
 for f in "$TPL"/systemd/growth*; do
-    put_file "$f" "/etc/systemd/system/$(basename "$f")" && UNITS_CHANGED=1
+    put_file "$f" "/etc/systemd/system/$(basename "$f")" || true
 done
-# Perfil pequeño: growth-ingest@1 lee todos los shards y los workers 2 a 4 quedan enmascarados.
-INGEST_CHANGED=0
-DROPIN=/etc/systemd/system/growth-ingest@1.service.d/growth-profile.conf
-if [ "$PROFILE" = small ]; then
-    install -d -m 0755 "$(dirname "$DROPIN")"
-    put_content "$DROPIN" 0644 root:root <<'EOF' && INGEST_CHANGED=1
-# Perfil pequeño (lo escribe infra/install.sh): un solo worker de ingesta para todos los shards.
-[Service]
-ExecStart=
-ExecStart=/usr/local/bin/growth-php /opt/growth/current/hub/artisan igr:ingest:work
-EOF
-    for i in 2 3 4; do
-        if [ "$(systemctl is-enabled "growth-ingest@$i.service" 2>/dev/null || true)" != masked ]; then
-            systemctl stop "growth-ingest@$i.service" >/dev/null 2>&1 || true
-            systemctl mask "growth-ingest@$i.service" >/dev/null 2>&1
-            INGEST_CHANGED=1
-        fi
-    done
-else
-    if [ -f "$DROPIN" ]; then rm -f "$DROPIN"; INGEST_CHANGED=1; fi
-    for i in 2 3 4; do
-        if [ "$(systemctl is-enabled "growth-ingest@$i.service" 2>/dev/null || true)" = masked ]; then
-            systemctl unmask "growth-ingest@$i.service" >/dev/null 2>&1
-            INGEST_CHANGED=1
-        fi
-    done
-fi
 systemctl daemon-reload
 systemctl enable --now growth-update.path >/dev/null 2>&1
 # growth.target se habilita al final, cuando hay una versión instalada (sin ella los servicios no arrancan).
 info "Unidades instaladas; growth-update.path habilitado."
 
-# ── 10. Caddy ───────────────────────────────────────────────────────────
+# ── 11. Caddy ───────────────────────────────────────────────────────────
 
 log "Caddy"
 EMAIL_LINE=""
@@ -708,7 +611,7 @@ else
     info "Sin cambios (el Caddyfile instalado es del administrador)."
 fi
 
-# ── 11. Firewall ────────────────────────────────────────────────────────
+# ── 12. Firewall ────────────────────────────────────────────────────────
 
 if [ "$SKIP_FIREWALL" = 1 ]; then
     log "Firewall: omitido (--skip-firewall)"
@@ -726,7 +629,7 @@ else
     info "Abiertos: SSH ($(echo "$ssh_ports" | tr '\n' ' ' | xargs)), 80/tcp, 443/tcp y 443/udp."
 fi
 
-# ── 12. La app ──────────────────────────────────────────────────────────
+# ── 13. La app ──────────────────────────────────────────────────────────
 
 if [ "$NO_RELEASE" = 1 ]; then
     log "La app: omitida (--no-release)"
@@ -743,7 +646,7 @@ elif [ -L "$GROWTH_ROOT/current" ]; then
     find "$CACHE_DIR" -mindepth 1 ! -type f -exec rm -rf -- {} +
     chown -R -h root:root "$CACHE_DIR"
     chmod -R u+rwX,go+rX,go-w "$CACHE_DIR"
-    if [ "$PROFILE_CHANGED" = 1 ] || [ "$INGEST_CHANGED" = 1 ] || [ "$URLS_CHANGED" = 1 ]; then
+    if [ "$PROFILE_CHANGED" = 1 ] || [ "$URLS_CHANGED" = 1 ]; then
         if systemctl is-active --quiet growth.target; then
             systemctl restart growth-horizon.service growth-scheduler.service growth-ingest@1.service
             [ "$PROFILE" = standard ] && systemctl start growth-ingest@2.service growth-ingest@3.service growth-ingest@4.service

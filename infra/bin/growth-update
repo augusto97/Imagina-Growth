@@ -25,6 +25,8 @@ INGEST_API_INSTANCES=${GROWTH_INGEST_API_INSTANCES:-1 2}
 INGEST_WORKERS=${GROWTH_INGEST_WORKERS:-}   # vacío: lo dice updater.conf (perfil de install.sh) o 1 2 3 4
 KEEP_RELEASES=${GROWTH_KEEP_RELEASES:-3}
 KEEP_BACKUPS=${GROWTH_KEEP_BACKUPS:-5}
+# Descargas y credenciales temporales en una carpeta solo de root (nunca en shared/, que «growth» puede escribir).
+UPDATE_TMP_BASE=${GROWTH_UPDATE_TMP:-/var/lib/growth-update}
 
 SYSTEMCTL=${SYSTEMCTL:-systemctl}
 CURL=${CURL:-curl}
@@ -103,7 +105,7 @@ json_write() { # escribe $2 en $1 de forma atómica (rename reemplaza un symlink
     tmp=$(mktemp "$(dirname "$target")/.tmp.XXXXXX")
     printf '%s\n' "$content" >"$tmp"
     chmod 0644 "$tmp"
-    "$CHOWN" "$GROWTH_USER:$GROWTH_USER" "$tmp" 2>/dev/null || true
+    # Queda de root (el panel solo lee). shared/state es «sticky»: growth no puede tocar lo de root.
     mv -f "$tmp" "$target"
 }
 
@@ -147,9 +149,11 @@ status_finish() { # status_finish <state> [error]
     STATUS=$(jq --arg s "$state" --arg e "$err" --arg at "$(now)" \
         '.state = $s | .finished_at = $at | .error = (if $e == "" then null else $e end)' <<<"$STATUS")
     json_write "$STATUS_FILE" "$STATUS"
-    [[ -L $HISTORY_FILE ]] && rm -f "$HISTORY_FILE"
-    jq -c . <<<"$STATUS" >>"$HISTORY_FILE"
-    "$CHOWN" "$GROWTH_USER:$GROWTH_USER" "$HISTORY_FILE" 2>/dev/null || true
+    # El historial también se reescribe con un temporal + rename: nunca se agrega a un archivo que podría ser
+    # un symlink puesto por otro usuario.
+    local hist
+    hist=$( { [[ -f $HISTORY_FILE && ! -L $HISTORY_FILE ]] && tail -n 499 "$HISTORY_FILE"; jq -c . <<<"$STATUS"; } )
+    json_write "$HISTORY_FILE" "$hist"
     rm -f "$PROCESSING_FILE"
 }
 
@@ -371,7 +375,8 @@ done_step() { step_set "$CURRENT_STEP" "done" "${1:-}"; }
 
 # ── Programa ───────────────────────────────────────────────────────────────────────
 
-mkdir -p "$STATE_DIR" "$SHARED/tmp" "$SHARED/backups/pre-update" "$GROWTH_ROOT/releases" "$(dirname "$LOCK_FILE")"
+mkdir -p "$STATE_DIR" "$SHARED/backups/pre-update" "$GROWTH_ROOT/releases" "$(dirname "$LOCK_FILE")"
+install -d -m 0700 "$UPDATE_TMP_BASE"
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
     log "Ya hay una actualización en curso; no hago nada."
@@ -390,11 +395,16 @@ if [[ $MODE == update && $FROM == "$VERSION" ]]; then
     CURRENT_STEP=preflight
     fail "La versión $VERSION ya es la instalada."
 fi
+# Nunca hacia atrás por este camino: una versión anterior no sabe deshacer las migraciones de la nueva. Volver
+# atrás solo lo hace el propio actualizador cuando la versión nueva falla (rollback).
+if [[ $MODE == update && $(printf '%s\n%s\n' "$VERSION" "$FROM" | sort -V | head -n1) == "$VERSION" ]]; then
+    CURRENT_STEP=preflight
+    fail "La versión $VERSION es anterior a la instalada ($FROM): no se instala."
+fi
 
-TMP="$SHARED/tmp/update-$VERSION-$$"
+TMP=$(mktemp -d "$UPDATE_TMP_BASE/update-$VERSION.XXXXXX")
 NEW_DIR="$GROWTH_ROOT/releases/$VERSION"
 PARTIAL="$NEW_DIR.partial"
-mkdir -p "$TMP"
 ZIP="growth-$VERSION.zip"
 
 # 1. Preflight: espacio e inodos antes de bajar el zip.
@@ -507,7 +517,7 @@ REPAIR_ARGS=(repair "$NEW_DIR/release.json" "$SHARED/.env")
 if ! REPAIR_OUT=$("$PHP" "$ENV_TOOL" "${REPAIR_ARGS[@]}" 2>&1); then
     fail "No se pudo reparar el .env: ${REPAIR_OUT//$'\n'/ }"
 fi
-"$CHOWN" -R "$GROWTH_USER:$GROWTH_USER" "$SHARED/storage" "$SHARED/cache" "$SHARED/python" "$SHARED/venvs"
+"$CHOWN" -R -h "$GROWTH_USER:$GROWTH_USER" "$SHARED/storage" "$SHARED/cache" "$SHARED/python" "$SHARED/venvs"
 if [[ -f $NEW_DIR/hub/ml/uv.lock ]]; then
     (cd "$NEW_DIR/hub/ml" && as_growth env HOME="$SHARED" UV_CACHE_DIR="$SHARED/cache/uv" UV_PYTHON_INSTALL_DIR="$SHARED/python" \
         UV_PROJECT_ENVIRONMENT="$SHARED/venvs/$VERSION" "$UV" sync --frozen --no-dev --quiet) \
@@ -561,7 +571,15 @@ begin switch
 PHASE=after
 switch_to "$VERSION"
 install_units "$NEW_DIR/systemd"
-done_step "current → $VERSION"
+# Configuración del servidor de esta versión (memoria de Redis, MariaDB y ClickHouse, prioridades, perfil de
+# procesos): así una actualización desde el panel nunca pide correr nada por consola. Nunca falla la actualización.
+SYSTEM_TOOL=${GROWTH_SYSTEM_TOOL:-$NEW_DIR/bin/growth-system}
+SYSTEM_OUT=""
+if [[ -x $SYSTEM_TOOL ]]; then
+    SYSTEM_OUT=$(GROWTH_ROOT="$GROWTH_ROOT" GROWTH_ETC="$GROWTH_ETC" SYSTEMD_UNIT_DIR="$SYSTEMD_UNIT_DIR" SYSTEMCTL="$SYSTEMCTL" \
+        PHP="$PHP" RUNUSER="$RUNUSER" "$SYSTEM_TOOL" apply --update 2>&1 | tail -n 3 | tr '\n' ' ') || true
+fi
+done_step "current → $VERSION${SYSTEM_OUT:+ · $SYSTEM_OUT}"
 
 begin restart
 if [[ $MODE == install ]]; then

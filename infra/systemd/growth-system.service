@@ -1,0 +1,14 @@
+# Configuración del servidor que depende de la versión y de la RAM (bin/growth-system, docs/despliegue.md §7).
+# Corre antes de growth-app: así, al actualizar desde el panel, la memoria de Redis, MariaDB y ClickHouse, las
+# prioridades y el perfil de procesos se aplican solos, sin consola, incluso con un actualizador anterior.
+# Si ya se aplicó para esta versión y esta RAM, termina enseguida. Nunca impide que el panel arranque.
+[Unit]
+Description=Imagina Growth · configuración del sistema
+Before=growth-app.service
+After=mariadb.service clickhouse-server.service redis-server@queue.service redis-server@cache.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/growth/current/bin/growth-system apply --hook
+TimeoutStartSec=120
+SyslogIdentifier=growth-system

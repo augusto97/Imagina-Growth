@@ -1,8 +1,8 @@
 # Panel, API, SPA, webhooks y páginas públicas (FrankenPHP en 127.0.0.1:8080).
 [Unit]
 Description=Imagina Growth · panel y API
-After=network-online.target mariadb.service clickhouse-server.service redis-server@queue.service redis-server@cache.service
-Wants=network-online.target
+After=network-online.target growth-system.service mariadb.service clickhouse-server.service redis-server@queue.service redis-server@cache.service
+Wants=network-online.target growth-system.service
 PartOf=growth.target
 StartLimitIntervalSec=300
 StartLimitBurst=20

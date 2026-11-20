@@ -174,7 +174,10 @@ install.sh                  el instalador
    1. candado `flock /run/lock/growth-update.lock` (si está tomado, termina sin hacer nada);
    2. **preflight:** espacio libre ≥ 3 × `unpacked_bytes` + tamaño de la base, e inodos ≥ 2 × `files`, en
       `/opt/growth`; si no alcanza, termina **sin descargar** el zip;
-   3. **descargar** zip y `.sha256` (y el `.sig` si hay llave pública) a `shared/tmp`; **verificar** la firma con
+   0. **nunca hacia atrás:** una versión menor que la instalada se rechaza (volver atrás solo lo hace el propio
+      actualizador cuando la nueva falla);
+   3. **descargar** zip y `.sha256` (y el `.sig` si hay llave pública) a `/var/lib/growth-update` (solo de root;
+      nunca a `shared/`, que «growth» puede escribir); **verificar** la firma con
       `/etc/growth/release-signing.pub.pem` (si existe) y luego el sha256 del zip;
    4. **extraer** en `releases/<v>.partial` y renombrar a `releases/<v>`; **enlazar** `shared/` (§2);
       `uv sync --frozen --no-dev` en `hub/ml`; reparar `shared/.env` con `release.json` (`growth-env repair`);
@@ -183,7 +186,8 @@ install.sh                  el instalador
    7. **migraciones** de MariaDB (`migrate --force`) y de ClickHouse (`igr:clickhouse:migrate`), con el código
       nuevo, antes del cambio; tienen que ser compatibles con la versión anterior;
    8. **cambio** atómico del symlink (`ln -s` a un temporal y `mv -T`); instala las unidades de `systemd/` si
-      cambiaron (`daemon-reload`) y **reinicia sin cortes**: `growth-ingest-api@1`, espera su health-check,
+      cambiaron (`daemon-reload`); aplica la **configuración del sistema** de la versión (`bin/growth-system apply
+      --update`, más abajo) y **reinicia sin cortes**: `growth-ingest-api@1`, espera su health-check,
       luego `@2`; `growth-ingest@1..4` de a uno (SIGTERM: terminan el lote); `growth-horizon` (SIGTERM: termina
       los trabajos); `growth-scheduler`, `growth-reverb`, `growth-ml` y `growth-app` (Caddy reintenta
       mientras reinicia, `lb_try_duration`);
@@ -193,11 +197,13 @@ install.sh                  el instalador
    10. **scripts de root:** con el health-check bien, instala los `bin/growth-update*`, `bin/growth-env` y
        `backup/*` de la versión nueva en `/usr/local/lib/growth/` (atómico). Si volvió atrás, deja los anteriores;
    11. **limpieza:** deja 3 versiones (nunca borra `current` ni la anterior), 5 copias previas y borra
-       `*.partial` y descargas viejas de `shared/tmp`.
+       `*.partial` y descargas viejas.
    Si falla en cualquier paso antes del cambio, borra el zip y la carpeta a medio extraer y deja `current` como
    estaba.
 5. **Estado:** el script escribe `shared/state/update-status.json` en cada paso y agrega una línea a
-   `shared/state/update-history.jsonl` al terminar. Formato:
+   `shared/state/update-history.jsonl` al terminar, siempre con un temporal + rename y como archivos de root
+   (legibles por el panel). `shared/state` es `root:growth 1775` (sticky): el panel deja sus pedidos, pero no
+   puede reemplazar ni borrar lo de root. Formato:
 
 ```json
 {
@@ -272,12 +278,30 @@ instalaciones anteriores a 0.1.4 usaban `in.`, `go.` y `domains.`: si esos nombr
 instalador los pasa al dominio principal (si existen, los respeta), y el plugin hace lo mismo por su cuenta cuando
 el host de ingesta no resuelve. Al terminar, avisa qué nombres en uso no tienen registro DNS.
 
-**Memoria y perfil de procesos.** `install.sh` mide la RAM y elige el perfil (se reescribe en cada corrida, así que
-ampliar o reducir el servidor y volver a correrlo lo ajusta):
+**Configuración del sistema (`bin/growth-system`): nunca hace falta la consola para recibirla.** Todo lo que depende
+de la versión y de la RAM vive en un solo script de la versión: el perfil de procesos (`IGR_WORKERS_PROFILE` en el
+`.env`), la memoria y la configuración de MariaDB, ClickHouse y Redis, las prioridades ante falta de memoria, los
+workers de ingesta y los permisos de `shared/state`. Lo aplican:
+
+- `install.sh` (`apply --install`), en la primera instalación y si se vuelve a correr;
+- `growth-update` en cada actualización desde el panel (`apply --update`, después del cambio y antes de reiniciar;
+  el resultado se ve en el paso «Activar la versión nueva»);
+- la unidad `growth-system.service` (`apply --hook`), que corre antes de `growth-app`: así una versión nueva aplica
+  su configuración aunque la instale un actualizador anterior que no conoce el script (copia las unidades nuevas y
+  reinicia `growth-app`). Si ya se aplicó para esa versión y esa RAM (`/var/lib/growth-system/applied`), termina
+  enseguida.
+
+Es idempotente: solo escribe lo que cambió y aplica en caliente lo que se puede (`maxmemory` y `save` de Redis con
+`CONFIG SET`, `innodb_buffer_pool_size` con `SET GLOBAL`, `oom_score_adj` de los procesos en marcha); ClickHouse se
+reinicia solo si cambió su configuración. Nunca hace fallar la actualización: si algo no se puede aplicar, lo avisa
+y sigue. `growth-system status` muestra el perfil sin cambiar nada. Ampliar o reducir el servidor se ajusta solo en
+la próxima actualización (o al reiniciar `growth-app`).
+
+**Memoria y perfil de procesos.** `growth-system` mide la RAM y elige el perfil:
 
 | | Pequeño (menos de ~3,5 GB) | Estándar |
 |---|---|---|
-| ClickHouse (`config.d/growth-memory.xml`) | 25 % de la RAM; cachés de marcas 1/64 y 1/128 | 30 %; 1/32 y 1/64 |
+| ClickHouse (`config.d/growth-memory.xml`) | 25 % de la RAM; cachés de marcas 1/64 y 1/128; sin caché sin comprimir, caché de expresiones de 16 MB y pools de fondo mínimos (4 de fusiones) | 30 %; 1/32 y 1/64 |
 | MariaDB `innodb_buffer_pool_size` | 1/8 de la RAM (mínimo 128 MB) | 1/4 |
 | Workers de ingesta | `growth-ingest@1` lee los 4 shards (drop-in `growth-profile.conf`); 2 a 4 enmascarados | uno por shard (`@1..4`) |
 | Horizon (`IGR_WORKERS_PROFILE` en el `.env`) | `small`: 2 supervisores, 3 procesos de trabajo | `standard`: los supervisores de `hub/CLAUDE.md` §15 |
@@ -294,9 +318,8 @@ conviene 4 GB o más. Los trabajos que necesitan otro número de intentos lo dec
 el perfil pequeño todas las colas cortas comparten un supervisor.
 
 **Prioridad ante falta de memoria** (`OOMScoreAdjust`): primero el ML (500), después Horizon (300) y ClickHouse
-(200, drop-in del instalador); el panel (-100), la ingesta (-200), MariaDB (-300) y los Redis (-400) son lo último.
-Los hilos de PHP y los procesos del ML se ajustan solos al actualizar; `maxmemory` y las prioridades de MariaDB y
-ClickHouse, al volver a correr el instalador.
+(200, drop-in de `growth-system`); el panel (-100), la ingesta (-200), MariaDB (-300) y los Redis (-400) son lo
+último. Todo se aplica al actualizar desde el panel.
 
 Si el servidor ya se quedó sin memoria (la app no responde), primero `systemctl stop growth.target clickhouse-server`
 y después el instalador: con la memoria llena ni `apt` avanza. Al terminar, el instalador vuelve a arrancar la app
