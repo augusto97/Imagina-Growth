@@ -74,7 +74,8 @@ it('revisa costo y cumplimiento antes de aprobar: quién queda fuera y por qué'
     $byCountry = collect($res->json('cost.by_country'))->keyBy('country');
     expect($res->json('cost.recipients'))->toBe(3)
         ->and($byCountry['CO']['recipients'])->toBe(2)->and($byCountry['MX']['recipients'])->toBe(1)
-        ->and($res->json('cost.total_usd'))->toEqualWithDelta(2 * 0.0125 + 0.0305, 0.00001);
+        // Tarifas de marketing de Meta desde el 1 oct 2026: Colombia 0,0125 y México 0,0397.
+        ->and($res->json('cost.total_usd'))->toEqualWithDelta(2 * 0.0125 + 0.0397, 0.00001);
     expect($this->inWs(fn () => Campaign::query()->first()->compliance_check['will_send']))->toBe(2);
 });
 
@@ -131,7 +132,7 @@ it('opciones del asistente y calendario comercial con las campañas del año', f
     expect(collect($options->json('segments'))->pluck('name'))->toContain('VIP')
         ->and(collect($options->json('templates'))->pluck('name')->all())->toBe(['Boletín'])
         ->and($options->json('active_channels'))->toContain('whatsapp')
-        ->and($options->json('wa_rates.effective_from'))->toBe('2025-07-01');
+        ->and($options->json('wa_rates.effective_from'))->toBe('2026-10-01');
 
     $calendar = $this->actingAs($this->owner)->getJson($this->api('/calendar?year=2026&country=CO'))->assertOk();
     $events = collect($calendar->json('events'))->keyBy('key');

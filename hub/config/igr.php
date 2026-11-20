@@ -107,6 +107,21 @@ return [
             : in_array(env('APP_ENV', 'production'), ['local', 'testing'], true),
     ],
 
+    // Tasas de cambio diarias (F11, igr:fx:update): unidades de cada moneda por 1 USD para mostrar el costo estimado
+    // de los mensajes en la moneda del espacio de trabajo. La fuente por defecto es el acceso libre de ExchangeRate-API
+    // (https://www.exchangerate-api.com/docs/free): sin llave, se actualiza una vez al día, se puede guardar y pide
+    // mostrar «Rates By Exchange Rate API» con su enlace donde se usan las tasas. Si falla, rige la última tasa conocida;
+    // el superadmin puede fijar una tasa a mano por moneda (Plataforma → Tasas de cambio), por ejemplo la oficial del
+    // BCV para VES, que no tiene API.
+    'fx' => [
+        'url' => env('IGR_FX_URL', 'https://open.er-api.com/v6/latest/USD'),
+        'source' => 'open.er-api.com',
+        'attribution_url' => 'https://www.exchangerate-api.com',
+        'currencies' => ['COP', 'MXN', 'VES', 'PEN', 'CLP', 'ARS', 'EUR'],
+        // Más viejo que esto (sin tasa manual), Plataforma e igr:doctor avisan.
+        'stale_after_days' => 3,
+    ],
+
     // Purga por retención (R14, igr:retention:purge cada noche), en días. ingest_rejections usa
     // ingest.rejection_retention_days; webhook_deliveries, igr:webhooks:prune (30); conversion_deliveries, el TTL de
     // ClickHouse (90).
@@ -118,6 +133,9 @@ return [
         'password_resets' => 1,
         'flow_run_steps' => (int) env('IGR_RETENTION_FLOW_STEPS_DAYS', 180),
         'ai_agent_turns' => (int) env('IGR_RETENTION_AGENT_TURNS_DAYS', 180),
+        // Mensajes (cumplimiento.md §10: 24 meses y después archivo agregado en `message_archive_daily`). Nunca baja
+        // de 90 días ni de la ventana de atribución más larga más 60 días (RetentionPurgeCommand).
+        'messages' => (int) env('IGR_RETENTION_MESSAGES_DAYS', 730),
     ],
 
     // Eventos del hub hacia ClickHouse (R4): auto = por la cola dentro de una petición web y en el momento en consola

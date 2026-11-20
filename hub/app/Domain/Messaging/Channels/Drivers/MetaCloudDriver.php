@@ -434,9 +434,10 @@ final class MetaCloudDriver implements ChannelDriver
         ];
     }
 
+    /** Tarifa de Meta por país y categoría; el servicio, gratis hasta el mensaje 1.000 del número en el mes (WaRates). */
     public function estimateCost(ChannelAccount $account, string $country, MessageKind $kind): ?float
     {
-        return WaRates::rate($country, $kind);
+        return WaRates::estimate($account, $country, $kind);
     }
 
     public function capabilities(): array

@@ -4,6 +4,7 @@ use App\Analytics\Builders\KpiDailyBuilder;
 use App\Analytics\Builders\SessionsBuilder;
 use App\Analytics\Ch;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
     $this->useIngestInfrastructure();
@@ -83,4 +84,46 @@ it('R7: volver a pasar por la ventana solo reinserta la sesión que cambió', fu
         app(Ch::class)->statement('SYSTEM START MERGES sessions');
     }
     expect($this->chRows($this->ws, 'SELECT pageviews, cta_clicks FROM sessions FINAL WHERE workspace_id = {workspace_id:UInt32}'))->toBe([['pageviews' => 2, 'cta_clicks' => 1]]);
+});
+
+it('F12: después de armar las sesiones, los KPI de ayer y hoy quedan al día sin recalcular lo que no cambió', function () {
+    $at = CarbonImmutable::now()->subHours(3);
+    $view = fn (string $session, string $anon, int $minutes) => $this->envelope($this->site, 'page.viewed', ['page_type' => 'home'],
+        ['source' => ['type' => 'browser', 'sdk' => 'tracker/0.1.0'], 'identity' => ['anonymous_id' => $anon, 'session_id' => $session], 'occurred_at' => $at->addMinutes($minutes)->toIso8601String()]);
+    $tz = $this->ws->timezone ?: 'UTC';
+    $kpi = fn () => (int) $this->chRows($this->ws, 'SELECT sum(sessions) AS s FROM kpi_daily WHERE workspace_id = {workspace_id:UInt32} AND date >= {d:Date}',
+        ['d' => CarbonImmutable::now($tz)->subDay()->toDateString()])[0]['s'];
+    // Un día viejo que solo el nocturno toca: la puesta al día no lo borra.
+    $old = CarbonImmutable::now($tz)->subDays(5)->toDateString();
+    app(Ch::class)->insert('kpi_daily', [['workspace_id' => $this->ws->ch_id, 'date' => $old, 'channel' => 'direct', 'device_type' => 'desktop', 'sessions' => 7,
+        'users' => 7, 'product_views' => 0, 'add_to_carts' => 0, 'checkouts' => 0, 'orders' => 0, 'revenue' => '0', 'new_customers' => 0, 'returning_customers' => 0]]);
+
+    ($this->postBrowser)([$view('s_k1', 'anon-k1', 0), $view('s_k1', 'anon-k1', 1)]);
+    $this->runWorker();
+    // Antes, kpi_daily solo se llenaba de noche: el tablero (que lee de ahí) no veía las sesiones de hoy.
+    $this->artisan('igr:sessions:build', ['--workspace' => $this->ws->publicId(), '--no-kpi' => true])->assertSuccessful();
+    expect($kpi())->toBe(0);
+
+    $this->artisan('igr:sessions:build', ['--workspace' => $this->ws->publicId()])->assertSuccessful();
+    expect($kpi())->toBe(1);
+    // Sin cambios no se rehace nada.
+    expect(app(KpiDailyBuilder::class)->refreshRecent($this->ws))->toBeFalse();
+
+    // Otra sesión cerrada: la siguiente corrida la suma.
+    ($this->postBrowser)([$view('s_k2', 'anon-k2', 5)]);
+    $this->runWorker();
+    $this->artisan('igr:sessions:build', ['--workspace' => $this->ws->publicId()])->assertSuccessful();
+    $sessions = (int) $this->chRows($this->ws, 'SELECT count() AS c FROM sessions FINAL WHERE workspace_id = {workspace_id:UInt32}')[0]['c'];
+    expect($sessions)->toBe(2)->and($kpi())->toBe(2)
+        ->and((int) $this->chRows($this->ws, 'SELECT sum(sessions) AS s FROM kpi_daily WHERE workspace_id = {workspace_id:UInt32} AND date = {d:Date}', ['d' => $old])[0]['s'])->toBe(7);
+
+    // Con la reconstrucción nocturna corriendo (candado tomado), la de cada 10 minutos no se mete: no se suma dos veces.
+    $lock = Cache::lock('ws:'.$this->ws->id.':kpi_daily', 60);
+    expect($lock->get())->toBeTrue();
+    ($this->postBrowser)([$view('s_k3', 'anon-k3', 8)]);
+    $this->runWorker();
+    app(SessionsBuilder::class)->build($this->ws, $at->subHour());
+    expect(app(KpiDailyBuilder::class)->refreshRecent($this->ws))->toBeFalse()->and($kpi())->toBe(2);
+    $lock->release();
+    expect(app(KpiDailyBuilder::class)->refreshRecent($this->ws))->toBeTrue()->and($kpi())->toBe(3);
 });

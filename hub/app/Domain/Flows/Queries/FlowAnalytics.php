@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Flows\Queries;
 
 use App\Domain\Flows\Models\Flow;
+use App\Domain\Messaging\Queries\MessageCosts;
+use App\Domain\Workspaces\Models\Workspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -14,9 +16,15 @@ use Illuminate\Support\Facades\DB;
  * y salen, conversiones (meta alcanzada), ingresos (de la meta y atribuidos por
  * clic en un mensaje del flujo) e incremento frente al grupo de control con su
  * intervalo de confianza del 95%. Sin las pruebas.
+ *
+ * Costo (F11, estimado): lo que cobra el proveedor por los mensajes del flujo creados en el periodo, en la moneda del
+ * espacio de trabajo (MessageCosts), con el retorno (ingresos atribuidos ÷ costo) y el costo por venta. Lo de más de 24
+ * meses sale del archivo agregado (`message_archive_daily`).
  */
 final class FlowAnalytics
 {
+    public function __construct(private readonly MessageCosts $costs) {}
+
     /** @return array<string, mixed> */
     public function handle(Flow $flow, ?CarbonImmutable $from = null, ?CarbonImmutable $to = null): array
     {
@@ -38,6 +46,17 @@ final class FlowAnalytics
             ->when($to !== null, fn ($q) => $q->where('created_at', '<', $to))
             ->selectRaw('COUNT(*) AS orders, COALESCE(SUM(total_ws), 0) AS revenue')->first();
 
+        $currency = (string) (Workspace::query()->whereKey($flow->workspace_id)->value('currency') ?: 'USD');
+        $cost = MessageCosts::merge(
+            $this->costs->sum(DB::table('messages as m')->where('m.workspace_id', $flow->workspace_id)->where('m.flow_id', $flow->id)->where('m.direction', 'out')
+                ->when($from !== null, fn ($q) => $q->where('m.created_at', '>=', $from))
+                ->when($to !== null, fn ($q) => $q->where('m.created_at', '<', $to)), $currency),
+            $this->costs->sum(DB::table('message_archive_daily as m')->where('m.workspace_id', $flow->workspace_id)->where('m.flow_id', $flow->id)->where('m.direction', 'out')
+                ->when($from, fn ($q, CarbonImmutable $f) => $q->where('m.date', '>=', $f->utc()->toDateString()))
+                ->when($to, fn ($q, CarbonImmutable $t) => $q->where('m.date', '<', $t->utc()->toDateString())), $currency, null, true),
+        );
+        $returns = MessageCosts::returns($cost[''] ?? null, (float) ($attributed->revenue ?? 0), (int) ($attributed->orders ?? 0));
+
         return [
             'summary' => [
                 'entered' => $treatment['entered'] + $holdout['entered'],
@@ -47,7 +66,12 @@ final class FlowAnalytics
                 'goal_revenue' => $treatment['revenue'],
                 'attributed_orders' => (int) ($attributed->orders ?? 0),
                 'attributed_revenue' => number_format((float) ($attributed->revenue ?? 0), 2, '.', ''),
+                'cost' => $returns['cost'],
+                'cost_usd' => $returns['cost_usd'],
+                'roi' => $returns['roi'],
+                'cost_per_sale' => $returns['cost_per_sale'],
             ],
+            'cost_meta' => $this->costs->meta($currency),
             'treatment' => $treatment,
             'holdout' => $holdout,
             'uplift' => $this->uplift($treatment, $holdout),

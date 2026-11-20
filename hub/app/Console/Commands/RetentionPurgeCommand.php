@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Domain\Messaging\Actions\ArchiveOldMessages;
 use Illuminate\Console\Command;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -24,10 +25,12 @@ use Throwable;
  * | `flow_run_steps` de recorridos terminados (cumplimiento.md §10: pasos de flujos, 6 meses) | 180 |
  * | `ai_agent_turns` (registro del agente de ventas, con textos) | 180 |
  *
+ * | `messages` (cumplimiento.md §10: 24 meses), con sus `tracked_links` y `message_attachments`, después de sumarlos al
+ *   archivo agregado `message_archive_daily` (ArchiveOldMessages; nunca menos de lo que protege la atribución) | 730 |
+ *
  * Además: `webhook_deliveries` a los 30 días (`igr:webhooks:prune`) y `conversion_deliveries` de ClickHouse a los
- * 90 días (TTL de la tabla, `database/clickhouse/0305_conversion_deliveries_ttl.sql`). Los mensajes, la auditoría y
- * la evidencia de consentimiento no se purgan aquí: los mensajes sostienen la atribución y el dinero generado, y su
- * plazo (cumplimiento.md §10) necesita antes el archivo agregado.
+ * 90 días (TTL de la tabla, `database/clickhouse/0305_conversion_deliveries_ttl.sql`). La auditoría y la evidencia de
+ * consentimiento no se purgan aquí.
  */
 final class RetentionPurgeCommand extends Command
 {
@@ -37,7 +40,7 @@ final class RetentionPurgeCommand extends Command
 
     private const BATCH = 5000;
 
-    public function handle(): int
+    public function handle(ArchiveOldMessages $messages): int
     {
         $days = fn (string $key, int $default): int => max(1, (int) config("igr.retention.{$key}", $default));
         $now = now();
@@ -53,6 +56,12 @@ final class RetentionPurgeCommand extends Command
                 ->whereIn('run_id', DB::table('flow_runs')->select('id')->whereIn('status', ['completed', 'exited', 'failed']))),
             'ai_agent_turns' => $this->purge(DB::table('ai_agent_turns')->where('created_at', '<', $now->copy()->subDays($days('ai_agent_turns', 180)))),
         ];
+        try {
+            $results += $messages->handle((bool) $this->option('dry-run'));
+        } catch (Throwable $e) {
+            report($e);
+            $results['messages'] = null;
+        }
         foreach ($results as $table => $count) {
             $this->line(sprintf('%s: %s', $table, $count === null ? __('no se pudo') : (string) $count));
         }

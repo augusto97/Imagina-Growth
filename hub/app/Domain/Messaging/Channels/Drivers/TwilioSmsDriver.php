@@ -93,9 +93,12 @@ final class TwilioSmsDriver implements ChannelDriver
         return 0;
     }
 
+    /** Un segmento al precio de Twilio para el país (config `igr-messaging.costs.sms_usd`). */
     public function estimateCost(ChannelAccount $account, string $country, MessageKind $kind): float
     {
-        return (float) config('igr-messaging.costs.sms_usd');
+        $rates = (array) config('igr-messaging.costs.sms_usd', []);
+
+        return (float) ($rates[strtoupper($country)] ?? $rates['default'] ?? 0.0);
     }
 
     public function capabilities(): array

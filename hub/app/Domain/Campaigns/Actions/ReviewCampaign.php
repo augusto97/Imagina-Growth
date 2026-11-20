@@ -8,7 +8,6 @@ use App\Domain\Campaigns\Audience\AudienceQuery;
 use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Campaigns\Support\SendSchedule;
 use App\Domain\Campaigns\Support\WaRateCard;
-use App\Domain\Commerce\Projectors\FxConverter;
 use App\Domain\Consent\Policy\PolicyDecision;
 use App\Domain\Consent\Policy\PolicyRequest;
 use App\Domain\Consent\Policy\SendPolicy;
@@ -17,6 +16,7 @@ use App\Domain\Messaging\Enums\Channel;
 use App\Domain\Messaging\Enums\MessageKind;
 use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Workspaces\Models\Workspace;
+use App\Support\Money\ExchangeRates;
 use Carbon\CarbonImmutable;
 
 /**
@@ -37,7 +37,7 @@ final class ReviewCampaign
     public function __construct(
         private readonly AudienceQuery $audience,
         private readonly SendPolicy $policy,
-        private readonly FxConverter $fx,
+        private readonly ExchangeRates $fx,
     ) {}
 
     /**
@@ -115,7 +115,8 @@ final class ReviewCampaign
 
     /**
      * Costo estimado: WhatsApp por país del contacto × tarifa de marketing; correo
-     * a la tarifa de SES; SMS sin tarifa (depende del proveedor).
+     * a la tarifa de SES; SMS a la de Twilio por segmento (config `igr-messaging.costs`).
+     * En la moneda del espacio de trabajo con la tasa del día (ExchangeRates).
      *
      * @return array<string, mixed>
      */
@@ -139,10 +140,15 @@ final class ReviewCampaign
                 $byCountry[] = ['country' => (string) $row->country, 'recipients' => $count, 'rate_usd' => $rate, 'total_usd' => round($usd, 4)];
             }
         } elseif ($campaign->channel === 'email') {
-            $totalUsd = $recipients * self::EMAIL_RATE_USD;
+            $totalUsd = $recipients * (float) config('igr-messaging.costs.email_usd', self::EMAIL_RATE_USD);
+        } elseif ($campaign->channel === 'sms') {
+            // Un segmento por mensaje al precio de Twilio del país del espacio de trabajo (TwilioSmsDriver).
+            $sms = (array) config('igr-messaging.costs.sms_usd', []);
+            $totalUsd = $recipients * (float) ($sms[strtoupper((string) ($workspace->country ?: 'CO'))] ?? $sms['default'] ?? 0.0);
         }
         $currency = $workspace->currency ?: 'USD';
-        $fx = $currency === 'USD' ? '1' : $this->fx->rate('USD', $currency, $now);
+        // Tasa del día (ExchangeRates: la manual del superadmin, la automática o la última conocida).
+        $fx = $this->fx->perUsd($currency, $now);
         $latest = WaRateCard::latestEffectiveFrom();
 
         return [
@@ -151,14 +157,14 @@ final class ReviewCampaign
             'by_country' => $byCountry,
             'total_usd' => round($totalUsd, 4),
             'currency' => $currency,
-            'total_local' => $fx !== null ? round($totalUsd * (float) $fx, 2) : null,
+            'total_local' => $fx !== null ? round($totalUsd * $fx, 2) : null,
             'rates_effective_from' => $latest?->toDateString(),
             'rates_stale' => $campaign->channel === 'whatsapp' && WaRateCard::isStale($now),
             'missing_rates' => $missingRates,
             'note' => match ($campaign->channel) {
                 'whatsapp' => __('Meta cobra cada mensaje entregado directamente a tu cuenta de WhatsApp Business.'),
                 'email' => __('Estimado con la tarifa de Amazon SES.'),
-                default => __('El costo del SMS depende de tu proveedor.'),
+                default => __('Estimado con la tarifa de Twilio por mensaje de un segmento; tu proveedor puede cobrar distinto.'),
             },
         ];
     }

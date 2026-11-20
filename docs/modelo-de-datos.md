@@ -64,7 +64,7 @@ Convenciones para MariaDB:
 | `carts` | id, workspace_id, site_id, token, contact_id?, anonymous_id, items (json), subtotal, currency, coupons (json), status (`active`, `abandoned`, `recovered`, `converted`, `expired`), checkout_started_at?, abandoned_at?, last_activity_at, restore_url_token, recovered_order_id? |
 | `coupons_issued` | id, workspace_id, site_id, code, contact_id?, source_type (`flow`, `campaign`, `loyalty`, `referral`, `widget`, `wallet`), source_id, kind (`percent`, `fixed_cart`, `fixed_product`, `free_shipping`), amount, expires_at, external_coupon_id, redeemed_order_id?, status |
 | `subscriptions_mirror` | id, workspace_id, external_id, contact_id, status, next_payment_at, total, billing_period |
-| `fx_rates` | date, base, quote, rate |
+| `fx_rates` | date, base, quote, rate, source?, fetched_at? (§18: base USD, una fila por día y moneda) |
 
 ## 5. Segmentos, flujos, campañas y mensajes
 
@@ -78,10 +78,10 @@ Convenciones para MariaDB:
 | `flow_run_steps` | id, run_id, node_id, outcome, details (json), executed_at. Particionada por mes; se purga a los 6 meses |
 | `campaigns` | id, workspace_id, name, channel, status (`draft`, `scheduled`, `sending`, `sent`, `cancelled`), audience (json: segmentos incluidos, excluidos y reglas), template_id, variants (json A/B), holdout_pct, send_at, send_mode (`now`, `scheduled`, `contact_timezone`, `best_time`), cost_estimate (json), compliance_check (json), stats (json) |
 | `templates` | id, workspace_id, channel, name, subject?, preheader?, body_mjml?, body_html?, body_text?, wa_template_id?, variables (json), category (`marketing`, `utility`, `transactional`) |
-| `wa_rates` | country, category (`marketing`, `utility`, `authentication`, `service`), rate_usd, effective_from, source_url. Se actualiza cada trimestre según la tabla de Meta |
+| `wa_rates` | country (el mercado de Meta: el país, o `LA` resto de América Latina, `NA` Norteamérica, `ZZ` otros), category (`marketing`, `utility`, `authentication`, `service`), rate_usd, effective_from, source_url. Se actualiza cada trimestre según la tabla de Meta |
 | `wa_templates` | id, workspace_id, channel_account_id, name, language, category, status, quality, components (json), meta_template_id, synced_at |
 | `channel_accounts` | id, workspace_id, channel (`email`, `whatsapp`, `sms`), provider (`ses`, `smtp`, `meta_cloud`, `zender`, `infobip`, `twilio`), display_name, config (cifrado: tokens, waba_id, phone_number_id, dominio y estado de DKIM), quality_rating?, messaging_limit_tier?, is_default, status |
-| `messages` | id, workspace_id, contact_id, channel_account_id, channel, provider, provider_message_id, direction (`out`, `in`), kind (`marketing`, `utility`, `service`, `authentication`, `transactional`), source_type (`flow`, `campaign`, `inbox`, `api`, `system`; en coexistencia de WhatsApp, `business_app` = escrito desde la app del celular e `history` = historial copiado al conectar, sin `sent_at` y con `idempotency_key = wa:{id}`), source_id, template_id?, status, cost_estimated, cost_currency, queued_at, sent_at, delivered_at, read_at, opened_at, clicked_at, replied_at, failed_reason?, conversation_id?. Particionada por mes; después de 13 meses se archiva en ClickHouse |
+| `messages` | id, workspace_id, contact_id, channel_account_id, channel, provider, provider_message_id, direction (`out`, `in`), kind (`marketing`, `utility`, `service`, `authentication`, `transactional`), source_type (`flow`, `campaign`, `inbox`, `api`, `system`; en coexistencia de WhatsApp, `business_app` = escrito desde la app del celular e `history` = historial copiado al conectar, sin `sent_at` y con `idempotency_key = wa:{id}`), source_id, template_id?, status, cost_estimated, cost_currency, queued_at, sent_at, delivered_at, read_at, opened_at, clicked_at, replied_at, failed_reason?, conversation_id?. Se guarda 24 meses (cumplimiento.md §10) y después queda en el archivo agregado `message_archive_daily` (§18) |
 | `tracked_links` | code, workspace_id, message_id, contact_id, url, created_at |
 | `conversations` | id, workspace_id, contact_id, channel_account_id, status (`open`, `pending`, `closed`), assignee_id?, labels (json), ai_mode (`off`, `assist`, `auto`), window_expires_at, last_inbound_at, last_outbound_at, first_response_seconds? |
 | `conversation_messages` | se reutiliza `messages` con `conversation_id`; los adjuntos van en `message_attachments` |
@@ -204,8 +204,8 @@ CREATE TABLE kpi_daily (
   orders UInt32, revenue Decimal(18,2), new_customers UInt32, returning_customers UInt32
 ) ENGINE = SummingMergeTree() ORDER BY (workspace_id, date, channel, device_type);
 
--- Archivo de mensajes de más de 13 meses e historial de entregas a plataformas de anuncios.
-CREATE TABLE message_archive (...) ENGINE = MergeTree ORDER BY (workspace_id, sent_at);
+-- Historial de entregas a plataformas de anuncios. (El archivo de mensajes viejos quedó en MariaDB, agregado por
+-- día: `message_archive_daily`, §18.)
 CREATE TABLE conversion_deliveries (
   workspace_id UInt32, event_id UUID, platform LowCardinality(String), status LowCardinality(String),
   http_status UInt16, error String, match_keys Array(LowCardinality(String)), attempts UInt8,
@@ -244,7 +244,7 @@ Migración `2026_11_20_000100_create_phase2_tables`. Diferencias con §3 a §5, 
 - `channel_accounts`: `identity` (dominio o número visible, no secreto), `last_error` y `risk_accepted_at`/`risk_accepted_by` (Zender: el `owner` aceptó el aviso de riesgo, cumplimiento.md §5.2). En coexistencia, `config` guarda además `synced` y `sync_requests` (la copia pedida a Meta y su `request_id`), `history` (fase, `progress`, mensajes copiados y `declined`) y `contacts` (creados y actualizados desde la libreta). `alert_state`/`alert_sent_at` (lote 4): `disconnected` cuando Meta sacó el número y ya se avisó.
 - `templates`: `editor_state` (el proyecto de GrapesJS para volver a editar), `library_key`, `status` y `created_by`.
 - `wa_templates`: `rejected_reason`.
-- `messages`: `flow_id` y `campaign_id` (para la atribución sin unir con `source_id`), `idempotency_key` única por espacio de trabajo (un reintento nunca reenvía), `policy_reason` y `deferred_until` (lo que dijo SendPolicy), `error_code` y `payload` cifrado (asunto y vista previa para auditoría). **Sin partición mensual por ahora**: MariaDB exige la clave de partición en cada clave única y aquí son ULID; la purga a los 13 meses la hace un job.
+- `messages`: `flow_id` y `campaign_id` (para la atribución sin unir con `source_id`), `idempotency_key` única por espacio de trabajo (un reintento nunca reenvía), `policy_reason` y `deferred_until` (lo que dijo SendPolicy), `error_code` y `payload` cifrado (asunto y vista previa para auditoría). **Sin partición mensual por ahora**: MariaDB exige la clave de partición en cada clave única y aquí son ULID; la purga a los 24 meses la hace `igr:retention:purge` (§18).
 - `flow_runs`: `trigger_key` única por flujo (el mismo evento nunca crea dos runs) y `waiting_for` (el evento que espera un nodo «esperar hasta»).
 - `flow_run_steps`: `attempt` (intento lógico) en la clave única (run_id, node_id, attempt). Sin partición mensual, por el mismo motivo que `messages`.
 - `flows`: `exclusions`, `holdout_pct`, `test_recipients` y `activated_at` como columnas propias en lugar de dentro de `trigger`.
@@ -394,3 +394,20 @@ La base es la migración `2026_11_23_000100_create_phase5_tables` (más `2026_11
 - `contact_imports.kind` (`csv` o `history`) y `contact_imports.site_id` (`2026_11_25_400300`, F7): la declaración del
   consentimiento del historial que importó el plugin queda como una «importación» de ese sitio, con sus totales.
   `consent` guarda además `legal_basis` (cómo se obtuvo la autorización, `cumplimiento.md` §3.1).
+
+## 18. Costo de los mensajes, tasas de cambio y archivo (lote 4 de la auditoría)
+
+- `fx_rates.source` y `fx_rates.fetched_at` (`2026_11_26_200100`, F11): `igr:fx:update` guarda cada día las unidades de
+  cada moneda por 1 USD (`base` = USD, `quote` = COP, MXN, VES, PEN, CLP, ARS, EUR) con la fuente. Si la fuente falla, se
+  usa la última tasa conocida (`App\Support\Money\ExchangeRates`).
+- `fx_rate_overrides` (`2026_11_26_200100`): currency (PK), rate (por 1 USD), effective_from, note?, set_by?, timestamps.
+  La tasa manual del superadmin (Plataforma → Tasas de cambio); manda desde su fecha hasta que se quita.
+- `wa_rates` con la tabla de Meta vigente desde el 1 de octubre de 2026 (`2026_11_26_200200`, solo las filas que
+  falten): mercados `CO`, `MX`, `AR`, `BR`, `CL`, `PE`, `NA` (Norteamérica), `LA` (resto de América Latina, con
+  Venezuela) y `ZZ` (otros), y el servicio cobrado.
+- `message_archive_daily` (`2026_11_26_200300`, R14): id, workspace_id, date (UTC), channel, direction, kind,
+  source_type, flow_id (`''` sin flujo), campaign_id (`''` sin campaña), total, sent, delivered, read_count, opened,
+  clicked, replied, bounced, failed, cost_usd, timestamps; único por (workspace_id, date, channel, direction, kind,
+  source_type, flow_id, campaign_id). Lo llena `igr:retention:purge` antes de borrar los mensajes de más de 24 meses (se
+  suma, no se reemplaza); sin contacto, destino ni contenido. El tablero de Mensajería y los informes de campañas y flujos
+  lo suman a lo que sigue en `messages`.

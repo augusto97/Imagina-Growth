@@ -53,5 +53,12 @@ return [
         'recordatorios' => 'Recordatorios de tu carrito y tus pedidos',
         'contenido' => 'Consejos y contenido',
     ],
-    'costs' => ['email_usd' => 0.0001, 'sms_usd' => 0.05],
+    // Costo estimado por mensaje en USD (F11; se muestra en la moneda del espacio de trabajo con las tasas del día).
+    // WhatsApp usa `wa_rates` (WaRateCard). Correo: SES cobra USD 0,10 por 1.000 (https://aws.amazon.com/ses/pricing/,
+    // 20 nov 2026). SMS: Twilio por segmento (se estima uno por mensaje; https://www.twilio.com/en-us/sms/pricing/co,
+    // /mx y /ve, noviembre de 2026; `default` para los demás países).
+    'costs' => [
+        'email_usd' => 0.0001,
+        'sms_usd' => ['CO' => 0.0592, 'MX' => 0.1819, 'VE' => 0.2257, 'default' => 0.0592],
+    ],
 ];

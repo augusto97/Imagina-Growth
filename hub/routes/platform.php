@@ -3,6 +3,7 @@
 use App\Domain\Billing\Http\PlatformClientsController;
 use App\Domain\Billing\Http\PlatformController;
 use App\Domain\Billing\Http\PlatformDoctorController;
+use App\Domain\Billing\Http\PlatformExchangeRatesController;
 use App\Domain\Billing\Http\PlatformMailController;
 use App\Domain\Billing\Http\PlatformPlansController;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +16,11 @@ Route::get('overview', [PlatformController::class, 'overview']);
 Route::get('health', [PlatformController::class, 'health']);
 // Diagnóstico de la instalación (lo mismo que igr:doctor).
 Route::get('doctor', PlatformDoctorController::class);
+// Tasas de cambio contra el dólar (F11): automáticas del día y la manual por moneda.
+Route::get('fx', [PlatformExchangeRatesController::class, 'index']);
+Route::post('fx/refresh', [PlatformExchangeRatesController::class, 'refresh'])->middleware('throttle:6,1');
+Route::put('fx/{currency}', [PlatformExchangeRatesController::class, 'update']);
+Route::delete('fx/{currency}', [PlatformExchangeRatesController::class, 'destroy']);
 // Correo del sistema: estado y prueba de envío.
 Route::get('mail', [PlatformMailController::class, 'show']);
 Route::post('mail/test', [PlatformMailController::class, 'test'])->middleware('throttle:6,1');

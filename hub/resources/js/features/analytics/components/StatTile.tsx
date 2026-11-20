@@ -24,6 +24,7 @@ export function StatTile({
     help,
     hint,
     better = 'up',
+    display,
 }: {
     label: string;
     value: number | null | undefined;
@@ -34,6 +35,8 @@ export function StatTile({
     help?: string;
     hint?: ReactNode;
     better?: 'up' | 'down' | 'neutral';
+    /** Texto ya formateado en lugar del valor (p. ej. el retorno «12×» o un costo en dólares). */
+    display?: string;
 }) {
     const { t } = useTranslation();
     const change = compareMode && compareMode !== 'none' ? delta(value, previous, unit) : null;
@@ -54,7 +57,7 @@ export function StatTile({
                     </Tooltip>
                 ) : null}
             </div>
-            <div className="igr:mt-1.5 igr:truncate igr:text-2xl igr:font-semibold igr:tracking-tight igr:tabular-nums">{fmt.byUnit(unit, value)}</div>
+            <div className="igr:mt-1.5 igr:truncate igr:text-2xl igr:font-semibold igr:tracking-tight igr:tabular-nums">{display ?? fmt.byUnit(unit, value)}</div>
             <div className="igr:mt-1 igr:flex igr:min-h-4 igr:flex-wrap igr:items-center igr:gap-x-1.5 igr:text-xs igr:text-muted-foreground">
                 {changeText !== null ? (
                     <span
