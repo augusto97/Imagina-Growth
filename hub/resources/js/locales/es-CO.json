@@ -239,6 +239,8 @@
         "templates": "Plantillas",
         "channels": "Canales",
         "openMenu": "Abrir el menú",
+        "collapseSidebar": "Contraer la barra lateral",
+        "expandSidebar": "Expandir la barra lateral",
         "quotes": "Cotizador",
         "groups": {
             "home": "Inicio",

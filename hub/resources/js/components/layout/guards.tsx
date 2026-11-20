@@ -9,10 +9,12 @@ import { Button } from '@/components/ui/button';
 import { EmptyState, ErrorState } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WorkspaceContext } from '@/hooks/useWorkspace';
+import { DESKTOP_QUERY, useMedia } from '@/hooks/useMedia';
 import { useShortcuts } from '@/hooks/useShortcuts';
 import { setLocale } from '@/lib/i18n';
 import { useUi } from '@/stores/ui';
 import { CommandPalette } from './CommandPalette';
+import { LAYOUT_CLASS, pageLayout } from './pageLayout';
 import { flattenNav, itemPath, navContext, visibleNav } from './nav';
 import { MobileNav } from './MobileNav';
 import { Sidebar } from './Sidebar';
@@ -20,7 +22,7 @@ import { Sidebar } from './Sidebar';
 export function FullPageSkeleton() {
     return (
         <div className="igr:flex igr:h-full" aria-busy>
-            <div className="igr:hidden igr:w-60 igr:border-r igr:p-4 igr:md:block">
+            <div className="igr:hidden igr:w-60 igr:border-r igr:p-4 igr:lg:block">
                 <Skeleton className="igr:h-6 igr:w-32" />
                 <Skeleton className="igr:mt-6 igr:h-8 igr:w-full" />
                 {Array.from({ length: 8 }, (_, i) => (
@@ -87,9 +89,10 @@ export function WorkspaceLayout() {
     const navigate = useNavigate();
     const setLastWorkspace = useUi((s) => s.setLastWorkspace);
     const setCommandOpen = useUi((s) => s.setCommandOpen);
+    const setSidebarCollapsed = useUi((s) => s.setSidebarCollapsed);
+    const desktop = useMedia(DESKTOP_QUERY);
     const workspace = me?.workspaces.find((w) => w.id === workspaceId) ?? null;
-    // Pantallas de lienzo (constructor de flujos): ocupan todo el ancho, sin márgenes (ruta con `handle: { fullBleed: true }`).
-    const fullBleed = useMatches().some((m) => (m.handle as { fullBleed?: boolean } | null | undefined)?.fullBleed === true);
+    const layout = pageLayout(useMatches().map((m) => m.handle));
 
     useEffect(() => {
         if (workspace) {
@@ -111,7 +114,9 @@ export function WorkspaceLayout() {
         },
         [navigate, workspace],
     );
-    useShortcuts({ onPalette, onGo });
+    // ⌘B / Ctrl+B: solo hay barra lateral que contraer en el escritorio.
+    const onToggleSidebar = useCallback(() => setSidebarCollapsed(!useUi.getState().sidebarCollapsed), [setSidebarCollapsed]);
+    useShortcuts({ onPalette, onGo, onToggleSidebar: desktop ? onToggleSidebar : undefined });
 
     const ctx = useMemo(() => (me && workspace ? { me, workspace } : null), [me, workspace]);
 
@@ -140,17 +145,25 @@ export function WorkspaceLayout() {
 
     return (
         <WorkspaceContext.Provider value={ctx}>
-            <div className="igr:flex igr:h-full">
-                <div className="igr:hidden igr:h-full igr:md:block">
+            {/*
+             * Diseño adaptable (hub/CLAUDE.md §14): alto de 100dvh (la barra del navegador del celular no tapa nada) y solo
+             * `main` se desplaza. Desde `lg` la barra lateral fija; por debajo, la barra superior del menú, que queda fuera
+             * de `main` y siempre se ve. `main` es `relative` para que lo posicionado (los `sr-only` de las tablas) no
+             * agrande la página.
+             */}
+            <div className="igr:flex igr:h-dvh igr:overflow-hidden">
+                <div className="igr:hidden igr:h-full igr:lg:block">
                     <Sidebar />
                 </div>
-                <main className="igr:min-w-0 igr:flex-1 igr:overflow-y-auto">
+                <div className="igr:flex igr:min-w-0 igr:flex-1 igr:flex-col">
                     <MobileNav />
-                    <div className={fullBleed ? 'igr:flex igr:min-h-0 igr:flex-col igr:md:h-full' : 'igr:mx-auto igr:max-w-6xl igr:px-4 igr:py-4 igr:md:px-8 igr:md:py-6'}>
-                        <BillingBanner />
-                        <Outlet />
-                    </div>
-                </main>
+                    <main id="igr-main" className="igr:relative igr:min-h-0 igr:flex-1 igr:overflow-y-auto">
+                        <div className={LAYOUT_CLASS[layout]}>
+                            <BillingBanner />
+                            <Outlet />
+                        </div>
+                    </main>
+                </div>
             </div>
             <CommandPalette />
         </WorkspaceContext.Provider>
