@@ -26,7 +26,7 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | S8 | P2 | Rangos de Cloudflare fijos en la configuración de proxies de confianza. | `bootstrap/app.php` | ⏳ |
 | S9 | P2 | El release se publica desde la rama sin esperar a CI. | `.github/workflows/release.yml` | ⏳ |
 | S10 | P2 | Inyección de fórmulas en la exportación CSV de segmentos (`=`, `+`, `-`, `@`). | `SegmentController.php:154-160` | ✅ 0.1.7: `App\Support\Csv` en las dos exportaciones |
-| S11 | P2 | Cambio de correo de la cuenta sin pedir la contraseña. | perfil de usuario | ⏳ |
+| S11 | P2 | Cambio de correo de la cuenta sin pedir la contraseña. | perfil de usuario | ✅ (lote 3): `PUT /auth/user/profile-information` pide `current_password` cuando cambia el correo (422 si falta o no coincide; cambiar solo el nombre no la pide) y deja `user.email_changed` en la auditoría con los correos enmascarados. La SPA hoy no tiene formulario de perfil |
 | S12 | P3 | Sin `frame-ancestors` en la CSP del panel. | middleware de encabezados | ✅ 0.1.7: `FrameGuard` en las respuestas web (las páginas con política propia la conservan) |
 | S13 | P3 | El usuario `igr` de ClickHouse tiene más privilegios de los que usa. | `infra/install.sh` | ⏳ |
 | S14 | P3 | La firma HMAC no cubre el método ni la ruta. | `docs/api-connector.md` §2 | ⏳ (cambio de contrato) |
