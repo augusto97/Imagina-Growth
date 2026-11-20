@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
  */
 
 Route::get('connections', [ConnectionController::class, 'index']);
+Route::get('connections/alerts', [ConnectionController::class, 'alerts']);
 Route::post('connections/meta_whatsapp/start', [WhatsAppSignupController::class, 'start'])->middleware('throttle:20,1');
 Route::post('connections/meta_whatsapp/complete', [WhatsAppSignupController::class, 'complete'])->middleware('throttle:20,1');
 Route::post('connections/meta_whatsapp/abandon', [WhatsAppSignupController::class, 'abandon'])->middleware('throttle:20,1');

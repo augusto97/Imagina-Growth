@@ -1,4 +1,4 @@
-import { ArrowLeft, Bot, Check, CheckCheck, Clock, PanelRight, Sparkles, StickyNote, UserRound } from 'lucide-react';
+import { ArrowLeft, Bot, Check, CheckCheck, Clock, PanelRight, Smartphone, Sparkles, StickyNote, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -201,7 +201,11 @@ function WindowBadge({ c }: { c: ConversationDetail }) {
         return (
             <p className="igr:text-[11px] igr:text-warning">
                 {mode === 'human'
-                    ? t('inbox.window.humanAgent', { until: c.human_agent_until ? new Date(c.human_agent_until).toLocaleDateString(workspace.locale, { day: 'numeric', month: 'short', timeZone: workspace.timezone }) : '' })
+                    ? t('inbox.window.humanAgent', {
+                          until: c.human_agent_until
+                              ? new Date(c.human_agent_until).toLocaleDateString(workspace.locale, { day: 'numeric', month: 'short', timeZone: workspace.timezone })
+                              : '',
+                      })
                     : t(mode === 'none' ? 'inbox.window.closedSocial' : 'inbox.window.closed')}
             </p>
         );
@@ -247,9 +251,12 @@ function Messages({ messages }: { messages: ChatMessage[] }) {
                         {m.author ? (
                             <p className="igr:mb-0.5 igr:flex igr:items-center igr:gap-1 igr:text-[10px] igr:font-medium igr:text-muted-foreground">
                                 {m.author.kind === 'ai' ? <Bot className="igr:size-3" aria-hidden /> : null}
-                                {m.author.name}
+                                {m.author.kind === 'phone' ? <Smartphone className="igr:size-3" aria-hidden /> : null}
+                                {m.author.kind === 'phone' ? t('inbox.chat.fromPhone') : m.author.name}
                             </p>
                         ) : null}
+                        {m.type === 'revoked' ? <p className="igr:text-[11px] igr:italic igr:text-muted-foreground">{t('inbox.chat.revoked')}</p> : null}
+                        {m.type === 'media_placeholder' ? <p className="igr:text-[11px] igr:italic igr:text-muted-foreground">{t('inbox.chat.historyMedia')}</p> : null}
                         {m.template ? <p className="igr:text-[11px] igr:text-muted-foreground">{t('inbox.chat.template', { name: m.template })}</p> : null}
                         {m.attachments.map((a, i) => (
                             <p key={i} className="igr:text-[11px] igr:italic igr:text-muted-foreground">
@@ -268,6 +275,7 @@ function Messages({ messages }: { messages: ChatMessage[] }) {
                         ) : null}
                         {m.text ? <p className="igr:whitespace-pre-wrap igr:break-words">{m.text}</p> : null}
                         <p className="igr:mt-1 igr:flex igr:items-center igr:justify-end igr:gap-1 igr:text-[10px] igr:text-muted-foreground">
+                            {m.edited ? <span>{t('inbox.chat.edited')}</span> : null}
                             {formatDateTime(m.at, workspace.locale, workspace.timezone)}
                             {m.direction === 'out' ? <DeliveryIcon m={m} /> : null}
                         </p>

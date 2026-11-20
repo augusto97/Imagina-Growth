@@ -145,7 +145,7 @@ final class Fields
         'temperature' => ['type' => 'enum', 'operators' => ['eq', 'in', 'not_in'], 'column' => 'temperature', 'values' => ['cold', 'warm', 'hot']],
         'score' => ['type' => 'number', 'operators' => self::LOYALTY_NUMBER_OPS, 'column' => 'score'],
         'service' => ['type' => 'string', 'operators' => ['eq', 'contains', 'starts_with', 'in'], 'column' => 'service'],
-        'origin' => ['type' => 'enum', 'operators' => ['eq', 'in', 'not_in'], 'column' => 'origin', 'values' => ['form', 'whatsapp', 'quote', 'booking', 'manual', 'api']],
+        'origin' => ['type' => 'enum', 'operators' => ['eq', 'in', 'not_in'], 'column' => 'origin', 'values' => ['form', 'whatsapp', 'messenger', 'instagram', 'quote', 'booking', 'manual', 'api']],
         'source' => ['type' => 'string', 'operators' => ['eq', 'in', 'not_in'], 'column' => 'source->channel'],
         'value' => ['type' => 'number', 'operators' => self::LOYALTY_NUMBER_OPS, 'column' => 'value_ws'],
         'created_at' => ['type' => 'date', 'operators' => ['before', 'after', 'between', 'within_last_days', 'more_than_days_ago'], 'column' => 'created_at'],

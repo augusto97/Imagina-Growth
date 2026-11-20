@@ -24,7 +24,7 @@ use App\Support\Tenancy\RedisKey;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Entrada de leads (M18): formularios del sitio, WhatsApp con intención de
+ * Entrada de leads (M18): formularios del sitio, chats (WhatsApp, Messenger e Instagram) con intención de
  * compra, cotizador, agenda, API y altas manuales.
  *
  * - Idempotente por (origen, referencia): reintentar la misma entrada devuelve
@@ -176,7 +176,8 @@ final class CaptureLead implements LeadIntake
     {
         match ($origin) {
             'form', 'quote', 'booking' => $this->scorer->signal($lead, $settings, 'form', ['origin' => $origin]),
-            'whatsapp' => $this->scorer->signal($lead, $settings, 'whatsapp_click', ['origin' => 'whatsapp']),
+            // Escribió por chat: la misma señal que tocar WhatsApp o llamar en el sitio.
+            'whatsapp', 'messenger', 'instagram' => $this->scorer->signal($lead, $settings, 'whatsapp_click', ['origin' => $origin]),
             default => null,
         };
     }

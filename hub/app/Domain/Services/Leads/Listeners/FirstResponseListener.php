@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Services\Leads\Listeners;
 
+use App\Domain\Messaging\Coexistence\BusinessAppMessages;
 use App\Domain\Messaging\Models\Message;
 use App\Domain\Services\Leads\Models\Lead;
 use App\Domain\Services\Leads\Models\LeadActivity;
@@ -12,17 +13,21 @@ use App\Support\Tenancy\CurrentWorkspace;
 
 /**
  * Primera respuesta de un lead (M18): el primer mensaje que una persona del
- * equipo le escribe al contacto desde la bandeja (`source_type = inbox`) marca
+ * equipo le escribe al contacto desde la bandeja (`source_type = inbox`) o desde la
+ * app de WhatsApp Business del celular (`business_app`, coexistencia) marca
  * `first_response_at` del lead abierto. Mover el lead de la primera etapa también
- * la marca (ChangeLeadStage).
+ * la marca (ChangeLeadStage). El historial copiado al conectar (`history`) no cuenta.
  */
 final class FirstResponseListener
 {
+    /** @var list<string> */
+    public const SOURCES = ['inbox', BusinessAppMessages::ECHO];
+
     public function __construct(private readonly CurrentWorkspace $current) {}
 
     public function created(Message $message): void
     {
-        if ($message->direction !== 'out' || $message->source_type !== 'inbox' || $message->contact_id === null) {
+        if ($message->direction !== 'out' || ! in_array($message->source_type, self::SOURCES, true) || $message->contact_id === null) {
             return;
         }
         $workspace = Workspace::query()->find($message->workspace_id);

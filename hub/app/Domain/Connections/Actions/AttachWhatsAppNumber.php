@@ -52,23 +52,12 @@ final class AttachWhatsAppNumber
         $existing = ChannelAccount::query()->where('provider', 'meta_cloud')->where('external_id', $phoneNumberId)->where('oauth_connection_id', $connection->id)->first();
         $pin = (string) ($existing?->config['two_step_pin'] ?? str_pad((string) random_int(0, 999_999), 6, '0', STR_PAD_LEFT));
         $config = ['waba_id' => $waba, 'phone_number_id' => $phoneNumberId, 'connected_via' => 'embedded_signup', 'coexistence' => $coexistence];
+        // Al reconectar se conserva lo ya copiado de la app (cada copia se pide una sola vez) y su avance.
+        $config += array_intersect_key($existing->config ?? [], array_flip(['synced', 'sync_requests', 'history', 'contacts']));
         $errors = [];
         $status = 'active';
 
-        if ($coexistence) {
-            foreach (['smb_app_state_sync', 'history'] as $sync) {
-                if (isset($existing?->config['synced'][$sync])) {
-                    continue;  // cada copia se puede pedir una sola vez
-                }
-                $response = $this->meta->send('post', $phoneNumberId.'/smb_app_data', $token, ['messaging_product' => 'whatsapp', 'sync_type' => $sync]);
-                if ($response->successful()) {
-                    $config['synced'][$sync] = now()->toIso8601String();
-                } else {
-                    $errors[] = __('Meta no copió :what desde la app de WhatsApp Business (:msg).', ['what' => $sync === 'history' ? __('el historial') : __('los contactos'), 'msg' => MetaProvider::errorMessage($response)]);
-                }
-            }
-            $config['synced'] = array_replace((array) ($existing?->config['synced'] ?? []), (array) ($config['synced'] ?? []));
-        } else {
+        if (! $coexistence) {
             $config['two_step_pin'] = $pin;
             $response = $this->meta->send('post', $phoneNumberId.'/register', $token, ['messaging_product' => 'whatsapp', 'pin' => $pin]);
             if (! $response->successful()) {
@@ -80,7 +69,40 @@ final class AttachWhatsAppNumber
             $errors[] = __('No se pudo suscribir la app a los avisos de la cuenta: los mensajes que lleguen no se verán en la bandeja hasta reintentar.');
         }
 
-        return $this->connect->handle($config, $phone['verified_name'], $connection->id, $status, $errors !== [] ? implode(' ', $errors) : null);
+        $account = $this->connect->handle($config, $phone['verified_name'], $connection->id, $status, $errors !== [] ? implode(' ', $errors) : null);
+        if ($coexistence) {
+            // Después de crear la cuenta activa: los webhooks `smb_app_state_sync` e `history` empiezan a llegar en
+            // segundos y se buscan por el ID del número.
+            $this->requestSync($account, $phoneNumberId, $token, $errors);
+        }
+
+        return $account;
+    }
+
+    /**
+     * Coexistencia: pide una sola vez la copia de los contactos y del historial de la app (`POST /{número}/smb_app_data`
+     * con `smb_app_state_sync` y `history`; hay 24 h desde la conexión). Guarda el `request_id` que pide soporte de Meta.
+     *
+     * @param  list<string>  $errors
+     */
+    private function requestSync(ChannelAccount $account, string $phoneNumberId, string $token, array $errors): void
+    {
+        $synced = (array) ($account->config['synced'] ?? []);
+        $requests = (array) ($account->config['sync_requests'] ?? []);
+        foreach (['smb_app_state_sync', 'history'] as $sync) {
+            if (isset($synced[$sync])) {
+                continue;  // cada copia se puede pedir una sola vez
+            }
+            $response = $this->meta->send('post', $phoneNumberId.'/smb_app_data', $token, ['messaging_product' => 'whatsapp', 'sync_type' => $sync]);
+            if ($response->successful()) {
+                $synced[$sync] = now()->toIso8601String();
+                $requests[$sync] = is_scalar($response->json('request_id')) ? mb_substr((string) $response->json('request_id'), 0, 120) : null;
+            } else {
+                $errors[] = __('Meta no copió :what desde la app de WhatsApp Business (:msg).', ['what' => $sync === 'history' ? __('el historial') : __('los contactos'), 'msg' => MetaProvider::errorMessage($response)]);
+            }
+        }
+        $account->mergeConfig(['synced' => $synced, 'sync_requests' => array_filter($requests)]);
+        $account->forceFill(['last_error' => $errors !== [] ? mb_substr(implode(' ', $errors), 0, 500) : null])->save();
     }
 
     /**

@@ -113,7 +113,7 @@ Casi todas tienen su base en Imagina Growth; lo que falta es que trabajen solas 
 | Función | Qué hay | Qué falta |
 |---|---|---|
 | 1. Responde al instante | Agente de ventas con IA en WhatsApp, Messenger e Instagram (modo `auto`) | ✅ (lote 3) WhatsApp, Messenger e Instagram con un clic (§6); faltan las apps de Meta reales |
-| 2. La ficha se completa sola | Intención del mensaje, lead por intención de compra, calificación con IA del formulario | ✅ (lote 3): la IA (`lead_brief`, en cola) llena qué necesita, cantidad, ciudad, zona, para cuándo, presupuesto y temperatura con la frase de origen, solo con lo que escribió el cliente y sin pisar lo editado; se ve en el chat y en el lead |
+| 2. La ficha se completa sola | Intención del mensaje, lead por intención de compra, calificación con IA del formulario | ✅ (lote 3): la IA (`lead_brief`, en cola) llena qué necesita, cantidad, ciudad, zona, para cuándo, presupuesto y temperatura con la frase de origen, solo con lo que escribió el cliente y sin pisar lo editado; se ve en el chat y en el lead. ✅ (lote 4) Messenger e Instagram también crean el lead (§6 punto 9) |
 | 3. Filtra a los curiosos | Reglas de asignación por intención, traspaso a humano, puntaje y aviso al vendedor «caliente» | Preguntas de calificación configurables y derivación dueño / vendedor / agente / web |
 | 4. Atiende el fin de semana | El agente agenda citas; página de reservas | Ofrecer horarios dentro del chat de WhatsApp de punta a punta |
 | 5. El seguimiento sale solo | Flujo 18 de seguimiento de leads | ✅ (lote 3): el flujo 18 sigue los días 2, 10, 20 y 40 con el nodo «Seguimiento con IA» (texto en la ventana, plantilla fuera, correo de respaldo); sale si el cliente responde o el lead cambia de etapa |
@@ -153,6 +153,7 @@ Antes solo Google Calendar usaba OAuth de verdad; el resto pedía pegar tokens. 
    y `connections/{id}/whatsapp-number`; canje del código, `debug_token` (app, permisos y WABA autorizada),
    `POST /{waba}/subscribed_apps`, registro del número con PIN (o, en coexistencia, `smb_app_data` de contactos e
    historial sin registrar) y plantillas sincronizadas. Cancelar o un error de la ventana quedan en la auditoría.
+   Lo que llega de la app del celular en coexistencia: punto 8 (lote 4).
 3. ✅ (lote 3) Google con un solo OAuth: Ads/Data Manager (cuenta, MCC y acciones de conversión), Analytics (propiedad,
    flujo web y el secreto del Measurement Protocol creado solo) y Calendar (la agenda usa el flujo común si está
    `IGR_GOOGLE_CLIENT_ID`; las conexiones de antes siguen con su cliente).
@@ -160,6 +161,26 @@ Antes solo Google Calendar usaba OAuth de verdad; el resto pedía pegar tokens. 
    5. ✅ TikTok for Business (anunciante y píxel); 6. ✅ Messenger e Instagram (eligiendo la página).
 7. ⏳ **Imagina Whats** (WhatsApp Web por QR, API REST con token): falta su documentación (URL base, autenticación,
    envío de texto y medios, webhooks de entrada y estados).
+8. ✅ (lote 4) **Coexistencia de WhatsApp en la bandeja** (`Messaging/Coexistence`): lo que el negocio escribe desde
+   la app del celular (`smb_message_echoes`) entra a la conversación como «Desde el celular», sin pasar por el
+   despachador ni gastar cupos y sin `sent_at` (Meta no lo cobra ni abre la ventana de 24 h), cuenta como respuesta
+   humana (primera respuesta del ciclo y del lead, «Hoy» deja de mostrarlo pendiente) y saca a la IA del modo
+   automático; edición y borrado incluidos. El historial (`history`, hasta 180 días en fases) se importa cifrado e
+   idempotente por el ID de WhatsApp, sin eventos de mensajes, agente, clasificación, avisos ni push y sin crear
+   consentimiento (una baja escrita en la app sí queda como revocación con su fecha). La libreta
+   (`smb_app_state_sync`) crea o completa contactos sin consentimiento con su origen y el BSUID (`wa_bsuid`). La
+   copia se pide después de crear la cuenta activa y guarda el `request_id`; los campos del webhook se suscriben en
+   la app de Meta (guia-apps-oauth.md §1.7), que no permite hacerlo por cliente. `account_update`
+   (`PARTNER_REMOVED`, `ACCOUNT_OFFBOARDED`…) deja el número desconectado con el motivo y avisa.
+9. ✅ (lote 4) **Leads desde Messenger e Instagram** como en WhatsApp: con intención de compra o de contratar, el
+   chat crea el lead con el canal como origen (`lead.created` v7) y la ficha con IA también puede crearlo
+   (`ChatLeadListener`, `UpdateLeadBrief`).
+10. ✅ (lote 4) **Avisos de conexiones por vencer o caídas** (`ConnectionAlerts`): correo a dueños y administradores
+    7 días y 1 día antes de que venza un acceso con fecha (token de usuario de Meta; Google se renueva solo), cuando
+    vence o se invalida (Google `invalid_grant`, Meta `is_valid = false`) y cuando Meta desconecta un número, una vez
+    por cambio de estado (`alert_state`, migración `2026_11_26_140100`); aviso con «Reconectar» en el Inicio y en
+    Conexiones (`GET connections/alerts`). Lo revisa `igr:connections:check` cada noche y, en el momento, al
+    marcarse vencida.
 
 **Verificado en la documentación oficial (20 nov 2026):** Meta retiró *Embedded Signup* v2 y v3 el 15 de octubre de
 2026 y la v5 (20 oct 2026) es la recomendada; la Marketing API v24.0 venció el 6 de octubre de 2026 (la Graph v24.0

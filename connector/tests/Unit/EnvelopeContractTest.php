@@ -108,6 +108,17 @@ final class EnvelopeContractTest extends TestCase {
 		$this->assertSame( array(), Schema::errors( $old ) );
 	}
 
+	public function test_el_contrato_v7_del_hub_sigue_aceptando_la_version_del_plugin(): void {
+		// La v7 (lote 4) solo cambió un evento del hub (`lead.created.origin` con messenger e instagram): el plugin
+		// sigue en la 6 y su sobre sigue siendo válido.
+		$schema   = json_decode( (string) file_get_contents( dirname( __DIR__, 3 ) . '/hub/resources/schemas/events/_envelope.json' ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- archivo local del contrato.
+		$versions = $schema['properties']['schema_version']['enum'];
+		$this->assertContains( 7, $versions );
+		$this->assertContains( EventFactory::SCHEMA_VERSION, $versions );
+		$factory = new EventFactory( self::SITE, 'woocommerce', '0.1.0' );
+		$this->assertSame( array(), Schema::errors( $factory->make( 'custom.igr_test', array() ) ) );
+	}
+
 	public function test_el_validador_detecta_un_objeto_vacio_mal_codificado(): void {
 		$factory              = new EventFactory( self::SITE, 'woocommerce', '0.1.0' );
 		$envelope             = $factory->make( 'custom.x', array( 'a' => 1 ) );

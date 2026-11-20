@@ -13,6 +13,7 @@ use App\Domain\Connections\Assets\TikTokAssets;
 use App\Domain\Connections\Enums\ConnectionProvider;
 use App\Domain\Connections\Models\OAuthConnection;
 use App\Domain\Connections\Providers\ProviderRegistry;
+use App\Domain\Connections\Support\ConnectionAlerts;
 use App\Domain\Connections\Support\ConnectionError;
 use App\Domain\Connections\Support\ConnectionTokens;
 use App\Domain\Measurement\AdSpend\ImportAdSpend;
@@ -60,6 +61,17 @@ final class ConnectionController
             'providers' => $out,
             'calendar_connections' => $connections->filter(fn (OAuthConnection $c) => str_starts_with($c->subject, 'staff:'))->count(),
         ]);
+    }
+
+    /**
+     * GET /api/w/{ws}/connections/alerts — lo que vence en 7 días o menos, lo vencido o inválido y los números que Meta
+     * desconectó, para el aviso con «Reconectar» del Inicio y de Conexiones (ConnectionAlerts). Nunca tokens.
+     */
+    public function alerts(ConnectionAlerts $alerts): JsonResponse
+    {
+        Gate::authorize('ws.viewWorkspace');
+
+        return response()->json(['data' => $alerts->problems()]);
     }
 
     /** POST /api/w/{ws}/connections/{meta|google|tiktok}/start — URL de consentimiento (la SPA navega a ella). */

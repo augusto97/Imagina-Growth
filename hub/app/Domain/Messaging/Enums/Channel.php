@@ -19,6 +19,18 @@ enum Channel: string
         return $this === self::Messenger || $this === self::Instagram;
     }
 
+    /** Nombre para el dueño del negocio (correos y avisos). */
+    public function label(): string
+    {
+        return match ($this) {
+            self::Email => __('correo'),
+            self::WhatsApp => 'WhatsApp',
+            self::Sms => 'SMS',
+            self::Messenger => 'Messenger',
+            self::Instagram => 'Instagram',
+        };
+    }
+
     /** Canales con conversación en la bandeja y ventana de atención de 24 h. */
     public function isConversational(): bool
     {

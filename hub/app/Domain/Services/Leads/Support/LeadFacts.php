@@ -26,6 +26,8 @@ final class LeadFacts
             'organic_social' => 'redes sociales',
             'email', 'igr_email' => 'un correo',
             'whatsapp', 'igr_whatsapp' => 'WhatsApp',
+            'messenger' => 'Messenger',
+            'instagram' => 'Instagram',
             'igr_sms' => 'un SMS',
             'ai_assistants' => 'un asistente de IA',
             'affiliates' => 'un afiliado',
@@ -55,8 +57,10 @@ final class LeadFacts
         ]));
         $parts = [];
         $channel = self::channelLabel(is_string($lead->source['channel'] ?? null) ? $lead->source['channel'] : null);
-        if ($lead->origin === 'whatsapp') {
-            $parts[] = __('Escribió por WhatsApp');
+        if (in_array($lead->origin, ['whatsapp', 'messenger', 'instagram'], true)) {
+            $parts[] = __('Escribió por :channel', ['channel' => match ($lead->origin) {
+                'messenger' => 'Messenger', 'instagram' => 'Instagram', default => 'WhatsApp',
+            }]);
         } elseif ($channel !== null) {
             $parts[] = __('Vino de :channel', ['channel' => $channel]);
         }

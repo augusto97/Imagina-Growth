@@ -6,6 +6,7 @@ namespace App\Domain\Messaging\Attribution;
 
 use App\Domain\Commerce\Models\Order;
 use App\Domain\Contacts\Models\Contact;
+use App\Domain\Messaging\Coexistence\BusinessAppMessages;
 use App\Domain\Messaging\Models\Message;
 use App\Domain\Privacy\Actions\ExportContactData;
 use App\Domain\Workspaces\Models\Workspace;
@@ -31,7 +32,9 @@ final class MessageAttributor
         $settings = (array) $workspace->setting('attribution', []);
         $at = CarbonImmutable::instance($order->created_at ?? now());
         $ids = ExportContactData::contactIds($contact);
-        $base = fn () => Message::query()->whereIn('contact_id', $ids)->where('direction', 'out')->whereNotIn('status', ['failed', 'bounced']);
+        // Lo que el negocio escribió desde la app del celular (coexistencia) no salió por la plataforma: no se atribuye.
+        $base = fn () => Message::query()->whereIn('contact_id', $ids)->where('direction', 'out')->whereNotIn('status', ['failed', 'bounced'])
+            ->whereNotIn('source_type', BusinessAppMessages::SOURCES);
 
         $message = $base()->whereNotNull('clicked_at')
             ->whereBetween('clicked_at', [$at->subDays(max(1, (int) ($settings['click_days'] ?? 5))), $at])

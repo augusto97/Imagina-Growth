@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://growth.imagina.cloud/schemas/events/lead.created.json",
   "title": "lead.created",
-  "description": "Generado en el hub: un formulario, un WhatsApp, una cotización, una cita, el panel o la API creó un lead.",
+  "description": "Generado en el hub: un formulario, un chat (WhatsApp, Messenger o Instagram, desde la v7), una cotización, una cita, el panel o la API creó un lead.",
   "type": "object",
   "required": [
     "lead_id",
@@ -19,6 +19,8 @@
       "enum": [
         "form",
         "whatsapp",
+        "messenger",
+        "instagram",
         "quote",
         "booking",
         "manual",
@@ -83,6 +85,17 @@
       "temperature": "warm",
       "channel": "paid_search",
       "form_id": "cf7:12",
+      "value": null,
+      "currency": null
+    },
+    {
+      "lead_id": "ld_01JF",
+      "origin": "instagram",
+      "service": null,
+      "score": 15,
+      "temperature": "cold",
+      "channel": "instagram",
+      "form_id": null,
       "value": null,
       "currency": null
     }

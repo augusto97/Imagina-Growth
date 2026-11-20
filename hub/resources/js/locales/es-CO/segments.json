@@ -474,6 +474,8 @@
             "origin": {
                 "form": "Formulario",
                 "whatsapp": "WhatsApp",
+                "messenger": "Messenger",
+                "instagram": "Instagram",
                 "quote": "Cotizador",
                 "booking": "Agenda",
                 "manual": "Manual",

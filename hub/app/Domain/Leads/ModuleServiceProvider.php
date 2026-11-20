@@ -13,10 +13,10 @@ use App\Domain\Services\Leads\Console\DecayLeadScoresCommand;
 use App\Domain\Services\Leads\Console\MorningDigestCommand;
 use App\Domain\Services\Leads\Crm\CrmSync;
 use App\Domain\Services\Leads\Crm\NullCrmSync;
+use App\Domain\Services\Leads\Listeners\ChatLeadListener;
 use App\Domain\Services\Leads\Listeners\FirstResponseListener;
 use App\Domain\Services\Leads\Listeners\LeadBriefListener;
 use App\Domain\Services\Leads\Listeners\LeadSignalsListener;
-use App\Domain\Services\Leads\Listeners\WhatsAppLeadListener;
 use App\Ingest\Events\EventIngested;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Event;
@@ -39,9 +39,9 @@ final class ModuleServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Event::listen(EventIngested::class, LeadSignalsListener::class);
-        Event::listen(InboundMessageReceived::class, [WhatsAppLeadListener::class, 'inbound']);
+        Event::listen(InboundMessageReceived::class, [ChatLeadListener::class, 'inbound']);
         Event::listen(InboundMessageReceived::class, [LeadBriefListener::class, 'inbound']);
-        Conversation::saved(fn (Conversation $c) => app(WhatsAppLeadListener::class)->conversationSaved($c));
+        Conversation::saved(fn (Conversation $c) => app(ChatLeadListener::class)->conversationSaved($c));
         Message::created(fn (Message $m) => app(FirstResponseListener::class)->created($m));
 
         if ($this->app->runningInConsole()) {

@@ -11,6 +11,7 @@ import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
 import { formatDate, formatRelative } from '@/lib/format';
 import { toast } from '@/stores/toast';
+import { ConnectionAlertsNotice } from './AlertsNotice';
 import { type Connection, type ProviderInfo, type ProviderKey, useCheckConnection, useConnections, useDisconnectConnection, useStartConnection, useWhatsAppSignupApi } from './api';
 import { ProviderMark, StatusBadge } from './bits';
 import { AssetsDialog } from './Pickers';
@@ -75,6 +76,7 @@ export function ConnectionsPage() {
     return (
         <div>
             <PageHeader title={t('connections.title')} description={t('connections.description')} />
+            <ConnectionAlertsNotice className="igr:mb-4" onConnectionsPage />
             {list.isError ? (
                 <ErrorState error={list.error} onRetry={() => void list.refetch()} />
             ) : list.isPending ? (
@@ -125,7 +127,7 @@ function ProviderCard({ info, onPick }: { info: ProviderInfo; onPick: (c: Connec
     };
 
     return (
-        <Card>
+        <Card id={`proveedor-${info.key}`} className="igr:scroll-mt-4">
             <CardContent className="igr:space-y-3 igr:p-4">
                 <div className="igr:flex igr:items-start igr:gap-3">
                     <ProviderMark provider={info.key} />
@@ -253,6 +255,17 @@ function ConnectionSummary({ connection }: { connection: Connection }) {
                     {t('connections.usedByLabel')} {used.join(', ')}
                 </p>
             ) : null}
+            {connection.used_by.channels.map((c) =>
+                c.history ? (
+                    <p key={c.id} className="igr:text-muted-foreground">
+                        {c.history.declined
+                            ? t('connections.whatsapp.historyDeclined')
+                            : c.history.progress >= 100
+                              ? t('connections.whatsapp.historyDone', { count: c.history.messages })
+                              : t('connections.whatsapp.historyProgress', { progress: c.history.progress, count: c.history.messages })}
+                    </p>
+                ) : null,
+            )}
             {connection.last_error ? (
                 <p className="igr:flex igr:items-start igr:gap-1 igr:text-warning">
                     <CircleAlert className="igr:mt-0.5 igr:size-3.5 igr:shrink-0" aria-hidden="true" />

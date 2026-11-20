@@ -1,7 +1,7 @@
 # Contrato de eventos y datos que se recogen
 
 > Fuente de verdad del dato. El hub valida cada evento contra su JSON Schema en `hub/resources/schemas/events/<evento>.json`. El connector y el tracker tienen pruebas de contrato contra esos mismos esquemas.
-> `schema_version` actual: **6** (el hub acepta de la 1 a la 6; ver §8)
+> `schema_version` actual: **7** (el hub acepta de la 1 a la 7; ver §8)
 
 ---
 
@@ -170,7 +170,7 @@ Convenciones: `objeto.acción` en inglés y en pasado. Montos en la moneda del p
 | Evento | Origen | Propiedades |
 |---|---|---|
 | `form.submitted` | CF7, WPForms, Gravity, Fluent Forms, Elementor Forms, JetFormBuilder, Formidable, formularios del hub | `form_plugin`, `form_id`, `form_name`, `fields` (mapeados: `email`, `phone`, `first_name`, `last_name`, `company`, `city`, `message`, `service`, `budget`), `page_path`, `consents{}` |
-| `lead.created` | hub, a partir de `form.submitted` o de un WhatsApp entrante sin pedido | `lead_source`, `score` |
+| `lead.created` | hub, a partir de `form.submitted` o de un chat entrante (WhatsApp, Messenger o Instagram) con intención de compra | `lead_source`, `score` |
 | `appointment.booked` / `.rescheduled` / `.cancelled` / `.completed` / `.no_show` | agenda del hub | `appointment_id`, `service_id`, `starts_at` |
 | `quote.requested` | cotizador del hub | `quote_id`, `items`, `estimated_total` |
 
@@ -201,7 +201,7 @@ Los de la Fase 3 (v4):
 - `product_watch.created` y `product_watch.notified`: `product_id` y `kind`.
 
 Los de la Fase 5 (v5), solo del hub (ningún sitio los puede enviar):
-- `lead.created`: `lead_id`, `origin` (form, whatsapp, quote, booking, manual o api), `service`, `score`, `temperature` (cold, warm o hot), `channel` y `form_id`.
+- `lead.created`: `lead_id`, `origin` (form, whatsapp, messenger, instagram, quote, booking, manual o api; `messenger` e `instagram` desde la v7), `service`, `score`, `temperature` (cold, warm o hot), `channel` y `form_id`.
 - `lead.stage_changed`: `lead_id`, `from`, `to` y `by` (user, system, ai o api).
 - `lead.won`: `lead_id`, `value`, `currency`, `days_to_win` y `service`. Es la **conversión offline** que va a Meta y a Google (M18).
 - `lead.lost`: `lead_id` y `reason`.
@@ -319,6 +319,7 @@ Según la especificación de Meta y Google, se aplica SHA-256 en minúsculas y s
 | 4 | 2026-11-21 | Fase 3. `context.referral_code` y `referral_code` en el primer y el último contacto (`?ref=` de referidos y afiliados). Esquemas de los eventos del hub de la Fase 3: `points.earned`, `points.redeemed`, `points.expired`, `tier.changed`, `wallet.credited`, `wallet.debited`, `referral.shared`, `referral.converted`, `review.requested`, `review.collected`, `nps.answered`, `product_watch.created` y `product_watch.notified`. Un evento v3 sigue siendo válido. |
 | 5 | 2026-11-23 | Fase 5. Esquemas de los eventos del hub de servicios: `lead.created`, `lead.stage_changed`, `lead.won`, `lead.lost`, `appointment.booked`, `appointment.rescheduled`, `appointment.cancelled`, `appointment.completed`, `appointment.no_show` y `quote.requested`, más `page.vitals` (métricas web de Imagina Turbo por la API pública, M19; se agregó durante la Fase 5, antes de cerrarla, por eso no abre una versión 6). Los sitios no envían nada nuevo: el connector y el tracker siguen en la 4, que sigue siendo válida. |
 | 6 | 2026-11-25 | Captura temprana del checkout (auditoría F4): `checkout.contact_captured` pasa a ser un evento del plugin, firmado por `/v1/s`, con el correo o el teléfono en `identity` y los opcionales `cart_token` y `checkout`. Ya no viaja cifrado desde el navegador (`encrypted` queda obsoleto). El connector envía la 6 en todos sus eventos; el tracker sigue en la 4. Un evento v5 o anterior sigue siendo válido. |
+| 7 | 2026-11-26 | Leads desde Messenger e Instagram (lote 4): `lead.created.origin` acepta `messenger` e `instagram` (el canal del chat que creó el lead; `channel` lleva el mismo valor). Solo cambia un evento del hub: ningún sitio envía nada nuevo, el connector sigue en la 6 y el tracker en la 4, y un evento v6 o anterior sigue siendo válido. |
 
 **Regla de identidad para el navegador (v2):** en eventos con `source.type = browser`, el hub **ignora** `identity.customer_ref` salvo en un `identify` con `token` válido. Así nadie puede atribuirse la identidad de otro cliente desde el navegador.
 

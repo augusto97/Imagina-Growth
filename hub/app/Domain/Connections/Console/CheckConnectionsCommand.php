@@ -7,6 +7,7 @@ namespace App\Domain\Connections\Console;
 use App\Domain\Connections\Enums\ConnectionProvider;
 use App\Domain\Connections\Models\OAuthConnection;
 use App\Domain\Connections\Providers\ProviderRegistry;
+use App\Domain\Connections\Support\ConnectionAlerts;
 use App\Domain\Connections\Support\ConnectionError;
 use App\Domain\Connections\Support\ConnectionTokens;
 use App\Domain\Workspaces\Models\Workspace;
@@ -16,7 +17,8 @@ use Illuminate\Console\Command;
 /**
  * Revisa cada noche las conexiones activas: Google renueva el token (así un acceso revocado se ve en el panel antes
  * de que falle una conversión), Meta pasa por `debug_token` y TikTok lista sus anunciantes. Un acceso que ya no
- * sirve queda `expired` con el aviso; una falla pasajera solo deja `last_error`.
+ * sirve queda `expired` con el aviso; una falla pasajera solo deja `last_error`. Al final manda los avisos por correo
+ * de lo que vence en 7 días o en 1 y de lo que ya venció (ConnectionAlerts, una vez por cambio de estado).
  */
 final class CheckConnectionsCommand extends Command
 {
@@ -24,7 +26,7 @@ final class CheckConnectionsCommand extends Command
 
     protected $description = 'Comprueba que las conexiones con Meta, Google y TikTok sigan sirviendo';
 
-    public function handle(ProviderRegistry $providers, ConnectionTokens $tokens, CurrentWorkspace $current): int
+    public function handle(ProviderRegistry $providers, ConnectionTokens $tokens, CurrentWorkspace $current, ConnectionAlerts $alertsService): int
     {
         $query = OAuthConnection::withoutWorkspaceScope()->where('status', OAuthConnection::ACTIVE)->orderBy('id');
         if (is_string($this->option('workspace'))) {
@@ -54,7 +56,9 @@ final class CheckConnectionsCommand extends Command
                 }
             });
         }
-        $this->info("Conexiones al día: {$ok}; vencidas: {$expired}; con fallas pasajeras: {$failed}.");
+        // Avisos por correo de lo que vence en 7 días o en 1, o ya venció (una vez por cambio de estado).
+        $alerts = $alertsService->sweep(is_string($this->option('workspace')) ? (string) preg_replace('/^ws_/', '', $this->option('workspace')) : null);
+        $this->info("Conexiones al día: {$ok}; vencidas: {$expired}; con fallas pasajeras: {$failed}; avisos enviados: {$alerts}.");
 
         return self::SUCCESS;
     }

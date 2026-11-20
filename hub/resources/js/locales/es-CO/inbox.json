@@ -71,7 +71,8 @@
                 "out_of_scope": "tema fuera del negocio",
                 "complaint": "es una queja",
                 "no_answer": "la IA no tenía la respuesta",
-                "discount": "pidió un descuento fuera de las reglas"
+                "discount": "pidió un descuento fuera de las reglas",
+                "business_app": "respondiste desde la app del celular"
             }
         },
         "chat": {
@@ -88,7 +89,11 @@
                 "pending": "En espera",
                 "closed": "Cerrada"
             },
-            "openAttachment": "Ver adjunto"
+            "openAttachment": "Ver adjunto",
+            "fromPhone": "Desde el celular",
+            "revoked": "Se eliminó este mensaje desde el celular.",
+            "historyMedia": "Archivo de la app de WhatsApp Business (no se copió).",
+            "edited": "Editado ·"
         },
         "window": {
             "open": "Ventana abierta: {{hours}} h {{minutes}} min",

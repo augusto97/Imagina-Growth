@@ -30,6 +30,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property CarbonInterface|null $refreshed_at
  * @property CarbonInterface|null $checked_at
  * @property string|null $last_error
+ * @property string|null $alert_state último estado avisado por correo (expires_7d, expires_1d, expired, disconnected)
+ * @property CarbonInterface|null $alert_sent_at
  * @property string|null $connected_by
  * @property CarbonInterface|null $revoked_at
  */
@@ -49,7 +51,7 @@ class OAuthConnection extends Model
 
     protected $table = 'oauth_connections';
 
-    protected $fillable = ['workspace_id', 'provider', 'subject', 'status', 'external_id', 'account_name', 'scopes', 'credentials', 'assets', 'expires_at', 'refreshed_at', 'checked_at', 'last_error', 'connected_by', 'revoked_at'];
+    protected $fillable = ['workspace_id', 'provider', 'subject', 'status', 'external_id', 'account_name', 'scopes', 'credentials', 'assets', 'expires_at', 'refreshed_at', 'checked_at', 'last_error', 'alert_state', 'alert_sent_at', 'connected_by', 'revoked_at'];
 
     protected $hidden = ['credentials'];
 
@@ -64,6 +66,7 @@ class OAuthConnection extends Model
             'refreshed_at' => 'datetime',
             'checked_at' => 'datetime',
             'revoked_at' => 'datetime',
+            'alert_sent_at' => 'datetime',
         ];
     }
 

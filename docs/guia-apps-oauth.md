@@ -105,7 +105,8 @@ En **Facebook Login for Business → Configuraciones** crea dos:
 1. **Crear configuración** → nombre «Imagina Growth — WhatsApp» → variación **WhatsApp Embedded Signup**.
 2. Tipo de token: **token de acceso de usuario del sistema**. Si el panel deja elegir el vencimiento, elige
    **Nunca**: la plantilla «WhatsApp Embedded Signup Configuration With 60 Expiration Token» entrega tokens de 60
-   días y el cliente tendría que volver a conectar cada dos meses. **[verificar en el panel]**
+   días y el cliente tendría que volver a conectar cada dos meses (la plataforma avisa por correo a dueños y
+   administradores 7 días y 1 día antes, y en el Inicio con «Reconectar»). **[verificar en el panel]**
 3. Productos: **WhatsApp Cloud API** (y, si se va a usar, Marketing Messages). Elige solo lo necesario: pedir
    activos que no se usan (por ejemplo catálogos) hace que la gente abandone.
 4. Permisos: `whatsapp_business_management` y `whatsapp_business_messaging`.
@@ -144,7 +145,15 @@ de tecnología; hay reportes de octubre de 2026 de que dejó de pedirse **[verif
    verificación el valor que pongas en `IGR_META_WEBHOOK_VERIFY_TOKEN` (inventa uno largo y aleatorio).
 2. Suscribe los campos: `messages`, `message_template_status_update`, `phone_number_quality_update`,
    `account_update`, `history`, `smb_app_state_sync` y `smb_message_echoes` (los tres últimos son de la
-   coexistencia).
+   coexistencia). **Este paso es de la app y se hace una sola vez en el panel de Meta** (App Dashboard → WhatsApp →
+   Configuración): Meta no deja suscribir esos campos al conectar cada cliente; al conectar, la plataforma solo
+   suscribe la app a la cuenta de WhatsApp del cliente (`POST /{waba}/subscribed_apps`) y pide la copia de contactos
+   e historial (`POST /{número}/smb_app_data`, una vez y dentro de 24 h). Sin estos campos, lo que el negocio escribe
+   desde el celular no aparece en la bandeja, no se copia el historial ni la libreta, y un número que Meta desconecta
+   no se marca ni se avisa. Qué hace la plataforma con cada campo: `hub/CLAUDE.md` §8 («Coexistencia de WhatsApp»).
+   Fuentes: [coexistencia](https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/onboarding-business-app-users),
+   [`smb_message_echoes`](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/reference/smb_message_echoes),
+   [`account_update`](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/reference/account_update).
 3. En **Messenger** (objeto `page`) e **Instagram** (objeto `instagram`), la misma URL y el mismo token, con los
    campos `messages`, `messaging_postbacks`, `message_deliveries`, `message_reads` y `messaging_referrals`.
 4. La firma de cada aviso se comprueba con `IGR_META_APP_SECRET`: sin esa variable el hub responde 403.
@@ -315,4 +324,6 @@ disponible». Prueba primero con tus propias cuentas.
 | Google dice «Esta app no está verificada» | La verificación de 2.4 sigue en curso; mientras tanto solo entran usuarios de prueba (y sus tokens vencen a los 7 días). |
 | Las conexiones de Google se caen cada semana | La app de Google sigue en «Prueba»: pásala a «En producción» (2.2). |
 | WhatsApp conectado pero no llegan los mensajes a la bandeja | Webhook de 1.7 sin suscribir o `IGR_META_APP_SECRET` distinto al de la app. |
+| En coexistencia no aparece lo que el negocio escribe desde el celular ni el historial | Faltan `smb_message_echoes`, `history` o `smb_app_state_sync` en 1.7. La copia del historial y de los contactos se pide una sola vez: si pasaron más de 24 h, el cliente tiene que desconectar y volver a conectar. Si Conexiones dice que no se compartió el historial, el cliente lo apagó en la app. |
+| Llegan correos de «vence el…» o «Vuelve a conectar» | El acceso tiene fecha de vencimiento (por ejemplo, la configuración de 1.5 con token de 60 días) o el proveedor lo invalidó: el cliente usa «Reconectar» en el Inicio o en Conexiones. |
 | «Meta no activó el número… PIN» | El número tiene verificación en dos pasos con otro PIN: el cliente la quita en el Administrador de WhatsApp y usa «Reintentar». |
