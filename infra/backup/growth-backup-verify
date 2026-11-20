@@ -63,10 +63,12 @@ finish() {
     [ -n "$CFG" ] && rm -f "$CFG"
     if [ "$code" -ne 0 ]; then
         log "La prueba de restauración falló (código $code)."
+        job_failed "$code"
         heartbeat "$HEARTBEAT" fail
     fi
 }
 trap 'finish $?' EXIT
+job_begin verify
 
 # Valor numérico de una sección del manifiesto: manifest_value ARCHIVO before|after CLAVE
 manifest_value() {
@@ -104,19 +106,21 @@ chmod 0711 "$GROWTH_BACKUP_DIR"
 chmod 0700 "$RC"
 
 # ── MariaDB ────────────────────────────────────────────────────────────────────
+job_step download
 if [ "$FROM_REMOTE" = "1" ]; then
     ARCHIVE=$(rclone lsf "$REMOTE/mariadb" --include '*.tar.zst' | sort | tail -n 1)
-    [ -n "$ARCHIVE" ] || die "no hay copias de MariaDB en el remoto"
+    [ -n "$ARCHIVE" ] || die_code no_backups "no hay copias de MariaDB en el remoto"
     rclone copyto "$REMOTE/mariadb/$ARCHIVE" "$RC/$ARCHIVE"
     rclone copyto "$REMOTE/mariadb/${ARCHIVE%.tar.zst}.manifest.json" "$RC/${ARCHIVE%.tar.zst}.manifest.json"
     SRC=$RC
 else
     ARCHIVE=$(find "$MDB" -maxdepth 1 -type f -name '*.tar.zst' -printf '%f\n' | sort | tail -n 1)
-    [ -n "$ARCHIVE" ] || die "no hay copias locales de MariaDB"
+    [ -n "$ARCHIVE" ] || die_code no_backups "no hay copias locales de MariaDB"
     SRC=$MDB
 fi
 MANIFEST=$SRC/${ARCHIVE%.tar.zst}.manifest.json
 [ -f "$MANIFEST" ] || die "la copia $ARCHIVE no tiene manifiesto"
+job_step restore
 log "MariaDB: restaurando $ARCHIVE en una instancia temporal (127.0.0.1:$PORT)."
 mkdir -p "$RC/data"
 tar -C "$RC/data" --strip-components=1 -I zstd -xf "$SRC/$ARCHIVE"
@@ -137,13 +141,13 @@ for _ in $(seq 1 120); do
     if mariadb-admin --socket="$SOCK" ping >/dev/null 2>&1; then break; fi
     if ! kill -0 "$MPID" 2>/dev/null; then
         show_mariadbd_log
-        die "la instancia temporal de MariaDB no arrancó"
+        die_code restore_failed "la instancia temporal de MariaDB no arrancó"
     fi
     sleep 1
 done
 if ! mariadb-admin --socket="$SOCK" ping >/dev/null 2>&1; then
     show_mariadbd_log
-    die "la instancia temporal de MariaDB no respondió a tiempo"
+    die_code restore_failed "la instancia temporal de MariaDB no respondió a tiempo"
 fi
 
 DB=$(sed -n 's/.*"database":"\([A-Za-z0-9_]*\)".*/\1/p' "$MANIFEST")
@@ -177,12 +181,13 @@ fetch_ch() {
     DOWNLOADED+=("$CDB/$name")
     if [ "$CH_OWNER" != "-" ]; then chown "$CH_OWNER:$CH_OWNER" "$CDB/$name"; fi
 }
+job_step download
 if [ "$FROM_REMOTE" = "1" ]; then
     LATEST=$(rclone lsf "$REMOTE/clickhouse" --include '*.zip' | newest)
 else
     LATEST=$(find "$CDB" -maxdepth 1 -type f -name '*.zip' -printf '%f\n' | newest)
 fi
-[ -n "$LATEST" ] || die "no hay copias de ClickHouse"
+[ -n "$LATEST" ] || die_code no_backups "no hay copias de ClickHouse"
 CMANIFEST=${LATEST%.zip}.manifest.json
 if [ "$FROM_REMOTE" = "1" ]; then
     fetch_ch "$LATEST"
@@ -191,6 +196,7 @@ if [ "$FROM_REMOTE" = "1" ]; then
     if [ -n "$BASE_NAME" ]; then fetch_ch "$BASE_NAME"; fi
 fi
 [ -f "$CDB/$CMANIFEST" ] || die "la copia $LATEST no tiene manifiesto"
+job_step restore
 log "ClickHouse: restaurando $LATEST en la base temporal $CH_TARGET."
 CH_TOUCHED=1
 ch "DROP DATABASE IF EXISTS \`$CH_TARGET\` SYNC" >/dev/null
@@ -206,7 +212,13 @@ done
 
 if [ "${#FAILURES[@]}" -gt 0 ]; then
     for f in "${FAILURES[@]}"; do log "✗ $f" >&2; done
-    die "la restauración no coincide con lo que se copió"
+    JOB_CODE=verify_mismatch
+    # Para el panel: qué no coincidió (solo conteos, sin datos).
+    JOB_ERROR="La copia restaurada no coincide con lo que se copió: $(printf '%s; ' "${FAILURES[@]}")"
+    JOB_ERROR=${JOB_ERROR%; }
+    log "ERROR: la restauración no coincide con lo que se copió" >&2
+    exit 1
 fi
+job_status succeeded "" "" "$ARCHIVE · $LATEST"
 heartbeat "$HEARTBEAT"
 log "Prueba de restauración correcta: MariaDB ($ARCHIVE) y ClickHouse ($LATEST)."

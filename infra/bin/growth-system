@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # growth-system — la configuración del servidor que depende de la versión y de la RAM (docs/despliegue.md §7):
 # perfil de procesos, MariaDB, ClickHouse, Redis, prioridades ante falta de memoria, workers de ingesta,
-# permisos de shared/state y el Caddyfile (si nadie lo editó a mano). Idempotente: solo escribe lo que cambió y solo reinicia lo que hace falta.
+# permisos de shared/state, el Caddyfile (si nadie lo editó a mano) y el despachador de las copias del panel.
+# Idempotente: solo escribe lo que cambió y solo reinicia lo que hace falta.
 #
 #   growth-system apply --install   desde install.sh (primera vez o al volver a correrlo)
 #   growth-system apply --update    desde growth-update, después de activar la versión y antes de reiniciar
@@ -20,6 +21,7 @@ ROOT=${GROWTH_SYSTEM_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}
 GROWTH_ROOT=${GROWTH_ROOT:-/opt/growth}
 ENV_FILE=${GROWTH_ENV_FILE:-$GROWTH_ROOT/shared/.env}
 ETC_DIR=${GROWTH_ETC:-/etc/growth}
+LIB_DIR=${GROWTH_LIB_DIR:-/usr/local/lib/growth}
 STATE=${GROWTH_SYSTEM_STATE:-/var/lib/growth-system}
 UNIT_DIR=${SYSTEMD_UNIT_DIR:-/etc/systemd/system}
 MARIADB_CONF_DIR=${GROWTH_MARIADB_CONF_DIR:-/etc/mysql/mariadb.conf.d}
@@ -481,6 +483,36 @@ if [[ -d $GROWTH_ROOT/shared/state && $CMD != status ]]; then
     chown root:"$GROWTH_USER" "$GROWTH_ROOT/shared/state" 2>/dev/null || true
     chmod 1775 "$GROWTH_ROOT/shared/state" 2>/dev/null || true
 fi
+
+# ── Copias desde el panel (Plataforma → Copias de seguridad, docs/despliegue.md §6) ─
+
+# El despachador de root (backup/growth-backup-dispatch) y su unidad growth-backup.path llegan con el botón de
+# actualizar, también desde un actualizador anterior: ese copia las unidades nuevas pero no las habilita, y sus
+# scripts de root los reemplaza recién después del health-check. Si el despachador todavía no está en
+# /usr/local/lib/growth/backup, se instala desde esta versión (con su librería; nunca se reemplaza uno que ya está:
+# eso lo hace growth-update con la versión sana), se habilita la unidad y se publica el primer estado.
+backup_bridge() {
+    local src=$ROOT/backup f tmp
+    [[ $CMD == status ]] && return 0
+    if [[ -d $LIB_DIR/backup && -f $src/growth-backup-dispatch && ! -L $src/growth-backup-dispatch && ! -e $LIB_DIR/backup/growth-backup-dispatch ]]; then
+        for f in growth-backup-lib.sh growth-backup-dispatch; do
+            [[ -f $src/$f && ! -L $src/$f ]] || continue
+            tmp=$(mktemp "$LIB_DIR/backup/.inst.XXXXXX")
+            install -m 0755 "$src/$f" "$tmp" && mv -f "$tmp" "$LIB_DIR/backup/$f"
+            rm -f "$tmp"
+        done
+        note "copias: despachador del panel instalado"
+    fi
+    [[ -f $UNIT_DIR/growth-backup.path && -x $LIB_DIR/backup/growth-backup-dispatch ]] || return 0
+    if [[ $("$SYSTEMCTL" is-enabled growth-backup.path 2>/dev/null || true) != enabled ]]; then
+        "$SYSTEMCTL" enable growth-backup.path >/dev/null 2>&1 || warn "No se pudo habilitar growth-backup.path."
+        sctl start growth-backup.path >/dev/null 2>&1 || warn "No se pudo arrancar growth-backup.path."
+        note "copias: el panel ya puede configurarlas"
+        # Sin pedido, el despachador solo publica el estado (el panel ve si ya hay copias configuradas a mano).
+        GROWTH_ROOT="$GROWTH_ROOT" GROWTH_ETC="$ETC_DIR" SYSTEMCTL="$SYSTEMCTL" timeout 30 "$LIB_DIR/backup/growth-backup-dispatch" >/dev/null 2>&1 || true
+    fi
+}
+backup_bridge
 
 # ── Caché de configuración si cambió el .env ────────────────────────────────────────
 

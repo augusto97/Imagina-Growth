@@ -72,7 +72,7 @@ if grep -q -- '-----BEGIN PUBLIC KEY-----' "$inst" && ! grep -qx '__GROWTH_RELEA
 else
     fail "install.sh no trae la llave pública incrustada"
 fi
-for f in growth-backup-mariadb growth-backup-clickhouse growth-backup-verify growth-backup-lib.sh; do
+for f in growth-backup-mariadb growth-backup-clickhouse growth-backup-verify growth-backup-lib.sh growth-backup-dispatch; do
     if [ -f "$ROOT/infra/backup/$f" ]; then has "backup/$f"; fi
 done
 lacks '^backup/(README|RESTAURACION)\.md$'

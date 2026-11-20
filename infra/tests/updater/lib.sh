@@ -71,7 +71,7 @@ make_release() {
     echo "# uv.lock falso" >"$src/hub/ml/uv.lock"
     # Trampas: si root ejecuta algo de la versión (en vez de su copia en /usr/local/lib/growth), queda anotado.
     local trap
-    for trap in bin/growth-update bin/growth-update-dispatch bin/growth-env backup/growth-backup-mariadb backup/growth-backup-lib.sh; do
+    for trap in bin/growth-update bin/growth-update-dispatch bin/growth-env backup/growth-backup-mariadb backup/growth-backup-lib.sh backup/growth-backup-dispatch; do
         printf '#!/usr/bin/env bash\n# TRAMPA %s %s\necho "TRAMPA %s" >>"$FAKE/calls.log"\n' "$trap" "$v" "$trap" >"$src/$trap"
         chmod 0755 "$src/$trap"
     done
@@ -80,6 +80,7 @@ make_release() {
     chmod 0755 "$src/bin/growth-system"
     printf '[Unit]\nDescription=growth-app %s\n' "$v" >"$src/systemd/growth-app.service"
     printf '[Unit]\nDescription=growth.target\n' >"$src/systemd/growth.target"
+    printf '[Path]\nPathExists=/opt/growth/shared/state/backup-request.json\n' >"$src/systemd/growth-backup.path"
     local unpacked=1000000 files=200
     [[ $variant == big ]] && unpacked=900000000000
     jq -n --arg v "$v" --argjson b "$unpacked" --argjson f "$files" '{version: $v, commit: "abc1234", built_at: "2026-11-20T00:00:00Z",
