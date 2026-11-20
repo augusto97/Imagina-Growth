@@ -1,5 +1,74 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-20 — Versión 0.1.8: auditoría, tercer lote
+
+**Actualizar sin consola.** Desde esta versión el botón «Actualizar» de Plataforma → Actualizaciones aplica también
+la configuración del servidor que antes pedía volver a correr el instalador:
+- `infra/bin/growth-system` es el único lugar de esa configuración (perfil de memoria, MariaDB, ClickHouse, los dos
+  Redis, prioridades ante falta de memoria, permisos de `shared/state` y la caché de configuración). Lo llaman el
+  instalador (`apply --install`), el actualizador después de cambiar de versión (`apply --update`) y el servicio
+  `growth-system` antes de arrancar el panel (`apply --hook`), así que funciona aunque el servidor tenga todavía el
+  actualizador de la 0.1.7. Es idempotente: deja una marca con la versión, la memoria y la huella de lo aplicado.
+- La memoria se lee de `/proc/meminfo`, recortada al límite del cgroup si lo hay, o de `GROWTH_MEMORY_MB` en
+  `updater.conf`. ClickHouse se reinicia con copia de su configuración y vuelve a la anterior si no arranca.
+- Lo que sí se aplica en caliente: `maxmemory` y `save ""` de Redis, `innodb_buffer_pool_size` de MariaDB.
+- Actualizador más robusto: no instala una versión más vieja, usa `/var/lib/growth-update` (solo root) como
+  temporal, escribe el estado y el historial como root, en el perfil pequeño detiene el ML mientras extrae y migra
+  (y lo vuelve a levantar si algo falla), espera a MariaDB y `igr:clickhouse:migrate --wait=120` espera a ClickHouse.
+- La publicación de una versión corre antes toda la CI (`release.yml` usa `ci.yml`).
+- Probado de punta a punta: Ubuntu 26.04 con 1,6 GB, la 0.1.7 instalada con su propio instalador, pedido de
+  actualización desde el panel y, sin consola, Redis con 327 MB y sin RDB, prioridades de memoria de MariaDB,
+  ClickHouse y Redis, ClickHouse con memoria de servidor pequeño, usuario `igr` sin administración de accesos,
+  `shared/state` 1775, 2 hilos de PHP y el ML con prioridad 900.
+
+**Vendedor con IA (bloque «ARM», auditoría §5.1):**
+- La ficha del lead (qué busca, presupuesto, plazo, objeciones) se completa sola desde el chat de la bandeja; cada
+  valor debe estar en lo que escribió el cliente.
+- «Hoy» (`/w/:ws/hoy`): la lista del vendedor con a quién escribir, por qué y un mensaje sugerido que se envía por
+  el canal que permita la ventana; resumen matutino opcional por correo (`igr:leads:morning-digest`).
+- Flujo 18 con seguimiento con IA (días 2, 10, 20 y 40) y los nodos de leads `assign_agent`, `lead_stage`,
+  `crm_task` y `lead_followup` en el constructor.
+- Embudo de leads del lunes en el informe semanal, redactado con cifras validadas.
+
+**Interfaz:** menú agrupado por tarea (Clientes, Vender, Fidelizar, Medir, Configuración) que oculta lo que el plan
+o el tipo de negocio no usa; «Primeros pasos» en el inicio hasta la primera venta recuperada; semáforo de salud de
+cada sitio con la causa (sin eventos, cron atrasado, plugin viejo, sin tracker…); tablero de mensajería con datos
+reales; ⌘K busca contactos; textos sin jerga, contraste AA y mensajes de validación en español.
+
+**Seguridad y confiabilidad:**
+- Sin plan rige el plan gratuito «Diagnóstico» (`IGR_DEFAULT_PLAN`); las cuentas del superadmin tienen el plan
+  `plataforma` (S3).
+- Las salidas hacia URL de los clientes (webhooks, comandos al sitio, Zender, SMTP) resuelven el DNS y rechazan
+  redes internas, sin DNS rebinding ni redirecciones (S5).
+- Los avisos de SES solo se aceptan del tema de SNS de `IGR_SES_SNS_TOPIC_ARN`; sin él se rechazan (S6).
+- Cambiar el correo de la cuenta pide la contraseña actual (S11); Horizon exige 2FA y los trabajos con datos
+  personales van cifrados (S15); `/health` en público solo dice si está bien (S16, detalle con `IGR_HEALTH_TOKEN`).
+- Revisión de la instalación: `igr:doctor` y Plataforma → Instalación dicen qué falta configurar y cómo (F3, F15);
+  `igr:admin:create` crea o promueve al superadmin.
+- Mensajes trabados en «sending» se resuelven cada 5 min sin duplicar marketing (F9); los eventos del hub no
+  esperan a ClickHouse dentro de una petición web y los carritos abandonados no quedan marcados sin evento (R4).
+- Purga nocturna por retención con plazos documentados (R14).
+
+**Captura temprana del checkout (contrato v6, plugin 0.1.3):** el plugin envía firmado el correo o el teléfono que
+la persona escribe en el checkout. Viene **apagada**: se enciende en Consentimiento aceptando la responsabilidad
+(cumplimiento.md §3.2) y no crea consentimiento. Al importar contactos se declara el origen y la base legal (F7).
+El plugin 0.1.3 trae Estado y Diagnóstico sin jerga y avisa cuando hay una versión nueva.
+
+**Rendimiento:** sesiones incrementales, segmentos en tiempo real solo para los que dependen del evento, índices
+nuevos, RFM por lotes (R7, R8, R12, R15), caché de `widgets.json` renovada al guardar (R11) y uso de facturación
+incremental (R13).
+
+**Conexiones con un clic:** pantalla Conexiones con OAuth de Meta (Login for Business), Google (Ads, Data Manager,
+Analytics y Calendar) y TikTok, y WhatsApp por Embedded Signup v5 con coexistencia (el número sigue en la app de
+WhatsApp Business). Requieren crear las apps una vez (`docs/guia-apps-oauth.md`) y sus variables, que ya aparecen
+vacías en el `.env`; mientras tanto, los datos se siguen pegando a mano.
+
+**Notas para producción:** las cuentas sin plan quedan en «Diagnóstico» (asignar el plan en Plataforma → Clientes;
+Instalación las lista); con webhooks de SES hay que definir `IGR_SES_SNS_TOPIC_ARN`.
+
+Pruebas: hub 1307, SPA 214, connector 16 + 103 con WordPress, actualizador 268, `growth-system` 56, Larastan 0
+errores; recorrido en el navegador de las pantallas nuevas sin errores.
+
 ## 2026-11-20 — Versión 0.1.7: auditoría, segundo lote
 
 - **Dinero generado (F1):** el inicio y el tablero general usan el mismo cálculo que el reporte mensual de la agencia
