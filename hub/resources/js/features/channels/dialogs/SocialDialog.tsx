@@ -1,5 +1,7 @@
+import { Link2 } from 'lucide-react';
 import { type SyntheticEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -11,16 +13,16 @@ import { useConnectSocial } from '../api';
 import { fieldError } from '../shared';
 
 /**
- * Conexión manual de Messenger o Instagram Direct (M11, Fase 5): con la misma app
- * de Meta de WhatsApp, el ID de la página, su token (de un usuario del sistema) y,
- * para Instagram, el ID de la cuenta profesional vinculada.
+ * Messenger o Instagram Direct (M11, Fase 5): con un clic desde Conexiones → Meta (se
+ * elige la página y su cuenta de Instagram) o a mano con el ID de la página, su token
+ * (de un usuario del sistema) y, para Instagram, el ID de la cuenta profesional.
  */
 export function SocialDialog({ kind, open, onClose }: { kind: 'messenger' | 'instagram'; open: boolean; onClose: () => void }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const connect = useConnectSocial(workspace.id, kind);
     const [form, setForm] = useState({ page_id: '', ig_user_id: '', page_access_token: '' });
-    const fields = (kind === 'instagram' ? (['page_id', 'ig_user_id', 'page_access_token'] as const) : (['page_id', 'page_access_token'] as const));
+    const fields = kind === 'instagram' ? (['page_id', 'ig_user_id', 'page_access_token'] as const) : (['page_id', 'page_access_token'] as const);
 
     const submit = (e: SyntheticEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -44,6 +46,16 @@ export function SocialDialog({ kind, open, onClose }: { kind: 'messenger' | 'ins
                     <DialogTitle>{t(`channels.social.${kind}.title`)}</DialogTitle>
                     <DialogDescription>{t(`channels.social.${kind}.description`)}</DialogDescription>
                 </DialogHeader>
+                <div className="igr:flex igr:items-start igr:gap-3 igr:rounded-lg igr:border igr:p-3">
+                    <Link2 className="igr:mt-0.5 igr:size-4 igr:shrink-0 igr:text-primary" aria-hidden="true" />
+                    <div className="igr:flex-1 igr:space-y-1">
+                        <h3 className="igr:text-[13px] igr:font-semibold">{t('connections.shortcut.title')}</h3>
+                        <p className="igr:text-xs igr:text-muted-foreground">{t('connections.shortcut.social')}</p>
+                        <Button variant="outline" size="sm" asChild>
+                            <Link to={`/w/${workspace.id}/conexiones`}>{t('connections.shortcut.go')}</Link>
+                        </Button>
+                    </div>
+                </div>
                 <form id={`igr-${kind}-form`} onSubmit={submit} className="igr:grid igr:gap-3">
                     {fields.map((field) => (
                         <div key={field} className="igr:space-y-1">

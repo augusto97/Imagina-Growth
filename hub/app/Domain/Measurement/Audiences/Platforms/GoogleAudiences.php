@@ -10,6 +10,7 @@ use App\Domain\Measurement\Conversions\ErrorTranslator;
 use App\Domain\Measurement\Enums\Platform;
 use App\Domain\Measurement\Models\AdDestination;
 use App\Domain\Measurement\Support\GoogleAccessToken;
+use App\Domain\Measurement\Support\GoogleAdsHeaders;
 use App\Domain\Measurement\Support\UserDataHasher as H;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -36,10 +37,8 @@ final class GoogleAudiences implements AudiencePlatform
 
     public function missing(AdDestination $destination): ?string
     {
-        foreach (['ads_customer_id', 'oauth_refresh_token', 'ads_developer_token'] as $field) {
-            if ($destination->credential($field) === null) {
-                return __('Para Customer Match falta autorizar la cuenta de Google Ads (ID de cliente, autorización y developer token) en el destino.');
-            }
+        if ($destination->credential('ads_customer_id') === null || ! $destination->hasGoogleAuth('https://www.googleapis.com/auth/adwords') || ! $destination->hasGoogleAuth()) {
+            return __('Para Customer Match falta conectar Google (Conexiones) y elegir la cuenta de Google Ads del destino.');
         }
 
         return null;
@@ -48,7 +47,7 @@ final class GoogleAudiences implements AudiencePlatform
     public function create(AdDestination $destination, AudienceSync $sync): array
     {
         $customer = $this->customer($destination);
-        $url = rtrim((string) config('igr-measurement.google.ads_url'), '/').'/'.config('igr-measurement.google.ads_version').'/customers/'.$customer.'/userLists:mutate';
+        $url = GoogleAdsHeaders::url('customers/'.$customer.'/userLists:mutate');
         try {
             $response = Http::timeout(30)->withToken($this->tokens->for($destination))->withHeaders($this->adsHeaders($destination))->asJson()->post($url, [
                 'operations' => [['create' => [
@@ -134,11 +133,6 @@ final class GoogleAudiences implements AudiencePlatform
     /** @return array<string, string> */
     private function adsHeaders(AdDestination $destination): array
     {
-        $headers = ['developer-token' => (string) $destination->credential('ads_developer_token')];
-        if ($destination->credential('ads_login_customer_id') !== null) {
-            $headers['login-customer-id'] = (string) preg_replace('/\D/', '', (string) $destination->credential('ads_login_customer_id'));
-        }
-
-        return $headers;
+        return GoogleAdsHeaders::for($destination);
     }
 }

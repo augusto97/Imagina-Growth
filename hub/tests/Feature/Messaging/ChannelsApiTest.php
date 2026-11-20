@@ -97,15 +97,15 @@ it('el correo por SES pide los registros DKIM, SPF y DMARC y se activa al verifi
         ->and($ok->json('data.warmup.day'))->toBe(1)->and($ok->json('data.warmup.limit'))->toBe(50);
 });
 
-it('conecta WhatsApp oficial a mano o por Embedded Signup, sincroniza plantillas y no repite el número', function () {
+// Embedded Signup (con un clic) se prueba en tests/Feature/Connections/WhatsAppSignupTest.php.
+it('conecta WhatsApp oficial a mano, sincroniza plantillas y no repite el número', function () {
     Http::fake([
-        'graph.test/v24.0/oauth/access_token*' => Http::response(['access_token' => 'EAAB-negocio']),
-        'graph.test/v24.0/333333/subscribed_apps' => Http::response(['success' => true]),
-        'graph.test/v24.0/444444*' => Http::response(['display_phone_number' => '+57 301 4444444', 'verified_name' => 'Pinturas', 'quality_rating' => 'GREEN', 'messaging_limit_tier' => 'TIER_1K']),
-        'graph.test/v24.0/333333/message_templates*' => Http::response(['data' => [['id' => '55', 'name' => 'bienvenida', 'language' => 'es', 'category' => 'MARKETING', 'status' => 'APPROVED', 'components' => [['type' => 'BODY', 'text' => 'Hola {{1}}']]]]]),
-        'graph.test/v24.0/555555*' => Http::response(['error' => ['message' => 'Invalid OAuth access token']], 401),
+        'graph.test/v27.0/444444*' => Http::response(['display_phone_number' => '+57 301 4444444', 'verified_name' => 'Pinturas', 'quality_rating' => 'GREEN', 'messaging_limit_tier' => 'TIER_1K']),
+        'graph.test/v27.0/333333/message_templates*' => Http::response(['data' => [['id' => '55', 'name' => 'bienvenida', 'language' => 'es', 'category' => 'MARKETING', 'status' => 'APPROVED', 'components' => [['type' => 'BODY', 'text' => 'Hola {{1}}']]]]]),
+        'graph.test/v27.0/555555*' => Http::response(['error' => ['message' => 'Invalid OAuth access token']], 401),
     ]);
-    $res = $this->actingAs($this->owner)->postJson("{$this->api}/channels/whatsapp/embedded-signup", ['code' => 'abc', 'waba_id' => '333333', 'phone_number_id' => '444444'])->assertCreated();
+    $this->actingAs($this->owner)->postJson("{$this->api}/channels/whatsapp/embedded-signup", ['code' => 'abc', 'waba_id' => '333333', 'phone_number_id' => '444444'])->assertNotFound();
+    $res = $this->actingAs($this->owner)->postJson("{$this->api}/channels/whatsapp/manual", ['waba_id' => '333333', 'phone_number_id' => '444444', 'access_token' => 'EAAB-negocio-'.str_repeat('x', 20)])->assertCreated();
     expect($res->json('data'))->toMatchArray(['provider' => 'meta_cloud', 'status' => 'active', 'identity' => '+57 301 4444444', 'quality_rating' => 'GREEN', 'messaging_limit_tier' => 'TIER_1K'])
         ->and($res->getContent())->not->toContain('EAAB-negocio');
     expect(WaTemplate::withoutWorkspaceScope()->where('name', 'bienvenida')->value('status'))->toBe('APPROVED');
@@ -148,8 +148,8 @@ it('SMS por Twilio, lista sin secretos, cambia la cuenta por defecto, desconecta
 
 it('plantillas de WhatsApp: advierte el marketing disfrazado de utilidad, valida variables y las envía a Meta', function () {
     Http::fake([
-        'graph.test/v24.0/2222/message_templates*' => Http::response(['id' => '777', 'status' => 'PENDING', 'category' => 'UTILITY']),
-        'graph.test/v24.0/777' => Http::response(['success' => true]),
+        'graph.test/v27.0/2222/message_templates*' => Http::response(['id' => '777', 'status' => 'PENDING', 'category' => 'UTILITY']),
+        'graph.test/v27.0/777' => Http::response(['success' => true]),
     ]);
     $base = ['account' => $this->wa->publicId(), 'name' => 'confirmar_pedido', 'language' => 'es', 'category' => 'UTILITY',
         'body' => ['text' => 'Hola {{1}}, ¿confirmas tu pedido {{2}}? Aprovecha 10% de descuento', 'examples' => ['Ana', '1234']],

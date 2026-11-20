@@ -38,8 +38,9 @@ class BookingStaff extends Model
         return ['email' => 'encrypted', 'calendar' => EncryptedJson::class, 'active' => 'boolean'];
     }
 
+    /** Con el token propio de antes (refresh_token) o con una conexión de Google del módulo común (connection_id). */
     public function calendarConnected(): bool
     {
-        return is_array($this->calendar) && ($this->calendar['refresh_token'] ?? '') !== '';
+        return is_array($this->calendar) && (($this->calendar['refresh_token'] ?? '') !== '' || ($this->calendar['connection_id'] ?? '') !== '');
     }
 }

@@ -38,7 +38,9 @@ export interface ChannelAccount {
 export interface ChannelsResponse {
     data: ChannelAccount[];
     meta: {
-        embedded_signup: { app_id: string | null; config_id: string | null; graph_version: string };
+        /** Conexiones con un clic: WhatsApp (Embedded Signup) y Meta (Messenger e Instagram). */
+        embedded_signup: { configured: boolean; missing: string[] };
+        meta_login?: { configured: boolean; missing: string[] };
         zender_caps: { hourly: number; daily: number };
     };
 }
@@ -159,11 +161,6 @@ export const useCheckDns = (ws: string) => useChannelMutation(ws, (id: string) =
 export const useConnectWhatsApp = (ws: string) =>
     useChannelMutation(ws, (body: { waba_id: string; phone_number_id: string; access_token: string; display_name?: string }) =>
         api.post<{ data: ChannelAccount }>(`${wsPath(ws)}/channels/whatsapp/manual`, body),
-    );
-
-export const useEmbeddedSignup = (ws: string) =>
-    useChannelMutation(ws, (body: { code: string; waba_id: string; phone_number_id: string }) =>
-        api.post<{ data: ChannelAccount }>(`${wsPath(ws)}/channels/whatsapp/embedded-signup`, body),
     );
 
 export const useConnectZender = (ws: string) =>

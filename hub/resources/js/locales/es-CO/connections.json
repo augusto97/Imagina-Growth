@@ -1,0 +1,157 @@
+{
+    "connections": {
+        "title": "Conexiones",
+        "description": "Conecta tus cuentas de Meta, Google y TikTok con un clic: sin copiar ni pegar claves. Tú autorizas en la página de cada empresa y puedes desconectar cuando quieras.",
+        "account": "Cuenta:",
+        "allows": "Sirve para:",
+        "usedByLabel": "La usan:",
+        "unavailable": "Esta instalación todavía no tiene la app de {{provider}}. Quien administra la plataforma debe crearla y configurarla en el servidor.",
+        "missing": "Falta:",
+        "manual": "Mientras tanto, conecta pegando los datos a mano",
+        "status": {
+            "active": "Conectada",
+            "expired": "Hay que volver a conectar",
+            "error": "Con problemas",
+            "revoked": "Desconectada",
+            "none": "Sin conectar",
+            "unavailable": "No disponible"
+        },
+        "provider": {
+            "meta_whatsapp": {
+                "name": "WhatsApp",
+                "description": "Tu número de WhatsApp oficial para enviar mensajes, campañas y atender en la bandeja. Si ya usas la app de WhatsApp Business, puedes seguir usándola."
+            },
+            "meta": {
+                "name": "Meta (Facebook e Instagram)",
+                "description": "Envía tus ventas a Meta para que tus anuncios rindan más, sincroniza audiencias y atiende Messenger e Instagram en la bandeja."
+            },
+            "google": {
+                "name": "Google",
+                "description": "Envía tus ventas y leads a Google Ads, sincroniza audiencias, trae el gasto de tus campañas y conecta Google Analytics."
+            },
+            "tiktok": {
+                "name": "TikTok",
+                "description": "Envía tus ventas a TikTok para que tus anuncios rindan más, sincroniza audiencias y trae el gasto de tus campañas."
+            }
+        },
+        "uses": {
+            "conversions": "enviar ventas",
+            "ads": "cuentas de Google Ads",
+            "analytics": "Google Analytics",
+            "calendar": "agenda",
+            "audiences": "audiencias",
+            "spend": "gasto en anuncios",
+            "messenger": "Messenger",
+            "instagram": "Instagram",
+            "whatsapp": "WhatsApp"
+        },
+        "usedBy": {
+            "destination": "Medición ({{platform}})",
+            "whatsapp": "WhatsApp",
+            "messenger": "Messenger",
+            "instagram": "Instagram",
+            "email": "Correo",
+            "sms": "SMS"
+        },
+        "actions": {
+            "connect": "Conectar con un clic",
+            "reconnect": "Volver a conectar",
+            "pick": "Elegir cuentas",
+            "check": "Comprobar",
+            "disconnect": "Desconectar",
+            "disconnectWaba": "Desconectar la cuenta {{id}}",
+            "retryNumber": "Reintentar activar {{number}}"
+        },
+        "toast": {
+            "connected": "Listo: {{provider}} quedó conectado.",
+            "cancelled": "No se conectó {{provider}}: cancelaste en su página.",
+            "error": "No se pudo conectar {{provider}}.",
+            "startError": "No se pudo abrir la página de autorización.",
+            "checked": "La conexión funciona.",
+            "checkError": "La conexión tiene un problema.",
+            "disconnected": "Se desconectó la cuenta.",
+            "whatsapp": "Listo: tu WhatsApp {{number}} quedó conectado.",
+            "retryError": "Meta todavía no activó el número."
+        },
+        "reason": {
+            "state": "El enlace de autorización venció o ya se usó. Vuelve a intentarlo desde el botón.",
+            "scopes": "No aceptaste los permisos que hacen falta. Vuelve a conectar y deja marcadas las casillas.",
+            "exchange": "La empresa no aceptó la autorización. Vuelve a intentarlo en unos minutos.",
+            "expired": "El acceso venció o se revocó. Vuelve a conectar.",
+            "provider": "La empresa no respondió. Vuelve a intentarlo en unos minutos.",
+            "not_configured": "Esta instalación todavía no tiene la app configurada.",
+            "forbidden": "Tu rol en este espacio de trabajo no permite conectar cuentas.",
+            "asset": "Esa cuenta no está entre las que autorizaste."
+        },
+        "disconnect": {
+            "title": "¿Desconectar esta cuenta?",
+            "description": "Le quitamos el acceso a Imagina Growth y borramos las claves. Lo que dependía de esta conexión deja de enviar hasta que vuelvas a conectar o pegues los datos a mano."
+        },
+        "whatsapp": {
+            "button": "Conectar WhatsApp con un clic",
+            "coexistenceHelp": "Se abre una ventana de Meta. Si tu número ya está en la app de WhatsApp Business, elige conectar esa app: la sigues usando en tu celular y los mensajes también llegan aquí.",
+            "notConfigured": "La conexión con un clic todavía no está disponible en esta instalación. Usa la conexión manual o pide a quien administra la plataforma que la active.",
+            "cancelled": "Cerraste la ventana de Meta antes de terminar. Puedes intentarlo de nuevo cuando quieras.",
+            "genericError": "Meta no terminó la conexión. Vuelve a intentarlo en unos minutos.",
+            "sdkBlocked": "No se pudo abrir la ventana de Meta. Revisa que el navegador no esté bloqueando ventanas emergentes o extensiones de privacidad.",
+            "expired": "La ventana tardó demasiado y el permiso venció. Vuelve a intentarlo.",
+            "supportCode": "Si se repite, escribe a soporte con este código: {{code}}.",
+            "choosePhone": "¿Qué número quieres conectar?",
+            "useNumber": "Usar este número",
+            "inBusinessApp": "en la app de WhatsApp Business",
+            "coexistence": "también en la app de WhatsApp Business"
+        },
+        "pick": {
+            "title": "Elige las cuentas de {{provider}}",
+            "description": "Ya diste el permiso. Ahora elige qué cuentas usamos. Puedes cambiarlas cuando quieras.",
+            "none": "Sin elegir",
+            "save": "Guardar",
+            "saved": "Listo: las cuentas quedaron guardadas.",
+            "saveError": "No se pudieron guardar las cuentas.",
+            "google": {
+                "ads": "Google Ads (ventas y leads, audiencias y gasto)",
+                "customer": "Cuenta de Google Ads",
+                "noCustomers": "No encontramos cuentas de Google Ads con este acceso.",
+                "missingAds": "No diste permiso para Google Ads: vuelve a conectar si quieres enviar ventas a tus anuncios.",
+                "action": {
+                    "purchase": "Acción de conversión de compras",
+                    "lead": "Acción de conversión de formularios",
+                    "lead_won": "Acción de conversión de clientes ganados"
+                },
+                "analytics": "Google Analytics",
+                "missingAnalytics": "No diste permiso para Google Analytics.",
+                "property": "Propiedad",
+                "stream": "Sitio web",
+                "streamHelp": "Creamos la clave del Measurement Protocol por ti."
+            },
+            "meta": {
+                "ads": "Anuncios (ventas, audiencias y gasto)",
+                "dataset": "Conjunto de datos (píxel)",
+                "datasetHelp": "Es el mismo píxel que tienes en tu sitio: así Meta no cuenta dos veces la misma venta.",
+                "noDatasets": "No encontramos píxeles en las cuentas que autorizaste.",
+                "adAccount": "Cuenta publicitaria",
+                "adAccountHelp": "Para las audiencias y el gasto en anuncios.",
+                "pages": "Messenger e Instagram",
+                "noPages": "No autorizaste ninguna página de Facebook.",
+                "useMessenger": "Usar en Messenger",
+                "useInstagram": "Usar en Instagram",
+                "messengerConnected": "Listo: Messenger quedó en la bandeja.",
+                "instagramConnected": "Listo: Instagram quedó en la bandeja."
+            },
+            "tiktok": {
+                "advertiser": "Cuenta de anuncios",
+                "pixel": "Píxel"
+            }
+        },
+        "shortcut": {
+            "title": "Conéctalo con un clic",
+            "measurement": "Conecta Meta, Google o TikTok sin pegar claves y elige tus cuentas.",
+            "social": "Conecta tu página con un clic desde Conexiones: eliges la página y listo, sin copiar el token.",
+            "go": "Ir a Conexiones"
+        },
+        "destination": {
+            "connected": "Conectado con {{account}}"
+        },
+        "expiresAt": "El acceso vence el {{date}}: vuelve a conectar antes para no cortar los envíos."
+    }
+}

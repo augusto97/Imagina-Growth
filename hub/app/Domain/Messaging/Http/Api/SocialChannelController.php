@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Domain\Messaging\Http\Api;
 
+use App\Domain\Messaging\Actions\ConnectSocialAccount;
 use App\Domain\Messaging\Channels\Drivers\MetaInstagramDriver;
 use App\Domain\Messaging\Channels\Drivers\MetaMessengerDriver;
 use App\Domain\Messaging\Channels\Drivers\MetaSocialDriver;
 use App\Domain\Messaging\Enums\Channel;
 use App\Domain\Messaging\Models\ChannelAccount;
-use App\Domain\Workspaces\Actions\RecordAuditLog;
-use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -21,13 +20,12 @@ use RuntimeException;
  * Configuración → Canales: Messenger e Instagram Direct (M11, Fase 5). Conexión
  * manual con la misma app de Meta de WhatsApp: el ID de la página, su token de
  * acceso (permanente, de un usuario del sistema) y, para Instagram, el ID de la
- * cuenta profesional vinculada. Se comprueba con la Graph API antes de guardar y
- * se suscribe la app a los mensajes de la página; si la suscripción falla, la
- * cuenta queda activa con el aviso para hacerlo a mano.
+ * cuenta profesional vinculada. La de un clic (Conexiones → Meta) usa la misma
+ * acción, ConnectSocialAccount, que comprueba, suscribe y guarda.
  */
 final class SocialChannelController
 {
-    public function __construct(private readonly CurrentWorkspace $current, private readonly RecordAuditLog $audit) {}
+    public function __construct(private readonly ConnectSocialAccount $connect) {}
 
     /** POST /api/w/{ws}/channels/messenger */
     public function messenger(Request $request, MetaMessengerDriver $driver): JsonResponse
@@ -79,31 +77,6 @@ final class SocialChannelController
     /** @param array<string, string> $config */
     private function connect(MetaSocialDriver $driver, Channel $channel, array $config, ?string $name): JsonResponse
     {
-        try {
-            $info = $driver->verify($config);
-        } catch (RuntimeException $e) {
-            throw ValidationException::withMessages(['page_access_token' => __('Meta no reconoció la cuenta con ese token: :msg', ['msg' => $e->getMessage()])]);
-        }
-        if (ChannelAccount::withoutWorkspaceScope()->where('provider', $driver->provider())->where('external_id', $info['external_id'])->where('status', '!=', 'disconnected')->exists()) {
-            throw ValidationException::withMessages(['page_id' => __('Esa cuenta ya está conectada en Imagina Growth.')]);
-        }
-        $subscribeError = $driver->subscribePage($config['page_id'], $config['page_access_token']);
-        $account = ChannelAccount::query()->create([
-            'workspace_id' => $this->current->id(),
-            'channel' => $channel,
-            'provider' => $driver->provider(),
-            'display_name' => mb_substr($name ?? $info['name'], 0, 120),
-            'config' => $config + ['connected_via' => 'manual'],
-            'external_id' => $info['external_id'],
-            'identity' => $info['name'],
-            'status' => 'active',
-            'is_default' => ! ChannelAccount::query()->where('channel', $channel->value)->where('is_default', true)->where('status', 'active')->exists(),
-            'last_error' => $subscribeError !== null
-                ? mb_substr(__('No se pudo suscribir la app a los mensajes de la página (:msg). Hazlo en la app de Meta: Webhooks → :object.', ['msg' => $subscribeError, 'object' => $driver->webhookObject()]), 0, 500)
-                : null,
-        ]);
-        $this->audit->handle('channel.created', $account, ['provider' => $driver->provider(), 'via' => 'manual'], $account->workspace_id);
-
-        return response()->json(['data' => ChannelAccountPresenter::present($account)], 201);
+        return response()->json(['data' => ChannelAccountPresenter::present($this->connect->handle($driver, $channel, $config, $name, 'manual'))], 201);
     }
 }

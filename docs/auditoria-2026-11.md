@@ -85,7 +85,7 @@ generado sale en $0 y hay jerga técnica por todas partes. Las capturas están e
 |---|---|---|---|
 | U1 | P1 | Panel inutilizable en el celular (barra lateral fija). | ✅ 0.1.7: barra superior con menú lateral que se cierra al navegar; márgenes más chicos |
 | U2 | P1 | Menú de 29 entradas sin agrupar. | ✅ (lote 3): grupos por tarea (Clientes, Vender, Fidelizar, Medir, Configuración) plegables y recordados, el activo abierto; oculta módulos fuera del plan, lo de tiendas sin WooCommerce y lo de servicios en una tienda (`modules` y `capabilities` en `/api/me`); igual en el celular y en ⌘K |
-| U3 | P1 | Conectar WhatsApp exige pasos técnicos (ver §6). | ⏳ |
+| U3 | P1 | Conectar WhatsApp exige pasos técnicos (ver §6). | ✅ (lote 3): «Conectar WhatsApp con un clic» (Embedded Signup v5, con coexistencia) en Canales y Conexiones; la conexión manual sigue |
 | U4 | P2 | KPIs en 0 sin tracker y sitio «Conectado» sin datos: falta un semáforo de salud. | ✅ (lote 3): semáforo al día / con atraso / sin datos con causas concretas (servidor, navegador, WP-Cron, cola del plugin, versión mínima, rechazos, importación) y qué hacer, en Sitios, el detalle, el Inicio y Analítica (explica los KPI en 0 sin tracker) |
 | U5 | P2 | Jerga: «Diagnóstico» del plugin, textos de conciliación, códigos en el perfil 360, el texto del código de conexión no coincide. | ✅ (lote 3): «Revisar el plugin» con un resumen en palabras (tareas programadas, datos por enviar, errores; el JSON queda plegado para soporte); conciliación y datos recibidos sin «hub» ni códigos de eventos; departamentos por nombre en el perfil y en Geografía (CO, MX, VE); los pasos del código de conexión dicen lo que muestra el plugin; «el hub» y «tracker» fuera de los textos del dueño |
 | U6 | P2 | ⌘K no busca contactos; bandeja y segmentos sin estado vacío útil; errores del servidor en inglés. | ✅ (lote 3): ⌘K busca contactos (nombre, correo o teléfono con el índice ciego); la bandeja vacía explica cómo llegan los mensajes (conectar WhatsApp, botón en el sitio) o propone ver todas o quitar filtros; los segmentos sin calcular no muestran ceros; `lang/es/validation.php` con todas las reglas de Laravel (prueba que lo exige) |
@@ -112,7 +112,7 @@ Casi todas tienen su base en Imagina Growth; lo que falta es que trabajen solas 
 
 | Función | Qué hay | Qué falta |
 |---|---|---|
-| 1. Responde al instante | Agente de ventas con IA en WhatsApp, Messenger e Instagram (modo `auto`) | Conectar WhatsApp sin fricción (§6) |
+| 1. Responde al instante | Agente de ventas con IA en WhatsApp, Messenger e Instagram (modo `auto`) | ✅ (lote 3) WhatsApp, Messenger e Instagram con un clic (§6); faltan las apps de Meta reales |
 | 2. La ficha se completa sola | Intención del mensaje, lead por intención de compra, calificación con IA del formulario | Que el agente extraiga durante el chat qué necesita, cuánto, dónde, para cuándo y la temperatura, y lo guarde en el lead |
 | 3. Filtra a los curiosos | Reglas de asignación por intención, traspaso a humano, puntaje y aviso al vendedor «caliente» | Preguntas de calificación configurables y derivación dueño / vendedor / agente / web |
 | 4. Atiende el fin de semana | El agente agenda citas; página de reservas | Ofrecer horarios dentro del chat de WhatsApp de punta a punta |
@@ -136,19 +136,34 @@ incluso cuando actualiza el actualizador anterior). El botón de actualizar es e
 
 ## 6. Conexiones con terceros
 
-Hoy solo Google Calendar usa OAuth de verdad; el resto pide pegar tokens. Plan:
+Antes solo Google Calendar usaba OAuth de verdad; el resto pedía pegar tokens. Estado:
 
-1. Módulo común `app/Domain/Connections` (conexiones OAuth con prefijo `oac`, rutas de inicio y retorno, puente de
-   credenciales para destinos de anuncios y canales).
-2. WhatsApp por *Embedded Signup* con coexistencia (el número sigue en la app de WhatsApp Business).
-3. Google (Ads + Data Manager, Analytics, Calendar) con un solo OAuth de la plataforma.
-4. Meta para anuncios y audiencias; 5. TikTok; 6. Messenger e Instagram.
-7. **Imagina Whats** (WhatsApp Web por QR, API REST con token): falta su documentación (URL base, autenticación,
+1. ✅ (lote 3) Módulo común `app/Domain/Connections` (modelo-de-datos.md §16): `oauth_connections` (prefijo `oac`)
+   por espacio de trabajo, proveedor y sujeto, con los tokens cifrados; `state` firmado y de un solo uso
+   (`oauth_states`), ligado a la persona y al espacio de trabajo; PKCE S256 con Google; refresco automático con
+   candado (`ConnectionTokens`); revisión diaria `igr:connections:check` (03:52); desconexión con revocación en el
+   proveedor. Rutas `routes/api/connections.php` y la vuelta `GET /oauth/{meta|google|tiktok}/callback` (grupo
+   `web`, solo al dominio del panel). Puente: `ad_destinations.oauth_connection_id` y
+   `channel_accounts.oauth_connection_id` (trait `UsesOAuthConnection`): Meta CAPI, Data Manager, Google Ads,
+   TikTok Events, audiencias, gasto y WhatsApp usan la conexión; los tokens pegados a mano siguen como respaldo.
+   Pantalla **Conexiones** (`/w/:ws/conexiones`) con una tarjeta por proveedor, su estado y la elección de cuentas.
+2. ✅ (lote 3) WhatsApp por *Embedded Signup* **v5** con coexistencia: `connections/meta_whatsapp/start|complete|abandon`
+   y `connections/{id}/whatsapp-number`; canje del código, `debug_token` (app, permisos y WABA autorizada),
+   `POST /{waba}/subscribed_apps`, registro del número con PIN (o, en coexistencia, `smb_app_data` de contactos e
+   historial sin registrar) y plantillas sincronizadas. Cancelar o un error de la ventana quedan en la auditoría.
+3. ✅ (lote 3) Google con un solo OAuth: Ads/Data Manager (cuenta, MCC y acciones de conversión), Analytics (propiedad,
+   flujo web y el secreto del Measurement Protocol creado solo) y Calendar (la agenda usa el flujo común si está
+   `IGR_GOOGLE_CLIENT_ID`; las conexiones de antes siguen con su cliente).
+4. ✅ (lote 3) Meta Login for Business: conjunto de datos (píxel) y cuenta publicitaria para CAPI, audiencias y gasto;
+   5. ✅ TikTok for Business (anunciante y píxel); 6. ✅ Messenger e Instagram (eligiendo la página).
+7. ⏳ **Imagina Whats** (WhatsApp Web por QR, API REST con token): falta su documentación (URL base, autenticación,
    envío de texto y medios, webhooks de entrada y estados).
 
-**Por verificar antes de cambiar código:** la auditoría reporta que Meta retiró las versiones 2 y 3 de *Embedded
-Signup*, que la versión por defecto de Graph para la API de marketing venció y que Google Ads v21 ya no existe. Cada
-dato se confirma en la documentación oficial antes de tocar el cliente correspondiente.
+**Verificado en la documentación oficial (20 nov 2026):** Meta retiró *Embedded Signup* v2 y v3 el 15 de octubre de
+2026 y la v5 (20 oct 2026) es la recomendada; la Marketing API v24.0 venció el 6 de octubre de 2026 (la Graph v24.0
+sigue hasta feb 2028): el hub pasa a **Graph/Marketing API v27.0**. Google Ads v21 ya no existe: el hub pasa a
+**v26**; el developer token dejó de exigirse el 9 de septiembre de 2026 (ahora es opcional).
 
 Para usar OAuth hacen falta las apps de desarrollador de Meta (Tech Provider), Google (verificación de alcances
-sensibles) y TikTok (revisión). Hoy no existe ninguna; la guía para crearlas va con esa entrega.
+sensibles) y TikTok (revisión). Hoy no existe ninguna: la guía paso a paso es `docs/guia-apps-oauth.md`. Todo se
+probó con respuestas simuladas; falta el recorrido con las apps reales.

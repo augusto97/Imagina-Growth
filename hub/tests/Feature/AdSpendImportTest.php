@@ -20,12 +20,12 @@ function measurementSpendRows($test): array
 it('importa el gasto de Meta con paginación y es idempotente', function () {
     $this->destination($this->ws, Platform::Meta);
     Http::fake([
-        'graph.facebook.com/v24.0/act_998877/insights?after=X' => Http::response([
+        'graph.facebook.com/v27.0/act_998877/insights?after=X' => Http::response([
             'data' => [['date_start' => '2026-11-17', 'campaign_id' => 'c1', 'campaign_name' => 'Noviembre', 'adset_id' => 'as1', 'ad_id' => 'ad1', 'spend' => '80000', 'impressions' => '700', 'clicks' => '21', 'account_currency' => 'COP']],
         ]),
-        'graph.facebook.com/v24.0/act_998877/insights*' => Http::response([
+        'graph.facebook.com/v27.0/act_998877/insights*' => Http::response([
             'data' => [['date_start' => '2026-11-16', 'campaign_id' => 'c1', 'campaign_name' => 'Noviembre', 'adset_id' => 'as1', 'ad_id' => 'ad1', 'spend' => '120000.50', 'impressions' => '1000', 'clicks' => '40', 'account_currency' => 'COP']],
-            'paging' => ['next' => 'https://graph.facebook.com/v24.0/act_998877/insights?after=X'],
+            'paging' => ['next' => 'https://graph.facebook.com/v27.0/act_998877/insights?after=X'],
         ]),
     ]);
     $this->artisan('igr:ad-spend:import', ['--days' => 2])->assertSuccessful();

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Messaging\Models;
 
+use App\Domain\Connections\Support\UsesOAuthConnection;
 use App\Domain\Messaging\Enums\Channel;
 use App\Support\Ids\HasPrefixedUlid;
 use App\Support\Tenancy\BelongsToWorkspace;
@@ -15,12 +16,17 @@ use Illuminate\Database\Eloquent\Model;
  * WhatsApp o una cuenta de SMS. `config` va cifrado (tokens, waba_id,
  * phone_number_id, DKIM). La gestiona M07.
  *
+ * WhatsApp por Embedded Signup guarda el token del negocio en la conexión
+ * (`oauth_connection_id`, §16): `credential('access_token')` lo toma de ahí y
+ * cae al token pegado a mano si la cuenta se conectó a mano.
+ *
  * @property string $id
  * @property string $workspace_id
  * @property Channel $channel
  * @property string $provider
  * @property string $display_name
  * @property array<string, mixed>|null $config
+ * @property string|null $oauth_connection_id
  * @property string|null $identity
  * @property string|null $external_id
  * @property CarbonInterface|null $warmup_started_at
@@ -34,13 +40,13 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ChannelAccount extends Model
 {
-    use BelongsToWorkspace, HasPrefixedUlid;
+    use BelongsToWorkspace, HasPrefixedUlid, UsesOAuthConnection;
 
     public const ID_PREFIX = 'cha';
 
     public const ZENDER = 'zender';
 
-    protected $fillable = ['workspace_id', 'channel', 'provider', 'display_name', 'config', 'identity', 'external_id', 'quality_rating', 'messaging_limit_tier', 'warmup_started_at', 'is_default', 'status', 'last_error', 'risk_accepted_at', 'risk_accepted_by'];
+    protected $fillable = ['workspace_id', 'channel', 'provider', 'display_name', 'config', 'oauth_connection_id', 'identity', 'external_id', 'quality_rating', 'messaging_limit_tier', 'warmup_started_at', 'is_default', 'status', 'last_error', 'risk_accepted_at', 'risk_accepted_by'];
 
     protected $hidden = ['config'];
 
@@ -58,6 +64,9 @@ class ChannelAccount extends Model
     /** Un dato de la configuración cifrada (token, waba_id, dominio…). */
     public function credential(string $key): ?string
     {
+        if ($key === 'access_token' && $this->provider === 'meta_cloud' && ($token = $this->connectionToken()) !== null) {
+            return $token;
+        }
         $value = $this->config[$key] ?? null;
 
         return is_scalar($value) && (string) $value !== '' ? (string) $value : null;

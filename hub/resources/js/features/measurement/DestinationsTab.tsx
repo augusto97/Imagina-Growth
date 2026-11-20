@@ -1,6 +1,7 @@
 import { CircleAlert, FlaskConical, Pencil, Plus, Radar, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { Badge, StatusDot } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -38,13 +39,31 @@ export function DestinationsTab() {
 
     return (
         <div className="igr:space-y-4">
+            {canManage ? (
+                <div className="igr:flex igr:flex-wrap igr:items-center igr:justify-between igr:gap-2 igr:rounded-lg igr:border igr:border-dashed igr:p-3">
+                    <div>
+                        <p className="igr:text-[13px] igr:font-semibold">{t('connections.shortcut.title')}</p>
+                        <p className="igr:text-xs igr:text-muted-foreground">{t('connections.shortcut.measurement')}</p>
+                    </div>
+                    <Button variant="outline" size="sm" asChild>
+                        <Link to={`/w/${workspace.id}/conexiones`}>{t('connections.shortcut.go')}</Link>
+                    </Button>
+                </div>
+            ) : null}
             <ModesExplainer />
             {list.length === 0 ? (
                 <EmptyState
                     icon={Radar}
                     title={t('measurement.empty.title')}
                     description={t('measurement.empty.description')}
-                    action={canManage ? <Button onClick={() => setEditing('new')}><Plus />{t('measurement.destinations.add')}</Button> : undefined}
+                    action={
+                        canManage ? (
+                            <Button onClick={() => setEditing('new')}>
+                                <Plus />
+                                {t('measurement.destinations.add')}
+                            </Button>
+                        ) : undefined
+                    }
                 />
             ) : (
                 <>
@@ -63,13 +82,7 @@ export function DestinationsTab() {
                     </div>
                 </>
             )}
-            {editing !== null ? (
-                <DestinationDialog
-                    destination={editing === 'new' ? null : editing}
-                    events={destinations.data.events}
-                    onClose={() => setEditing(null)}
-                />
-            ) : null}
+            {editing !== null ? <DestinationDialog destination={editing === 'new' ? null : editing} events={destinations.data.events} onClose={() => setEditing(null)} /> : null}
             <DeleteDialog destination={deleting} onClose={() => setDeleting(null)} />
         </div>
     );
@@ -99,13 +112,21 @@ function DestinationCard({ destination: d, canManage, onEdit, onDelete }: { dest
                 if (result.ok) {
                     toast.success(t('measurement.test.ok'));
                 } else {
-                    toast.error(t('measurement.test.failed'), result.results.filter((r) => !r.ok).map((r) => r.message).join(' '));
+                    toast.error(
+                        t('measurement.test.failed'),
+                        result.results
+                            .filter((r) => !r.ok)
+                            .map((r) => r.message)
+                            .join(' '),
+                    );
                 }
             },
             onError: (error) => toast.error(t('measurement.test.failed'), isApiError(error) ? error.message : undefined),
         });
     };
-    const endpoints = Object.entries(d.endpoints).filter(([, on]) => on).map(([key]) => key);
+    const endpoints = Object.entries(d.endpoints)
+        .filter(([, on]) => on)
+        .map(([key]) => key);
 
     return (
         <Card>
@@ -117,6 +138,11 @@ function DestinationCard({ destination: d, canManage, onEdit, onDelete }: { dest
                         <ModeBadge mode={d.mode} />
                         {d.status === 'paused' ? <Badge variant="outline">{t('measurement.destinations.paused')}</Badge> : null}
                         {d.test_event_code ? <Badge variant="warning">{t('measurement.destinations.testMode')}</Badge> : null}
+                        {d.connection ? (
+                            <Badge variant={d.connection.status === 'active' ? 'success' : 'warning'}>
+                                {t('connections.destination.connected', { account: d.connection.account_name ?? d.connection.provider })}
+                            </Badge>
+                        ) : null}
                     </div>
                     <p className="igr:text-xs igr:text-muted-foreground">
                         {endpoints.length > 0 ? endpoints.map((e) => t(`measurement.endpoint.${e}`)).join(' · ') : t('measurement.destinations.noEndpoints')}
@@ -124,7 +150,9 @@ function DestinationCard({ destination: d, canManage, onEdit, onDelete }: { dest
                     </p>
                     <p className="igr:flex igr:items-center igr:gap-1.5 igr:text-xs igr:text-muted-foreground">
                         <StatusDot tone={d.last_error ? 'destructive' : d.last_delivered_at ? 'success' : 'muted'} />
-                        {d.last_delivered_at ? t('measurement.destinations.lastDelivered', { when: formatRelative(d.last_delivered_at, workspace.locale) }) : t('measurement.destinations.neverDelivered')}
+                        {d.last_delivered_at
+                            ? t('measurement.destinations.lastDelivered', { when: formatRelative(d.last_delivered_at, workspace.locale) })
+                            : t('measurement.destinations.neverDelivered')}
                     </p>
                     {d.last_error ? (
                         <p className="igr:flex igr:items-start igr:gap-1.5 igr:rounded-md igr:bg-destructive/8 igr:p-2 igr:text-xs igr:text-destructive">
@@ -133,7 +161,8 @@ function DestinationCard({ destination: d, canManage, onEdit, onDelete }: { dest
                         </p>
                     ) : null}
                     <p className="igr:text-xs igr:text-muted-foreground">
-                        {t('measurement.destinations.events', { count: d.events_enabled.length })}: {d.events_enabled.map((e) => t(`measurement.events.${e.replace('.', '_')}`)).join(', ')}
+                        {t('measurement.destinations.events', { count: d.events_enabled.length })}:{' '}
+                        {d.events_enabled.map((e) => t(`measurement.events.${e.replace('.', '_')}`)).join(', ')}
                     </p>
                 </div>
                 {canManage ? (

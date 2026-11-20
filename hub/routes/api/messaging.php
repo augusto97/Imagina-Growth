@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Route;
 // M07: canales, plantillas de WhatsApp, supresión y mensajes del contacto (incluido en /api/w/{workspace}).
 Route::get('channels', [ChannelController::class, 'index']);
 Route::post('channels/email', [ChannelController::class, 'storeEmail']);
-Route::post('channels/whatsapp/embedded-signup', [ChannelController::class, 'embeddedSignup']);
 Route::post('channels/whatsapp/manual', [ChannelController::class, 'whatsappManual']);
 Route::post('channels/whatsapp/zender', [ChannelController::class, 'zender']);
 Route::post('channels/sms/twilio', [ChannelController::class, 'twilio']);

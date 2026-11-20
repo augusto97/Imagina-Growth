@@ -7,13 +7,15 @@ namespace App\Domain\Measurement\AdSpend;
 use App\Domain\Measurement\Enums\Platform;
 use App\Domain\Measurement\Models\AdDestination;
 use App\Domain\Measurement\Support\GoogleAccessToken;
+use App\Domain\Measurement\Support\GoogleAdsHeaders;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
  * Google Ads API: googleAds:searchStream con GAQL por grupo de anuncios y día.
- * Necesita developer token y OAuth [verificar versión de la API].
+ * Necesita OAuth con el alcance `adwords` (la conexión de Google o el refresh
+ * token pegado); el developer token ya es opcional (GoogleAdsHeaders).
  */
 final class GoogleSpendImporter implements SpendImporter
 {
@@ -23,23 +25,19 @@ final class GoogleSpendImporter implements SpendImporter
     {
         return $destination->platform === Platform::Google
             && $destination->credential('ads_customer_id') !== null
-            && $destination->credential('ads_developer_token') !== null
-            && $destination->credential('oauth_refresh_token') !== null;
+            && $destination->hasGoogleAuth('https://www.googleapis.com/auth/adwords');
     }
 
     public function fetch(AdDestination $destination, CarbonImmutable $from, CarbonImmutable $to): array
     {
         $customer = (string) preg_replace('/\D/', '', (string) $destination->credential('ads_customer_id'));
-        $url = rtrim((string) config('igr-measurement.google.ads_url'), '/').'/'.config('igr-measurement.google.ads_version')."/customers/{$customer}/googleAds:searchStream";
+        $url = GoogleAdsHeaders::url("customers/{$customer}/googleAds:searchStream");
         $gaql = sprintf(
             "SELECT campaign.id, campaign.name, ad_group.id, segments.date, metrics.cost_micros, metrics.impressions, metrics.clicks, customer.currency_code FROM ad_group WHERE segments.date BETWEEN '%s' AND '%s'",
             $from->toDateString(),
             $to->toDateString(),
         );
-        $headers = ['developer-token' => (string) $destination->credential('ads_developer_token')];
-        if ($destination->credential('ads_login_customer_id') !== null) {
-            $headers['login-customer-id'] = (string) preg_replace('/\D/', '', (string) $destination->credential('ads_login_customer_id'));
-        }
+        $headers = GoogleAdsHeaders::for($destination);
         $response = Http::timeout(60)->withToken($this->tokens->for($destination))->withHeaders($headers)->asJson()->post($url, ['query' => $gaql]);
         if (! $response->successful()) {
             throw new RuntimeException(__('Google Ads no entregó el gasto (HTTP :status): :msg', ['status' => $response->status(), 'msg' => (string) $response->json('0.error.message', $response->json('error.message', ''))]));
