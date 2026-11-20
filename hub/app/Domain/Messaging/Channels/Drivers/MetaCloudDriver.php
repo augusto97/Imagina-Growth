@@ -258,33 +258,6 @@ final class MetaCloudDriver implements ChannelDriver
         ];
     }
 
-    /**
-     * Canje del código de Embedded Signup por el token del negocio, suscripción de la
-     * app a la WABA y registro del número **[verificar]** con la app real de Meta.
-     */
-    public function exchangeEmbeddedSignup(string $code): string
-    {
-        $response = Http::timeout(15)->acceptJson()->get($this->url('oauth/access_token'), [
-            'client_id' => config('igr-messaging.meta.app_id'),
-            'client_secret' => config('igr-messaging.meta.app_secret'),
-            'code' => $code,
-        ]);
-        $token = $response->json('access_token');
-        if (! $response->successful() || ! is_string($token)) {
-            throw new \RuntimeException($this->errorMessage($response));
-        }
-
-        return $token;
-    }
-
-    public function subscribeApp(string $wabaId, string $token): void
-    {
-        $response = Http::withToken($token)->timeout(15)->post($this->url($wabaId.'/subscribed_apps'));
-        if (! $response->successful()) {
-            throw new \RuntimeException($this->errorMessage($response));
-        }
-    }
-
     public function estimateCost(ChannelAccount $account, string $country, MessageKind $kind): ?float
     {
         return WaRates::rate($country, $kind);

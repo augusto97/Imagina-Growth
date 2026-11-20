@@ -14,6 +14,7 @@ use App\Domain\Bookings\Models\BookingStaff;
 use App\Domain\Bookings\Support\BookingSettings;
 use App\Domain\Bookings\Support\SlotFinder;
 use App\Domain\Bookings\Support\SlotTaken;
+use App\Domain\Connections\Support\ConnectionError;
 use App\Domain\Contacts\Http\ContactAccess;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
@@ -161,6 +162,9 @@ final class BookingController
     {
         Gate::authorize('ws.manageServices');
         $model = BookingStaff::findByPublicId($staff) ?? abort(404);
+        if ($model->calendarConnected()) {
+            app(GoogleCalendar::class)->disconnect($model);  // también revoca la conexión común de esa persona
+        }
         $model->forceFill(['active' => false, 'calendar' => null])->save();
         $this->audit->handle('booking_staff.deactivated', $model, [], $this->current->id());
 
@@ -182,7 +186,11 @@ final class BookingController
             return response()->json(['message' => __('La conexión con Google Calendar no está configurada en el hub.')], 422);
         }
 
-        return response()->json(['url' => $google->authUrl($model)]);
+        try {
+            return response()->json(['url' => $google->connectUrl($model, (string) $request->user()?->getAuthIdentifier())]);
+        } catch (ConnectionError $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 
     /** PUT bookings/availability {staff_id?, rows: [{weekday, start, end}], exceptions: [...]} — reemplaza el horario */

@@ -46,7 +46,7 @@ final class DataManagerTarget implements ConversionTarget
             && isset(self::ACTIONS[$event])
             && $destination->credential(self::ACTIONS[$event]) !== null
             && $destination->credential('ads_customer_id') !== null
-            && $destination->credential('oauth_refresh_token') !== null;
+            && $destination->hasGoogleAuth();
     }
 
     public function build(ConversionInput $input, AdDestination $destination): array

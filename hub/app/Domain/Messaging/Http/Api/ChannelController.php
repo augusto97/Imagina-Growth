@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\Messaging\Http\Api;
 
+use App\Domain\Connections\Actions\DisconnectConnection;
+use App\Domain\Connections\Enums\ConnectionProvider;
+use App\Domain\Connections\Providers\ProviderRegistry;
+use App\Domain\Messaging\Actions\ConnectWhatsAppNumber;
 use App\Domain\Messaging\Channels\DriverRegistry;
 use App\Domain\Messaging\Channels\Drivers\MetaCloudDriver;
 use App\Domain\Messaging\Channels\Drivers\MetaSocialDriver;
@@ -31,16 +35,17 @@ use RuntimeException;
 
 /**
  * Configuración → Canales (M07): cuentas de correo (SES con asistente de
- * dominio, o SMTP), WhatsApp oficial (Embedded Signup o manual), Zender (con
- * el aviso de riesgo que acepta el owner) y SMS (Twilio). Messenger e Instagram
- * se conectan en SocialChannelController (Fase 5).
+ * dominio, o SMTP), WhatsApp oficial (manual aquí; Embedded Signup con un clic en
+ * Connections\Http\WhatsAppSignupController), Zender (con el aviso de riesgo que
+ * acepta el owner) y SMS (Twilio). Messenger e Instagram se conectan en
+ * SocialChannelController (Fase 5) o con un clic desde Conexiones → Meta.
  */
 final class ChannelController
 {
     public function __construct(private readonly CurrentWorkspace $current, private readonly RecordAuditLog $audit) {}
 
     /** GET /api/w/{ws}/channels */
-    public function index(): JsonResponse
+    public function index(ProviderRegistry $providers): JsonResponse
     {
         Gate::authorize('ws.viewWorkspace');
         $accounts = ChannelAccount::query()->where('status', '!=', 'disconnected')->orderBy('channel')->orderByDesc('is_default')->orderBy('created_at')->get();
@@ -48,11 +53,9 @@ final class ChannelController
         return response()->json([
             'data' => $accounts->map(fn (ChannelAccount $a) => ChannelAccountPresenter::present($a))->values(),
             'meta' => [
-                'embedded_signup' => [
-                    'app_id' => config('igr-messaging.meta.app_id'),
-                    'config_id' => config('igr-messaging.meta.embedded_signup_config_id'),
-                    'graph_version' => config('igr-messaging.meta.graph_version'),
-                ],
+                // Con un clic (Conexiones): la SPA pide el state y los datos del SDK en connections/meta_whatsapp/start.
+                'embedded_signup' => ['configured' => $providers->configured(ConnectionProvider::MetaWhatsApp), 'missing' => $providers->for(ConnectionProvider::MetaWhatsApp)->missing()],
+                'meta_login' => ['configured' => $providers->configured(ConnectionProvider::Meta), 'missing' => $providers->for(ConnectionProvider::Meta)->missing()],
                 'zender_caps' => ['hourly' => (int) config('igr-messaging.zender.hourly_cap'), 'daily' => (int) config('igr-messaging.zender.daily_cap')],
             ],
         ]);
@@ -127,27 +130,8 @@ final class ChannelController
         return response()->json(['data' => ChannelAccountPresenter::present($account->fresh() ?? $account), 'records' => $records, 'ses_status' => $sesStatus, 'verified' => $verified]);
     }
 
-    /** POST /api/w/{ws}/channels/whatsapp/embedded-signup — canje del código de Meta [verificar]. */
-    public function embeddedSignup(Request $request, MetaCloudDriver $meta): JsonResponse
-    {
-        Gate::authorize('ws.manageWorkspace');
-        $data = $request->validate([
-            'code' => ['required', 'string', 'max:1000'],
-            'waba_id' => ['required', 'string', 'regex:/^\d{5,30}$/'],
-            'phone_number_id' => ['required', 'string', 'regex:/^\d{5,30}$/'],
-        ]);
-        try {
-            $token = $meta->exchangeEmbeddedSignup($data['code']);
-            $meta->subscribeApp($data['waba_id'], $token);
-        } catch (RuntimeException $e) {
-            throw ValidationException::withMessages(['code' => __('Meta no completó la conexión: :msg', ['msg' => $e->getMessage()])]);
-        }
-
-        return $this->connectWhatsApp($meta, $data['waba_id'], $data['phone_number_id'], $token, null, 'embedded_signup');
-    }
-
     /** POST /api/w/{ws}/channels/whatsapp/manual — WABA, número y token permanente. */
-    public function whatsappManual(Request $request, MetaCloudDriver $meta): JsonResponse
+    public function whatsappManual(Request $request, ConnectWhatsAppNumber $connect): JsonResponse
     {
         Gate::authorize('ws.manageWorkspace');
         $data = $request->validate([
@@ -157,31 +141,12 @@ final class ChannelController
             'display_name' => ['nullable', 'string', 'max:120'],
         ]);
 
-        return $this->connectWhatsApp($meta, $data['waba_id'], $data['phone_number_id'], $data['access_token'], $data['display_name'] ?? null, 'manual');
-    }
+        $account = $connect->handle(
+            ['waba_id' => $data['waba_id'], 'phone_number_id' => $data['phone_number_id'], 'access_token' => $data['access_token'], 'connected_via' => 'manual'],
+            $data['display_name'] ?? null,
+        );
 
-    private function connectWhatsApp(MetaCloudDriver $meta, string $waba, string $phoneId, string $token, ?string $name, string $via): JsonResponse
-    {
-        if (ChannelAccount::withoutWorkspaceScope()->where('provider', 'meta_cloud')->where('external_id', $phoneId)->where('status', '!=', 'disconnected')->exists()) {
-            throw ValidationException::withMessages(['phone_number_id' => __('Ese número ya está conectado en Imagina Growth.')]);
-        }
-        $account = new ChannelAccount(['channel' => Channel::WhatsApp, 'provider' => 'meta_cloud', 'display_name' => $name ?? 'WhatsApp', 'external_id' => $phoneId, 'status' => 'pending']);
-        $account->config = ['waba_id' => $waba, 'phone_number_id' => $phoneId, 'access_token' => $token, 'connected_via' => $via];
-        try {
-            $info = $meta->phoneInfo($account);
-        } catch (RuntimeException $e) {
-            throw ValidationException::withMessages(['access_token' => __('Meta no reconoció el número con ese token: :msg', ['msg' => $e->getMessage()])]);
-        }
-        $created = $this->create(Channel::WhatsApp, 'meta_cloud', $name ?? ($info['verified_name'] ?? 'WhatsApp'), $account->config, $phoneId, $info['display_phone_number'], 'active');
-        $created->forceFill(['quality_rating' => $info['quality_rating'], 'messaging_limit_tier' => $info['messaging_limit_tier']])->save();
-        $this->audit->handle('channel.created', $created, ['provider' => 'meta_cloud', 'via' => $via], $created->workspace_id);
-        try {
-            $meta->syncTemplates($created);
-        } catch (RuntimeException) {
-            // Las plantillas se pueden sincronizar después desde el panel.
-        }
-
-        return response()->json(['data' => ChannelAccountPresenter::present($created)], 201);
+        return response()->json(['data' => ChannelAccountPresenter::present($account)], 201);
     }
 
     /** POST /api/w/{ws}/channels/whatsapp/zender — solo el owner, aceptando el riesgo (cumplimiento.md §5.2). */
@@ -260,12 +225,21 @@ final class ChannelController
         return response()->json(['data' => ChannelAccountPresenter::present($account)]);
     }
 
-    /** DELETE /api/w/{ws}/channels/{id} — se desconecta y se borran sus credenciales; el historial queda. */
-    public function destroy(string $channel): JsonResponse
+    /**
+     * DELETE /api/w/{ws}/channels/{id} — se desconecta y se borran sus credenciales; el historial queda. Si la
+     * cuenta se conectó con un clic y nadie más usa esa conexión de WhatsApp, también se revoca (la cuenta deja
+     * de mandar sus webhooks a la app).
+     */
+    public function destroy(string $channel, DisconnectConnection $disconnect): JsonResponse
     {
         Gate::authorize('ws.manageWorkspace');
         $account = $this->find($channel);
-        $account->forceFill(['status' => 'disconnected', 'is_default' => false, 'config' => array_intersect_key($account->config ?? [], array_flip(['domain', 'from_email']))])->save();
+        $connection = $account->linkedConnection();
+        $account->forceFill(['status' => 'disconnected', 'is_default' => false, 'oauth_connection_id' => null, 'config' => array_intersect_key($account->config ?? [], array_flip(['domain', 'from_email']))])->save();
+        if ($connection !== null && $connection->provider === ConnectionProvider::MetaWhatsApp
+            && ! ChannelAccount::query()->where('oauth_connection_id', $connection->id)->where('status', '!=', 'disconnected')->exists()) {
+            $disconnect->handle($connection);
+        }
         $this->audit->handle('channel.disconnected', $account, ['provider' => $account->provider], $account->workspace_id);
 
         return response()->json(['ok' => true]);

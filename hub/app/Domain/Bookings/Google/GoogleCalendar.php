@@ -7,6 +7,12 @@ namespace App\Domain\Bookings\Google;
 use App\Domain\Bookings\Models\Appointment;
 use App\Domain\Bookings\Models\BookingService;
 use App\Domain\Bookings\Models\BookingStaff;
+use App\Domain\Connections\Actions\DisconnectConnection;
+use App\Domain\Connections\Actions\StartAuthorization;
+use App\Domain\Connections\Enums\ConnectionProvider;
+use App\Domain\Connections\Models\OAuthConnection;
+use App\Domain\Connections\Providers\GoogleProvider;
+use App\Domain\Connections\Support\ConnectionTokens;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
@@ -14,16 +20,38 @@ use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
- * Google Calendar por persona (M18) con OAuth 2.0 [verificar con una cuenta real]:
- * el token se guarda cifrado en `booking_staff.calendar` y se renueva solo. Las citas
- * se crean, cambian y borran en el calendario de la persona, y lo ocupado (freeBusy)
- * bloquea horarios. Sin credenciales configuradas, todo esto queda apagado.
+ * Google Calendar por persona (M18) con OAuth 2.0. Las citas se crean, cambian y
+ * borran en el calendario de la persona, y lo ocupado (freeBusy) bloquea horarios.
+ *
+ * - **Con la app de Google de la plataforma** (IGR_GOOGLE_CLIENT_ID, Conexiones con un
+ *   clic): cada persona autoriza con el flujo común (state de un solo uso y PKCE) y
+ *   `booking_staff.calendar` guarda solo `connection_id`; el token lo renueva ConnectionTokens.
+ * - **Las conexiones de antes** (IGR_GOOGLE_CALENDAR_CLIENT_ID): el token sigue cifrado
+ *   en `booking_staff.calendar` y se renueva con ese cliente, sin volver a conectar.
+ *
+ * Sin ninguna de las dos apps configuradas, todo esto queda apagado.
  */
 final class GoogleCalendar
 {
     public static function configured(): bool
     {
+        return self::legacyConfigured() || (new GoogleProvider)->missing() === [];
+    }
+
+    /** El cliente propio de la agenda de antes (solo para las conexiones que ya existían o sin la app común). */
+    public static function legacyConfigured(): bool
+    {
         return (string) config('igr-bookings.google.client_id') !== '' && (string) config('igr-bookings.google.client_secret') !== '';
+    }
+
+    /** URL para que la persona autorice su calendario: con el flujo común si la app de la plataforma está, si no, el de antes. */
+    public function connectUrl(BookingStaff $staff, string $userId): string
+    {
+        if ((new GoogleProvider)->missing() === []) {
+            return app(StartAuthorization::class)->handle($staff->workspace_id, $userId, ConnectionProvider::Google, 'calendar', 'staff:'.$staff->id, 'agenda');
+        }
+
+        return $this->authUrl($staff);
     }
 
     public function authUrl(BookingStaff $staff): string
@@ -76,6 +104,10 @@ final class GoogleCalendar
 
     public function disconnect(BookingStaff $staff): void
     {
+        $connection = $this->connection($staff);
+        if ($connection !== null) {
+            app(DisconnectConnection::class)->handle($connection);
+        }
         $staff->forceFill(['calendar' => null])->save();
     }
 
@@ -132,6 +164,10 @@ final class GoogleCalendar
 
     private function token(BookingStaff $staff): string
     {
+        $connection = $this->connection($staff);
+        if ($connection !== null) {
+            return app(ConnectionTokens::class)->accessToken($connection);
+        }
         $cal = (array) $staff->calendar;
         if ((string) ($cal['access_token'] ?? '') !== '' && (int) ($cal['expires_at'] ?? 0) > now()->getTimestamp()) {
             return (string) $cal['access_token'];
@@ -150,6 +186,15 @@ final class GoogleCalendar
         $staff->forceFill(['calendar' => $cal])->save();
 
         return $cal['access_token'];
+    }
+
+    private function connection(BookingStaff $staff): ?OAuthConnection
+    {
+        $id = $staff->calendar['connection_id'] ?? null;
+
+        return is_string($id) && $id !== ''
+            ? OAuthConnection::withoutWorkspaceScope()->where('workspace_id', $staff->workspace_id)->whereKey($id)->first()
+            : null;
     }
 
     public static function redirect(): string

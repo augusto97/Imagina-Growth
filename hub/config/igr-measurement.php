@@ -31,7 +31,9 @@ return [
 
     'meta' => [
         'graph_url' => env('IGR_META_GRAPH_URL', 'https://graph.facebook.com'),
-        'graph_version' => env('IGR_META_GRAPH_VERSION', 'v24.0'), // [verificar] versión vigente
+        // Graph y Marketing API v27.0 (4 nov 2026): la v24.0 de la Marketing API venció el 6 oct 2026.
+        // https://developers.facebook.com/docs/graph-api/changelog
+        'graph_version' => env('IGR_META_GRAPH_VERSION', 'v27.0'),
     ],
 
     'google' => [
@@ -41,7 +43,12 @@ return [
         'data_manager_url' => env('IGR_GOOGLE_DATA_MANAGER_EVENTS_URL', 'https://datamanager.googleapis.com/v1/events:ingest'),
         'oauth_token_url' => env('IGR_GOOGLE_OAUTH_TOKEN_URL', 'https://oauth2.googleapis.com/token'),
         'ads_url' => 'https://googleads.googleapis.com',
-        'ads_version' => env('IGR_GOOGLE_ADS_VERSION', 'v21'), // [verificar] versión vigente
+        // Google Ads API v26 (14 oct 2026, vence en nov 2027); la v21 ya no existe.
+        // https://developers.google.com/google-ads/api/docs/sunset-dates
+        'ads_version' => env('IGR_GOOGLE_ADS_VERSION', 'v26'),
+        // Desde el 9 sep 2026 Google ya no exige el developer token (el nivel de acceso va en el proyecto de
+        // Google Cloud): si se manda, se ignora. https://developers.google.com/google-ads/api/docs/api-policy/developer-token
+        'ads_developer_token' => env('IGR_GOOGLE_ADS_DEVELOPER_TOKEN'),
     ],
 
     'tiktok' => [

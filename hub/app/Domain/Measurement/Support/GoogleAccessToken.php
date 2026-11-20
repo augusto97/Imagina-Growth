@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Measurement\Support;
 
+use App\Domain\Connections\Support\ConnectionTokens;
 use App\Domain\Measurement\Models\AdDestination;
 use App\Support\Tenancy\RedisKey;
 use Illuminate\Support\Facades\Cache;
@@ -11,13 +12,22 @@ use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
- * Token de acceso de OAuth de Google (Data Manager y Google Ads) a partir del
- * refresh token del destino. Se guarda en caché hasta poco antes de vencer.
+ * Token de acceso de OAuth de Google (Data Manager y Google Ads). Con la conexión
+ * de la plataforma (Conexiones con un clic) lo da ConnectionTokens, que lo renueva
+ * solo; si no, sale del refresh token y el cliente OAuth pegados en el destino y
+ * se guarda en caché hasta poco antes de vencer.
  */
 final class GoogleAccessToken
 {
+    public function __construct(private readonly ConnectionTokens $connections) {}
+
     public function for(AdDestination $destination): string
     {
+        $connection = $destination->linkedConnection();
+        if ($connection !== null && ($connection->isActive() || $destination->credential('oauth_refresh_token') === null)) {
+            // ConnectionError es un RuntimeException con el aviso para volver a conectar.
+            return $this->connections->accessToken($connection);
+        }
         $key = RedisKey::for($destination->workspace_id, 'google_token:'.$destination->id);
         $cached = Cache::get($key);
         if (is_string($cached) && $cached !== '') {

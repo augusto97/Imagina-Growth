@@ -20,7 +20,8 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Destinos de conversiones (M06). Ver: viewDashboards. Crear, cambiar o
- * borrar: manageWorkspace (owner y admin). Los secretos nunca vuelven.
+ * borrar: manageWorkspace (owner y admin). Los secretos nunca vuelven. Un destino
+ * con `oauth_connection_id` (Conexiones con un clic) no necesita tokens pegados.
  */
 final class DestinationController
 {
@@ -70,7 +71,7 @@ final class DestinationController
         $model = $this->find($destination);
         $data = $this->validated($request, $model);
         $config = $this->credentials($model->platform, $data['credentials'] ?? [], $model->config);
-        $this->assertComplete($model->platform, $config);
+        $this->assertComplete($model->platform, $config, $model);
 
         $model->fill([
             'name' => $data['name'] ?? $model->name,
@@ -164,6 +165,9 @@ final class DestinationController
             'last_error' => $d->last_error,
             'last_delivered_at' => $d->last_delivered_at?->toIso8601String(),
             'credentials' => DestinationFields::present($d->platform, $d->config ?? []),
+            'connection' => ($c = $d->linkedConnection()) !== null
+                ? ['id' => $c->publicId(), 'provider' => $c->provider->value, 'status' => $c->status, 'account_name' => $c->account_name]
+                : null,
             'endpoints' => $endpoints,
             'spend_import' => $spend->supports($d),
             'created_at' => $d->getAttribute('created_at')?->toIso8601String(),
@@ -215,8 +219,11 @@ final class DestinationController
     }
 
     /** @param array<string, string> $config */
-    private function assertComplete(Platform $platform, array $config): void
+    private function assertComplete(Platform $platform, array $config, ?AdDestination $existing = null): void
     {
+        if ($existing?->linkedConnection() !== null) {
+            return;  // los tokens salen de la conexión; los IDs se eligieron al conectar
+        }
         $missing = match ($platform) {
             Platform::Meta => array_diff(['dataset_id', 'access_token'], array_keys($config)),
             Platform::TikTok => array_diff(['pixel_code', 'access_token'], array_keys($config)),
@@ -232,7 +239,7 @@ final class DestinationController
         return match ($targetKey) {
             'meta_capi' => $destination->credential('dataset_id') !== null && $destination->credential('access_token') !== null,
             'ga4' => $destination->credential('measurement_id') !== null && $destination->credential('api_secret') !== null,
-            'google_data_manager' => $destination->credential('ads_customer_id') !== null && $destination->credential('oauth_refresh_token') !== null,
+            'google_data_manager' => $destination->credential('ads_customer_id') !== null && $destination->hasGoogleAuth(),
             'tiktok_events' => $destination->credential('pixel_code') !== null && $destination->credential('access_token') !== null,
             default => false,
         };

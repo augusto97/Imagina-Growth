@@ -17,10 +17,10 @@ return [
     ],
     'meta' => [
         'graph_url' => env('IGR_META_GRAPH_URL', 'https://graph.facebook.com'),
-        'graph_version' => env('IGR_META_GRAPH_VERSION', 'v24.0'),          // [verificar] versión vigente
-        'app_id' => env('IGR_META_APP_ID'),                                    // [verificar] app de Meta (proveedor de tecnología o BSP)
+        'graph_version' => env('IGR_META_GRAPH_VERSION', 'v27.0'),          // https://developers.facebook.com/docs/graph-api/changelog
+        'app_id' => env('IGR_META_APP_ID'),                                    // app de Meta de tipo Business (proveedor de tecnología), docs/guia-apps-oauth.md
         'app_secret' => env('IGR_META_APP_SECRET'),
-        'embedded_signup_config_id' => env('IGR_META_ES_CONFIG_ID'),           // [verificar]
+        'embedded_signup_config_id' => env('IGR_META_ES_CONFIG_ID'),           // config/igr-connections.php
         'webhook_verify_token' => env('IGR_META_WEBHOOK_VERIFY_TOKEN'),
         'rate_per_second' => (int) env('IGR_META_RATE', 50),
     ],
