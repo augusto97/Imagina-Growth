@@ -1,0 +1,101 @@
+# Borde del hub de Imagina Growth (/etc/caddy/Caddyfile). Lo instala infra/install.sh una sola vez
+# (__DOMAIN__ y __EMAIL_LINE__ se reemplazan al instalar); después es del administrador del servidor:
+# el actualizador nunca lo toca. docs/despliegue.md §1.
+{
+	__EMAIL_LINE__
+	# TLS bajo demanda solo para dominios que pertenecen a un sitio conectado
+	# (dominio de seguimiento, enlaces, centro de preferencias, reservas y panel de marca blanca).
+	on_demand_tls {
+		ask http://127.0.0.1:8080/internal/caddy/ask
+	}
+}
+
+(common) {
+	# Las rutas internas (p. ej. el «ask» de TLS) nunca se exponen hacia afuera.
+	@internal path /internal/*
+	respond @internal 404
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+	log {
+		output stdout
+		# JSON (wrap json) y nunca IPs completas ni cuerpos (CLAUDE.md §3.9).
+		format filter {
+			wrap json
+			fields {
+				request>remote_ip ip_mask 16 32
+				request>client_ip ip_mask 16 32
+				request>headers>Cookie delete
+				request>headers>Authorization delete
+				request>headers>X-Igr-Signature delete
+			}
+		}
+	}
+}
+
+# Panel, API y SPA (growth-app). Si el proceso se está reiniciando, Caddy reintenta hasta 15 s en vez de fallar.
+(app) {
+	reverse_proxy 127.0.0.1:8080 {
+		lb_try_duration 15s
+		lb_try_interval 250ms
+	}
+}
+
+# Ingesta: dos réplicas (growth-ingest-api@1 y @2). Se reinician de a una y Caddy usa la que esté arriba.
+# El chequeo usa /up (vivo) y no /health/ready: la ingesta solo escribe en Redis y no debe rechazar eventos
+# porque ClickHouse tarde en responder.
+(ingest) {
+	reverse_proxy 127.0.0.1:8081 127.0.0.1:8082 {
+		lb_policy round_robin
+		lb_try_duration 15s
+		lb_try_interval 250ms
+		health_uri /up
+		health_interval 5s
+		health_timeout 3s
+		fail_duration 10s
+	}
+}
+
+# Tiempo real (Reverb): WebSockets /app/{key} y API HTTP /apps/{id}.
+(reverb) {
+	@reverb path /app/* /apps/*
+	handle @reverb {
+		reverse_proxy 127.0.0.1:8085
+	}
+}
+
+# Todo en un solo dominio: panel, API y SPA (growth-app), ingesta de los sitios (/v1 y /p, a las réplicas de
+# ingesta) y enlaces rastreados, baja y preferencias. No hace falta ningún otro registro DNS. Para separar la ingesta
+# o los enlaces en subdominios: el registro DNS, un bloque igual a este con ese nombre y IGR_INGEST_URL o IGR_LINKS_URL.
+__DOMAIN__ {
+	import common
+	import reverb
+	@ingest path /v1/* /p/*
+	handle @ingest {
+		import ingest
+	}
+	handle {
+		import app
+	}
+}
+
+# Dominios de los clientes: t.cliente.com (seguimiento), enlaces, centro de preferencias, página de
+# reservas y el panel de marca blanca de una agencia (M22). El «ask» solo autoriza dominios verificados.
+https:// {
+	import common
+	tls {
+		on_demand
+	}
+	import reverb
+	@ingest path /v1/* /p/*
+	handle @ingest {
+		import ingest
+	}
+	handle {
+		import app
+	}
+}

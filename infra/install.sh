@@ -611,7 +611,11 @@ info "Unidades instaladas; growth-update.path habilitado."
 log "Caddy"
 EMAIL_LINE=""
 [ -n "$EMAIL" ] && EMAIL_LINE="email $EMAIL"
-sed -e "s/__DOMAIN__/$DOMAIN/g" -e "s/__EMAIL_LINE__/$EMAIL_LINE/" "$TPL/caddy/Caddyfile" >"$WORK/Caddyfile"
+# Rangos de Cloudflare: los que ya descargó growth-system (paso 6) o los del paquete. Después los renueva
+# growth-system en cada actualización, igual que el resto del Caddyfile mientras nadie lo edite a mano.
+CF_RANGES=$(grep -hE '^[0-9a-fA-F:.]+/[0-9]{1,3}$' /var/lib/growth-system/cloudflare-ips 2>/dev/null || grep -hE '^[0-9a-fA-F:.]+/[0-9]{1,3}$' "$TPL/caddy/cloudflare-ips.txt")
+CF_RANGES=$(tr '\n' ' ' <<<"$CF_RANGES" | sed -E 's/ +$//')
+sed -e "s/__DOMAIN__/$DOMAIN/g" -e "s/__EMAIL_LINE__/$EMAIL_LINE/" -e "s|__TRUSTED_PROXIES__|$CF_RANGES|" "$TPL/caddy/Caddyfile" >"$WORK/Caddyfile"
 caddy fmt --overwrite "$WORK/Caddyfile" >/dev/null 2>&1 || true
 CADDY_DEST=/etc/caddy/Caddyfile
 if [ ! -f "$CADDY_DEST" ] || grep -q 'root \* /usr/share/caddy' "$CADDY_DEST"; then

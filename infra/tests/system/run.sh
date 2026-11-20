@@ -31,6 +31,7 @@ case "${args[0]}" in
     mask) echo "${args[1]}" >>"$FAKE/masked" ;;
     unmask) sed -i "\#^${args[1]}\$#d" "$FAKE/masked" ;;
     show) u=${args[-1]}; cat "$FAKE/pid-$u" 2>/dev/null || echo 0 ;;
+    reload) [[ ! -e $FAKE/reload-fail ]] || exit 1 ;;
 esac
 exit 0
 EOF
@@ -51,6 +52,8 @@ EOF
     printf '#!/usr/bin/env bash\n[[ ! -e "$FAKE/ch-down" ]]\n' >"$W/fake/ch-ping"
     chmod 0755 "$W/fake/ch-ping"
     export GROWTH_CH_PING="$W/fake/ch-ping" GROWTH_CH_WAIT=1
+    # Caddy: sin binario (las pruebas de Caddy lo activan con CADDY=$FAKE/caddy).
+    export GROWTH_CADDYFILE="$W/etc/caddy/Caddyfile" CADDY="$W/fake/sin-caddy" CURL="$W/fake/curl" GROWTH_CF_IPS_URL=https://cf.test
     GROWTH_USER=$(id -un)
     GROWTH_CH_GROUP=$(id -gn)
     GROWTH_REDIS_GROUP=$GROWTH_CH_GROUP
@@ -150,6 +153,112 @@ eq "$(GROWTH_MEMORY_MB=1638 run status)" 0 "código de status"
 eq "$(cat "$GROWTH_ROOT/shared/.env")" "$before" "status no toca el .env"
 hasnt "$FAKE/calls.log" "mask" "status no enmascara"
 rm -rf "$W"
+
+# 6. Caddy: el Caddyfile sin editar se pone al día; el editado a mano no se toca.
+caddy_world() {
+    world "$1"
+    mkdir -p "$W/etc/caddy"
+    printf 'APP_URL=https://growth.ejemplo.com\n' >>"$GROWTH_ROOT/shared/.env"
+    cat >"$W/fake/caddy" <<'EOF'
+#!/usr/bin/env bash
+echo "caddy $*" >>"$FAKE/calls.log"
+[[ $1 == validate && -e $FAKE/caddy-invalid ]] && exit 1
+exit 0
+EOF
+    cat >"$W/fake/curl" <<'EOF'
+#!/usr/bin/env bash
+[[ -e $FAKE/curl-down ]] && exit 7
+case "${*: -1}" in
+    */ips-v4) printf '173.245.48.0/20\n103.21.244.0/22\n103.22.200.0/22\n103.31.4.0/22\n141.101.64.0/18\n108.162.192.0/18\n' ;;
+    */ips-v6) printf '2400:cb00::/32\n2606:4700::/32\n2803:f800::/32\n2405:b500::/32\n' ;;
+esac
+EOF
+    chmod 0755 "$W/fake/caddy" "$W/fake/curl"
+    export CADDY="$W/fake/caddy"
+    echo caddy >>"$FAKE/active"
+}
+render_old() { # render_old <plantilla> <correo>
+    sed -e "s/__DOMAIN__/growth.ejemplo.com/g" -e "s/__EMAIL_LINE__/${2:+email $2}/" "$1" >"$GROWTH_CADDYFILE"
+}
+
+caddy_world "Caddyfile de la 0.1.4 sin editar"
+render_old "$REPO/infra/caddy/history/0.1.4.Caddyfile" ops@ejemplo.com
+cp "$GROWTH_CADDYFILE" "$W/caddy-antes"
+eq "$(GROWTH_MEMORY_MB=1638 run apply --update)" 0 "código de salida"
+has "$GROWTH_CADDYFILE" "trusted_proxies static 173.245.48.0/20 103.21.244.0/22" "rangos de Cloudflare descargados"
+has "$GROWTH_CADDYFILE" "2405:b500::/32" "también los de IPv6"
+has "$GROWTH_CADDYFILE" "client_ip_headers CF-Connecting-IP X-Forwarded-For" "IP real desde Cloudflare"
+has "$GROWTH_CADDYFILE" "header_up X-Forwarded-For {client_ip}" "la app recibe solo la IP resuelta"
+has "$GROWTH_CADDYFILE" "email ops@ejemplo.com" "conserva el correo de Let's Encrypt"
+has "$GROWTH_CADDYFILE" "growth.ejemplo.com {" "dominio de APP_URL"
+has "$GROWTH_CADDYFILE" "resp_headers>Set-Cookie delete" "registros sin cookies"
+hasnt "$GROWTH_CADDYFILE" "__" "sin marcadores sin reemplazar"
+has "$FAKE/calls.log" "caddy validate --adapter caddyfile" "valida antes de instalar"
+has "$FAKE/calls.log" "systemctl reload caddy" "recarga Caddy"
+eq "$(cat "$GROWTH_CADDYFILE.growth.bak")" "$(cat "$W/caddy-antes")" "copia del anterior"
+[[ -s $GROWTH_SYSTEM_STATE/caddyfile.sha256 ]] && ok || bad "huella del Caddyfile escrito"
+has "$GROWTH_SYSTEM_STATE/cloudflare-ips" "2606:4700::/32" "guarda la lista vigente"
+has "$W/out.log" "Caddy: configuración actualizada" "resumen"
+
+: >"$FAKE/calls.log"
+eq "$(GROWTH_MEMORY_MB=1638 run apply --update)" 0 "segunda corrida"
+hasnt "$FAKE/calls.log" "reload caddy" "al día: no recarga"
+
+# Sin internet: la última lista guardada.
+touch "$FAKE/curl-down"
+eq "$(GROWTH_MEMORY_MB=1638 run apply --update)" 0 "sin internet"
+has "$GROWTH_CADDYFILE" "103.21.244.0/22" "sigue con la lista guardada"
+
+# Editado a mano: no se toca, la versión nueva queda al lado y se avisa una vez.
+rm -f "$FAKE/curl-down"
+printf 'extra.ejemplo.com {\n\trespond "hola"\n}\n' >>"$GROWTH_CADDYFILE"
+cp "$GROWTH_CADDYFILE" "$W/editado"
+: >"$FAKE/calls.log"
+eq "$(GROWTH_MEMORY_MB=1638 run apply --update)" 0 "editado a mano"
+eq "$(cat "$GROWTH_CADDYFILE")" "$(cat "$W/editado")" "el editado no se toca"
+has "$GROWTH_CADDYFILE.growth.new" "client_ip_headers" "la versión nueva al lado"
+has "$W/out.log" "editado a mano" "avisa"
+hasnt "$FAKE/calls.log" "reload caddy" "no recarga"
+GROWTH_MEMORY_MB=1638 run apply --update >/dev/null
+hasnt "$W/out.log" "editado a mano" "no repite el aviso si la versión nueva no cambió"
+rm -rf "$W"
+
+caddy_world "Caddyfile de la 0.1.0 con in. y go."
+render_old "$REPO/infra/caddy/history/0.1.0.Caddyfile" ""
+touch "$FAKE/curl-down"
+eq "$(GROWTH_MEMORY_MB=1638 run apply --update)" 0 "código de salida"
+has "$GROWTH_CADDYFILE" "growth.ejemplo.com, go.growth.ejemplo.com, in.growth.ejemplo.com {" "los subdominios de antes siguen atendidos"
+hasnt "$GROWTH_CADDYFILE" "email " "sin correo si no había"
+has "$GROWTH_CADDYFILE" "2c0f:f248::/32" "sin internet ni lista guardada: la del paquete"
+rm -rf "$W"
+
+caddy_world "Caddy rechaza la configuración nueva"
+render_old "$REPO/infra/caddy/history/0.1.4.Caddyfile" ""
+cp "$GROWTH_CADDYFILE" "$W/caddy-antes"
+touch "$FAKE/caddy-invalid"
+eq "$(GROWTH_MEMORY_MB=1638 run apply --update)" 0 "no falla la actualización"
+eq "$(cat "$GROWTH_CADDYFILE")" "$(cat "$W/caddy-antes")" "inválida: se deja la actual"
+has "$W/out.log" "no es válida" "avisa"
+rm -f "$FAKE/caddy-invalid"
+touch "$FAKE/reload-fail"
+eq "$(GROWTH_MEMORY_MB=1638 run apply --update)" 0 "la recarga falla"
+eq "$(cat "$GROWTH_CADDYFILE")" "$(cat "$W/caddy-antes")" "vuelve a la anterior"
+has "$W/out.log" "se volvió a la anterior" "avisa"
+[[ ! -e $GROWTH_SYSTEM_STATE/caddyfile.sha256 ]] && ok || bad "sin huella si no quedó"
+rm -rf "$W"
+
+caddy_world "Caddyfile de ejemplo del paquete de Caddy"
+printf ':80 {\n\troot * /usr/share/caddy\n\tfile_server\n}\n' >"$GROWTH_CADDYFILE"
+cp "$GROWTH_CADDYFILE" "$W/caddy-antes"
+eq "$(GROWTH_MEMORY_MB=1638 run apply --install)" 0 "código de salida"
+eq "$(cat "$GROWTH_CADDYFILE")" "$(cat "$W/caddy-antes")" "lo reemplaza install.sh, no growth-system"
+[[ ! -e $GROWTH_CADDYFILE.growth.new ]] && ok || bad "sin versión nueva al lado ni aviso"
+rm -rf "$W"
+
+# Plantilla: los marcadores y las anteriores guardadas para reconocer los Caddyfile sin editar.
+T="plantilla"
+for m in __DOMAIN__ __EMAIL_LINE__ __TRUSTED_PROXIES__; do has "$REPO/infra/caddy/Caddyfile" "$m" "marcador $m"; done
+[[ $(find "$REPO/infra/caddy/history" -name '*.Caddyfile' | wc -l) -ge 2 ]] && ok || bad "plantillas anteriores en caddy/history"
 
 printf '\ngrowth-system: %d comprobaciones bien, %d mal.\n' "$PASS" "$FAILS"
 ((FAILS == 0))

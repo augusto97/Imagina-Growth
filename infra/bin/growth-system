@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # growth-system — la configuración del servidor que depende de la versión y de la RAM (docs/despliegue.md §7):
-# perfil de procesos, MariaDB, ClickHouse, Redis, prioridades ante falta de memoria, workers de ingesta y
-# permisos de shared/state. Idempotente: solo escribe lo que cambió y solo reinicia lo que hace falta.
+# perfil de procesos, MariaDB, ClickHouse, Redis, prioridades ante falta de memoria, workers de ingesta,
+# permisos de shared/state y el Caddyfile (si nadie lo editó a mano). Idempotente: solo escribe lo que cambió y solo reinicia lo que hace falta.
 #
 #   growth-system apply --install   desde install.sh (primera vez o al volver a correrlo)
 #   growth-system apply --update    desde growth-update, después de activar la versión y antes de reiniciar
@@ -35,6 +35,10 @@ REDIS_CLI=${REDIS_CLI:-redis-cli}
 RUNUSER=${RUNUSER:-runuser}
 PROC=${GROWTH_PROC:-/proc}
 CH_PING=${GROWTH_CH_PING:-ch_ping_default}
+CADDYFILE=${GROWTH_CADDYFILE:-/etc/caddy/Caddyfile}
+CADDY=${CADDY:-caddy}
+CURL=${CURL:-curl}
+CF_IPS_URL=${GROWTH_CF_IPS_URL:-https://www.cloudflare.com}
 # shellcheck disable=SC2317  # se llama por $CH_PING
 ch_ping_default() { curl -fsS --max-time 3 http://127.0.0.1:8123/ping; }
 NO_STAMP=0
@@ -128,7 +132,7 @@ fi
 if ((MEM_MB < 3500)); then PROFILE=small; else PROFILE=standard; fi
 MEM_BYTES=$((MEM_MB * 1024 * 1024))
 VERSION=$({ tr -d '[:space:]' <"$ROOT/VERSION"; } 2>/dev/null || echo dev)
-SELF_SUM=$(cat "$0" "$ROOT"/config/mariadb/* "$ROOT"/config/clickhouse/* "$ROOT"/config/redis/* "$ROOT"/systemd/redis-server@.service 2>/dev/null | sha256sum | cut -c1-16)
+SELF_SUM=$(cat "$0" "$ROOT"/config/mariadb/* "$ROOT"/config/clickhouse/* "$ROOT"/config/redis/* "$ROOT"/systemd/redis-server@.service "$ROOT"/caddy/Caddyfile 2>/dev/null | sha256sum | cut -c1-16)
 STAMP_VALUE="$VERSION $MEM_MB $SELF_SUM"
 
 if [[ $CMD == status ]]; then
@@ -377,6 +381,101 @@ if [[ $CMD != status ]]; then
 fi
 
 # ── shared/state: el panel deja pedidos; lo de root no lo puede tocar (sticky) ──────
+
+# ── Caddy ──────────────────────────────────────────────────────────────────────────
+
+# El Caddyfile instalado se reemplaza por la plantilla de esta versión solo si nadie lo editó a mano: si coincide
+# (sin comentarios, espacios, correo ni dominio) con esta plantilla o con una anterior (caddy/history), o es el que
+# escribió growth-system la última vez. Si no, la versión nueva queda en Caddyfile.growth.new y el actual sigue.
+# Los rangos de Cloudflare se descargan de cloudflare.com/ips; si no se puede, la última lista o la del paquete.
+cloudflare_ranges() {
+    local fetched=""
+    if [[ $CMD != status ]]; then
+        fetched=$({ "$CURL" -fsS --max-time 10 "$CF_IPS_URL/ips-v4" && echo && "$CURL" -fsS --max-time 10 "$CF_IPS_URL/ips-v6" && echo; } 2>/dev/null \
+            | grep -E '^[0-9a-fA-F:.]+/[0-9]{1,3}$' || true)
+    fi
+    if (($(grep -c . <<<"$fetched") >= 10)); then
+        mkdir -p "$STATE"
+        printf '%s\n' "$fetched" >"$STATE/cloudflare-ips"
+    elif [[ -s $STATE/cloudflare-ips ]]; then
+        fetched=$(cat "$STATE/cloudflare-ips")
+    else
+        fetched=$(grep -E '^[0-9a-fA-F:.]+/[0-9]{1,3}$' "$ROOT/caddy/cloudflare-ips.txt" 2>/dev/null || true)
+    fi
+    tr '\n' ' ' <<<"$fetched" | sed -E 's/ +/ /g; s/^ //; s/ $//'
+}
+
+caddy_norm() { # caddy_norm <archivo> <dominio>
+    local d=${2//./\\.}
+    sed -E -e "s/$d/__DOMAIN__/g" -e 's/^[[:space:]]+//; s/[[:space:]]+$//; s/[[:space:]]+/ /g' "$1" \
+        | grep -vE '^(#|$|email |__EMAIL_LINE__$)' \
+        | sed -E 's/^trusted_proxies static .*/trusted_proxies static __TRUSTED_PROXIES__/' || true
+}
+
+caddy_apply() {
+    local tpl=$ROOT/caddy/Caddyfile domain email proxies extra tmp norm_cur f managed=0 sum
+    [[ -f $tpl && -f $CADDYFILE ]] || return 0
+    command -v "$CADDY" >/dev/null 2>&1 || return 0
+    # El Caddyfile de ejemplo del paquete de Caddy: lo reemplaza install.sh, no esto.
+    grep -q 'root \* /usr/share/caddy' "$CADDYFILE" && return 0
+    domain=$(env_get APP_URL | sed -E 's#^[a-z]+://##; s#[:/].*$##')
+    [[ $domain =~ ^[A-Za-z0-9.-]+$ ]] || { warn "Caddy: no se pudo leer el dominio de APP_URL; el Caddyfile no se toca."; return 0; }
+    email=$(sed -nE 's/^[[:space:]]*email[[:space:]]+([^[:space:]]+).*/\1/p' "$CADDYFILE" | head -n1)
+    proxies=$(cloudflare_ranges)
+    [[ -n $proxies ]] || proxies="173.245.48.0/20"
+    # Subdominios que servía el Caddyfile de antes (in., go. de la 0.1.0): siguen atendidos por el bloque principal.
+    extra=$(grep -oE "^[A-Za-z0-9.-]+\.${domain//./\\.}([[:space:]]*,[^{]*)?[[:space:]]*\{" "$CADDYFILE" | sed -E 's/[[:space:]]*[,{].*$//' | sort -u | tr '\n' ' ' || true)
+    tmp=$(mktemp)
+    sed -e "s|__DOMAIN__|$domain|g" -e "s|__EMAIL_LINE__|${email:+email $email}|" -e "s|__TRUSTED_PROXIES__|$proxies|" "$tpl" >"$tmp"
+    if [[ -n ${extra// /} ]]; then
+        local hosts="$domain"
+        for f in $extra; do hosts="$hosts, $f"; done
+        sed -i -E "s|^${domain//./\\.} \{$|$hosts {|" "$tmp"
+    fi
+    "$CADDY" fmt --overwrite "$tmp" >/dev/null 2>&1 || true
+    if cmp -s "$tmp" "$CADDYFILE"; then
+        rm -f "$tmp"
+        return 0
+    fi
+    norm_cur=$(caddy_norm "$CADDYFILE" "$domain" | sha256sum)
+    for f in "$tpl" "$ROOT"/caddy/history/*.Caddyfile; do
+        [[ -f $f ]] || continue
+        [[ $(caddy_norm "$f" __DOMAIN__ | sha256sum) == "$norm_cur" ]] && managed=1
+    done
+    sum=$(sha256sum <"$CADDYFILE" | cut -d' ' -f1)
+    [[ -f $STATE/caddyfile.sha256 && $(cat "$STATE/caddyfile.sha256") == "$sum" ]] && managed=1
+    if ((managed == 0)); then
+        if ! cmp -s "$tmp" "$CADDYFILE.growth.new"; then
+            [[ $CMD == status ]] || install -m 0644 "$tmp" "$CADDYFILE.growth.new"
+            warn "Caddy: el Caddyfile fue editado a mano y no se toca; la versión nueva quedó en $CADDYFILE.growth.new."
+        fi
+        rm -f "$tmp"
+        return 0
+    fi
+    if ! "$CADDY" validate --adapter caddyfile --config "$tmp" >/dev/null 2>&1; then
+        warn "Caddy: la configuración nueva no es válida para esta versión de Caddy; se deja la actual."
+        rm -f "$tmp"
+        return 0
+    fi
+    if [[ $CMD == status ]]; then
+        note "Caddy: se actualizaría el Caddyfile"
+        rm -f "$tmp"
+        return 0
+    fi
+    cp -p "$CADDYFILE" "$CADDYFILE.growth.bak"
+    install -m 0644 "$tmp" "$CADDYFILE"
+    rm -f "$tmp" "$CADDYFILE.growth.new"
+    if ! active caddy || timeout 60 "$SYSTEMCTL" reload caddy >/dev/null 2>&1; then
+        mkdir -p "$STATE"
+        sha256sum <"$CADDYFILE" | cut -d' ' -f1 >"$STATE/caddyfile.sha256"
+        note "Caddy: configuración actualizada (registros sin tokens, IP real detrás de Cloudflare)"
+    else
+        install -m 0644 "$CADDYFILE.growth.bak" "$CADDYFILE"
+        timeout 60 "$SYSTEMCTL" reload caddy >/dev/null 2>&1 || true
+        warn "Caddy no aceptó la configuración nueva; se volvió a la anterior."
+    fi
+}
+caddy_apply
 
 if [[ -d $GROWTH_ROOT/shared/state && $CMD != status ]]; then
     chown root:"$GROWTH_USER" "$GROWTH_ROOT/shared/state" 2>/dev/null || true

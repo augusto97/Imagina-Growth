@@ -276,7 +276,7 @@ la última; 409 si ya hay un pedido o una actualización en curso).
 Instala los repositorios oficiales y los paquetes (§1), crea el usuario `growth`, la estructura (§2), el
 `.env` con secretos nuevos, las bases (MariaDB `igr` y usuario, ClickHouse `igr` y usuario), las dos
 instancias de Redis, la configuración de PHP, las unidades y el firewall; escribe `/etc/growth/*`, el
-Caddyfile (solo si no existe) y baja e instala la última versión con `growth-update --install`.
+Caddyfile (si no existe; después lo mantiene `growth-system`) y baja e instala la última versión con `growth-update --install`.
 **Idempotente:** correrlo otra vez no pisa el `.env`, ni las bases, ni el Caddyfile, ni los datos, y nunca reemplaza
 una versión ya instalada (para eso está el panel; `--version` solo cuenta en la primera instalación). Si se le pasa
 `--domain` o `--email` y el Caddyfile ya existe, deja la propuesta en `/etc/caddy/Caddyfile.growth.new`.
@@ -291,7 +291,7 @@ el host de ingesta no resuelve. Al terminar, avisa qué nombres en uso no tienen
 **Configuración del sistema (`bin/growth-system`): nunca hace falta la consola para recibirla.** Todo lo que depende
 de la versión y de la RAM vive en un solo script de la versión: el perfil de procesos (`IGR_WORKERS_PROFILE` en el
 `.env`), la memoria y la configuración de MariaDB, ClickHouse y Redis, las prioridades ante falta de memoria, los
-workers de ingesta y los permisos de `shared/state`. Lo aplican:
+workers de ingesta, los permisos de `shared/state` y el Caddyfile. Lo aplican:
 
 - `install.sh` (`apply --install`), en la primera instalación y si se vuelve a correr;
 - `growth-update` en cada actualización desde el panel (`apply --update`, después del cambio y antes de reiniciar;
@@ -307,6 +307,25 @@ reinicia solo si cambió su configuración, y si no vuelve a responder en ~90 s 
 se reinicia otra vez y no se sella (la próxima corrida lo reintenta). Nunca hace fallar la actualización: si algo no se puede aplicar, lo avisa
 y sigue. `growth-system status` muestra el perfil sin cambiar nada. Ampliar o reducir el servidor se ajusta solo en
 la próxima actualización (o al reiniciar `growth-app`).
+
+**Caddyfile al día sin consola (lote 4).** `growth-system` vuelve a escribir `/etc/caddy/Caddyfile` con la plantilla
+de la versión (`caddy/Caddyfile`; el dominio sale de `APP_URL` y el correo de Let's Encrypt del Caddyfile actual)
+**solo si nadie lo editó a mano**: si, sin comentarios, espacios, correo ni dominio, es igual a la plantilla actual o
+a una anterior (`caddy/history/`), o es el que escribió la última vez (`/var/lib/growth-system/caddyfile.sha256`).
+Antes de instalarlo lo valida con `caddy validate`, guarda el anterior en `Caddyfile.growth.bak` y recarga Caddy; si
+la recarga falla vuelve al anterior. Si se editó a mano, no lo toca: la versión nueva queda en
+`Caddyfile.growth.new` y lo avisa una vez. Los subdominios `in.` y `go.` de las instalaciones anteriores a 0.1.4 se
+conservan en el bloque principal. Lo que trae la plantilla:
+- **IP real detrás de Cloudflare (S8):** `servers { trusted_proxies static <rangos de Cloudflare> }` y
+  `client_ip_headers CF-Connecting-IP X-Forwarded-For`; la IP del visitante solo se toma de esos encabezados si la
+  petición llega desde una IP de Cloudflare. Los rangos se descargan de `cloudflare.com/ips-v4` e `ips-v6` en cada
+  aplicación (`/var/lib/growth-system/cloudflare-ips`; sin internet, la última lista o `caddy/cloudflare-ips.txt`).
+  Hacia la app, `X-Forwarded-For` lleva solo la IP ya resuelta (`header_up X-Forwarded-For {client_ip}`) y el hub
+  confía únicamente en Caddy (`IGR_TRUSTED_PROXIES`, por defecto `127.0.0.1` y `::1`).
+- **Registros sin datos sensibles (S7):** IP con máscara, la consulta borrada entera (códigos de OAuth, carritos,
+  correos del restablecimiento), los tokens de las rutas públicas (`/u/`, `/preferencias/`, `/r/`, `/r/nps/`,
+  `/invitacion/`, `/restablecer/`, `/c/`) como `***`, y sin `Cookie`, `Authorization`, firmas, `Referer`,
+  `CF-Connecting-IP`, `X-Forwarded-For`, `Set-Cookie` ni `Location`.
 
 **Memoria y perfil de procesos.** `growth-system` mide la RAM y elige el perfil. La RAM es, en este orden: la fijada a
 mano (`GROWTH_MEMORY_MB` en `/etc/growth/updater.conf`; el instalador la guarda si se la pasaron), o la de

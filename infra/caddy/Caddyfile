@@ -1,8 +1,15 @@
-# Borde del hub de Imagina Growth (/etc/caddy/Caddyfile). Lo instala infra/install.sh una sola vez
-# (__DOMAIN__ y __EMAIL_LINE__ se reemplazan al instalar); después es del administrador del servidor:
-# el actualizador nunca lo toca. docs/despliegue.md §1.
+# Borde del hub de Imagina Growth (/etc/caddy/Caddyfile). Lo escribe infra/install.sh y lo mantiene al día
+# growth-system en cada actualización (__DOMAIN__, __EMAIL_LINE__ y __TRUSTED_PROXIES__ se reemplazan), mientras
+# nadie lo edite a mano: si se editó, la versión nueva queda en Caddyfile.growth.new y el actual no se toca.
+# docs/despliegue.md §1 y §7.
 {
 	__EMAIL_LINE__
+	# Detrás de Cloudflare la IP del visitante llega en CF-Connecting-IP; solo se cree si la petición viene de una IP
+	# de Cloudflare (rangos de cloudflare.com/ips, renovados por growth-system). Sin Cloudflare no cambia nada.
+	servers {
+		trusted_proxies static __TRUSTED_PROXIES__
+		client_ip_headers CF-Connecting-IP X-Forwarded-For
+	}
 	# TLS bajo demanda solo para dominios que pertenecen a un sitio conectado
 	# (dominio de seguimiento, enlaces, centro de preferencias, reservas y panel de marca blanca).
 	on_demand_tls {
@@ -23,23 +30,35 @@
 	}
 	log {
 		output stdout
-		# JSON (wrap json) y nunca IPs completas ni cuerpos (CLAUDE.md §3.9).
+		# JSON (wrap json) y nunca IPs completas, cuerpos, cookies ni tokens (CLAUDE.md §3.9): la consulta se borra
+		# entera (códigos de OAuth, carritos, correos del restablecimiento) y los tokens de las rutas públicas
+		# (baja, preferencias, reseñas, invitaciones, restablecer, enlaces /c/) quedan como ***.
 		format filter {
 			wrap json
 			fields {
 				request>remote_ip ip_mask 16 32
 				request>client_ip ip_mask 16 32
+				request>uri regexp "(/(?:u|preferencias|r/nps|r|invitacion|restablecer|c)/)[^/?]+|(\?).*" "$1$2***"
 				request>headers>Cookie delete
 				request>headers>Authorization delete
 				request>headers>X-Igr-Signature delete
+				request>headers>X-Igr-Health-Token delete
+				request>headers>Cf-Connecting-Ip delete
+				request>headers>X-Forwarded-For delete
+				request>headers>True-Client-Ip delete
+				request>headers>Referer delete
+				resp_headers>Set-Cookie delete
+				resp_headers>Location delete
 			}
 		}
 	}
 }
 
 # Panel, API y SPA (growth-app). Si el proceso se está reiniciando, Caddy reintenta hasta 15 s en vez de fallar.
+# X-Forwarded-For lleva solo la IP ya resuelta del visitante: la app confía únicamente en Caddy (127.0.0.1).
 (app) {
 	reverse_proxy 127.0.0.1:8080 {
+		header_up X-Forwarded-For {client_ip}
 		lb_try_duration 15s
 		lb_try_interval 250ms
 	}
@@ -50,6 +69,7 @@
 # porque ClickHouse tarde en responder.
 (ingest) {
 	reverse_proxy 127.0.0.1:8081 127.0.0.1:8082 {
+		header_up X-Forwarded-For {client_ip}
 		lb_policy round_robin
 		lb_try_duration 15s
 		lb_try_interval 250ms
@@ -64,7 +84,9 @@
 (reverb) {
 	@reverb path /app/* /apps/*
 	handle @reverb {
-		reverse_proxy 127.0.0.1:8085
+		reverse_proxy 127.0.0.1:8085 {
+			header_up X-Forwarded-For {client_ip}
+		}
 	}
 }
 
