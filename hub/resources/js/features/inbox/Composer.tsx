@@ -7,7 +7,7 @@ import { isApiError } from '@/lib/api';
 import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
 import { useConversationActions, useQuickReplies } from './api';
-import { applyQuickReply, composerMode, matchQuickReplies, newClientId, quickReplyQuery } from './lib';
+import { applyQuickReply, composerMode, draftFor, keepDraft, matchQuickReplies, newClientId, quickReplyQuery } from './lib';
 import { CouponDialog, ProductDialog, TemplateDialog } from './SellDialogs';
 import type { ConversationDetail, SendBody, SendResult } from './types';
 
@@ -22,7 +22,11 @@ export function Composer({ c }: { c: ConversationDetail }) {
     const { workspace } = useWorkspace();
     const actions = useConversationActions(workspace.id, c.id);
     const replies = useQuickReplies(workspace.id);
-    const [text, setText] = useState('');
+    const [text, setTextState] = useState(() => draftFor(c.id));
+    const setText = (value: string) => {
+        setTextState(value);
+        keepDraft(c.id, value);
+    };
     const [dialog, setDialog] = useState<Dialog>(null);
     const [highlight, setHighlight] = useState(0);
     const mode = composerMode(c);

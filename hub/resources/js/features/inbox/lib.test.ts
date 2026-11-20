@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyQuickReply, composerMode, formatDuration, formatLeft, matchQuickReplies, parseLabels, quickReplyQuery, windowLeft } from './lib';
+import { applyQuickReply, composerMode, draftFor, formatDuration, formatLeft, keepDraft, matchQuickReplies, parseLabels, quickReplyQuery, windowLeft } from './lib';
 
 const envio = {
     id: 'qr_1',
@@ -69,5 +69,18 @@ describe('composerMode (Messenger e Instagram, Fase 5)', () => {
     it('si la ventana vence con la pantalla abierta, cambia sin esperar al servidor', () => {
         expect(composerMode({ channel: 'messenger', window_state: 'open', window_expires_at: past }, now)).toBe('human');
         expect(composerMode({ channel: 'instagram', window_state: 'open', window_expires_at: past }, now)).toBe('none');
+    });
+});
+
+describe('borradores del editor (celular: volver a la lista no pierde lo escrito)', () => {
+    it('guardan el texto por conversación y olvidan los vacíos', () => {
+        expect(draftFor('cnv_1')).toBe('');
+        keepDraft('cnv_1', 'Hola, ¿te sirve la talla M?');
+        keepDraft('cnv_2', 'Otro');
+        expect(draftFor('cnv_1')).toBe('Hola, ¿te sirve la talla M?');
+        expect(draftFor('cnv_2')).toBe('Otro');
+        keepDraft('cnv_1', '   ');
+        expect(draftFor('cnv_1')).toBe('');
+        expect(draftFor('cnv_2')).toBe('Otro');
     });
 });

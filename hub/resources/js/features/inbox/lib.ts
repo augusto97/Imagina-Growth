@@ -74,6 +74,21 @@ export function newClientId(): string {
     });
 }
 
+/*
+ * Borradores del editor por conversación, en memoria (no se guardan en el navegador: pueden tener datos personales).
+ * En el celular, volver a la lista desmonta el chat: al regresar a la conversación el texto sigue ahí.
+ */
+const drafts = new Map<string, string>();
+
+export function draftFor(conversationId: string): string {
+    return drafts.get(conversationId) ?? '';
+}
+
+export function keepDraft(conversationId: string, text: string): void {
+    if (text.trim() === '') drafts.delete(conversationId);
+    else drafts.set(conversationId, text);
+}
+
 /** Clave de base64url a Uint8Array (llave pública VAPID para pushManager.subscribe). */
 export function base64UrlToBytes(value: string): Uint8Array {
     const padded = (value + '='.repeat((4 - (value.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/');

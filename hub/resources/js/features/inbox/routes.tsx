@@ -6,6 +6,7 @@ const page = async () => ({
 });
 
 export const workspaceRoutes: RouteObject[] = [
-    { path: 'bandeja', lazy: page },
-    { path: 'bandeja/:conversation', lazy: page },
+    // Llena el alto de la pantalla: lista y chat con su propio desplazamiento (pageLayout.ts, «fill»).
+    { path: 'bandeja', handle: { fill: true }, lazy: page },
+    { path: 'bandeja/:conversation', handle: { fill: true }, lazy: page },
 ];

@@ -1,4 +1,4 @@
-import { ExternalLink, Megaphone, X } from 'lucide-react';
+import { ExternalLink, Megaphone } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -14,8 +14,8 @@ import { temperatureTone } from '@/features/leads/logic';
 import { useContactPanel } from './api';
 import type { PanelLead } from './types';
 
-/** El perfil al lado del chat: pedidos, carrito actual, puntos, segmentos, último producto visto y origen. */
-export function ContactPanel({ id, onClose }: { id: string; onClose: () => void }) {
+/** El perfil del contacto (columna al lado del chat desde xl; hoja aparte por debajo, InboxPage): pedidos, carrito actual, puntos, segmentos, último producto visto y origen. */
+export function ContactPanel({ id }: { id: string }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const panel = useContactPanel(workspace.id, id);
@@ -42,14 +42,9 @@ export function ContactPanel({ id, onClose }: { id: string; onClose: () => void 
 
     return (
         <div className="igr:space-y-4 igr:p-3 igr:text-xs">
-            <div className="igr:flex igr:items-start igr:gap-2">
-                <div className="igr:min-w-0 igr:flex-1">
-                    <p className="igr:truncate igr:text-sm igr:font-semibold">{c.name}</p>
-                    <p className="igr:text-muted-foreground">{[c.phone, c.city].filter(Boolean).join(' · ')}</p>
-                </div>
-                <Button size="icon" variant="ghost" className="igr:xl:hidden" onClick={onClose} aria-label={t('inbox.panel.close')}>
-                    <X aria-hidden />
-                </Button>
+            <div className="igr:min-w-0">
+                <p className="igr:truncate igr:text-sm igr:font-semibold">{c.name}</p>
+                <p className="igr:text-muted-foreground">{[c.phone, c.city].filter(Boolean).join(' · ')}</p>
             </div>
             <div className="igr:flex igr:flex-wrap igr:gap-1">
                 {c.lifecycle_stage ? (
