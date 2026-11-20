@@ -210,6 +210,8 @@ export interface GeographyData {
     cities: { city: string; region: string; orders: number; revenue: number; sessions: number | null; conversion: number | null; low_sample?: boolean }[];
     sessions?: { total: number; without_city: number; without_city_share: number };
     min_sessions?: number;
+    /** Hay pedidos pero ninguna visita terminó en compra: la conversión no se puede calcular. */
+    conversion_unavailable?: boolean;
 }
 
 /* 8. Cupones */

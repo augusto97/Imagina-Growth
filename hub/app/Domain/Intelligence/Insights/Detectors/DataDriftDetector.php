@@ -46,7 +46,7 @@ final class DataDriftDetector implements Detector
             $out[] = new InsightCandidate(
                 fingerprint: $site->id,
                 severity: 'critical',
-                title: __('Faltan datos de :site: WooCommerce tiene :wc pedidos y el hub :hub', ['site' => $site->name ?? $site->host, 'wc' => Money::number($wc), 'hub' => Money::number($hub)]),
+                title: __('Faltan datos de :site: WooCommerce tiene :wc pedidos e Imagina Growth recibió :hub', ['site' => $site->name ?? $site->host, 'wc' => Money::number($wc), 'hub' => Money::number($hub)]),
                 facts: ['site_id' => $site->publicId(), 'site' => $site->host, 'wc_count' => $wc, 'hub_count' => $hub, 'difference' => round($diff, 4),
                     'rows' => array_values(array_filter($rec['rows'], fn ($r) => ! $r['ok']))],
                 assumptions: [__('Se compara la conciliación por estado que calcula el plugin con los pedidos recibidos.')],

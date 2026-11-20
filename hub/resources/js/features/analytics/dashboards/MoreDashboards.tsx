@@ -94,6 +94,7 @@ export function GeographyDashboard({ response, data, fmt }: DashboardProps<'geog
             />
             <Section title={t('analytics.geo.citiesTitle')} description={t('analytics.geo.citiesDescription')} onExport={exporter(t('analytics.geo.citiesTitle'), cityColumns, data.cities)} flush>
                 <DataTable columns={cityColumns} rows={data.cities} rowKey={(r) => `${r.city}-${r.region}`} limit={20} />
+                {data.conversion_unavailable ? <p className="igr:border-t igr:px-4 igr:py-3 igr:text-xs igr:text-muted-foreground">{t('analytics.geo.unlinked')}</p> : null}
                 {data.sessions && data.sessions.without_city_share >= 0.05 ? (
                     <p className="igr:border-t igr:px-4 igr:py-3 igr:text-xs igr:text-muted-foreground">
                         {t('analytics.geo.withoutCity', { share: fmt.percent(data.sessions.without_city_share, 0) })}

@@ -179,7 +179,7 @@ final class BookingController
             return response()->json(self::staff($model->refresh()));
         }
         if (! GoogleCalendar::configured()) {
-            return response()->json(['message' => __('La conexión con Google Calendar no está configurada en el hub.')], 422);
+            return response()->json(['message' => __('La conexión con Google Calendar todavía no está disponible en esta instalación. Escríbenos para activarla.')], 422);
         }
 
         return response()->json(['url' => $google->authUrl($model)]);

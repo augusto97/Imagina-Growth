@@ -54,3 +54,26 @@ it('muestra la conversión solo con visitas suficientes y cuenta las visitas sin
         ->and($data['sessions'])->toMatchArray(['total' => 200, 'without_city' => 30, 'without_city_share' => 0.15])
         ->and($data['min_sessions'])->toBe(GeographyDashboard::MIN_SESSIONS);
 });
+
+it('sin compras ligadas a las visitas no muestra una conversión de 0 % al lado de los pedidos', function () {
+    $this->useIngestInfrastructure();
+    config(['igr.analytics.cache' => false]);
+    $owner = $this->userWith2fa();
+    $ws = $this->workspaceFor($owner);
+    [$site, $secret] = $this->connectedSite($ws);
+    $this->postSigned($site, $secret, [$this->envelope($site, 'order.paid', ['order' => $this->orderSnapshot([
+        'created_at' => now()->subDays(2)->toIso8601String(), 'paid_at' => now()->subDays(2)->toIso8601String(),
+    ])])])->assertStatus(202);
+    $this->runWorker();
+    $rows = [];
+    for ($i = 0; $i < 300; $i++) {
+        $rows[] = ['workspace_id' => $ws->ch_id, 'site_id' => $site->ch_id, 'session_id' => (string) Str::uuid(), 'anonymous_id' => 'a'.$i, 'contact_id' => '',
+            'started_at' => now()->subDays(3)->format('Y-m-d H:i:s.v'), 'ended_at' => now()->subDays(3)->format('Y-m-d H:i:s.v'), 'pageviews' => 1,
+            'channel' => 'direct', 'device_type' => 'mobile', 'city' => 'Manizales', 'purchased' => 0, 'revenue' => '0'];
+    }
+    app(Ch::class)->insert('sessions', $rows);
+
+    $data = $this->actingAs($owner)->getJson("/api/w/{$ws->publicId()}/analytics/geography")->assertOk()->json('data');
+    expect($data['conversion_unavailable'])->toBeTrue()
+        ->and(collect($data['cities'])->firstWhere('city', 'Manizales'))->toMatchArray(['sessions' => 300, 'conversion' => null]);
+});

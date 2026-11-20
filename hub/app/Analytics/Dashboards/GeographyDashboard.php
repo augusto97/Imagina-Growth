@@ -44,10 +44,12 @@ final class GeographyDashboard extends Dashboard
         // Varias grafías de la misma ciudad suman juntas («Bogota», «Bogotá D.C.»).
         $visitBy = [];
         $allSessions = 0;
+        $allPurchases = 0;
         $withoutCity = 0;
         foreach ($visits as $v) {
             $n = (int) $v['sessions'];
             $allSessions += $n;
+            $allPurchases += (int) $v['purchases'];
             $key = self::cityKey((string) $v['city']);
             if ($key === '') {
                 $withoutCity += $n;
@@ -59,6 +61,9 @@ final class GeographyDashboard extends Dashboard
                 'purchases' => ($visitBy[$key]['purchases'] ?? 0) + (int) $v['purchases'],
             ];
         }
+        // Hay pedidos pero ninguna visita terminó en compra: las compras no quedaron ligadas a la visita (el código de
+        // seguimiento no carga en el pago, por ejemplo). Una conversión de 0 % al lado de los pedidos engañaría.
+        $unlinked = $allPurchases === 0 && $sales->isNotEmpty();
         $cities = [];
         foreach ($sales as $s) {
             $key = self::cityKey((string) $s->city);
@@ -73,7 +78,7 @@ final class GeographyDashboard extends Dashboard
             $cities[$key.'|'.$s->region] = [
                 'city' => (string) $s->city, 'region' => (string) $s->region, 'orders' => (int) $s->orders, 'revenue' => round((float) $s->revenue, 2),
                 'sessions' => $v !== null ? $v['sessions'] : null,
-                'conversion' => $v !== null && ! $lowSample ? self::ratio($v['purchases'], $v['sessions']) : null,
+                'conversion' => $v !== null && ! $lowSample && ! $unlinked ? self::ratio($v['purchases'], $v['sessions']) : null,
                 'low_sample' => $lowSample,
             ];
         }
@@ -85,6 +90,7 @@ final class GeographyDashboard extends Dashboard
             'cities' => array_slice($cities, 0, 50),
             'sessions' => ['total' => $allSessions, 'without_city' => $withoutCity, 'without_city_share' => self::ratio($withoutCity, $allSessions)],
             'min_sessions' => self::MIN_SESSIONS,
+            'conversion_unavailable' => $unlinked,
         ];
     }
 

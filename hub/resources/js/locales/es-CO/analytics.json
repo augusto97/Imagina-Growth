@@ -373,7 +373,8 @@
             "conversionHelp": "Compras sobre visitas desde esa ciudad. Solo se calcula con {{min}} visitas o más: con menos, una sola compra cambia mucho la cifra.",
             "fewVisits": "Pocas visitas",
             "lowSample": "Menos de {{min}} visitas en el periodo: la conversión no sería confiable.",
-            "withoutCity": "El {{share}} de las visitas no tiene ciudad (la ubicación por conexión no siempre la da), así que las visitas por ciudad son aproximadas."
+            "withoutCity": "El {{share}} de las visitas no tiene ciudad (la ubicación por conexión no siempre la da), así que las visitas por ciudad son aproximadas.",
+            "unlinked": "La conversión por ciudad no está disponible: las compras de este periodo no quedaron ligadas a una visita. Suele pasar cuando el código de seguimiento no carga en la página de pago; revisa la salud del sitio en Sitios."
         },
         "coupons": {
             "share": "Pedidos con cupón",

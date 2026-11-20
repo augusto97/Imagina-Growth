@@ -78,7 +78,7 @@ function StepRow({ step, index, current, guide }: { step: GuideStep; index: numb
                     className={cn(
                         'igr:mt-0.5 igr:flex igr:size-6 igr:shrink-0 igr:items-center igr:justify-center igr:rounded-full igr:border igr:text-[11px] igr:font-semibold igr:tabular-nums',
                         step.done
-                            ? 'igr:border-success igr:bg-success igr:text-white'
+                            ? 'igr:border-success igr:bg-success igr:text-success-foreground'
                             : current
                               ? 'igr:border-primary igr:text-primary'
                               : 'igr:border-input igr:text-muted-foreground',
