@@ -49,7 +49,7 @@ prometida o el servidor pequeño. P2 = mejora clara de uso o de costo. P3 = puli
 | R10 | P2 | Informe semanal en serie y `isDue` con `hour === 7` (se salta si el scheduler se atrasa). | `WeeklyReport` | 🔧 0.1.7: sale el lunes desde las 7 en la primera corrida y una sola vez por semana; sigue en serie |
 | R11 | P2 | `widgets.json` sin caché. | endpoint público de widgets | ✅ (lote 3): `WidgetsCache` guarda la respuesta 5 min por sitio, tipo de página y ruta (`ws:{id}:widgets:…`), con una versión por espacio de trabajo que se renueva al guardar o borrar un widget, un quiz, una encuesta o un texto legal; si la caché falla, se arma en el momento |
 | R12 | P2 | Índices faltantes en consultas frecuentes; paginación por `OFFSET`; escaneos por `received_at`. | varias | ⏳ |
-| R13 | P2 | Uso de facturación cada 5 minutos para todos los espacios. | scheduler de Billing | ⏳ |
+| R13 | P2 | Uso de facturación cada 5 minutos para todos los espacios. | scheduler de Billing | ✅ (lote 3): cada 5 min `igr:billing:usage --changed` recalcula solo los espacios con eventos nuevos de sus sitios (`sites.last_event_at` posterior a su último cálculo) o con mensajes enviados o IA usada (`UsageActivity`, conjunto de IDs en Redis); cada hora, todos. El cálculo sigue siendo completo desde las tablas de origen, y en los primeros 3 días del mes también se recalcula el mes anterior (sin avisos), así lo facturado incluye los últimos minutos y los pedidos que llegaron tarde |
 | R14 | P2 | Sin purga de retención de datos viejos. | — | ⏳ |
 | R15 | P2 | `RecomputeSegment` y RFM cargan demasiado en memoria. | Segments, Intelligence | ⏳ |
 | R16 | P3 | Sin Octane / modo worker de FrankenPHP. | `infra` | ⏳ |

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Messaging\Jobs;
 
+use App\Domain\Billing\Usage\UsageActivity;
 use App\Domain\Consent\Policy\PolicyRequest;
 use App\Domain\Consent\Policy\SendPolicy;
 use App\Domain\Contacts\Models\Contact;
@@ -149,6 +150,7 @@ final class SendMessageJob implements ShouldQueue, WorkspaceAware
 
         if ($result->ok) {
             $message->forceFill(['status' => 'sent', 'provider_message_id' => $result->providerMessageId, 'sent_at' => now()])->save();
+            UsageActivity::touch($workspace->id);
             $events->emit($workspace, $message, 'message.sent');
 
             return;

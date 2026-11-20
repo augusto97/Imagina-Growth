@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Intelligence\Ai\Support;
 
 use App\Domain\Billing\Contracts\Entitlements;
+use App\Domain\Billing\Usage\UsageActivity;
 use App\Domain\Intelligence\Ai\Data\AiUsage;
 use App\Domain\Workspaces\Models\Workspace;
 use Illuminate\Support\Facades\DB;
@@ -39,6 +40,7 @@ final class AiMeter
             'cache_write' => DB::raw('cache_write + VALUES(cache_write)'),
             'cost_usd' => DB::raw('cost_usd + VALUES(cost_usd)'),
         ]);
+        UsageActivity::touch($workspaceId);
     }
 
     /** Gasto del mes en curso (USD). */

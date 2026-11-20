@@ -61,7 +61,9 @@ final class ModuleServiceProvider extends ServiceProvider
             // Latido del programador: igr:doctor avisa si deja de renovarse (las tareas programadas no corren).
             $schedule->call(fn () => Cache::put(InstallationDoctor::SCHEDULER_HEARTBEAT, now()->getTimestamp(), 3600))
                 ->everyMinute()->name('igr:scheduler-heartbeat');
-            $schedule->command('igr:billing:usage')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
+            // R13: cada 5 minutos solo los espacios con actividad; cada hora, todos (y el cierre del mes anterior).
+            $schedule->command('igr:billing:usage --changed')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
+            $schedule->command('igr:billing:usage')->hourlyAt(7)->withoutOverlapping()->onOneServer();
             $schedule->command('igr:billing:status')->hourlyAt(23)->withoutOverlapping()->onOneServer();
         });
     }
