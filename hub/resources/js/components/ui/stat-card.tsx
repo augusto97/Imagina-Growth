@@ -115,10 +115,15 @@ export function StatCard({
     const toneOf = changeTone(change, better, flat);
     const Arrow = toneOf === 'flat' ? Minus : (change ?? 0) > 0 ? ArrowUpRight : ArrowDownRight;
     return (
-        <Card className={cn('igr:flex igr:min-w-0 igr:flex-col igr:p-4 igr:sm:p-5', className)}>
-            <div className="igr:flex igr:items-center igr:gap-2">
-                {icon ? <IconTile icon={icon} tone={tone} size="sm" /> : null}
-                <span className="igr:min-w-0 igr:truncate igr:text-support igr:font-medium igr:text-muted-foreground">{label}</span>
+        <Card className={cn('igr:flex igr:min-w-0 igr:flex-col igr:p-3.5 igr:sm:p-5', className)}>
+            {/* En el celular van de a dos: sin el ícono y con el nombre en hasta dos líneas (siempre reserva las dos). */}
+            <div className="igr:flex igr:items-center igr:gap-2 igr:max-sm:min-h-10">
+                {icon ? (
+                    <span className="igr:max-sm:hidden">
+                        <IconTile icon={icon} tone={tone} size="sm" />
+                    </span>
+                ) : null}
+                <span className="igr:min-w-0 igr:truncate igr:text-support igr:font-medium igr:text-muted-foreground igr:max-sm:line-clamp-2 igr:max-sm:whitespace-normal">{label}</span>
                 {help ? <HelpTip content={help} label={helpLabel ?? (typeof label === 'string' ? label : undefined)} /> : null}
                 {trend && !loading ? <Sparkline values={trend} className="igr:ml-auto igr:h-6 igr:w-20 igr:shrink-0" /> : null}
             </div>
@@ -126,7 +131,7 @@ export function StatCard({
                 {loading ? (
                     <Skeleton className={size === 'hero' ? 'igr:h-12 igr:w-40' : 'igr:h-9 igr:w-28'} />
                 ) : (
-                    <div className={cn('igr:min-w-0 igr:truncate igr:font-semibold igr:text-foreground igr:tabular-nums', size === 'hero' ? 'igr:text-hero' : 'igr:text-figure')}>
+                    <div className={cn('igr:min-w-0 igr:truncate igr:font-semibold igr:text-foreground igr:tabular-nums', size === 'hero' ? 'igr:text-hero' : 'igr:text-[22px]/[30px] igr:sm:text-figure')}>
                         {value}
                     </div>
                 )}
@@ -160,7 +165,8 @@ export function StatCardSkeleton({ className }: { className?: string }) {
 
 /** Rejilla de tarjetas de métricas: una columna en el celular, dos en la tableta y hasta cuatro en el escritorio. */
 export function StatGrid({ children, className }: { children: ReactNode; className?: string }) {
-    return <div className={cn('igr:grid igr:gap-3 igr:sm:grid-cols-2 igr:lg:grid-cols-4', className)}>{children}</div>;
+    // De a dos desde el celular (una sola columna obligaba a desplazarse mucho); la última de un número impar ocupa la fila.
+    return <div className={cn('igr:grid igr:grid-cols-2 igr:gap-3 igr:lg:grid-cols-4 igr:max-sm:[&>*:last-child:nth-child(odd)]:col-span-2', className)}>{children}</div>;
 }
 
 /**
