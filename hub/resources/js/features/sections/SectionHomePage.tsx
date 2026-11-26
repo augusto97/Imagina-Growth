@@ -210,13 +210,13 @@ export function SectionHomePage() {
             ) : null}
 
             {loading ? (
-                <div className="igr:mb-8 igr:grid igr:gap-3 igr:sm:grid-cols-2 igr:lg:grid-cols-4">
+                <div className="igr:mb-8 igr:grid igr:grid-cols-2 igr:gap-3 igr:lg:grid-cols-4">
                     {Array.from({ length: 4 }, (_, i) => (
                         <StatCardSkeleton key={i} />
                     ))}
                 </div>
             ) : figures.length > 0 ? (
-                <section aria-label={t('sectionEntry.figuresLabel', { section: name })} className={cn('igr:mb-8 igr:grid igr:gap-3 igr:sm:grid-cols-2', figures.length === 3 ? 'igr:lg:grid-cols-3' : 'igr:lg:grid-cols-4')}>
+                <section aria-label={t('sectionEntry.figuresLabel', { section: name })} className={cn('igr:mb-8 igr:grid igr:grid-cols-2 igr:gap-3 igr:max-sm:[&>*:last-child:nth-child(odd)]:col-span-2', figures.length === 3 ? 'igr:lg:grid-cols-3' : 'igr:lg:grid-cols-4')}>
                     {figures.map((f) => (
                         <StatCard
                             key={f.key}

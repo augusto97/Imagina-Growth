@@ -158,9 +158,9 @@ export function StatCard({
     );
 }
 
-/** El esqueleto de una `StatCard`: el mismo alto (124 px en el celular, 132 desde `sm`), para que nada salte al cargar. */
+/** El esqueleto de una `StatCard`: el mismo alto (134 px en el celular, 132 desde `sm`), para que nada salte al cargar. */
 export function StatCardSkeleton({ className }: { className?: string }) {
-    return <Skeleton className={cn('igr:h-[124px] igr:rounded-xl igr:sm:h-[132px]', className)} />;
+    return <Skeleton className={cn('igr:h-[134px] igr:rounded-xl igr:sm:h-[132px]', className)} />;
 }
 
 /** Rejilla de tarjetas de métricas: una columna en el celular, dos en la tableta y hasta cuatro en el escritorio. */
