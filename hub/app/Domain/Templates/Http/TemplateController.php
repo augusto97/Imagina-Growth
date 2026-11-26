@@ -167,10 +167,15 @@ final class TemplateController
         return response()->json(['groups' => VariableCatalog::groups($this->current->get())]);
     }
 
-    /** GET templates/library?industry= */
+    /**
+     * GET templates/library?industry=&channel= — sin `channel`, las de correo y SMS (como antes de que la biblioteca
+     * tuviera WhatsApp); `channel=whatsapp|email|sms` solo ese canal y `channel=all` todas. La galería
+     * (`templates/gallery`) es la que muestra las de WhatsApp con su vista previa.
+     */
     public function library(Request $request): JsonResponse
     {
         Gate::authorize('ws.viewDashboards');
+        $channel = $request->validate(['channel' => ['nullable', Rule::in(['email', 'sms', 'whatsapp', 'all'])]])['channel'] ?? null;
         $industry = $this->industry($request);
         // La más antigua de cada clave (la que usan los flujos): pluck se queda con la última fila.
         $installed = Template::query()->whereNotNull('library_key')->where('status', '!=', 'archived')
@@ -179,7 +184,10 @@ final class TemplateController
         return response()->json([
             'industry' => $industry,
             'industries' => TemplateLibrary::industries(),
-            'data' => array_map(fn (array $e) => $e + ['installed_id' => isset($installed[$e['key']]) ? 'tpl_'.$installed[$e['key']] : null], TemplateLibrary::catalog($industry)),
+            'data' => array_values(array_map(
+                fn (array $e) => $e + ['installed_id' => isset($installed[$e['key']]) ? 'tpl_'.$installed[$e['key']] : null],
+                array_filter(TemplateLibrary::catalog($industry), fn (array $e) => $channel === 'all' || ($channel === null ? $e['channel'] !== 'whatsapp' : $e['channel'] === $channel)),
+            )),
         ]);
     }
 

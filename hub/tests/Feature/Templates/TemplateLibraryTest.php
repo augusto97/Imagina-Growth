@@ -82,7 +82,12 @@ it('instalar es idempotente para los flujos y crea otra copia solo si se pide; u
     $url = "/api/w/{$this->ws->publicId()}/templates/library";
     $list = $this->actingAs($this->owner)->getJson($url)->assertOk();
     expect($list->json('industry'))->toBe('mascotas')
-        ->and(collect($list->json('data'))->firstWhere('key', 'replenishment')['installed_id'])->toBe($first->publicId());
+        ->and(collect($list->json('data'))->firstWhere('key', 'replenishment')['installed_id'])->toBe($first->publicId())
+        // Sin canal, la lista de siempre (correo y SMS); las de WhatsApp se piden aparte o salen en la galería.
+        ->and(collect($list->json('data'))->pluck('channel')->unique()->sort()->values()->all())->not->toContain('whatsapp')
+        ->and(collect($this->actingAs($this->owner)->getJson("{$url}?channel=whatsapp")->assertOk()->json('data'))->pluck('channel')->unique()->all())->toBe(['whatsapp'])
+        ->and(count($this->actingAs($this->owner)->getJson("{$url}?channel=all")->assertOk()->json('data')))->toBe(count(TemplateLibrary::manifest()['templates']));
+    $this->actingAs($this->owner)->getJson("{$url}?channel=fax")->assertUnprocessable();
     $this->actingAs($this->owner)->postJson("{$url}/winback_1", ['industry' => 'moda'])->assertCreated();
     $this->actingAs($this->owner)->postJson("{$url}/winback_1")->assertOk();
     $this->actingAs($this->owner)->postJson("{$url}/no_existe")->assertNotFound();
