@@ -1,5 +1,17 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-26 — Versión 0.2.2: la prueba del correo de la plataforma dice qué pasó
+
+Se instala con el botón de actualizar.
+
+- **Plataforma → Ajustes → Correo:** la prueba se envía a la dirección que escribas (por defecto, la tuya) y el
+  resultado queda a la vista: si el servidor de correo aceptó el mensaje, su respuesta y el ID del mensaje para
+  buscarlo en el proveedor; si no salió, el motivo en palabras (no se pudo conectar, usuario o contraseña, remitente no
+  verificado, cifrado) con lo que suele arreglarlo y el detalle técnico. Antes solo aparecía un aviso de unos segundos.
+- Sin un remitente propio (el de ejemplo `hello@example.com`) la prueba no se intenta y dice qué falta.
+- La prueba se rinde a los 20 segundos si el servidor no responde, en lugar de quedarse esperando.
+- El botón de arriba de Plataforma lleva a esa sección.
+
 ## 2026-11-26 — Versión 0.2.1: Imagina Whats como canal de WhatsApp
 
 Se instala con el botón de actualizar, sin consola ni migraciones. Sin cambios en el contrato de eventos.

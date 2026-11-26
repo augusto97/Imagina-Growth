@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Billing\Models\Plan;
+use App\Domain\Billing\Platform\MailTest;
 use App\Domain\Workspaces\Mail\InvitationMail;
 use App\Domain\Workspaces\Models\Account;
 use App\Domain\Workspaces\Models\Invitation;
@@ -152,6 +153,26 @@ it('dice si el correo de la plataforma está configurado y prueba el envío', fu
     $this->actingAs($this->admin)->getJson('/api/platform/mail')->assertOk()->assertJsonPath('configured', false);
     config(['mail.default' => 'smtp']);
     $this->actingAs($this->admin)->getJson('/api/platform/mail')->assertOk()->assertJsonPath('configured', true);
-    $this->actingAs($this->admin)->postJson('/api/platform/mail/test')->assertOk()->assertJsonPath('sent', true);
+    config(['mail.default' => 'array', 'mail.from.address' => 'hola@imagina.test']);
+    $this->actingAs($this->admin)->postJson('/api/platform/mail/test')->assertOk()->assertJsonPath('sent', true)->assertJsonPath('to', $this->admin->email);
+    // A la dirección que elija el administrador, con el remitente y el mensaje en palabras.
+    $res = $this->actingAs($this->admin)->postJson('/api/platform/mail/test', ['to' => 'pruebas@eltornillo.co'])->assertOk();
+    expect($res->json())->toMatchArray(['sent' => true, 'to' => 'pruebas@eltornillo.co', 'from' => 'hola@imagina.test', 'mailer' => 'array'])
+        ->and($res->json('message'))->toContain('hola@imagina.test');
+    $this->actingAs($this->admin)->postJson('/api/platform/mail/test', ['to' => 'no-es-correo'])->assertUnprocessable()->assertJsonValidationErrors('to');
+    // Sin remitente propio (el de ejemplo de Laravel) no se intenta: se dice qué falta.
+    config(['mail.from.address' => 'hello@example.com']);
+    $this->actingAs($this->admin)->postJson('/api/platform/mail/test')->assertUnprocessable()->assertJsonPath('reason', 'from_missing');
     $this->actingAs($this->owner)->getJson('/api/platform/mail')->assertForbidden();
 });
+
+it('explica en palabras por qué no salió el correo de prueba', function (string $error, string $reason) {
+    expect(MailTest::reason($error))->toBe($reason);
+})->with([
+    ['Connection could not be established with host "smtp.emailit.com:587": stream_socket_client(): Connection timed out', 'connection'],
+    ['Failed to authenticate on SMTP server with username "x" using 2 possible authenticators. Authenticator LOGIN returned Expected response code "235" but got code "535"', 'auth'],
+    ['Unable to connect with STARTTLS: stream_socket_enable_crypto(): SSL operation failed with code 1', 'tls'],
+    ['Expected response code "250" but got code "550", with message "550 5.7.1 Sender domain not verified"', 'sender'],
+    ['Email address is not verified. The following identities failed the check in region US-EAST-1: hola@tienda.co', 'sender'],
+    ['Algo raro', 'other'],
+]);

@@ -32,7 +32,6 @@ import {
     usePlatformHealth,
     usePlatformOverview,
     useSetBillingStatus,
-    useMailTest,
     usePlatformMail,
     useSetFeature,
 } from './api';
@@ -859,7 +858,6 @@ function RequestsTab({ data }: { data: PlatformOverview }) {
 function MailBanner() {
     const { t } = useTranslation();
     const mail = usePlatformMail();
-    const test = useMailTest();
     const [params, setParams] = useSearchParams();
     const configure = () => {
         const p = new URLSearchParams(params);
@@ -867,20 +865,12 @@ function MailBanner() {
         p.set('seccion', 'mail');
         setParams(p, { replace: true });
     };
+    const onMail = params.get('pestana') === 'ajustes' && params.get('seccion') === 'mail';
     if (!mail.data || mail.data.configured) {
-        return mail.data?.configured ? (
+        // La prueba vive en Ajustes → Correo, con la dirección a la que llega y el resultado a la vista.
+        return mail.data?.configured && !onMail ? (
             <div className="igr:mb-4 igr:flex igr:items-center igr:justify-end">
-                <Button
-                    size="sm"
-                    variant="ghost"
-                    loading={test.isPending}
-                    onClick={() =>
-                        test.mutate(undefined, {
-                            onSuccess: (r) => toast.success(t('platform.mail.sent', { to: r.to })),
-                            onError: (e) => toast.error(t('platform.mail.failed'), isApiError(e) ? e.message : undefined),
-                        })
-                    }
-                >
+                <Button size="sm" variant="ghost" onClick={configure}>
                     {t('platform.mail.test')}
                 </Button>
             </div>
@@ -890,7 +880,7 @@ function MailBanner() {
         <div role="alert" className="igr:mb-4 igr:rounded-lg igr:border igr:border-warning/40 igr:bg-warning/10 igr:p-4 igr:text-sm">
             <p className="igr:font-medium">{t('platform.mail.offTitle')}</p>
             <p className="igr:mt-1 igr:text-muted-foreground">{t('platform.mail.offBody')}</p>
-            {params.get('pestana') !== 'ajustes' || params.get('seccion') !== 'mail' ? (
+            {!onMail ? (
                 <Button size="sm" className="igr:mt-3" onClick={configure}>
                     {t('platform.mail.configure')}
                 </Button>

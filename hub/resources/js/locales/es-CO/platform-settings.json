@@ -191,8 +191,15 @@
             "off": "Sin configurar"
         },
         "mail": {
-            "test": "Enviar correo de prueba",
-            "testHelp": "Te llega a tu correo. Guarda primero los cambios.",
+            "test": "Enviar prueba",
+            "testHelp": "Se envía con lo que está guardado: guarda primero los cambios.",
+            "testTo": "Enviar la prueba a",
+            "sentTitle": "El servidor de correo lo aceptó",
+            "failedTitle": "No salió el correo de prueba",
+            "from": "Remitente: {{from}}",
+            "server": "Respuesta del servidor: {{response}}",
+            "messageId": "ID del mensaje: {{id}}",
+            "detail": "Detalle técnico",
             "on": "El correo está encendido ({{mailer}}).",
             "off": "El correo está apagado: no salen invitaciones, recuperaciones de contraseña ni informes."
         },

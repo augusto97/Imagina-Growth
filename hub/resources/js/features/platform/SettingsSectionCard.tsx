@@ -1,8 +1,10 @@
 import { Copy, Eye, EyeOff, KeyRound, RefreshCw, Send, Undo2, Wand2 } from 'lucide-react';
 import { useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useMe } from '@/api/queries';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Callout } from '@/components/ui/callout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input, Select } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +13,7 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { toast } from '@/stores/toast';
-import { useMailTest } from './api';
+import { type MailTestResult, useMailTest } from './api';
 import { type SettingField, type SettingsSection, useGenerateVapid, useSaveSettings, useSesSetup } from './settings-api';
 import { type Draft, buildPayload, displayValue, effectiveBool, fieldErrors, initialText, pruneDraft, randomToken } from './settings-model';
 
@@ -323,11 +325,87 @@ function CopyValue({ label, value }: { label: string; value: string }) {
     );
 }
 
+/**
+ * Probar el correo de la plataforma: a la dirección que elija el administrador (la suya por defecto), con el resultado
+ * a la vista hasta la próxima prueba (no solo un aviso que se va): qué aceptó el servidor o por qué no salió.
+ */
+function MailTestForm() {
+    const { t } = useTranslation();
+    const me = useMe();
+    const test = useMailTest();
+    const [to, setTo] = useState('');
+    const [result, setResult] = useState<MailTestResult | null>(null);
+    const target = to.trim() || me.data?.user.email || '';
+    // Va dentro del formulario de la sección: no es un <form> propio (no se anidan) y no envía el de afuera.
+    const submit = () => {
+        if (target === '' || test.isPending) return;
+        setResult(null);
+        test.mutate(to.trim() ? { to: to.trim() } : {}, {
+            onSuccess: (r) => {
+                setResult(r);
+                toast.success(t('platform.mail.sent', { to: r.to }));
+            },
+            onError: (err) => {
+                const body = isApiError(err) && err.body && typeof err.body === 'object' && 'sent' in err.body ? (err.body as MailTestResult) : null;
+                if (body) {
+                    setResult(body);
+                } else if (!isApiError(err) || !err.fieldErrors.to) {
+                    toast.error(t('platform.mail.failed'), isApiError(err) ? err.message : undefined);
+                }
+            },
+        });
+    };
+    return (
+        <div className="igr:space-y-2">
+            <Label htmlFor="mail-test-to">{t('platformSettings.mail.testTo')}</Label>
+            <div className="igr:flex igr:flex-wrap igr:items-start igr:gap-2">
+                <Input
+                    id="mail-test-to"
+                    type="email"
+                    autoComplete="email"
+                    className="igr:min-w-0 igr:flex-1 igr:basis-56"
+                    placeholder={me.data?.user.email ?? ''}
+                    value={to}
+                    onChange={(e) => setTo(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            submit();
+                        }
+                    }}
+                />
+                <Button type="button" size="sm" variant="outline" className="igr:h-9" loading={test.isPending} disabled={target === ''} onClick={submit}>
+                    <Send />
+                    {t('platformSettings.mail.test')}
+                </Button>
+            </div>
+            <FieldError message={isApiError(test.error) ? test.error.fieldErrors.to : undefined} />
+            <p className="igr:text-xs igr:text-muted-foreground">{t('platformSettings.mail.testHelp')}</p>
+            {result ? (
+                <Callout tone={result.sent ? 'success' : 'danger'} title={result.sent ? t('platformSettings.mail.sentTitle') : t('platformSettings.mail.failedTitle')}>
+                    <p>{result.message}</p>
+                    <ul className="igr:mt-1 igr:space-y-0.5 igr:text-xs igr:text-muted-foreground">
+                        {result.sent ? <li>{t('platform.mail.sent', { to: result.to })}</li> : null}
+                        {result.from ? <li>{t('platformSettings.mail.from', { from: result.from })}</li> : null}
+                        {result.server_response ? <li className="igr:break-all">{t('platformSettings.mail.server', { response: result.server_response })}</li> : null}
+                        {result.message_id ? <li className="igr:break-all">{t('platformSettings.mail.messageId', { id: result.message_id })}</li> : null}
+                    </ul>
+                    {result.detail ? (
+                        <details className="igr:mt-1 igr:text-xs">
+                            <summary className="igr:cursor-pointer igr:text-muted-foreground">{t('platformSettings.mail.detail')}</summary>
+                            <p className="igr:mt-1 igr:break-all igr:font-mono">{result.detail}</p>
+                        </details>
+                    ) : null}
+                </Callout>
+            ) : null}
+        </div>
+    );
+}
+
 /** Lo propio de cada sección: probar el correo, preparar SES, las direcciones a registrar en Meta, Google y TikTok… */
 function SectionExtras({ section }: { section: SettingsSection }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
-    const test = useMailTest();
     const setup = useSesSetup();
     const info = section.info;
     const box = 'igr:space-y-2 igr:rounded-md igr:border igr:bg-muted/40 igr:p-3';
@@ -341,25 +419,7 @@ function SectionExtras({ section }: { section: SettingsSection }) {
                             ? t('platformSettings.mail.on', { mailer: t(`platformSettings.options.mail.driver.${info.mailer ?? ''}`, { defaultValue: info.mailer ?? '' }) })
                             : t('platformSettings.mail.off')}
                     </p>
-                    <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-2">
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            loading={test.isPending}
-                            disabled={!info.configured}
-                            onClick={() =>
-                                test.mutate(undefined, {
-                                    onSuccess: (r) => toast.success(t('platform.mail.sent', { to: r.to })),
-                                    onError: (e) => toast.error(t('platform.mail.failed'), isApiError(e) ? e.message : undefined),
-                                })
-                            }
-                        >
-                            <Send />
-                            {t('platformSettings.mail.test')}
-                        </Button>
-                        <span className="igr:text-xs igr:text-muted-foreground">{t('platformSettings.mail.testHelp')}</span>
-                    </div>
+                    {info.configured ? <MailTestForm /> : null}
                 </div>
             );
         case 'ses': {

@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\Billing\Http;
 
+use App\Domain\Billing\Platform\MailTest;
 use App\Domain\Workspaces\Models\User;
-use App\Support\Pii\Pii;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
-use Throwable;
 
 /**
  * Correo del sistema (invitaciones, recuperación de contraseña, informes, avisos). El instalador lo deja en `log`
@@ -31,21 +29,17 @@ final class PlatformMailController
         ]);
     }
 
-    /** POST /api/platform/mail/test — envía en el momento (sin cola) un correo de prueba al superadmin. */
-    public function test(Request $request): JsonResponse
+    /**
+     * POST /api/platform/mail/test {to?} — envía en el momento (sin cola) un correo de prueba a `to` o, sin él, al
+     * administrador, y dice en palabras qué pasó (MailTest). 422 si no salió.
+     */
+    public function test(Request $request, MailTest $mail): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        try {
-            Mail::raw(__('Este es un correo de prueba de Imagina Growth. Si lo recibiste, el correo de la plataforma funciona.'), function ($message) use ($user): void {
-                $message->to($user->email)->subject(__('Correo de prueba de Imagina Growth'));
-            });
-        } catch (Throwable $e) {
-            report($e);
+        $data = $request->validate(['to' => ['nullable', 'email:rfc', 'max:190']]);
+        $result = $mail->send($data['to'] ?? $user->email);
 
-            return response()->json(['sent' => false, 'message' => __('No se pudo enviar: :error', ['error' => mb_substr($e->getMessage(), 0, 300)])], 422);
-        }
-
-        return response()->json(['sent' => true, 'to' => Pii::maskEmail($user->email)]);
+        return response()->json($result, $result['sent'] ? 200 : 422);
     }
 }

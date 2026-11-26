@@ -373,6 +373,20 @@ export function usePlatformMail(enabled = true) {
     return useQuery({ queryKey: ['platform', 'mail'], queryFn: () => api.get<PlatformMail>(`${base}/mail`), enabled });
 }
 
+/** Lo que dice la prueba del correo de la plataforma (MailTest en el hub). */
+export interface MailTestResult {
+    sent: boolean;
+    reason?: 'from_missing' | 'connection' | 'auth' | 'tls' | 'sender' | 'other';
+    message: string;
+    detail?: string;
+    to: string;
+    from: string;
+    mailer: string;
+    host: string | null;
+    server_response?: string | null;
+    message_id?: string | null;
+}
+
 export function useMailTest() {
-    return useMutation({ mutationFn: () => api.post<{ sent: boolean; to: string }>(`${base}/mail/test`, {}) });
+    return useMutation({ mutationFn: (body: { to?: string } = {}) => api.post<MailTestResult>(`${base}/mail/test`, body) });
 }
