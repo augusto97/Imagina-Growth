@@ -11,6 +11,7 @@ use App\Domain\Intelligence\Ai\Data\AiTool;
 use App\Domain\Intelligence\Ai\Data\AiUsage;
 use App\Domain\Intelligence\Ai\Exceptions\AiUnavailable;
 use App\Domain\Intelligence\Ai\Support\AiMeter;
+use App\Domain\Intelligence\Ai\Support\AiModels;
 use RuntimeException;
 
 /**
@@ -103,7 +104,7 @@ final class FakeAiGateway implements AiGateway
         foreach ($tools as $tool) {
             $byName[$tool->name] = $tool;
         }
-        $model = (string) config("igr-ai.features.{$request->feature}.model", 'claude-sonnet-5-5');
+        $model = AiModels::resolve($request->feature)['model'];
         $usage = new AiUsage;
         $calls = [];
         for ($step = 0; $step < max(1, $maxSteps) + 1; $step++) {

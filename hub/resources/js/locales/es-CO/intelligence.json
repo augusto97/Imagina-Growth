@@ -37,6 +37,7 @@
         "features": {
             "weekly_analyst": "Analista semanal",
             "ask_data": "Pregúntale a tus datos",
+            "assistant": "Asistente «Pregúntale a la IA»",
             "copilot": "Copiloto",
             "content": "Contenido",
             "sales_agent": "Agente de ventas",

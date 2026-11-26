@@ -21,6 +21,7 @@ function has(path: string): boolean {
 const FEATURES = [
     'weekly_analyst',
     'ask_data',
+    'assistant',
     'copilot',
     'content',
     'sales_agent',

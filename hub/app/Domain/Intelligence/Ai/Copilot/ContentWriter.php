@@ -11,6 +11,7 @@ use App\Domain\Intelligence\Ai\Copilot\Support\WhatsAppTemplateRules;
 use App\Domain\Intelligence\Ai\Data\AiRequest;
 use App\Domain\Intelligence\Ai\Data\AiResult;
 use App\Domain\Intelligence\Ai\Exceptions\AiUnavailable;
+use App\Domain\Intelligence\Ai\Support\AiModels;
 use App\Domain\Intelligence\Ai\Support\NarrativeWriter;
 use App\Domain\Workspaces\Models\Workspace;
 
@@ -187,7 +188,7 @@ final class ContentWriter
         return AiDraft::query()->create([
             'workspace_id' => $workspace->id, 'user_id' => $userId, 'kind' => 'content',
             'prompt' => mb_substr((string) ($input['goal'] ?? $input['text'] ?? ''), 0, 2000),
-            'proposal' => ['type' => $type, 'input' => $input, 'output' => $output], 'model' => (string) config('igr-ai.features.content.model'),
+            'proposal' => ['type' => $type, 'input' => $input, 'output' => $output], 'model' => AiModels::resolve('content')['model'],
         ]);
     }
 

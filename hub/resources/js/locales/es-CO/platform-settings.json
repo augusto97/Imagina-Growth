@@ -33,7 +33,7 @@
             },
             "ai": {
                 "title": "Inteligencia artificial",
-                "description": "La IA escribe el informe semanal, responde «Pregúntale a tus datos» y atiende como agente de ventas. Sin clave, todo funciona con plantillas sin IA."
+                "description": "La IA escribe el informe semanal, responde «Pregúntale a la IA» y atiende como agente de ventas. Aquí eliges la clave, el modelo y cuánto piensa, y la pruebas. Sin clave, todo funciona con plantillas sin IA."
             },
             "security": {
                 "title": "Registro y seguridad",
@@ -110,8 +110,44 @@
             },
             "ai": {
                 "enabled": { "label": "IA encendida", "help": "Apágala para que todo use plantillas sin IA, aunque haya clave." },
-                "api_key": { "label": "Clave de Anthropic", "help": "Empieza por sk-ant-.", "where": "En console.anthropic.com → Settings → API keys → Create key." },
-                "monthly_budget_usd": { "label": "Tope mensual por cliente (USD)", "help": "Lo máximo que puede gastar en IA cada espacio de trabajo al mes si su plan no dice otra cosa." }
+                "api_key": { "label": "Clave de Anthropic", "help": "Empieza por sk-ant-.", "where": "En platform.claude.com → Settings → API keys → Create key." },
+                "monthly_budget_usd": { "label": "Tope mensual por cliente (USD)", "help": "Lo máximo que puede gastar en IA cada espacio de trabajo al mes si su plan no dice otra cosa." },
+                "main_model": { "label": "Modelo principal", "help": "Lo usan el analista semanal, Pregúntale, el asistente, el copiloto, los textos, el agente de ventas y el reporte mensual. Vacío: cada uno usa Claude Sonnet 5.5." },
+                "main_effort": { "label": "Esfuerzo del modelo principal", "help": "Cuánto piensa antes de responder. Más esfuerzo da mejores respuestas, pero tarda más y cuesta más." },
+                "fast_model": { "label": "Modelo rápido", "help": "Lo usan las tareas cortas y frecuentes: clasificar mensajes, moderar reseñas, resúmenes y leads. Vacío: cada una usa Claude Haiku 5.5." },
+                "fast_effort": { "label": "Esfuerzo del modelo rápido", "help": "Para estas tareas casi siempre basta «Bajo»." },
+                "feature_weekly_analyst_model": { "label": "Modelo: Analista semanal", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_weekly_analyst_effort": { "label": "Esfuerzo: Analista semanal", "help": "Solo para esta función. Vacío: el de su grupo." },
+                "feature_ask_data_model": { "label": "Modelo: Pregúntale a tus datos", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_ask_data_effort": { "label": "Esfuerzo: Pregúntale a tus datos", "help": "Solo para esta función. Vacío: el de su grupo." },
+                "feature_assistant_model": { "label": "Modelo: Asistente «Pregúntale a la IA»", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_assistant_effort": { "label": "Esfuerzo: Asistente «Pregúntale a la IA»", "help": "Solo para esta función. Vacío: el de su grupo." },
+                "feature_copilot_model": { "label": "Modelo: Copiloto de campañas y automatizaciones", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_copilot_effort": { "label": "Esfuerzo: Copiloto de campañas y automatizaciones", "help": "Solo para esta función. Vacío: el de su grupo." },
+                "feature_content_model": { "label": "Modelo: Textos de mensajes", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_content_effort": { "label": "Esfuerzo: Textos de mensajes", "help": "Solo para esta función. Vacío: el de su grupo." },
+                "feature_sales_agent_model": { "label": "Modelo: Agente de ventas", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_sales_agent_effort": { "label": "Esfuerzo: Agente de ventas", "help": "Solo para esta función. Vacío: el de su grupo." },
+                "feature_inbound_classifier_model": { "label": "Modelo: Clasificar mensajes", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_inbound_classifier_effort": { "label": "Esfuerzo: Clasificar mensajes", "help": "Solo para esta función. Vacío: el de su grupo." },
+                "feature_review_moderator_model": { "label": "Modelo: Moderar reseñas", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_review_moderator_effort": { "label": "Esfuerzo: Moderar reseñas", "help": "Solo para esta función. Vacío: el de su grupo." },
+                "feature_profile_summary_model": { "label": "Modelo: Resumen del cliente", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_profile_summary_effort": { "label": "Esfuerzo: Resumen del cliente", "help": "Solo para esta función. Vacío: el de su grupo." },
+                "feature_review_summary_model": { "label": "Modelo: Resumen de reseñas", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_review_summary_effort": { "label": "Esfuerzo: Resumen de reseñas", "help": "Solo para esta función. Vacío: el de su grupo." },
+                "feature_monthly_report_model": { "label": "Modelo: Reporte mensual", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_monthly_report_effort": { "label": "Esfuerzo: Reporte mensual", "help": "Solo para esta función. Vacío: el de su grupo." },
+                "feature_lead_qualifier_model": { "label": "Modelo: Calificar leads", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_lead_qualifier_effort": { "label": "Esfuerzo: Calificar leads", "help": "Solo para esta función. Vacío: el de su grupo." },
+                "feature_lead_brief_model": { "label": "Modelo: Ficha del lead", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_lead_brief_effort": { "label": "Esfuerzo: Ficha del lead", "help": "Solo para esta función. Vacío: el de su grupo." },
+                "feature_lead_followup_model": { "label": "Modelo: Seguimiento de leads", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_lead_followup_effort": { "label": "Esfuerzo: Seguimiento de leads", "help": "Solo para esta función. Vacío: el de su grupo." },
+                "feature_lead_funnel_model": { "label": "Modelo: Embudo de leads", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_lead_funnel_effort": { "label": "Esfuerzo: Embudo de leads", "help": "Solo para esta función. Vacío: el de su grupo." },
+                "feature_reactivation_model": { "label": "Modelo: Reactivar con IA", "help": "Solo para esta función: manda sobre su grupo. Vacío: el de su grupo." },
+                "feature_reactivation_effort": { "label": "Esfuerzo: Reactivar con IA", "help": "Solo para esta función. Vacío: el de su grupo." }
             },
             "security": {
                 "open_registration": { "label": "Registro abierto", "help": "Encendido, cualquiera puede crear una cuenta. Apagado, solo por invitación (recomendado)." },
@@ -325,6 +361,166 @@
             "done_one": "Se agregó {{count}} plan.",
             "done_other": "Se agregaron {{count}} planes.",
             "none": "Ya están todos los planes incluidos."
+        },
+        "ai": {
+            "explain": {
+                "title": "¿Qué cambia cada opción?",
+                "model": "El modelo decide la calidad y el precio. Sonnet es el equilibrio para escribir y analizar; Haiku es 20 veces más barato y alcanza para clasificar y resumir; Opus y Fable piensan mejor los casos difíciles, pero cuestan bastante más.",
+                "effort": "El esfuerzo decide cuánto piensa el modelo antes de responder: «Bajo» es rápido y barato, «Alto» o más da mejores análisis a cambio de tiempo y tokens.",
+                "budget": "El gasto de cada cliente nunca pasa de su tope mensual: si lo alcanza, todo sigue con plantillas sin IA hasta el mes siguiente.",
+                "price": "{{input}} / {{output}} por millón de tokens (entrada / salida)",
+                "recommended": "Recomendado"
+            },
+            "tiers": {
+                "main": {
+                    "title": "Modelo principal",
+                    "description": "Escribe y razona: informes, respuestas a tus preguntas, borradores de campañas y el agente de ventas."
+                },
+                "fast": {
+                    "title": "Modelo rápido",
+                    "description": "Tareas cortas y frecuentes: clasificar mensajes, moderar reseñas, resúmenes y leads."
+                }
+            },
+            "model": "Modelo",
+            "effort": "Esfuerzo",
+            "factory": "De fábrica ({{model}})",
+            "factoryEffort": "De fábrica ({{effort}})",
+            "factoryMixed": "De fábrica (cada función el suyo)",
+            "group": "El de su grupo ({{model}})",
+            "groupEffort": "El de su grupo",
+            "modelDefault": "el del modelo",
+            "now": "Usa ahora: {{model}} · {{effort}}",
+            "models": {
+                "claude-fable-5-2": {
+                    "name": "Claude Fable 5.2",
+                    "help": "El más capaz, para análisis muy difíciles. Cuesta el doble que Opus y tarda más."
+                },
+                "claude-opus-5-5": {
+                    "name": "Claude Opus 5.5",
+                    "help": "Muy capaz en análisis y textos largos. Cuesta el doble que Sonnet."
+                },
+                "claude-sonnet-5-5": {
+                    "name": "Claude Sonnet 5.5",
+                    "help": "El equilibrio entre calidad y costo. Recomendado como modelo principal."
+                },
+                "claude-haiku-5-5": {
+                    "name": "Claude Haiku 5.5",
+                    "help": "El más rápido y barato. Recomendado como modelo rápido."
+                }
+            },
+            "efforts": {
+                "low": {
+                    "name": "Bajo",
+                    "help": "Rápido y barato. Basta para clasificar y para textos cortos."
+                },
+                "medium": {
+                    "name": "Medio",
+                    "help": "El equilibrio para la mayoría de las tareas."
+                },
+                "high": {
+                    "name": "Alto",
+                    "help": "Piensa más: mejores análisis, más lento y más caro."
+                },
+                "xhigh": {
+                    "name": "Muy alto",
+                    "help": "Para análisis difíciles. Usa bastantes más tokens."
+                },
+                "max": {
+                    "name": "Máximo",
+                    "help": "Sin límite de razonamiento: solo si la calidad importa más que el tiempo y el costo."
+                }
+            },
+            "features": {
+                "weekly_analyst": {
+                    "name": "Analista semanal",
+                    "help": "Escribe el informe de cada lunes."
+                },
+                "ask_data": {
+                    "name": "Pregúntale a tus datos",
+                    "help": "Responde preguntas sobre ventas, clientes y tráfico."
+                },
+                "assistant": {
+                    "name": "Asistente «Pregúntale a la IA»",
+                    "help": "El panel de IA que se abre desde cualquier pantalla."
+                },
+                "copilot": {
+                    "name": "Copiloto de campañas y automatizaciones",
+                    "help": "Arma borradores de campañas y automatizaciones."
+                },
+                "content": {
+                    "name": "Textos de mensajes",
+                    "help": "Asuntos, variantes y textos de WhatsApp."
+                },
+                "sales_agent": {
+                    "name": "Agente de ventas",
+                    "help": "Responde a tus clientes en WhatsApp, Messenger e Instagram."
+                },
+                "inbound_classifier": {
+                    "name": "Clasificar mensajes",
+                    "help": "Detecta la intención de cada mensaje de la bandeja y las bajas."
+                },
+                "review_moderator": {
+                    "name": "Moderar reseñas",
+                    "help": "Marca reseñas ofensivas, spam o con datos personales."
+                },
+                "profile_summary": {
+                    "name": "Resumen del cliente",
+                    "help": "El resumen de arriba del perfil."
+                },
+                "review_summary": {
+                    "name": "Resumen de reseñas",
+                    "help": "Lo que más dicen tus clientes."
+                },
+                "monthly_report": {
+                    "name": "Reporte mensual",
+                    "help": "El resumen del reporte que reciben los clientes de la agencia."
+                },
+                "lead_qualifier": {
+                    "name": "Calificar leads",
+                    "help": "Sube o baja el puntaje de un lead con su motivo."
+                },
+                "lead_brief": {
+                    "name": "Ficha del lead",
+                    "help": "Llena qué necesita, cuándo y su presupuesto desde el chat."
+                },
+                "lead_followup": {
+                    "name": "Seguimiento de leads",
+                    "help": "El mensaje de seguimiento y el sugerido de «Hoy»."
+                },
+                "lead_funnel": {
+                    "name": "Embudo de leads",
+                    "help": "La conclusión del embudo de cada lunes."
+                },
+                "reactivation": {
+                    "name": "Reactivar con IA",
+                    "help": "El mensaje para retomar a un cliente según su última conversación."
+                }
+            },
+            "advanced": {
+                "title": "Avanzado: una función con otro modelo",
+                "help": "Normalmente no hace falta. Úsalo si quieres, por ejemplo, el agente de ventas con un modelo más capaz y el resto igual.",
+                "show": "Ver las {{count}} funciones",
+                "hide": "Ocultar las funciones",
+                "changed_one": "{{count}} función con su propio modelo",
+                "changed_other": "{{count}} funciones con su propio modelo",
+                "function": "Función",
+                "main": "Principal",
+                "fast": "Rápido"
+            },
+            "test": {
+                "title": "Probar la IA",
+                "help": "Pide una respuesta corta al modelo con la clave guardada. Cuesta menos de un centavo de dólar y no se cobra a ningún cliente.",
+                "model": "Modelo a probar",
+                "run": "Probar la IA",
+                "unsaved": "Tienes cambios sin guardar: la prueba usa lo guardado.",
+                "okTitle": "La IA funciona",
+                "failTitle": "La IA no respondió",
+                "latency": "Tardó {{seconds}} s",
+                "served": "Respondió: {{model}}",
+                "reply": "Dijo: «{{reply}}»",
+                "cost": "Costo de la prueba: {{cost}}",
+                "detail": "Detalle técnico"
+            }
         }
     }
 }

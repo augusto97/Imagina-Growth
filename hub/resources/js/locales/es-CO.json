@@ -242,6 +242,7 @@
         "templates": "Plantillas",
         "channels": "Canales",
         "openMenu": "Abrir el menú",
+        "askAi": "Pregúntale a la IA",
         "collapseSidebar": "Contraer la barra lateral",
         "expandSidebar": "Expandir la barra lateral",
         "quotes": "Cotizador",
@@ -319,7 +320,9 @@
         "orders_one": "{{count}} pedido",
         "orders_other": "{{count}} pedidos",
         "allContacts": "Ver todos los contactos con «{{q}}»",
-        "sectionOverview": "{{section}} · resumen"
+        "sectionOverview": "{{section}} · resumen",
+        "askAi": "Preguntar a la IA: «{{q}}»",
+        "openAi": "Abrir «Pregúntale a la IA»"
     },
     "home": {
         "title": "Hola, {{name}}",

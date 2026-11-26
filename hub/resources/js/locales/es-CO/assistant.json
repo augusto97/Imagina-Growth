@@ -1,0 +1,98 @@
+{
+    "assistant": {
+        "title": "Pregúntale a la IA",
+        "context": {
+            "home": "Pregunta lo que quieras de tu negocio: ventas, clientes, mensajes o qué hacer hoy.",
+            "contact": "Estás viendo un cliente: pregunta quién es, qué compra o qué conviene hacer con él.",
+            "segment": "Estás viendo un grupo de clientes: pregunta cuántos son, cuánto valen o qué enviarles.",
+            "campaign": "Estás viendo una campaña: pregunta cómo le fue y cómo mejorarla.",
+            "flow": "Estás viendo una automatización: pregunta cuánto vendió y qué cambiar.",
+            "conversation": "Estás en una conversación: pregunta por el cliente o qué responderle.",
+            "leads": "Estás en tus leads: pregunta cuáles atender primero o cuáles se están enfriando.",
+            "results": "Estás en Resultados: pregunta por ventas, canales o compara periodos.",
+            "other": "Pregunta lo que quieras de tu negocio o de cómo usar la plataforma."
+        },
+        "intro": "Respondo con tus datos reales: nunca invento cifras. Si conviene, te propongo un siguiente paso y tú decides.",
+        "try": "Prueba con:",
+        "suggestions": {
+            "home": {
+                "week": "¿Cómo me fue esta semana frente a la anterior?",
+                "best": "¿Qué canal me trajo más ventas este mes?",
+                "today": "¿Qué debería hacer hoy para vender más?"
+            },
+            "contact": {
+                "who": "Resúmeme a este cliente",
+                "next": "¿Qué le ofrezco a este cliente?",
+                "risk": "¿Este cliente está por dejar de comprar?"
+            },
+            "segment": {
+                "size": "¿Cuántas personas hay en este grupo y cómo ha cambiado?",
+                "message": "¿Qué mensaje les envío a este grupo?",
+                "value": "¿Cuánto me han comprado las personas de este grupo?"
+            },
+            "campaign": {
+                "result": "¿Cómo le fue a esta campaña?",
+                "improve": "¿Qué cambio para que la próxima venda más?",
+                "next": "¿A quién le escribo después de esta campaña?"
+            },
+            "flow": {
+                "result": "¿Cuánto vendió esta automatización en el último mes?",
+                "improve": "¿Qué paso de esta automatización mejoro?",
+                "holdout": "¿Está vendiendo más que sin mensajes?"
+            },
+            "conversation": {
+                "reply": "¿Qué le respondo a este cliente?",
+                "customer": "¿Quién es este cliente y qué ha comprado?",
+                "offer": "¿Le ofrezco un descuento o no hace falta?"
+            },
+            "leads": {
+                "hot": "¿Qué leads atiendo primero hoy?",
+                "stuck": "¿Cuántos leads llevan días sin respuesta?",
+                "won": "¿Cuánto he ganado en leads este mes?"
+            },
+            "results": {
+                "week": "¿Cómo van mis ventas este mes frente al anterior?",
+                "channels": "¿Qué canales me traen más clientes nuevos?",
+                "compare": "¿En qué ciudades vendo más?"
+            },
+            "other": {
+                "week": "¿Cómo me fue esta semana?",
+                "best": "¿Cuáles son mis productos más vendidos?",
+                "how": "¿Cómo creo una campaña de WhatsApp?"
+            }
+        },
+        "label": "Tu pregunta",
+        "placeholder": "Escribe tu pregunta… (Enter envía)",
+        "send": "Enviar pregunta",
+        "thinking": "Buscando en tus datos…",
+        "privacy": "La IA no ve correos ni teléfonos de tus clientes, y cada cifra sale de tus datos.",
+        "failed": "No se pudo responder. Intenta de nuevo.",
+        "saveSegment": "Guardar como grupo de clientes",
+        "savedSegment": "Guardado en Grupos de clientes.",
+        "actions": {
+            "campaign": "Armar la campaña con el copiloto",
+            "flow": "Armar la automatización con el copiloto"
+        },
+        "pages": {
+            "segments": "Ir a Grupos de clientes",
+            "campaigns": "Ir a Campañas",
+            "flows": "Ir a Automatizaciones",
+            "templates": "Ir a Plantillas",
+            "insights": "Ir a Recomendaciones",
+            "leads": "Ir a Leads",
+            "inbox": "Ir a la bandeja",
+            "results": "Ir a Resultados",
+            "contacts": "Ir a Clientes",
+            "strategies": "Ir a Estrategias",
+            "connections": "Ir a Conexiones",
+            "onsite": "Ir a En tu web",
+            "reviews": "Ir a Reseñas",
+            "loyalty": "Ir a Puntos y recompensas"
+        },
+        "offTitle": "La IA está apagada",
+        "budgetTitle": "Se acabó el cupo de IA del mes",
+        "turnOn": "Encender la IA",
+        "noPermissionTitle": "Tu rol no usa la IA",
+        "noPermission": "Pídele al dueño o a quien administra este negocio que te dé un rol con IA (Administrador o Marketing)."
+    }
+}

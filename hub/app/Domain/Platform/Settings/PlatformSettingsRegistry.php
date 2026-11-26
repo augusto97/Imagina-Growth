@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Platform\Settings;
 
 use App\Domain\Billing\Models\Plan;
+use App\Domain\Intelligence\Ai\Support\AiModels;
 use App\Support\Net\SafeUrl;
 use Closure;
 
@@ -127,6 +128,13 @@ final class PlatformSettingsRegistry
             new SettingDefinition('ai.enabled', 'bool', ['igr-ai.enabled'], 'IGR_AI_ENABLED'),
             new SettingDefinition('ai.api_key', 'secret', ['igr-ai.api_key'], 'IGR_ANTHROPIC_API_KEY', ['max:255']),
             new SettingDefinition('ai.monthly_budget_usd', 'number', ['igr-ai.monthly_budget_usd'], 'IGR_AI_MONTHLY_BUDGET_USD', min: 0, max: 100000),
+            // Modelo y esfuerzo de los dos grupos de funciones (AiModels): vacíos, cada función usa lo suyo de fábrica.
+            new SettingDefinition('ai.main_model', 'enum', ['igr-ai.tiers.main.model'], 'IGR_AI_MODEL_MAIN', options: AiModels::ids()),
+            new SettingDefinition('ai.main_effort', 'enum', ['igr-ai.tiers.main.effort'], 'IGR_AI_EFFORT_MAIN', options: AiModels::EFFORTS),
+            new SettingDefinition('ai.fast_model', 'enum', ['igr-ai.tiers.fast.model'], 'IGR_AI_MODEL_FAST', options: AiModels::ids()),
+            new SettingDefinition('ai.fast_effort', 'enum', ['igr-ai.tiers.fast.effort'], 'IGR_AI_EFFORT_FAST', options: AiModels::EFFORTS),
+            // Avanzado: una función concreta con otro modelo o esfuerzo (manda sobre su grupo).
+            ...self::aiOverrides(),
 
             // ── Registro y seguridad ──
             new SettingDefinition('security.open_registration', 'bool', ['igr.registration_open'], 'IGR_OPEN_REGISTRATION'),
@@ -164,6 +172,24 @@ final class PlatformSettingsRegistry
             // ── Tasas de cambio (igr:fx:update) ──
             new SettingDefinition('fx.url', 'url', ['igr.fx.url'], 'IGR_FX_URL', ['max:500', self::publicUrl()]),
         ];
+    }
+
+    /**
+     * `ai.feature_<función>_model` y `_effort` por cada función de `igr-ai.features` (respaldo `IGR_AI_MODEL_<FUNCIÓN>` y
+     * `IGR_AI_EFFORT_<FUNCIÓN>`, que lee `config/igr-ai.php`).
+     *
+     * @return list<SettingDefinition>
+     */
+    private static function aiOverrides(): array
+    {
+        $out = [];
+        foreach (array_keys(AiModels::features()) as $feature) {
+            $env = strtoupper($feature);
+            $out[] = new SettingDefinition("ai.feature_{$feature}_model", 'enum', ["igr-ai.overrides.{$feature}.model"], "IGR_AI_MODEL_{$env}", options: AiModels::ids());
+            $out[] = new SettingDefinition("ai.feature_{$feature}_effort", 'enum', ["igr-ai.overrides.{$feature}.effort"], "IGR_AI_EFFORT_{$env}", options: AiModels::EFFORTS);
+        }
+
+        return $out;
     }
 
     /** Uno o varios ARN de temas de SNS separados por comas (SesDriver acepta cualquiera de ellos). */

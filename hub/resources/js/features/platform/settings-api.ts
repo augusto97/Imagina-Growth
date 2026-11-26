@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, apiRequest } from '@/lib/api';
+import type { AiFeatureInfo, AiModelInfo } from './ai-settings-model';
 import type { PlatformPlan } from './api';
 
 /* Plataforma → Ajustes (F17): lo que antes se configuraba en el .env o con comandos. Rutas en el ModuleServiceProvider de app/Domain/Platform. */
@@ -54,7 +55,24 @@ export interface SettingsSection {
         health_url?: string;
         /** Lo que la guía paso a paso muestra para copiar (direcciones, alcances, campos del webhook, políticas). */
         guide?: Partial<Record<string, string | string[] | boolean>>;
+        /** IA: los modelos que se pueden elegir con su precio y cada función con lo que usa ahora. */
+        models?: AiModelInfo[];
+        features?: AiFeatureInfo[];
     };
+}
+
+/** «Probar la IA» (POST settings/ai/test): 200 si respondió, 422 con el motivo si no. */
+export interface AiTestResult {
+    ok: boolean;
+    reason?: string;
+    message: string;
+    model: string;
+    effort: string | null;
+    latency_ms?: number;
+    served_model?: string;
+    reply?: string;
+    cost_usd?: number;
+    detail?: string;
 }
 
 export interface PlatformSettingsData {
@@ -101,6 +119,10 @@ export function useGenerateVapid() {
 export function useSesSetup() {
     const set = useSettingsSetter();
     return useMutation({ mutationFn: () => api.post<PlatformSettingsData>(`${base}/settings/ses/setup`, {}), onSuccess: set });
+}
+
+export function useAiTest() {
+    return useMutation({ mutationFn: (v: { model?: string; effort?: string }) => api.post<AiTestResult>(`${base}/settings/ai/test`, v) });
 }
 
 /* ── Festivos ─────────────────────────────────────────────────────────────── */

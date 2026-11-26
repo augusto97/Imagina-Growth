@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { Command } from 'cmdk';
-import { Loader2, Lock, Moon, PanelLeftClose, PanelLeftOpen, Plug, Plus, Sun, SunMoon, User, UserPlus } from 'lucide-react';
+import { Loader2, Lock, Moon, PanelLeftClose, PanelLeftOpen, Plug, Plus, Sparkles, Sun, SunMoon, User, UserPlus } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { wsPath } from '@/api/queries';
+import { useAssistant } from '@/features/assistant/model';
 import { useDebounced } from '@/hooks/useDebounced';
 import { DESKTOP_QUERY, useMedia } from '@/hooks/useMedia';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
@@ -57,6 +58,8 @@ export function CommandPalette() {
     const { commandOpen, setCommandOpen, setTheme, sidebarCollapsed, setSidebarCollapsed } = useUi();
     const desktop = useMedia(DESKTOP_QUERY);
     const canSearchContacts = useCan('viewAssignedContacts');
+    const canAsk = useCan('useAi');
+    const askAi = useAssistant((st) => st.ask);
     const [query, setQuery] = useState('');
     const contacts = useContactSearch(workspace.id, query, commandOpen && canSearchContacts);
     const base = `/w/${workspace.id}`;
@@ -95,6 +98,21 @@ export function CommandPalette() {
                             <Command.Empty className="igr:py-8 igr:text-center igr:text-[13px] igr:text-muted-foreground">
                                 {searching && contacts.isFetching ? t('command.searchingContacts') : t('command.empty')}
                             </Command.Empty>
+                            {canAsk ? (
+                                <Command.Group heading={t('nav.askAi')} className={groupClass}>
+                                    {/* El valor incluye lo escrito: siempre aparece, se escriba lo que se escriba. */}
+                                    <Item
+                                        value={`preguntar ia ${query}`}
+                                        onSelect={() => {
+                                            close(false);
+                                            askAi(query);
+                                        }}
+                                    >
+                                        <Sparkles />
+                                        {query.trim() !== '' ? t('command.askAi', { q: query.trim() }) : t('command.openAi')}
+                                    </Item>
+                                </Command.Group>
+                            ) : null}
                             {searching ? (
                                 <Command.Group heading={t('command.contacts')} className={groupClass}>
                                     {contacts.isFetching && !contacts.data ? (

@@ -10,6 +10,7 @@ export const ROUTE_TEXTS: Record<string, readonly string[]> = {
     agenda: ['agenda', 'contacts'],
     agent: ['agent', 'contacts'],
     analytics: ['agency', 'analytics', 'contacts', 'home', 'insights', 'regions'],
+    assistant: ['analytics', 'assistant', 'copilot', 'intelligence'],
     audit: ['activity'],
     calendar: ['analytics', 'campaigns', 'contacts'],
     campaigns: ['analytics', 'campaigns', 'contacts', 'copilot', 'templates'],
