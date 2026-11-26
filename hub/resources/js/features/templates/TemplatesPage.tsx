@@ -1,27 +1,29 @@
-import { Archive, ArchiveRestore, Building2, Copy, Eye, FileText, Library, Mail, MessageCircle, MessageSquareText, MoreHorizontal, Plus, Search } from 'lucide-react';
+import { Archive, ArchiveRestore, Building2, Copy, Eye, Library, Mail, MessageCircle, MessageSquareText, MoreHorizontal, Plus, Search, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input, Select } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EmptyState, ErrorState, FieldError, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useGallery, useInstallFromGallery, useWaGalleryPreview } from '@/features/gallery/api';
+import type { GalleryEntry, GalleryGoal } from '@/features/gallery/types';
+import { businessKind } from '@/features/flows/business';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
+import { cn } from '@/lib/cn';
 import { formatRelative } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
 import {
     type BusinessProfile,
     CHANNELS,
-    type LibraryEntry,
     type TemplateChannel,
     type TemplateStatus,
     type TemplateSummary,
@@ -29,27 +31,29 @@ import {
     useBusinessProfile,
     useCreateTemplate,
     useDuplicateTemplate,
-    useInstallFromLibrary,
-    useLibrary,
     useLibraryPreview,
     useRestoreTemplate,
     useTemplates,
     useUpdateBusinessProfile,
 } from './api';
-import { BLANK_EMAIL_MJML } from './content';
+import { BLANK_EMAIL_MJML, humanizeLiquid } from './content';
+import { PhoneMock, WaBubble } from './editor/MessageMock';
 import { PreviewView } from './editor/PreviewPanel';
+import { notifySubmission, WaStatusAction, WaStatusText } from './WaStatus';
 
 const CHANNEL_ICON = { email: Mail, sms: MessageSquareText, whatsapp: MessageCircle } as const;
 
-/** Plantillas (modulos.md M08): las del espacio de trabajo y la biblioteca en español por industria. */
+/** Plantillas (modulos.md M08): las tuyas por canal con la aprobación de Meta en palabras, y la galería por objetivo. */
 export function TemplatesPage() {
     const { t } = useTranslation();
     const [params, setParams] = useSearchParams();
-    const tab = params.get('tab') === 'biblioteca' ? 'library' : 'mine';
+    // `?tab=biblioteca` (de antes) abre la galería.
+    const tab = params.get('tab') === 'galeria' || params.get('tab') === 'biblioteca' ? 'gallery' : 'mine';
     const canEdit = useCan('manageMarketing');
     const canManage = useCan('manageWorkspace');
     const [creating, setCreating] = useState<TemplateChannel | null>(null);
     const [profileOpen, setProfileOpen] = useState(false);
+    const goGallery = () => setParams({ tab: 'galeria' }, { replace: true });
 
     return (
         <>
@@ -57,50 +61,53 @@ export function TemplatesPage() {
                 title={t('templates.title')}
                 description={t('templates.description')}
                 actions={
-                    <div className="igr:flex igr:flex-wrap igr:gap-2">
+                    <>
                         <Button variant="outline" onClick={() => setProfileOpen(true)}>
-                            <Building2 className="igr:size-4" />
+                            <Building2 />
                             {t('templates.business.open')}
                         </Button>
                         {canEdit && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button>
-                                        <Plus className="igr:size-4" />
+                                        <Plus />
                                         {t('templates.new')}
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onSelect={goGallery}>
+                                        <Library className="igr:size-4" />
+                                        {t('templates.gallery.fromGallery')}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
                                     {CHANNELS.map((c) => {
                                         const Icon = CHANNEL_ICON[c];
                                         return (
                                             <DropdownMenuItem key={c} onSelect={() => setCreating(c)}>
                                                 <Icon className="igr:size-4" />
-                                                {t(`templates.channels.${c}`)}
+                                                {t('templates.newBlank', { channel: t(`templates.channels.${c}`) })}
                                             </DropdownMenuItem>
                                         );
                                     })}
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onSelect={() => setParams({ tab: 'biblioteca' })}>
-                                        <Library className="igr:size-4" />
-                                        {t('templates.library.fromLibrary')}
-                                    </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         )}
-                    </div>
+                    </>
                 }
             />
-            <Tabs value={tab} onValueChange={(v) => setParams(v === 'library' ? { tab: 'biblioteca' } : {})}>
+            <Tabs value={tab} onValueChange={(v) => setParams(v === 'gallery' ? { tab: 'galeria' } : {}, { replace: true })}>
                 <TabsList>
                     <TabsTrigger value="mine">{t('templates.tabs.mine')}</TabsTrigger>
-                    <TabsTrigger value="library">{t('templates.tabs.library')}</TabsTrigger>
+                    <TabsTrigger value="gallery" className="igr:inline-flex igr:items-center igr:gap-1.5">
+                        <Sparkles className="igr:size-3.5" aria-hidden />
+                        {t('templates.tabs.gallery')}
+                    </TabsTrigger>
                 </TabsList>
-                <TabsContent value="mine" className="igr:mt-4">
-                    <MyTemplates onGoLibrary={() => setParams({ tab: 'biblioteca' })} />
+                <TabsContent value="mine" className="igr:mt-5">
+                    <MyTemplates onGoGallery={goGallery} />
                 </TabsContent>
-                <TabsContent value="library" className="igr:mt-4">
-                    <LibraryTab />
+                <TabsContent value="gallery" className="igr:mt-5">
+                    <GalleryTab />
                 </TabsContent>
             </Tabs>
             <NewTemplateDialog channel={creating} onClose={() => setCreating(null)} />
@@ -109,7 +116,34 @@ export function TemplatesPage() {
     );
 }
 
-function MyTemplates({ onGoLibrary }: { onGoLibrary: () => void }) {
+function ChannelChips({ value, onChange, counts }: { value: TemplateChannel | ''; onChange: (v: TemplateChannel | '') => void; counts?: Partial<Record<TemplateChannel | '', number>> }) {
+    const { t } = useTranslation();
+    return (
+        <div role="group" aria-label={t('templates.filters.channel')} className="igr:inline-flex igr:max-w-full igr:overflow-x-auto igr:rounded-lg igr:border igr:bg-muted/40 igr:p-0.5 igr:scrollbar-none">
+            {(['', 'whatsapp', 'email', 'sms'] as const).map((c) => {
+                const Icon = c === '' ? null : CHANNEL_ICON[c];
+                return (
+                    <button
+                        key={c || 'all'}
+                        type="button"
+                        aria-pressed={value === c}
+                        onClick={() => onChange(c)}
+                        className={cn(
+                            'igr:inline-flex igr:shrink-0 igr:items-center igr:gap-1.5 igr:rounded-md igr:px-3 igr:py-1 igr:text-support igr:font-medium igr:whitespace-nowrap igr:transition-colors igr:focus-visible:outline-none igr:focus-visible:ring-2 igr:focus-visible:ring-ring',
+                            value === c ? 'igr:bg-card igr:text-foreground igr:shadow-xs' : 'igr:text-muted-foreground igr:hover:text-foreground',
+                        )}
+                    >
+                        {Icon ? <Icon className="igr:size-3.5" aria-hidden /> : null}
+                        {c === '' ? t('templates.filters.allChannels') : t(`templates.channels.${c}`)}
+                        {counts?.[c] !== undefined ? <span className="igr:text-caption igr:tabular-nums igr:text-muted-foreground">{counts[c]}</span> : null}
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
+function MyTemplates({ onGoGallery }: { onGoGallery: () => void }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const navigate = useNavigate();
@@ -122,121 +156,137 @@ function MyTemplates({ onGoLibrary }: { onGoLibrary: () => void }) {
         const id = setTimeout(() => setDebounced(q.trim()), 300);
         return () => clearTimeout(id);
     }, [q]);
-    const list = useTemplates(workspace.id, { channel, status, q: debounced });
+    // El conteo por canal sale de la lista sin filtro de canal (los demás filtros sí aplican).
+    const list = useTemplates(workspace.id, { status, q: debounced });
     const duplicate = useDuplicateTemplate(workspace.id);
     const archive = useArchiveTemplate(workspace.id);
     const restore = useRestoreTemplate(workspace.id);
     const open = (id: string) => void navigate(`/w/${workspace.id}/plantillas/${id}`);
+    const all = list.data?.data ?? [];
+    const rows = channel === '' ? all : all.filter((tpl) => tpl.channel === channel);
+    const counts = { '': all.length, whatsapp: all.filter((x) => x.channel === 'whatsapp').length, email: all.filter((x) => x.channel === 'email').length, sms: all.filter((x) => x.channel === 'sms').length };
+    const connected = list.data?.meta?.whatsapp_connected ?? false;
     const filtered = channel !== '' || status !== '' || debounced !== '';
 
     return (
-        <Card>
-            <CardHeader className="igr:flex-row igr:flex-wrap igr:items-center igr:gap-2">
-                <div className="igr:relative igr:w-full igr:max-w-xs">
-                    <Search className="igr:pointer-events-none igr:absolute igr:top-2.5 igr:left-2.5 igr:size-3.5 igr:text-muted-foreground" />
-                    <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('templates.filters.search')} aria-label={t('templates.filters.search')} className="igr:pl-8" />
+        <div className="igr:space-y-4">
+            <div className="igr:flex igr:flex-col igr:gap-2 igr:lg:flex-row igr:lg:items-center igr:lg:justify-between">
+                <ChannelChips value={channel} onChange={setChannel} counts={list.data ? counts : undefined} />
+                <div className="igr:flex igr:flex-wrap igr:gap-2">
+                    <div className="igr:relative igr:min-w-0 igr:flex-1 igr:sm:w-64 igr:sm:flex-none">
+                        <Search className="igr:pointer-events-none igr:absolute igr:top-2.5 igr:left-2.5 igr:size-3.5 igr:text-muted-foreground" aria-hidden />
+                        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('templates.filters.search')} aria-label={t('templates.filters.search')} className="igr:pl-8" />
+                    </div>
+                    <Select value={status} onChange={(e) => setStatus(e.target.value as TemplateStatus | '')} aria-label={t('templates.filters.status')} className="igr:w-auto">
+                        <option value="">{t('templates.filters.active')}</option>
+                        <option value="draft">{t('templates.statuses.draft')}</option>
+                        <option value="ready">{t('templates.statuses.ready')}</option>
+                        <option value="archived">{t('templates.statuses.archived')}</option>
+                    </Select>
                 </div>
-                <Select value={channel} onChange={(e) => setChannel(e.target.value as TemplateChannel | '')} aria-label={t('templates.filters.channel')} className="igr:w-auto">
-                    <option value="">{t('templates.filters.allChannels')}</option>
-                    {CHANNELS.map((c) => (
-                        <option key={c} value={c}>
-                            {t(`templates.channels.${c}`)}
-                        </option>
-                    ))}
-                </Select>
-                <Select value={status} onChange={(e) => setStatus(e.target.value as TemplateStatus | '')} aria-label={t('templates.filters.status')} className="igr:w-auto">
-                    <option value="">{t('templates.filters.active')}</option>
-                    <option value="draft">{t('templates.statuses.draft')}</option>
-                    <option value="ready">{t('templates.statuses.ready')}</option>
-                    <option value="archived">{t('templates.statuses.archived')}</option>
-                </Select>
-            </CardHeader>
-            <CardContent className="igr:p-0">
-                {list.isError ? (
-                    <div className="igr:p-4">
-                        <ErrorState error={list.error} onRetry={() => void list.refetch()} />
-                    </div>
-                ) : list.isPending ? (
-                    <div className="igr:space-y-2 igr:p-4">
-                        {[0, 1, 2].map((i) => (
-                            <Skeleton key={i} className="igr:h-10" />
+            </div>
+            {list.isError ? (
+                <ErrorState error={list.error} onRetry={() => void list.refetch()} />
+            ) : list.isPending ? (
+                <Skeleton className="igr:h-60 igr:rounded-xl" />
+            ) : rows.length === 0 ? (
+                <EmptyState
+                    illustration={filtered ? 'search' : 'messages'}
+                    title={filtered ? t('templates.empty.filteredTitle') : t('templates.empty.title')}
+                    description={filtered ? t('templates.empty.filteredHelp') : t('templates.empty.help')}
+                    action={
+                        filtered ? undefined : (
+                            <Button onClick={onGoGallery}>
+                                <Sparkles />
+                                {t('templates.empty.cta')}
+                            </Button>
+                        )
+                    }
+                />
+            ) : (
+                <Card className="igr:overflow-hidden">
+                    <ul className="igr:divide-y">
+                        {rows.map((tpl) => (
+                            <TemplateRow
+                                key={tpl.id}
+                                tpl={tpl}
+                                connected={connected}
+                                canEdit={canEdit}
+                                onOpen={() => open(tpl.id)}
+                                onDuplicate={() => duplicate.mutate(tpl.id, { onSuccess: (c) => (toast.success(t('templates.duplicated')), open(c.id)), onError: (e) => toast.error(errorMessage(e, t)) })}
+                                onArchive={() => archive.mutate(tpl.id, { onSuccess: () => toast.success(t('templates.archived')), onError: (e) => toast.error(errorMessage(e, t)) })}
+                                onRestore={() => restore.mutate(tpl.id, { onSuccess: () => toast.success(t('templates.restored')), onError: (e) => toast.error(errorMessage(e, t)) })}
+                            />
                         ))}
-                    </div>
-                ) : list.data.length === 0 ? (
-                    <EmptyState
-                        className="igr:py-12"
-                        icon={FileText}
-                        title={filtered ? t('templates.empty.filteredTitle') : t('templates.empty.title')}
-                        description={filtered ? t('templates.empty.filteredHelp') : t('templates.empty.help')}
-                        action={
-                            filtered ? undefined : (
-                                <Button onClick={onGoLibrary}>
-                                    <Library className="igr:size-4" />
-                                    {t('templates.empty.cta')}
-                                </Button>
-                            )
-                        }
-                    />
-                ) : (
-                    <Table>
-                        <THead>
-                            <TR>
-                                <TH>{t('templates.columns.name')}</TH>
-                                <TH>{t('templates.columns.channel')}</TH>
-                                <TH>{t('templates.columns.category')}</TH>
-                                <TH>{t('templates.columns.status')}</TH>
-                                <TH className="igr:hidden igr:md:table-cell">{t('templates.columns.updated')}</TH>
-                                <TH className="igr:w-10">
-                                    <span className="igr:sr-only">{t('templates.columns.actions')}</span>
-                                </TH>
-                            </TR>
-                        </THead>
-                        <TBody>
-                            {list.data.map((tpl) => (
-                                <TemplateRow
-                                    key={tpl.id}
-                                    tpl={tpl}
-                                    canEdit={canEdit}
-                                    onOpen={() => open(tpl.id)}
-                                    onDuplicate={() => duplicate.mutate(tpl.id, { onSuccess: (c) => (toast.success(t('templates.duplicated')), open(c.id)), onError: (e) => toast.error(errorMessage(e, t)) })}
-                                    onArchive={() => archive.mutate(tpl.id, { onSuccess: () => toast.success(t('templates.archived')), onError: (e) => toast.error(errorMessage(e, t)) })}
-                                    onRestore={() => restore.mutate(tpl.id, { onSuccess: () => toast.success(t('templates.restored')), onError: (e) => toast.error(errorMessage(e, t)) })}
-                                />
-                            ))}
-                        </TBody>
-                    </Table>
-                )}
-            </CardContent>
-        </Card>
+                    </ul>
+                </Card>
+            )}
+        </div>
     );
 }
 
-function TemplateRow({ tpl, canEdit, onOpen, onDuplicate, onArchive, onRestore }: { tpl: TemplateSummary; canEdit: boolean; onOpen: () => void; onDuplicate: () => void; onArchive: () => void; onRestore: () => void }) {
+/** El estado de una plantilla de correo o SMS en palabras. */
+function PlainStatus({ tpl }: { tpl: TemplateSummary }) {
+    const { t } = useTranslation();
+    return (
+        <span className={cn('igr:text-support', tpl.status === 'ready' ? 'igr:text-success' : 'igr:text-muted-foreground')}>
+            {t(`templates.statusText.${tpl.status}`)}
+        </span>
+    );
+}
+
+function TemplateRow({
+    tpl,
+    connected,
+    canEdit,
+    onOpen,
+    onDuplicate,
+    onArchive,
+    onRestore,
+}: {
+    tpl: TemplateSummary;
+    connected: boolean;
+    canEdit: boolean;
+    onOpen: () => void;
+    onDuplicate: () => void;
+    onArchive: () => void;
+    onRestore: () => void;
+}) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const Icon = CHANNEL_ICON[tpl.channel];
+    const excerpt = tpl.channel === 'whatsapp' ? tpl.wa_template_name : tpl.excerpt ? humanizeLiquid(tpl.excerpt, workspace.name) : null;
     return (
-        <TR className="igr:cursor-pointer" onClick={onOpen}>
-            <TD className="igr:max-w-[340px]">
-                <Link to={`/w/${workspace.id}/plantillas/${tpl.id}`} onClick={(e) => e.stopPropagation()} className="igr:font-medium igr:hover:underline">
-                    {tpl.name}
-                </Link>
-                <p className="igr:truncate igr:text-xs igr:text-muted-foreground">{tpl.channel === 'whatsapp' ? (tpl.wa_template_name ?? t('templates.wa.notChosen')) : (tpl.excerpt ?? '')}</p>
-            </TD>
-            <TD>
-                <span className="igr:inline-flex igr:items-center igr:gap-1.5 igr:text-[13px]">
-                    <Icon className="igr:size-3.5 igr:text-muted-foreground" aria-hidden="true" />
-                    {t(`templates.channels.${tpl.channel}`)}
+        <li className="igr:relative igr:grid igr:cursor-pointer igr:gap-2 igr:py-3 igr:pr-12 igr:pl-4 igr:md:pr-4 igr:transition-colors igr:hover:bg-accent/40 igr:md:grid-cols-[minmax(0,1fr)_minmax(0,300px)_110px_40px] igr:md:items-center igr:md:gap-4" onClick={onOpen}>
+            <div className="igr:flex igr:min-w-0 igr:items-start igr:gap-3">
+                <span className="igr:mt-0.5 igr:grid igr:size-8 igr:shrink-0 igr:place-items-center igr:rounded-lg igr:bg-muted igr:text-muted-foreground" aria-hidden>
+                    <Icon className="igr:size-4" />
                 </span>
-            </TD>
-            <TD>
-                <Badge variant="outline">{t(`templates.categories.${tpl.category}`)}</Badge>
-            </TD>
-            <TD>
-                <Badge variant={tpl.status === 'ready' ? 'success' : tpl.status === 'archived' ? 'outline' : 'secondary'}>{t(`templates.statuses.${tpl.status}`)}</Badge>
-            </TD>
-            <TD className="igr:hidden igr:whitespace-nowrap igr:text-muted-foreground igr:md:table-cell">{formatRelative(tpl.updated_at, workspace.locale)}</TD>
-            <TD onClick={(e) => e.stopPropagation()}>
+                <div className="igr:min-w-0">
+                    <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-x-2 igr:gap-y-0.5">
+                        <Link to={`/w/${workspace.id}/plantillas/${tpl.id}`} onClick={(e) => e.stopPropagation()} className="igr:font-medium igr:text-foreground igr:hover:underline">
+                            {tpl.name}
+                        </Link>
+                        {tpl.category !== 'marketing' ? <Badge variant="outline">{t(`templates.categories.${tpl.category}`)}</Badge> : null}
+                    </div>
+                    <p className="igr:truncate igr:text-caption igr:text-muted-foreground">
+                        {t(`templates.channels.${tpl.channel}`)}
+                        {excerpt ? ` · ${excerpt}` : ''}
+                    </p>
+                </div>
+            </div>
+            <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-2 igr:pl-11 igr:md:pl-0" onClick={(e) => e.stopPropagation()}>
+                {tpl.channel === 'whatsapp' && tpl.status !== 'archived' ? (
+                    <>
+                        <WaStatusText template={tpl} connected={connected} />
+                        <WaStatusAction template={tpl} connected={connected} />
+                    </>
+                ) : (
+                    <PlainStatus tpl={tpl} />
+                )}
+            </div>
+            <span className="igr:hidden igr:text-caption igr:whitespace-nowrap igr:text-muted-foreground igr:md:block">{formatRelative(tpl.updated_at, workspace.locale)}</span>
+            <div className="igr:absolute igr:top-2.5 igr:right-2 igr:md:static" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" aria-label={t('templates.columns.actionsFor', { name: tpl.name })}>
@@ -269,31 +319,48 @@ function TemplateRow({ tpl, canEdit, onOpen, onDuplicate, onArchive, onRestore }
                         )}
                     </DropdownMenuContent>
                 </DropdownMenu>
-            </TD>
-        </TR>
+            </div>
+        </li>
     );
 }
 
-function LibraryTab() {
+const GOALS: GalleryGoal[] = ['welcome', 'promotion', 'news', 'reminder', 'event_invite', 'seasonal', 'survey', 'review', 'follow_up'];
+
+/** La galería (rediseño v2 §11.5): por objetivo y para tu vertical, en WhatsApp y correo, instalar en un clic. */
+function GalleryTab() {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const navigate = useNavigate();
     const canEdit = useCan('manageMarketing');
-    const [industry, setIndustry] = useState<string | null>(null);
-    const library = useLibrary(workspace.id, industry);
-    const install = useInstallFromLibrary(workspace.id);
-    const [previewKey, setPreviewKey] = useState<string | null>(null);
-    const [channel, setChannel] = useState<'' | 'email' | 'sms'>('');
-    const effectiveIndustry = industry ?? library.data?.industry ?? null;
-    const entries = useMemo(() => (library.data?.data ?? []).filter((e) => channel === '' || e.channel === channel).sort((a, b) => a.flow - b.flow), [library.data, channel]);
+    const [goal, setGoal] = useState<GalleryGoal | 'all'>('all');
+    const [channel, setChannel] = useState<'' | 'email' | 'whatsapp'>('');
+    const [scope, setScope] = useState<'mine' | 'all'>('mine');
+    const gallery = useGallery(workspace.id, scope === 'all' ? { vertical: 'all' } : {});
+    const install = useInstallFromGallery(workspace.id);
+    const [preview, setPreview] = useState<GalleryEntry | null>(null);
+    const kind = businessKind(workspace);
+    const entries = useMemo(
+        () =>
+            (gallery.data?.data ?? [])
+                .filter((e) => (goal === 'all' || e.goal === goal) && (channel === '' || e.channel === channel))
+                // Primero las de la galería (gal_*), luego las de los flujos; WhatsApp antes que correo.
+                .sort((a, b) => Number(a.flow !== null) - Number(b.flow !== null) || Number(a.channel !== 'whatsapp') - Number(b.channel !== 'whatsapp')),
+        [gallery.data, goal, channel],
+    );
+    const goals = GOALS.filter((g) => (gallery.data?.data ?? []).some((e) => e.goal === g));
 
-    const use = (entry: LibraryEntry, copy = false) =>
+    const run = (entry: GalleryEntry) =>
         install.mutate(
-            { key: entry.key, industry: effectiveIndustry, copy },
+            { key: entry.key },
             {
-                onSuccess: (tpl) => {
-                    toast.success(t('templates.library.installed'));
-                    void navigate(`/w/${workspace.id}/plantillas/${tpl.id}`);
+                onSuccess: (res) => {
+                    if (res.whatsapp_submission) {
+                        notifySubmission(t, res.whatsapp_submission);
+                    } else {
+                        toast.success(t('templates.gallery.installed', { name: res.name }));
+                    }
+                    setPreview(null);
+                    void navigate(`/w/${workspace.id}/plantillas/${res.id}`);
                 },
                 onError: (e) => toast.error(errorMessage(e, t)),
             },
@@ -301,104 +368,176 @@ function LibraryTab() {
 
     return (
         <div className="igr:space-y-4">
-            <div className="igr:flex igr:flex-wrap igr:items-end igr:gap-3">
-                <div className="igr:space-y-1.5">
-                    <Label htmlFor="lib-industry">{t('templates.library.industry')}</Label>
-                    <Select id="lib-industry" value={effectiveIndustry ?? ''} onChange={(e) => setIndustry(e.target.value || null)} className="igr:w-56">
-                        <option value="">{t('templates.library.general')}</option>
-                        {(library.data?.industries ?? []).map((i) => (
-                            <option key={i} value={i}>
-                                {t(`industries.${i}`)}
-                            </option>
+            <div className="igr:flex igr:flex-col igr:gap-3 igr:lg:flex-row igr:lg:items-end igr:lg:justify-between">
+                <div className="igr:min-w-0">
+                    <h2 className="igr:text-section igr:font-semibold">{t('templates.gallery.title')}</h2>
+                    <p className="igr:mt-0.5 igr:text-support igr:text-muted-foreground">{t('templates.gallery.description')}</p>
+                </div>
+                <div className="igr:flex igr:flex-wrap igr:gap-2">
+                    <div role="group" aria-label={t('templates.filters.channel')} className="igr:inline-flex igr:rounded-lg igr:border igr:bg-muted/40 igr:p-0.5">
+                        {(['', 'whatsapp', 'email'] as const).map((c) => (
+                            <button
+                                key={c || 'all'}
+                                type="button"
+                                aria-pressed={channel === c}
+                                onClick={() => setChannel(c)}
+                                className={cn(
+                                    'igr:rounded-md igr:px-3 igr:py-1 igr:text-support igr:font-medium igr:transition-colors igr:focus-visible:outline-none igr:focus-visible:ring-2 igr:focus-visible:ring-ring',
+                                    channel === c ? 'igr:bg-card igr:text-foreground igr:shadow-xs' : 'igr:text-muted-foreground igr:hover:text-foreground',
+                                )}
+                            >
+                                {c === '' ? t('templates.filters.allChannels') : t(`templates.channels.${c}`)}
+                            </button>
                         ))}
+                    </div>
+                    <Select aria-label={t('templates.gallery.scope')} value={scope} onChange={(e) => setScope(e.target.value === 'all' ? 'all' : 'mine')} className="igr:w-auto">
+                        <option value="mine">{t('templates.gallery.scopeMine', { context: kind === 'store' ? 'store' : undefined })}</option>
+                        <option value="all">{t('templates.gallery.scopeAll')}</option>
                     </Select>
                 </div>
-                <div className="igr:space-y-1.5">
-                    <Label htmlFor="lib-channel">{t('templates.filters.channel')}</Label>
-                    <Select id="lib-channel" value={channel} onChange={(e) => setChannel(e.target.value as '' | 'email' | 'sms')} className="igr:w-48">
-                        <option value="">{t('templates.filters.allChannels')}</option>
-                        <option value="email">{t('templates.channels.email')}</option>
-                        <option value="sms">{t('templates.channels.sms')}</option>
-                    </Select>
-                </div>
-                <p className="igr:max-w-xl igr:text-[13px] igr:text-muted-foreground">{t('templates.library.help')}</p>
             </div>
-            {library.isError ? (
-                <ErrorState error={library.error} onRetry={() => void library.refetch()} />
-            ) : library.isPending ? (
+            <div role="group" aria-label={t('templates.gallery.goalsLabel')} className="igr:-mx-1 igr:flex igr:max-w-full igr:gap-1.5 igr:overflow-x-auto igr:px-1 igr:pb-1 igr:scrollbar-none">
+                {(['all', ...goals] as const).map((g) => (
+                    <button
+                        key={g}
+                        type="button"
+                        aria-pressed={goal === g}
+                        onClick={() => setGoal(g)}
+                        className={cn(
+                            'igr:shrink-0 igr:rounded-full igr:border igr:px-3 igr:py-1.5 igr:text-support igr:font-medium igr:whitespace-nowrap igr:transition-colors igr:focus-visible:outline-none igr:focus-visible:ring-2 igr:focus-visible:ring-ring',
+                            goal === g ? 'igr:border-primary/40 igr:bg-brand-soft igr:text-brand-soft-foreground' : 'igr:bg-card igr:text-muted-foreground igr:hover:text-foreground',
+                        )}
+                    >
+                        {t(`templates.gallery.goals.${g}`)}
+                    </button>
+                ))}
+            </div>
+            {gallery.isError ? (
+                <ErrorState error={gallery.error} onRetry={() => void gallery.refetch()} />
+            ) : gallery.isPending ? (
                 <div className="igr:grid igr:gap-3 igr:md:grid-cols-2 igr:xl:grid-cols-3">
                     {[0, 1, 2, 3, 4, 5].map((i) => (
-                        <Skeleton key={i} className="igr:h-44" />
+                        <Skeleton key={i} className="igr:h-64 igr:rounded-xl" />
                     ))}
                 </div>
+            ) : entries.length === 0 ? (
+                <EmptyState illustration="search" title={t('templates.gallery.empty')} description={t('templates.gallery.emptyHelp')} />
             ) : (
                 <div className="igr:grid igr:gap-3 igr:md:grid-cols-2 igr:xl:grid-cols-3">
-                    {entries.map((entry) => {
-                        const Icon = CHANNEL_ICON[entry.channel];
-                        return (
-                            <Card key={entry.key} className="igr:flex igr:flex-col">
-                                <CardHeader className="igr:pb-2">
-                                    <div className="igr:flex igr:items-center igr:gap-1.5 igr:text-xs igr:text-muted-foreground">
-                                        <Icon className="igr:size-3.5" aria-hidden="true" />
-                                        {t(`templates.channels.${entry.channel}`)} · {t('templates.library.flow', { n: entry.flow })}
-                                    </div>
-                                    <CardTitle className="igr:text-[14px]">{entry.name}</CardTitle>
-                                    <CardDescription className="igr:line-clamp-2">{entry.subject ?? entry.text}</CardDescription>
-                                </CardHeader>
-                                <CardContent className="igr:flex-1 igr:space-y-1.5 igr:pb-3">
-                                    <div className="igr:flex igr:flex-wrap igr:gap-1">
-                                        <Badge variant="outline">{t(`templates.categories.${entry.category}`)}</Badge>
-                                        {entry.has_industry_copy && <Badge variant="secondary">{t('templates.library.industryCopy')}</Badge>}
-                                        {entry.installed_id && <Badge variant="success">{t('templates.library.inUse')}</Badge>}
-                                    </div>
-                                    <p className="igr:line-clamp-3 igr:text-xs igr:text-muted-foreground">{entry.description}</p>
-                                </CardContent>
-                                <CardFooter className="igr:flex igr:flex-wrap igr:gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => setPreviewKey(entry.key)}>
-                                        <Eye className="igr:size-3.5" />
-                                        {t('templates.library.preview')}
-                                    </Button>
-                                    {entry.installed_id ? (
-                                        <>
-                                            <Button size="sm" variant="secondary" onClick={() => void navigate(`/w/${workspace.id}/plantillas/${entry.installed_id}`)}>
-                                                {t('templates.actions.open')}
-                                            </Button>
-                                            {canEdit && (
-                                                <Button size="sm" variant="ghost" onClick={() => use(entry, true)} disabled={install.isPending}>
-                                                    {t('templates.library.anotherCopy')}
-                                                </Button>
-                                            )}
-                                        </>
-                                    ) : (
-                                        canEdit && (
-                                            <Button size="sm" onClick={() => use(entry)} loading={install.isPending && install.variables.key === entry.key}>
-                                                {t('templates.library.use')}
-                                            </Button>
-                                        )
-                                    )}
-                                </CardFooter>
-                            </Card>
-                        );
-                    })}
+                    {entries.map((entry) => (
+                        <GalleryCard
+                            key={entry.key}
+                            entry={entry}
+                            canEdit={canEdit}
+                            busy={install.isPending && install.variables.key === entry.key}
+                            onPreview={() => setPreview(entry)}
+                            onInstall={() => run(entry)}
+                            onOpen={() => entry.installed && void navigate(`/w/${workspace.id}/plantillas/${entry.installed.id}`)}
+                        />
+                    ))}
                 </div>
             )}
-            <LibraryPreviewDialog entry={entries.find((e) => e.key === previewKey) ?? null} industry={effectiveIndustry} onClose={() => setPreviewKey(null)} />
+            <GalleryPreviewDialog entry={preview} canEdit={canEdit} busy={install.isPending} onInstall={run} onClose={() => setPreview(null)} />
         </div>
     );
 }
 
-function LibraryPreviewDialog({ entry, industry, onClose }: { entry: LibraryEntry | null; industry: string | null; onClose: () => void }) {
+function GalleryCard({ entry, canEdit, busy, onPreview, onInstall, onOpen }: { entry: GalleryEntry; canEdit: boolean; busy: boolean; onPreview: () => void; onInstall: () => void; onOpen: () => void }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
-    const preview = useLibraryPreview(workspace.id, entry?.key ?? null, industry);
+    const Icon = CHANNEL_ICON[entry.channel];
+    const body = entry.channel === 'whatsapp' ? humanizeLiquid(entry.text ?? '', workspace.name) : humanizeLiquid(entry.subject ?? entry.text ?? '', workspace.name);
+    return (
+        <Card className="igr:flex igr:flex-col igr:overflow-hidden">
+            <div className={cn('igr:relative igr:h-40 igr:overflow-hidden igr:border-b igr:p-3', entry.channel === 'whatsapp' ? 'igr:bg-[#efeae2]' : 'igr:bg-muted/40')}>
+                {entry.channel === 'whatsapp' ? (
+                    <div className="igr:flex igr:flex-col">
+                        <WaBubble body={body} buttons={(entry.whatsapp?.buttons ?? []).slice(0, 2).map((b) => ({ text: b.text, url: b.type === 'URL' }))} />
+                    </div>
+                ) : (
+                    <div className="igr:rounded-lg igr:border igr:bg-card igr:p-3">
+                        <p className="igr:text-caption igr:text-muted-foreground">{workspace.name}</p>
+                        <p className="igr:line-clamp-2 igr:text-support igr:font-semibold igr:text-foreground">{body}</p>
+                        {entry.preheader ? <p className="igr:line-clamp-1 igr:text-caption igr:text-muted-foreground">{humanizeLiquid(entry.preheader, workspace.name)}</p> : null}
+                    </div>
+                )}
+                {/* El texto largo se desvanece abajo: el mensaje completo está en «Ver». */}
+                <div aria-hidden className={cn('igr:pointer-events-none igr:absolute igr:inset-x-0 igr:bottom-0 igr:h-8 igr:bg-gradient-to-t', entry.channel === 'whatsapp' ? 'igr:from-[#efeae2]' : 'igr:from-muted/60')} />
+            </div>
+            <div className="igr:flex igr:flex-1 igr:flex-col igr:p-4">
+                <div className="igr:flex igr:items-center igr:gap-1.5 igr:text-caption igr:text-muted-foreground">
+                    <Icon className="igr:size-3.5" aria-hidden />
+                    {t(`templates.channels.${entry.channel}`)} · {t(`templates.gallery.goals.${entry.goal}`)}
+                    {entry.channel === 'whatsapp' ? ` · ${t(`templates.categories.${entry.category}`)}` : ''}
+                </div>
+                <h3 className="igr:mt-1 igr:font-semibold igr:leading-snug igr:text-foreground">{entry.name}</h3>
+                <p className="igr:mt-1 igr:line-clamp-2 igr:text-support igr:text-muted-foreground">{entry.description}</p>
+                {entry.installed ? (
+                    <Badge variant={entry.installed.linked || entry.channel !== 'whatsapp' ? 'success' : 'secondary'} className="igr:mt-2 igr:self-start">
+                        {entry.channel === 'whatsapp' && !entry.installed.linked ? t('templates.gallery.installedDraft') : t('templates.gallery.inUse')}
+                    </Badge>
+                ) : null}
+                <div className="igr:mt-auto igr:flex igr:flex-wrap igr:gap-2 igr:pt-4">
+                    {entry.installed ? (
+                        <Button size="sm" variant="outline" onClick={onOpen}>
+                            {t('templates.actions.open')}
+                        </Button>
+                    ) : canEdit ? (
+                        <Button size="sm" loading={busy} onClick={onInstall}>
+                            {entry.channel === 'whatsapp' ? t('templates.gallery.installWa') : t('templates.gallery.install')}
+                        </Button>
+                    ) : null}
+                    <Button size="sm" variant="ghost" onClick={onPreview}>
+                        <Eye />
+                        {t('templates.gallery.preview')}
+                    </Button>
+                </div>
+            </div>
+        </Card>
+    );
+}
+
+function GalleryPreviewDialog({ entry, canEdit, busy, onInstall, onClose }: { entry: GalleryEntry | null; canEdit: boolean; busy: boolean; onInstall: (e: GalleryEntry) => void; onClose: () => void }) {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const email = useLibraryPreview(workspace.id, entry?.channel === 'email' ? entry.key : null, null);
+    const wa = useWaGalleryPreview(workspace.id, entry?.channel === 'whatsapp' ? entry.key : null);
     return (
         <Dialog open={entry !== null} onOpenChange={(o) => !o && onClose()}>
-            <DialogContent className="igr:max-w-4xl">
+            <DialogContent className={entry?.channel === 'email' ? 'igr:max-w-4xl' : 'igr:max-w-lg'}>
                 <DialogHeader>
                     <DialogTitle>{entry?.name}</DialogTitle>
-                    <DialogDescription>{t('templates.preview.sampleHelp')}</DialogDescription>
+                    <DialogDescription>{entry?.channel === 'whatsapp' ? t('templates.gallery.waPreviewHelp', { category: t(`templates.categories.${entry.category}`) }) : t('templates.preview.sampleHelp')}</DialogDescription>
                 </DialogHeader>
-                {preview.isPending ? <Skeleton className="igr:h-[420px]" /> : preview.isError ? <ErrorState error={preview.error} /> : entry ? <PreviewView result={preview.data} channel={entry.channel} /> : null}
+                {entry?.channel === 'email' ? (
+                    email.isPending ? (
+                        <Skeleton className="igr:h-[420px]" />
+                    ) : email.isError ? (
+                        <ErrorState error={email.error} />
+                    ) : (
+                        <PreviewView result={email.data} channel="email" />
+                    )
+                ) : entry ? (
+                    wa.isPending ? (
+                        <Skeleton className="igr:mx-auto igr:h-80 igr:max-w-[320px] igr:rounded-[30px]" />
+                    ) : wa.isError || !wa.data.ok ? (
+                        <ErrorState error={wa.error} />
+                    ) : (
+                        <PhoneMock business={workspace.name}>
+                            <WaBubble body={wa.data.text ?? ''} footer={wa.data.whatsapp?.footer ?? null} buttons={(wa.data.whatsapp?.buttons ?? []).map((b) => ({ text: b.text, url: b.type === 'URL' }))} />
+                        </PhoneMock>
+                    )
+                ) : null}
+                {entry && !entry.installed && canEdit ? (
+                    <DialogFooter>
+                        <Button variant="outline" onClick={onClose}>
+                            {t('common.close')}
+                        </Button>
+                        <Button loading={busy} onClick={() => onInstall(entry)}>
+                            {entry.channel === 'whatsapp' ? t('templates.gallery.installWa') : t('templates.gallery.install')}
+                        </Button>
+                    </DialogFooter>
+                ) : null}
             </DialogContent>
         </Dialog>
     );

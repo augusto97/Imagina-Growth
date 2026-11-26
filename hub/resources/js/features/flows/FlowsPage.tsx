@@ -1,28 +1,34 @@
-import { CircleAlert, CirclePause, CirclePlay, FileEdit, Library, Plus, Workflow } from 'lucide-react';
+import { ChevronRight, CirclePause, CirclePlay, FileEdit, FlaskConical, Library, Plus, Rocket, Workflow } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { HelpTip } from '@/components/ui/help-tip';
+import { IconTile, type IconTone } from '@/components/ui/icon-tile';
 import { Input, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EmptyState, ErrorState, FieldError, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
+import { StatCard, StatCardSkeleton, StatGrid } from '@/components/ui/stat-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
-import { formatNumber, formatRelative } from '@/lib/format';
+import { cn } from '@/lib/cn';
+import { formatMoney, formatNumber } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { CreateWithAiButton } from '@/features/copilot/CopilotDialog';
-import { useCreateFlow, useCreateFromLibrary, useFlowLibrary, useFlowOptions, useFlows } from './api';
+import { useCreateFlow, useFlowOptions, useFlows } from './api';
+import { businessKind } from './business';
 import { triggerText } from './catalog';
-import type { FlowStatus, LibraryFlow } from './types';
+import { LibraryGallery } from './LibraryGallery';
+import type { FlowListMeta, FlowStatus, FlowSummary } from './types';
 
 const STATUS_ICON = { active: CirclePlay, paused: CirclePause, draft: FileEdit, archived: FileEdit } as const;
 const STATUS_VARIANT = { active: 'success', paused: 'warning', draft: 'secondary', archived: 'outline' } as const;
+const STATUS_TONE: Record<FlowStatus, IconTone> = { active: 'emerald', paused: 'amber', draft: 'slate', archived: 'slate' };
 
 export function StatusBadge({ status }: { status: FlowStatus }) {
     const { t } = useTranslation();
@@ -35,46 +41,62 @@ export function StatusBadge({ status }: { status: FlowStatus }) {
     );
 }
 
+/** El evento de la meta → la palabra de lo que se logró («compraron», «agendaron»…). */
+const GOAL_WORDS = ['order_paid', 'appointment_booked', 'appointment_confirmed', 'lead_stage_changed', 'lead_won', 'points_redeemed', 'referral_shared'];
+
+export function goalWord(event: string | null | undefined): string {
+    const key = (event ?? '').replace(/\./g, '_');
+    return GOAL_WORDS.includes(key) ? key : 'default';
+}
+
+/**
+ * Mensajes → Automatizaciones (modulos.md M09): lo que hace cada una en una frase, su estado, lo que logró este mes (en
+ * pesos en una tienda, metas en un negocio de servicios) y su grupo de control. «Nueva automatización» abre la
+ * biblioteca (`?tab=biblioteca`) como galería por objetivo y tipo de negocio, con «desde cero».
+ */
 export function FlowsPage() {
     const { t } = useTranslation();
+    const { workspace } = useWorkspace();
     const [params, setParams] = useSearchParams();
     const tab = params.get('tab') === 'biblioteca' ? 'library' : 'mine';
     const canManage = useCan('manageMarketing');
     const [creating, setCreating] = useState(false);
+    const kind = businessKind(workspace);
+    const openLibrary = () => setParams({ tab: 'biblioteca' }, { replace: true });
 
     return (
         <div>
             <PageHeader
                 title={t('flows.title')}
-                description={t('flows.description')}
+                description={t('flows.description', { context: kind === 'services' ? 'services' : undefined })}
                 actions={
                     canManage ? (
-                        <div className="igr:flex igr:gap-2">
+                        <>
                             <CreateWithAiButton kind="flow" />
-                            <Button onClick={() => setCreating(true)}>
+                            <Button onClick={openLibrary}>
                                 <Plus />
                                 {t('flows.new')}
                             </Button>
-                        </div>
+                        </>
                     ) : null
                 }
             />
             <Tabs value={tab} onValueChange={(v) => setParams(v === 'library' ? { tab: 'biblioteca' } : {}, { replace: true })}>
                 <TabsList>
                     <TabsTrigger value="mine" className="igr:inline-flex igr:items-center igr:gap-1.5">
-                        <Workflow className="igr:size-3.5" />
+                        <Workflow className="igr:size-3.5" aria-hidden />
                         {t('flows.tabs.mine')}
                     </TabsTrigger>
                     <TabsTrigger value="library" className="igr:inline-flex igr:items-center igr:gap-1.5">
-                        <Library className="igr:size-3.5" />
+                        <Library className="igr:size-3.5" aria-hidden />
                         {t('flows.tabs.library')}
                     </TabsTrigger>
                 </TabsList>
-                <TabsContent value="mine" className="igr:mt-4">
-                    <MyFlows onLibrary={() => setParams({ tab: 'biblioteca' }, { replace: true })} />
+                <TabsContent value="mine" className="igr:mt-5">
+                    <MyFlows onLibrary={openLibrary} />
                 </TabsContent>
-                <TabsContent value="library" className="igr:mt-4">
-                    <LibraryGallery />
+                <TabsContent value="library" className="igr:mt-5">
+                    <LibraryGallery onFromScratch={canManage ? () => setCreating(true) : undefined} />
                 </TabsContent>
             </Tabs>
             <NewFlowDialog open={creating} onOpenChange={setCreating} />
@@ -86,183 +108,190 @@ function MyFlows({ onLibrary }: { onLibrary: () => void }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const flows = useFlows(workspace.id);
-    const options = useFlowOptions(workspace.id);
-    const navigate = useNavigate();
+    const kind = businessKind(workspace);
+    const store = kind !== 'services';
 
-    if (flows.isPending) {
-        return <Skeleton className="igr:h-60" />;
-    }
     if (flows.isError) {
         return <ErrorState error={flows.error} onRetry={() => void flows.refetch()} />;
+    }
+    if (flows.isPending) {
+        return (
+            <div className="igr:space-y-5" aria-busy="true">
+                <StatGrid className={store ? undefined : 'igr:lg:grid-cols-3'}>
+                    {Array.from({ length: store ? 4 : 3 }, (_, i) => (
+                        <StatCardSkeleton key={i} />
+                    ))}
+                </StatGrid>
+                <Skeleton className="igr:h-64 igr:rounded-xl" />
+            </div>
+        );
     }
     const list = flows.data.data;
     if (list.length === 0) {
         return (
             <EmptyState
-                icon={Workflow}
-                title={t('flows.empty.title')}
-                description={t('flows.empty.description')}
+                illustration="messages"
+                title={t('flows.empty.title', { context: kind === 'services' ? 'services' : undefined })}
+                description={t('flows.empty.description', { context: kind === 'services' ? 'services' : undefined })}
                 action={
                     <Button onClick={onLibrary}>
                         <Library />
                         {t('flows.empty.action')}
                     </Button>
                 }
+                steps={[t('flows.empty.step1'), t('flows.empty.step2'), t('flows.empty.step3')]}
             />
         );
     }
+    const meta = flows.data.meta;
+    const sum = (pick: (f: FlowSummary) => number) => list.reduce((acc, f) => acc + pick(f), 0);
+    const revenue = sum((f) => Number(f.month?.revenue ?? 0));
+    const active = list.filter((f) => f.status === 'active').length;
+
     return (
-        <Card>
-            <Table>
-                <THead>
-                    <TR>
-                        <TH>{t('flows.name')}</TH>
-                        <TH className="igr:hidden igr:md:table-cell">{t('flows.list.trigger')}</TH>
-                        <TH className="igr:whitespace-nowrap igr:text-right">{t('flows.list.entered')}</TH>
-                        <TH className="igr:hidden igr:whitespace-nowrap igr:text-right igr:sm:table-cell">{t('flows.list.live')}</TH>
-                        <TH className="igr:whitespace-nowrap igr:text-right">{t('flows.list.converted')}</TH>
-                        <TH className="igr:hidden igr:whitespace-nowrap igr:text-right igr:lg:table-cell">{t('flows.list.updated')}</TH>
-                    </TR>
-                </THead>
-                <TBody>
+        <div className="igr:space-y-5">
+            <StatGrid className={store ? undefined : 'igr:lg:grid-cols-3'}>
+                <StatCard
+                    icon={Rocket}
+                    tone="emerald"
+                    label={t('flows.list.summary.active')}
+                    value={formatNumber(active, workspace.locale)}
+                    hint={t('flows.list.summary.activeHint', { count: list.length })}
+                />
+                {store ? (
+                    <StatCard
+                        label={t('flows.list.summary.revenue')}
+                        value={formatMoney(revenue, meta?.currency ?? workspace.currency, workspace.locale)}
+                        help={t('flows.list.summary.revenueHelp')}
+                        hint={t('flows.list.summary.revenueHint', { count: sum((f) => f.month?.orders ?? 0) })}
+                    />
+                ) : null}
+                <StatCard
+                    label={t('flows.list.summary.conversions')}
+                    value={formatNumber(sum((f) => f.month?.conversions ?? 0), workspace.locale)}
+                    help={t('flows.list.summary.conversionsHelp')}
+                    hint={t('flows.list.summary.thisMonth')}
+                />
+                <StatCard
+                    label={t('flows.list.summary.messages')}
+                    value={formatNumber(sum((f) => f.month?.messages ?? 0), workspace.locale)}
+                    help={t('flows.list.summary.messagesHelp')}
+                    hint={t('flows.list.summary.thisMonth')}
+                />
+            </StatGrid>
+            <Card className="igr:overflow-hidden">
+                <div className="igr:hidden igr:grid-cols-[minmax(0,1fr)_200px_210px_20px] igr:gap-4 igr:border-b igr:bg-muted/40 igr:px-4 igr:py-2 igr:text-caption igr:font-medium igr:text-muted-foreground igr:lg:grid">
+                    <span>{t('flows.list.columns.automation')}</span>
+                    <span>{t('flows.list.columns.month')}</span>
+                    <span className="igr:inline-flex igr:items-center igr:gap-1">
+                        {t('flows.list.columns.control')}
+                        <HelpTip content={t('flows.list.control.help', { days: meta?.control_days ?? 90 })} label={t('flows.list.columns.control')} />
+                    </span>
+                    <span />
+                </div>
+                <ul className="igr:divide-y">
                     {list.map((f) => (
-                        <TR key={f.id} className="igr:cursor-pointer igr:hover:bg-accent/50" onClick={() => void navigate(`/w/${workspace.id}/flujos/${f.id}`)}>
-                            <TD>
-                                <div className="igr:flex igr:items-center igr:gap-2">
-                                    <Link to={`/w/${workspace.id}/flujos/${f.id}`} className="igr:font-medium igr:hover:underline" onClick={(e) => e.stopPropagation()}>
-                                        {f.name}
-                                    </Link>
-                                    <StatusBadge status={f.status} />
-                                </div>
-                                {f.description ? <p className="igr:mt-0.5 igr:line-clamp-1 igr:text-xs igr:text-muted-foreground">{f.description}</p> : null}
-                            </TD>
-                            <TD className="igr:hidden igr:text-muted-foreground igr:md:table-cell">{triggerText(t, f.trigger, options.data)}</TD>
-                            <TD className="igr:text-right igr:tabular-nums">{formatNumber(f.stats.entered, workspace.locale)}</TD>
-                            <TD className="igr:hidden igr:text-right igr:tabular-nums igr:sm:table-cell">{formatNumber(f.stats.live, workspace.locale)}</TD>
-                            <TD className="igr:text-right igr:tabular-nums">{formatNumber(f.stats.converted, workspace.locale)}</TD>
-                            <TD className="igr:hidden igr:whitespace-nowrap igr:text-right igr:text-muted-foreground igr:lg:table-cell">{formatRelative(f.updated_at, workspace.locale)}</TD>
-                        </TR>
+                        <FlowRow key={f.id} flow={f} meta={meta} store={store} />
                     ))}
-                </TBody>
-            </Table>
-            {flows.data.archived_count > 0 ? <p className="igr:border-t igr:px-4 igr:py-2 igr:text-xs igr:text-muted-foreground">{t('flows.list.archived', { count: flows.data.archived_count })}</p> : null}
-        </Card>
-    );
-}
-
-function LibraryGallery() {
-    const { t } = useTranslation();
-    const { workspace } = useWorkspace();
-    const library = useFlowLibrary(workspace.id);
-    const canManage = useCan('manageMarketing');
-    const create = useCreateFromLibrary(workspace.id);
-    const navigate = useNavigate();
-    const [busy, setBusy] = useState<string | null>(null);
-
-    if (library.isPending) {
-        return <Skeleton className="igr:h-80" />;
-    }
-    if (library.isError) {
-        return <ErrorState error={library.error} onRetry={() => void library.refetch()} />;
-    }
-    const run = (flow: LibraryFlow, activate: boolean) => {
-        setBusy(`${flow.key}${String(activate)}`);
-        create.mutate(
-            { key: flow.key, activate },
-            {
-                onSuccess: (detail) => {
-                    if (activate && detail.activated) {
-                        toast.success(t('flows.library.activated', { name: detail.name }));
-                    } else {
-                        if (activate) {
-                            // Sin el canal conectado, el motivo exacto («Conecta WhatsApp en Canales…»).
-                            toast.info(t('flows.library.createdDraft', { name: detail.name }), detail.issues.channel?.[0]);
-                        }
-                        void navigate(`/w/${workspace.id}/flujos/${detail.id}`);
-                    }
-                },
-                onError: (error) => toast.error(t('flows.builder.saveFailed'), isApiError(error) ? error.message : undefined),
-                onSettled: () => setBusy(null),
-            },
-        );
-    };
-    const available = library.data.flows.filter((f) => f.available || f.module);
-    const later = library.data.flows.filter((f) => !f.available && !f.module);
-
-    return (
-        <div className="igr:space-y-6">
-            <p className="igr:text-sm igr:text-muted-foreground">{t('flows.library.description')}</p>
-            {!library.data.whatsappConnected ? <p className="igr:rounded-md igr:border igr:bg-muted/40 igr:px-3 igr:py-2 igr:text-xs igr:text-muted-foreground">{t('flows.library.noWhatsapp')}</p> : null}
-            <section>
-                <h2 className="igr:mb-2 igr:text-[13px] igr:font-semibold">{t('flows.library.available')}</h2>
-                <div className="igr:grid igr:gap-3 igr:md:grid-cols-2 igr:xl:grid-cols-3">
-                    {available.map((f) => (
-                        <Card key={f.key} className="igr:flex igr:flex-col">
-                            <CardContent className="igr:flex igr:flex-1 igr:flex-col igr:gap-2 igr:pt-4">
-                                <div className="igr:flex igr:items-start igr:justify-between igr:gap-2">
-                                    <h3 className="igr:text-[13px] igr:font-semibold">
-                                        <span className="igr:mr-1.5 igr:tabular-nums igr:text-muted-foreground">{f.number}.</span>
-                                        {f.name}
-                                    </h3>
-                                    {f.module ? null : <Badge variant="outline">{t('flows.library.steps', { count: f.steps - 1 })}</Badge>}
-                                </div>
-                                <p className="igr:text-xs igr:text-muted-foreground">{f.description}</p>
-                                {f.module ? <p className="igr:text-xs igr:text-muted-foreground">{t('flows.library.moduleHelp')}</p> : null}
-                                {f.missing_templates.length > 0 ? (
-                                    <p className="igr:flex igr:items-start igr:gap-1.5 igr:text-xs igr:text-warning" title={t('flows.library.missingHelp')}>
-                                        <CircleAlert className="igr:mt-0.5 igr:size-3.5 igr:shrink-0" aria-hidden />
-                                        <span>{t('flows.library.missing', { list: f.missing_templates.map((k) => t(`flows.templateKeys.${k}`, { defaultValue: k })).join(', ') })}</span>
-                                    </p>
-                                ) : null}
-                                <div className="igr:mt-auto igr:flex igr:flex-wrap igr:gap-2 igr:pt-2">
-                                    {f.module ? (
-                                        <Button asChild size="sm" variant="outline">
-                                            <Link to={`/w/${workspace.id}/${f.module}`}>{t('flows.library.configure')}</Link>
-                                        </Button>
-                                    ) : f.created_flow_id ? (
-                                        <Button asChild size="sm" variant="outline">
-                                            <Link to={`/w/${workspace.id}/flujos/${f.created_flow_id}`}>{t('flows.library.open')}</Link>
-                                        </Button>
-                                    ) : canManage ? (
-                                        <>
-                                            <Button size="sm" disabled={f.missing_templates.length > 0} loading={busy === `${f.key}true`} onClick={() => run(f, true)}>
-                                                {t('flows.library.activate')}
-                                            </Button>
-                                            <Button size="sm" variant="outline" loading={busy === `${f.key}false`} onClick={() => run(f, false)}>
-                                                {t('flows.library.customize')}
-                                            </Button>
-                                        </>
-                                    ) : null}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            </section>
-            <section>
-                <h2 className="igr:mb-2 igr:text-[13px] igr:font-semibold">{t('flows.library.later')}</h2>
-                <div className="igr:grid igr:gap-3 igr:md:grid-cols-2 igr:xl:grid-cols-3">
-                    {later.map((f) => (
-                        <Card key={f.key} className="igr:opacity-75">
-                            <CardContent className="igr:space-y-1.5 igr:pt-4">
-                                <div className="igr:flex igr:items-start igr:justify-between igr:gap-2">
-                                    <h3 className="igr:text-[13px] igr:font-semibold">
-                                        <span className="igr:mr-1.5 igr:tabular-nums igr:text-muted-foreground">{f.number}.</span>
-                                        {f.name}
-                                    </h3>
-                                    <Badge variant="secondary">{t('flows.library.phase', { phase: f.phase })}</Badge>
-                                </div>
-                                <p className="igr:text-xs igr:text-muted-foreground">{f.description}</p>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            </section>
+                </ul>
+                {flows.data.archived_count > 0 ? <p className="igr:border-t igr:px-4 igr:py-2 igr:text-caption igr:text-muted-foreground">{t('flows.list.archived', { count: flows.data.archived_count })}</p> : null}
+            </Card>
         </div>
     );
 }
 
-function NewFlowDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function FlowRow({ flow: f, meta, store }: { flow: FlowSummary; meta: FlowListMeta | undefined; store: boolean }) {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const options = useFlowOptions(workspace.id);
+    const navigate = useNavigate();
+    const to = `/w/${workspace.id}/flujos/${f.id}`;
+    const month = f.month ?? null;
+    const sentence = f.description ?? triggerText(t, f.trigger, options.data);
+    const revenue = Number(month?.revenue ?? 0);
+    const word = goalWord(f.goal?.event);
+
+    return (
+        <li
+            className="igr:grid igr:cursor-pointer igr:gap-3 igr:px-4 igr:py-3.5 igr:transition-colors igr:hover:bg-accent/40 igr:lg:grid-cols-[minmax(0,1fr)_200px_210px_20px] igr:lg:items-center igr:lg:gap-4"
+            onClick={() => void navigate(to)}
+        >
+            <div className="igr:flex igr:min-w-0 igr:gap-3">
+                <IconTile icon={Workflow} tone={STATUS_TONE[f.status]} size="md" className="igr:mt-0.5" />
+                <div className="igr:min-w-0">
+                    <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-x-2 igr:gap-y-1">
+                        <Link to={to} className="igr:font-medium igr:text-foreground igr:hover:underline" onClick={(e) => e.stopPropagation()}>
+                            {f.name}
+                        </Link>
+                        <StatusBadge status={f.status} />
+                    </div>
+                    <p className="igr:mt-0.5 igr:line-clamp-2 igr:text-support igr:text-muted-foreground">{sentence}</p>
+                    {f.strategy ? (
+                        <Link
+                            to={`/w/${workspace.id}/estrategias?estrategia=${encodeURIComponent(f.strategy)}`}
+                            className="igr:mt-1 igr:inline-flex igr:items-center igr:gap-1 igr:text-caption igr:font-medium igr:text-primary igr:hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <Rocket className="igr:size-3" aria-hidden />
+                            {t('flows.list.strategy')}
+                        </Link>
+                    ) : null}
+                </div>
+            </div>
+            <div className="igr:pl-12 igr:lg:pl-0">
+                {store && revenue > 0 ? (
+                    <p className="igr:font-semibold igr:text-foreground igr:tabular-nums">{t('flows.list.revenue', { amount: formatMoney(revenue, meta?.currency ?? workspace.currency, workspace.locale) })}</p>
+                ) : null}
+                <p className={cn('igr:text-support igr:tabular-nums', store && revenue > 0 ? 'igr:text-muted-foreground' : 'igr:text-foreground')}>
+                    {month && month.conversions > 0
+                        ? t(`flows.list.goalDone.${word}`, { count: month.conversions })
+                        : store && revenue > 0
+                          ? t('flows.list.summary.revenueHint', { count: month?.orders ?? 0 })
+                          : month && month.messages > 0
+                          ? t('flows.list.sent', { count: month.messages })
+                          : f.status === 'active'
+                            ? t('flows.list.waiting')
+                            : f.status === 'draft'
+                              ? t('flows.list.notStarted')
+                              : f.status === 'paused'
+                                ? t('flows.list.pausedNow')
+                                : t('flows.list.nothingYet')}
+                </p>
+            </div>
+            <div className="igr:pl-12 igr:text-support igr:lg:pl-0">
+                <ControlText flow={f} meta={meta} />
+            </div>
+            <ChevronRight className="igr:hidden igr:size-4 igr:text-muted-foreground igr:lg:block" aria-hidden />
+        </li>
+    );
+}
+
+/** El grupo de control en palabras: sin él, midiendo o la diferencia frente a quienes no recibieron mensajes. */
+function ControlText({ flow: f, meta }: { flow: FlowSummary; meta: FlowListMeta | undefined }) {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const c = f.month?.control;
+    if (f.holdout_pct === 0) {
+        return <span className="igr:text-muted-foreground">{t('flows.list.control.none')}</span>;
+    }
+    if (!c || !c.enough || c.difference === null) {
+        return (
+            <span className="igr:inline-flex igr:items-center igr:gap-1.5 igr:text-muted-foreground">
+                <FlaskConical className="igr:size-3.5 igr:shrink-0" aria-hidden />
+                {t('flows.list.control.measuring', { pct: f.holdout_pct, n: formatNumber(c?.holdout_n ?? 0, workspace.locale), min: meta?.min_group ?? 30 })}
+            </span>
+        );
+    }
+    const points = (c.difference * 100).toLocaleString(workspace.locale, { maximumFractionDigits: 1, signDisplay: 'always' });
+    return (
+        <span className={cn('igr:inline-flex igr:items-center igr:gap-1.5', c.difference > 0 ? 'igr:text-success' : 'igr:text-muted-foreground')}>
+            <FlaskConical className="igr:size-3.5 igr:shrink-0" aria-hidden />
+            {t('flows.list.control.result', { points, pct: f.holdout_pct })}
+        </span>
+    );
+}
+
+export function NewFlowDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const create = useCreateFlow(workspace.id);
@@ -307,9 +336,12 @@ function NewFlowDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                     </div>
                     <div className="igr:space-y-1">
                         <Label htmlFor="flow-description">{t('flows.descriptionLabel')}</Label>
-                        <Textarea id="flow-description" maxLength={500} className="igr:min-h-16" value={description} onChange={(e) => setDescription(e.target.value)} />
+                        <Textarea id="flow-description" maxLength={500} className="igr:min-h-16" value={description} placeholder={t('flows.descriptionPlaceholder')} onChange={(e) => setDescription(e.target.value)} />
                     </div>
                     <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                            {t('common.cancel')}
+                        </Button>
                         <Button type="submit" loading={create.isPending} disabled={name.trim() === ''}>
                             {t('flows.create')}
                         </Button>

@@ -7,10 +7,12 @@ namespace App\Domain\Campaigns\Http;
 use App\Domain\Campaigns\Actions\CampaignSender;
 use App\Domain\Campaigns\Actions\ReviewCampaign;
 use App\Domain\Campaigns\Audience\AudienceQuery;
+use App\Domain\Campaigns\Audience\AudienceReach;
 use App\Domain\Campaigns\Jobs\SendCampaignBatch;
 use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Campaigns\Queries\CampaignReport;
 use App\Domain\Campaigns\Support\CommercialCalendar;
+use App\Domain\Campaigns\Support\SendWindowExplainer;
 use App\Domain\Campaigns\Support\WaRateCard;
 use App\Domain\Segments\Models\Segment;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
@@ -175,8 +177,11 @@ final class CampaignController
         return response()->json(CampaignPresenter::make($copy, true), 201);
     }
 
-    /** POST campaigns/{campaign}/audience-count {audience?} */
-    public function audienceCount(Request $request, string $campaign, AudienceQuery $audience): JsonResponse
+    /**
+     * POST campaigns/{campaign}/audience-count {audience?}: cuántos contactos tiene la audiencia y, por canal, cuántos
+     * aceptaron recibir marketing por él (`by_channel`) con el costo aproximado de WhatsApp (AudienceReach).
+     */
+    public function audienceCount(Request $request, string $campaign, AudienceReach $reach): JsonResponse
     {
         Gate::authorize('ws.viewDashboards');
         $model = $this->find($campaign);
@@ -185,8 +190,22 @@ final class CampaignController
         } catch (InvalidArgumentException $e) {
             throw ValidationException::withMessages(['audience' => $e->getMessage()]);
         }
+        $result = $reach->handle($this->current->get(), $definition);
 
-        return response()->json(['count' => $audience->count($this->current->get(), $definition)]);
+        return response()->json(['count' => $result['total'], 'by_channel' => $result['channels'], 'whatsapp_cost' => $result['whatsapp_cost']]);
+    }
+
+    /**
+     * GET campaigns/send-window?mode=&at=: a qué hora saldría la campaña según la ventana legal del país y, si se
+     * mueve, por qué (SendWindowExplainer), para explicarlo en el paso «Cuándo» antes de guardar.
+     */
+    public function sendWindow(Request $request): JsonResponse
+    {
+        Gate::authorize('ws.viewDashboards');
+        $data = $request->validate(['mode' => ['sometimes', Rule::in(Campaign::SEND_MODES)], 'at' => ['sometimes', 'nullable', 'date']]);
+        $at = isset($data['at']) && is_string($data['at']) ? CarbonImmutable::parse($data['at']) : null;
+
+        return response()->json(SendWindowExplainer::explain($this->current->get(), (string) ($data['mode'] ?? 'now'), $at));
     }
 
     /** POST campaigns/{campaign}/review: costo y revisión de cumplimiento. */

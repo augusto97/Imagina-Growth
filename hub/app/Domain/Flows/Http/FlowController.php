@@ -15,16 +15,20 @@ use App\Domain\Flows\Console\DateTriggersCommand;
 use App\Domain\Flows\Graph\NodeTypes;
 use App\Domain\Flows\Library\FlowLibrary;
 use App\Domain\Flows\Library\LibraryAdapter;
+use App\Domain\Flows\Library\LibraryCatalog;
+use App\Domain\Flows\Library\LibraryPreview;
 use App\Domain\Flows\Models\Flow;
 use App\Domain\Flows\Models\FlowRun;
 use App\Domain\Flows\Models\FlowVersion;
 use App\Domain\Flows\Queries\FlowAnalytics;
+use App\Domain\Flows\Queries\FlowListResults;
 use App\Domain\Flows\Support\FlowRules;
 use App\Domain\Flows\Support\InvalidFlow;
 use App\Domain\Flows\Support\TemplateRef;
 use App\Domain\Segments\Models\Segment;
 use App\Domain\Services\Leads\Models\LeadPipeline;
 use App\Domain\Services\Leads\Support\LeadDefaults;
+use App\Domain\Services\Verticals\VerticalCatalog;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Domain\Workspaces\Models\User;
 use App\Ingest\Schema\SchemaRegistry;
@@ -41,8 +45,12 @@ final class FlowController
 {
     public function __construct(private readonly CurrentWorkspace $current) {}
 
-    /** GET flows */
-    public function index(): JsonResponse
+    /**
+     * GET flows: la lista con lo que hizo cada uno (los últimos 30 días: entraron, en curso, lograron la meta) y su
+     * resultado del mes (dinero generado, metas, mensajes y el grupo de control: FlowListResults), más la estrategia
+     * que lo usa si viene de la biblioteca.
+     */
+    public function index(FlowListResults $results): JsonResponse
     {
         Gate::authorize('ws.viewDashboards');
         $flows = Flow::query()->where('status', '!=', Flow::ARCHIVED)->orderByRaw("FIELD(status, 'active', 'paused', 'draft')")->orderBy('name')->get();
@@ -52,14 +60,20 @@ final class FlowController
             ->selectRaw("flow_id, COUNT(*) AS entered, SUM(status IN ('active', 'waiting')) AS live, SUM(exit_reason = 'goal_reached' AND is_holdout = 0) AS converted")
             ->groupBy('flow_id')->get()->keyBy('flow_id');
         $archived = Flow::query()->where('status', Flow::ARCHIVED)->count();
+        $ws = $this->current->get();
+        $month = $results->handle($ws, array_values(array_map(strval(...), $flows->pluck('id')->all())));
 
         return response()->json([
             'data' => $flows->map(fn (Flow $f) => FlowPresenter::summary($f, [
                 'entered' => (int) ($stats->get($f->id)->entered ?? 0),
                 'live' => (int) ($stats->get($f->id)->live ?? 0),
                 'converted' => (int) ($stats->get($f->id)->converted ?? 0),
-            ]))->values(),
+            ]) + [
+                'month' => $month['flows'][(string) $f->id] ?? null,
+                'strategy' => $f->template_key !== null ? LibraryCatalog::strategy((string) $f->template_key) : null,
+            ])->values(),
             'archived_count' => $archived,
+            'meta' => ['month' => $month['month'], 'currency' => (string) ($ws->currency ?: 'COP'), 'control_days' => FlowListResults::CONTROL_DAYS, 'min_group' => FlowListResults::MIN_GROUP],
         ]);
     }
 
@@ -242,7 +256,11 @@ final class FlowController
         return response()->json(['entered' => $enroll->handle($model, $ids)]);
     }
 
-    /** GET flows/library */
+    /**
+     * GET flows/library: los 35 flujos listos con lo que necesita la galería de «Nueva automatización»: objetivo,
+     * tipo de negocio, verticales y lugar recomendado para la vertical del espacio de trabajo (LibraryCatalog), la
+     * estrategia que lo usa, los canales y cuántos mensajes manda.
+     */
     public function library(): JsonResponse
     {
         Gate::authorize('ws.viewDashboards');
@@ -250,25 +268,58 @@ final class FlowController
         // Las de WhatsApp cuentan cuando están listas o enlazadas con una aprobada (no las de la galería en borrador).
         $existing = collect(TemplateRef::usableKeys($workspaceId));
         $created = Flow::query()->whereNotNull('template_key')->where('status', '!=', Flow::ARCHIVED)->pluck('id', 'template_key');
+        $profile = VerticalCatalog::forWorkspace($this->current->get());
+        $vertical = $profile['vertical'];
 
         $hasWhatsapp = LibraryAdapter::hasWhatsapp($workspaceId);
 
-        return response()->json(['data' => array_map(function (array $f) use ($existing, $created, $workspaceId, $hasWhatsapp) {
+        return response()->json(['data' => array_map(function (array $f) use ($existing, $created, $workspaceId, $hasWhatsapp, $vertical) {
             $f = LibraryAdapter::forWorkspace($f, $workspaceId, $hasWhatsapp);
-            $keys = is_array($f['graph']) ? LibraryAdapter::templateKeys($f['graph']) : [];
+            $graph = is_array($f['graph']) ? $f['graph'] : null;
+            $keys = $graph !== null ? LibraryAdapter::templateKeys($graph) : [];
 
             return [
                 'key' => $f['key'], 'number' => $f['number'], 'name' => $f['name'], 'description' => $f['description'], 'phase' => $f['phase'],
                 'available' => $f['graph'] !== null,
                 'module' => $f['module'] ?? null,
                 'trigger' => $f['trigger'],
+                'goal_event' => $f['goal']['event'] ?? null,
                 'templates' => $keys,
                 // Las de la biblioteca de M08 se instalan al crear el flujo; faltan las demás (las aprobadas de WhatsApp).
                 'missing_templates' => array_values(array_filter($keys, fn ($k) => ! $existing->has($k) && ! LibraryAdapter::installable($k))),
                 'created_flow_id' => $created->has($f['key']) ? PrefixedId::encode(Flow::ID_PREFIX, (string) $created->get($f['key'])) : null,
                 'steps' => count((array) ($f['graph']['nodes'] ?? [])),
+                'goal' => LibraryCatalog::goal($f['key']),
+                'audience' => LibraryCatalog::audience($f['key']),
+                'verticals' => LibraryCatalog::verticals($f['key']),
+                'rank' => LibraryCatalog::rank($f['key'], $vertical),
+                'strategy' => LibraryCatalog::strategy($f['key']),
+                'channels' => LibraryCatalog::channels($graph),
+                'messages' => LibraryCatalog::messages($graph),
             ];
-        }, FlowLibrary::all()), 'meta' => ['whatsapp_connected' => $hasWhatsapp]]);
+        }, FlowLibrary::all()), 'meta' => ['whatsapp_connected' => $hasWhatsapp, 'goals' => LibraryCatalog::GOALS, 'vertical' => $vertical, 'business_type' => $profile['business_type']]]);
+    }
+
+    /**
+     * GET flows/library/{key}: el recorrido de un flujo listo antes de crearlo (el grafo como quedaría en este espacio
+     * de trabajo, el disparador, la meta y la reentrada) y sus mensajes con los datos de ejemplo (LibraryPreview).
+     */
+    public function libraryShow(string $key, LibraryPreview $preview): JsonResponse
+    {
+        Gate::authorize('ws.viewDashboards');
+        $definition = FlowLibrary::find($key) ?? abort(404);
+        $workspaceId = $this->current->id();
+        $flow = LibraryAdapter::forWorkspace($definition, $workspaceId);
+        $graph = is_array($flow['graph']) ? $flow['graph'] : null;
+
+        return response()->json([
+            'key' => $flow['key'], 'number' => $flow['number'], 'name' => $flow['name'], 'description' => $flow['description'],
+            'module' => $flow['module'] ?? null,
+            'trigger' => $flow['trigger'], 'goal' => $flow['goal'], 'reentry_policy' => $flow['reentry_policy'],
+            'graph' => $graph,
+            'messages' => $graph !== null ? $preview->messages($this->current->get(), $flow) : [],
+            'whatsapp_connected' => LibraryAdapter::hasWhatsapp($workspaceId),
+        ]);
     }
 
     /** POST flows/library/{key} {activate} */

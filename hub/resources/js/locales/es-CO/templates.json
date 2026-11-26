@@ -1,19 +1,20 @@
 {
     "templates": {
         "title": "Plantillas",
-        "description": "Los correos y mensajes de WhatsApp que usan tus automatizaciones y campañas.",
+        "description": "Los correos, WhatsApp y SMS que usan tus automatizaciones y campañas. Las de WhatsApp las aprueba Meta antes de poder enviarlas.",
         "new": "Nueva plantilla",
         "newTitle": "Nueva plantilla de {{channel}}",
         "newHelp": "Ponle un nombre que la distinga en los flujos y las campañas. Luego la diseñas en el editor.",
         "create": "Crear y abrir",
         "phase": "próximamente",
-        "fromLibrary": "De la biblioteca",
+        "fromLibrary": "De la galería",
         "duplicated": "Plantilla duplicada",
         "archived": "Plantilla archivada. Los flujos y campañas que la usan la conservan.",
         "restored": "Plantilla restaurada como borrador",
         "tabs": {
-            "mine": "Mis plantillas",
-            "library": "Biblioteca"
+            "mine": "Tus plantillas",
+            "library": "Biblioteca",
+            "gallery": "Galería"
         },
         "channels": {
             "email": "Correo",
@@ -54,8 +55,8 @@
         },
         "empty": {
             "title": "Todavía no tienes plantillas",
-            "help": "Empieza con una de la biblioteca: están escritas en español para tu industria y ya traen el pie legal.",
-            "cta": "Ver la biblioteca",
+            "help": "Empieza con una de la galería: están escritas en español para tu tipo de negocio y ya traen el pie legal.",
+            "cta": "Ver la galería",
             "filteredTitle": "Ninguna plantilla coincide",
             "filteredHelp": "Prueba con otro canal, estado o nombre."
         },
@@ -64,14 +65,63 @@
             "namePlaceholder": "Carrito abandonado · recordatorio",
             "category": "Categoría",
             "subject": "Asunto",
-            "preheader": "Preheader",
+            "preheader": "Texto junto al asunto (preencabezado)",
             "preheaderHelp": "El texto que aparece junto al asunto en la bandeja de entrada.",
             "chars": "{{n}}/{{max}}"
         },
         "variables": {
             "insert": "Variable",
             "insertIn": "Insertar variable en {{field}}",
-            "copied": "Variable copiada: haz doble clic en un texto del correo y pégala."
+            "copied": "Variable copiada: haz doble clic en un texto del correo y pégala.",
+            "example": "Ej.: {{value}}",
+            "groups": {
+                "contacto": {
+                    "help": "La persona que recibe el mensaje."
+                },
+                "tienda": {
+                    "label": "Tu negocio",
+                    "help": "Lo que pusiste en «Datos del negocio»."
+                },
+                "carrito": {
+                    "help": "En automatizaciones de carrito abandonado."
+                },
+                "cupon": {
+                    "help": "Después de un paso «Generar cupón único»."
+                },
+                "pedido": {
+                    "help": "En automatizaciones de un pedido (pago pendiente, entrega…)."
+                },
+                "producto": {
+                    "help": "En avisos de stock y de productos vistos."
+                },
+                "recomendaciones": {
+                    "help": "Productos sugeridos para cada persona."
+                },
+                "cita": {
+                    "help": "En automatizaciones de citas: siempre la hora actual de la cita, aunque la hayan reprogramado."
+                },
+                "lead": {
+                    "label": "Solicitud (lead)",
+                    "help": "Lo que pidió la persona en su formulario o chat."
+                },
+                "cotizacion": {
+                    "help": "Cuando le enviaste una cotización o propuesta."
+                },
+                "evento": {
+                    "help": "En inscripciones a un evento o webinar, con los datos de su formulario."
+                },
+                "enlaces": {
+                    "help": "Baja y preferencias (obligatorios en marketing), tu página para agendar y tu reseña en Google."
+                }
+            },
+            "hints": {
+                "cita_enlace": "Para que la persona reprograme o cancele sola.",
+                "enlaces_agendar": "Tu página de reservas (Agenda); si no tienes servicios en la agenda, lleva a tu web.",
+                "enlaces_resena_google": "El enlace que pusiste en Reseñas → Ajustes; si no hay, lleva a tu web.",
+                "enlaces_baja": "Obligatorio en los correos de marketing.",
+                "evento_enlace": "El enlace para entrar al evento o webinar.",
+                "lead_servicio": "Lo que pidió, en sus palabras o el servicio que eligió."
+            }
         },
         "editor": {
             "notFound": "Esta plantilla no existe o se eliminó",
@@ -172,19 +222,6 @@
             "whatsapp": "Botón de WhatsApp",
             "legalFooter": "Pie legal"
         },
-        "library": {
-            "fromLibrary": "Desde la biblioteca",
-            "industry": "Industria",
-            "general": "General",
-            "help": "Plantillas en español para los 20 flujos listos, con el pie legal incluido. Elige tu industria para ver la copia adaptada.",
-            "flow": "Flujo {{n}}",
-            "preview": "Ver",
-            "use": "Usar plantilla",
-            "installed": "Plantilla agregada a tus plantillas",
-            "inUse": "En tus plantillas",
-            "anotherCopy": "Otra copia",
-            "industryCopy": "Adaptada a tu industria"
-        },
         "business": {
             "open": "Datos del negocio",
             "title": "Datos del negocio",
@@ -205,6 +242,89 @@
                 "whatsapp": "+57 300 123 4567",
                 "logo_url": "https://tienda.co/logo.png"
             }
+        },
+        "newBlank": "{{channel}} en blanco",
+        "statusText": {
+            "draft": "Borrador: complétala y márcala lista",
+            "ready": "Lista para usar",
+            "archived": "Archivada"
+        },
+        "gallery": {
+            "fromGallery": "Desde la galería",
+            "title": "Galería de plantillas",
+            "description": "Mensajes listos por objetivo, escritos para tu tipo de negocio. Se instalan en un clic; las de WhatsApp se envían a revisión de Meta.",
+            "scope": "Qué plantillas ver",
+            "scopeMine": "Para tu negocio",
+            "scopeMine_store": "Para tu tienda",
+            "scopeAll": "Todos los tipos de negocio",
+            "goalsLabel": "Objetivo",
+            "goals": {
+                "all": "Todas",
+                "welcome": "Bienvenida",
+                "promotion": "Promoción",
+                "news": "Novedad",
+                "reminder": "Recordatorio",
+                "event_invite": "Invitación a un evento",
+                "seasonal": "Fecha especial",
+                "survey": "Encuesta",
+                "review": "Pedir reseña",
+                "follow_up": "Seguimiento"
+            },
+            "install": "Instalar",
+            "installWa": "Instalar y enviar a Meta",
+            "preview": "Ver",
+            "installed": "«{{name}}» quedó en tus plantillas",
+            "inUse": "Ya la tienes",
+            "installedDraft": "Instalada: falta la aprobación de Meta",
+            "empty": "No hay plantillas con ese filtro",
+            "emptyHelp": "Prueba con otro objetivo, canal o tipo de negocio.",
+            "waPreviewHelp": "Con datos de ejemplo. Es de {{category}}: Meta la revisa antes de que puedas enviarla (suele tardar de minutos a un día)."
+        },
+        "meta": {
+            "state": {
+                "approved": "Aprobada por Meta: lista para enviar",
+                "pending": "En revisión de Meta",
+                "rejected": "Meta la rechazó",
+                "paused": "Meta la pausó",
+                "disabled": "Meta la desactivó",
+                "connect": "Falta conectar tu número de WhatsApp",
+                "submit": "Lista para enviar a revisión de Meta",
+                "choose": "Falta elegir la plantilla aprobada en Meta"
+            },
+            "help": {
+                "approved": "Tus automatizaciones y campañas ya pueden usarla.",
+                "pending": "Meta suele responder en minutos, a veces hasta un día. Mientras tanto no sale ningún mensaje con ella; cuando la apruebe, se usa sola.",
+                "rejected": "Motivo de Meta: {{reason}}. Corrige el texto y vuelve a enviarla.",
+                "paused": "Meta la pausó porque muchas personas la reportaron o bloquearon. Revisa el texto y a quién se la envías antes de reanudarla.",
+                "disabled": "Ya no se puede usar. Crea otra versión y envíala a revisión.",
+                "connect": "Las plantillas de WhatsApp se aprueban en tu número oficial. Conéctalo y la enviamos a revisión de Meta con un clic.",
+                "submit": "Todavía no está en Meta. Envíala a revisión: cuando la apruebe, tus automatizaciones y campañas la usan solas.",
+                "choose": "Elige abajo la plantilla aprobada en Meta y qué dato va en cada parámetro."
+            },
+            "noReason": "Meta no dio el motivo",
+            "action": {
+                "connect": "Conectar WhatsApp",
+                "submit": "Enviar a Meta"
+            },
+            "submitFailed": "No se pudo enviar a Meta",
+            "toast": {
+                "submitted": "Enviada a revisión de Meta: se usa sola cuando la apruebe",
+                "linked": "Enlazada con la plantilla que ya tenías en Meta",
+                "linkedApproved": "Enlazada con una plantilla ya aprobada por Meta: lista para usar",
+                "not_connected": "Quedó en borrador: conecta tu número de WhatsApp para enviarla a Meta",
+                "ready_to_submit": "Quedó en borrador, lista para enviar a Meta",
+                "failed": "Meta no aceptó la plantilla"
+            },
+            "proposalTitle": "El texto que se envía a revisión de Meta",
+            "proposalHelp": "Con datos de ejemplo. Cuando Meta la apruebe, aquí eliges qué dato va en cada parámetro (ya viene llenado)."
+        },
+        "mock": {
+            "businessAccount": "Cuenta de empresa",
+            "sms": "Mensaje de texto",
+            "toYou": "para ti",
+            "noSubject": "(sin asunto)",
+            "failed": "No se pudo armar la vista previa.",
+            "notApproved": "Esta plantilla todavía no tiene un texto aprobado por Meta: la vista previa aparece cuando la eliges en el editor."
         }
     }
 }

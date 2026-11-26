@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { wsPath } from '@/api/queries';
 import { api } from '@/lib/api';
 
@@ -9,6 +9,7 @@ export type TemplateCategory = 'marketing' | 'utility' | 'transactional';
 export type TemplateStatus = 'draft' | 'ready' | 'archived';
 
 export const CHANNELS: TemplateChannel[] = ['email', 'sms', 'whatsapp'];
+export type WaApprovalStatus = 'APPROVED' | 'PENDING' | 'REJECTED' | 'PAUSED' | 'DISABLED' | 'IN_APPEAL' | 'PENDING_DELETION' | 'DELETED' | 'LIMIT_EXCEEDED';
 export const CATEGORIES: TemplateCategory[] = ['marketing', 'utility', 'transactional'];
 
 export interface TemplateCheck {
@@ -28,6 +29,9 @@ export interface TemplateSummary {
     status: TemplateStatus;
     library_key: string | null;
     wa_template_name: string | null;
+    /** Estado de la revisión de Meta de la plantilla enlazada; null si no está enlazada. */
+    wa_status: WaApprovalStatus | null;
+    wa_rejected_reason: string | null;
     created_at: string | null;
     updated_at: string | null;
 }
@@ -148,8 +152,8 @@ export function useTemplates(ws: string, filters: { channel?: TemplateChannel | 
     const qs = params.toString();
     return useQuery({
         queryKey: keys.list(ws, filters),
-        queryFn: ({ signal }) => api.get<{ data: TemplateSummary[] }>(`${base(ws)}${qs ? `?${qs}` : ''}`, signal),
-        select: (r) => r.data,
+        queryFn: ({ signal }) => api.get<{ data: TemplateSummary[]; meta?: { whatsapp_connected: boolean } }>(`${base(ws)}${qs ? `?${qs}` : ''}`, signal),
+        placeholderData: keepPreviousData,
     });
 }
 

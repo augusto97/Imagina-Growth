@@ -121,15 +121,26 @@ export function NodePanel({ node, options, issues, readOnly, webhookSecret, onCh
             case 'wait': {
                 const mode = str(c.mode, 'duration');
                 const days = Array.isArray(c.weekdays) ? (c.weekdays as number[]) : [1, 2, 3, 4, 5, 6, 7];
+                const switchMode = (next: string) =>
+                    onChange(
+                        next === 'until_time'
+                            ? { mode: 'until_time', hour: 9, minute: 0, weekdays: [1, 2, 3, 4, 5, 6] }
+                            : next === 'until_date'
+                              ? { mode: 'until_date', anchor: 'appointment', offset: { value: 24, unit: 'hours' }, direction: 'before', if_past: 'continue' }
+                              : { mode: 'duration', duration: { value: 1, unit: 'hours' } },
+                    );
                 body = (
                     <>
-                        <Field label={t('flows.config.mode')} htmlFor={id('mode')}>
-                            <Select id={id('mode')} value={mode} disabled={readOnly} onChange={(e) => set(e.target.value === 'until_time' ? { mode: 'until_time', hour: 9, minute: 0, weekdays: [1, 2, 3, 4, 5, 6] } : { mode: 'duration', duration: { value: 1, unit: 'hours' } })}>
+                        <Field label={t('flows.config.waitMode')} htmlFor={id('mode')}>
+                            <Select id={id('mode')} value={mode} disabled={readOnly} onChange={(e) => switchMode(e.target.value)}>
                                 <option value="duration">{t('flows.config.duration')}</option>
                                 <option value="until_time">{t('flows.config.untilTime')}</option>
+                                <option value="until_date">{t('flows.config.untilDate')}</option>
                             </Select>
                         </Field>
-                        {mode === 'until_time' ? (
+                        {mode === 'until_date' ? (
+                            <DateAnchorFields nodeId={node.id} config={c} readOnly={readOnly} onChange={set} kind="wait" />
+                        ) : mode === 'until_time' ? (
                             <>
                                 <div className="igr:grid igr:grid-cols-2 igr:gap-2">
                                     <Field label={t('flows.config.hour')} htmlFor={id('hour')}>
@@ -176,7 +187,7 @@ export function NodePanel({ node, options, issues, readOnly, webhookSecret, onCh
                 );
                 break;
             case 'condition':
-                body = <ConditionConfig config={c} readOnly={readOnly} onChange={onChange} />;
+                body = <ConditionConfig nodeId={node.id} config={c} readOnly={readOnly} onChange={onChange} />;
                 break;
             case 'ab_split': {
                 const variants = (Array.isArray(c.variants) ? c.variants : []) as { key: string; weight: number }[];
@@ -526,6 +537,9 @@ export function NodePanel({ node, options, issues, readOnly, webhookSecret, onCh
                     </Button>
                 ) : null}
             </div>
+            {t(`flows.nodeHelp.${node.type}`, { defaultValue: '' }) !== '' ? (
+                <p className="igr:rounded-md igr:bg-muted/50 igr:px-2.5 igr:py-2 igr:text-[12px] igr:leading-snug igr:text-muted-foreground">{t(`flows.nodeHelp.${node.type}`)}</p>
+            ) : null}
             {issues.length > 0 ? (
                 <ul className="igr:space-y-1 igr:rounded-md igr:border igr:border-destructive/40 igr:bg-destructive/5 igr:p-2 igr:text-xs igr:text-destructive">
                     {issues.map((m) => (
@@ -572,28 +586,41 @@ export function EventSelect({ id, value, events, onChange, disabled }: { id?: st
     );
 }
 
-function ConditionConfig({ config, readOnly, onChange }: { config: Config; readOnly: boolean; onChange: (c: Config) => void }) {
+function ConditionConfig({ nodeId, config, readOnly, onChange }: { nodeId: string; config: Config; readOnly: boolean; onChange: (c: Config) => void }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const segmentOptions = useSegmentOptions(workspace.id);
     const mode = str(config.mode, 'segment');
     const definition = (config.definition ?? { op: 'and', conditions: [] }) as Group;
     const exitIfNo = config.exit_if_no === true;
+    const switchMode = (next: string) =>
+        onChange(
+            next === 'context'
+                ? { mode: 'context', path: 'last_event.props.button_payload', operator: 'eq', value: '', exit_if_no: exitIfNo }
+                : next === 'date'
+                  ? { mode: 'date', anchor: 'appointment', offset: { value: 48, unit: 'hours' }, exit_if_no: exitIfNo }
+                  : { mode: 'segment', definition: { op: 'and', conditions: [] }, exit_if_no: exitIfNo },
+        );
+
+    if (mode === 'date') {
+        return (
+            <>
+                <Field label={t('flows.config.conditionMode')} htmlFor="cond-mode">
+                    <ConditionModeSelect value={mode} disabled={readOnly} onChange={switchMode} />
+                </Field>
+                <DateAnchorFields nodeId={nodeId} config={config} readOnly={readOnly} onChange={(patch) => onChange({ ...config, ...patch })} kind="condition" />
+                <label className="igr:flex igr:items-start igr:gap-2 igr:text-[13px]">
+                    <input type="checkbox" className="igr:mt-0.5" checked={exitIfNo} disabled={readOnly} onChange={(e) => onChange({ ...config, exit_if_no: e.target.checked })} />
+                    {t('flows.config.exitIfNo')}
+                </label>
+            </>
+        );
+    }
 
     return (
         <>
             <Field label={t('flows.config.conditionMode')} htmlFor="cond-mode">
-                <Select
-                    id="cond-mode"
-                    value={mode}
-                    disabled={readOnly}
-                    onChange={(e) =>
-                        onChange(e.target.value === 'context' ? { mode: 'context', path: 'last_event.props.button_payload', operator: 'eq', value: '', exit_if_no: exitIfNo } : { mode: 'segment', definition: { op: 'and', conditions: [] }, exit_if_no: exitIfNo })
-                    }
-                >
-                    <option value="segment">{t('flows.config.segmentMode')}</option>
-                    <option value="context">{t('flows.config.contextMode')}</option>
-                </Select>
+                <ConditionModeSelect value={mode} disabled={readOnly} onChange={switchMode} />
             </Field>
             {mode === 'context' ? (
                 <>
@@ -631,3 +658,85 @@ function ConditionConfig({ config, readOnly, onChange }: { config: Config; readO
         </>
     );
 }
+
+function ConditionModeSelect({ value, disabled, onChange }: { value: string; disabled: boolean; onChange: (mode: string) => void }) {
+    const { t } = useTranslation();
+    return (
+        <Select id="cond-mode" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+            <option value="segment">{t('flows.config.segmentMode')}</option>
+            <option value="context">{t('flows.config.contextMode')}</option>
+            <option value="date">{t('flows.config.dateMode')}</option>
+        </Select>
+    );
+}
+
+/** Fechas que llegan con el disparador y se pueden elegir sin escribir la ruta. */
+const DATE_PATHS = ['fields.event_date', 'fields.date', 'renewal_at'];
+
+/**
+ * La fecha de referencia de una espera «hasta una fecha» (`wait` con `mode: until_date`) o de «¿falta más de…?»
+ * (`condition` con `mode: date`): la cita que empezó la automatización o una fecha del disparador, cuánto antes o
+ * después y qué hacer si ya pasó (hub/CLAUDE.md §7, FlowDates).
+ */
+function DateAnchorFields({ nodeId, config: c, readOnly, onChange, kind }: { nodeId: string; config: Config; readOnly: boolean; onChange: (patch: Config) => void; kind: 'wait' | 'condition' }) {
+    const { t } = useTranslation();
+    const id = (name: string) => `node-${nodeId}-${name}`;
+    const anchor = str(c.anchor, 'appointment');
+    const path = str(c.path);
+    return (
+        <>
+            <Field label={t('flows.config.anchor')} htmlFor={id('anchor')} help={anchor === 'appointment' ? t('flows.config.anchorAppointmentHelp') : undefined}>
+                <Select id={id('anchor')} value={anchor} disabled={readOnly} onChange={(e) => onChange(e.target.value === 'prop' ? { anchor: 'prop', path: path || 'fields.event_date' } : { anchor: 'appointment', path: undefined })}>
+                    <option value="appointment">{t('flows.config.anchorAppointment')}</option>
+                    <option value="prop">{t('flows.config.anchorProp')}</option>
+                </Select>
+            </Field>
+            {anchor === 'prop' ? (
+                <Field label={t('flows.config.anchorPath')} htmlFor={id('path')} help={t('flows.config.anchorPathHelp')}>
+                    <Select id={id('path')} value={DATE_PATHS.includes(path) ? path : '__other'} disabled={readOnly} onChange={(e) => onChange({ path: e.target.value === '__other' ? '' : e.target.value })}>
+                        {DATE_PATHS.map((p) => (
+                            <option key={p} value={p}>
+                                {t(`flows.anchors.paths.${p.replace(/\./g, '_')}`)}
+                            </option>
+                        ))}
+                        <option value="__other">{t('flows.config.anchorOther')}</option>
+                    </Select>
+                    {!DATE_PATHS.includes(path) ? (
+                        <Input
+                            className="igr:mt-1.5"
+                            aria-label={t('flows.config.anchorPathOther')}
+                            placeholder={t('flows.config.anchorPathPlaceholder')}
+                            value={path}
+                            disabled={readOnly}
+                            onChange={(e) => onChange({ path: e.target.value.trim() })}
+                        />
+                    ) : null}
+                </Field>
+            ) : null}
+            {kind === 'wait' ? (
+                <>
+                    <Field label={t('flows.config.offset')} htmlFor={id('offset')}>
+                        <div className="igr:space-y-1.5">
+                            <DurationInput id={id('offset')} value={c.offset} disabled={readOnly} onChange={(offset) => onChange({ offset })} />
+                            <Select aria-label={t('flows.config.direction')} value={str(c.direction, 'before')} disabled={readOnly} onChange={(e) => onChange({ direction: e.target.value })}>
+                                <option value="before">{t('flows.config.before')}</option>
+                                <option value="after">{t('flows.config.after')}</option>
+                            </Select>
+                        </div>
+                    </Field>
+                    <Field label={t('flows.config.ifPast')} htmlFor={id('if-past')} help={t('flows.config.ifPastHelp')}>
+                        <Select id={id('if-past')} value={str(c.if_past, 'continue')} disabled={readOnly} onChange={(e) => onChange({ if_past: e.target.value })}>
+                            <option value="continue">{t('flows.config.ifPastContinue')}</option>
+                            <option value="exit">{t('flows.config.ifPastExit')}</option>
+                        </Select>
+                    </Field>
+                </>
+            ) : (
+                <Field label={t('flows.config.moreThan')} htmlFor={id('offset')} help={t('flows.config.moreThanHelp')}>
+                    <DurationInput id={id('offset')} value={c.offset} disabled={readOnly} onChange={(offset) => onChange({ offset })} />
+                </Field>
+            )}
+        </>
+    );
+}
+

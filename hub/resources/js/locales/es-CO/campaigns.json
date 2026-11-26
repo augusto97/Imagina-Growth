@@ -1,17 +1,16 @@
 {
     "campaigns": {
         "title": "Campañas",
-        "description": "Envíos puntuales a un grupo de clientes, con el costo revisado antes de aprobar y lo que vendieron.",
+        "description": "Envíos puntuales a un grupo de clientes: eliges a quién, qué les dices y cuándo; ves el costo antes de aprobar y, después, lo que vendió.",
         "new": "Nueva campaña",
-        "newHelp": "Ponle un nombre y elige el canal. Después armas la audiencia, el contenido y la hora, y la revisas antes de aprobarla.",
+        "newHelp": "Ponle un nombre. Después eliges a quién le escribes, qué les dices y cuándo, y la revisas antes de aprobarla.",
         "createAndContinue": "Crear y continuar",
-        "tabs": {
-            "list": "Lista",
-            "calendar": "Calendario comercial"
-        },
         "empty": {
             "title": "Aún no tienes campañas",
-            "description": "Crea la primera: elige un segmento, el mensaje y la hora. Antes de enviar verás cuántos la recibirán, cuánto cuesta y quién queda fuera por ley."
+            "description": "Una campaña es un envío puntual: una promoción, una novedad, una invitación. Antes de enviarla ves a cuántos llega, cuánto cuesta y quién queda fuera por ley.",
+            "step1": "Elige a quién: uno o varios grupos de clientes.",
+            "step2": "Elige el canal y el mensaje, y míralo como le llega a tu cliente.",
+            "step3": "Elige cuándo: la ventana legal de su país se respeta sola."
         },
         "list": {
             "name": "Campaña",
@@ -23,7 +22,9 @@
             "abWinner": "A/B · ganó {{variant}}",
             "whenNow": "Al aprobar",
             "sentOf": "{{sent}} enviados",
-            "estimate": "Estimado en la última revisión"
+            "estimate": "Estimado en la última revisión",
+            "title": "Tus campañas",
+            "actions": "Acciones"
         },
         "status": {
             "draft": "Borrador",
@@ -60,67 +61,68 @@
             "continue": "Continuar el borrador",
             "pause": "Pausar",
             "resume": "Reanudar",
-            "cancel": "Cancelar campaña"
+            "cancel": "Cancelar campaña",
+            "duplicateNamed": "Duplicar «{{name}}»"
         },
         "cancel": {
             "title": "¿Cancelar la campaña?",
             "description": "Los mensajes que aún no salieron no se enviarán. Los que ya salieron no se pueden recuperar. Queda en la auditoría.",
             "confirm": "Sí, cancelar"
         },
-        "calendar": {
-            "year": "Año",
-            "country": "País",
-            "help": "Fechas comerciales de cada país con ideas de campaña. Empieza a comunicar unos días antes.",
-            "nothing": "Sin fechas comerciales ni campañas.",
-            "startsCommunicating": "comunica desde el {{date}}",
-            "create": "Crear campaña",
-            "ideas_one": "Ver {{count}} idea",
-            "ideas_other": "Ver {{count}} ideas",
-            "hideIdeas": "Ocultar ideas"
-        },
         "wizard": {
-            "subtitle": "Arma la campaña paso a paso; se guarda al avanzar.",
+            "subtitle": "Cuatro pasos: a quién, qué, cuándo y revisar. Se guarda al avanzar.",
             "steps": "Pasos de la campaña",
             "step": {
-                "channel": "Canal",
-                "audience": "Audiencia",
-                "content": "Contenido",
-                "schedule": "Programación",
-                "review": "Revisión"
+                "channel": "¿Qué les dices?",
+                "audience": "¿A quién?",
+                "content": "¿Qué les dices?",
+                "schedule": "¿Cuándo?",
+                "review": "Revisar y aprobar"
             },
             "saveAndNext": "Guardar y seguir",
             "channelHelp": "El canal define qué contenido puedes usar y cómo se cobra.",
             "channelConnected": "Conectado",
             "channelMissing": "Sin conectar",
-            "connectChannel": "Este canal no tiene una cuenta activa: no podrás aprobar la campaña hasta conectarla.",
-            "goChannels": "Ir a Canales",
+            "connectChannel": "Este canal no tiene una cuenta conectada: podrás armar la campaña, pero no aprobarla hasta conectarlo.",
+            "goChannels": "Conectar el canal",
             "notEditable": "Esta campaña ya empezó a enviarse",
             "notEditableHelp": "Ya no se puede editar. Puedes pausarla, cancelarla o duplicarla para hacer otra.",
-            "seeReport": "Ver el reporte"
+            "seeReport": "Ver el reporte",
+            "stepShort": {
+                "audience": "A quién",
+                "content": "Qué",
+                "schedule": "Cuándo",
+                "review": "Revisar"
+            }
         },
         "audience": {
-            "help": "Incluye uno o varios segmentos y excluye a quien no deba recibirla. El conteo es antes de revisar consentimiento y horarios.",
-            "count": "Contactos en la audiencia",
+            "help": "Elige uno o varios grupos de clientes y saca a quien no deba recibirla. Mira a cuántos llegas de verdad por cada canal.",
+            "count": "Personas en la audiencia",
             "all": "Todos los contactos",
-            "include": "Incluir a los de",
-            "exclude": "Excluir a los de",
-            "searchSegments": "Buscar segmentos",
-            "noSegments": "No hay segmentos con ese nombre.",
-            "system": "Sistema",
-            "rules": "Reglas",
+            "include": "Enviar a los de",
+            "exclude": "Sin los de",
+            "searchSegments": "Buscar grupos de clientes",
+            "noSegments": "No hay grupos con ese nombre.",
+            "system": "Automático",
+            "rules": "Reglas extra (opcional)",
             "days": "días",
             "excludeBuyers": "Excluir a quien compró en los últimos",
             "excludeMessaged": "Excluir a quien recibió un mensaje en los últimos",
             "onlyConsent": "Solo contactos con consentimiento de {{channel}}",
-            "onlyNeverPurchased": "Solo quien nunca ha comprado"
+            "onlyNeverPurchased": "Solo quien nunca ha comprado",
+            "title": "¿A quién le escribes?",
+            "reachTitle": "Aceptaron recibir mensajes por",
+            "reachHelp": "Solo le llega a quien aceptó ese canal. La revisión final descuenta además los horarios y la frecuencia.",
+            "notConnected": "Canal sin conectar",
+            "waCost": "Escribirles a todos por WhatsApp costaría unos {{amount}}. Meta te lo cobra directo en tu cuenta."
         },
         "content": {
-            "help": "Elige la plantilla. Con A/B, una muestra recibe cada variante y el resto recibe la ganadora.",
-            "template": "Plantilla",
+            "help": "Elige el canal y el mensaje. A la derecha lo ves como le llega a tu cliente.",
+            "template": "Mensaje (plantilla)",
             "variant": "Variante {{key}}",
-            "chooseTemplate": "Elige una plantilla",
-            "noTemplates": "No tienes plantillas de {{channel}}.",
-            "goTemplates": "Crear una plantilla",
+            "chooseTemplate": "Elige el mensaje",
+            "noTemplates": "Todavía no tienes mensajes de {{channel}}. En la galería hay listos para instalar en un clic.",
+            "goTemplates": "Ver la galería de plantillas",
             "startAb": "Probar otra variante (A/B)",
             "addVariant": "Agregar variante",
             "removeVariant": "Quitar",
@@ -132,10 +134,20 @@
             "waitHours": "Esperar (horas)",
             "abHelp": "El {{pct}}% de la audiencia recibe las variantes; a las {{hours}} h el resto recibe la ganadora.",
             "holdout": "Grupo de control (%)",
-            "holdoutHelp": "Un porcentaje al azar no recibe la campaña. Así se mide cuánto vendió de más frente a no enviar nada."
+            "holdoutHelp": "Un porcentaje al azar no recibe la campaña. Así se mide cuánto vendió de más frente a no enviar nada.",
+            "title": "¿Qué les dices?",
+            "channelQuestion": "¿Por dónde?",
+            "reach_one": "{{n}} aceptó este canal",
+            "reach_other": "{{n}} aceptaron este canal",
+            "advanced": "Opciones avanzadas: prueba A/B y grupo de control",
+            "abIntro": "Prueba de dos a cuatro mensajes con una parte de la audiencia; el resto recibe el que mejor funcione.",
+            "seeVariant": "Ver",
+            "previewTitle": "Así le llega a tu cliente",
+            "previewEmpty": "Elige un mensaje para verlo aquí.",
+            "previewHelp": "Con datos de ejemplo de tu país; cada persona recibe los suyos."
         },
         "schedule": {
-            "help": "Siempre dentro del horario legal del país de cada contacto: lo que caiga fuera se aplaza, nunca se descarta.",
+            "help": "La ley de cada país dice en qué horario se pueden enviar mensajes comerciales. Si eliges una hora fuera de él, te decimos cuándo saldrá y por qué.",
             "mode": {
                 "now": "Al aprobar",
                 "scheduled": "En una fecha y hora",
@@ -151,7 +163,8 @@
             "at": "Fecha y hora",
             "day": "Día (y hora para quien no tenga una preferida)",
             "timezone": "Hora de {{tz}}.",
-            "legal": "En Colombia solo de lunes a viernes de 7:00 a 19:00 y sábados de 8:00 a 15:00, nunca domingos ni festivos (Ley 2300). En México, de lunes a sábado de 9:00 a 20:00. Además se respeta el tope de un mensaje comercial al día por contacto."
+            "legal": "En Colombia solo de lunes a viernes de 7:00 a 19:00 y sábados de 8:00 a 15:00, nunca domingos ni festivos (Ley 2300). En México, de lunes a sábado de 9:00 a 20:00. Además se respeta el tope de un mensaje comercial al día por contacto.",
+            "title": "¿Cuándo se envía?"
         },
         "review": {
             "running": "Revisando consentimiento, horarios, frecuencia y costo…",
@@ -182,7 +195,9 @@
             "approveNow": "Aprobar y enviar",
             "scheduledToast": "Campaña aprobada y programada",
             "sentToast": "Campaña aprobada: empezó el envío",
-            "windowSingle": "Saldrán el {{at}}"
+            "windowSingle": "Saldrán el {{at}}",
+            "summary": "Tu campaña",
+            "change": "Cambiar"
         },
         "detail": {
             "finished": "terminó {{when}}",
@@ -233,7 +248,13 @@
             "winnerPending": "La muestra está en curso; luego se elige la ganadora.",
             "recipientsTitle": "Destinatarios por estado",
             "recipientsHelp": "Quién recibió la campaña, quién se aplazó y quién quedó fuera, con el motivo.",
-            "noReasons": "Sin exclusiones ni aplazamientos."
+            "noReasons": "Sin exclusiones ni aplazamientos.",
+            "heroEyebrow": "Dinero generado",
+            "heroHelp_one": "{{n}} venta pagada llegó por esta campaña.",
+            "heroHelp_other": "{{n}} ventas pagadas llegaron por esta campaña.",
+            "heroSending": "Se está enviando: las ventas aparecen aquí a medida que llegan.",
+            "heroEmpty": "Todavía no hay ventas atribuidas: aparecen cuando alguien compra después de abrir el mensaje o tocar su enlace.",
+            "roiHint": "Retorno {{roi}} · {{perSale}} por venta"
         },
         "recipientStatus": {
             "pending": "Esperan su hora",
@@ -263,6 +284,60 @@
             "holdout": "Grupo de control",
             "cancelled": "Campaña cancelada",
             "dispatch_error": "Error al despachar"
+        },
+        "window": {
+            "at": "{{day}} a las {{time}}",
+            "ok": "Se enviará el {{when}}",
+            "moved": "Se enviará el {{when}}",
+            "nowOk": "Si la apruebas ahora, sale enseguida",
+            "nowMoved": "Si la apruebas ahora, saldrá el {{when}}",
+            "because": "Porque {{reasons}}.",
+            "perContact": "Cada persona la recibe a esa hora en su zona horaria (o a su mejor hora), y la ley de su país puede moverla.",
+            "reasons": {
+                "past": "la hora que elegiste ya pasó",
+                "sunday": "el {{day}} es domingo y ese día no se envían mensajes comerciales",
+                "holiday": "el {{day}} es festivo",
+                "holidayNamed": "el {{day}} es festivo ({{name}})",
+                "hours": "el {{day}} solo se puede enviar de {{from}} a {{to}}",
+                "closed": "el {{day}} no se envían mensajes comerciales"
+            }
+        },
+        "moments": {
+            "title": "Calendario comercial",
+            "short": "Calendario comercial",
+            "description": "Las fechas que mueven ventas y consultas en {{country}}, con la campaña lista para crear en un clic.",
+            "toCampaigns": "Ver campañas",
+            "upcoming": "Próximas fechas para vender",
+            "upcomingHelp": "Del calendario comercial de tu país: la campaña queda en borrador en un clic y la revisas antes de enviarla.",
+            "seeAll": "Ver el calendario completo",
+            "next": "La próxima fecha",
+            "hero_one": "Falta {{count}} día. Lo ideal es enviarla el {{date}}.",
+            "hero_other": "Faltan {{count}} días. Lo ideal es enviarla el {{date}}.",
+            "heroNow": "Ya empezó. Si aún no la enviaste, hazlo cuanto antes (lo ideal era el {{date}}).",
+            "createHero": "Crear la campaña en un clic",
+            "idea": "Idea: {{idea}}",
+            "empty": "No hay fechas comerciales próximas para tu negocio",
+            "emptyHelp": "Cuando se acerque una fecha que mueve ventas o consultas en tu país, aparece aquí con su campaña lista.",
+            "range": "del {{from}} al {{to}}",
+            "now": "Es ahora",
+            "daysLeft_one": "en {{count}} día",
+            "daysLeft_other": "en {{count}} días",
+            "sendOnLabel": "Cuándo enviarla",
+            "sendOn": "Envíala el {{date}}",
+            "channelLabel": "Canal y mensaje",
+            "audienceLabel": "A quién",
+            "everyone_email": "Todos los que aceptaron correo",
+            "everyone_whatsapp": "Todos los que aceptaron WhatsApp",
+            "everyone_sms": "Todos los que aceptaron SMS",
+            "ideas_one": "{{count}} idea para la campaña",
+            "ideas_other": "{{count}} ideas para la campaña",
+            "open": "Ver la campaña",
+            "create": "Crear la campaña",
+            "created": "«{{name}}» quedó en borrador",
+            "createdHelp": "Revísala y apruébala para programarla.",
+            "sendAsap": "Envíala cuanto antes (lo ideal era el {{date}})",
+            "heroLate_one": "Falta {{count}} día y ya pasó el día ideal para enviarla: créala y envíala cuanto antes.",
+            "heroLate_other": "Faltan {{count}} días y ya pasó el día ideal para enviarla: créala y envíala cuanto antes."
         }
     }
 }

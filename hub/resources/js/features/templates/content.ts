@@ -1,4 +1,4 @@
-import type { TemplateCategory, TemplateChannel, TemplateCheck, WaSlots, WaVariables } from './api';
+import type { TemplateCategory, TemplateChannel, TemplateCheck, WaSlots, WaSource, WaVariables } from './api';
 
 /* Reglas que el editor muestra en vivo, iguales a las del servidor (TemplateChecks.php). */
 
@@ -124,3 +124,32 @@ export const BLANK_EMAIL_MJML = `<mjml>
     </mj-section>
   </mj-body>
 </mjml>`;
+
+/** El texto de una plantilla aprobada de WhatsApp por partes (encabezado, cuerpo, pie y botones), para la vista previa. */
+export function waBodyOf(source: WaSource | undefined): { header?: string; body: string; footer?: string; buttons: string[]; urlButtons: boolean[] } | undefined {
+    if (!source) return undefined;
+    const header = source.components.find((c) => c.type.toUpperCase() === 'HEADER');
+    const body = source.components.find((c) => c.type.toUpperCase() === 'BODY');
+    const footer = source.components.find((c) => c.type.toUpperCase() === 'FOOTER');
+    const buttons = source.components.find((c) => c.type.toUpperCase() === 'BUTTONS');
+    return {
+        ...(header?.text ? { header: header.text } : {}),
+        body: body?.text ?? '',
+        ...(footer?.text ? { footer: footer.text } : {}),
+        buttons: (buttons?.buttons ?? []).map((b) => b.text ?? ''),
+        urlButtons: (buttons?.buttons ?? []).map((b) => b.type.toUpperCase() === 'URL'),
+    };
+}
+
+/** Las variables más comunes en palabras, para mostrar el texto de la galería sin Liquid («Hola Laura…»). */
+export function humanizeLiquid(text: string, business: string): string {
+    return text
+        .replace(/\{%[^%]*%\}/g, '')
+        .replace(/\{\{\s*([a-z_]+)\.([a-z_]+)[^}]*\}\}/g, (_, group: string, field: string) => {
+            if (group === 'contacto' && field === 'nombre') return 'Laura';
+            if (group === 'tienda' && field === 'nombre') return business;
+            return `[${field.replace(/_/g, ' ')}]`;
+        })
+        .replace(/\s+\n/g, '\n')
+        .trim();
+}

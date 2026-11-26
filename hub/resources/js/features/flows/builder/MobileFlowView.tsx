@@ -1,4 +1,5 @@
 import { ArrowLeft, CircleAlert, CircleCheck, CornerDownRight, Monitor } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import { cn } from '@/lib/cn';
 import { metaOf } from '../catalog';
 import { StatusBadge } from '../FlowsPage';
-import type { FlowDetail, FlowOptions, Goal, Graph, Trigger } from '../types';
+import type { FlowDetail, FlowOptions, Goal, Graph, GraphNode, Trigger } from '../types';
 import { branchText, describeNode } from './describe';
 import { CATEGORY_TONE } from './FlowNode';
 import { outline, type OutlineItem } from './outline';
@@ -17,6 +18,8 @@ interface ListProps {
     trigger: Trigger;
     goal: Goal | null;
     issues: Record<string, string[]>;
+    /** Algo debajo de un paso (la vista previa del mensaje en la galería de la biblioteca). */
+    renderExtra?: ((node: GraphNode) => ReactNode) | undefined;
 }
 
 /** Vista del celular: el flujo en solo lectura como lista de pasos, con aviso de que se edita en la computadora. */
@@ -58,17 +61,17 @@ export function MobileFlowView({ flow, options }: { flow: FlowDetail; options: F
 }
 
 /** Los pasos numerados; las ramas abren una sublista con su nombre. */
-export function FlowOutlineList({ graph, options, trigger, goal, issues }: ListProps) {
+export function FlowOutlineList({ graph, options, trigger, goal, issues, renderExtra }: ListProps) {
     const { t } = useTranslation();
     const { items, orphans } = outline(graph);
     return (
         <div className="igr:space-y-4">
-            <Items items={items} props={{ graph, options, trigger, goal, issues }} />
+            <Items items={items} props={{ graph, options, trigger, goal, issues, renderExtra }} />
             {orphans.length > 0 ? (
                 <section className="igr:space-y-2">
                     <h2 className="igr:text-[13px] igr:font-semibold">{t('flows.canvas.orphans')}</h2>
                     <p className="igr:text-xs igr:text-muted-foreground">{t('flows.canvas.orphansHelp')}</p>
-                    <Items items={orphans} props={{ graph, options, trigger, goal, issues }} />
+                    <Items items={orphans} props={{ graph, options, trigger, goal, issues, renderExtra }} />
                 </section>
             ) : null}
         </div>
@@ -111,6 +114,7 @@ function Items({ items, props }: { items: OutlineItem[]; props: ListProps }) {
                                         {p}
                                     </p>
                                 ))}
+                                {props.renderExtra?.(step.node)}
                             </div>
                         </div>
                         {step.branches.length > 0 ? (

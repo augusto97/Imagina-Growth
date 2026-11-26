@@ -72,7 +72,17 @@ export function describeNode(t: TFunction, node: GraphNode, ctx: DescribeContext
             const kind = str(c.kind) || 'marketing';
             return base(summarize(t, node, ctx.options), missing, missing ? [] : [t(`flows.canvas.details.kind.${kind}`, { defaultValue: t(`flows.kinds.${kind}`) })]);
         }
+        case 'wait':
+            if (c.mode === 'until_date') {
+                const missing = c.anchor === 'prop' && str(c.path) === '';
+                return base(summarize(t, node, ctx.options), missing, [t(c.if_past === 'exit' ? 'flows.canvas.details.ifPastExit' : 'flows.canvas.details.ifPastContinue')]);
+            }
+            return base(summarize(t, node, ctx.options));
         case 'condition': {
+            if (c.mode === 'date') {
+                const missing = c.anchor === 'prop' && str(c.path) === '';
+                return base(summarize(t, node, ctx.options), missing);
+            }
             const { text, incomplete } = conditionText(t, c, ctx.options);
             return base(text, incomplete, c.exit_if_no === true ? [t('flows.canvas.details.exitIfNo')] : []);
         }
@@ -124,6 +134,9 @@ const EVENT_BRANCHES: Record<string, string> = {
 
 /** Nombre de una salida de un paso, con el contexto del paso cuando ayuda. */
 export function branchText(t: TFunction, node: Pick<GraphNode, 'type' | 'config'>, branch: string | null): string {
+    if (node.type === 'condition' && node.config.mode === 'date' && (branch === 'yes' || branch === 'no')) {
+        return t(`flows.canvas.dateBranches.${branch}`);
+    }
     if (node.type === 'wait_event' && (branch === 'event' || branch === 'timeout')) {
         const kind = EVENT_BRANCHES[str(node.config.event)];
         if (kind !== undefined) {

@@ -1,7 +1,7 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { wsPath } from '@/api/queries';
 import { api } from '@/lib/api';
-import type { Audience, CalendarResponse, CampaignChannel, CampaignDetail, CampaignOptions, CampaignReport, CampaignSummary, ReviewResponse } from './types';
+import type { Audience, AudienceReach, CalendarResponse, CampaignChannel, CampaignDetail, CampaignOptions, CampaignReport, CampaignSummary, ReviewResponse, SendMode, SendWindow } from './types';
 
 export const campaignKeys = {
     all: (ws: string) => ['ws', ws, 'campaigns'] as const,
@@ -51,6 +51,27 @@ export function useCalendar(ws: string, year: number, country: string) {
     });
 }
 
+/** A quién llega la audiencia guardada de la campaña, por canal (para elegir el canal en «¿Qué les dices?»). */
+export function useAudienceReach(ws: string, id: string, enabled = true) {
+    return useQuery({
+        queryKey: [...campaignKeys.one(ws, id), 'reach'] as const,
+        queryFn: () => api.post<AudienceReach>(`${one(ws, id)}/audience-count`, {}),
+        enabled,
+        staleTime: 30_000,
+    });
+}
+
+/** A qué hora saldría según la ventana legal del país y por qué se mueve (paso «¿Cuándo?»). */
+export function useSendWindow(ws: string, mode: SendMode, at: string | null, enabled = true) {
+    return useQuery({
+        queryKey: ['ws', ws, 'campaigns', 'send-window', mode, at] as const,
+        queryFn: ({ signal }) => api.get<SendWindow>(`${base(ws)}/send-window?mode=${mode}${at ? `&at=${encodeURIComponent(at)}` : ''}`, signal),
+        enabled,
+        staleTime: 60_000,
+        placeholderData: (prev) => prev,
+    });
+}
+
 export function useCreateCampaign(ws: string) {
     const qc = useQueryClient();
     return useMutation({
@@ -81,6 +102,6 @@ export function useCampaignActions(ws: string, id: string) {
         cancel: useMutation({ mutationFn: () => api.post<CampaignDetail>(`${one(ws, id)}/cancel`), onSuccess: refresh }),
         duplicate: useMutation({ mutationFn: () => api.post<CampaignDetail>(`${one(ws, id)}/duplicate`), onSuccess: () => refresh() }),
         remove: useMutation({ mutationFn: () => api.delete<{ ok: boolean }>(one(ws, id)), onSuccess: () => refresh() }),
-        count: useMutation({ mutationFn: (audience: Audience) => api.post<{ count: number }>(`${one(ws, id)}/audience-count`, { audience }) }),
+        count: useMutation({ mutationFn: (audience?: Audience) => api.post<AudienceReach>(`${one(ws, id)}/audience-count`, audience ? { audience } : {}) }),
     };
 }

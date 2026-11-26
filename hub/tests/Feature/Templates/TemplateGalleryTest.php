@@ -132,3 +132,20 @@ it('permisos y aislamiento: un lector ve la galería pero no instala; otro espac
     $this->actingAs($stranger)->postJson("{$this->url}/library/gal_welcome")->assertNotFound();
     expect(DB::table('templates')->where('workspace_id', $this->ws->id)->count())->toBe(0);
 });
+
+it('la lista dice en qué va la revisión de Meta de cada plantilla de WhatsApp', function () {
+    $this->actingAs($this->owner)->postJson("{$this->url}/library/wa_gal_welcome")->assertCreated();
+    $list = $this->actingAs($this->owner)->getJson($this->url)->assertOk();
+    expect($list->json('meta.whatsapp_connected'))->toBeFalse()
+        ->and(collect($list->json('data'))->firstWhere('library_key', 'wa_gal_welcome'))->toMatchArray(['status' => 'draft', 'wa_status' => null, 'wa_template_name' => null]);
+
+    Http::fake(['graph.test/*/2222/message_templates*' => Http::response(['id' => '999', 'status' => 'PENDING', 'category' => 'MARKETING'])]);
+    galleryWhatsapp($this);
+    $this->actingAs($this->owner)->postJson("{$this->url}/library/wa_gal_welcome")->assertOk();
+    DB::table('wa_templates')->where('workspace_id', $this->ws->id)->update(['status' => 'REJECTED', 'rejected_reason' => 'INVALID_FORMAT']);
+    $list = $this->actingAs($this->owner)->getJson($this->url)->assertOk();
+    $row = collect($list->json('data'))->firstWhere('library_key', 'wa_gal_welcome');
+    expect($list->json('meta.whatsapp_connected'))->toBeTrue()
+        ->and($row)->toMatchArray(['wa_status' => 'REJECTED', 'wa_rejected_reason' => 'INVALID_FORMAT', 'wa_template_name' => 'igr_gal_welcome'])
+        ->and($this->actingAs($this->owner)->getJson("{$this->url}/{$row['id']}")->assertOk()->json('wa_status'))->toBe('REJECTED');
+});

@@ -9,10 +9,26 @@ import { Label } from '@/components/ui/label';
 import { FieldError } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
+import { businessKind } from '@/features/flows/business';
 import { isApiError } from '@/lib/api';
 import { useApplyDraft, useCopilotStatus, useDiscardDraft, usePropose } from './api';
 import { CampaignProposalView, FlowProposalView } from './ProposalViews';
 import type { Draft } from './types';
+
+/**
+ * Ejemplos de pedidos para el tipo de negocio: los de su vertical (`copilot.examples.campaign_health`), los de
+ * servicios en general (`_services`) o los de tienda.
+ */
+export function useExamples(kind: 'campaign' | 'flow'): string[] {
+    const { t, i18n } = useTranslation();
+    const { workspace } = useWorkspace();
+    const business = businessKind(workspace);
+    const vertical = workspace.vertical ?? null;
+    const context =
+        vertical !== null && vertical !== 'store' && i18n.exists(`copilot.examples.${kind}_${vertical}`) ? vertical : business === 'services' ? 'services' : undefined;
+    const list = t(`copilot.examples.${kind}`, { returnObjects: true, context });
+    return Array.isArray(list) ? (list as string[]) : [];
+}
 
 /** «Crear con IA» en Campañas y Flujos: pedido → propuesta revisable → borrador (nunca envía ni activa). */
 export function CreateWithAiButton({ kind, label }: { kind: 'campaign' | 'flow'; label?: string }) {
@@ -41,7 +57,7 @@ export function copilotError(error: unknown, fallback: string): string {
     return fallback;
 }
 
-export function CopilotDialog({ kind, onClose, initial }: { kind: 'campaign' | 'flow'; onClose: () => void; initial?: Draft }) {
+export function CopilotDialog({ kind, onClose, initial, initialPrompt = '' }: { kind: 'campaign' | 'flow'; onClose: () => void; initial?: Draft; initialPrompt?: string }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const navigate = useNavigate();
@@ -50,9 +66,9 @@ export function CopilotDialog({ kind, onClose, initial }: { kind: 'campaign' | '
     const apply = useApplyDraft(workspace.id);
     const discard = useDiscardDraft(workspace.id);
     const canApply = useCan('manageMarketing');
-    const [prompt, setPrompt] = useState('');
+    const [prompt, setPrompt] = useState(initialPrompt);
     const [draft, setDraft] = useState<Draft | null>(initial ?? null);
-    const examples = t(`copilot.examples.${kind}`, { returnObjects: true }) as string[];
+    const examples = useExamples(kind);
 
     const onApply = () => {
         if (draft === null) {

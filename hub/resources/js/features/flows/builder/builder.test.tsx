@@ -273,17 +273,33 @@ describe('resumen de cada paso', () => {
             options,
         });
         expect(context.summary).toBe('¿El botón que respondió es «cod_confirm»?');
-        expect(context.details).toEqual(['Si no se cumple, sale del flujo']);
+        expect(context.details).toEqual(['Si no se cumple, sale de la automatización']);
 
         const trigger = describeNode(t, n('trigger', 'trigger'), { options, trigger: { type: 'event', event: 'cart.abandoned', filters: [] }, goal: { event: 'order.paid' } });
         expect(trigger.summary).toBe('Cuando pasa «Carrito abandonado»');
-        expect(trigger.details).toEqual(['Sale si logra: Pedido pagado']);
+        expect(trigger.details).toEqual(['Termina si logra: Pedido pagado']);
         expect(describeNode(t, n('trigger', 'trigger'), { options, trigger: { type: 'event', event: null, filters: [] } }).incomplete).toBe(true);
 
         expect(describeNode(t, n('h', 'webhook', { url: 'https://crm.example.com/hooks/igr' }), { options }).summary).toBe('Avisa a crm.example.com');
         expect(describeNode(t, n('h', 'webhook', { url: '' }), { options }).incomplete).toBe(true);
         // Un tipo sin caso propio usa el resumen del catálogo.
-        expect(describeNode(t, n('x', 'exit'), { options }).summary).toBe('Termina el flujo');
+        expect(describeNode(t, n('x', 'exit'), { options }).summary).toBe('Aquí termina la automatización');
+    });
+
+    it('describe las esperas hasta una fecha y «¿falta más de…?» (flujos de citas y eventos)', () => {
+        const before = describeNode(t, n('w', 'wait', { mode: 'until_date', anchor: 'appointment', offset: { value: 48, unit: 'hours' }, direction: 'before', if_past: 'continue' }), { options });
+        expect(before.summary).toBe('Espera hasta 48 horas antes de la cita');
+        expect(before.details).toEqual(['Si esa hora ya pasó, sigue de una vez']);
+        expect(before.incomplete).toBe(false);
+        const after = describeNode(t, n('w', 'wait', { mode: 'until_date', anchor: 'prop', path: 'fields.event_date', offset: { value: 1, unit: 'days' }, direction: 'after', if_past: 'exit' }), { options });
+        expect(after.summary).toBe('Espera hasta 1 día después de la fecha del evento');
+        expect(after.details).toEqual(['Si esa hora ya pasó, sale']);
+        expect(describeNode(t, n('w', 'wait', { mode: 'until_date', anchor: 'prop', path: '' }), { options }).incomplete).toBe(true);
+
+        const far = n('c', 'condition', { mode: 'date', anchor: 'appointment', offset: { value: 49, unit: 'hours' } });
+        expect(describeNode(t, far, { options }).summary).toBe('¿Falta más de 49 horas para la cita?');
+        expect(branchText(t, far, 'yes')).toBe('Sí, falta más');
+        expect(branchText(t, far, 'no')).toBe('No, es muy pronto');
     });
 
     it('nombra las salidas según lo que se espera y solo etiqueta las ramas con nombre', () => {
@@ -392,7 +408,7 @@ describe('lista de pasos (celular)', () => {
         expect(screen.getByText('¿Acepta correo?')).toBeInTheDocument();
         const yes = screen.getByRole('region', { name: 'Sí' });
         expect(within(yes).getByText('Carrito 1')).toBeInTheDocument();
-        expect(within(screen.getByRole('region', { name: 'No' })).getByText('Termina el flujo.')).toBeInTheDocument();
+        expect(within(screen.getByRole('region', { name: 'No' })).getByText('Aquí termina.')).toBeInTheDocument();
         expect(screen.getByText('Falta algo')).toBeInTheDocument();
         expect(screen.getByText('Sigue en el paso 5')).toBeInTheDocument();
         expect(screen.getByText('Pasos sin conectar')).toBeInTheDocument();

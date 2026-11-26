@@ -1,4 +1,4 @@
-import { CircleCheck, CircleMinus, Copy, Pause, Pencil, Play, Trophy, XCircle } from 'lucide-react';
+import { CircleCheck, CircleMinus, Copy, Pause, Pencil, Play, Trophy, Wallet, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { HeroCard } from '@/components/ui/hero-card';
 import { ErrorState, FieldError, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
@@ -83,6 +84,7 @@ function Header({ campaign }: { campaign: CampaignDetail }) {
     return (
         <>
             <PageHeader
+                breadcrumb={false}
                 title={campaign.name}
                 description={
                     <span className="igr:inline-flex igr:flex-wrap igr:items-center igr:gap-2">
@@ -196,42 +198,44 @@ function Overview({ campaign, report }: { campaign: CampaignDetail; report: Camp
         );
     }
 
+    const revenue = report.revenue.total;
     return (
         <div className="igr:space-y-4">
+            <HeroCard
+                icon={Wallet}
+                eyebrow={t('campaigns.report.heroEyebrow')}
+                value={formatMoney(report.revenue.total, report.currency, locale)}
+                description={
+                    revenue > 0
+                        ? t('campaigns.report.heroHelp', { count: report.revenue.orders, n: formatNumber(report.revenue.orders, locale) })
+                        : campaign.status === 'sending'
+                          ? t('campaigns.report.heroSending')
+                          : t('campaigns.report.heroEmpty')
+                }
+            >
+                {report.uplift && report.uplift.incremental_revenue > 0 ? (
+                    <p className="igr:text-support igr:text-foreground">{t('campaigns.report.incremental', { amount: formatMoney(report.uplift.incremental_revenue, report.currency, locale) })}</p>
+                ) : null}
+            </HeroCard>
             <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2 igr:lg:grid-cols-4">
                 <Stat
                     label={t('campaigns.report.recipients')}
                     value={formatNumber(recipients, locale)}
                     hint={report.recipients.holdout > 0 ? t('campaigns.report.holdoutHint', { n: formatNumber(report.recipients.holdout, locale) }) : undefined}
                 />
-                <Stat
-                    label={t('campaigns.report.sent')}
-                    value={formatNumber(d.sent, locale)}
-                    hint={t('campaigns.report.deliveredHint', { n: formatNumber(d.delivered, locale) })}
-                />
+                <Stat label={t('campaigns.report.sent')} value={formatNumber(d.sent, locale)} hint={t('campaigns.report.deliveredHint', { n: formatNumber(d.delivered, locale) })} />
                 <Stat
                     label={t('campaigns.report.clicks')}
                     value={formatNumber(d.clicked, locale)}
                     hint={d.click_rate !== null ? t('campaigns.report.clickRate', { pct: formatPercent(d.click_rate, locale, 1) }) : undefined}
                 />
                 <Stat
-                    label={t('campaigns.report.revenue')}
-                    value={formatMoney(report.revenue.total, report.currency, locale)}
-                    hint={t('campaigns.report.orders', { count: report.revenue.orders })}
+                    label={t('analytics.cost.cost')}
+                    value={formatCost(report.cost, report.cost.meta.currency, locale)}
+                    hint={report.cost.roi !== null ? t('campaigns.report.roiHint', { roi: formatRoi(report.cost.roi, locale), perSale: formatCostPerSale(report.cost, report.cost.meta.currency, locale) }) : t('analytics.cost.estimated')}
                 />
             </div>
-            <div className="igr:space-y-2">
-                <div className="igr:grid igr:gap-3 igr:sm:grid-cols-3">
-                    <Stat
-                        label={t('analytics.cost.cost')}
-                        value={formatCost(report.cost, report.cost.meta.currency, locale)}
-                        hint={report.cost.cost === null ? t('analytics.cost.inUsd') : t('analytics.cost.estimated')}
-                    />
-                    <Stat label={t('analytics.cost.roi')} value={formatRoi(report.cost.roi, locale)} hint={t('analytics.cost.roiHelp')} />
-                    <Stat label={t('analytics.cost.perSale')} value={formatCostPerSale(report.cost, report.cost.meta.currency, locale)} hint={t('analytics.cost.estimated')} />
-                </div>
-                <CostNote meta={report.cost.meta} locale={locale} />
-            </div>
+            <CostNote meta={report.cost.meta} locale={locale} />
             <div className="igr:grid igr:gap-4 igr:lg:grid-cols-2">
                 <Funnel campaign={campaign} report={report} />
                 <Uplift report={report} />

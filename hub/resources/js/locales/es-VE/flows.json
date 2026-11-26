@@ -1,0 +1,7 @@
+{
+    "flows": {
+        "nodeHelp": {
+            "wait": "Hace una pausa antes del siguiente paso. Los mensajes de marketing además esperan la ventana legal: nunca salen de noche, en domingo ni en feriado."
+        }
+    }
+}
