@@ -7,9 +7,12 @@ import type {
     GoogleWebhookCreated,
     LandingPage,
     LandingPageDetail,
+    LandingGoal,
     LandingPagePatch,
     LandingStats,
     LandingSubmission,
+    LandingTemplate,
+    LandingTexts,
     LeadAdForm,
     LeadAdFormMapping,
     LeadAdLeadRow,
@@ -94,7 +97,8 @@ export function useLandingMutations(ws: string) {
     const done = () => void qc.invalidateQueries({ queryKey: captureKeys.all(ws) });
     return {
         create: useMutation({
-            mutationFn: (data: { name: string; title?: string; slug?: string }) => api.post<LandingPageDetail>(`${base(ws)}/pages`, data),
+            mutationFn: (data: { name: string; title?: string; slug?: string; goal?: LandingGoal; template?: LandingTemplate }) =>
+                api.post<LandingPageDetail>(`${base(ws)}/pages`, data),
             onSuccess: done,
         }),
         update: useMutation({
@@ -230,4 +234,23 @@ export function useLeadAdsMutations(ws: string) {
             onSuccess: () => void qc.invalidateQueries({ queryKey: captureKeys.all(ws) }),
         }),
     };
+}
+
+/**
+ * El HTML de la página pública con el borrador sin guardar (`capture/pages/{id}/preview`): la vista previa del editor
+ * es la misma página que verá el cliente. `state` = `thanks` pinta la de «gracias».
+ */
+export function useLandingPreview(ws: string, id: string) {
+    return useMutation({
+        mutationFn: ({ patch, state }: { patch: LandingPagePatch; state: 'form' | 'thanks' }) =>
+            api.post<{ html: string }>(`${base(ws)}/pages/${enc(id)}/preview`, { ...patch, state }),
+    });
+}
+
+/** Textos de la página escritos con la IA (copilot/content/landing), con el tono de marca y sin cifras inventadas. */
+export function useWriteLanding(ws: string) {
+    return useMutation({
+        mutationFn: (brief: { goal: string; offer?: string; audience?: string }) =>
+            api.post<{ id: string; texts: LandingTexts }>(`${wsPath(ws)}/copilot/content/landing`, brief),
+    });
 }

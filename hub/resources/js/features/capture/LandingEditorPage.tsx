@@ -1,4 +1,4 @@
-import { Archive, EyeOff, ExternalLink, ImagePlus, Monitor, MoreHorizontal, Pencil, QrCode, Rocket, Save, Smartphone, Trash2, Undo2 } from 'lucide-react';
+import { Archive, EyeOff, ExternalLink, ImagePlus, Monitor, MoreHorizontal, Pencil, QrCode, Rocket, Save, Sparkles, Trash2, Undo2 } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { DeviceFrame, type PreviewDevice } from '@/components/ui/device-frame';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,7 +20,7 @@ import { cn } from '@/lib/cn';
 import { toast } from '@/stores/toast';
 import { useCaptureOptions, useLandingMutations, useLandingPage } from './api';
 import { LandingFieldsEditor } from './LandingFieldsEditor';
-import { LandingPreview, type PreviewState } from './LandingPreview';
+import { BenefitsEditor, FaqEditor, LandingLivePreview, ReviewsToggle, TemplatePicker, useCanWriteWithAi, WriteWithAiDialog } from './LandingDesignParts';
 import { LandingResults } from './LandingResults';
 import { DEFAULT_ACCENT, draftFrom, fieldsProblem, isHexColor, isHttpsUrl, patchFrom, rebase, slugValid, type LandingDraft } from './model';
 import { QrShare } from './QrShare';
@@ -180,7 +179,7 @@ function Editor({ page }: { page: LandingPageDetail }) {
                     <TabsTrigger value="results">{t('capture.editor.tabs.results')}</TabsTrigger>
                 </TabsList>
                 <TabsContent value="design">
-                    <Design page={page} draft={draft} onChange={setDraft} options={options.data} canManage={canManage} problem={problem} />
+                    <Design page={page} draft={draft} saved={saved} onChange={setDraft} options={options.data} canManage={canManage} problem={problem} />
                 </TabsContent>
                 <TabsContent value="share">
                     {page.status === 'published' ? (
@@ -275,6 +274,7 @@ function Editor({ page }: { page: LandingPageDetail }) {
 function Design({
     page,
     draft,
+    saved,
     onChange,
     options,
     canManage,
@@ -282,6 +282,7 @@ function Design({
 }: {
     page: LandingPageDetail;
     draft: LandingDraft;
+    saved: LandingDraft;
     onChange: (draft: LandingDraft) => void;
     options: CaptureOptions | undefined;
     canManage: boolean;
@@ -289,7 +290,20 @@ function Design({
 }) {
     const { t } = useTranslation();
     const [pane, setPane] = useState<'edit' | 'preview'>('edit');
+    const [params, setParams] = useSearchParams();
+    const canWrite = useCanWriteWithAi() && canManage;
+    // Desde el asistente de «Nueva página» se llega con ?ia=1: se abre «Escribir con IA».
+    const [writing, setWriting] = useState(params.get('ia') === '1');
+    const closeWriting = (open: boolean) => {
+        setWriting(open);
+        if (!open && params.has('ia')) {
+            const p = new URLSearchParams(params);
+            p.delete('ia');
+            setParams(p, { replace: true });
+        }
+    };
     const content = (patch: Partial<LandingDraft['content']>) => onChange({ ...draft, content: { ...draft.content, ...patch } });
+    const accent = isHexColor(draft.content.color) ? draft.content.color : DEFAULT_ACCENT;
     return (
         <>
             <SegmentedControl
@@ -305,7 +319,33 @@ function Design({
             <div className="igr:grid igr:items-start igr:gap-6 igr:xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                 <fieldset disabled={!canManage} className={cn('igr:min-w-0 igr:space-y-5', pane === 'preview' && 'igr:max-xl:hidden')}>
                     <legend className="igr:sr-only">{t('capture.editor.tabs.design')}</legend>
-                    <Section title={t('capture.editor.text.title')} description={t('capture.editor.text.help')}>
+                    <Section title={t('capture.design.title')} description={t('capture.design.help')}>
+                        <TemplatePicker value={draft.content.template} accent={accent} onChange={(template) => content({ template })} disabled={!canManage} />
+                    </Section>
+
+                    <Section
+                        title={t('capture.editor.text.title')}
+                        description={t('capture.editor.text.help')}
+                        action={
+                            canWrite ? (
+                                <Button type="button" size="sm" variant="outline" onClick={() => setWriting(true)}>
+                                    <Sparkles aria-hidden />
+                                    {t('capture.ai.open')}
+                                </Button>
+                            ) : undefined
+                        }
+                    >
+                        <Field label={t('capture.design.eyebrow')} hint={t('capture.design.eyebrowHelp')} count={[(draft.content.eyebrow ?? '').length, 60]}>
+                            {(id) => (
+                                <Input
+                                    id={id}
+                                    value={draft.content.eyebrow ?? ''}
+                                    maxLength={60}
+                                    placeholder={t('capture.design.eyebrowPlaceholder')}
+                                    onChange={(e) => content({ eyebrow: e.target.value })}
+                                />
+                            )}
+                        </Field>
                         <Field label={t('capture.editor.text.headline')} count={[draft.content.title.length, 120]}>
                             {(id) => (
                                 <Input
@@ -331,6 +371,18 @@ function Design({
                                 />
                             )}
                         </Field>
+                    </Section>
+
+                    <Section title={t('capture.design.more')} description={t('capture.design.moreHelp')}>
+                        <div className="igr:space-y-2">
+                            <p className="igr:text-[13px] igr:font-medium">{t('capture.design.benefits')}</p>
+                            <BenefitsEditor value={draft.content.benefits} onChange={(benefits) => content({ benefits })} />
+                        </div>
+                        <div className="igr:space-y-2">
+                            <p className="igr:text-[13px] igr:font-medium">{t('capture.design.faq')}</p>
+                            <FaqEditor value={draft.content.faq} onChange={(faq) => content({ faq })} />
+                        </div>
+                        <ReviewsToggle value={draft.content.reviews} onChange={(reviews) => content({ reviews })} options={options} />
                     </Section>
 
                     <Section title={t('capture.editor.brand.title')} description={t('capture.editor.brand.help')}>
@@ -446,50 +498,10 @@ function Design({
                         </label>
                     </Section>
                 </fieldset>
-                <PreviewPane page={page} draft={draft} options={options} className={cn(pane === 'edit' && 'igr:max-xl:hidden')} />
+                <LandingLivePreview page={page} draft={draft} saved={saved} options={options} className={cn(pane === 'edit' && 'igr:max-xl:hidden')} />
             </div>
+            {canWrite ? <WriteWithAiDialog open={writing} onOpenChange={closeWriting} draft={draft} onApply={onChange} /> : null}
         </>
-    );
-}
-
-function PreviewPane({ page, draft, options, className }: { page: LandingPageDetail; draft: LandingDraft; options: CaptureOptions | undefined; className?: string }) {
-    const { t } = useTranslation();
-    const { workspace } = useWorkspace();
-    const [device, setDevice] = useState<PreviewDevice>('desktop');
-    const [state, setState] = useState<PreviewState>('form');
-    const logo = isHttpsUrl(draft.content.logo_url) ? draft.content.logo_url : (page.content.logo_src ?? null);
-    const image = isHttpsUrl(draft.content.image_url) ? draft.content.image_url : (page.content.image_src ?? null);
-    return (
-        <aside className={cn('igr:min-w-0 igr:space-y-3 igr:xl:sticky igr:xl:top-4', className)} aria-label={t('capture.preview.title')}>
-            <div className="igr:flex igr:flex-wrap igr:items-center igr:justify-between igr:gap-2">
-                <SegmentedControl
-                    size="sm"
-                    label={t('capture.preview.device')}
-                    value={device}
-                    onChange={setDevice}
-                    options={[
-                        { value: 'desktop', label: t('capture.preview.desktop'), icon: Monitor },
-                        { value: 'mobile', label: t('capture.preview.mobile'), icon: Smartphone },
-                    ]}
-                />
-                <SegmentedControl
-                    size="sm"
-                    label={t('capture.preview.state')}
-                    value={state}
-                    onChange={setState}
-                    options={[
-                        { value: 'form', label: t('capture.preview.stateForm') },
-                        { value: 'thanks', label: t('capture.preview.stateThanks') },
-                    ]}
-                />
-            </div>
-            <DeviceFrame device={device} label={t('capture.preview.title')} url={`${(options?.base_url ?? '').replace(/^https?:\/\//, '')}${draft.slug}`}>
-                <LandingPreview draft={draft} device={device} state={state} business={workspace.name} logo={logo} image={image} options={options} />
-            </DeviceFrame>
-            <p className="igr:text-caption igr:text-muted-foreground">
-                {t('capture.preview.note')} {state === 'thanks' && draft.content.redirect_url ? t('capture.preview.redirectNote') : null}
-            </p>
-        </aside>
     );
 }
 
@@ -687,12 +699,15 @@ function ColorField({ value, onChange }: { value: string | null; onChange: (valu
     );
 }
 
-function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+function Section({ title, description, action, children }: { title: string; description?: string; action?: ReactNode; children: ReactNode }) {
     return (
         <Card>
-            <CardHeader>
-                <CardTitle>{title}</CardTitle>
-                {description ? <CardDescription>{description}</CardDescription> : null}
+            <CardHeader className={action ? 'igr:flex igr:flex-row igr:flex-wrap igr:items-start igr:justify-between igr:gap-3' : undefined}>
+                <div className="igr:min-w-0">
+                    <CardTitle>{title}</CardTitle>
+                    {description ? <CardDescription>{description}</CardDescription> : null}
+                </div>
+                {action}
             </CardHeader>
             <CardContent className="igr:space-y-4">{children}</CardContent>
         </Card>

@@ -8,6 +8,7 @@ use App\Domain\Billing\Contracts\Entitlements;
 use App\Domain\Capture\Models\LandingPage;
 use App\Domain\Capture\Models\WhatsAppLink;
 use App\Domain\Capture\Support\CaptureUrls;
+use App\Domain\Capture\Support\LandingSchema;
 use App\Domain\Capture\Support\WhatsAppNumber;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Models\Workspace;
@@ -28,7 +29,7 @@ final class CapturePresenter
     {
         $api = '/api/w/'.$workspace->publicId().'/capture/pages/'.$page->publicId();
         $link = $page->wa_link_id !== null ? WhatsAppLink::query()->find($page->wa_link_id) : null;
-        $content = (array) ($page->content ?? []);
+        $content = LandingSchema::withDefaults((array) ($page->content ?? []));
         $origin = CaptureUrls::page($workspace, $page);
         $content['logo_src'] = $page->text('logo_key') !== '' ? $origin.'/i/'.$page->text('logo_key') : ($page->text('logo_url') ?: null);
         $content['image_src'] = $page->text('image_key') !== '' ? $origin.'/i/'.$page->text('image_key') : ($page->text('image_url') ?: null);

@@ -9,6 +9,15 @@ export type ConsentChannel = 'email' | 'whatsapp' | 'sms';
 export type BuiltinFieldKey = 'name' | 'email' | 'phone' | 'message' | 'service';
 export type LandingFieldType = 'text' | 'email' | 'tel' | 'textarea' | 'select' | 'checkbox';
 export type CaptureVia = 'qr' | 'link';
+/** Diseño de la página: clásica (texto y formulario lado a lado), destacada (franja de color) o sencilla (una columna). */
+export type LandingTemplate = 'split' | 'hero' | 'centered';
+/** Para qué es la página (el asistente de «Nueva página» arma los textos y los campos de cada uno). */
+export type LandingGoal = 'contact' | 'quote' | 'appointment' | 'offer' | 'event';
+
+export interface LandingFaqItem {
+    q: string;
+    a: string;
+}
 
 export interface LandingField {
     /** `name`, `email`, `phone`, `message`, `service` o propio `custom_<clave>`. */
@@ -39,6 +48,15 @@ export interface LandingContent {
     image_key: string | null;
     image_url: string | null;
     whatsapp: LandingWhatsApp;
+    template: LandingTemplate;
+    /** La etiqueta corta sobre el título («Cotización sin costo»). */
+    eyebrow: string | null;
+    /** Hasta 6 frases de lo que obtiene la persona. */
+    benefits: string[];
+    /** Hasta 8 preguntas con su respuesta. */
+    faq: LandingFaqItem[];
+    /** Mostrar las reseñas publicadas del negocio (promedio y hasta tres). */
+    reviews: boolean;
     /** Solo lectura: la URL con la que se ve el logo o la imagen (subidos o externos). */
     logo_src?: string | null;
     image_src?: string | null;
@@ -108,6 +126,20 @@ export interface CaptureOptions {
     sites: { id: string; name: string; status: string }[];
     privacy_policy_url: string | null;
     images: { max_kb: number; supported: boolean };
+    /** Reseñas publicadas del negocio (para la prueba social), o null si no tiene. */
+    reviews: { count: number; avg: number } | null;
+    templates: LandingTemplate[];
+    goals: LandingGoal[];
+}
+
+/** Los textos que escribe la IA para una página (copilot/content/landing). */
+export interface LandingTexts {
+    eyebrow: string;
+    title: string;
+    body: string;
+    benefits: string[];
+    faq: LandingFaqItem[];
+    button: string;
 }
 
 export interface LandingStats {

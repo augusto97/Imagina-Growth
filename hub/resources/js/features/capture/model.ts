@@ -1,4 +1,15 @@
-import type { BuiltinFieldKey, ConsentChannel, LandingContent, LandingField, LandingFieldType, LandingPageDetail, LandingPagePatch, LandingWhatsApp } from './types';
+import type {
+    BuiltinFieldKey,
+    ConsentChannel,
+    LandingContent,
+    LandingFaqItem,
+    LandingField,
+    LandingFieldType,
+    LandingPageDetail,
+    LandingPagePatch,
+    LandingTexts,
+    LandingWhatsApp,
+} from './types';
 
 /*
  * Lógica pura del editor de páginas de captura (probada en capture.test.ts): el borrador, lo que cambia para el PATCH,
@@ -24,8 +35,14 @@ export interface LandingDraft {
     site_id: string | null;
 }
 
+/** El hub completa las claves nuevas de las páginas de antes (`LandingSchema::withDefaults`): siempre llegan. */
 export function draftFrom(page: LandingPageDetail): LandingDraft {
-    const content = { ...page.content, whatsapp: { ...page.content.whatsapp } };
+    const content = {
+        ...page.content,
+        benefits: [...page.content.benefits],
+        faq: page.content.faq.map((f) => ({ ...f })),
+        whatsapp: { ...page.content.whatsapp },
+    };
     delete content.logo_src;
     delete content.image_src;
     return {
@@ -47,13 +64,17 @@ export function patchFrom(draft: LandingDraft, saved: LandingDraft): LandingPage
     if (draft.name.trim() !== saved.name) patch.name = draft.name.trim();
     if (draft.slug !== saved.slug) patch.slug = draft.slug.trim().toLowerCase();
     const content: Record<string, unknown> = {};
-    const keys = ['title', 'body', 'button', 'success_title', 'success_message', 'redirect_url', 'color', 'logo_url', 'image_url'] as const;
+    const keys = ['title', 'body', 'button', 'success_title', 'success_message', 'redirect_url', 'color', 'logo_url', 'image_url', 'eyebrow'] as const;
     for (const key of keys) {
         if (!same(draft.content[key], saved.content[key])) {
             const value = draft.content[key];
             content[key] = typeof value === 'string' && key !== 'title' && value.trim() === '' ? null : value;
         }
     }
+    if (draft.content.template !== saved.content.template) content.template = draft.content.template;
+    if (draft.content.reviews !== saved.content.reviews) content.reviews = draft.content.reviews;
+    if (!same(draft.content.benefits, saved.content.benefits)) content.benefits = cleanBenefits(draft.content.benefits);
+    if (!same(draft.content.faq, saved.content.faq)) content.faq = cleanFaq(draft.content.faq);
     if (!same(draft.content.whatsapp, saved.content.whatsapp)) content.whatsapp = draft.content.whatsapp;
     if (Object.keys(content).length > 0) patch.content = content;
     if (!same(draft.fields, saved.fields)) patch.fields = draft.fields.map(cleanField);
@@ -61,6 +82,36 @@ export function patchFrom(draft: LandingDraft, saved: LandingDraft): LandingPage
     if (draft.indexable !== saved.indexable) patch.settings = { indexable: draft.indexable };
     if (draft.site_id !== saved.site_id) patch.site_id = draft.site_id;
     return patch;
+}
+
+export const MAX_BENEFITS = 6;
+export const MAX_FAQ = 8;
+
+/** Los beneficios sin los renglones vacíos (como los guarda el hub). */
+export function cleanBenefits(benefits: readonly string[]): string[] {
+    return benefits.map((b) => b.trim()).filter((b) => b !== '');
+}
+
+/** Las preguntas sin las que no tienen pregunta (una respuesta vacía se deja: la pregunta sola también sirve). */
+export function cleanFaq(faq: readonly LandingFaqItem[]): LandingFaqItem[] {
+    return faq.map((f) => ({ q: f.q.trim(), a: f.a.trim() })).filter((f) => f.q !== '');
+}
+
+/** Lo que trae la IA puesto sobre el borrador: solo lo que vino con texto, sin tocar lo demás. */
+export function applyTexts(draft: LandingDraft, texts: LandingTexts): LandingDraft {
+    const pick = (value: string, fallback: string | null) => (value.trim() !== '' ? value.trim() : fallback);
+    return {
+        ...draft,
+        content: {
+            ...draft.content,
+            eyebrow: pick(texts.eyebrow, draft.content.eyebrow),
+            title: pick(texts.title, draft.content.title) ?? draft.content.title,
+            body: pick(texts.body, draft.content.body),
+            button: pick(texts.button, draft.content.button),
+            benefits: texts.benefits.length > 0 ? cleanBenefits(texts.benefits).slice(0, MAX_BENEFITS) : draft.content.benefits,
+            faq: texts.faq.length > 0 ? cleanFaq(texts.faq).slice(0, MAX_FAQ) : draft.content.faq,
+        },
+    };
 }
 
 /** Quita lo vacío de un campo antes de guardarlo (las opciones solo van en las listas). */

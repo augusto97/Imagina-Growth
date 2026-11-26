@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Domain\Capture\Http;
 
 use App\Domain\Capture\Actions\SyncPageWhatsAppLink;
+use App\Domain\Capture\Http\Public\LandingRenderer;
 use App\Domain\Capture\Models\LandingPage;
 use App\Domain\Capture\Models\LandingSubmission;
 use App\Domain\Capture\Support\CaptureCounters;
 use App\Domain\Capture\Support\CaptureUrls;
 use App\Domain\Capture\Support\LandingImages;
+use App\Domain\Capture\Support\LandingPresets;
+use App\Domain\Capture\Support\LandingReviews;
 use App\Domain\Capture\Support\LandingSchema;
 use App\Domain\Capture\Support\QrImage;
 use App\Domain\Capture\Support\WhatsAppNumber;
@@ -62,6 +65,9 @@ final class LandingPageController
             'sites' => $sites,
             'privacy_policy_url' => $ws->getAttribute('privacy_policy_url'),
             'images' => ['max_kb' => (int) config('igr-capture.images.max_kb'), 'supported' => LandingImages::supported()],
+            'reviews' => ($reviews = LandingReviews::summary($ws)) !== null ? ['count' => $reviews['count'], 'avg' => $reviews['avg']] : null,
+            'templates' => LandingSchema::TEMPLATES,
+            'goals' => LandingSchema::GOALS,
         ]);
     }
 
@@ -83,7 +89,10 @@ final class LandingPageController
         ]);
     }
 
-    /** POST capture/pages {name, title?, slug?} */
+    /**
+     * POST capture/pages {name, title?, slug?, goal?, template?}: con `goal` (el asistente) la página nace con los textos,
+     * los beneficios, las preguntas y los campos de ese objetivo (`LandingPresets`); con `template`, en ese diseño.
+     */
     public function store(Request $request, SyncPageWhatsAppLink $whatsapp): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
@@ -91,6 +100,8 @@ final class LandingPageController
             'name' => ['required', 'string', 'min:2', 'max:160'],
             'title' => ['sometimes', 'nullable', 'string', 'max:120'],
             'slug' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'goal' => ['sometimes', 'nullable', Rule::in(LandingSchema::GOALS)],
+            'template' => ['sometimes', 'nullable', Rule::in(LandingSchema::TEMPLATES)],
         ]);
         $ws = $this->current->get();
         $slug = isset($data['slug']) && is_string($data['slug']) && $data['slug'] !== '' ? strtolower(trim($data['slug'])) : LandingSchema::uniqueSlug((string) $data['name']);
@@ -98,6 +109,14 @@ final class LandingPageController
             throw ValidationException::withMessages(['slug' => $problem]);
         }
         $defaults = LandingSchema::defaults($ws, WhatsAppNumber::account(null) !== null);
+        if (isset($data['goal']) && is_string($data['goal'])) {
+            $preset = LandingPresets::for($data['goal'], $ws);
+            $defaults['content'] = array_replace($defaults['content'], $preset['content'], ['template' => LandingPresets::TEMPLATE[$data['goal']] ?? 'split']);
+            $defaults['fields'] = $preset['fields'];
+        }
+        if (isset($data['template']) && is_string($data['template'])) {
+            $defaults['content']['template'] = $data['template'];
+        }
         if (isset($data['title']) && is_string($data['title']) && trim($data['title']) !== '') {
             $defaults['content']['title'] = trim($data['title']);
         }
@@ -151,6 +170,25 @@ final class LandingPageController
         $this->audit->handle('landing_page.updated', $model, ['fields' => array_keys($attributes)], $ws->id);
 
         return response()->json(CapturePresenter::page($ws, $model->refresh(), true));
+    }
+
+    /**
+     * POST capture/pages/{page}/preview {content?, fields?, consent_channels?, state?}: el HTML de la página pública con el
+     * borrador del editor, sin guardarlo (la misma vista que verá el cliente; `state` = `thanks` para la de «gracias»).
+     * El panel lo pinta en un iframe sin scripts ni formularios.
+     */
+    public function preview(Request $request, string $page, LandingRenderer $renderer): JsonResponse
+    {
+        Gate::authorize('ws.viewDashboards');
+        $ws = $this->current->get();
+        $model = $this->find($page);
+        $attributes = LandingSchema::validate($ws, $model, $request->only(['content', 'fields', 'consent_channels']));
+        $draft = (clone $model)->forceFill($attributes); // nunca se guarda
+        $response = $request->input('state') === 'thanks'
+            ? $renderer->thanks($request, $ws, $draft, true)
+            : $renderer->page($request, $ws, $draft, [], [], [], 200, true);
+
+        return response()->json(['html' => (string) $response->getContent()]);
     }
 
     /** POST capture/pages/{page}/publish */

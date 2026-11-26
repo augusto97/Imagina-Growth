@@ -20,6 +20,7 @@ final class BookingSettings
             'enabled' => true,
             'page_title' => null,              // por defecto, «Agenda tu cita con {negocio}»
             'intro' => null,
+            'color' => null,                   // #RRGGBB de la página de reservas; sin él, el de la marca
             'ask_email' => true,
             'require_email' => false,
             'consent_channels' => ['email', 'whatsapp'],

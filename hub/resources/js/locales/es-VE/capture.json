@@ -7,6 +7,16 @@
             "after": {
                 "urlPlaceholder": "https://tuweb.com.ve/gracias"
             }
+        },
+        "wizard": {
+            "steps": {
+                "template": {
+                    "description": "Se ve bien en el celular y en la computadora. Lo puedes cambiar después."
+                }
+            }
+        },
+        "ai": {
+            "goalPlaceholder": "Valoración de ortodoncia para adultos en Valencia"
         }
     }
 }
