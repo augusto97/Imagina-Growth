@@ -91,7 +91,8 @@ final class InsightEngine
                 $summary[$key] = $this->store($key, $entry['cadence'], $candidates, $now);
                 $runs[$key] = ['status' => 'ok', 'found' => $summary[$key], 'at' => $now->toIso8601String()];
             }
-            Insight::query()->whereIn('status', ['new', 'seen'])->whereNotNull('valid_until')->where('valid_until', '<', $now->utc())
+            Insight::wakeSnoozed();
+            Insight::query()->whereIn('status', ['new', 'seen', 'snoozed'])->whereNotNull('valid_until')->where('valid_until', '<', $now->utc())
                 ->update(['status' => 'expired', 'updated_at' => now()]);
             Cache::put(RedisKey::for($workspace->id, 'insights:runs'), $runs, now()->addDays(30));
 
@@ -131,7 +132,8 @@ final class InsightEngine
                 'period_end' => $c->periodEnd,
                 'valid_until' => $now->addDays($c->validDays ?? ($cadence === 'weekly' ? 14 : 7))->utc(),
             ];
-            if ($latest !== null && in_array($latest->status, ['new', 'seen'], true)) {
+            // Abierta o pospuesta: se actualizan sus cifras (la pospuesta sigue pospuesta hasta su fecha).
+            if ($latest !== null && in_array($latest->status, ['new', 'seen', 'snoozed'], true)) {
                 $latest->forceFill($attributes)->save();
 
                 continue;
@@ -145,7 +147,7 @@ final class InsightEngine
             }
             Insight::query()->create($attributes + ['status' => 'new']);
         }
-        Insight::query()->where('detector_key', $key)->whereIn('status', ['new', 'seen'])
+        Insight::query()->where('detector_key', $key)->whereIn('status', ['new', 'seen', 'snoozed'])
             ->when($seen !== [], fn ($q) => $q->whereNotIn('fingerprint', $seen))
             ->update(['status' => 'expired', 'updated_at' => now()]);
 

@@ -1,14 +1,15 @@
-import { ArrowRight, Check, ExternalLink, Pencil, RotateCcw, X, Zap } from 'lucide-react';
+import { AlarmClock, ArrowRight, Check, ChevronDown, ExternalLink, EyeOff, Pencil, RotateCcw, X, Zap } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
 import { makeFormatters } from '@/features/analytics/format';
 import { toast } from '@/stores/toast';
-import { type ImpactTerm, type Insight, useRunInsightAction, useUpdateAssumption } from './api';
+import { type ImpactTerm, type Insight, SNOOZE_DAYS, useRunInsightAction, useUpdateAssumption, useUpdateInsight } from './api';
 
 export function useInsightFormatters() {
     const { workspace } = useWorkspace();
@@ -32,17 +33,18 @@ export function useTermFormat() {
     };
 }
 
-const ONE_CLICK = ['activate_flow', 'create_campaign'];
+const ONE_CLICK = ['activate_flow', 'create_campaign', 'calendar_campaign'];
 
 export function isOneClick(insight: Pick<Insight, 'action' | 'status'>): boolean {
-    return ONE_CLICK.includes(insight.action?.kind ?? 'link') && (insight.status === 'new' || insight.status === 'seen');
+    return ONE_CLICK.includes(insight.action?.kind ?? 'link') && (insight.status === 'new' || insight.status === 'seen' || insight.status === 'snoozed');
 }
 
 /**
- * «Hacer ahora»: con 1 clic activa el flujo de la biblioteca o crea la campaña con el
- * segmento elegido y lleva allí; los demás hallazgos enlazan a la pantalla indicada.
+ * El botón de la acción, con lo que hace («Crear la campaña de Black Friday», «Activa el flujo de carrito…»): con 1 clic
+ * activa el flujo de la biblioteca, crea la campaña con el grupo elegido o la del calendario comercial (detector #24) y
+ * lleva allí; las demás enlazan a la pantalla indicada.
  */
-export function InsightActionButton({ insight, size = 'sm' }: { insight: Insight; size?: 'sm' | 'md' }) {
+export function InsightActionButton({ insight, size = 'sm', className }: { insight: Insight; size?: 'sm' | 'md'; className?: string }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const canManage = useCan('manageMarketing');
@@ -56,6 +58,8 @@ export function InsightActionButton({ insight, size = 'sm' }: { insight: Insight
         return (
             <Button
                 size={size}
+                className={className}
+                title={action.label}
                 loading={run.isPending}
                 onClick={(e) => {
                     e.preventDefault();
@@ -70,15 +74,15 @@ export function InsightActionButton({ insight, size = 'sm' }: { insight: Insight
                 }}
             >
                 <Zap />
-                {t('insights.doNow')}
+                <span className="igr:truncate">{action.label || t('insights.doNow')}</span>
             </Button>
         );
     }
     if (action.to) {
         return (
-            <Button asChild size={size} variant="outline">
-                <Link to={`${base}/${action.to}`} onClick={(e) => e.stopPropagation()}>
-                    {t('insights.go')}
+            <Button asChild size={size} variant="outline" className={className}>
+                <Link to={`${base}/${action.to}`} onClick={(e) => e.stopPropagation()} title={action.label}>
+                    <span className="igr:truncate">{action.label || t('insights.go')}</span>
                     <ArrowRight />
                 </Link>
             </Button>
@@ -86,7 +90,7 @@ export function InsightActionButton({ insight, size = 'sm' }: { insight: Insight
     }
     if (action.url) {
         return (
-            <Button asChild size={size} variant="outline">
+            <Button asChild size={size} variant="outline" className={className}>
                 <a href={action.url} target="_blank" rel="noreferrer">
                     {t('insights.open')}
                     <ExternalLink />
@@ -95,6 +99,53 @@ export function InsightActionButton({ insight, size = 'sm' }: { insight: Insight
         );
     }
     return null;
+}
+
+/**
+ * Posponer (vuelve sola en 1, 3, 7 o 30 días) y descartar (no vuelve en 30 días salvo que empeore), juntos y con
+ * nombre claro. Solo con permiso de marketing y en las abiertas o pospuestas.
+ */
+export function InsightTriage({ insight, compact = false }: { insight: Insight; compact?: boolean }) {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const canManage = useCan('manageMarketing');
+    const update = useUpdateInsight(workspace.id);
+    if (!canManage || !(insight.status === 'new' || insight.status === 'seen' || insight.status === 'snoozed')) {
+        return null;
+    }
+    const done = (status: 'dismissed' | 'snoozed', days?: number) =>
+        update.mutate(
+            { id: insight.id, status, days },
+            {
+                onSuccess: () => toast.success(status === 'snoozed' ? t('insights.toast.snoozed', { count: days ?? 1 }) : t('insights.toast.dismissed')),
+                onError: (err) => toast.error(isApiError(err) ? err.message : t('errors.generic')),
+            },
+        );
+    return (
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="ghost" loading={update.isPending && update.variables.status === 'snoozed'} aria-label={compact ? t('insights.snooze') : undefined}>
+                        <AlarmClock />
+                        {compact ? null : t('insights.snooze')}
+                        <ChevronDown className="igr:size-3.5" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>{t('insights.snoozeFor')}</DropdownMenuLabel>
+                    {SNOOZE_DAYS.map((days) => (
+                        <DropdownMenuItem key={days} onSelect={() => done('snoozed', days)}>
+                            {t('insights.snoozeDays', { count: days })}
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <Button size="sm" variant="ghost" loading={update.isPending && update.variables.status === 'dismissed'} onClick={() => done('dismissed')} aria-label={compact ? t('insights.dismiss') : undefined}>
+                <EyeOff />
+                {compact ? null : t('insights.dismiss')}
+            </Button>
+        </>
+    );
 }
 
 /**

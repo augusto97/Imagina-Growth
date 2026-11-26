@@ -4,9 +4,11 @@ import { api } from '@/lib/api';
 
 /* Hallazgos (M17, inteligencia.md §5). Rutas en hub/routes/api/insights.php. */
 
-export type InsightStatus = 'new' | 'seen' | 'dismissed' | 'actioned' | 'expired';
-export type InsightListStatus = 'open' | 'actioned' | 'dismissed' | 'expired';
-export const LIST_STATUSES: InsightListStatus[] = ['open', 'actioned', 'dismissed', 'expired'];
+export type InsightStatus = 'new' | 'seen' | 'snoozed' | 'dismissed' | 'actioned' | 'expired';
+export type InsightListStatus = 'open' | 'snoozed' | 'actioned' | 'dismissed' | 'expired';
+export const LIST_STATUSES: InsightListStatus[] = ['open', 'snoozed', 'actioned', 'dismissed', 'expired'];
+/** Días para posponer una recomendación (Insight::SNOOZE_DAYS en el hub). */
+export const SNOOZE_DAYS = [1, 3, 7, 30] as const;
 
 /** Categorías de App\Domain\Intelligence\Insights\DetectorCatalog::CATEGORIES. */
 export const CATEGORIES = ['sales', 'customers', 'messaging', 'measurement', 'services'] as const;
@@ -26,8 +28,8 @@ export interface InsightAction {
     label: string;
     to?: string;
     url?: string;
-    /** link (por defecto), activate_flow o create_campaign: estos dos se hacen con 1 clic. */
-    kind?: 'link' | 'activate_flow' | 'create_campaign';
+    /** link (por defecto), open_leads (enlace), activate_flow, create_campaign o calendar_campaign: estos tres se hacen con 1 clic. */
+    kind?: 'link' | 'open_leads' | 'activate_flow' | 'create_campaign' | 'calendar_campaign';
 }
 
 export interface Insight {
@@ -46,6 +48,7 @@ export interface Insight {
     period_start: string | null;
     period_end: string | null;
     valid_until: string | null;
+    snoozed_until?: string | null;
     created_at: string | null;
     updated_at: string | null;
 }
@@ -55,6 +58,7 @@ export interface InsightsSummary {
     impact_open: number;
     actioned_month: number;
     impact_actioned_month: number;
+    snoozed?: number;
     by_category: Record<InsightCategory, number>;
 }
 
@@ -119,7 +123,8 @@ export function useInsight(ws: string, id: string) {
 export function useUpdateInsight(ws: string) {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: ({ id, status }: { id: string; status: 'dismissed' | 'actioned' | 'seen' }) => api.patch<Insight>(`${wsPath(ws)}/insights/${encodeURIComponent(id)}`, { status }),
+        mutationFn: ({ id, status, days }: { id: string; status: 'dismissed' | 'actioned' | 'seen' | 'snoozed'; days?: number }) =>
+            api.patch<Insight>(`${wsPath(ws)}/insights/${encodeURIComponent(id)}`, status === 'snoozed' ? { status, days } : { status }),
         onSuccess: (insight) => {
             qc.setQueryData(keys.one(ws, insight.id), insight);
             void qc.invalidateQueries({ queryKey: keys.all(ws) });

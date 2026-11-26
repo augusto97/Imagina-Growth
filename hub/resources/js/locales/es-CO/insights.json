@@ -1,21 +1,23 @@
 {
     "insights": {
         "title": "Recomendaciones",
-        "description": "Problemas y oportunidades que encontramos en tus datos, con el dinero en juego y qué hacer.",
+        "description": "Lo que encontramos en tus datos, con el dinero en juego, por qué y el botón para resolverlo.",
         "tabs": {
-            "open": "Abiertos",
-            "actioned": "Atendidos",
-            "dismissed": "Descartados",
-            "expired": "Vencidos"
+            "open": "Abiertas",
+            "snoozed": "Pospuestas",
+            "actioned": "Atendidas",
+            "dismissed": "Descartadas",
+            "expired": "Vencidas"
         },
         "empty": {
-            "open": "No hay hallazgos abiertos",
-            "actioned": "Aún no has marcado hallazgos como atendidos",
-            "dismissed": "No has descartado hallazgos",
-            "expired": "No hay hallazgos vencidos"
+            "open": "No hay recomendaciones abiertas",
+            "snoozed": "No pospusiste ninguna recomendación",
+            "actioned": "Todavía no atendiste recomendaciones",
+            "dismissed": "No descartaste recomendaciones",
+            "expired": "No hay recomendaciones vencidas"
         },
-        "emptyHelp": "Revisamos tus datos cada noche. Cuando algo cambie de verdad, aparece aquí con su impacto estimado.",
-        "new": "Nuevo",
+        "emptyHelp": "Revisamos tus datos cada noche. Cuando algo cambie de verdad, aparece aquí con el dinero en juego y qué hacer.",
+        "new": "Nueva",
         "impactShort": "En juego",
         "yes": "Sí",
         "no": "No",
@@ -26,11 +28,12 @@
             "info": "Información"
         },
         "status": {
-            "new": "Nuevo",
-            "seen": "Visto",
-            "dismissed": "Descartado",
-            "actioned": "Atendido",
-            "expired": "Vencido"
+            "new": "Nueva",
+            "seen": "Vista",
+            "dismissed": "Descartada",
+            "actioned": "Atendida",
+            "expired": "Vencida",
+            "snoozed": "Pospuesta"
         },
         "detector": {
             "conversion_drop": "Caída de conversión",
@@ -57,25 +60,27 @@
             "form_low_conversion": "Formulario con baja conversión",
             "lead_source_close": "Cierre por fuente de leads"
         },
-        "back": "Hallazgos",
+        "back": "Recomendaciones",
         "period": "Periodo: {{from}} – {{to}}",
-        "detectedAt": "Detectado el {{date}}",
+        "detectedAt": "Encontrada el {{date}}",
         "whatToDo": "Qué hacer",
         "go": "Ir",
         "open": "Abrir",
-        "noAction": "Este hallazgo no tiene una acción sugerida.",
+        "noAction": "Esta recomendación no tiene una acción sugerida.",
         "markActioned": "Ya lo atendí",
         "dismiss": "Descartar",
         "reopen": "Volver a abrir",
-        "dismissHelp": "Si lo descartas, no vuelve en 30 días, salvo que el problema empeore más de un 50 %.",
+        "dismissHelp": "Si la descartas, no vuelve en 30 días, salvo que el problema empeore más de un 50 %. Si la pospones, vuelve sola en la fecha que elijas.",
         "impact": "Impacto estimado",
         "impactHelp": "Dinero en juego si no haces nada, con estos supuestos:",
         "factsTitle": "Los datos",
-        "factsHelp": "Las cifras exactas con las que se detectó el hallazgo.",
+        "factsHelp": "Las cifras exactas con las que encontramos esta recomendación.",
         "toast": {
-            "dismissed": "Hallazgo descartado",
-            "actioned": "Hallazgo marcado como atendido",
-            "seen": "Hallazgo abierto de nuevo"
+            "dismissed": "Recomendación descartada",
+            "actioned": "Recomendación marcada como atendida",
+            "seen": "Recomendación abierta de nuevo",
+            "snoozed_one": "La volvemos a mostrar en {{count}} día",
+            "snoozed_other": "La volvemos a mostrar en {{count}} días"
         },
         "facts": {
             "metric": "Métrica",
@@ -205,38 +210,40 @@
             "payment_recovery_rate": "Recuperación supuesta"
         },
         "category": {
-            "sales": "Ventas y embudo",
+            "sales": "Ventas",
             "customers": "Clientes",
-            "messaging": "Mensajería",
-            "measurement": "Medición",
-            "services": "Servicios"
+            "messaging": "Mensajes",
+            "measurement": "Anuncios y conversiones",
+            "services": "Contactos y citas"
         },
         "summary": {
             "impactOpen": "Dinero en juego",
-            "impactOpenHelp": "Suma del impacto estimado de los hallazgos abiertos. Es una estimación conservadora, no una promesa.",
-            "open": "Hallazgos abiertos",
-            "actionedMonth": "Atendidos este mes",
+            "impactOpenHelp": "La suma del dinero en juego de las recomendaciones abiertas. Es una estimación conservadora, no una promesa.",
+            "open": "Recomendaciones abiertas",
+            "actionedMonth": "Atendidas este mes",
             "actionedImpact": "{{value}} en juego atendidos"
         },
         "filters": {
             "category": "Categoría",
             "allCategories": "Todas las categorías",
-            "severity": "Severidad",
-            "allSeverities": "Todas las severidades"
+            "severity": "Urgencia",
+            "allSeverities": "Cualquier urgencia"
         },
         "doNow": "Hacer ahora",
-        "openDetail": "Ver el detalle del hallazgo",
+        "openDetail": "Ver el detalle de la recomendación",
         "actionResult": {
-            "flow_activated": "Listo: el flujo quedó activo",
-            "flow_draft": "El flujo quedó en borrador: completa lo pendiente para activarlo",
-            "already_active": "Ese flujo ya está activo",
-            "exists": "Ese flujo ya existe: revísalo",
-            "campaign_created": "Creamos la campaña con el segmento elegido: termina de prepararla",
-            "link": "Hallazgo marcado como atendido"
+            "flow_activated": "Listo: la automatización quedó activa",
+            "flow_draft": "La automatización quedó en borrador: completa lo pendiente para activarla",
+            "already_active": "Esa automatización ya está activa",
+            "exists": "Esa automatización ya existe: revísala",
+            "campaign_created": "Creamos la campaña con el grupo de clientes elegido: termina de prepararla",
+            "link": "Recomendación marcada como atendida",
+            "campaign_exists": "Esa campaña ya existe: termina de prepararla"
         },
         "oneClick": {
-            "activate_flow": "Con un clic activamos el flujo de la biblioteca y marcamos el hallazgo como atendido.",
-            "create_campaign": "Con un clic creamos la campaña con el segmento ya elegido; tú revisas el mensaje antes de enviar."
+            "activate_flow": "Con un clic activamos la automatización y marcamos la recomendación como atendida.",
+            "create_campaign": "Con un clic creamos la campaña con el grupo de clientes ya elegido; tú revisas el mensaje antes de enviar.",
+            "calendar_campaign": "Con un clic creamos la campaña de esta fecha con el grupo de clientes, el canal y la plantilla sugeridos; tú revisas el mensaje antes de enviar."
         },
         "formula": {
             "title": "Cómo se calcula",
@@ -260,7 +267,7 @@
             "city_fix_share": "Brecha de conversión que se cierra en una ciudad"
         },
         "settings": {
-            "link": "Supuestos y detectores",
+            "link": "Ajustes",
             "title": "Supuestos y detectores",
             "description": "Cómo calculamos el dinero en juego y qué revisa cada detector.",
             "assumptions": "Supuestos del impacto",
@@ -285,6 +292,18 @@
                 "failed": "Falló la última revisión",
                 "disabled": "Apagado"
             }
-        }
+        },
+        "how": {
+            "step1": "Cada noche revisamos tus ventas, clientes, mensajes y anuncios.",
+            "step2": "Si algo cambia de verdad, te decimos cuánto dinero hay en juego y por qué.",
+            "step3": "Lo resuelves con un botón: activar una automatización, crear una campaña o revisar algo."
+        },
+        "why": "Por qué:",
+        "details": "Ver detalle",
+        "snooze": "Posponer",
+        "snoozeFor": "Volver a mostrarla en",
+        "snoozeDays_one": "{{count}} día",
+        "snoozeDays_other": "{{count}} días",
+        "snoozedUntil": "Vuelve el {{date}}"
     }
 }

@@ -1,4 +1,4 @@
-import { Check, EyeOff, RotateCcw } from 'lucide-react';
+import { Check, RotateCcw } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
@@ -12,7 +12,7 @@ import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { formatDate, formatDateTime, formatMoney, formatNumber, formatPercent } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { useInsight, useUpdateInsight } from './api';
-import { ImpactFormula, InsightActionButton } from './components';
+import { ImpactFormula, InsightActionButton, InsightTriage } from './components';
 import { SeverityBadge } from './severity';
 import { AutoBreadcrumbs } from '@/components/ui/page-header';
 
@@ -119,7 +119,7 @@ export function InsightDetailPage() {
     }
 
     const i = insight.data;
-    const open = i.status === 'new' || i.status === 'seen';
+    const open = i.status === 'new' || i.status === 'seen' || i.status === 'snoozed';
     const action = i.action;
 
     return (
@@ -127,9 +127,12 @@ export function InsightDetailPage() {
             <AutoBreadcrumbs />
             <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-2">
                 <SeverityBadge severity={i.severity} />
-                <Badge variant="outline">{t(`insights.status.${i.status}`)}</Badge>
+                <Badge variant="outline">
+                    {i.status === 'snoozed' && i.snoozed_until
+                        ? t('insights.snoozedUntil', { date: formatDate(i.snoozed_until, workspace.locale, workspace.timezone) })
+                        : t(`insights.status.${i.status}`)}
+                </Badge>
                 <span className="igr:text-xs igr:text-muted-foreground">
-                    {i.number ? `#${i.number} · ` : ''}
                     {t(`insights.category.${i.category}`)} · {t(`insights.detector.${i.detector}`, { defaultValue: i.detector })}
                 </span>
             </div>
@@ -151,7 +154,7 @@ export function InsightDetailPage() {
                             <>
                                 <p className="igr:text-[13px]">{action.label}</p>
                                 {open || !action.kind || action.kind === 'link' ? <InsightActionButton insight={i} /> : null}
-                                {open && (action.kind === 'activate_flow' || action.kind === 'create_campaign') ? (
+                                {open && (action.kind === 'activate_flow' || action.kind === 'create_campaign' || action.kind === 'calendar_campaign') ? (
                                     <p className="igr:text-xs igr:text-muted-foreground">{t(`insights.oneClick.${action.kind}`)}</p>
                                 ) : null}
                             </>
@@ -171,15 +174,7 @@ export function InsightDetailPage() {
                                             <Check />
                                             {t('insights.markActioned')}
                                         </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            loading={update.isPending && update.variables.status === 'dismissed'}
-                                            onClick={() => setStatus('dismissed')}
-                                        >
-                                            <EyeOff />
-                                            {t('insights.dismiss')}
-                                        </Button>
+                                        <InsightTriage insight={i} />
                                     </>
                                 ) : i.status !== 'expired' ? (
                                     <Button size="sm" variant="outline" loading={update.isPending} onClick={() => setStatus('seen')}>
