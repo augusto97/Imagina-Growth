@@ -94,8 +94,6 @@
             "agenda": "Tus clientes reservan solos en tu página de citas y reciben recordatorios por WhatsApp."
         },
         "overview": {
-            "open": "Abrir",
-            "ready": "Lista para usar",
             "locked": "Bloqueada",
             "connectFirst": "Conecta tu web para activar esta sección",
             "connectFirstBody": "Casi todo lo que hay aquí se alimenta de lo que pasa en tu web. Conéctala y en unos minutos empieza a funcionar.",
@@ -103,30 +101,6 @@
             "channelFirstBody": "Conecta WhatsApp, Messenger o Instagram y las conversaciones llegan a la bandeja.",
             "planFirst": "Esta sección no está en tu plan",
             "planFirstBody": "Cambia de plan para usarla.",
-            "stats": {
-                "people_one": "{{formatted}} persona",
-                "people_other": "{{formatted}} personas",
-                "customers_one": "{{formatted}} compró",
-                "customers_other": "{{formatted}} compraron",
-                "groups_one": "{{count}} grupo",
-                "groups_other": "{{count}} grupos",
-                "activeFlows_one": "{{count}} activa",
-                "activeFlows_other": "{{count}} activas",
-                "campaigns_one": "{{count}} campaña",
-                "campaigns_other": "{{count}} campañas",
-                "widgets_one": "{{count}} activo",
-                "widgets_other": "{{count}} activos",
-                "openInsights_one": "{{count}} por revisar",
-                "openInsights_other": "{{count}} por revisar",
-                "members_one": "{{count}} persona",
-                "members_other": "{{count}} personas",
-                "siteConnected": "Web conectada",
-                "sitePending": "Conexión sin terminar",
-                "siteMissing": "Falta conectar tu web",
-                "channels_one": "{{count}} canal",
-                "channels_other": "{{count}} canales",
-                "noChannels": "Sin canales"
-            },
             "primary": {
                 "customers": "Importar contactos",
                 "messages": "Ver automatizaciones",
@@ -135,87 +109,6 @@
                 "settings": "Conectar tu web",
                 "settingsInvite": "Invitar a tu equipo",
                 "conversations": "Abrir la bandeja"
-            }
-        },
-        "strategiesPreview": {
-            "eyebrow": "Nuevo",
-            "title": "Elige qué quieres lograr y la plataforma lo hace por ti",
-            "description": "Cada estrategia junta lo que hace falta (el mensaje, el momento, el canal y la medición) para lograr un resultado. Muy pronto podrás prenderlas con un clic; mientras tanto, cada una te lleva a donde se configura hoy.",
-            "soonTitle": "Muy pronto: actívalas con un clic",
-            "soonBody": "Verás los requisitos de cada estrategia, cuánto podrías recuperar con tus datos y el botón para activarla con valores recomendados.",
-            "configure": "Configurar",
-            "goals": {
-                "recover": {
-                    "title": "Recuperar ventas",
-                    "description": "Lo que casi se vende: carritos, pagos pendientes y contraentregas.",
-                    "items": [
-                        "Carritos abandonados",
-                        "Checkout abandonado",
-                        "Pago pendiente",
-                        "Confirmar contraentrega"
-                    ]
-                },
-                "repeat": {
-                    "title": "Volver a vender",
-                    "description": "Que el cliente de hoy te compre otra vez.",
-                    "items": [
-                        "Segunda compra",
-                        "Reposición",
-                        "Recuperar clientes en riesgo",
-                        "Volvió el stock o bajó de precio"
-                    ]
-                },
-                "loyalty": {
-                    "title": "Fidelizar",
-                    "description": "Premia a quien vuelve y convierte clientes en fans.",
-                    "items": [
-                        "Puntos y niveles",
-                        "Cumpleaños",
-                        "Referidos"
-                    ]
-                },
-                "capture": {
-                    "title": "Captar contactos",
-                    "description": "Que tus visitantes te dejen sus datos con su consentimiento.",
-                    "items": [
-                        "Popup de bienvenida con cupón",
-                        "Botón de WhatsApp",
-                        "Quiz de productos"
-                    ]
-                },
-                "reputation": {
-                    "title": "Reputación",
-                    "description": "Reseñas con foto y clientes satisfechos que lo cuentan.",
-                    "items": [
-                        "Pedir reseñas con foto",
-                        "NPS y detractores"
-                    ]
-                },
-                "service": {
-                    "title": "Atención",
-                    "description": "Responde rápido, a cualquier hora, sin perder ventas en el chat.",
-                    "items": [
-                        "Agente de ventas con IA",
-                        "Bandeja con asignación"
-                    ]
-                },
-                "ads": {
-                    "title": "Anuncios",
-                    "description": "Que tus anuncios encuentren clientes que sí compran.",
-                    "items": [
-                        "Conversiones a Meta, Google y TikTok",
-                        "Audiencias sincronizadas"
-                    ]
-                },
-                "services": {
-                    "title": "Servicios",
-                    "description": "Convierte más contactos en clientes y agenda citas solo.",
-                    "items": [
-                        "Respuesta inmediata a leads",
-                        "Agenda con recordatorios",
-                        "Cotizador"
-                    ]
-                }
             }
         }
     }

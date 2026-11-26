@@ -1,8 +1,6 @@
-import { ArrowRight, ArrowUpRight, Lock } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { ArrowRight, ArrowUpRight, Lock, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { useMembers, useOverview } from '@/api/queries';
 import type { Ability, Workspace } from '@/api/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,25 +8,26 @@ import { Callout } from '@/components/ui/callout';
 import { IconTile } from '@/components/ui/icon-tile';
 import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatCard, StatCardSkeleton } from '@/components/ui/stat-card';
 import { lockResolution } from '@/components/layout/LockedPage';
 import { itemLock, itemPath, navContext, sectionLock, sectionName, sectionPurpose, type NavItem, type NavLock } from '@/components/layout/nav';
 import { usePageContext } from '@/components/layout/pageContext';
 import { lockLabelKey } from '@/components/layout/SectionNav';
 import { NotFoundPage } from '@/components/layout/guards';
-import { useCampaigns } from '@/features/campaigns/api';
-import { useFlows } from '@/features/flows/api';
-import { useInsights } from '@/features/insights/api';
-import { useWidgets } from '@/features/onsite/api';
-import { useSegments } from '@/features/segments/api';
 import { useIntentPrefetch } from '@/app/prefetch';
 import { useWorkspace } from '@/hooks/useWorkspace';
-import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/cn';
+import { formatMoney, formatNumber, formatPercent } from '@/lib/format';
+import { isSummarySection, nextParams, useSectionSummary, type SectionFigure, type SectionNext } from './api';
 
 /*
- * Página de entrada de una sección (rediseño v2 §3): qué hay dentro, en tarjetas con su «para qué sirve» y, cuando es
- * barato saberlo, un conteo o su estado (usa las mismas consultas que las pantallas, así la caché ya queda lista al
- * entrar). Lo que todavía no puede servir lleva su candado y la sección entera avisa arriba qué falta.
+ * Página de entrada de una sección (rediseño v2 §3): qué es la sección en una línea, lo que importa con cifras
+ * (`GET sections/{section}`: solo números; los textos en `sectionEntry`) y lo primero que conviene hacer, con su botón;
+ * debajo, lo que hay dentro con su «para qué sirve». Lo que todavía no puede servir lleva su candado y, si toda la
+ * sección espera lo mismo (la web, un canal, el plan), el aviso de arriba lo explica en lugar de «Empieza por aquí».
+ *
+ * Para la estructura: las cifras y `next` las arma `App\Domain\Home\Queries\SectionSummary`; sus textos, por sección,
+ * en `locales/es-CO/section-entry.json` (`sectionEntry.figures.<cifra>` y `sectionEntry.next.<tipo>`).
  */
 
 /**
@@ -58,140 +57,57 @@ export function sectionPrimary(key: string, workspace: Pick<Workspace, 'connecti
     }
 }
 
-function Stat({ children, loading }: { children?: ReactNode; loading?: boolean }) {
-    if (loading) {
-        return <Skeleton className="igr:h-4 igr:w-24" />;
+/** La cifra con su unidad, en el formato del país. */
+export function formatFigure(figure: Pick<SectionFigure, 'value' | 'unit'>, currency: string, locale: string): string {
+    switch (figure.unit) {
+        case 'money':
+            return formatMoney(figure.value, currency, locale);
+        case 'percent':
+            return formatPercent(figure.value / 100, locale, figure.value > 0 && figure.value < 10 ? 1 : 0);
+        default:
+            return formatNumber(figure.value, locale);
     }
-    return children ? <span className="igr:text-caption igr:font-medium igr:text-muted-foreground igr:tabular-nums">{children}</span> : null;
 }
 
-function PeopleStat() {
-    const { t } = useTranslation();
-    const { workspace } = useWorkspace();
-    const overview = useOverview(workspace.id);
-    const c = overview.data?.contacts;
-    return (
-        <Stat loading={overview.isPending}>
-            {c
-                ? `${t('sections.overview.stats.people', { count: c.total, formatted: formatNumber(c.total, workspace.locale) })} · ${t('sections.overview.stats.customers', { count: c.customers, formatted: formatNumber(c.customers, workspace.locale) })}`
-                : null}
-        </Stat>
-    );
+/** El texto de una cifra: la del dinero cambia por sección («Generado por tus mensajes»). */
+export function figureKey(section: string, key: string): string {
+    return key === 'money' ? `sectionEntry.figures.money.${section}` : `sectionEntry.figures.${key}`;
 }
-
-function GroupsStat() {
-    const { t } = useTranslation();
-    const { workspace } = useWorkspace();
-    const q = useSegments(workspace.id);
-    return <Stat loading={q.isPending}>{q.data ? t('sections.overview.stats.groups', { count: q.data.length }) : null}</Stat>;
-}
-
-function FlowsStat() {
-    const { t } = useTranslation();
-    const { workspace } = useWorkspace();
-    const q = useFlows(workspace.id);
-    return <Stat loading={q.isPending}>{q.data ? t('sections.overview.stats.activeFlows', { count: q.data.data.filter((f) => f.status === 'active').length }) : null}</Stat>;
-}
-
-function CampaignsStat() {
-    const { t } = useTranslation();
-    const { workspace } = useWorkspace();
-    const q = useCampaigns(workspace.id);
-    return <Stat loading={q.isPending}>{q.data ? t('sections.overview.stats.campaigns', { count: q.data.length }) : null}</Stat>;
-}
-
-function WidgetsStat() {
-    const { t } = useTranslation();
-    const { workspace } = useWorkspace();
-    const q = useWidgets(workspace.id);
-    return <Stat loading={q.isPending}>{q.data ? t('sections.overview.stats.widgets', { count: q.data.filter((w) => w.status === 'active').length }) : null}</Stat>;
-}
-
-function InsightsStat() {
-    const { t } = useTranslation();
-    const { workspace } = useWorkspace();
-    const q = useInsights(workspace.id, { status: 'open', category: '', severity: '' });
-    return <Stat loading={q.isPending}>{q.data ? t('sections.overview.stats.openInsights', { count: q.data.meta.open }) : null}</Stat>;
-}
-
-function TeamStat() {
-    const { t } = useTranslation();
-    const { workspace } = useWorkspace();
-    const q = useMembers(workspace.id);
-    return <Stat loading={q.isPending}>{q.data ? t('sections.overview.stats.members', { count: q.data.members.length }) : null}</Stat>;
-}
-
-function ConnectionsStat() {
-    const { t } = useTranslation();
-    const { workspace } = useWorkspace();
-    const c = workspace.connections;
-    if (!c) {
-        return null;
-    }
-    const site =
-        c.site === 'connected' || c.site === 'disconnected'
-            ? t('sections.overview.stats.siteConnected')
-            : c.site === 'pending'
-              ? t('sections.overview.stats.sitePending')
-              : t('sections.overview.stats.siteMissing');
-    const channels = c.channels.length > 0 ? t('sections.overview.stats.channels', { count: c.channels.length }) : t('sections.overview.stats.noChannels');
-    return <Stat>{`${site} · ${channels}`}</Stat>;
-}
-
-/** Conteos baratos por entrada (cada uno con su consulta; solo se monta si la entrada está lista y el rol la ve). */
-const STATS: Partial<Record<string, () => ReactNode>> = {
-    contacts: () => <PeopleStat />,
-    segments: () => <GroupsStat />,
-    flows: () => <FlowsStat />,
-    campaigns: () => <CampaignsStat />,
-    onsite: () => <WidgetsStat />,
-    insights: () => <InsightsStat />,
-    team: () => <TeamStat />,
-    connections: () => <ConnectionsStat />,
-};
 
 function ItemCard({ item, base, lock, quiet }: { item: NavItem; base: string; lock: NavLock | null; quiet: boolean }) {
     const { t } = useTranslation();
-    const stat = lock ? null : STATS[item.key];
     const intent = useIntentPrefetch();
     return (
         <Link
             to={itemPath(base, item)}
             {...intent(itemPath(base, item))}
             className={cn(
-                'igr:group igr:flex igr:min-w-0 igr:flex-col igr:rounded-xl igr:border igr:bg-card igr:p-5 igr:shadow-xs igr:transition-[box-shadow,border-color] igr:hover:border-primary/25 igr:hover:shadow-md',
+                'igr:group igr:flex igr:min-w-0 igr:items-start igr:gap-3 igr:rounded-xl igr:border igr:bg-card igr:p-4 igr:shadow-xs igr:transition-[box-shadow,border-color] igr:hover:border-primary/25 igr:hover:shadow-md igr:focus-visible:outline-none igr:focus-visible:ring-2 igr:focus-visible:ring-ring',
                 lock && 'igr:bg-card/70',
             )}
         >
-            <div className="igr:flex igr:items-center igr:gap-3">
-                <IconTile icon={item.icon} tone={lock ? 'slate' : (item.tone ?? 'indigo')} />
-                <h2 className="igr:min-w-0 igr:flex-1 igr:text-[15px] igr:font-semibold igr:tracking-tight igr:text-foreground">{t(`nav.${item.key}`)}</h2>
-                {lock ? (
-                    <span title={t(lockLabelKey(lock))} className="igr:shrink-0 igr:text-muted-foreground">
-                        <Lock className="igr:size-3.5" aria-hidden />
-                        <span className="igr:sr-only">{t(lockLabelKey(lock))}</span>
-                    </span>
-                ) : (
-                    <ArrowUpRight
-                        className="igr:size-4 igr:shrink-0 igr:text-muted-foreground igr:opacity-0 igr:transition-opacity igr:group-hover:opacity-100 igr:group-focus-visible:opacity-100"
-                        aria-hidden
-                    />
-                )}
-            </div>
-            <p className="igr:mt-3 igr:flex-1 igr:text-support igr:text-muted-foreground">{t(`sections.items.${item.key}`)}</p>
-            <div className="igr:mt-4 igr:flex igr:min-h-5 igr:items-center igr:justify-between igr:gap-2">
+            <IconTile icon={item.icon} tone={lock ? 'slate' : (item.tone ?? 'indigo')} />
+            <div className="igr:min-w-0 igr:flex-1">
+                <div className="igr:flex igr:items-center igr:gap-2">
+                    <h3 className="igr:min-w-0 igr:flex-1 igr:text-[15px] igr:font-semibold igr:tracking-tight igr:text-foreground">{t(`nav.${item.key}`)}</h3>
+                    {lock ? (
+                        <span title={t(lockLabelKey(lock))} className="igr:shrink-0 igr:text-muted-foreground">
+                            <Lock className="igr:size-3.5" aria-hidden />
+                            <span className="igr:sr-only">{t(lockLabelKey(lock))}</span>
+                        </span>
+                    ) : (
+                        <ArrowUpRight
+                            className="igr:size-4 igr:shrink-0 igr:text-muted-foreground igr:opacity-0 igr:transition-opacity igr:group-hover:opacity-100 igr:group-focus-visible:opacity-100"
+                            aria-hidden
+                        />
+                    )}
+                </div>
+                <p className="igr:mt-1 igr:text-support igr:text-muted-foreground">{t(`sections.items.${item.key}`)}</p>
                 {lock && !quiet ? (
-                    <Badge variant={lock.kind === 'plan' ? 'brand' : 'outline'}>
+                    <Badge variant={lock.kind === 'plan' ? 'brand' : 'outline'} className="igr:mt-2">
                         {lock.kind === 'plan' && lock.plan ? t('ui.locked.inPlan', { plan: lock.plan }) : t(lockLabelKey(lock))}
                     </Badge>
                 ) : null}
-                {lock ? null : stat ? stat() : <Stat>{t('sections.overview.ready')}</Stat>}
-                <span
-                    aria-hidden
-                    className="igr:text-caption igr:font-medium igr:text-primary igr:opacity-0 igr:transition-opacity igr:group-hover:opacity-100 igr:group-focus-visible:opacity-100"
-                >
-                    {t('sections.overview.open')}
-                </span>
             </div>
         </Link>
     );
@@ -225,11 +141,40 @@ function SectionLockNotice({ lock, base }: { lock: NavLock; base: string }) {
     );
 }
 
+/** «Empieza por aquí»: lo primero que conviene hacer en la sección, con por qué y su botón. */
+function NextStep({ next, base }: { next: SectionNext; base: string }) {
+    const { t } = useTranslation();
+    const params = nextParams(next);
+    return (
+        <section
+            aria-labelledby="section-next"
+            className="igr:mb-6 igr:flex igr:flex-col igr:gap-4 igr:rounded-2xl igr:border igr:border-primary/15 igr:hero-surface igr:p-4 igr:sm:flex-row igr:sm:items-center igr:sm:p-5"
+        >
+            <IconTile icon={Sparkles} tone="brand" size="lg" className="igr:max-sm:hidden" />
+            <div className="igr:min-w-0 igr:flex-1">
+                <p className="igr:text-caption igr:font-semibold igr:tracking-wide igr:text-brand-soft-foreground igr:uppercase">{t('sectionEntry.start')}</p>
+                <h2 id="section-next" className="igr:mt-0.5 igr:text-body igr:font-semibold igr:text-foreground">
+                    {t(`sectionEntry.next.${next.kind}.title`, params)}
+                </h2>
+                <p className="igr:mt-0.5 igr:text-support igr:text-muted-foreground">{t(`sectionEntry.next.${next.kind}.why`, params)}</p>
+            </div>
+            <Button asChild className="igr:shrink-0 igr:max-sm:w-full">
+                <Link to={`${base}/${next.to}`}>
+                    {t(`sectionEntry.next.${next.kind}.action`, params)}
+                    <ArrowRight aria-hidden />
+                </Link>
+            </Button>
+        </section>
+    );
+}
+
 export function SectionHomePage() {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const page = usePageContext();
-    const primary = page ? sectionPrimary(page.section.key, workspace) : null;
+    const key = page?.section.key ?? '';
+    const summary = useSectionSummary(workspace.id, key);
+    const primary = page ? sectionPrimary(key, workspace) : null;
     if (!page || page.section.items.length === 0) {
         return <NotFoundPage />;
     }
@@ -237,6 +182,9 @@ export function SectionHomePage() {
     const nav = navContext(workspace);
     const lock = sectionLock(section, nav);
     const name = sectionName(t, section.key, nav.vertical);
+    const data = summary.data;
+    const loading = isSummarySection(key) && summary.isPending;
+    const figures = data?.figures ?? [];
 
     return (
         <>
@@ -247,14 +195,42 @@ export function SectionHomePage() {
                 tone={section.tone}
                 actions={
                     primary && workspace.abilities.includes(primary.ability) && !lock ? (
-                        <Button asChild>
+                        <Button asChild variant="outline">
                             <Link to={`${base}/${primary.to}`}>{t(`sections.overview.primary.${primary.label}`)}</Link>
                         </Button>
                     ) : undefined
                 }
             />
-            {lock ? <SectionLockNotice lock={lock} base={base} /> : null}
-            <div className="igr:grid igr:gap-4 igr:sm:grid-cols-2 igr:xl:grid-cols-3">
+            {lock ? (
+                <SectionLockNotice lock={lock} base={base} />
+            ) : loading ? (
+                <Skeleton className="igr:mb-6 igr:h-[104px] igr:rounded-2xl igr:sm:h-[92px]" />
+            ) : data?.next ? (
+                <NextStep next={data.next} base={base} />
+            ) : null}
+
+            {loading ? (
+                <div className="igr:mb-8 igr:grid igr:gap-3 igr:sm:grid-cols-2 igr:lg:grid-cols-4">
+                    {Array.from({ length: 4 }, (_, i) => (
+                        <StatCardSkeleton key={i} />
+                    ))}
+                </div>
+            ) : figures.length > 0 ? (
+                <section aria-label={t('sectionEntry.figuresLabel', { section: name })} className={cn('igr:mb-8 igr:grid igr:gap-3 igr:sm:grid-cols-2', figures.length === 3 ? 'igr:lg:grid-cols-3' : 'igr:lg:grid-cols-4')}>
+                    {figures.map((f) => (
+                        <StatCard
+                            key={f.key}
+                            label={t(`${figureKey(key, f.key)}.label`)}
+                            help={t(`${figureKey(key, f.key)}.help`)}
+                            value={formatFigure(f, data?.currency ?? workspace.currency, workspace.locale)}
+                            hint={f.unit === 'money' ? t('sectionEntry.thisMonth') : undefined}
+                        />
+                    ))}
+                </section>
+            ) : null}
+
+            <h2 className="igr:mb-3 igr:text-body igr:font-semibold igr:text-foreground">{t('sectionEntry.inside', { section: name })}</h2>
+            <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2 igr:xl:grid-cols-3">
                 {section.items.map((item) => (
                     // Si toda la sección espera lo mismo, el aviso de arriba lo explica: las tarjetas solo llevan el candado.
                     <ItemCard key={item.key} item={item} base={base} lock={itemLock(item, nav)} quiet={lock !== null} />

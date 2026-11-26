@@ -1,0 +1,227 @@
+{
+    "sectionEntry": {
+        "start": "Empieza por aquí",
+        "thisMonth": "Este mes",
+        "figuresLabel": "Cifras de {{section}}",
+        "inside": "Lo que hay en {{section}}",
+        "figures": {
+            "people": {
+                "label": "Personas",
+                "help": "Todas las personas que te compraron, te escribieron o dejaron sus datos."
+            },
+            "customers": {
+                "label": "Clientes",
+                "help": "Personas con al menos una compra pagada."
+            },
+            "new_customers": {
+                "label": "Clientes nuevos este mes",
+                "help": "Personas cuya primera compra fue este mes."
+            },
+            "at_risk": {
+                "label": "Por irse",
+                "help": "Buenos clientes que llevan más tiempo del normal sin volver a comprar."
+            },
+            "open_leads": {
+                "label": "Contactos abiertos",
+                "help": "Personas que pidieron algo y todavía no deciden."
+            },
+            "today": {
+                "label": "Por atender hoy",
+                "help": "Contactos que esperan respuesta, los calientes sin primer contacto y lo que vence hoy."
+            },
+            "appointments_week": {
+                "label": "Citas esta semana",
+                "help": "Citas de los próximos 7 días que siguen en pie."
+            },
+            "won_month": {
+                "label": "Ganados este mes",
+                "help": "Contactos que se volvieron clientes este mes."
+            },
+            "waiting": {
+                "label": "Esperan respuesta",
+                "help": "Conversaciones en las que el cliente escribió y nadie le ha respondido."
+            },
+            "open": {
+                "label": "Abiertas",
+                "help": "Conversaciones que todavía no se cierran."
+            },
+            "unassigned": {
+                "label": "Sin asignar",
+                "help": "Conversaciones abiertas que no tienen a nadie de tu equipo."
+            },
+            "active_flows": {
+                "label": "Automatizaciones prendidas",
+                "help": "Mensajes que salen solos cuando pasa algo (un carrito, una compra, un contacto nuevo)."
+            },
+            "campaigns_month": {
+                "label": "Campañas este mes",
+                "help": "Envíos puntuales a un grupo de clientes que salieron este mes."
+            },
+            "sent_month": {
+                "label": "Mensajes enviados",
+                "help": "WhatsApp, correos y SMS que salieron este mes."
+            },
+            "active_widgets": {
+                "label": "Formularios en tu web",
+                "help": "Popups, botones y formularios que se están mostrando en tu web."
+            },
+            "captured_month": {
+                "label": "Contactos captados",
+                "help": "Personas que dejaron sus datos en tu web o en tu página de contacto este mes."
+            },
+            "reviews_month": {
+                "label": "Reseñas publicadas",
+                "help": "Reseñas que se publicaron este mes."
+            },
+            "money_month": {
+                "label": "Generado por la plataforma",
+                "help": "Ventas o valor ganado que llegaron gracias a la plataforma este mes. Cada venta cuenta una vez."
+            },
+            "sales_month": {
+                "label": "Ventas del mes",
+                "help": "Lo que suman los pedidos pagados de este mes."
+            },
+            "won_value": {
+                "label": "Valor ganado",
+                "help": "Lo que suman los contactos que se volvieron clientes este mes."
+            },
+            "share": {
+                "label": "Parte de la plataforma",
+                "help": "Qué parte de lo que vendiste o ganaste este mes llegó gracias a la plataforma."
+            },
+            "open_insights": {
+                "label": "Recomendaciones abiertas",
+                "help": "Problemas u oportunidades que detectamos en tus datos, con lo que puedes ganar."
+            },
+            "sites": {
+                "label": "Webs conectadas",
+                "help": "Sitios de WordPress con el plugin conectado."
+            },
+            "channels": {
+                "label": "Canales conectados",
+                "help": "WhatsApp, correo, SMS, Messenger o Instagram listos para usar."
+            },
+            "members": {
+                "label": "Personas del equipo",
+                "help": "Quienes pueden entrar a este espacio de trabajo."
+            },
+            "money": {
+                "conversations": {
+                    "label": "Generado por tus conversaciones",
+                    "help": "Ventas que cerraron tu equipo o el agente con IA en la bandeja este mes."
+                },
+                "messages": {
+                    "label": "Generado por tus mensajes",
+                    "help": "Ventas que llegaron por una automatización, una campaña o un carrito recuperado este mes."
+                },
+                "onsite": {
+                    "label": "Generado en tu web",
+                    "help": "Ventas que llegaron por un formulario, un referido, un afiliado o el cotizador este mes."
+                }
+            }
+        },
+        "next": {
+            "connect_site": {
+                "title": "Conecta tu web",
+                "why": "Con tu web conectada sabemos quién te visita, quién te compra y de dónde llega cada contacto.",
+                "action": "Conectar mi web"
+            },
+            "finish_site": {
+                "title": "Termina de conectar tu web",
+                "why": "Tu web pidió conectarse: falta confirmarlo en el plugin.",
+                "action": "Ver la conexión"
+            },
+            "import_contacts": {
+                "title": "Trae a tus clientes",
+                "why": "Importa tu lista de clientes para empezar a conocerlos y escribirles.",
+                "action": "Importar contactos"
+            },
+            "win_back": {
+                "title_one": "{{count}} buen cliente está por irse",
+                "title_other": "{{count}} buenos clientes están por irse",
+                "why": "Llevan más tiempo del normal sin comprarte. Un mensaje a tiempo los trae de vuelta.",
+                "action": "Recuperarlos"
+            },
+            "create_group": {
+                "title": "Arma un grupo de clientes",
+                "why": "Agrupa a tus clientes por lo que hacen para escribirle a cada uno a su manera.",
+                "action": "Crear un grupo"
+            },
+            "attend_today": {
+                "title_one": "Atiende al contacto de hoy",
+                "title_other": "Atiende a los {{count}} contactos de hoy",
+                "why": "Quien recibe respuesta en minutos tiene muchas más probabilidades de volverse cliente.",
+                "action": "Ver mi lista de hoy"
+            },
+            "first_lead": {
+                "title": "Recibe tu primer contacto",
+                "why": "Cada formulario y cada mensaje de WhatsApp llega aquí con de dónde vino.",
+                "action": "Ver contactos"
+            },
+            "review_leads": {
+                "title_one": "Revisa tu contacto abierto",
+                "title_other": "Revisa tus {{count}} contactos abiertos",
+                "why": "Muévelos de etapa para no olvidar a nadie.",
+                "action": "Ver contactos"
+            },
+            "connect_channel": {
+                "title": "Conecta WhatsApp o tu correo",
+                "why": "Es por donde le escribes a tus clientes y por donde ellos te responden.",
+                "action": "Conectar un canal"
+            },
+            "reply": {
+                "title_one": "1 cliente espera tu respuesta",
+                "title_other": "{{count}} clientes esperan tu respuesta",
+                "why": "Responder rápido es la forma más fácil de no perder una venta.",
+                "action": "Responder"
+            },
+            "assign": {
+                "title_one": "1 conversación no tiene responsable",
+                "title_other": "{{count}} conversaciones no tienen responsable",
+                "why": "Repártelas para que nadie se quede sin respuesta.",
+                "action": "Asignar"
+            },
+            "agent": {
+                "title": "Deja que la IA responda por ti",
+                "why": "El agente de ventas con IA contesta al instante, de día y de noche, sin inventar precios.",
+                "action": "Ver el agente"
+            },
+            "first_automation": {
+                "title": "Prende tu primera automatización",
+                "why": "Las estrategias crean los mensajes que salen solos, como el de carrito abandonado o la respuesta a un contacto nuevo.",
+                "action": "Ver estrategias"
+            },
+            "campaign": {
+                "title": "Envía una campaña",
+                "why": "Escríbele a un grupo de clientes con una oferta o una novedad, respetando horarios y consentimiento.",
+                "action": "Crear una campaña"
+            },
+            "first_widget": {
+                "title": "Capta contactos en tu web",
+                "why": "Un popup de bienvenida convierte visitas en personas a las que les puedes escribir.",
+                "action": "Ver la estrategia"
+            },
+            "widgets": {
+                "title": "Revisa lo que se muestra en tu web",
+                "why": "Mira cuántos contactos capta cada formulario y ajusta el que menos convierte.",
+                "action": "Ver formularios"
+            },
+            "insights": {
+                "title_one": "Tienes 1 recomendación para revisar",
+                "title_other": "Tienes {{count}} recomendaciones para revisar",
+                "why": "Las detectamos en tus datos, con lo que puedes ganar y qué hacer.",
+                "action": "Ver recomendaciones"
+            },
+            "dashboards": {
+                "title": "Mira cómo va tu negocio",
+                "why": "Ventas, clientes y lo que generó cada estrategia, día a día.",
+                "action": "Ver tableros"
+            },
+            "invite": {
+                "title": "Invita a tu equipo",
+                "why": "Cada persona entra con su rol: ventas, marketing o atención.",
+                "action": "Invitar"
+            }
+        }
+    }
+}
