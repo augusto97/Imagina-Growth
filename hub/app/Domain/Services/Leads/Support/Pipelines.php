@@ -6,9 +6,14 @@ namespace App\Domain\Services\Leads\Support;
 
 use App\Domain\Services\Leads\Models\Lead;
 use App\Domain\Services\Leads\Models\LeadPipeline;
+use App\Domain\Services\Verticals\VerticalCatalog;
+use App\Domain\Workspaces\Models\Workspace;
 use Illuminate\Support\Facades\DB;
 
-/** Pipelines de leads: el simple se crea solo la primera vez. Corre con el espacio de trabajo activo. */
+/**
+ * Pipelines de leads: el principal se crea solo la primera vez, con el embudo de la vertical que eligió el espacio de
+ * trabajo (`workspaces.vertical`, VerticalCatalog) o, sin vertical, el simple. Corre con el espacio de trabajo activo.
+ */
 final class Pipelines
 {
     public static function default(string $workspaceId): LeadPipeline
@@ -19,10 +24,14 @@ final class Pipelines
             return $found;
         }
 
+        $workspace = Workspace::query()->find($workspaceId);
+        $vertical = $workspace !== null ? VerticalCatalog::saved($workspace) : null;
+        $stages = VerticalCatalog::stages($vertical);
+
         return DB::transaction(fn () => LeadPipeline::query()->create([
             'workspace_id' => $workspaceId,
-            'name' => __('Ventas'),
-            'stages' => array_map(fn (array $s) => ['key' => $s['key'], 'label' => __($s['label']), 'kind' => $s['kind']], LeadDefaults::STAGES),
+            'name' => $stages !== null ? (string) VerticalCatalog::pipelineName($vertical) : __('Ventas'),
+            'stages' => $stages ?? array_map(fn (array $s) => ['key' => $s['key'], 'label' => __($s['label']), 'kind' => $s['kind']], LeadDefaults::STAGES),
             'is_default' => true,
         ]));
     }
