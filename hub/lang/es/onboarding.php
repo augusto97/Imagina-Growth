@@ -21,6 +21,8 @@ return [
     'timeline' => [
         'today' => 'Hoy: tu web ya nos cuenta qué pasa y las estrategias que prendiste empiezan a trabajar.',
         'today_off' => 'Hoy: tu web ya nos cuenta qué pasa. Prende una estrategia cuando quieras.',
+        'today_no_site' => 'Hoy: tus estrategias quedan listas y empiezan a trabajar con cada contacto que llegue.',
+        'today_no_site_off' => 'Hoy: cuando conectes tu web o compartas tu página de contacto, empezamos a conocer a tus clientes.',
         'week' => 'Esta semana: verás los primeros mensajes enviados y las primeras ventas que recuperamos.',
         'week_services' => 'Esta semana: verás los primeros contactos respondidos al instante y las primeras citas.',
         'month' => 'Este mes: el Inicio te muestra cuánto dinero generó la plataforma, estrategia por estrategia.',

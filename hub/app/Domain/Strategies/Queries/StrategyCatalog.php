@@ -124,6 +124,8 @@ final class StrategyCatalog
             $parts[] = [
                 'kind' => $block->kind(),
                 'key' => $block instanceof FlowBlock ? $block->libraryKey : null,
+                // Lo que crea o prende, dicho para la persona («Automatización: Carrito abandonado»).
+                'name' => $block instanceof FlowBlock ? __('strategies.parts.flow', ['name' => $block->libraryName()]) : __('strategies.parts.'.$block->kind()),
                 'primary' => $i === 0,
                 'status' => $state->status,
                 'problems' => $state->problems,

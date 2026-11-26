@@ -33,7 +33,7 @@ final class StrategyPotential
     public function __construct(private readonly Assumptions $assumptions, private readonly MetricQueryRunner $metrics) {}
 
     /**
-     * @return array<string, array{kind: string, count: int, value: string|null, estimated: string|null, rate: float|null, rate_key: string|null, window_days: int|null, summary: string}|null>
+     * @return array<string, array{kind: string, count: int, value: string|null, estimated: string|null, rate: float|null, rate_key: string|null, window_days: int|null, summary: string, headline: string}|null>
      */
     public function forWorkspace(Workspace $workspace): array
     {
@@ -41,7 +41,7 @@ final class StrategyPotential
         return Cache::remember('ws:'.$workspace->id.':strategies:potential', self::CACHE_SECONDS, fn () => $this->compute($workspace));
     }
 
-    /** @return array<string, array{kind: string, count: int, value: string|null, estimated: string|null, rate: float|null, rate_key: string|null, window_days: int|null, summary: string}|null> */
+    /** @return array<string, array{kind: string, count: int, value: string|null, estimated: string|null, rate: float|null, rate_key: string|null, window_days: int|null, summary: string, headline: string}|null> */
     private function compute(Workspace $workspace): array
     {
         $ws = $workspace->id;
@@ -142,7 +142,7 @@ final class StrategyPotential
 
     /**
      * @param  array<string, int|string>  $extra  marcadores adicionales del texto
-     * @return array{kind: string, count: int, value: string|null, estimated: string|null, rate: float|null, rate_key: string|null, window_days: int|null, summary: string}|null
+     * @return array{kind: string, count: int, value: string|null, estimated: string|null, rate: float|null, rate_key: string|null, window_days: int|null, summary: string, headline: string}|null
      */
     private function make(string $kind, string $currency, int $count, ?float $value = null, ?float $ticket = null, ?string $rateKey = null, array $extra = []): ?array
     {
@@ -154,10 +154,8 @@ final class StrategyPotential
         $days = (int) ($extra['days'] ?? self::WINDOW_DAYS);
         $params = ['count' => Money::number($count), 'value' => $value !== null ? Money::format($value, $currency) : '', 'estimated' => $estimated !== null ? Money::format($estimated, $currency) : '',
             'rate' => $rate !== null ? Money::percent($rate, 0) : '', 'days' => $days] + $extra;
-        $summary = trans_choice('strategies.potential.'.$kind, $count, $params);
-        if ($estimated !== null) {
-            $summary .= ' '.__('strategies.potential.estimate', $params);
-        }
+        $headline = trans_choice('strategies.potential.'.$kind, $count, $params);
+        $summary = $estimated !== null ? $headline.' '.__('strategies.potential.estimate', $params) : $headline;
 
         return [
             'kind' => $kind,
@@ -168,6 +166,8 @@ final class StrategyPotential
             'rate_key' => $rateKey,
             'window_days' => $days,
             'summary' => $summary,
+            // Solo lo que hay en juego, sin la estimación (el Inicio muestra la cifra estimada aparte).
+            'headline' => $headline,
         ];
     }
 }
