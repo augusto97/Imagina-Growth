@@ -67,7 +67,7 @@ export function PlatformPage() {
 
     return (
         <div>
-            <PageHeader title={t('platform.title')} description={t('platform.description')} />
+            <PageHeader title={t('platform.title')} description={t('platform.description')} actions={<MailTestShortcut />} />
             <MailBanner />
             <Tabs value={tab} onValueChange={setTab}>
                 <TabsList>
@@ -854,27 +854,40 @@ function RequestsTab({ data }: { data: PlatformOverview }) {
     );
 }
 
-/** Aviso fijo mientras el correo de la plataforma esté en «log»: sin él no salen invitaciones ni recuperaciones. Lleva a Ajustes → Correo. */
-function MailBanner() {
-    const { t } = useTranslation();
-    const mail = usePlatformMail();
+/** Lleva a Ajustes → Correo (y dice si ya estás ahí). */
+function useMailSection() {
     const [params, setParams] = useSearchParams();
-    const configure = () => {
+    const open = () => {
         const p = new URLSearchParams(params);
         p.set('pestana', 'ajustes');
         p.set('seccion', 'mail');
         setParams(p, { replace: true });
     };
-    const onMail = params.get('pestana') === 'ajustes' && params.get('seccion') === 'mail';
+    return { open, here: params.get('pestana') === 'ajustes' && params.get('seccion') === 'mail' };
+}
+
+/** Con el correo configurado, «Enviar correo de prueba» va con las acciones del encabezado; la prueba vive en Ajustes → Correo. */
+function MailTestShortcut() {
+    const { t } = useTranslation();
+    const mail = usePlatformMail();
+    const section = useMailSection();
+    if (!mail.data?.configured || section.here) {
+        return null;
+    }
+    return (
+        <Button size="sm" variant="outline" onClick={section.open}>
+            {t('platform.mail.test')}
+        </Button>
+    );
+}
+
+/** Aviso fijo mientras el correo de la plataforma esté en «log»: sin él no salen invitaciones ni recuperaciones. Lleva a Ajustes → Correo. */
+function MailBanner() {
+    const { t } = useTranslation();
+    const mail = usePlatformMail();
+    const { open: configure, here: onMail } = useMailSection();
     if (!mail.data || mail.data.configured) {
-        // La prueba vive en Ajustes → Correo, con la dirección a la que llega y el resultado a la vista.
-        return mail.data?.configured && !onMail ? (
-            <div className="igr:mb-4 igr:flex igr:items-center igr:justify-end">
-                <Button size="sm" variant="ghost" onClick={configure}>
-                    {t('platform.mail.test')}
-                </Button>
-            </div>
-        ) : null;
+        return null;
     }
     return (
         <div role="alert" className="igr:mb-4 igr:rounded-lg igr:border igr:border-warning/40 igr:bg-warning/10 igr:p-4 igr:text-sm">

@@ -23,7 +23,7 @@ export function AgencyPage() {
         return <Navigate to=".." replace />;
     }
     return (
-        <div className="igr:mx-auto igr:max-w-7xl igr:p-6">
+        <div>
             <PageHeader title={t('agency.title')} description={t('agency.description')} />
             <Tabs value={tab} onValueChange={(v) => setParams(v === 'clientes' ? {} : { tab: v }, { replace: true })}>
                 <TabsList>

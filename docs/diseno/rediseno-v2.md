@@ -308,7 +308,7 @@ ahora y dónde verlo.
 - **Tipografía (Inter):** título de página 24/32 semibold, sección 18/28, cuerpo 14/22, apoyo 13/20, cifras héroe
   36–44 con `tabular-nums`. Máximo dos pesos por bloque.
 - **Espaciado y forma:** escala de 4 px; tarjetas `rounded-xl` con borde sutil y sombra mínima; respiración generosa
-  (24–32 px entre bloques); contenido hasta 1200–1280 px de ancho, sin márgenes vacíos enormes.
+  (24–32 px entre bloques); el contenido usa el ancho de la pantalla hasta 1760 px, sin márgenes vacíos enormes (*cambio 0.3.0: antes 1200–1280 px, que en un monitor de 1920 px dejaba bandas vacías a los lados*).
 - **Íconos e ilustración:** Lucide en «mosaicos» de color (ícono dentro de un cuadro redondeado con tinte de su
   categoría); ilustraciones SVG livianas propias en estados vacíos y en el onboarding (sin dependencias ni imágenes
   pesadas).

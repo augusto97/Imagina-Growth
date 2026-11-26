@@ -33,7 +33,7 @@ export function FullPageSkeleton() {
                     <Skeleton key={i} className="igr:mt-3 igr:h-6 igr:w-40" />
                 ))}
             </div>
-            <div className="igr:mx-auto igr:w-full igr:max-w-7xl igr:flex-1 igr:p-5 igr:md:p-8">
+            <div className="igr:mx-auto igr:w-full igr:max-w-[1760px] igr:flex-1 igr:p-5 igr:md:p-8">
                 <Skeleton className="igr:h-4 igr:w-24" />
                 <Skeleton className="igr:mt-3 igr:h-8 igr:w-64" />
                 <Skeleton className="igr:mt-2 igr:h-4 igr:w-96 igr:max-w-full" />

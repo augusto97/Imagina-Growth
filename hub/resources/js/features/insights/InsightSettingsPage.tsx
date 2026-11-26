@@ -22,7 +22,7 @@ export function InsightSettingsPage() {
     const settings = useInsightSettings(workspace.id);
 
     return (
-        <div className="igr:max-w-4xl">
+        <div>
             <PageHeader title={t('insights.settings.title')} description={t('insights.settings.description')} />
             {settings.isError ? (
                 <ErrorState error={settings.error} onRetry={() => void settings.refetch()} />

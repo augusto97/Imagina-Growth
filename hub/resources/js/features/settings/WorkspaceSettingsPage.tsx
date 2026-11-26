@@ -40,11 +40,16 @@ export function WorkspaceSettingsPage() {
         <>
             <PageHeader title={t('settings.title')} description={t('business.description')} />
             {!canManage ? <Callout tone="neutral" className="igr:mb-5" title={t('settings.readOnly')} /> : null}
-            <div className="igr:max-w-4xl igr:space-y-6">
-                <BusinessTypeCard />
+            {/* En pantallas anchas, los datos y el horario lado a lado: sin una columna angosta con un hueco a la derecha. */}
+            <div className="igr:grid igr:items-start igr:gap-6 igr:2xl:grid-cols-2">
+                <div className="igr:2xl:col-span-2">
+                    <BusinessTypeCard />
+                </div>
                 <DetailsCard />
                 <HoursCard />
-                <BrandCard />
+                <div className="igr:2xl:col-span-2">
+                    <BrandCard />
+                </div>
             </div>
         </>
     );
