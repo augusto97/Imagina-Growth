@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 import { LockedPage } from '@/components/layout/LockedPage';
@@ -9,6 +9,7 @@ import { EmptyState } from './empty-state';
 import { ILLUSTRATION_NAMES } from './illustrations';
 import { PageHeader } from './page-header';
 import { changeTone, sparklinePoints } from './stat-card';
+import { Switch } from './switch';
 
 afterEach(cleanup);
 
@@ -124,5 +125,24 @@ describe('EmptyState v2', () => {
         render(<EmptyState illustration="messages" title="Activa tu primera automatización" steps={['Elige una', 'Revisa el mensaje', 'Actívala']} />);
         expect(screen.getByText('Cómo funciona')).toBeInTheDocument();
         expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    });
+});
+
+describe('Switch', () => {
+    it('es un interruptor con nombre, descripción y estado, y cambia al hacer clic', () => {
+        const changes: boolean[] = [];
+        render(<Switch checked={false} onCheckedChange={(v) => changes.push(v)} label="Prender el agente" description="Responde por ti" />);
+        const control = screen.getByRole('switch', { name: 'Prender el agente' });
+        expect(control).toHaveAttribute('aria-checked', 'false');
+        expect(control).toHaveAccessibleDescription('Responde por ti');
+        fireEvent.click(control);
+        expect(changes).toEqual([true]);
+    });
+
+    it('sin texto al lado usa aria-label y respeta disabled', () => {
+        render(<Switch checked onCheckedChange={() => undefined} aria-label="Clics que valen" disabled />);
+        const control = screen.getByRole('switch', { name: 'Clics que valen' });
+        expect(control).toHaveAttribute('aria-checked', 'true');
+        expect(control).toBeDisabled();
     });
 });

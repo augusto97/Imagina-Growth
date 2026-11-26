@@ -1,5 +1,5 @@
 import { ArrowRight, Gift, Inbox, Palette, Plus, ShoppingCart, Sparkles, TrendingUp, Users } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Skeleton, SkeletonCard, SkeletonText } from '@/components/ui/skeleton';
 import { StatCard, StatGrid } from '@/components/ui/stat-card';
+import { Switch } from '@/components/ui/switch';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotFoundPage } from '@/components/layout/guards';
@@ -81,6 +82,19 @@ function GuideSection({ id, children, note }: { id: (typeof SECTION_KEYS)[number
             {note ? <p className="igr:mt-1 igr:max-w-3xl igr:text-support igr:text-muted-foreground">{t(`styleguide.notes.${id}`)}</p> : null}
             <div className="igr:mt-5">{children}</div>
         </section>
+    );
+}
+
+/** Interruptor en vivo: prende y apaga (con nombre y descripción, y la variante pequeña). */
+function GuideSwitch() {
+    const { t } = useTranslation();
+    const [on, setOn] = useState(true);
+    const [small, setSmall] = useState(false);
+    return (
+        <div className="igr:space-y-3 igr:md:col-span-2">
+            <Switch checked={on} onCheckedChange={setOn} label={t('styleguide.fields.switch')} description={t('styleguide.fields.switchHelp')} />
+            <Switch size="sm" checked={small} onCheckedChange={setSmall} label={t('styleguide.fields.switchSmall')} />
+        </div>
     );
 }
 
@@ -258,6 +272,7 @@ export function StyleGuidePage() {
                         <Input id="guia-error" aria-invalid defaultValue="Pi" />
                         <FieldError message={t('styleguide.fields.error')} />
                     </div>
+                    <GuideSwitch />
                 </div>
             </GuideSection>
 

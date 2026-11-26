@@ -88,7 +88,10 @@
             "country": "País",
             "message": "Mensaje",
             "messagePlaceholder": "Hola Laura, dejaste algo en tu carrito…",
-            "error": "Escribe un nombre de al menos 3 letras."
+            "error": "Escribe un nombre de al menos 3 letras.",
+            "switch": "Prender el agente con IA",
+            "switchHelp": "Responde por ti en WhatsApp con tus precios reales y pasa a tu equipo cuando hace falta.",
+            "switchSmall": "Clics que valen"
         },
         "header": {
             "crumb": "Mensajes",
