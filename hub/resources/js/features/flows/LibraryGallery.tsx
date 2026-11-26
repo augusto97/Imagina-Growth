@@ -298,7 +298,7 @@ function LibraryCard({ flow: f, onPreview, highlight = false, showAudience = fal
                 ) : null}
                 {f.strategy ? (
                     <Link
-                        to={`/w/${workspace.id}/estrategias?estrategia=${encodeURIComponent(f.strategy)}`}
+                        to={`/w/${workspace.id}/estrategias/${encodeURIComponent(f.strategy)}`}
                         className="igr:ml-auto igr:inline-flex igr:items-center igr:gap-1 igr:text-caption igr:font-medium igr:text-primary igr:hover:underline"
                     >
                         <Rocket className="igr:size-3" aria-hidden />

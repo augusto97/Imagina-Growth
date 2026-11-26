@@ -452,7 +452,7 @@ en servicios. Lo que cambió frente al plan y por qué:
 - **Automatizaciones** (`flujos`): cada una dice qué hace en una frase, su estado, lo que logró este mes (en pesos en
   una tienda; en un negocio de servicios, cuántos agendaron, confirmaron o avanzaron, con la palabra de su meta) y cómo
   va contra su grupo de control (sin grupo, «midiendo N de 30» o la diferencia en puntos de los últimos 90 días). Las
-  que vienen de la biblioteca enlazan a su estrategia (`/estrategias?estrategia=<clave>`) en lugar de repetirla.
+  que vienen de la biblioteca enlazan a su estrategia (`/estrategias/<clave>`, que abre su hoja) en lugar de repetirla.
 - **«Nueva automatización» abre la biblioteca** (`?tab=biblioteca`) como galería: objetivos propios de la galería
   (recuperar ventas, que vuelvan, fidelizar, captar, reseñas, convertir contactos en clientes, citas y eventos; en
   servicios primero los dos últimos), «Para tu negocio / Ver todas», «Recomendadas para tu negocio» con el lugar de su

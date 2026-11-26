@@ -228,7 +228,7 @@ function FlowRow({ flow: f, meta, store }: { flow: FlowSummary; meta: FlowListMe
                     <p className="igr:mt-0.5 igr:line-clamp-2 igr:text-support igr:text-muted-foreground">{sentence}</p>
                     {f.strategy ? (
                         <Link
-                            to={`/w/${workspace.id}/estrategias?estrategia=${encodeURIComponent(f.strategy)}`}
+                            to={`/w/${workspace.id}/estrategias/${encodeURIComponent(f.strategy)}`}
                             className="igr:mt-1 igr:inline-flex igr:items-center igr:gap-1 igr:text-caption igr:font-medium igr:text-primary igr:hover:underline"
                             onClick={(e) => e.stopPropagation()}
                         >
