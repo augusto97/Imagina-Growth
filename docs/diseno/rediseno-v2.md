@@ -1,0 +1,174 @@
+# Rediseño v2 del panel: que se entienda para qué sirve desde el primer minuto
+
+> Documento rector del rediseño (versión 0.2.0). Todo cambio de interfaz de este lote sigue lo que dice aquí; si algo no
+> encaja, se cambia este documento en el mismo commit con el motivo. Complementa `hub/CLAUDE.md` §14.
+
+## 1. Diagnóstico (noviembre 2026)
+
+Recorrido con un espacio de trabajo nuevo («Tienda Nueva») y con la demo («Pinturas Demo»), en escritorio y celular:
+
+1. **No se entiende qué hace.** El Inicio dice «Hola, Super · Lo que ya sabemos de…» y una lista de 5 pasos hacia «la
+   primera venta recuperada». Nada explica qué logra el negocio con la plataforma ni qué más puede hacer.
+2. **El menú es un catálogo de módulos técnicos:** 35 entradas (Contactos, Segmentos, Hoy, Leads, Agenda, Bandeja,
+   Flujos, Campañas, Plantillas, En el sitio, Cotizador, Fidelización, Referidos y afiliados, Reseñas, Analítica,
+   Hallazgos, Inteligencia, Medición, Reportes mensuales, Encuesta, Sitios, Canales, Conexiones, Equipo, Ajustes,
+   Consentimiento, Integraciones, Facturación, Auditoría…), con jerga («segmentos», «flujos», «hallazgos», «medición»).
+   Un cliente nuevo ve todo eso aunque todavía nada funciona porque no conectó su web.
+3. **Organizado por función, no por resultado.** Para «recuperar carritos» hay que saber que existen los flujos, que
+   el flujo 2 de la biblioteca hace eso, que necesita un canal conectado y una plantilla aprobada, y dónde ver cuánto
+   vendió. El valor está repartido en 6 pantallas.
+4. **Los resultados están dispersos:** el dinero generado en el Inicio, 14 pestañas de Analítica, Reportes, Hallazgos,
+   Inteligencia y Medición.
+5. **Primera vez sin guía:** una lista de pasos, sin explicar qué desbloquea cada conexión ni qué va a pasar después.
+6. **Se ve como un panel de administración:** poca jerarquía, todo gris y pequeño, el contenido encerrado en
+   `max-w-6xl` con márgenes vacíos, sin personalidad de marca, encabezados distintos en cada pantalla, filtros densos.
+7. **Tienda y servicios mezclados** en la misma navegación (el menú ya oculta según el tipo, pero los textos no).
+
+## 2. Qué es Imagina Growth, dicho para el cliente
+
+**Promesa:** «Imagina Growth vende más por ti. Conecta tu tienda o tu web y la plataforma recupera carritos, trae de
+vuelta a tus clientes, responde por WhatsApp y te muestra cada mes cuánto dinero generó.»
+
+Tres pilares, que la interfaz repite en todas partes con el mismo lenguaje:
+
+| Pilar | Qué siente el cliente | Lo que hay detrás |
+|---|---|---|
+| **Conoce a tus clientes** | «Sé quién me compra, quién se fue y quién está por volver» | perfil 360, RFM, grupos, predicciones |
+| **Vende en automático** | «Prendí estrategias y trabajan solas, respetando la ley» | estrategias (flujos, campañas, widgets, fidelización, reseñas, agente IA) |
+| **Mira lo que ganaste** | «Cada peso que generó la plataforma, explicado» | atribución, dinero generado, recomendaciones, informes |
+
+Para servicios (sin WooCommerce) la promesa cambia a: «convierte más contactos en clientes: responde al instante,
+haz seguimiento sin olvidar a nadie y agenda citas solo».
+
+## 3. Arquitectura de información
+
+Ocho secciones en el menú principal (siete para quien no es administrador), con nombres de resultado. Cada sección
+tiene su página de entrada y una navegación secundaria propia (subnavegación a la izquierda del contenido en
+escritorio, control segmentado desplazable en el celular). **Las URL de hoy no cambian** (las secciones agrupan rutas
+existentes); las rutas nuevas se agregan sin romper las viejas.
+
+| Sección | Para qué (texto bajo el título) | Contiene (rutas actuales) |
+|---|---|---|
+| **Inicio** | Lo que generó la plataforma y qué hacer hoy | `/` |
+| **Estrategias** (nueva) | Prende lo que te hace vender más | `/estrategias` (catálogo) |
+| **Clientes** | Quién te compra y quién está por volver | personas `contactos`, grupos `segmentos`; servicios: `leads`, `hoy`, `agenda` |
+| **Conversaciones** | Atiende WhatsApp, Messenger e Instagram en un solo lugar | `bandeja` |
+| **Mensajes** | Automatizaciones, campañas y plantillas | `flujos` (Automatizaciones), `campanas`, `plantillas` |
+| **En tu web** | Formularios, reseñas, puntos y referidos en tu sitio | `en-el-sitio`, `resenas`, `fidelizacion`, `referidos`, cotizador |
+| **Resultados** | Cuánto vendiste y cuánto generó la plataforma | `analitica` (con Resumen primero), `reportes`, `hallazgos` (Recomendaciones), `inteligencia` (Predicciones), `medicion` (Anuncios), `encuesta` |
+| **Configuración** | Conexiones, equipo y tu negocio | `conexiones` (centro único: web/plugin, WhatsApp, correo, anuncios; absorbe `sitios` y `canales`), `equipo`, `ajustes`, `consentimiento`, `facturacion`, `integraciones`, `auditoria` |
+| Agencia / Plataforma | (solo con ese permiso) | `agencia`, `plataforma` |
+
+**Renombres de cara al cliente** (las llaves de i18n y las rutas pueden seguir igual): Flujos → **Automatizaciones**;
+Segmentos → **Grupos de clientes**; Hallazgos → **Recomendaciones**; Inteligencia → **Predicciones**; Medición →
+**Anuncios y conversiones**; En el sitio → **En tu web**; Contactos → **Clientes** (la persona es «cliente» o
+«contacto» según si compró); Reportes mensuales → **Informes**; Sitios y Canales → dentro de **Conexiones**.
+
+**Bloqueos que enseñan:** una sección o estrategia que necesita algo que falta (web sin conectar, sin canal, módulo
+fuera del plan) no se oculta ni falla: muestra qué hace, qué hace falta y el botón para resolverlo («Conecta tu web
+para activar esto»). Los módulos fuera del plan muestran el plan que los incluye.
+
+## 4. Primera vez (onboarding)
+
+1. **Bienvenida** (una sola pantalla, no un carrusel largo): la promesa, los tres pilares con un ejemplo concreto cada
+   uno y el botón «Configurar en 10 minutos». Se ve una vez por persona y espacio de trabajo; se puede volver a ver
+   desde la ayuda.
+2. **Asistente de configuración** a pantalla completa, con barra de progreso, que se puede pausar y retomar (estado en
+   el servidor, no en el navegador):
+   1. **Tu negocio:** tipo (tienda online / servicios / ambos), país, moneda y zona horaria precargados.
+   2. **Conecta tu web:** descargar el plugin, el código de conexión con copiar, y una espera en vivo que celebra cuando
+      el sitio se conecta. Explica qué empieza a pasar.
+   3. **Trae tu historial:** progreso de la importación; mientras tanto muestra lo que ya se aprendió (clientes,
+      pedidos, mejores productos).
+   4. **Conecta tus canales:** WhatsApp con un clic (o «después»), correo; qué permite cada uno.
+   5. **Prende tus primeras estrategias:** 3 recomendadas según el negocio (tienda: carrito abandonado, pago pendiente
+      o contraentrega, segunda compra; servicios: respuesta inmediata a leads, seguimiento, recordatorio de cita) con
+      una vista previa del mensaje y un interruptor cada una.
+   6. **Listo:** «qué va a pasar ahora» en una línea de tiempo (hoy, esta semana, este mes) y al Inicio.
+3. Mientras la configuración no termine, el Inicio muestra la tarjeta de progreso arriba; nada bloquea explorar.
+
+## 5. Inicio (el tablero del dueño)
+
+De arriba abajo, en una sola columna amplia en el celular y en rejilla en escritorio:
+
+1. **Encabezado**: saludo + nombre del negocio + periodo («Este mes»).
+2. **Dinero generado** (tarjeta héroe): «Imagina Growth generó $X este mes», el desglose por estrategia y la
+   comparación; en cero, el **potencial** con datos reales («Este mes hubo 37 carritos abandonados por $4,2 M»)
+   y el botón para prender la estrategia que lo recupera.
+3. **Para hoy** (máximo 5): acciones priorizadas que mezclan recomendaciones (hallazgos), configuración pendiente,
+   conversaciones sin responder y leads por contactar; cada una con su botón.
+4. **Tus estrategias**: las activas con su resultado del mes y las 2 o 3 sugeridas siguientes.
+5. **Tu negocio**: ventas, pedidos, clientes nuevos y recurrentes con una minigráfica; enlace a Resultados.
+6. Avisos de salud del sitio compactos (solo si hay algo).
+
+## 6. Estrategias (la pieza nueva)
+
+Un catálogo por objetivo que traduce los módulos a resultados. Cada **estrategia** tiene: nombre de resultado, la
+promesa en una línea, «cómo funciona» en 3 pasos, una vista previa (el mensaje o el widget), **requisitos** con su
+estado (web conectada, canal, plantilla aprobada, módulo del plan), el **potencial** calculado con sus datos cuando se
+puede, y un botón **Activar** que la deja funcionando con valores recomendados (se ajusta después). Activa: estado,
+resultado (dinero generado, conversiones, mensajes) y «Ajustar» que lleva a la pantalla avanzada (el flujo, el widget,
+el programa).
+
+| Objetivo | Estrategias (bloques existentes que usa) |
+|---|---|
+| Recuperar ventas | Carritos abandonados (flujo 2), Checkout abandonado (3), Pago pendiente (5), Confirmar contraentrega (6), Navegación abandonada (4) |
+| Volver a vender | Segunda compra (9), Reposición (10), Recuperar clientes en riesgo (11), Reactivar con IA (nodo `ai_reactivate`), Volvió el stock / bajó de precio (14) |
+| Fidelizar | Puntos y niveles (programa de fidelización + flujos 12, 15), Cumpleaños (13), Referidos (programa + flujo 16) |
+| Captar contactos | Popup de bienvenida con cupón (widget + flujo 1), Botón de WhatsApp con atribución (widget), Quiz de productos |
+| Reputación | Pedir reseñas con foto (flujo 8), NPS y detractores (17), Reseñas de Google |
+| Atención | Agente de ventas con IA en WhatsApp, Bandeja con asignación, Respuestas fuera de horario |
+| Anuncios | Conversiones a Meta, Google y TikTok desde el servidor; audiencias sincronizadas |
+| Servicios | Respuesta inmediata y seguimiento de leads (18), Calificación en el chat, Agenda con recordatorios (19), Renovación (20), Cotizador |
+
+**Backend:** `App\Domain\Strategies` con un registro declarativo (clave, objetivo, audiencia tienda/servicios,
+módulo del plan, requisitos verificables, cómo calcular el potencial, cómo activar y pausar reutilizando las acciones
+existentes —`CreateFlowFromLibrary`, widgets, programas—, y cómo medir su resultado con `MoneyGenerated`). Nada de
+lógica duplicada: la estrategia es una capa de orquestación y presentación. API: `GET strategies` (catálogo con
+estado, requisitos y potencial por espacio de trabajo), `POST strategies/{key}/activate`, `POST strategies/{key}/pause`.
+
+## 7. Sistema visual
+
+- **Personalidad:** claro, cálido y confiable; premium sin ser frío. Referentes: Linear, Stripe, Shopify Polaris.
+- **Color:** marca índigo (`--brand` ~#4F46E5) con un acento violeta para degradados suaves en tarjetas héroe; neutros
+  pizarra; semánticos éxito/aviso/peligro/información con contraste AA en claro y oscuro; paleta de gráficas de 6
+  colores. Tokens en CSS (variables) y en Tailwind (`igr:`), modo oscuro cuidado.
+- **Tipografía (Inter):** título de página 24/32 semibold, sección 18/28, cuerpo 14/22, apoyo 13/20, cifras héroe
+  36–44 con `tabular-nums`. Máximo dos pesos por bloque.
+- **Espaciado y forma:** escala de 4 px; tarjetas `rounded-xl` con borde sutil y sombra mínima; respiración generosa
+  (24–32 px entre bloques); contenido hasta 1200–1280 px de ancho, sin márgenes vacíos enormes.
+- **Íconos e ilustración:** Lucide en «mosaicos» de color (ícono dentro de un cuadro redondeado con tinte de su
+  categoría); ilustraciones SVG livianas propias en estados vacíos y en el onboarding (sin dependencias ni imágenes
+  pesadas).
+- **Movimiento:** 150–200 ms en hover, apertura de paneles y cambios de estado; respetar `prefers-reduced-motion`;
+  esqueletos en lugar de spinners; nada de saltos de diseño.
+- **Plantilla de página:** `PageHeader` (miga de la sección, título, una línea de para qué sirve, acción principal y
+  secundarias), luego contenido. Mismo patrón en todas las pantallas.
+- **Estados vacíos que venden:** ilustración + beneficio concreto + acción principal + «Cómo funciona».
+- **Textos:** segunda persona, resultados antes que funciones, sin jerga ni siglas sin explicar, cifras con el formato
+  del país. Una ayuda corta (ícono «?») en cada métrica.
+
+## 8. Diseño adaptable
+
+Se mantiene la regla de `hub/CLAUDE.md` §14 (barra superior con menú debajo de 1024 px, barra lateral contraíble,
+nada desborda). La subnavegación de cada sección pasa a un control segmentado desplazable en el celular. Acciones
+principales al alcance del pulgar en el celular (barra inferior fija en formularios largos).
+
+## 9. Rendimiento y calidad (metas)
+
+- Inicio útil en < 2 s en 4G con caché fría; < 1 s al navegar entre pantallas (datos precargados al pasar el puntero
+  o al enfocar).
+- Paquetes por ruta < 150 kB gzip; nada de librerías pesadas en el arranque (gráficas, editor, constructor y PDF solo
+  donde se usan).
+- API del Inicio y de cada pantalla principal p95 < 300 ms con la demo (2.000 clientes, 10.000 pedidos); sin N+1;
+  caché donde aplique; ClickHouse con las agregaciones correctas.
+- Sin errores en consola, sin saltos de diseño (CLS < 0,1), accesible (AA, teclado, lectores de pantalla).
+
+## 10. Entregables del lote
+
+1. Sistema de diseño v2 y navegación nueva (base para todo lo demás).
+2. Estrategias (backend y pantalla) e Inicio nuevo; bienvenida y asistente de configuración.
+3. Rediseño de Clientes y Conversaciones; de Mensajes y En tu web; de Resultados y Configuración (Conexiones única).
+4. Auditoría y arreglos de rendimiento.
+5. `docs/producto/presentacion.md`: qué es, para quién, cómo se presenta en 5 minutos, cómo empieza un cliente y
+   preguntas frecuentes (para el equipo comercial).
