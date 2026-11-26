@@ -5,6 +5,12 @@
         },
         "reasons": {
             "holiday": "Feriado"
+        },
+        "window": {
+            "reasons": {
+                "holiday": "el {{day}} es feriado",
+                "holidayNamed": "el {{day}} es feriado ({{name}})"
+            }
         }
     }
 }

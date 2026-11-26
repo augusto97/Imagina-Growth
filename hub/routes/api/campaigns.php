@@ -11,6 +11,7 @@ Route::get('campaigns', [CampaignController::class, 'index']);
 Route::post('campaigns', [CampaignController::class, 'store']);
 Route::get('campaigns/options', [CampaignController::class, 'options']);
 Route::get('campaigns/calendar', [CampaignController::class, 'calendar']);
+Route::get('campaigns/send-window', [CampaignController::class, 'sendWindow']);
 Route::get('campaigns/{campaign}', [CampaignController::class, 'show']);
 Route::patch('campaigns/{campaign}', [CampaignController::class, 'update']);
 Route::delete('campaigns/{campaign}', [CampaignController::class, 'destroy']);

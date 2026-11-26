@@ -172,3 +172,32 @@ export interface ReviewResponse {
     compliance: ComplianceCheck;
     campaign: CampaignDetail;
 }
+
+/** A quién llega de verdad la audiencia: por canal, cuántos aceptaron marketing (POST campaigns/{id}/audience-count). */
+export interface AudienceReach {
+    count: number;
+    by_channel?: Record<CampaignChannel, { consented: number; connected: boolean }>;
+    /** Escribirles a todos los que aceptaron WhatsApp, con la tarifa de marketing de Meta de su país. */
+    whatsapp_cost?: { usd: number; local: number | null; currency: string } | null;
+}
+
+/** La ventana legal explicada (GET campaigns/send-window). */
+export interface SendWindow {
+    country: string;
+    timezone: string;
+    requested_at: string;
+    sends_at: string;
+    moved: boolean;
+    /** Por qué se mueve: `sunday`, `holiday`, `outside_hours` o `past` (la hora ya pasó). */
+    reason: 'sunday' | 'holiday' | 'outside_hours' | 'past' | null;
+    /** La franja del día pedido [desde, hasta), o null si ese día no se envía. */
+    requested_window: [string, string] | null;
+    /** Días completos que se salta (domingos y festivos). */
+    skipped: { date: string; reason: string; holiday: string | null }[];
+    /** El festivo del día pedido. */
+    holiday: string | null;
+    /** «A la hora de cada contacto» o «mejor hora»: cada uno tiene la suya. */
+    per_contact: boolean;
+    /** Día ISO (1 = lunes) → [desde, hasta). */
+    windows: Record<string, [string, string]>;
+}

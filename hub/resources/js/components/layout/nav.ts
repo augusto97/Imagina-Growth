@@ -5,6 +5,7 @@ import {
     Building2,
     Calculator,
     CalendarDays,
+    CalendarHeart,
     ClipboardList,
     CreditCard,
     FileChartColumn,
@@ -151,6 +152,7 @@ export const SECTIONS: NavSection[] = [
         items: [
             { key: 'flows', to: 'flujos', icon: Workflow, tone: 'indigo', ability: 'viewDashboards', shortcut: 'f' },
             { key: 'campaigns', to: 'campanas', icon: Megaphone, tone: 'orange', ability: 'viewDashboards', shortcut: 'p' },
+            { key: 'calendar', to: 'campanas/calendario', icon: CalendarHeart, tone: 'rose', ability: 'viewDashboards' },
             { key: 'templates', to: 'plantillas', icon: FileText, tone: 'sky', ability: 'viewDashboards', also: ['canales/plantillas-whatsapp'], shortcut: 't' },
             { key: 'copilot', to: 'copiloto', icon: Wand2, tone: 'violet', ability: 'viewDashboards', module: 'ai' },
         ],

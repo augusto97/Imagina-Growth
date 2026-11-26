@@ -34,7 +34,7 @@ final class CommercialCalendar
      * rule: fixed {month, day} · nth {month, n, dow (1 = lunes … 7 = domingo; n = -1 es el último)} ·
      * black_friday {offset (días)} · buen_fin · hot_sale · easter {offset (días)}. `days` = duración.
      *
-     * @var array<string, array{name: string, countries: list<string>, rule: array<string, int|string>, days: int, lead: int, notice?: int, ideas: list<string>,
+     * @var array<string, array{name: string, countries: list<string>, rule: array<string, int|string>, days: int, lead: int, notice?: int, ideas: list<string>, ideas_services?: list<string>,
      *     audiences: list<string>, campaigns: list<array{for: string, template: string, channel?: string, segment?: string, copy?: array<string, string>}>}>
      */
     private const EVENTS = [
@@ -61,6 +61,7 @@ final class CommercialCalendar
             ]],
         'san_valentin' => ['name' => 'San Valentín', 'countries' => ['CO', 'MX', 'VE'], 'rule' => ['type' => 'fixed', 'month' => 2, 'day' => 14], 'days' => 1, 'lead' => 10,
             'ideas' => ['Regalos para la pareja por presupuesto', 'Planes para dos', 'Fecha límite de envío para llegar a tiempo'],
+            'ideas_services' => ['Plan o tratamiento para dos', 'Bono de regalo para la pareja', 'Agenda abierta la semana del 14'],
             'audiences' => ['store', 'hospitality', 'health'],
             'campaigns' => [
                 ['for' => 'store', 'template' => 'gal_promotion', 'copy' => ['subject' => 'Ideas de regalo para San Valentín', 'headline' => 'Sorprende en San Valentín', 'intro' => 'Elegimos los regalos favoritos para este 14 de febrero. Pide a tiempo para que llegue.']],
@@ -97,10 +98,12 @@ final class CommercialCalendar
             'campaigns' => self::KIDS],
         'dia_madre' => ['name' => 'Día de la Madre', 'countries' => ['CO', 'VE'], 'rule' => ['type' => 'nth', 'month' => 5, 'n' => 2, 'dow' => 7], 'days' => 1, 'lead' => 15,
             'ideas' => ['Guía de regalos por presupuesto', 'Fecha límite de envío para llegar a tiempo', 'Recordatorio a quien compró regalo el año pasado'],
+            'ideas_services' => ['Bono de regalo para mamá', 'Plan especial para ella', 'Recordatorio a quien lo regaló el año pasado'],
             'audiences' => ['store', 'health', 'hospitality'],
             'campaigns' => self::MOTHERS],
         'dia_madre_mx' => ['name' => 'Día de la Madre', 'countries' => ['MX'], 'rule' => ['type' => 'fixed', 'month' => 5, 'day' => 10], 'days' => 1, 'lead' => 15,
             'ideas' => ['Guía de regalos por presupuesto', 'Fecha límite de envío para llegar el 10 de mayo', 'Tarjeta de regalo de última hora'],
+            'ideas_services' => ['Bono de regalo para mamá', 'Plan especial para ella antes del 10 de mayo'],
             'audiences' => ['store', 'health', 'hospitality'],
             'campaigns' => self::MOTHERS],
         'hot_sale' => ['name' => 'Hot Sale', 'countries' => ['MX'], 'rule' => ['type' => 'hot_sale'], 'days' => 9, 'lead' => 7,
@@ -111,6 +114,7 @@ final class CommercialCalendar
             ]],
         'dia_padre' => ['name' => 'Día del Padre', 'countries' => ['CO', 'MX', 'VE'], 'rule' => ['type' => 'nth', 'month' => 6, 'n' => 3, 'dow' => 7], 'days' => 1, 'lead' => 14,
             'ideas' => ['Regalos por pasatiempo', 'Combos de regalo con envoltura', 'Último día para pedir con entrega a tiempo'],
+            'ideas_services' => ['Bono de regalo para papá', 'Revisión o mantenimiento como regalo'],
             'audiences' => ['store', 'hospitality', 'automotive'],
             'campaigns' => [
                 ['for' => 'store', 'template' => 'gal_promotion', 'copy' => ['subject' => 'Ideas de regalo para el Día del Padre', 'headline' => 'Para papá, lo que más le gusta', 'intro' => 'Elegimos los regalos favoritos para el Día del Padre. Pide a tiempo para que llegue.']],
@@ -123,6 +127,7 @@ final class CommercialCalendar
             'campaigns' => self::VACATIONS],
         'prima_junio' => ['name' => 'Pago de prima (junio)', 'countries' => ['CO'], 'rule' => ['type' => 'fixed', 'month' => 6, 'day' => 30], 'days' => 1, 'lead' => 15,
             'ideas' => ['«Date un gusto con tu prima»: productos de mayor valor', 'Financiación o pago en cuotas', 'Recuperar carritos de productos caros'],
+            'ideas_services' => ['El tratamiento o servicio que venías aplazando, ahora con la prima', 'Pago en cuotas', 'Seguimiento a cotizaciones pendientes'],
             'audiences' => ['store', 'services'],
             'campaigns' => self::BONUS],
         'vacaciones_verano_mx' => ['name' => 'Vacaciones de verano', 'countries' => ['MX'], 'rule' => ['type' => 'fixed', 'month' => 7, 'day' => 13], 'days' => 42, 'lead' => 21,
@@ -153,6 +158,7 @@ final class CommercialCalendar
             'campaigns' => self::BACK_TO_SCHOOL],
         'amor_amistad' => ['name' => 'Amor y Amistad', 'countries' => ['CO'], 'rule' => ['type' => 'nth', 'month' => 9, 'n' => 3, 'dow' => 6], 'days' => 1, 'lead' => 14,
             'ideas' => ['Regalos para el «amigo secreto» por precio', 'Dos por uno para compartir', 'Mensaje de cariño a los clientes fieles'],
+            'ideas_services' => ['Bono de regalo para el amigo secreto', 'Plan para dos', 'Mensaje de cariño a los clientes fieles'],
             'audiences' => ['store', 'hospitality', 'health'],
             'campaigns' => [
                 ['for' => 'store', 'template' => 'gal_promotion', 'copy' => ['subject' => 'Regalos para Amor y Amistad', 'headline' => 'Para tu amigo secreto', 'intro' => 'Ideas de regalo por precio para este Amor y Amistad. Pide a tiempo.']],
@@ -167,6 +173,7 @@ final class CommercialCalendar
             ]],
         'buen_fin' => ['name' => 'El Buen Fin', 'countries' => ['MX'], 'rule' => ['type' => 'buen_fin'], 'days' => 4, 'lead' => 10,
             'ideas' => ['Acceso anticipado para clientes VIP', 'Meses sin intereses', 'Recordatorio el último día'],
+            'ideas_services' => ['Beneficio por agendar o contratar esos días', 'Meses sin intereses en tratamientos y planes', 'Recordatorio el último día'],
             'audiences' => ['store', 'services'],
             'campaigns' => [
                 ['for' => 'store', 'template' => 'gal_promotion', 'copy' => ['subject' => 'El Buen Fin en {{ tienda.nombre }}: acceso anticipado', 'headline' => 'Llega El Buen Fin', 'intro' => 'Te avisamos primero de nuestras ofertas de El Buen Fin y de los meses sin intereses.']],
@@ -181,6 +188,7 @@ final class CommercialCalendar
             ]],
         'black_friday' => ['name' => 'Black Friday', 'countries' => ['CO', 'MX', 'VE'], 'rule' => ['type' => 'black_friday', 'offset' => 0], 'days' => 3, 'lead' => 10,
             'ideas' => ['Acceso anticipado para VIP (sin regalar descuento a los campeones)', 'Cuenta regresiva por WhatsApp a quien lo pidió', 'Excluir a quien compró en los últimos 7 días'],
+            'ideas_services' => ['Beneficio por agendar o contratar esos días', 'Primero a tus clientes de siempre', 'Seguimiento a cotizaciones pendientes'],
             'audiences' => ['store', 'services'],
             'campaigns' => [
                 ['for' => 'store', 'template' => 'gal_promotion', 'copy' => ['subject' => 'Black Friday en {{ tienda.nombre }}: tú te enteras primero', 'headline' => 'Llega el Black Friday', 'intro' => 'Prepárate: te contamos antes que a nadie nuestras ofertas de Black Friday.']],
@@ -198,10 +206,12 @@ final class CommercialCalendar
             'campaigns' => self::VACATIONS],
         'prima_diciembre' => ['name' => 'Pago de prima (diciembre)', 'countries' => ['CO'], 'rule' => ['type' => 'fixed', 'month' => 12, 'day' => 20], 'days' => 1, 'lead' => 15,
             'ideas' => ['Regalos de Navidad con la prima', 'Productos de mayor valor en cuotas'],
+            'ideas_services' => ['El servicio que venías aplazando, con la prima', 'Pago en cuotas'],
             'audiences' => ['store', 'services'],
             'campaigns' => self::BONUS],
         'navidad' => ['name' => 'Navidad', 'countries' => ['CO', 'MX', 'VE'], 'rule' => ['type' => 'fixed', 'month' => 12, 'day' => 24], 'days' => 1, 'lead' => 24,
             'ideas' => ['Guía de regalos y fecha límite de envío', 'Tarjetas de regalo de última hora', 'Novenas (Colombia): ideas para compartir en familia'],
+            'ideas_services' => ['Saludo de Navidad a tus clientes del año', 'Horario de atención de fin de año', 'Bono de regalo de última hora'],
             'audiences' => ['store', 'services'],
             'campaigns' => [
                 ['for' => 'store', 'template' => 'gal_promotion', 'segment' => 'rfm_hibernating', 'copy' => ['subject' => 'Regalos de Navidad: pide a tiempo', 'headline' => 'Que la Navidad llegue a tiempo', 'intro' => 'Elegimos los regalos favoritos de esta Navidad. Mira hasta cuándo puedes pedir para que lleguen.']],
@@ -247,7 +257,7 @@ final class CommercialCalendar
     ];
 
     /**
-     * @return array<string, array{name: string, countries: list<string>, rule: array<string, int|string>, days: int, lead: int, notice?: int, ideas: list<string>,
+     * @return array<string, array{name: string, countries: list<string>, rule: array<string, int|string>, days: int, lead: int, notice?: int, ideas: list<string>, ideas_services?: list<string>,
      *     audiences: list<string>, campaigns: list<array<string, mixed>>}>
      */
     private static function events(): array
@@ -276,7 +286,7 @@ final class CommercialCalendar
      * Momentos del año para el país, ordenados por fecha, con las excepciones de la plataforma aplicadas (los que ese
      * año no se hacen no salen).
      *
-     * @return list<array{key: string, name: string, date: string, ends: string, starts_communicating: string, notice_from: string, ideas: list<string>,
+     * @return list<array{key: string, name: string, date: string, ends: string, starts_communicating: string, notice_from: string, ideas: list<string>, ideas_services: list<string>|null,
      *     audiences: list<string>, campaigns: list<array<string, mixed>>, rule_date: string, overridden: bool}>
      */
     public static function forYear(int $year, string $country): array
@@ -304,6 +314,8 @@ final class CommercialCalendar
                 'starts_communicating' => $send->toDateString(),
                 'notice_from' => $send->subDays($event['notice'] ?? self::NOTICE_DAYS)->toDateString(),
                 'ideas' => array_map(fn (string $i) => self::t($i), $event['ideas']),
+                // Las ideas para un negocio de servicios, cuando las de tienda no aplican (regalos, envíos, carritos).
+                'ideas_services' => isset($event['ideas_services']) ? array_map(fn (string $i) => self::t($i), $event['ideas_services']) : null,
                 'audiences' => $event['audiences'],
                 'campaigns' => $event['campaigns'],
                 'rule_date' => $rule->toDateString(),
@@ -333,6 +345,9 @@ final class CommercialCalendar
             $campaign = self::campaignFor($event['campaigns'], $businessType, $vertical);
             if ($campaign === null) {
                 continue;
+            }
+            if ($campaign['for'] !== 'store' && is_array($event['ideas_services'] ?? null)) {
+                $event['ideas'] = $event['ideas_services'];
             }
             $out[] = ['year' => (int) substr($event['date'], 0, 4), 'campaign' => $campaign] + $event;
         }
