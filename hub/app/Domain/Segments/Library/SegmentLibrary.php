@@ -13,9 +13,30 @@ use App\Support\Tenancy\CurrentWorkspace;
  * (inteligencia.md §3) y los de uso frecuente se crean en cada espacio de
  * trabajo como segmentos del sistema; las plantillas con parámetros se crean
  * a pedido desde el constructor.
+ *
+ * Cada uno es para tiendas, para servicios o para los dos (`audienceOf`): la
+ * lista de grupos muestra solo los que aplican al negocio (los de compras no
+ * dicen nada en una clínica; los de leads y citas, nada en una tienda).
  */
 final class SegmentLibrary
 {
+    /** Los del sistema que usan leads y citas (rediseño v2 §11): solo tienen sentido en un negocio de servicios. */
+    public const SERVICES = ['leads_hot', 'leads_open', 'appointment_upcoming', 'appointment_no_show', 'appointment_attended', 'leads_won_year', 'leads_lost_90d'];
+
+    /** Los de compras: RFM y los de recompra, descuentos y carritos. */
+    public const STORE = ['one_order_60d', 'visits_no_purchase', 'vip_no_purchase_90d', 'discount_only', 'never_coupon', 'abandoned_cart_7d'];
+
+    /** Para quién es un segmento del sistema: `store`, `services` o null (los dos, o uno propio). */
+    public static function audienceOf(?string $systemKey): ?string
+    {
+        return match (true) {
+            $systemKey === null => null,
+            str_starts_with($systemKey, 'rfm_') || in_array($systemKey, self::STORE, true) => 'store',
+            in_array($systemKey, self::SERVICES, true) => 'services',
+            default => null,
+        };
+    }
+
     /** Nombres y acciones sugeridas de los segmentos RFM (inteligencia.md §3). */
     public const RFM = [
         'champions' => ['Campeones', 'Premiar, pedir reseñas y referidos, acceso anticipado. No regalar descuentos.'],
@@ -108,6 +129,59 @@ final class SegmentLibrary
             'description' => 'Agregaron productos o empezaron el pago y no terminaron la compra.',
             'folder' => 'Comportamiento',
             'definition' => self::and([['type' => 'cart', 'operator' => 'abandoned', 'window' => ['kind' => 'last_days', 'days' => 7]]]),
+        ];
+
+        // Servicios (M18): leads y citas.
+        $lead = fn (string $field, string $operator, mixed $value = null) => ['type' => 'lead', 'field' => $field, 'operator' => $operator] + ($value === null ? [] : ['value' => $value]);
+        $service = fn (string $field, string $operator, mixed $value = null) => ['type' => 'service', 'field' => $field, 'operator' => $operator] + ($value === null ? [] : ['value' => $value]);
+        $out[] = [
+            'key' => 'leads_hot',
+            'name' => 'Interesados calientes',
+            'description' => 'Tienen un proceso abierto y están cerca de contratar: escríbeles hoy.',
+            'folder' => 'Servicios',
+            'definition' => self::and([$lead('has_open_lead', 'is_true'), $lead('temperature', 'eq', 'hot')]),
+        ];
+        $out[] = [
+            'key' => 'leads_open',
+            'name' => 'Con un proceso abierto',
+            'description' => 'Están en tu embudo y todavía no deciden: hazles seguimiento.',
+            'folder' => 'Servicios',
+            'definition' => self::and([$lead('has_open_lead', 'is_true')]),
+        ];
+        $out[] = [
+            'key' => 'appointment_upcoming',
+            'name' => 'Con una cita próxima',
+            'description' => 'Recuérdales la cita y lo que deben tener listo.',
+            'folder' => 'Servicios',
+            'definition' => self::and([$service('has_upcoming', 'is_true')]),
+        ];
+        $out[] = [
+            'key' => 'appointment_no_show',
+            'name' => 'No asistieron y no han vuelto a agendar',
+            'description' => 'Faltaron a una cita y no tienen otra: invítalos a reagendar.',
+            'folder' => 'Servicios',
+            'definition' => self::and([$service('appointment_status', 'eq', 'no_show'), $service('has_upcoming', 'is_false')]),
+        ];
+        $out[] = [
+            'key' => 'appointment_attended',
+            'name' => 'Ya fueron a una cita',
+            'description' => 'Ya te conocen: pídeles una reseña o que te recomienden.',
+            'folder' => 'Servicios',
+            'definition' => self::and([$service('appointment_status', 'eq', 'completed')]),
+        ];
+        $out[] = [
+            'key' => 'leads_won_year',
+            'name' => 'Contrataron este año',
+            'description' => 'Clientes ganados en los últimos 12 meses: bienvenida, controles y referidos.',
+            'folder' => 'Servicios',
+            'definition' => self::and([$lead('won_at', 'within_last_days', 365)]),
+        ];
+        $out[] = [
+            'key' => 'leads_lost_90d',
+            'name' => 'No continuaron hace más de 90 días',
+            'description' => 'Vuelve a intentarlo con una novedad o un beneficio.',
+            'folder' => 'Servicios',
+            'definition' => self::and([$lead('lost_at', 'more_than_days_ago', 90), $lead('has_open_lead', 'is_false')]),
         ];
 
         return $out;

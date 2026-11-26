@@ -15,6 +15,7 @@ use App\Domain\Intelligence\Predictions\Support\Reliability;
 use App\Domain\Privacy\Actions\ExportContactData;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Models\Workspace;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -36,6 +37,9 @@ final class ProfileQuery
         'encuestas' => ['survey.answered', 'nps.answered'],
         'consentimiento' => ['consent.granted', 'consent.revoked'],
         'segmentos' => ['segment.entered', 'segment.exited'],
+        // Negocios de servicios: su lead, sus citas y sus cotizaciones (eventos del hub, eventos.md §4.6).
+        'servicios' => ['lead.created', 'lead.stage_changed', 'lead.won', 'lead.lost', 'appointment.booked', 'appointment.confirmed', 'appointment.rescheduled',
+            'appointment.cancelled', 'appointment.completed', 'appointment.no_show', 'quote.requested', 'quote.sent'],
     ];
 
     /** @return array<string, mixed> */
@@ -54,6 +58,10 @@ final class ProfileQuery
             ->map(fn ($r) => ['month' => $r->getAttribute('month'), 'orders' => (int) $r->getAttribute('orders'), 'revenue' => (string) $r->getAttribute('revenue')]);
 
         $ordersCount = (int) $contact->getAttribute('orders_count');
+        // La conversación más reciente de la bandeja (el botón «Escribir» del perfil abre ese chat).
+        $conversation = DB::table('conversations as c')->join('channel_accounts as a', 'a.id', '=', 'c.channel_account_id')
+            ->where('c.workspace_id', $workspace->id)->whereIn('c.contact_id', ExportContactData::contactIds($contact))
+            ->orderByDesc('c.last_message_at')->first(['c.id', 'a.channel', 'c.last_message_at']);
         // Predicciones (Fase 4): el motivo de «Datos insuficientes» y la confiabilidad salen de la última corrida de cada modelo.
         $runs = PredictionRun::latestByModel($workspace->id);
         $hasOrders = (int) $contact->getAttribute('orders_count') > 0;
@@ -132,6 +140,11 @@ final class ProfileQuery
             'first_seen_at' => $contact->first_seen_at?->toIso8601String(),
             'last_seen_at' => $contact->last_seen_at?->toIso8601String(),
             'currency' => $workspace->currency,
+            'conversation' => $conversation === null ? null : [
+                'id' => 'cnv_'.$conversation->id,
+                'channel' => (string) $conversation->channel,
+                'last_message_at' => $conversation->last_message_at !== null ? Carbon::parse((string) $conversation->last_message_at)->toIso8601String() : null,
+            ],
         ];
     }
 
@@ -258,6 +271,13 @@ final class ProfileQuery
             'watch_kind' => str_starts_with($event, 'product_watch.') ? ($p['kind'] ?? null) : null,
             'message_channel' => str_starts_with($event, 'message.') ? ($p['channel'] ?? null) : null,
             'flow' => str_starts_with($event, 'flow.') ? ($p['flow_name'] ?? null) : null,
+            // Servicios: el servicio del lead o de la cita, la hora de la cita, el valor ganado y la cotización.
+            'service' => str_starts_with($event, 'lead.') || str_starts_with($event, 'appointment.') ? ($p['service_name'] ?? ($p['service'] ?? null)) : null,
+            'appointment_at' => str_starts_with($event, 'appointment.') ? ($p['starts_at'] ?? null) : null,
+            'lead_value' => $event === 'lead.won' ? ($p['value'] ?? null) : null,
+            'calculator' => str_starts_with($event, 'quote.') ? ($p['calculator_name'] ?? null) : null,
+            'estimate_min' => $event === 'quote.requested' ? ($p['estimate_min'] ?? null) : null,
+            'estimate_max' => $event === 'quote.requested' ? ($p['estimate_max'] ?? null) : null,
         ], fn ($v) => $v !== null && $v !== '');
     }
 

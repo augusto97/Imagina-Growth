@@ -177,11 +177,15 @@ export interface SegmentSummary {
     kind: 'dynamic' | 'static';
     is_system: boolean;
     system_key: string | null;
+    /** Los del sistema: para tiendas, para servicios o para los dos (null). */
+    audience?: 'store' | 'services' | null;
     member_count: number;
     revenue_ws: string;
     channel_counts: { email?: number; whatsapp?: number };
     last_computed_at: string | null;
     updated_at: string | null;
+    /** Tamaño de los últimos 30 días (uno por día medido); `change` es null con menos de dos días. */
+    trend?: { points: number[]; change: number | null; days: number } | null;
 }
 
 export interface SegmentDetail extends SegmentSummary {
@@ -247,7 +251,7 @@ export interface SegmentOptions {
 }
 
 export interface LibraryResponse {
-    system: { key: string; name: string; description: string; folder: string; segment_id: string | null }[];
+    system: { key: string; name: string; description: string; folder: string; audience?: 'store' | 'services' | null; segment_id: string | null }[];
     templates: { key: string; name: string; description: string; params: { name: string; type: 'category' | 'product'; label: string }[] }[];
 }
 

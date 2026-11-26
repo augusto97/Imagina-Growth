@@ -16,6 +16,30 @@ export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTex
     return <textarea className={cn(field, 'igr:min-h-20 igr:py-2', className)} {...props} />;
 }
 
+/**
+ * Casilla de selección (listas con acciones masivas, opciones de un formulario): la nativa con el color de la marca,
+ * 16 px y su anillo de foco. `indeterminate` marca «algunas» (la casilla de «elegir todas» con una parte elegida).
+ * Siempre con un nombre: un `<label>` alrededor o `aria-label`.
+ */
+export function Checkbox({ className, indeterminate = false, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & { indeterminate?: boolean }) {
+    return (
+        <input
+            type="checkbox"
+            ref={(el) => {
+                if (el) {
+                    el.indeterminate = indeterminate;
+                }
+            }}
+            aria-checked={indeterminate ? 'mixed' : undefined}
+            className={cn(
+                'igr:size-4 igr:shrink-0 igr:cursor-pointer igr:rounded igr:border-input igr:accent-primary igr:focus-visible:outline-none igr:focus-visible:ring-3 igr:focus-visible:ring-ring/30 igr:disabled:cursor-not-allowed igr:disabled:opacity-50',
+                className,
+            )}
+            {...props}
+        />
+    );
+}
+
 export function Select({ className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
     return (
         <select className={cn(field, 'igr:h-9 igr:pr-7', className)} {...props}>

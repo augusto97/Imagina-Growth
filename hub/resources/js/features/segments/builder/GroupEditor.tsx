@@ -11,6 +11,15 @@ import { errorsFor, useBuilder } from './context';
 
 const TYPES: ConditionType[] = ['attribute', 'purchase', 'event', 'cart', 'messaging', 'loyalty', 'lead', 'service', 'prediction', 'consent', 'segment'];
 
+/** Tipos de condición que solo tienen sentido con tienda (compras, carritos, puntos, RFM) o con servicios (leads, citas). */
+const STORE_TYPES: ConditionType[] = ['purchase', 'cart', 'loyalty', 'prediction'];
+const SERVICE_TYPES: ConditionType[] = ['lead', 'service'];
+
+/** Las condiciones que se ofrecen según el negocio (sin datos de ninguno, todas). */
+export function conditionTypesFor(store: boolean, services: boolean): ConditionType[] {
+    return TYPES.filter((type) => (STORE_TYPES.includes(type) ? store : SERVICE_TYPES.includes(type) ? services : true));
+}
+
 /** Condiciones que llegan en fases siguientes (se muestran, pero no se pueden usar todavía). */
 const LATER: { key: string; phase: number }[] = [];
 
@@ -119,6 +128,7 @@ function OpToggle({ value, onChange, disabled }: { value: Group['op']; onChange:
 
 export function AddConditionMenu({ onAdd, variant = 'outline' }: { onAdd: (type: ConditionType) => void; variant?: 'outline' | 'default' }) {
     const { t } = useTranslation();
+    const types = useBuilder().types ?? TYPES;
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -128,7 +138,7 @@ export function AddConditionMenu({ onAdd, variant = 'outline' }: { onAdd: (type:
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="igr:w-72">
-                {TYPES.map((type) => {
+                {types.map((type) => {
                     const Icon = TYPE_ICONS[type];
                     return (
                         <DropdownMenuItem key={type} onSelect={() => onAdd(type)}>

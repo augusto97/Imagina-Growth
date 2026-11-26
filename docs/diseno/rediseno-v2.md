@@ -116,6 +116,29 @@ para activar esto»). Los módulos fuera del plan muestran el plan que los inclu
   cifras de Fidelización, Avisos, Referidos, Reseñas y Cotizador pasaron a `StatCard`, y las gráficas de Fidelización
   y Avisos, a las perezosas de `charts.tsx`.
 
+**Cómo quedó Clientes** (frente B2, `docs/modulos.md` M03, M04 y M18). Cada pantalla decide tienda o servicios con
+`useBusiness()` (`features/contacts/business.ts`, la misma regla del menú) y nombra a la persona con los `terms` de la
+vertical (`GET verticals`):
+
+- **Personas:** búsqueda al instante, filtros rápidos en chips según el negocio (compraron, en riesgo; calientes, tibios)
+  y el resto en un cajón «Filtros» (grupo de clientes, canal con permiso, temperatura, ciudad, etapa, etiqueta);
+  columnas de compras con tienda y de lead y próxima cita sin ella; acciones masivas (agregar a un grupo fijo y
+  exportar) para las elegidas o para todas las que cumplen los filtros. En el celular, tarjetas en lugar de tabla.
+- **Perfil 360:** el encabezado dice en palabras su valor, su grupo y lo que viene (o, sin tienda, en qué va su proceso,
+  su valor y su próxima cita), cómo llegó y por qué canales se le puede escribir, con las acciones a la vista (escribir,
+  agendar, crear lead; agregar a un grupo en el menú cuando hay servicios). Sin tienda no hay pestañas de compras: está
+  «Citas y cotizaciones». *Cambio:* el resumen con IA del perfil se oculta sin tienda porque su texto habla de compras;
+  ahí lo reemplaza el proceso (lead) con su ficha automática.
+- **Grupos de clientes:** tarjetas por familia (tuyos, listos para tu negocio, según cómo compran, listos para usar) con
+  qué es cada grupo y qué hacer, el tamaño con su tendencia de 30 días (`segment_daily_counts`) y «Enviar campaña» y
+  «Crear automatización» directos. *Cambio:* se suman 7 grupos del sistema para servicios (leads y citas) y cada grupo
+  del sistema dice para qué negocio es (`audience`); sin tienda no se muestran los RFM ni los de compras.
+- **Leads:** tablero con las etapas del embudo del espacio, 12 tarjetas por columna y «Ver más»; en el celular, una
+  etapa a la vista con chips y «Mover a». La ficha es un cajón con las acciones arriba y sus citas y cotizaciones.
+- **Hoy:** chips por motivo con su conteo, 5 por grupo con «Ver más» y «Enviar por WhatsApp» a todo el ancho en el
+  celular. **Agenda:** semana o día (el celular empieza en el día con la tira de la semana), chips por estado y
+  «Confirmar», «Asistió» y «No asistió» a un toque; «Agendar cita» del perfil o del lead llega con la persona elegida.
+
 ## 4. Primera vez (onboarding)
 
 1. **Bienvenida** (una sola pantalla, no un carrusel largo): la promesa, los tres pilares con un ejemplo concreto cada

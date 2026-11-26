@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Contacts\Http\ContactBulkController;
 use App\Domain\Contacts\Http\ImportController;
 use App\Domain\Contacts\Http\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -10,6 +11,9 @@ Route::post('contacts/imports', [ImportController::class, 'store']);
 Route::post('contacts/imports/history', [ImportController::class, 'history']);
 Route::get('contacts/imports', [ImportController::class, 'index']);
 Route::get('contacts/imports/{import}', [ImportController::class, 'show']);
+// Acciones masivas de la lista de personas: exportar y agregar a un grupo fijo (antes de contacts/{contact}).
+Route::get('contacts/export', [ContactBulkController::class, 'export'])->middleware('throttle:20,1');
+Route::post('contacts/group', [ContactBulkController::class, 'group'])->middleware('throttle:30,1');
 Route::get('contacts/{contact}', [ProfileController::class, 'show']);
 Route::patch('contacts/{contact}', [ProfileController::class, 'update']);
 Route::get('contacts/{contact}/timeline', [ProfileController::class, 'timeline']);

@@ -1,18 +1,21 @@
-import { ExternalLink, Send } from 'lucide-react';
-import { useState } from 'react';
+import { CalendarPlus, CircleCheck, CircleX, ExternalLink, Send, UserRound } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DescriptionList, ErrorState } from '@/components/ui/misc';
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { formatDateTime, formatMoney } from '@/lib/format';
 import { toast } from '@/stores/toast';
+import { useContactServices } from '@/features/contacts/api';
 import { errorMessage } from '@/features/contacts/errors';
+import { APPOINTMENT_TONE } from '@/features/contacts/profile/ServicesTab';
 import { useAddNote, useLead, useMoveLead, useTeam, useUpdateLead } from './api';
 import { BriefCard } from './BriefCard';
 import { QualificationCard } from './QualificationCard';
@@ -21,28 +24,50 @@ import { moveNeeds, temperatureTone } from './logic';
 import { MoveDialog } from './MoveDialog';
 import type { Activity, LeadDetail, ScoreReason, Stage } from './types';
 
-/** Detalle de un lead en un panel lateral: contacto, fuente, puntaje con razones, etapa, vendedor, valor, próximo paso, historia y notas. */
+/**
+ * La ficha de un lead en un cajón lateral (a pantalla completa en el celular): quién es y qué pide, las acciones
+ * (ganado, perdido, agendar, ver su perfil), etapa y vendedor, el siguiente paso, el resumen automático de la
+ * conversación, las preguntas de calificación, sus citas y cotizaciones, tareas, de dónde vino, el puntaje con sus
+ * razones, la historia y las notas.
+ */
 export function LeadDrawer({ id, onClose }: { id: string | null; onClose: () => void }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const lead = useLead(workspace.id, id);
     return (
-        <Dialog open={id !== null} onOpenChange={(open) => (!open ? onClose() : undefined)}>
-            <DialogContent className="igr:left-auto igr:right-0 igr:top-0 igr:h-dvh igr:max-w-xl igr:translate-x-0 igr:overflow-y-auto igr:rounded-none igr:border-y-0 igr:border-r-0">
+        <Sheet open={id !== null} onOpenChange={(open) => (!open ? onClose() : undefined)}>
+            <SheetContent side="right" className="igr:max-w-xl" aria-describedby={undefined}>
                 {lead.isError ? (
-                    <ErrorState error={lead.error} onRetry={() => void lead.refetch()} />
+                    <SheetBody>
+                        <SheetTitle className="igr:sr-only">{t('leads.drawer.loading')}</SheetTitle>
+                        <ErrorState error={lead.error} onRetry={() => void lead.refetch()} />
+                    </SheetBody>
                 ) : lead.isPending ? (
                     <>
-                        <DialogHeader>
-                            <DialogTitle>{t('leads.drawer.loading')}</DialogTitle>
-                        </DialogHeader>
-                        <Skeleton className="igr:h-96" />
+                        <SheetHeader>
+                            <SheetTitle>{t('leads.drawer.loading')}</SheetTitle>
+                        </SheetHeader>
+                        <SheetBody>
+                            <Skeleton className="igr:h-96" />
+                        </SheetBody>
                     </>
                 ) : (
                     <Detail lead={lead.data} />
                 )}
-            </DialogContent>
-        </Dialog>
+            </SheetContent>
+        </Sheet>
+    );
+}
+
+function Section({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
+    return (
+        <section className="igr:space-y-2">
+            <div className="igr:flex igr:items-center igr:justify-between igr:gap-2">
+                <h3 className="igr:text-[13px] igr:font-semibold">{title}</h3>
+                {action}
+            </div>
+            {children}
+        </section>
     );
 }
 
@@ -61,118 +86,166 @@ function Detail({ lead }: { lead: LeadDetail }) {
     const changeStage = (key: string, extra: { value?: string | null; lost_reason?: string | null } = {}) =>
         move.mutate({ id: lead.id, stage: key, ...extra }, { onSuccess: () => toast.success(t('leads.move.done', { stage: stages.find((s) => s.key === key)?.label ?? key })), onError: fail });
 
+    const open = lead.won_at === null && lead.lost_at === null;
+    const won = stages.find((s) => s.kind === 'won');
+    const lost = stages.find((s) => s.kind === 'lost');
+    const bookings = (workspace.modules ?? null) === null || (workspace.modules ?? []).includes('bookings');
+    const ask = (stage: Stage | undefined) => {
+        if (!stage) return;
+        if (moveNeeds(stage) !== null) setPending(stage);
+        else changeStage(stage.key);
+    };
+
     return (
-        <div className="igr:space-y-5">
-            <DialogHeader>
-                <DialogTitle className="igr:flex igr:items-center igr:gap-2">
-                    <span className="igr:truncate">{lead.contact?.name ?? t('leads.noName')}</span>
-                    <Badge variant={temperatureTone(lead.temperature)}>
-                        {lead.score} · {t(`leads.temperature.${lead.temperature}`)}
-                    </Badge>
-                </DialogTitle>
-                <DialogDescription>
-                    {[lead.service ?? t('leads.noService'), lead.contact?.city, t(`leads.origins.${lead.origin}`)].filter(Boolean).join(' · ')}
-                </DialogDescription>
-            </DialogHeader>
-
-            <section className="igr:grid igr:gap-3 igr:sm:grid-cols-2">
-                <div className="igr:space-y-1">
-                    <Label htmlFor="lead-stage">{t('leads.drawer.stage')}</Label>
-                    <Select
-                        id="lead-stage"
-                        value={lead.stage}
-                        disabled={move.isPending}
-                        onChange={(e) => {
-                            const stage = stages.find((s) => s.key === e.target.value);
-                            if (!stage) return;
-                            if (moveNeeds(stage) !== null) setPending(stage);
-                            else changeStage(stage.key);
-                        }}
-                    >
-                        {stages.map((s) => (
-                            <option key={s.key} value={s.key}>
-                                {s.label}
-                            </option>
-                        ))}
-                    </Select>
+        <>
+            <SheetHeader className="igr:gap-2">
+                <div className="igr:flex igr:items-center igr:gap-3">
+                    <Avatar name={lead.contact?.name ?? null} seed={lead.contact?.id} size="lg" />
+                    <div className="igr:min-w-0">
+                        <SheetTitle className="igr:truncate">{lead.contact?.name ?? t('leads.noName')}</SheetTitle>
+                        <SheetDescription>{[lead.service ?? t('leads.noService'), lead.contact?.city].filter(Boolean).join(' · ')}</SheetDescription>
+                    </div>
                 </div>
-                <div className="igr:space-y-1">
-                    <Label htmlFor="lead-owner">{t('leads.drawer.owner')}</Label>
-                    <Select
-                        id="lead-owner"
-                        value={lead.owner?.id ?? ''}
-                        disabled={!seeAll || update.isPending}
-                        onChange={(e) => update.mutate({ id: lead.id, owner_id: e.target.value || null }, { onError: fail })}
-                    >
-                        <option value="">{t('leads.unassigned')}</option>
-                        {(team.data?.data ?? []).map((m) => (
-                            <option key={m.id} value={m.id}>
-                                {m.name}
-                            </option>
-                        ))}
-                        {lead.owner && !(team.data?.data ?? []).some((m) => m.id === lead.owner?.id) ? <option value={lead.owner.id}>{lead.owner.name}</option> : null}
-                    </Select>
+                <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-1.5">
+                    <Badge variant="outline">{stages.find((s) => s.key === lead.stage)?.label ?? lead.stage}</Badge>
+                    {open ? <Badge variant={temperatureTone(lead.temperature)}>{t('leads.drawer.temperature', { temperature: t(`leads.temperature.${lead.temperature}`), score: lead.score })}</Badge> : null}
+                    <Badge variant="secondary">{t(`leads.origins.${lead.origin}`)}</Badge>
+                    {lead.value !== null ? <Badge variant="secondary">{money(lead.value)}</Badge> : null}
                 </div>
-            </section>
+            </SheetHeader>
+            <SheetBody className="igr:space-y-6">
+                <div className="igr:flex igr:flex-wrap igr:gap-2">
+                    {open && won ? (
+                        <Button size="sm" onClick={() => ask(won)} disabled={move.isPending}>
+                            <CircleCheck />
+                            {t('leads.drawer.markWon')}
+                        </Button>
+                    ) : null}
+                    {bookings && lead.contact ? (
+                        <Button size="sm" variant="outline" asChild>
+                            <Link to={`/w/${workspace.id}/agenda?nueva=${lead.contact.id}`}>
+                                <CalendarPlus />
+                                {t('leads.drawer.book')}
+                            </Link>
+                        </Button>
+                    ) : null}
+                    {lead.contact ? (
+                        <Button size="sm" variant="outline" asChild>
+                            <Link to={`/w/${workspace.id}/contactos/${lead.contact.id}`}>
+                                <UserRound />
+                                {t('leads.drawer.profileShort')}
+                            </Link>
+                        </Button>
+                    ) : null}
+                    {open && lost ? (
+                        <Button size="sm" variant="ghost" onClick={() => ask(lost)} disabled={move.isPending}>
+                            <CircleX />
+                            {t('leads.drawer.markLost')}
+                        </Button>
+                    ) : null}
+                </div>
 
-            <EditableFields lead={lead} />
+                <section className="igr:grid igr:gap-3 igr:sm:grid-cols-2">
+                    <div className="igr:space-y-1">
+                        <Label htmlFor="lead-stage">{t('leads.drawer.stage')}</Label>
+                        <Select
+                            id="lead-stage"
+                            value={lead.stage}
+                            disabled={move.isPending}
+                            onChange={(e) => {
+                                const stage = stages.find((s) => s.key === e.target.value);
+                                if (!stage) return;
+                                if (moveNeeds(stage) !== null) setPending(stage);
+                                else changeStage(stage.key);
+                            }}
+                        >
+                            {stages.map((s) => (
+                                <option key={s.key} value={s.key}>
+                                    {s.label}
+                                </option>
+                            ))}
+                        </Select>
+                    </div>
+                    <div className="igr:space-y-1">
+                        <Label htmlFor="lead-owner">{t('leads.drawer.owner')}</Label>
+                        <Select
+                            id="lead-owner"
+                            value={lead.owner?.id ?? ''}
+                            disabled={!seeAll || update.isPending}
+                            onChange={(e) => update.mutate({ id: lead.id, owner_id: e.target.value || null }, { onError: fail })}
+                        >
+                            <option value="">{t('leads.unassigned')}</option>
+                            {(team.data?.data ?? []).map((m) => (
+                                <option key={m.id} value={m.id}>
+                                    {m.name}
+                                </option>
+                            ))}
+                            {lead.owner && !(team.data?.data ?? []).some((m) => m.id === lead.owner?.id) ? <option value={lead.owner.id}>{lead.owner.name}</option> : null}
+                        </Select>
+                    </div>
+                </section>
 
-            <BriefCard key={lead.brief_updated_at ?? 'empty'} leadId={lead.id} brief={lead.brief} editable />
+                <EditableFields lead={lead} />
 
-            <QualificationCard qualification={lead.qualification} />
+                <BriefCard key={lead.brief_updated_at ?? 'empty'} leadId={lead.id} brief={lead.brief} editable />
 
-            <TasksCard leadId={lead.id} tasks={lead.tasks} />
+                <QualificationCard qualification={lead.qualification} />
 
-            <section>
-                <h3 className="igr:mb-2 igr:text-[13px] igr:font-medium">{t('leads.drawer.contact')}</h3>
-                <DescriptionList
-                    items={[
-                        { label: t('leads.drawer.email'), value: lead.email ?? '—' },
-                        { label: t('leads.drawer.phone'), value: lead.phone ?? '—' },
-                        { label: t('leads.drawer.firstResponse'), value: lead.first_response_at ? formatDateTime(lead.first_response_at, workspace.locale) : t('leads.noResponse') },
-                        { label: t('leads.drawer.value'), value: money(lead.value) },
-                    ]}
-                />
-                {lead.contact ? (
-                    <Link to={`/w/${workspace.id}/contactos/${lead.contact.id}`} className="igr:mt-2 igr:inline-flex igr:items-center igr:gap-1 igr:text-[13px] igr:text-primary igr:hover:underline">
-                        {t('leads.drawer.profile')}
-                        <ExternalLink className="igr:size-3.5" aria-hidden />
-                    </Link>
-                ) : null}
-            </section>
+                {lead.contact ? <ServicesBlock contactId={lead.contact.id} /> : null}
 
-            <section>
-                <h3 className="igr:mb-2 igr:text-[13px] igr:font-medium">{t('leads.drawer.source')}</h3>
-                <DescriptionList
-                    items={[
-                        { label: t('leads.drawer.channel'), value: lead.channel ? t(`leads.channels.${lead.channel}`, { defaultValue: lead.channel_label ?? lead.channel }) : '—' },
-                        { label: t('leads.drawer.campaign'), value: lead.source.utm_campaign ?? '—' },
-                        { label: t('leads.drawer.page'), value: lead.source.page ?? '—' },
-                        { label: t('leads.drawer.form'), value: lead.source.form_name ?? '—' },
-                        {
-                            label: t('leads.drawer.adClick'),
-                            value: lead.source.has_gclid || lead.source.has_fbclid ? [lead.source.has_gclid ? 'Google' : null, lead.source.has_fbclid ? 'Meta' : null].filter(Boolean).join(', ') : t('leads.drawer.none'),
-                        },
-                        {
-                            label: t('leads.drawer.offline'),
-                            value: lead.offline_conversion_at ? t('leads.drawer.offlineSent', { at: formatDateTime(lead.offline_conversion_at, workspace.locale) }) : t('leads.drawer.offlinePending'),
-                        },
-                    ]}
-                />
-            </section>
+                <TasksCard leadId={lead.id} tasks={lead.tasks} />
 
-            <section>
-                <h3 className="igr:mb-2 igr:text-[13px] igr:font-medium">{t('leads.drawer.score', { score: lead.score })}</h3>
-                <ul className="igr:space-y-1.5">
-                    {lead.score_reasons.map((r, i) => (
-                        <ReasonRow key={`${r.signal}-${i}`} reason={r} />
-                    ))}
-                    {lead.score_reasons.length === 0 ? <li className="igr:text-[13px] igr:text-muted-foreground">{t('leads.drawer.noReasons')}</li> : null}
-                </ul>
-            </section>
+                <section>
+                    <h3 className="igr:mb-2 igr:text-[13px] igr:font-medium">{t('leads.drawer.contact')}</h3>
+                    <DescriptionList
+                        items={[
+                            { label: t('leads.drawer.email'), value: lead.email ?? '—' },
+                            { label: t('leads.drawer.phone'), value: lead.phone ?? '—' },
+                            { label: t('leads.drawer.firstResponse'), value: lead.first_response_at ? formatDateTime(lead.first_response_at, workspace.locale) : t('leads.noResponse') },
+                            { label: t('leads.drawer.value'), value: money(lead.value) },
+                        ]}
+                    />
+                    {lead.contact ? (
+                        <Link to={`/w/${workspace.id}/contactos/${lead.contact.id}`} className="igr:mt-2 igr:inline-flex igr:items-center igr:gap-1 igr:text-[13px] igr:text-primary igr:hover:underline">
+                            {t('leads.drawer.profile')}
+                            <ExternalLink className="igr:size-3.5" aria-hidden />
+                        </Link>
+                    ) : null}
+                </section>
 
-            <Timeline activities={lead.activities} stages={stages} currency={lead.currency} />
-            <NoteForm id={lead.id} />
+                <section>
+                    <h3 className="igr:mb-2 igr:text-[13px] igr:font-medium">{t('leads.drawer.source')}</h3>
+                    <DescriptionList
+                        items={[
+                            { label: t('leads.drawer.channel'), value: lead.channel ? t(`leads.channels.${lead.channel}`, { defaultValue: lead.channel_label ?? lead.channel }) : '—' },
+                            { label: t('leads.drawer.campaign'), value: lead.source.utm_campaign ?? '—' },
+                            { label: t('leads.drawer.page'), value: lead.source.page ?? '—' },
+                            { label: t('leads.drawer.form'), value: lead.source.form_name ?? '—' },
+                            {
+                                label: t('leads.drawer.adClick'),
+                                value: lead.source.has_gclid || lead.source.has_fbclid ? [lead.source.has_gclid ? 'Google' : null, lead.source.has_fbclid ? 'Meta' : null].filter(Boolean).join(', ') : t('leads.drawer.none'),
+                            },
+                            {
+                                label: t('leads.drawer.offline'),
+                                value: lead.offline_conversion_at ? t('leads.drawer.offlineSent', { at: formatDateTime(lead.offline_conversion_at, workspace.locale) }) : t('leads.drawer.offlinePending'),
+                            },
+                        ]}
+                    />
+                </section>
+
+                <section>
+                    <h3 className="igr:mb-2 igr:text-[13px] igr:font-medium">{t('leads.drawer.score', { score: lead.score })}</h3>
+                    <ul className="igr:space-y-1.5">
+                        {lead.score_reasons.map((r, i) => (
+                            <ReasonRow key={`${r.signal}-${i}`} reason={r} />
+                        ))}
+                        {lead.score_reasons.length === 0 ? <li className="igr:text-[13px] igr:text-muted-foreground">{t('leads.drawer.noReasons')}</li> : null}
+                    </ul>
+                </section>
+
+                <Timeline activities={lead.activities} stages={stages} currency={lead.currency} />
+                <NoteForm id={lead.id} />
+            </SheetBody>
 
             {pending ? (
                 <MoveDialog
@@ -185,7 +258,46 @@ function Detail({ lead }: { lead: LeadDetail }) {
                     }}
                 />
             ) : null}
-        </div>
+        </>
+    );
+}
+
+/** Las citas y cotizaciones de la persona del lead (lo mismo que ve su perfil, sin pedir dos veces). */
+function ServicesBlock({ contactId }: { contactId: string }) {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const services = useContactServices(workspace.id, contactId);
+    if (services.isError) return null;
+    const data = services.data;
+    return (
+        <Section title={t('leads.drawer.appointments')}>
+            {data === undefined ? (
+                <Skeleton className="igr:h-16" />
+            ) : data.appointments.length === 0 && data.quotes.length === 0 ? (
+                <p className="igr:text-[13px] igr:text-muted-foreground">{t('leads.drawer.noAppointments')}</p>
+            ) : (
+                <ul className="igr:divide-y igr:rounded-lg igr:border">
+                    {data.appointments.slice(0, 5).map((a) => (
+                        <li key={a.id} className="igr:flex igr:items-center igr:justify-between igr:gap-2 igr:px-3 igr:py-2 igr:text-[13px]">
+                            <span className="igr:min-w-0">
+                                <span className="igr:block igr:font-medium igr:tabular-nums">{formatDateTime(a.starts_at, workspace.locale, workspace.timezone)}</span>
+                                <span className="igr:block igr:truncate igr:text-caption igr:text-muted-foreground">{a.service ?? '—'}</span>
+                            </span>
+                            <Badge variant={APPOINTMENT_TONE[a.status]}>{t(`contacts.appointmentStatus.${a.status}`)}</Badge>
+                        </li>
+                    ))}
+                    {data.quotes.slice(0, 3).map((q) => (
+                        <li key={q.id} className="igr:flex igr:items-center igr:justify-between igr:gap-2 igr:px-3 igr:py-2 igr:text-[13px]">
+                            <span className="igr:min-w-0">
+                                <span className="igr:block igr:truncate igr:font-medium">{q.calculator ?? t('leads.drawer.quote')}</span>
+                                <span className="igr:block igr:text-caption igr:text-muted-foreground">{formatDateTime(q.created_at, workspace.locale, workspace.timezone)}</span>
+                            </span>
+                            <span className="igr:shrink-0 igr:font-medium igr:tabular-nums">{formatMoney(q.estimate_max ?? q.estimate_min, q.currency, workspace.locale)}</span>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </Section>
     );
 }
 

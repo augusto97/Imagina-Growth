@@ -11,7 +11,22 @@ import { formatMoney, formatNumber, formatRelative } from '@/lib/format';
 import type { Preview, SegmentContact } from './types';
 
 /** Conteo en vivo, alcance por canal, valor y muestra de 20 contactos. */
-export function PreviewPanel({ data, error, loading, stale, empty }: { data: Preview | undefined; error: unknown; loading: boolean; stale: boolean; empty: boolean }) {
+export function PreviewPanel({
+    data,
+    error,
+    loading,
+    stale,
+    empty,
+    commerce = true,
+}: {
+    data: Preview | undefined;
+    error: unknown;
+    loading: boolean;
+    stale: boolean;
+    empty: boolean;
+    /** Con tienda: valor histórico y futuro; sin ella, solo el alcance por canal. */
+    commerce?: boolean;
+}) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
 
@@ -78,10 +93,15 @@ export function PreviewPanel({ data, error, loading, stale, empty }: { data: Pre
                         <div className="igr:grid igr:grid-cols-2 igr:gap-2 igr:text-[13px]">
                             <Stat icon={MessageCircle} label={t('segments.preview.whatsapp')} value={formatNumber(data.channels.whatsapp, workspace.locale)} />
                             <Stat icon={Mail} label={t('segments.preview.email')} value={formatNumber(data.channels.email, workspace.locale)} />
-                            <Stat label={t('segments.preview.revenue')} value={formatMoney(data.value.revenue_ws, workspace.currency, workspace.locale)} />
-                            <Stat label={t('segments.preview.clv')} value={data.value.predicted_clv_ws === null ? t('segments.preview.clvLater') : formatMoney(data.value.predicted_clv_ws, workspace.currency, workspace.locale)} />
+                            {commerce ? <Stat label={t('segments.preview.revenue')} value={formatMoney(data.value.revenue_ws, workspace.currency, workspace.locale)} /> : null}
+                            {commerce ? (
+                                <Stat
+                                    label={t('segments.preview.clv')}
+                                    value={data.value.predicted_clv_ws === null ? t('segments.preview.clvLater') : formatMoney(data.value.predicted_clv_ws, workspace.currency, workspace.locale)}
+                                />
+                            ) : null}
                         </div>
-                        <SampleTable rows={data.sample} />
+                        <SampleTable rows={data.sample} commerce={commerce} />
                     </div>
                 ) : null}
             </CardContent>
@@ -101,7 +121,8 @@ function Stat({ icon: Icon, label, value }: { icon?: typeof Mail; label: string;
     );
 }
 
-export function SampleTable({ rows, dense = true }: { rows: SegmentContact[]; dense?: boolean }) {
+/** La muestra de personas: con tienda, sus compras y su valor; sin tienda, solo quién es y dónde está. */
+export function SampleTable({ rows, dense = true, commerce = true }: { rows: SegmentContact[]; dense?: boolean; commerce?: boolean }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     if (rows.length === 0) {
@@ -112,9 +133,9 @@ export function SampleTable({ rows, dense = true }: { rows: SegmentContact[]; de
             <THead>
                 <TR>
                     <TH>{t('segments.members.contact')}</TH>
-                    {dense ? null : <TH>{t('segments.members.city')}</TH>}
-                    <TH className="igr:text-right">{t('segments.members.orders')}</TH>
-                    <TH className="igr:text-right">{t('segments.members.revenue')}</TH>
+                    {dense && commerce ? null : <TH>{t('segments.members.city')}</TH>}
+                    {commerce ? <TH className="igr:text-right">{t('segments.members.orders')}</TH> : null}
+                    {commerce ? <TH className="igr:text-right">{t('segments.members.revenue')}</TH> : null}
                     {dense ? null : <TH>{t('segments.members.lastSeen')}</TH>}
                 </TR>
             </THead>
@@ -127,9 +148,9 @@ export function SampleTable({ rows, dense = true }: { rows: SegmentContact[]; de
                             </Link>
                             <span className="igr:block igr:truncate igr:text-xs igr:text-muted-foreground">{[c.email, c.phone].filter(Boolean).join(' · ') || '—'}</span>
                         </TD>
-                        {dense ? null : <TD>{c.city ?? '—'}</TD>}
-                        <TD className="igr:text-right igr:tabular-nums">{formatNumber(c.orders_count, workspace.locale)}</TD>
-                        <TD className="igr:text-right igr:tabular-nums">{formatMoney(c.revenue_total_ws, workspace.currency, workspace.locale)}</TD>
+                        {dense && commerce ? null : <TD>{c.city ?? '—'}</TD>}
+                        {commerce ? <TD className="igr:text-right igr:tabular-nums">{formatNumber(c.orders_count, workspace.locale)}</TD> : null}
+                        {commerce ? <TD className="igr:text-right igr:tabular-nums">{formatMoney(c.revenue_total_ws, workspace.currency, workspace.locale)}</TD> : null}
                         {dense ? null : <TD className="igr:text-xs igr:text-muted-foreground">{formatRelative(c.last_seen_at, workspace.locale)}</TD>}
                     </TR>
                 ))}

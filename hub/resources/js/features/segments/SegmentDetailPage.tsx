@@ -1,4 +1,4 @@
-import { Camera, Copy, Download, Lock, MoreHorizontal, Pencil, RefreshCw, Trash2 } from 'lucide-react';
+import { Camera, Copy, Download, Lock, Mail, Megaphone, MessageCircle, MoreHorizontal, Pencil, RefreshCw, Trash2, Users, Wallet, Workflow } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ErrorState, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatCard, StatCardSkeleton, StatGrid } from '@/components/ui/stat-card';
+import { useBusiness } from '@/features/contacts/business';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
@@ -17,7 +19,9 @@ import { BuilderContext } from './builder/context';
 import { GroupEditor } from './builder/GroupEditor';
 import { DeleteSegmentDialog, SnapshotDialog } from './dialogs';
 import { summarize } from './humanize';
+import { explain, lookOf } from './look';
 import { SampleTable } from './PreviewPanel';
+import { UseGroupDialog } from './UseGroupDialog';
 import type { DuplicateState } from './SegmentBuilderPage';
 import type { SegmentDetail } from './types';
 
@@ -28,14 +32,14 @@ export function SegmentDetailPage() {
 
     if (segment.isPending) {
         return (
-            <div className="igr:space-y-4">
-                <Skeleton className="igr:h-10 igr:w-72" />
-                <div className="igr:grid igr:gap-3 igr:md:grid-cols-4">
+            <div className="igr:space-y-5">
+                <Skeleton className="igr:h-16 igr:w-80" />
+                <StatGrid>
                     {[0, 1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="igr:h-20" />
+                        <StatCardSkeleton key={i} />
                     ))}
-                </div>
-                <Skeleton className="igr:h-64" />
+                </StatGrid>
+                <Skeleton className="igr:h-64 igr:rounded-xl" />
             </div>
         );
     }
@@ -52,7 +56,10 @@ function Detail({ segment }: { segment: SegmentDetail }) {
     const canManage = useCan('manageMarketing');
     const canExport = useCan('exportContacts');
     const actions = useSegmentAction(workspace.id, segment.id);
-    const [dialog, setDialog] = useState<'snapshot' | 'delete' | null>(null);
+    const business = useBusiness();
+    const [dialog, setDialog] = useState<'snapshot' | 'delete' | 'campaign' | 'flow' | null>(null);
+    const look = lookOf(segment);
+    const { what, todo } = explain(t, segment);
     const dynamic = segment.kind === 'dynamic';
     const computing = dynamic && segment.last_computed_at === null;
     const editable = canManage && dynamic && !segment.is_system;
@@ -72,22 +79,42 @@ function Detail({ segment }: { segment: SegmentDetail }) {
     return (
         <div className="igr:space-y-5">
             <PageHeader
-                title={
-                    <span className="igr:flex igr:flex-wrap igr:items-center igr:gap-2">
-                        {segment.name}
+                title={segment.name}
+                icon={look.icon}
+                tone={look.tone}
+                meta={
+                    <>
                         {segment.is_system ? (
-                            <Badge variant="secondary">
+                            <Badge variant="secondary" title={t('segments.badges.systemHelp')}>
                                 <Lock className="igr:size-3" />
                                 {t('segments.badges.system')}
                             </Badge>
                         ) : null}
                         <Badge variant="outline">{t(`segments.kind.${segment.kind}`)}</Badge>
-                        {segment.folder ? <Badge variant="outline">{segment.folder}</Badge> : null}
-                    </span>
+                    </>
                 }
-                description={segment.description ?? undefined}
+                description={
+                    what || todo ? (
+                        <>
+                            {what}
+                            {todo ? <span className="igr:mt-1 igr:block igr:text-support">{t('segments.list.todo', { action: todo })}</span> : null}
+                        </>
+                    ) : undefined
+                }
                 actions={
                     <>
+                        {canManage ? (
+                            <>
+                                <Button variant="outline" onClick={() => setDialog('flow')}>
+                                    <Workflow />
+                                    {t('segments.list.automate')}
+                                </Button>
+                                <Button onClick={() => setDialog('campaign')} disabled={computing || segment.member_count === 0}>
+                                    <Megaphone />
+                                    {t('segments.list.sendCampaign')}
+                                </Button>
+                            </>
+                        ) : null}
                         {canExport ? (
                             <Button asChild variant="outline">
                                 <a href={exportUrl(workspace.id, segment.id)} download>
@@ -97,7 +124,7 @@ function Detail({ segment }: { segment: SegmentDetail }) {
                             </Button>
                         ) : null}
                         {editable ? (
-                            <Button asChild>
+                            <Button asChild variant="outline">
                                 <Link to="editar">
                                     <Pencil />
                                     {t('segments.detail.edit')}
@@ -141,12 +168,46 @@ function Detail({ segment }: { segment: SegmentDetail }) {
                 }
             />
 
-            <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2 igr:lg:grid-cols-4">
-                <Kpi label={t('segments.columns.members')} value={computing ? null : formatNumber(segment.member_count, workspace.locale)} />
-                <Kpi label={t('segments.detail.reachWhatsapp')} value={computing ? null : formatNumber(segment.channel_counts.whatsapp ?? 0, workspace.locale)} />
-                <Kpi label={t('segments.detail.reachEmail')} value={computing ? null : formatNumber(segment.channel_counts.email ?? 0, workspace.locale)} />
-                <Kpi label={t('segments.detail.value')} value={computing ? null : formatMoney(segment.revenue_ws, workspace.currency, workspace.locale)} />
-            </div>
+            <StatGrid className={business.store ? undefined : 'igr:lg:grid-cols-3'}>
+                <StatCard
+                    icon={Users}
+                    tone="sky"
+                    label={t('segments.detail.people')}
+                    loading={computing}
+                    value={formatNumber(segment.member_count, workspace.locale)}
+                    trend={segment.trend && segment.trend.points.length > 1 ? segment.trend.points : undefined}
+                    change={segment.trend?.change != null && segment.trend.points[0] ? segment.trend.change / segment.trend.points[0] : null}
+                    changeLabel={segment.trend?.change != null ? `${segment.trend.change > 0 ? '+' : segment.trend.change < 0 ? '−' : ''}${formatNumber(Math.abs(segment.trend.change), workspace.locale)}` : undefined}
+                    compareLabel={t('segments.detail.inDays', { days: segment.trend?.days ?? 30 })}
+                    better="neutral"
+                />
+                <StatCard
+                    icon={MessageCircle}
+                    tone="emerald"
+                    label={t('segments.detail.reachWhatsapp')}
+                    help={t('segments.detail.reachHelp')}
+                    loading={computing}
+                    value={formatNumber(segment.channel_counts.whatsapp ?? 0, workspace.locale)}
+                />
+                <StatCard
+                    icon={Mail}
+                    tone="indigo"
+                    label={t('segments.detail.reachEmail')}
+                    help={t('segments.detail.reachHelp')}
+                    loading={computing}
+                    value={formatNumber(segment.channel_counts.email ?? 0, workspace.locale)}
+                />
+                {business.store ? (
+                    <StatCard
+                        icon={Wallet}
+                        tone="amber"
+                        label={t('segments.detail.value')}
+                        help={t('segments.detail.valueHelp')}
+                        loading={computing}
+                        value={formatMoney(segment.revenue_ws, workspace.currency, workspace.locale)}
+                    />
+                ) : null}
+            </StatGrid>
             <p className="igr:text-xs igr:text-muted-foreground">
                 {computing
                     ? t('segments.detail.computing')
@@ -160,19 +221,9 @@ function Detail({ segment }: { segment: SegmentDetail }) {
             <Members segment={segment} />
 
             {dialog === 'snapshot' ? <SnapshotDialog segment={segment} open onClose={() => setDialog(null)} /> : null}
+            {dialog === 'campaign' || dialog === 'flow' ? <UseGroupDialog segment={segment} mode={dialog} onClose={() => setDialog(null)} /> : null}
             {dialog === 'delete' ? <DeleteSegmentDialog segment={segment} open onClose={() => setDialog(null)} /> : null}
         </div>
-    );
-}
-
-function Kpi({ label, value }: { label: string; value: string | null }) {
-    return (
-        <Card>
-            <CardContent className="igr:py-3">
-                <p className="igr:text-xs igr:text-muted-foreground">{label}</p>
-                {value === null ? <Skeleton className="igr:mt-1 igr:h-7 igr:w-24" /> : <p className="igr:mt-0.5 igr:text-xl igr:font-semibold igr:tabular-nums">{value}</p>}
-            </CardContent>
-        </Card>
     );
 }
 
@@ -231,6 +282,7 @@ function Definition({ segment }: { segment: SegmentDetail }) {
 function Members({ segment }: { segment: SegmentDetail }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
+    const business = useBusiness();
     const [page, setPage] = useState(1);
     const members = useSegmentMembers(workspace.id, segment.id, page);
     const meta = members.data?.meta;
@@ -257,7 +309,7 @@ function Members({ segment }: { segment: SegmentDetail }) {
                     <ErrorState error={members.error} onRetry={() => void members.refetch()} />
                 ) : (
                     <>
-                        <SampleTable rows={members.data.data} dense={false} />
+                        <SampleTable rows={members.data.data} dense={false} commerce={business.store} />
                         {pages > 1 ? (
                             <div className="igr:mt-3 igr:flex igr:items-center igr:justify-end igr:gap-2 igr:text-xs igr:text-muted-foreground">
                                 <span>{t('segments.members.page', { page, pages })}</span>

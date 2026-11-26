@@ -1,7 +1,7 @@
 {
     "agenda": {
         "title": "Agenda",
-        "description": "Tus citas, horarios y recordatorios, y la página para que tus clientes reserven solos.",
+        "description": "Tus citas de la semana con su estado, confirma y marca asistencia en un toque, y los servicios y horarios que tus clientes reservan solos.",
         "openPage": "Ver página de reservas",
         "edit": "Editar",
         "setup": {
@@ -12,8 +12,8 @@
         "kpi": {
             "upcoming": "Próximas citas",
             "booked": "Citas en {{days}} días",
-            "completed": "Cumplidas",
-            "noShowRate": "No asistencia"
+            "completed": "Asistieron",
+            "noShowRate": "No asistieron"
         },
         "tabs": {
             "calendario": "Calendario",
@@ -22,11 +22,11 @@
             "pagina": "Página de reservas"
         },
         "status": {
-            "booked": "Agendada",
+            "booked": "Pendiente",
             "confirmed": "Confirmada",
-            "rescheduled": "Reprogramada",
+            "rescheduled": "Reagendada",
             "cancelled": "Cancelada",
-            "completed": "Cumplida",
+            "completed": "Asistió",
             "no_show": "No asistió"
         },
         "location": {
@@ -64,44 +64,56 @@
             "with": "Con {{name}}",
             "actions": "Acciones de la cita",
             "action": {
-                "confirm": "Marcar como confirmada",
-                "complete": "Marcar como cumplida",
-                "no-show": "No asistió",
-                "reschedule": "Reprogramar…",
+                "confirm": "Confirmar",
+                "complete": "Marcar que asistió",
+                "no-show": "Marcar que no asistió",
+                "reschedule": "Reagendar…",
                 "cancel": "Cancelar la cita"
             },
             "done": {
                 "confirm": "Cita confirmada.",
-                "complete": "Cita cumplida.",
+                "complete": "Listo: asistió a su cita.",
                 "no-show": "Marcada como no asistió.",
-                "reschedule": "Cita reprogramada. Le avisamos a la persona.",
+                "reschedule": "Cita reagendada. Le avisamos a la persona.",
                 "cancel": "Cita cancelada. Le avisamos a la persona."
+            },
+            "view": "Ver por",
+            "weekDays": "Días de la semana",
+            "count_one": "{{count}} cita",
+            "count_other": "{{count}} citas",
+            "filterStatus": "Filtrar por estado",
+            "allStatuses": "Todas",
+            "openDay": "Ver el {{day}}",
+            "quick": {
+                "confirm": "Confirmar",
+                "complete": "Asistió",
+                "no-show": "No asistió"
             }
         },
         "book": {
             "title": "Nueva cita",
-            "description": "Agenda una cita para un contacto. Le llega la confirmación con el enlace para cambiarla.",
-            "contact": "Contacto",
+            "description": "Le llega la confirmación con el enlace para confirmarla o cambiarla.",
+            "contact": "Para quién",
             "searchPlaceholder": "Busca por nombre, correo o WhatsApp",
             "change": "Cambiar",
             "service": "Servicio",
-            "staff": "Persona",
+            "staff": "Quién atiende",
             "from": "Desde",
             "tz": "Horas de {{tz}}",
             "noSlots": "No hay horarios libres en esos 7 días. Prueba otra fecha.",
             "notes": "Nota interna (opcional)",
-            "submit": "Agendar",
+            "submit": "Agendar cita",
             "done": "Cita agendada."
         },
         "reschedule": {
-            "title": "Reprogramar la cita",
+            "title": "Reagendar la cita",
             "current": "{{service}} · ahora: {{time}}",
             "noService": "El servicio de esta cita ya no existe.",
             "notice": "La persona recibe un aviso con el nuevo horario.",
-            "submit": "Cambiar horario"
+            "submit": "Reagendar"
         },
         "services": {
-            "help": "Lo que tus clientes pueden reservar. El margen es el tiempo libre que queda después de cada cita.",
+            "help": "Lo que tus clientes pueden reservar: cuánto dura, cuánto cuesta y quién lo atiende.",
             "new": "Nuevo servicio",
             "edit": "Editar servicio",
             "empty": "Todavía no hay servicios",
@@ -126,8 +138,13 @@
             "inactive": "Inactivo",
             "saved": "Servicio guardado.",
             "delete": "Eliminar servicio",
-            "deleteConfirm": "¿Eliminar «{{name}}»? Si tiene citas, solo se desactiva.",
-            "deleted": "Servicio eliminado."
+            "deleteConfirm": "Eliminar servicio",
+            "deleted": "Servicio eliminado.",
+            "create": "Crear servicio",
+            "saveExisting": "Guardar cambios",
+            "advanced": "Más opciones: margen entre citas y con cuánta anticipación se reserva",
+            "deleteTitle": "¿Eliminar «{{name}}»?",
+            "deleteHelp": "Si tiene citas, solo se desactiva: deja de ofrecerse y las citas siguen."
         },
         "staff": {
             "title": "Personas",
@@ -204,6 +221,19 @@
             "onSite": "Botón en tu sitio",
             "onSiteHelp": "Con el plugin conectado, pega este shortcode en cualquier página.",
             "domainHelp": "¿Quieres la página con tu propio dominio? Configúralo en Agencia → Dominios propios."
+        },
+        "kpiHelp": {
+            "upcoming": "Citas agendadas o confirmadas desde ahora.",
+            "booked": "Citas agendadas en los últimos {{days}} días, por cualquier canal.",
+            "completed": "Citas de los últimos {{days}} días marcadas como «Asistió».",
+            "noShowRate": "De las citas que ya pasaron en los últimos {{days}} días, cuántas quedaron como «No asistió»."
+        },
+        "statusGroup": {
+            "pending": "Pendientes",
+            "confirmed": "Confirmadas",
+            "completed": "Asistieron",
+            "no_show": "No asistieron",
+            "cancelled": "Canceladas"
         }
     }
 }

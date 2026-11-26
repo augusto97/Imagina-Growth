@@ -12,13 +12,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useDebounced } from '@/hooks/useDebounced';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
+import { formatNumber } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { useSaveSegment, useSegment, useSegmentOptions, useSegmentPreview, useSegments } from './api';
 import { countConditions, defaultCondition, emptyGroup, prune } from './ast';
 import { BuilderContext, type BuilderContextValue } from './builder/context';
-import { AddConditionMenu, GroupEditor } from './builder/GroupEditor';
+import { AddConditionMenu, GroupEditor, conditionTypesFor } from './builder/GroupEditor';
 import { PreviewPanel } from './PreviewPanel';
-import type { Group, SegmentDetail } from './types';
+import type { Condition, Group, SegmentDetail } from './types';
+import { useBusiness } from '@/features/contacts/business';
 import { useAutoCrumbs } from '@/components/ui/page-header';
 
 interface Draft {
@@ -126,7 +128,17 @@ function Builder({ segment, options }: { segment: SegmentDetail | null; options:
         return () => window.removeEventListener('keydown', onKey);
     }, []);
 
-    const ctx: BuilderContextValue = { ws: workspace.id, options, readOnly: !editable, errors, selfId: segment?.id, currency: workspace.currency, locale: workspace.locale };
+    const business = useBusiness();
+    const ctx: BuilderContextValue = {
+        ws: workspace.id,
+        options,
+        readOnly: !editable,
+        errors,
+        selfId: segment?.id,
+        currency: workspace.currency,
+        locale: workspace.locale,
+        types: conditionTypesFor(business.store, business.services),
+    };
     const setDefinition = (definition: Group) => setDraft((d) => ({ ...d, definition }));
     const back = segment ? `/w/${workspace.id}/segmentos/${segment.id}` : `/w/${workspace.id}/segmentos`;
     const crumbs = useAutoCrumbs();
@@ -141,8 +153,8 @@ function Builder({ segment, options }: { segment: SegmentDetail | null; options:
                     editable ? (
                         <Button onClick={submit} loading={save.isPending}>
                             <Save />
-                            {segment ? t('common.save') : t('segments.form.create')}
-                            <Kbd className="igr:ml-1 igr:border-primary-foreground/30 igr:bg-primary-foreground/10 igr:text-primary-foreground">⌘S</Kbd>
+                            {segment ? t('segments.form.saveShort') : t('segments.form.create')}
+                            <Kbd className="igr:ml-1 igr:border-primary-foreground/30 igr:bg-primary-foreground/10 igr:text-primary-foreground igr:max-sm:hidden">⌘S</Kbd>
                         </Button>
                     ) : null
                 }
@@ -159,7 +171,7 @@ function Builder({ segment, options }: { segment: SegmentDetail | null; options:
                                     value={draft.name}
                                     disabled={!editable}
                                     maxLength={160}
-                                    placeholder={t('segments.form.namePlaceholder')}
+                                    placeholder={t(business.servicesOnly ? 'segments.form.namePlaceholderServices' : 'segments.form.namePlaceholder')}
                                     aria-invalid={errors.name ? true : undefined}
                                     onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                                 />
@@ -210,23 +222,57 @@ function Builder({ segment, options }: { segment: SegmentDetail | null; options:
                     </BuilderContext.Provider>
                 </div>
 
-                <div className="igr:lg:sticky igr:lg:top-4">
-                    <PreviewPanel data={preview.data} error={preview.error} loading={preview.isFetching} stale={pending} empty={countConditions(pruned) === 0} />
+                <div className="igr:lg:sticky igr:lg:top-4" id="segment-preview">
+                    <PreviewPanel data={preview.data} error={preview.error} loading={preview.isFetching} stale={pending} empty={countConditions(pruned) === 0} commerce={business.store} />
                 </div>
             </div>
+
+            {countConditions(pruned) > 0 ? (
+                <div className="igr:sticky igr:bottom-3 igr:z-10 igr:mt-4 igr:flex igr:items-center igr:gap-3 igr:rounded-xl igr:border igr:bg-popover igr:px-3 igr:py-2 igr:shadow-lg igr:lg:hidden">
+                    <a href="#segment-preview" className="igr:min-w-0 igr:flex-1 igr:outline-none igr:focus-visible:underline">
+                        <span className="igr:block igr:text-section igr:leading-6 igr:font-semibold igr:tabular-nums" aria-live="polite">
+                            {preview.data ? formatNumber(preview.data.count, workspace.locale) : '…'}
+                        </span>
+                        <span className="igr:block igr:text-caption igr:text-muted-foreground">{t('segments.builder.liveCount')}</span>
+                    </a>
+                    {editable ? (
+                        <Button onClick={submit} loading={save.isPending}>
+                            <Save />
+                            {segment ? t('segments.form.saveShort') : t('segments.form.create')}
+                        </Button>
+                    ) : null}
+                </div>
+            ) : null}
         </div>
     );
 }
 
-function StartHere({ onPick, editable }: { onPick: (c: ReturnType<typeof defaultCondition>) => void; editable: boolean }) {
-    const { t } = useTranslation();
-    const quick = [
-        { key: 'city', make: () => defaultCondition('attribute') },
+/** Las primeras condiciones que se ofrecen, según el negocio: compras y carritos en una tienda; leads y citas sin ella. */
+export function quickStarts(store: boolean, services: boolean): { key: string; make: () => Condition }[] {
+    const city = { key: 'city', make: () => defaultCondition('attribute') };
+    const whatsapp = { key: 'whatsapp', make: (): Condition => ({ type: 'consent', channel: 'whatsapp', purpose: 'marketing', status: 'granted' }) };
+    const servicesQuick = [
+        { key: 'leadHot', make: (): Condition => ({ type: 'lead', field: 'temperature', operator: 'in', value: ['hot'] }) },
+        { key: 'leadOpen', make: () => defaultCondition('lead') },
+        { key: 'upcoming', make: () => defaultCondition('service') },
+    ];
+    if (services && !store) {
+        return [...servicesQuick, city, whatsapp];
+    }
+    return [
+        city,
         { key: 'bought', make: () => defaultCondition('purchase') },
         { key: 'viewed', make: () => defaultCondition('event') },
         { key: 'cart', make: () => defaultCondition('cart') },
         { key: 'rfm', make: () => defaultCondition('prediction') },
+        ...(services ? servicesQuick.slice(0, 1) : []),
     ];
+}
+
+function StartHere({ onPick, editable }: { onPick: (c: ReturnType<typeof defaultCondition>) => void; editable: boolean }) {
+    const { t } = useTranslation();
+    const business = useBusiness();
+    const quick = quickStarts(business.store, business.services);
     return (
         <div className="igr:py-6 igr:text-center">
             <p className="igr:text-sm igr:font-medium">{t('segments.form.startTitle')}</p>

@@ -15,6 +15,7 @@ use App\Domain\Segments\Library\SegmentLibrary;
 use App\Domain\Segments\Models\Segment;
 use App\Domain\Segments\Queries\ContactRow;
 use App\Domain\Segments\Queries\SegmentPreview;
+use App\Domain\Segments\Queries\SegmentTrends;
 use App\Domain\Segments\Support\DependencyIndex;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Domain\Workspaces\Models\User;
@@ -38,16 +39,18 @@ final class SegmentController
     {
         Gate::authorize('ws.viewAllContacts');
         $segments = Segment::query()->orderByDesc('is_system')->orderBy('folder')->orderBy('name')->get();
+        $trends = SegmentTrends::forWorkspace($this->current->id());
 
-        return response()->json(['data' => $segments->map(fn (Segment $s) => SegmentPresenter::make($s))->values()]);
+        return response()->json(['data' => $segments->map(fn (Segment $s) => SegmentPresenter::make($s, trend: $trends[$s->id] ?? null))->values()]);
     }
 
     /** GET segments/{segment} */
     public function show(string $segment): JsonResponse
     {
         Gate::authorize('ws.viewAllContacts');
+        $model = $this->find($segment);
 
-        return response()->json(SegmentPresenter::make($this->find($segment), withDefinition: true));
+        return response()->json(SegmentPresenter::make($model, withDefinition: true, trend: SegmentTrends::forWorkspace($this->current->id(), [$model->id])[$model->id] ?? null));
     }
 
     /** POST segments */
@@ -82,6 +85,7 @@ final class SegmentController
             return response()->json(['message' => __('Los segmentos del sistema no se pueden borrar.')], 422);
         }
         DB::table('segment_memberships')->where('workspace_id', $this->current->id())->where('segment_id', $model->id)->delete();
+        DB::table('segment_daily_counts')->where('workspace_id', $this->current->id())->where('segment_id', $model->id)->delete();
         $model->delete();
         DependencyIndex::forget($this->current->id());
         $audit->handle('segment.deleted', $model, ['name' => $model->name], $this->current->id());
@@ -213,6 +217,7 @@ final class SegmentController
         return response()->json([
             'system' => array_map(fn (array $s) => [
                 'key' => $s['key'], 'name' => $s['name'], 'description' => $s['description'], 'folder' => $s['folder'],
+                'audience' => SegmentLibrary::audienceOf($s['key']),
                 'segment_id' => isset($existing[$s['key']]) ? 'sg_'.$existing[$s['key']] : null,
             ], SegmentLibrary::system()),
             'templates' => SegmentLibrary::templates(),

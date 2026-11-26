@@ -1,7 +1,7 @@
 {
     "segments": {
         "empty": {
-            "description": "Ya tienes los segmentos RFM y la biblioteca listos. Arma uno propio: por ejemplo, quienes compraron pinturas en Puebla y no han vuelto en 90 días."
+            "description": "Arma uno propio: por ejemplo, quienes compraron pinturas en Puebla y no han vuelto en 90 días."
         },
         "static": {
             "placeholder": "ana@ejemplo.com\n+52 55 1111 2233"
@@ -17,6 +17,9 @@
         },
         "typeHelp": {
             "attribute": "Ciudad, estado, etapa, etiquetas, cumpleaños…"
+        },
+        "list": {
+            "emptyStore": "Por ejemplo, quienes compraron pintura para exteriores en el Bajío y no han vuelto en 90 días. Abajo tienes los grupos listos."
         }
     }
 }

@@ -19,6 +19,9 @@
             "consent": {
                 "description": "Es obligatorio declararlo. Sin consentimiento solo podrán recibir mensajes transaccionales."
             }
+        },
+        "filtersPanel": {
+            "cityPlaceholder": "Ej.: Valencia"
         }
     }
 }

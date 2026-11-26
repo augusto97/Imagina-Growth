@@ -98,6 +98,8 @@
 
 **Listo cuando:** el perfil carga en menos de 800 ms con 2 años de historial, y una fusión se revierte sin perder eventos.
 
+**Estado (rediseño v2, Clientes → Personas):** la lista (`ContactList`) filtra también por grupo de clientes (`segment`) y por la temperatura del lead abierto (`temperature`), trae los canales con consentimiento de marketing de cada fila y, con `services=1`, su lead abierto (etapa en palabras, temperatura, valor) y su próxima cita. Acciones masivas con los mismos filtros: `GET contacts/export` (CSV, `exportContacts`, auditoría `contacts.exported`) y `POST contacts/group` (agrega a un grupo fijo existente o crea uno; `manageMarketing`, auditoría `segment.members_added`), para las elegidas (hasta 500) o para todas las que cumplen los filtros (hasta 50.000). El perfil suma su conversación más reciente de la bandeja (el botón «Escribir»), el grupo `servicios` en la línea de tiempo y, en negocios de servicios, `GET services/contacts/{id}` con sus leads, citas y cotizaciones.
+
 ---
 
 ## M04 — Segmentación · Fase 1
@@ -127,6 +129,8 @@
 **Estado (Fase 1):** vista previa medida con 100.000 contactos, 150.000 pedidos y 5 millones de eventos: entre 137 ms y 1,45 s según el segmento (`igr:segments:benchmark`). Las entradas y salidas se calculan 15 s después del evento; el disparo de flujos se mide en la Fase 2, cuando existan los flujos.
 
 **Estado (Fase 3):** se habilitan las condiciones de mensajería y fidelización; las de servicios siguen marcadas para la Fase 5.
+
+**Estado (rediseño v2, Grupos de clientes):** cada cálculo de las cifras deja el tamaño del día en `segment_daily_counts` y la lista y el detalle muestran la tendencia de 30 días (`trend`; sin dos días medidos, ninguna). La biblioteca suma 7 grupos del sistema para servicios (interesados calientes, con un proceso abierto, con una cita próxima, no asistieron y no han vuelto a agendar, ya fueron a una cita, contrataron este año, no continuaron hace más de 90 días) y cada grupo del sistema dice para qué negocio es (`audience`: `store`, `services` o null); la pantalla muestra solo los que aplican. «Enviar campaña» deja una campaña en borrador con el grupo como audiencia y «Crear automatización», un flujo en borrador que arranca al entrar al grupo.
 
 **Estado (Fase 5):** se habilitan las condiciones de leads (`type: lead`, ver M18 «Estado») y las de citas (`type: service`): tiene una cita próxima, alguna vez agendó, estado de la cita, servicio, cómo se agendó y fecha. Los eventos `appointment.*` recalculan en tiempo real los segmentos que usan citas; «cita próxima» depende del reloj y se pone al día en el recálculo programado.
 

@@ -4,12 +4,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LockedPage } from '@/components/layout/LockedPage';
 import { locate, SECTIONS } from '@/components/layout/nav';
 import { PageContext } from '@/components/layout/pageContext';
+import { avatarToneIndex, initialsOf } from './avatar';
 import { checklistProgress, withCurrentStep } from './checklist';
+import { Chip, ChipGroup } from './chip';
 import { ConfirmDialog } from './confirm-dialog';
 import { CopyButton, CopyField } from './copy-field';
 import { DeviceFrame } from './device-frame';
 import { EmptyState } from './empty-state';
 import { ILLUSTRATION_NAMES } from './illustrations';
+import { Checkbox } from './input';
 import { PageHeader } from './page-header';
 import { nextSegment, SegmentedControl } from './segmented';
 import { changeTone, sparklinePoints } from './stat-card';
@@ -195,5 +198,54 @@ describe('ConfirmDialog', () => {
         expect(within(dialog).getByRole('button', { name: 'Cancelar' })).toHaveFocus();
         fireEvent.click(within(dialog).getByRole('button', { name: 'Archivar' }));
         expect(onConfirm).toHaveBeenCalledOnce();
+    });
+});
+
+describe('Avatar, Chip, SegmentedControl y Checkbox (frente de Clientes)', () => {
+    it('las iniciales toman la primera y la última palabra; el tono es estable', () => {
+        expect(initialsOf('Ana María Ruiz')).toBe('AR');
+        expect(initialsOf('  óscar ')).toBe('Ó');
+        expect(initialsOf('')).toBe('·');
+        expect(initialsOf(null)).toBe('·');
+        expect(avatarToneIndex('ct_01')).toBe(avatarToneIndex('ct_01'));
+        expect(avatarToneIndex('')).toBe(0);
+    });
+
+    it('el chip dice si está prendido y muestra su conteo', () => {
+        render(
+            <ChipGroup label="Filtrar">
+                <Chip pressed count={3}>
+                    Citas
+                </Chip>
+                <Chip pressed={false}>Pedidos</Chip>
+            </ChipGroup>,
+        );
+        expect(screen.getByRole('group', { name: 'Filtrar' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Citas/ })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: 'Pedidos' })).toHaveAttribute('aria-pressed', 'false');
+        expect(screen.getByText('3')).toBeInTheDocument();
+    });
+
+    it('el control segmentado marca la opción elegida', () => {
+        render(
+            <SegmentedControl
+                label="Vista"
+                value="week"
+                onChange={() => undefined}
+                options={[
+                    { value: 'day', label: 'Día' },
+                    { value: 'week', label: 'Semana' },
+                ]}
+            />,
+        );
+        expect(screen.getByRole('radiogroup', { name: 'Vista' })).toBeInTheDocument();
+        expect(screen.getByRole('radio', { name: 'Semana' })).toHaveAttribute('aria-checked', 'true');
+        expect(screen.getByRole('radio', { name: 'Día' })).toHaveAttribute('tabindex', '-1');
+    });
+
+    it('la casilla «algunas» queda indeterminada', () => {
+        render(<Checkbox aria-label="Elegir todas" indeterminate checked={false} onChange={() => undefined} />);
+        const box = screen.getByRole('checkbox', { name: 'Elegir todas' });
+        expect((box as HTMLInputElement).indeterminate).toBe(true);
     });
 });

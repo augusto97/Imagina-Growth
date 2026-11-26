@@ -1,20 +1,21 @@
-import { FolderClosed, Library, Lock, Plus, Search, Shapes, Upload } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Library, Plus, Search, Upload } from 'lucide-react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Callout } from '@/components/ui/callout';
 import { Input } from '@/components/ui/input';
 import { Kbd } from '@/components/ui/kbd';
 import { EmptyState, ErrorState, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
-import { formatMoney, formatNumber, formatRelative } from '@/lib/format';
+import { useBusiness } from '@/features/contacts/business';
 import { useSegments } from './api';
 import { LibraryDialog, StaticSegmentDialog } from './dialogs';
+import { appliesTo, familyOf, type GroupFamily } from './look';
+import { SegmentCard } from './SegmentCard';
 import type { SegmentSummary } from './types';
+import { UseGroupDialog } from './UseGroupDialog';
 
 /** Agrupa por carpeta; las del sistema primero y «Sin carpeta» al final. */
 export function groupByFolder(segments: SegmentSummary[]): { folder: string | null; items: SegmentSummary[] }[] {
@@ -34,13 +35,39 @@ export function groupByFolder(segments: SegmentSummary[]): { folder: string | nu
         });
 }
 
+/** El orden de las familias en la página: los propios, los de servicios, los RFM y los listos de la tienda. */
+const FAMILIES: GroupFamily[] = ['custom', 'services', 'rfm', 'library'];
+
+/** Los grupos que se ven, por familia, filtrados por el negocio y la búsqueda (RFM en su orden de valor). */
+export function groupsByFamily(segments: SegmentSummary[], store: boolean, services: boolean, query: string): { family: GroupFamily; items: SegmentSummary[] }[] {
+    const q = query.trim().toLocaleLowerCase('es');
+    const visible = segments.filter(
+        (s) => appliesTo(s, store, services) && (q === '' || s.name.toLocaleLowerCase('es').includes(q) || (s.description ?? '').toLocaleLowerCase('es').includes(q)),
+    );
+    const rfmOrder = ['champions', 'loyal', 'cant_lose', 'at_risk', 'potential_loyal', 'new', 'promising', 'need_attention', 'about_to_sleep', 'hibernating', 'lost'];
+    return FAMILIES.map((family) => {
+        const items = visible.filter((s) => familyOf(s) === family);
+        items.sort((a, b) =>
+            family === 'rfm' ? rfmOrder.indexOf((a.system_key ?? '').slice(4)) - rfmOrder.indexOf((b.system_key ?? '').slice(4)) : a.name.localeCompare(b.name, 'es'),
+        );
+        return { family, items };
+    });
+}
+
+/**
+ * Clientes → Grupos de clientes (modulos.md M04): cada grupo explicado en palabras, con su tamaño, su tendencia, a
+ * cuántos se les puede escribir y las acciones directas (enviar una campaña, crear una automatización). Primero los
+ * propios; después los listos para el negocio (de servicios, de compras RFM y de la biblioteca de la tienda).
+ */
 export function SegmentsPage() {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const canManage = useCan('manageMarketing');
+    const business = useBusiness();
     const segments = useSegments(workspace.id);
     const [query, setQuery] = useState('');
     const [dialog, setDialog] = useState<'library' | 'static' | null>(null);
+    const [using, setUsing] = useState<{ segment: SegmentSummary; mode: 'campaign' | 'flow' } | null>(null);
 
     // «/» enfoca la búsqueda.
     useEffect(() => {
@@ -65,27 +92,35 @@ export function SegmentsPage() {
         if (systemKey === null || list === undefined) return;
         const target = list.find((s) => s.system_key === systemKey);
         if (target) void navigate(`/w/${workspace.id}/segmentos/${target.id}`, { replace: true });
-        else setParams((p) => { p.delete('system'); return p; }, { replace: true });
+        else
+            setParams(
+                (p) => {
+                    p.delete('system');
+                    return p;
+                },
+                { replace: true },
+            );
     }, [systemKey, list, navigate, setParams, workspace.id]);
-    const groups = useMemo(() => {
-        const q = query.trim().toLocaleLowerCase('es');
-        const filtered = (list ?? []).filter((s) => q === '' || s.name.toLocaleLowerCase('es').includes(q) || (s.folder ?? '').toLocaleLowerCase('es').includes(q));
-        return groupByFolder(filtered);
-    }, [list, query]);
+
+    const families = useMemo(() => groupsByFamily(list ?? [], business.store, business.services, query), [list, business.store, business.services, query]);
     const folders = useMemo(() => [...new Set((list ?? []).map((s) => s.folder).filter((f): f is string => f !== null))], [list]);
     const custom = (list ?? []).filter((s) => !s.is_system).length;
+    const shown = families.reduce((n, f) => n + f.items.length, 0);
+    const onUse = canManage ? (segment: SegmentSummary) => (mode: 'campaign' | 'flow') => setUsing({ segment, mode }) : null;
 
     return (
         <div>
             <PageHeader
                 title={t('segments.title')}
-                description={t('segments.description')}
+                description={t(business.servicesOnly ? 'segments.list.descriptionServices' : 'segments.list.descriptionStore')}
                 actions={
                     <>
-                        <Button variant="outline" onClick={() => setDialog('library')}>
-                            <Library />
-                            {t('segments.library.action')}
-                        </Button>
+                        {business.store ? (
+                            <Button variant="outline" onClick={() => setDialog('library')}>
+                                <Library />
+                                {t('segments.library.action')}
+                            </Button>
+                        ) : null}
                         {canManage ? (
                             <>
                                 <Button variant="outline" onClick={() => setDialog('static')}>
@@ -95,7 +130,7 @@ export function SegmentsPage() {
                                 <Button asChild>
                                     <Link to="nuevo">
                                         <Plus />
-                                        {t('segments.new')}
+                                        {t('segments.list.create')}
                                     </Link>
                                 </Button>
                             </>
@@ -104,105 +139,87 @@ export function SegmentsPage() {
                 }
             />
 
-            <div className="igr:mb-4 igr:flex igr:items-center igr:gap-2">
-                <div className="igr:relative igr:max-w-sm igr:flex-1">
-                    <Search className="igr:absolute igr:left-2.5 igr:top-2 igr:size-4 igr:text-muted-foreground" />
-                    <Input id="segments-search" className="igr:pl-8" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('segments.search')} aria-label={t('segments.search')} />
-                    <Kbd className="igr:absolute igr:right-2 igr:top-1.5">/</Kbd>
-                </div>
+            <div className="igr:relative igr:mb-6 igr:max-w-md">
+                <Search className="igr:pointer-events-none igr:absolute igr:top-2.5 igr:left-3 igr:size-4 igr:text-muted-foreground" aria-hidden />
+                <Input
+                    id="segments-search"
+                    type="search"
+                    className="igr:pr-9 igr:pl-9"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder={t('segments.list.search')}
+                    aria-label={t('segments.list.search')}
+                />
+                <Kbd className="igr:absolute igr:top-2 igr:right-2 igr:max-sm:hidden">/</Kbd>
             </div>
 
             {segments.isPending ? (
-                <div className="igr:space-y-3">
-                    <Skeleton className="igr:h-40" />
-                    <Skeleton className="igr:h-40" />
+                <div className="igr:grid igr:gap-3 igr:md:grid-cols-2 igr:xl:grid-cols-3" aria-busy>
+                    {[0, 1, 2, 3, 4, 5].map((i) => (
+                        <Skeleton key={i} className="igr:h-52 igr:rounded-xl" />
+                    ))}
                 </div>
             ) : segments.isError ? (
                 <ErrorState error={segments.error} onRetry={() => void segments.refetch()} />
             ) : (
-                <div className="igr:space-y-5">
-                    {custom === 0 && query === '' ? (
-                        <EmptyState
-                            icon={Shapes}
-                            title={t('segments.empty.title')}
-                            description={t('segments.empty.description')}
-                            action={
-                                canManage ? (
-                                    <Button asChild>
-                                        <Link to="nuevo">
-                                            <Plus />
-                                            {t('segments.empty.action')}
-                                        </Link>
-                                    </Button>
-                                ) : undefined
-                            }
-                        />
+                <div className="igr:space-y-8">
+                    {query !== '' && shown === 0 ? (
+                        <EmptyState illustration="search" size="compact" title={t('segments.noMatches')} description={t('segments.list.noMatchesHelp')} />
                     ) : null}
-                    {groups.length === 0 ? <p className="igr:py-8 igr:text-center igr:text-[13px] igr:text-muted-foreground">{t('segments.noMatches')}</p> : null}
-                    {groups.map((g) => (
-                        <section key={g.folder ?? '—'}>
-                            <h2 className="igr:mb-2 igr:flex igr:items-center igr:gap-1.5 igr:text-xs igr:font-medium igr:uppercase igr:tracking-wide igr:text-muted-foreground">
-                                <FolderClosed className="igr:size-3.5" />
-                                {g.folder ?? t('segments.noFolder')}
-                                <span className="igr:font-normal">· {g.items.length}</span>
-                            </h2>
-                            <Card>
-                                <SegmentTable items={g.items} />
-                            </Card>
-                        </section>
-                    ))}
+                    {custom === 0 && query === '' && canManage ? (
+                        // Sin grupos propios la página no está vacía (están los listos): una invitación corta arriba.
+                        <Callout
+                            tone="brand"
+                            title={t('segments.list.emptyTitle')}
+                            action={
+                                <Button asChild size="sm">
+                                    <Link to="nuevo">
+                                        <Plus />
+                                        {t('segments.list.create')}
+                                    </Link>
+                                </Button>
+                            }
+                        >
+                            {t(business.servicesOnly ? 'segments.list.emptyServices' : 'segments.list.emptyStore')}
+                        </Callout>
+                    ) : null}
+                    {families.map(({ family, items }) =>
+                        items.length > 0 ? (
+                            <Family key={family} family={family} count={items.length}>
+                                <Grid>
+                                    {items.map((s) => (
+                                        <SegmentCard key={s.id} segment={s} showValue={business.store} onUse={onUse ? onUse(s) : null} />
+                                    ))}
+                                </Grid>
+                            </Family>
+                        ) : null,
+                    )}
                 </div>
             )}
 
             <LibraryDialog open={dialog === 'library'} onClose={() => setDialog(null)} />
             {dialog === 'static' ? <StaticSegmentDialog open onClose={() => setDialog(null)} folders={folders} /> : null}
+            {using ? <UseGroupDialog segment={using.segment} mode={using.mode} onClose={() => setUsing(null)} /> : null}
         </div>
     );
 }
 
-/** Un segmento dinámico que todavía no se calcula: sus cifras aún no existen. */
-const pending = (s: { last_computed_at: string | null; kind: string }) => s.last_computed_at === null && s.kind === 'dynamic';
-
-function SegmentTable({ items }: { items: SegmentSummary[] }) {
+function Family({ family, count, children }: { family: GroupFamily; count: number; children: ReactNode }) {
     const { t } = useTranslation();
-    const { workspace } = useWorkspace();
     return (
-        <Table className="igr:table-fixed">
-            <THead>
-                <TR className="igr:hover:bg-transparent">
-                    <TH className="igr:w-[38%]">{t('segments.columns.name')}</TH>
-                    <TH className="igr:text-right">{t('segments.columns.members')}</TH>
-                    <TH className="igr:text-right">{t('segments.columns.whatsapp')}</TH>
-                    <TH className="igr:text-right">{t('segments.columns.email')}</TH>
-                    <TH className="igr:text-right">{t('segments.columns.value')}</TH>
-                    <TH className="igr:text-right">{t('segments.columns.updated')}</TH>
-                </TR>
-            </THead>
-            <TBody>
-                {items.map((s) => (
-                    <TR key={s.id}>
-                        <TD>
-                            <Link to={s.id} className="igr:flex igr:items-center igr:gap-2 igr:font-medium igr:hover:underline">
-                                <span className="igr:truncate">{s.name}</span>
-                                {s.is_system ? (
-                                    <Badge variant="secondary" title={t('segments.badges.systemHelp')}>
-                                        <Lock className="igr:size-3" />
-                                        {t('segments.badges.system')}
-                                    </Badge>
-                                ) : null}
-                                {s.kind === 'static' ? <Badge variant="outline">{t('segments.badges.static')}</Badge> : null}
-                            </Link>
-                            {s.description ? <p className="igr:truncate igr:text-xs igr:text-muted-foreground">{s.description}</p> : null}
-                        </TD>
-                        <TD className="igr:text-right igr:font-medium igr:tabular-nums">{pending(s) ? <span className="igr:text-xs igr:font-normal igr:text-muted-foreground">{t('segments.computing')}</span> : formatNumber(s.member_count, workspace.locale)}</TD>
-                        {/* Mientras se calcula por primera vez, nada de ceros que parecen datos (U6). */}
-                        <TD className="igr:text-right igr:tabular-nums igr:text-muted-foreground">{pending(s) ? '—' : formatNumber(s.channel_counts.whatsapp ?? 0, workspace.locale)}</TD>
-                        <TD className="igr:text-right igr:tabular-nums igr:text-muted-foreground">{pending(s) ? '—' : formatNumber(s.channel_counts.email ?? 0, workspace.locale)}</TD>
-                        <TD className="igr:text-right igr:tabular-nums">{pending(s) ? <span className="igr:text-muted-foreground">—</span> : formatMoney(s.revenue_ws, workspace.currency, workspace.locale)}</TD>
-                        <TD className="igr:text-right igr:text-xs igr:text-muted-foreground">{s.last_computed_at ? formatRelative(s.last_computed_at, workspace.locale) : '—'}</TD>
-                    </TR>
-                ))}
-            </TBody>
-        </Table>
+        <section aria-labelledby={`grupos-${family}`}>
+            <div className="igr:mb-3">
+                <h2 id={`grupos-${family}`} className="igr:flex igr:items-center igr:gap-2 igr:text-section igr:font-semibold igr:tracking-tight">
+                    {t(`segments.families.${family}.title`)}
+                    {count > 0 ? <span className="igr:text-support igr:font-normal igr:text-muted-foreground igr:tabular-nums">{count}</span> : null}
+                </h2>
+                <p className="igr:mt-0.5 igr:max-w-3xl igr:text-support igr:text-muted-foreground">{t(`segments.families.${family}.description`)}</p>
+            </div>
+            {children}
+        </section>
     );
+}
+
+function Grid({ children }: { children: ReactNode }) {
+    return <div className="igr:grid igr:gap-3 igr:md:grid-cols-2 igr:xl:grid-cols-3">{children}</div>;
 }

@@ -1,12 +1,23 @@
 {
     "contacts": {
         "emptyDescription": "Aparecen cuando conectas tu tienda y llegan los clientes y los pedidos. También puedes importar una lista en CSV.",
-        "noResults": "Ningún contacto coincide",
-        "noResultsHelp": "Revisa los filtros o busca con el correo completo o el teléfono.",
+        "noResults": "Nadie coincide con lo que buscas",
+        "noResultsHelp": "Prueba con el correo completo, el teléfono o el comienzo del nombre, o quita algún filtro.",
         "columns": {
             "rfm": "Segmento RFM",
             "hdyhau": "Cómo nos conoció",
-            "tags": "Etiquetas"
+            "tags": "Etiquetas",
+            "person": "Persona",
+            "group": "Grupo",
+            "orders": "Compras",
+            "revenue": "Total comprado",
+            "lastOrder": "Última compra",
+            "channels": "Puede recibir",
+            "city": "Ciudad",
+            "lead": "En qué va",
+            "temperature": "Temperatura",
+            "value": "Valor",
+            "nextAppointment": "Próxima cita"
         },
         "errors": {
             "forbidden": "Tu rol no permite hacer esto."
@@ -33,7 +44,8 @@
             "last_order": "Última compra",
             "revenue": "Mayor valor",
             "orders": "Más pedidos",
-            "created": "Más nuevos"
+            "created": "Más nuevos",
+            "lead_score": "Más interesados"
         },
         "rfm": {
             "champions": "Campeones",
@@ -84,20 +96,28 @@
             "direct": "Directo"
         },
         "actions": {
-            "menu": "Acciones",
+            "menu": "Más acciones",
             "merge": "Fusionar con otro contacto",
             "export": "Exportar sus datos",
-            "delete": "Borrar contacto"
+            "delete": "Borrar contacto",
+            "write": "Escribir por {{channel}}",
+            "writeWhatsapp": "Escribir por WhatsApp",
+            "book": "Agendar cita",
+            "createLead": "Crear lead",
+            "addToGroup": "Agregar a un grupo"
         },
         "tabs": {
             "resumen": "Resumen",
-            "pedidos": "Pedidos",
+            "pedidos": "Compras",
             "productos": "Productos",
             "mensajes": "Mensajes",
-            "fidelizacion": "Fidelización",
+            "fidelizacion": "Puntos",
             "datos": "Datos",
-            "identidades": "Identidades",
-            "privacidad": "Privacidad"
+            "identidades": "Dispositivos",
+            "privacidad": "Privacidad",
+            "citas": "Citas y cotizaciones",
+            "actividad": "Actividad",
+            "notas": "Notas"
         },
         "profile": {
             "notFound": "No encontramos este contacto",
@@ -157,7 +177,8 @@
                 "merged": "Perfiles unidos",
                 "mergedCount_one": "{{count}} perfil fusionado en este",
                 "mergedCount_other": "{{count}} perfiles fusionados en este"
-            }
+            },
+            "aside": "Resumen, notas y actividad"
         },
         "timeline": {
             "title": "Actividad",
@@ -167,14 +188,15 @@
                 "navegacion": "Navegación",
                 "carrito": "Carrito",
                 "pedidos": "Pedidos",
-                "fidelizacion": "Fidelización y referidos",
-                "cuenta": "Cuenta y formularios",
+                "fidelizacion": "Puntos y referidos",
+                "cuenta": "Formularios",
                 "sitio": "En el sitio",
-                "mensajes": "Mensajes y flujos",
+                "mensajes": "Mensajes",
                 "resenas": "Reseñas",
                 "encuestas": "Encuestas",
                 "consentimiento": "Consentimiento",
-                "segmentos": "Segmentos"
+                "segmentos": "Grupos",
+                "servicios": "Citas y procesos"
             },
             "empty": "Sin actividad con estos filtros",
             "emptyHelp": "Aquí aparece todo lo que hace en tu sitio y tu tienda, del más reciente al más antiguo.",
@@ -220,7 +242,8 @@
                 "back_in_stock": "cuando vuelva",
                 "price_drop": "si baja de precio"
             },
-            "flow": "Flujo «{{name}}»"
+            "flow": "Flujo «{{name}}»",
+            "emptyAll": "Todavía no hay actividad"
         },
         "events": {
             "page_viewed": "Vio una página",
@@ -280,7 +303,19 @@
             "flow_exited": "Salió de un flujo",
             "review_requested": "Se le pidió una reseña",
             "review_collected": "Dejó una reseña",
-            "nps_answered": "Respondió la encuesta NPS"
+            "nps_answered": "Respondió la encuesta NPS",
+            "lead_created": "Llegó como lead",
+            "lead_stage_changed": "Avanzó en su proceso",
+            "lead_won": "Se ganó el proceso",
+            "lead_lost": "No continuó",
+            "appointment_booked": "Agendó una cita",
+            "appointment_confirmed": "Confirmó su cita",
+            "appointment_rescheduled": "Reprogramó su cita",
+            "appointment_cancelled": "Canceló su cita",
+            "appointment_completed": "Asistió a su cita",
+            "appointment_no_show": "No asistió a su cita",
+            "quote_requested": "Pidió una cotización",
+            "quote_sent": "Le enviaron una cotización"
         },
         "notes": {
             "title": "Notas internas",
@@ -581,6 +616,199 @@
                 "siteRequired": "Elige el sitio cuyo historial importaste.",
                 "declare": "Declarar"
             }
-        }
+        },
+        "terms": {
+            "client": "cliente",
+            "clients": "clientes"
+        },
+        "list": {
+            "descriptionStore": "Cada persona que te compró o te dejó sus datos: cuánto te ha comprado, en qué grupo está y por dónde puedes escribirle.",
+            "descriptionServices": "Cada uno de tus {{many}}: en qué va su proceso, su próxima cita y por dónde puedes escribirle.",
+            "import": "Importar contactos",
+            "filters": "Filtros",
+            "quickLabel": "Filtros rápidos",
+            "removeFilter": "Quitar el filtro {{name}}",
+            "range": "{{from}}–{{to}} de {{total}}",
+            "noLead": "Sin proceso abierto",
+            "noPurchases": "Sin compras",
+            "purchasesSummary_one": "{{count}} compra · {{total}}",
+            "purchasesSummary_other": "{{count}} compras · {{total}}",
+            "consentOn": "Acepta mensajes por {{channel}}",
+            "consentOff": "Sin permiso para {{channel}}"
+        },
+        "quick": {
+            "all": "Todos",
+            "buyers": "Compraron",
+            "nonBuyers": "No han comprado",
+            "whatsapp": "Con WhatsApp",
+            "email": "Con correo",
+            "atRisk": "En riesgo de irse",
+            "hot": "Calientes",
+            "warm": "Tibios"
+        },
+        "temperature": {
+            "hot": "Caliente",
+            "warm": "Tibio",
+            "cold": "Frío"
+        },
+        "filtersPanel": {
+            "title": "Filtrar personas",
+            "description": "Cada filtro se aplica al momento. Combínalos para encontrar a quién escribirle.",
+            "segment": "Grupo de clientes",
+            "anySegment": "Cualquier grupo",
+            "consent": "Puede recibir mensajes por",
+            "consentHelp": "Solo quienes aceptaron mensajes de marketing por ese canal.",
+            "anyConsent": "Cualquier canal",
+            "temperature": "Temperatura del interés",
+            "temperatureHelp": "Qué tan cerca está de contratar, según lo que ha hecho y escrito.",
+            "anyTemperature": "Cualquier temperatura",
+            "rfm": "Grupo según sus compras",
+            "rfmHelp": "Se calcula cada noche con qué tan reciente, seguido y cuánto compra.",
+            "cityPlaceholder": "Ej.: Manizales",
+            "stage": "Etapa",
+            "tagPlaceholder": "Ej.: mayorista",
+            "done": "Ver resultados",
+            "see_one": "Ver {{formatted}} persona",
+            "see_other": "Ver {{formatted}} personas"
+        },
+        "bulk": {
+            "label": "Acciones con las personas elegidas",
+            "selectPage": "Elegir todas las de esta página",
+            "selectRow": "Elegir a {{name}}",
+            "selected_one": "{{formatted}} elegida",
+            "selected_other": "{{formatted}} elegidas",
+            "selectAll_one": "Elegir la {{formatted}} que cumple los filtros",
+            "selectAll_other": "Elegir las {{formatted}} que cumplen los filtros",
+            "addToGroup": "Agregar a un grupo",
+            "export": "Exportar",
+            "exporting": "Tu archivo se está descargando.",
+            "clear": "Quitar la selección"
+        },
+        "group": {
+            "title": "Agregar a un grupo de clientes",
+            "description_one": "{{formatted}} persona entrará al grupo. Después puedes enviarle una campaña o una automatización.",
+            "description_other": "{{formatted}} personas entrarán al grupo. Después puedes enviarles una campaña o una automatización.",
+            "where": "A qué grupo",
+            "new": "Un grupo nuevo",
+            "existing": "Un grupo que ya tienes",
+            "noStatic": "Todavía no tienes grupos armados a mano: crea uno nuevo.",
+            "name": "Nombre del grupo",
+            "namePlaceholder": "Ej.: Para llamar esta semana",
+            "pick": "Elige el grupo",
+            "staticHelp": "Aquí están los grupos que armas a mano. Los que se arman solos con condiciones no se tocan.",
+            "submit_one": "Agregar {{formatted}} persona",
+            "submit_other": "Agregar {{formatted}} personas",
+            "done_one": "{{formatted}} persona entró a «{{name}}».",
+            "done_other": "{{formatted}} personas entraron a «{{name}}»."
+        },
+        "empty": {
+            "title": "Aquí verás a cada uno de tus {{many}}",
+            "descriptionStore": "Cuando conectas tu tienda llegan tus clientes con todo lo que han comprado. También puedes importar una lista que ya tengas.",
+            "descriptionServices": "Llegan solos cuando alguien llena un formulario de tu web, te escribe por WhatsApp o agenda una cita. También puedes importar una lista que ya tengas.",
+            "connect": "Conectar tu web",
+            "step1": "Conecta tu web con el plugin (o importa un archivo).",
+            "step2": "Llegan tus {{many}} con su historia: qué vieron, qué pidieron y por dónde escribirles.",
+            "step3": "Agrúpalos y escríbeles en el momento justo, con su permiso."
+        },
+        "header": {
+            "value": "Su valor",
+            "valueOrders_one": "en {{formatted}} compra",
+            "valueOrders_other": "en {{formatted}} compras",
+            "noOrders": "Todavía no ha comprado",
+            "predicted": "esperado en 12 meses: {{value}}",
+            "group": "Su grupo",
+            "noGroup": "Sin grupo todavía",
+            "noGroupHelp": "Entra a un grupo con su primera compra; se calcula cada noche.",
+            "outlook": "Lo que viene",
+            "nextOn": "Es probable que vuelva a comprar hacia el {{date}}",
+            "nextHelp": "Según su ritmo de compra: un buen momento para escribirle unos días antes.",
+            "risk": {
+                "high": "Riesgo alto de que no vuelva",
+                "medium": "Riesgo medio de que no vuelva",
+                "low": "Es probable que siga comprando"
+            },
+            "riskHelp": {
+                "high": "Ya pasó más tiempo del normal sin comprar. Escríbele con algo que le sirva.",
+                "medium": "Se está demorando un poco más de lo usual en volver.",
+                "low": "Compra a buen ritmo: cuídalo sin llenarlo de descuentos."
+            },
+            "firstPurchase": "Todavía no ha comprado",
+            "firstPurchaseHelp": "Un mensaje de bienvenida con un beneficio ayuda a la primera compra.",
+            "unknown": "Todavía no podemos predecirlo",
+            "origin": "Cómo llegó",
+            "originUnknown": "No lo sabemos todavía",
+            "since": "desde el {{date}}",
+            "process": "En qué va",
+            "noProcess": "Sin proceso abierto",
+            "noProcessHelp": "Crea un lead para hacerle seguimiento hasta que contrate.",
+            "noService": "Sin servicio definido",
+            "nextStep": "siguiente paso: {{step}}",
+            "valueServicesHelp": "Lo que ya te pagó (procesos ganados) o lo que vale su proceso abierto si se cierra.",
+            "wonValue": "en procesos ganados",
+            "openValue": "si se cierra su proceso abierto",
+            "noValue": "Pon el valor en su lead para verlo aquí.",
+            "appointment": "Próxima cita",
+            "noAppointment": "Sin cita agendada",
+            "noAppointmentHelp": "Agéndale una desde aquí o comparte tu página de reservas.",
+            "attended_one": "Ha asistido a {{count}} cita",
+            "attended_other": "Ha asistido a {{count}} citas",
+            "noShows_one": "No asistió a {{count}} cita",
+            "noShows_other": "No asistió a {{count}} citas",
+            "canReceive": "Puede recibir"
+        },
+        "appointmentStatus": {
+            "booked": "Pendiente",
+            "confirmed": "Confirmada",
+            "rescheduled": "Reprogramada",
+            "cancelled": "Cancelada",
+            "completed": "Asistió",
+            "no_show": "No asistió"
+        },
+        "services": {
+            "leads": "Procesos",
+            "noLeads": "Todavía no tiene un proceso abierto. Crea un lead para hacerle seguimiento.",
+            "appointments": "Citas",
+            "noAppointments": "Todavía no ha agendado citas.",
+            "quotes": "Cotizaciones",
+            "noQuotes": "Todavía no ha pedido una cotización.",
+            "quote": "Cotización",
+            "since": "desde el {{date}}",
+            "with": "con {{name}}",
+            "lostReason": "no continuó: {{reason}}",
+            "origin": {
+                "form": "Formulario de tu web",
+                "whatsapp": "WhatsApp",
+                "messenger": "Messenger",
+                "instagram": "Instagram",
+                "quote": "Cotizador",
+                "booking": "Agenda",
+                "manual": "Creado a mano",
+                "api": "Integración",
+                "landing": "Página de captura",
+                "meta_lead_ads": "Formulario de Facebook o Instagram",
+                "google_lead_form": "Formulario de Google Ads"
+            },
+            "kpi": {
+                "won": "Valor ganado",
+                "wonHelp": "La suma de sus procesos ganados.",
+                "attended": "Citas cumplidas",
+                "noShow": "No asistió",
+                "quotes": "Cotizaciones"
+            }
+        },
+        "rfmHelp": {
+            "champions": "Compran seguido, compraron hace poco y son los que más gastan.",
+            "loyal": "Vuelven con frecuencia y responden bien a tus mensajes.",
+            "cant_lose": "Compraban mucho y hace rato no vuelven: vale la pena un contacto personal.",
+            "at_risk": "Eran buenos clientes y se están alejando.",
+            "potential_loyal": "Compraron hace poco y más de una vez: pueden volverse fieles.",
+            "new": "Hicieron su primera compra hace poco.",
+            "promising": "Compraron hace poco, una sola vez: falta la segunda compra.",
+            "need_attention": "Compran de vez en cuando; un empujón los mantiene.",
+            "about_to_sleep": "Hace un tiempo que no compran y compraban poco.",
+            "hibernating": "Compraron un par de veces y hace mucho no vuelven.",
+            "lost": "Compraron una vez hace mucho: casi perdidos."
+        },
+        "search": "Nombre, correo o teléfono"
     }
 }
