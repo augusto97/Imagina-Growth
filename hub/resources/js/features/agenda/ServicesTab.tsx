@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EmptyState } from '@/components/ui/misc';
@@ -23,12 +23,13 @@ export function ServicesTab({ data }: { data: BookingOverview }) {
     const { workspace } = useWorkspace();
     const { deleteService } = useAgendaMutations(workspace.id);
     const [editing, setEditing] = useState<Service | 'new' | null>(null);
+    const [removing, setRemoving] = useState<Service | null>(null);
     const staffName = (id: string) => data.staff.find((s) => s.id === id)?.name ?? '—';
 
     return (
         <div className="igr:space-y-3">
-            <div className="igr:flex igr:items-center igr:justify-between">
-                <p className="igr:text-[13px] igr:text-muted-foreground">{t('agenda.services.help')}</p>
+            <div className="igr:flex igr:flex-wrap igr:items-center igr:justify-between igr:gap-2">
+                <p className="igr:text-support igr:text-muted-foreground">{t('agenda.services.help')}</p>
                 {data.can_manage ? (
                     <Button size="sm" onClick={() => setEditing('new')}>
                         <Plus />
@@ -76,25 +77,7 @@ export function ServicesTab({ data }: { data: BookingOverview }) {
                                             <Button variant="ghost" size="icon" aria-label={t('agenda.edit')} onClick={() => setEditing(s)}>
                                                 <Pencil />
                                             </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                aria-label={t('agenda.services.delete')}
-                                                onClick={() => {
-                                                    if (
-                                                        window.confirm(
-                                                            t('agenda.services.deleteConfirm', {
-                                                                name: s.name,
-                                                            }),
-                                                        )
-                                                    ) {
-                                                        deleteService.mutate(s.id, {
-                                                            onSuccess: () => toast.success(t('agenda.services.deleted')),
-                                                            onError: (e) => toast.error(errorMessage(e, t)),
-                                                        });
-                                                    }
-                                                }}
-                                            >
+                                            <Button variant="ghost" size="icon" aria-label={t('agenda.services.delete')} onClick={() => setRemoving(s)}>
                                                 <Trash2 />
                                             </Button>
                                         </div>
@@ -106,6 +89,36 @@ export function ServicesTab({ data }: { data: BookingOverview }) {
                 </Table>
             )}
             {editing !== null ? <ServiceDialog data={data} service={editing === 'new' ? null : editing} onClose={() => setEditing(null)} /> : null}
+            {removing !== null ? (
+                <Dialog open onOpenChange={(open) => (!open ? setRemoving(null) : undefined)}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{t('agenda.services.deleteTitle', { name: removing.name })}</DialogTitle>
+                            <DialogDescription>{t('agenda.services.deleteHelp')}</DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setRemoving(null)}>
+                                {t('common.cancel')}
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                loading={deleteService.isPending}
+                                onClick={() =>
+                                    deleteService.mutate(removing.id, {
+                                        onSuccess: () => {
+                                            toast.success(t('agenda.services.deleted'));
+                                            setRemoving(null);
+                                        },
+                                        onError: (e) => toast.error(errorMessage(e, t)),
+                                    })
+                                }
+                            >
+                                {t('agenda.services.deleteConfirm')}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            ) : null}
         </div>
     );
 }
@@ -149,7 +162,7 @@ function ServiceDialog({ data, service, onClose }: { data: BookingOverview; serv
 
     return (
         <Dialog open onOpenChange={(o) => !o && onClose()}>
-            <DialogContent className="igr:max-w-lg">
+            <DialogContent className="igr:top-[6dvh] igr:max-h-[88dvh] igr:max-w-lg igr:overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{service ? t('agenda.services.edit') : t('agenda.services.new')}</DialogTitle>
                 </DialogHeader>
@@ -165,10 +178,6 @@ function ServiceDialog({ data, service, onClose }: { data: BookingOverview; serv
                     <div>
                         <Label htmlFor="svc-duration">{t('agenda.services.durationLabel')}</Label>
                         <Input id="svc-duration" type="number" min={5} max={600} step={5} className="igr:mt-1" value={form.duration_min} onChange={(e) => set('duration_min', num(e.target.value))} />
-                    </div>
-                    <div>
-                        <Label htmlFor="svc-buffer">{t('agenda.services.buffer')}</Label>
-                        <Input id="svc-buffer" type="number" min={0} max={240} step={5} className="igr:mt-1" value={form.buffer_min} onChange={(e) => set('buffer_min', num(e.target.value))} />
                     </div>
                     <div>
                         <Label htmlFor="svc-price">
@@ -196,14 +205,25 @@ function ServiceDialog({ data, service, onClose }: { data: BookingOverview; serv
                             ))}
                         </Select>
                     </div>
-                    <div>
-                        <Label htmlFor="svc-notice">{t('agenda.services.notice')}</Label>
-                        <Input id="svc-notice" type="number" min={0} max={720} className="igr:mt-1" value={form.min_notice_hours} onChange={(e) => set('min_notice_hours', num(e.target.value))} />
-                    </div>
-                    <div>
-                        <Label htmlFor="svc-ahead">{t('agenda.services.ahead')}</Label>
-                        <Input id="svc-ahead" type="number" min={1} max={365} className="igr:mt-1" value={form.max_days_ahead} onChange={(e) => set('max_days_ahead', num(e.target.value))} />
-                    </div>
+                    <details className="igr:group igr:rounded-lg igr:border igr:px-3 igr:py-2 igr:sm:col-span-2">
+                        <summary className="igr:cursor-pointer igr:text-[13px] igr:font-medium igr:text-muted-foreground igr:outline-none igr:hover:text-foreground igr:focus-visible:underline">
+                            {t('agenda.services.advanced')}
+                        </summary>
+                        <div className="igr:mt-3 igr:grid igr:gap-3 igr:sm:grid-cols-3">
+                            <div>
+                                <Label htmlFor="svc-buffer">{t('agenda.services.buffer')}</Label>
+                                <Input id="svc-buffer" type="number" min={0} max={240} step={5} className="igr:mt-1" value={form.buffer_min} onChange={(e) => set('buffer_min', num(e.target.value))} />
+                            </div>
+                            <div>
+                                <Label htmlFor="svc-notice">{t('agenda.services.notice')}</Label>
+                                <Input id="svc-notice" type="number" min={0} max={720} className="igr:mt-1" value={form.min_notice_hours} onChange={(e) => set('min_notice_hours', num(e.target.value))} />
+                            </div>
+                            <div>
+                                <Label htmlFor="svc-ahead">{t('agenda.services.ahead')}</Label>
+                                <Input id="svc-ahead" type="number" min={1} max={365} className="igr:mt-1" value={form.max_days_ahead} onChange={(e) => set('max_days_ahead', num(e.target.value))} />
+                            </div>
+                        </div>
+                    </details>
                     {data.staff.length > 0 ? (
                         <fieldset className="igr:sm:col-span-2">
                             <legend className="igr:text-[13px] igr:font-medium">{t('agenda.services.whoAttends')}</legend>
@@ -234,7 +254,7 @@ function ServiceDialog({ data, service, onClose }: { data: BookingOverview; serv
                         {t('common.cancel')}
                     </Button>
                     <Button onClick={submit} loading={saveService.isPending} disabled={form.name.trim() === ''}>
-                        {t('common.save')}
+                        {service ? t('agenda.services.saveExisting') : t('agenda.services.create')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

@@ -1,12 +1,14 @@
-import { CalendarDays, ExternalLink } from 'lucide-react';
+import { CalendarCheck, CalendarClock, CalendarDays, ExternalLink, UserX } from 'lucide-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Callout } from '@/components/ui/callout';
 import { ErrorState, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatCard, StatCardSkeleton, StatGrid } from '@/components/ui/stat-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PHONE_QUERY, useMedia } from '@/hooks/useMedia';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { toast } from '@/stores/toast';
 import { useBookingMetrics, useBookings } from './api';
@@ -23,6 +25,8 @@ export function AgendaPage() {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const bookings = useBookings(workspace.id);
+    // En el celular las métricas van en dos columnas: sin el ícono, el nombre cabe entero.
+    const phone = useMedia(PHONE_QUERY);
     const metrics = useBookingMetrics(workspace.id);
     const [params, setParams] = useSearchParams();
     const raw = params.get('pestana');
@@ -74,70 +78,82 @@ export function AgendaPage() {
         return (
             <>
                 {header}
-                <div className="igr:grid igr:gap-3 igr:md:grid-cols-4">
+                <StatGrid>
                     {[0, 1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="igr:h-20" />
+                        <StatCardSkeleton key={i} />
                     ))}
-                </div>
-                <Skeleton className="igr:mt-4 igr:h-96" />
+                </StatGrid>
+                <Skeleton className="igr:mt-6 igr:h-96 igr:rounded-xl" />
             </>
         );
     }
     const data = bookings.data;
     const m = metrics.data;
     const kpis = [
-        { key: 'upcoming', value: m?.upcoming },
-        { key: 'booked', value: m?.booked },
-        { key: 'completed', value: m?.completed },
+        { key: 'upcoming', icon: CalendarClock, tone: 'teal' as const, value: m?.upcoming },
+        { key: 'booked', icon: CalendarDays, tone: 'sky' as const, value: m?.booked },
+        { key: 'completed', icon: CalendarCheck, tone: 'emerald' as const, value: m?.completed },
         {
             key: 'noShowRate',
+            icon: UserX,
+            tone: 'rose' as const,
             value: m ? (m.no_show_rate === null ? '—' : `${Math.round(m.no_show_rate * 100)} %`) : undefined,
         },
     ];
+    const bookFor = params.get('nueva');
 
     return (
         <>
             {header}
             {data.services.length === 0 ? (
-                <Card className="igr:mb-4">
-                    <CardContent className="igr:flex igr:items-center igr:gap-3 igr:p-4">
-                        <CalendarDays className="igr:size-5 igr:text-muted-foreground" />
-                        <div className="igr:flex-1 igr:text-[13px]">
-                            <p className="igr:font-medium">{t('agenda.setup.title')}</p>
-                            <p className="igr:text-muted-foreground">{t('agenda.setup.body')}</p>
-                        </div>
-                        {data.can_manage ? (
+                <Callout
+                    tone="brand"
+                    icon={CalendarDays}
+                    title={t('agenda.setup.title')}
+                    className="igr:mb-4"
+                    action={
+                        data.can_manage ? (
                             <Button size="sm" onClick={() => setTab('servicios')}>
                                 {t('agenda.setup.cta')}
                             </Button>
-                        ) : null}
-                    </CardContent>
-                </Card>
+                        ) : undefined
+                    }
+                >
+                    {t('agenda.setup.body')}
+                </Callout>
             ) : null}
-            <div className="igr:mb-4 igr:grid igr:grid-cols-2 igr:gap-3 igr:md:grid-cols-4">
+            <StatGrid className="igr:mb-6 igr:grid-cols-2">
                 {kpis.map((k) => (
-                    <Card key={k.key}>
-                        <CardContent className="igr:p-4">
-                            <p className="igr:text-xs igr:text-muted-foreground">
-                                {t(`agenda.kpi.${k.key}`, {
-                                    days: m?.days ?? 30,
-                                })}
-                            </p>
-                            <p className="igr:mt-1 igr:text-xl igr:font-semibold igr:tabular-nums">{k.value ?? '…'}</p>
-                        </CardContent>
-                    </Card>
+                    <StatCard
+                        key={k.key}
+                        icon={phone ? undefined : k.icon}
+                        tone={k.tone}
+                        label={t(`agenda.kpi.${k.key}`, { days: m?.days ?? 30 })}
+                        help={t(`agenda.kpiHelp.${k.key}`, { days: m?.days ?? 30 })}
+                        loading={m === undefined}
+                        value={k.value ?? '—'}
+                    />
                 ))}
-            </div>
+            </StatGrid>
             <Tabs value={tab} onValueChange={setTab}>
-                <TabsList className="igr:overflow-x-auto">
+                <TabsList>
                     {TABS.map((key) => (
-                        <TabsTrigger key={key} value={key} className="igr:shrink-0">
+                        <TabsTrigger key={key} value={key}>
                             {t(`agenda.tabs.${key}`)}
                         </TabsTrigger>
                     ))}
                 </TabsList>
                 <TabsContent value="calendario">
-                    <CalendarTab data={data} />
+                    <CalendarTab
+                        data={data}
+                        bookFor={bookFor}
+                        onBookClosed={() => {
+                            if (bookFor === null) return;
+                            const p = new URLSearchParams(params);
+                            p.delete('nueva');
+                            setParams(p, { replace: true });
+                        }}
+                    />
                 </TabsContent>
                 <TabsContent value="servicios">
                     <ServicesTab data={data} />

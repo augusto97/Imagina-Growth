@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { actionsFor, addDays, dayStartUtc, fromWeek, groupByDay, localDate, money, toWeek, viewRange, weekStart } from './model';
 import type { Appointment, AvailabilityRow } from './types';
+import { STATUS_FILTERS, statusGroup } from './CalendarTab';
 
 const appt = (over: Partial<Appointment>): Appointment => ({
     id: 'ap_1',
@@ -127,4 +128,13 @@ describe('editor de horario', () => {
 it('formatea precios en pesos sin decimales', () => {
     expect(money('80000.00', 'COP').replace(/\s/g, ' ')).toBe('$ 80.000');
     expect(money(null, 'COP')).toBe('—');
+});
+
+it('agrupa los estados como los ve el negocio: pendiente, confirmada, asistió, no asistió y cancelada', () => {
+    expect(statusGroup('booked')).toBe('pending');
+    expect(statusGroup('rescheduled')).toBe('pending');
+    expect(statusGroup('confirmed')).toBe('confirmed');
+    expect(statusGroup('completed')).toBe('completed');
+    expect(statusGroup('no_show')).toBe('no_show');
+    expect(STATUS_FILTERS).toEqual(['pending', 'confirmed', 'completed', 'no_show', 'cancelled']);
 });
