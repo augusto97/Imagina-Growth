@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Segments\Http;
 
+use App\Domain\Segments\Library\SegmentLibrary;
 use App\Domain\Segments\Models\Segment;
 
 final class SegmentPresenter
@@ -22,6 +23,8 @@ final class SegmentPresenter
             'kind' => $s->kind,
             'is_system' => $s->is_system,
             'system_key' => $s->system_key,
+            // Para quién es (los del sistema): la lista muestra solo los del tipo de negocio.
+            'audience' => SegmentLibrary::audienceOf($s->system_key),
             'member_count' => $s->member_count,
             'revenue_ws' => (string) $s->revenue_ws,
             'channel_counts' => $s->channel_counts ?? ['email' => 0, 'whatsapp' => 0],

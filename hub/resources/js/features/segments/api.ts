@@ -24,6 +24,34 @@ export function useSegments(ws: string) {
     return useQuery(segmentsQuery(ws));
 }
 
+/**
+ * «Usar este grupo»: una campaña de una vez (se crea con el canal y el grupo como audiencia y sigue en el paso del
+ * mensaje) o una automatización que arranca cuando alguien entra al grupo. Las dos quedan en borrador.
+ */
+export function useUseGroup(ws: string) {
+    const qc = useQueryClient();
+    return {
+        campaign: useMutation({
+            mutationFn: async ({ segmentId, name, channel }: { segmentId: string; name: string; channel: 'whatsapp' | 'email' }) => {
+                const created = await api.post<{ id: string }>(`${wsPath(ws)}/campaigns`, { name, channel });
+                await api.patch(`${wsPath(ws)}/campaigns/${encodeURIComponent(created.id)}`, {
+                    audience: { segments_include: [segmentId], segments_exclude: [], all_contacts: false, rules_include: [], rules_exclude: [] },
+                });
+                return created;
+            },
+            onSuccess: () => void qc.invalidateQueries({ queryKey: ['ws', ws, 'campaigns'] }),
+        }),
+        flow: useMutation({
+            mutationFn: async ({ segmentId, name }: { segmentId: string; name: string }) => {
+                const created = await api.post<{ id: string }>(`${wsPath(ws)}/flows`, { name });
+                await api.patch(`${wsPath(ws)}/flows/${encodeURIComponent(created.id)}`, { trigger: { type: 'segment', segment_id: segmentId, on: 'entered' } });
+                return created;
+            },
+            onSuccess: () => void qc.invalidateQueries({ queryKey: ['ws', ws, 'flows'] }),
+        }),
+    };
+}
+
 export function useSegment(ws: string, id: string | undefined) {
     return useQuery({
         queryKey: segmentKeys.one(ws, id ?? ''),

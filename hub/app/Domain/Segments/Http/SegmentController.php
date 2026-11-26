@@ -217,6 +217,7 @@ final class SegmentController
         return response()->json([
             'system' => array_map(fn (array $s) => [
                 'key' => $s['key'], 'name' => $s['name'], 'description' => $s['description'], 'folder' => $s['folder'],
+                'audience' => SegmentLibrary::audienceOf($s['key']),
                 'segment_id' => isset($existing[$s['key']]) ? 'sg_'.$existing[$s['key']] : null,
             ], SegmentLibrary::system()),
             'templates' => SegmentLibrary::templates(),

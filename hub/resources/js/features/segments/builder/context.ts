@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { Path } from '../ast';
-import type { SegmentOptions } from '../types';
+import type { ConditionType, SegmentOptions } from '../types';
 
 export interface BuilderContextValue {
     ws: string;
@@ -11,6 +11,8 @@ export interface BuilderContextValue {
     selfId?: string | undefined;
     currency: string;
     locale: string;
+    /** Los tipos de condición que se ofrecen (según el negocio); sin dar, todos. */
+    types?: ConditionType[];
 }
 
 export const BuilderContext = createContext<BuilderContextValue | null>(null);

@@ -5,10 +5,12 @@ import i18n from '@/lib/i18n';
 import texts from '@/locales/es-CO/segments.json';
 import { appendTo, countConditions, defaultCondition, emptyGroup, getAt, isComplete, prune, removeAt, updateAt } from './ast';
 import { BuilderContext, errorsFor, pathKey } from './builder/context';
-import { GroupEditor } from './builder/GroupEditor';
+import { conditionTypesFor, GroupEditor } from './builder/GroupEditor';
 import { extractContacts } from './dialogs';
 import { summarize } from './humanize';
-import { groupByFolder } from './SegmentsPage';
+import { explain, familyOf, trendTone } from './look';
+import { quickStarts } from './SegmentBuilderPage';
+import { groupByFolder, groupsByFamily } from './SegmentsPage';
 import type { ConditionType, Group, SegmentOptions, SegmentSummary } from './types';
 
 type Tree = { [key: string]: string | Tree };
@@ -154,9 +156,9 @@ describe('textos', () => {
             ],
         };
         expect(summarize(t, definition, { lost: 'Perdidos', sg_1: 'Clientes VIP', '12': 'Pinturas' })).toBe(
-            'Ciudad es Manizales, Pereira y Compró la categoría Pinturas al menos 2 veces · en los últimos 365 días y (Excepto (Segmento RFM es Perdidos o Está en «Clientes VIP»))',
+            'Ciudad es Manizales, Pereira y Compró la categoría Pinturas al menos 2 veces · en los últimos 365 días y (Excepto (Grupo según sus compras es Perdidos o Está en «Clientes VIP»))',
         );
-        expect(summarize(t, null)).toBe('Lista fija de contactos (no cambia sola).');
+        expect(summarize(t, null)).toBe('Lista fija de personas (no cambia sola).');
     });
 
     it('describe mensajería y fidelización', () => {
@@ -252,5 +254,71 @@ describe('constructor visual', () => {
         fireEvent.change(screen.getByRole('combobox', { name: 'Nivel VIP' }), { target: { value: 'tr_2' } });
         expect(ast()).toEqual({ type: 'loyalty', field: 'tier', operator: 'at_least', value: 'tr_2' });
         expect(isComplete(ast() as never)).toBe(true);
+    });
+});
+
+describe('grupos de clientes según el negocio', () => {
+    const seg = (over: Partial<SegmentSummary>): SegmentSummary => ({
+        id: 'sg_x',
+        name: 'X',
+        description: null,
+        folder: null,
+        kind: 'dynamic',
+        is_system: false,
+        system_key: null,
+        audience: null,
+        member_count: 0,
+        revenue_ws: '0',
+        channel_counts: {},
+        last_computed_at: null,
+        updated_at: null,
+        ...over,
+    });
+    const list = [
+        seg({ id: 'a', name: 'Mis VIP' }),
+        seg({ id: 'b', name: 'Leales', is_system: true, system_key: 'rfm_loyal', audience: 'store' }),
+        seg({ id: 'c', name: 'Campeones', is_system: true, system_key: 'rfm_champions', audience: 'store' }),
+        seg({ id: 'd', name: 'Con una cita próxima', is_system: true, system_key: 'appointment_upcoming', audience: 'services' }),
+        seg({ id: 'e', name: 'Nunca usan cupón', is_system: true, system_key: 'never_coupon', audience: 'store', folder: 'Descuentos' }),
+    ];
+
+    it('sin tienda no muestra los de compras; en una tienda, no los de servicios; los RFM van en su orden', () => {
+        const ids = (store: boolean, services: boolean) => groupsByFamily(list, store, services, '').map((f) => [f.family, f.items.map((s) => s.id)]);
+        expect(ids(false, true)).toEqual([
+            ['custom', ['a']],
+            ['services', ['d']],
+            ['rfm', []],
+            ['library', []],
+        ]);
+        expect(ids(true, false)).toEqual([
+            ['custom', ['a']],
+            ['services', []],
+            ['rfm', ['c', 'b']],
+            ['library', ['e']],
+        ]);
+        expect(groupsByFamily(list, true, true, 'cita').flatMap((f) => f.items.map((s) => s.id))).toEqual(['d']);
+    });
+
+    it('explica los RFM en palabras con qué hacer, y los demás con su descripción', () => {
+        void i18n.changeLanguage('es-CO');
+        const rfm = explain(t, list[2] as SegmentSummary);
+        expect(rfm.what).toMatch(/Compran seguido/);
+        expect(rfm.todo).toMatch(/reseñas/);
+        expect(explain(t, seg({ description: 'Hola' }))).toEqual({ what: 'Hola', todo: null });
+        expect(familyOf(list[3] as SegmentSummary)).toBe('services');
+        expect(trendTone(-3)).toBe('down');
+        expect(trendTone(null)).toBeNull();
+    });
+
+    it('ofrece las condiciones y los atajos del negocio', () => {
+        expect(conditionTypesFor(false, true)).not.toContain('purchase');
+        expect(conditionTypesFor(false, true)).toContain('service');
+        expect(conditionTypesFor(true, false)).not.toContain('lead');
+        expect(conditionTypesFor(true, true)).toHaveLength(11);
+        expect(quickStarts(false, true).map((q) => q.key)).toEqual(['leadHot', 'leadOpen', 'upcoming', 'city', 'whatsapp']);
+        expect(quickStarts(true, false).map((q) => q.key)).toEqual(['city', 'bought', 'viewed', 'cart', 'rfm']);
+        for (const q of [...quickStarts(false, true), ...quickStarts(true, true)]) {
+            expect(has(`segments.form.quick.${q.key}`), q.key).toBe(true);
+        }
     });
 });

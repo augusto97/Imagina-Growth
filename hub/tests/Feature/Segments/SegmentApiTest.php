@@ -32,8 +32,11 @@ function segDefinition(string $city): array
 it('cada espacio de trabajo nace con la biblioteca de segmentos del sistema', function () {
     $res = $this->actingAs($this->owner)->getJson($this->base)->assertOk();
     $keys = collect($res->json('data'))->pluck('system_key')->filter()->values();
-    expect($keys)->toHaveCount(17)->toContain('rfm_champions', 'rfm_lost', 'abandoned_cart_7d', 'discount_only');
-    $this->actingAs($this->owner)->getJson($this->base.'/library')->assertOk()->assertJsonCount(17, 'system')->assertJsonPath('templates.0.key', 'cross_sell_categories');
+    expect($keys)->toHaveCount(24)->toContain('rfm_champions', 'rfm_lost', 'abandoned_cart_7d', 'discount_only', 'leads_hot', 'appointment_upcoming');
+    $this->actingAs($this->owner)->getJson($this->base.'/library')->assertOk()->assertJsonCount(24, 'system')->assertJsonPath('templates.0.key', 'cross_sell_categories');
+    // Cada uno dice para qué negocio es: los de compras para tiendas, los de leads y citas para servicios.
+    $audience = collect($res->json('data'))->pluck('audience', 'system_key');
+    expect($audience['rfm_champions'])->toBe('store')->and($audience['abandoned_cart_7d'])->toBe('store')->and($audience['leads_hot'])->toBe('services');
 });
 
 it('vista previa: conteo, muestra enmascarada según el rol, canales y valor', function () {

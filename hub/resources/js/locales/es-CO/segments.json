@@ -2,20 +2,20 @@
     "segments": {
         "title": "Grupos de clientes",
         "description": "Agrupa a tus clientes por lo que hacen para hablarle a cada uno a su manera. Se actualizan solos.",
-        "new": "Nuevo segmento",
-        "search": "Buscar segmentos",
-        "noMatches": "Ningún segmento coincide con la búsqueda.",
+        "new": "Crear grupo",
+        "search": "Buscar grupos",
+        "noMatches": "Ningún grupo coincide con la búsqueda.",
         "noFolder": "Sin carpeta",
         "computing": "Calculando…",
-        "staticSummary": "Lista fija de contactos (no cambia sola).",
+        "staticSummary": "Lista fija de personas (no cambia sola).",
         "empty": {
-            "title": "Crea tu primer segmento",
-            "description": "Ya tienes los segmentos RFM y la biblioteca listos. Arma uno propio: por ejemplo, quienes compraron pinturas en Manizales y no han vuelto en 90 días.",
-            "action": "Crear segmento"
+            "title": "Crea tu primer grupo",
+            "description": "Arma uno propio: por ejemplo, quienes compraron pinturas en Manizales y no han vuelto en 90 días.",
+            "action": "Crear grupo"
         },
         "columns": {
             "name": "Nombre",
-            "members": "Contactos",
+            "members": "Personas",
             "whatsapp": "WhatsApp",
             "email": "Correo",
             "value": "Venta histórica",
@@ -32,22 +32,22 @@
         },
         "library": {
             "action": "Biblioteca",
-            "title": "Biblioteca de segmentos",
-            "description": "Segmentos probados para tiendas en LATAM. Los del sistema ya están creados; las plantillas se arman con tus productos o categorías.",
+            "title": "Biblioteca de grupos",
+            "description": "Grupos probados para tiendas en LATAM. Los del sistema ya están creados; las plantillas se arman con tus productos o categorías.",
             "templates": "Plantillas",
             "ready": "Listos para usar",
             "useTemplate": "Usar plantilla",
             "open": "Abrir",
             "create": "Crear",
-            "created": "Segmento creado",
-            "failed": "No pudimos crear el segmento",
+            "created": "Grupo creado",
+            "failed": "No pudimos crear el grupo",
             "nameOptional": "Nombre (opcional)",
-            "createFromTemplate": "Crear segmento"
+            "createFromTemplate": "Crear grupo"
         },
         "static": {
             "action": "Importar lista",
             "title": "Importar una lista fija",
-            "description": "Pega correos o teléfonos, o sube un CSV. Solo se agregan los contactos que ya existen en este espacio de trabajo.",
+            "description": "Pega correos o teléfonos, o sube un CSV. Solo se agregan las personas que ya existen en este espacio de trabajo.",
             "values": "Correos o teléfonos",
             "placeholder": "ana@ejemplo.com\n+57 300 111 2233",
             "detected_one": "{{formatted}} correo o teléfono detectado",
@@ -56,7 +56,7 @@
             "privacy": "Los datos se comparan por índice ciego y no se guardan aparte.",
             "submit": "Crear lista",
             "created": "Lista creada",
-            "matched": "{{matched}} contactos encontrados · {{unmatched}} sin coincidencia"
+            "matched": "{{matched}} personas encontradas · {{unmatched}} sin coincidencia"
         },
         "snapshot": {
             "title": "Guardar una foto",
@@ -67,27 +67,27 @@
         },
         "delete": {
             "title": "¿Borrar «{{name}}»?",
-            "description": "Los flujos, campañas o audiencias que lo usen dejarán de recibir contactos de este segmento.",
-            "confirm": "Borrar segmento",
-            "done": "Segmento borrado",
-            "failed": "No pudimos borrar el segmento"
+            "description": "Las automatizaciones, campañas o audiencias que lo usen dejarán de recibir personas de este grupo.",
+            "confirm": "Borrar grupo",
+            "done": "Grupo borrado",
+            "failed": "No pudimos borrar el grupo"
         },
         "form": {
-            "newTitle": "Nuevo segmento",
-            "editTitle": "Editar segmento",
+            "newTitle": "Nuevo grupo de clientes",
+            "editTitle": "Editar grupo",
             "help": "Combina condiciones; el conteo se actualiza mientras editas.",
-            "readOnly": "Este segmento no se puede editar. Duplícalo para crear tu versión.",
+            "readOnly": "Este grupo no se puede editar. Duplícalo para crear tu versión.",
             "name": "Nombre",
             "namePlaceholder": "Ej.: Compradores de pinturas en el Eje Cafetero",
             "folder": "Carpeta",
             "folderPlaceholder": "Ej.: Recuperación",
             "description": "Descripción",
             "copyOf": "{{name}} (copia)",
-            "create": "Crear segmento",
-            "created": "Segmento creado; lo estamos calculando",
+            "create": "Crear grupo",
+            "created": "Grupo creado; lo estamos calculando",
             "saved": "Cambios guardados; lo estamos recalculando",
             "invalid": "Revisa las condiciones marcadas",
-            "failed": "No pudimos guardar el segmento",
+            "failed": "No pudimos guardar el grupo",
             "startTitle": "¿A quién quieres encontrar?",
             "startHelp": "Empieza con una condición. Después puedes sumar más y agruparlas con «todas» o «cualquiera».",
             "quick": {
@@ -95,8 +95,13 @@
                 "bought": "Compró…",
                 "viewed": "Vio un producto",
                 "cart": "Abandonó el carrito",
-                "rfm": "Segmento RFM"
-            }
+                "rfm": "Grupo según sus compras",
+                "leadHot": "Interesados calientes",
+                "leadOpen": "Con un proceso abierto",
+                "upcoming": "Con cita próxima",
+                "whatsapp": "Aceptan WhatsApp"
+            },
+            "saveShort": "Guardar cambios"
         },
         "detail": {
             "export": "Exportar CSV",
@@ -116,14 +121,18 @@
             "staticHelp": "Lista fija: sus miembros solo cambian si los agregas o quitas.",
             "definition": "Condiciones",
             "showConditions": "Ver detalle",
-            "hideConditions": "Ocultar detalle"
+            "hideConditions": "Ocultar detalle",
+            "people": "Personas en el grupo",
+            "inDays": "en {{days}} días",
+            "reachHelp": "Personas del grupo que aceptaron mensajes de marketing por este canal: a ellas les puede llegar una campaña.",
+            "valueHelp": "Todo lo que han comprado las personas del grupo."
         },
         "members": {
             "title": "Miembros",
-            "count_one": "{{formatted}} contacto",
-            "count_other": "{{formatted}} contactos",
+            "count_one": "{{formatted}} persona",
+            "count_other": "{{formatted}} personas",
             "page": "Página {{page}} de {{pages}}",
-            "contact": "Contacto",
+            "contact": "Persona",
             "city": "Ciudad",
             "orders": "Pedidos",
             "revenue": "Venta",
@@ -132,21 +141,21 @@
         "preview": {
             "title": "Vista previa",
             "subtitle": "Quiénes cumplen hoy las condiciones",
-            "empty": "Agrega una condición para ver cuántos contactos cumplen.",
+            "empty": "Agrega una condición para ver cuántas personas cumplen.",
             "took": "{{ms}} ms",
             "timeout": "La consulta tardó más de 10 segundos. Acota las fechas o quita alguna condición de comportamiento y vuelve a intentar.",
             "invalid": "Hay condiciones por completar:",
-            "contacts_one": "contacto",
-            "contacts_other": "contactos",
+            "contacts_one": "persona cumple hoy",
+            "contacts_other": "personas cumplen hoy",
             "whatsapp": "WhatsApp de marketing",
             "email": "Correo de marketing",
             "revenue": "Venta histórica",
             "clv": "Valor futuro (12 meses)",
             "clvLater": "Sin predicción todavía",
-            "noSample": "Ningún contacto cumple todavía."
+            "noSample": "Nadie cumple todavía."
         },
         "builder": {
-            "rootLead": "Contactos que cumplen",
+            "rootLead": "Personas que cumplen",
             "groupLead": "Cumplen",
             "ofConditions": "las condiciones",
             "op_and": "todas",
@@ -161,7 +170,7 @@
             "removeGroup": "Quitar grupo",
             "comingSoon": "Próximamente",
             "phase": "Próximamente",
-            "phase4Hint": "Este dato sale de las predicciones; mientras no se hayan calculado, ningún contacto lo tiene.",
+            "phase4Hint": "Este dato sale de las predicciones; mientras no se hayan calculado, nadie lo tiene.",
             "field": "Campo",
             "profile": "Perfil",
             "custom": "Atributos propios",
@@ -169,7 +178,7 @@
             "value": "Valor",
             "writeValue": "Escribe un valor",
             "choose": "Elige…",
-            "chooseSegment": "Elige un segmento…",
+            "chooseSegment": "Elige un grupo…",
             "typeAndEnter": "Escribe y presiona Enter",
             "removeValue": "Quitar {{value}}",
             "missingItem": "#{{id}} (ya no está en el catálogo)",
@@ -208,7 +217,8 @@
             "engagementHint": "Puntaje de 0 a 100 con los mensajes de los últimos {{days}} días: abrir o leer suma 1, un clic 3 y una respuesta 5.",
             "noTiers": "Primero crea los niveles en Fidelización.",
             "chooseTier": "Elige un nivel…",
-            "predicted": "predicción"
+            "predicted": "predicción",
+            "liveCount": "personas cumplen hoy · ver la muestra"
         },
         "types": {
             "attribute": "Perfil",
@@ -217,7 +227,7 @@
             "cart": "Carrito",
             "prediction": "Inteligencia",
             "consent": "Consentimiento",
-            "segment": "Segmento",
+            "segment": "Grupo",
             "messaging": "Mensajes",
             "loyalty": "Fidelización",
             "lead": "Leads",
@@ -228,9 +238,9 @@
             "purchase": "Productos, categorías, marcas, cupones, gasto…",
             "event": "Vistas, búsquedas, clics, formularios en el sitio",
             "cart": "Abandonó un carrito y no compró",
-            "prediction": "Segmento RFM y puntajes calculados",
+            "prediction": "Grupo según sus compras (RFM) y puntajes calculados",
             "consent": "Quién acepta WhatsApp, correo o SMS",
-            "segment": "Está (o no) en otro segmento",
+            "segment": "Está (o no) en otro grupo",
             "messaging": "Recibió, abrió, leyó, hizo clic o respondió; interacción",
             "loyalty": "Nivel VIP, puntos, saldo y referidos",
             "lead": "Tiene un lead abierto, etapa, temperatura, puntaje, servicio o fuente",
@@ -255,7 +265,7 @@
             "avg_days_between_orders": "Días promedio entre pedidos",
             "first_order_at": "Fecha del primer pedido",
             "last_order_at": "Fecha del último pedido",
-            "rfm_segment": "Segmento RFM",
+            "rfm_segment": "Grupo según sus compras",
             "rfm_r": "Puntaje R (recencia)",
             "rfm_f": "Puntaje F (frecuencia)",
             "rfm_m": "Puntaje M (monto)",
@@ -552,8 +562,8 @@
             "subscription_renewal_failed": "Falló la renovación",
             "subscription_cancelled": "Canceló una suscripción",
             "subscription_expired": "Venció una suscripción",
-            "segment_entered": "Entró a un segmento",
-            "segment_exited": "Salió de un segmento",
+            "segment_entered": "Entró a un grupo",
+            "segment_exited": "Salió de un grupo",
             "conversion_delivered": "Conversión enviada",
             "custom": "Evento propio"
         },
@@ -603,6 +613,77 @@
             "service": "Servicio de la cita",
             "booking_channel": "Cómo se agendó",
             "starts_at": "Fecha de la cita"
+        },
+        "list": {
+            "descriptionStore": "Agrupa a tus clientes por lo que hacen y escríbele a cada grupo a su manera. Se actualizan solos.",
+            "descriptionServices": "Agrupa a las personas por en qué va su proceso y sus citas, y escríbele a cada grupo a su manera. Se actualizan solos.",
+            "create": "Crear grupo",
+            "search": "Buscar grupos",
+            "noMatchesHelp": "Prueba con otra palabra: busca en el nombre y en la descripción.",
+            "emptyTitle": "Arma tu primer grupo",
+            "emptyStore": "Por ejemplo, quienes compraron pintura para exteriores en el Eje Cafetero y no han vuelto en 90 días. Abajo tienes los grupos listos.",
+            "emptyServices": "Por ejemplo, quienes pidieron una valoración y no han agendado. Abajo tienes los grupos listos para tu negocio.",
+            "step1": "Elige condiciones en palabras: ciudad, compras, citas, mensajes…",
+            "step2": "Mira en vivo cuántas personas cumplen y quiénes son.",
+            "step3": "Envíales una campaña o una automatización: el grupo se actualiza solo.",
+            "people_one": "persona",
+            "people_other": "personas",
+            "trend": "{{change}} en {{days}} días",
+            "trendFlat": "sin cambios en {{days}} días",
+            "reachWhatsapp": "Pueden recibir WhatsApp de marketing",
+            "reachEmail": "Pueden recibir correo de marketing",
+            "value": "Han comprado {{value}}",
+            "todo": "Qué hacer: {{action}}",
+            "sendCampaign": "Enviar campaña",
+            "automate": "Crear automatización"
+        },
+        "families": {
+            "custom": {
+                "title": "Tus grupos",
+                "description": "Los que armaste tú, con condiciones que se actualizan solas o como una lista fija."
+            },
+            "services": {
+                "title": "Listos para tu negocio",
+                "description": "Por en qué va su proceso y sus citas. Ya están creados y se actualizan solos."
+            },
+            "rfm": {
+                "title": "Según cómo compran",
+                "description": "Cada cliente cae en uno de estos grupos según qué tan reciente, seguido y cuánto compra. Se calculan cada noche."
+            },
+            "library": {
+                "title": "Listos para usar",
+                "description": "Grupos frecuentes en tiendas: recompra, descuentos y carritos. Ya están creados y se actualizan solos."
+            }
+        },
+        "rfmAction": {
+            "champions": "prémialos, pídeles reseñas y referidos; no les regales descuentos.",
+            "loyal": "súbelos de nivel VIP y ofréceles complementos.",
+            "cant_lose": "un contacto personal y una oferta fuerte; avisa al dueño.",
+            "at_risk": "una recuperación en varios mensajes.",
+            "potential_loyal": "invítalos al programa de puntos y recomiéndales productos.",
+            "new": "bienvenida y un empujón a la segunda compra.",
+            "promising": "la automatización de segunda compra.",
+            "need_attention": "una oferta por tiempo limitado y las novedades.",
+            "about_to_sleep": "reactívalos con contenido y un beneficio moderado.",
+            "hibernating": "una campaña puntual de temporada.",
+            "lost": "solo en las grandes fechas; no gastes en campañas caras."
+        },
+        "use": {
+            "campaignTitle": "Enviar una campaña a «{{name}}»",
+            "campaignHelp": "Queda en borrador con este grupo como audiencia. Sigues con el mensaje y nada sale sin que lo revises.",
+            "channel": "Por dónde",
+            "whatsapp": "WhatsApp",
+            "email": "Correo",
+            "reach_one": "{{formatted}} persona puede recibirlo",
+            "reach_other": "{{formatted}} personas pueden recibirlo",
+            "campaignLabel": "Nombre de la campaña",
+            "campaignName": "Campaña para {{name}}",
+            "campaignSubmit": "Seguir con el mensaje",
+            "flowTitle": "Automatizar «{{name}}»",
+            "flowHelp": "Arranca sola cada vez que alguien entra al grupo. Queda en borrador: eliges el mensaje y la prendes cuando quieras.",
+            "flowLabel": "Nombre de la automatización",
+            "flowName": "Cuando alguien entra a «{{name}}»",
+            "flowSubmit": "Crear y elegir el mensaje"
         }
     }
 }

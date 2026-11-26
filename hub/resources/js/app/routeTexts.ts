@@ -35,7 +35,7 @@ export const ROUTE_TEXTS: Record<string, readonly string[]> = {
     referrals: ['analytics', 'referrals'],
     reviews: ['analytics', 'contacts', 'intelligence', 'reviews'],
     sections: ['analytics'],
-    segments: ['segments'],
+    segments: ['contacts', 'segments'],
     sites: ['contacts'],
     'style-guide': ['styleguide'],
     survey: ['contacts', 'survey'],

@@ -57,23 +57,26 @@ export function ConditionEditor({ condition, path, onChange, onRemove }: { condi
     const messages = errorsFor(errors, path);
 
     return (
-        <div className={cn('igr:group igr:rounded-md igr:border igr:bg-background igr:p-2.5', messages.length > 0 && 'igr:border-destructive/50')}>
-            <div className="igr:flex igr:items-start igr:gap-2">
-                <span className="igr:mt-1.5 igr:flex igr:w-24 igr:shrink-0 igr:items-center igr:gap-1.5 igr:text-xs igr:font-medium igr:text-muted-foreground">
-                    <Icon className="igr:size-3.5" />
+        <div className={cn('igr:group igr:rounded-lg igr:border igr:bg-card igr:p-2.5', messages.length > 0 && 'igr:border-destructive/50')}>
+            {/* En el celular: el tipo y el botón de quitar arriba, la frase debajo a todo el ancho. */}
+            <div className="igr:grid igr:grid-cols-[minmax(0,1fr)_auto] igr:items-start igr:gap-x-2 igr:gap-y-1.5 igr:sm:grid-cols-[6rem_minmax(0,1fr)_auto]">
+                <span className="igr:mt-1.5 igr:flex igr:items-center igr:gap-1.5 igr:text-xs igr:font-medium igr:text-muted-foreground">
+                    <Icon className="igr:size-3.5 igr:shrink-0" aria-hidden />
                     {t(`segments.types.${condition.type}`)}
                 </span>
-                <div className="igr:flex igr:min-w-0 igr:flex-1 igr:flex-wrap igr:items-center igr:gap-1.5">
+                <div className="igr:order-3 igr:col-span-2 igr:flex igr:min-w-0 igr:flex-wrap igr:items-center igr:gap-1.5 igr:sm:order-none igr:sm:col-span-1">
                     <Body condition={condition} onChange={onChange} />
                 </div>
-                {readOnly ? null : (
-                    <Button variant="ghost" size="icon" className="igr:size-7 igr:shrink-0 igr:text-muted-foreground" onClick={onRemove} aria-label={t('segments.builder.removeCondition')}>
+                {readOnly ? (
+                    <span />
+                ) : (
+                    <Button variant="ghost" size="icon" className="igr:size-7 igr:shrink-0 igr:justify-self-end igr:text-muted-foreground" onClick={onRemove} aria-label={t('segments.builder.removeCondition')}>
                         <Trash2 />
                     </Button>
                 )}
             </div>
             {messages.length > 0 ? (
-                <ul className="igr:mt-1.5 igr:pl-26 igr:text-xs igr:text-destructive">
+                <ul className="igr:mt-1.5 igr:text-xs igr:text-destructive igr:sm:pl-26">
                     {messages.map((m) => (
                         <li key={m}>{m}</li>
                     ))}
