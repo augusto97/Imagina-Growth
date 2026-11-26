@@ -9,8 +9,11 @@ import { matchRoutes } from 'react-router';
  */
 type Prefetcher = (qc: QueryClient, ws: string) => Promise<unknown>;
 
-/** Primera consulta de cada pantalla principal, por su ruta relativa a /w/:workspaceId. */
-const section = (key: 'customers' | 'conversations' | 'messages' | 'onsite' | 'results' | 'settings'): Prefetcher => async (qc, ws) =>
+/**
+ * Primera consulta de cada pantalla principal, por su ruta relativa a /w/:workspaceId. Resultados no va: su entrada es el
+ * Resumen, cuya consulta depende del periodo elegido (se precarga solo el chunk).
+ */
+const section = (key: 'customers' | 'conversations' | 'messages' | 'onsite' | 'settings'): Prefetcher => async (qc, ws) =>
     qc.query((await import('@/features/sections/api')).sectionSummaryQuery(ws, key));
 
 const DATA: Record<string, Prefetcher> = {
@@ -20,7 +23,6 @@ const DATA: Record<string, Prefetcher> = {
     conversaciones: section('conversations'),
     mensajes: section('messages'),
     'en-tu-web': section('onsite'),
-    resultados: section('results'),
     configuracion: section('settings'),
     segmentos: async (qc, ws) => qc.query((await import('@/features/segments/api')).segmentsQuery(ws)),
     flujos: async (qc, ws) => qc.query((await import('@/features/flows/api')).flowsQuery(ws)),
