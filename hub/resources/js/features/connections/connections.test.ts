@@ -3,13 +3,13 @@ import texts from '@/locales/es-CO/connections.json';
 import type { WhatsAppComplete, WhatsAppStart } from './api';
 import { type FbSdk, parseSignupMessage, runEmbeddedSignup, type SignupCalls } from './embeddedSignup';
 
-type Tree = { [key: string]: string | Tree };
+type Tree = { [key: string]: string | string[] | Tree };
 
 function has(path: string): boolean {
-    let node: string | Tree = texts;
+    let node: string | string[] | Tree = texts;
     for (const part of path.split('.')) {
-        if (typeof node !== 'object' || !(part in node)) return false;
-        node = node[part] as string | Tree;
+        if (typeof node !== 'object' || Array.isArray(node) || !(part in node)) return false;
+        node = node[part] as string | string[] | Tree;
     }
     return typeof node === 'string';
 }

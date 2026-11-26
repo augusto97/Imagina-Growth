@@ -3,7 +3,7 @@ import { wsPath } from '@/api/queries';
 import { isApiError } from '@/lib/api';
 import { api } from '@/lib/api';
 import type { ChannelAccount } from '@/features/channels/api';
-import type { Destination } from '@/features/measurement/api';
+import { type Destination, type DestinationsResponse, measurementKeys } from '@/features/measurement/api';
 
 /* Conexiones con un clic (docs/auditoria-2026-11.md §6). Rutas en hub/routes/api/connections.php. */
 
@@ -104,6 +104,7 @@ export type MeasurementChoice = Partial<
         | 'conversion_action_purchase'
         | 'conversion_action_lead'
         | 'conversion_action_lead_won'
+        | 'conversion_action_contact'
         | 'ga4_stream'
         | 'advertiser_id'
         | 'pixel_code',
@@ -230,4 +231,16 @@ export function useWhatsAppSignupApi(ws: string) {
             onSuccess: invalidate,
         }),
     };
+}
+
+/**
+ * Los destinos de Medición (para el estado de las tarjetas de anuncios), con la misma clave de caché que Anuncios y
+ * conversiones: entrar a una pantalla después de la otra no repite la consulta. Solo si el rol ve los tableros.
+ */
+export function useAdDestinations(ws: string, enabled: boolean) {
+    return useQuery({
+        queryKey: measurementKeys.destinations(ws),
+        queryFn: ({ signal }) => api.get<DestinationsResponse>(`${wsPath(ws)}/measurement/destinations`, signal),
+        enabled,
+    });
 }

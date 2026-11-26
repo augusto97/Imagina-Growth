@@ -90,7 +90,7 @@ describe('bloqueos que enseñan', () => {
         render(withPage('/w/ws_1/fidelizacion', <LockedPage section={section} item={item} lock={{ kind: 'site', state: 'none' }} base="/w/ws_1" abilities={['manageSites']} />));
         expect(screen.getByRole('heading', { level: 2, name: 'Conecta tu web para usar Puntos y recompensas' })).toBeInTheDocument();
         expect(screen.getByText('Qué hace falta')).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /Conectar tu web/ })).toHaveAttribute('href', '/w/ws_1/sitios?conectar=1');
+        expect(screen.getByRole('link', { name: /Conectar tu web/ })).toHaveAttribute('href', '/w/ws_1/conexiones?tarjeta=web&conectar=1');
     });
 
     it('fuera del plan nombra el plan; sin permiso, dice a quién pedírselo', () => {

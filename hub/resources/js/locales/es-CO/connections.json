@@ -122,13 +122,15 @@
                 "action": {
                     "purchase": "Acción de conversión de compras",
                     "lead": "Acción de conversión de formularios",
-                    "lead_won": "Acción de conversión de clientes ganados"
+                    "lead_won": "Acción de conversión de clientes ganados",
+                    "contact": "Acción de conversión de clics que valen"
                 },
                 "analytics": "Google Analytics",
                 "missingAnalytics": "No diste permiso para Google Analytics.",
                 "property": "Propiedad",
                 "stream": "Sitio web",
-                "streamHelp": "Creamos la clave del Measurement Protocol por ti."
+                "streamHelp": "Creamos la clave del Measurement Protocol por ti.",
+                "contactHelp": "Para los toques a WhatsApp, llamar o escribir un correo en tu web (si prendes «Clics que valen»)."
             },
             "meta": {
                 "ads": "Anuncios (ventas, audiencias y gasto)",
@@ -174,6 +176,278 @@
                 "expires_1d": "Vuelve a conectarlo hoy: mañana deja de funcionar lo que depende de esta conexión.",
                 "expired": "Mientras no lo vuelvas a conectar, lo que depende de esta conexión no funciona.",
                 "disconnected": "Mientras no lo vuelvas a conectar, no salen mensajes por ese número."
+            }
+        },
+        "hub": {
+            "description": "Todo lo que conectas para que la plataforma trabaje por ti: tu web, WhatsApp, correo, redes, anuncios y agenda. Toca una tarjeta para ver su estado o conectarla.",
+            "summary": {
+                "progress": "Tienes {{on}} de {{total}} conexiones esenciales funcionando",
+                "allSet": "Tus conexiones esenciales están funcionando",
+                "help": "Las esenciales son tu web, WhatsApp, tu correo y los anuncios de Meta. Con ellas la plataforma sabe quién te compra, le escribe y mide lo que generó.",
+                "label": "Conexiones esenciales funcionando"
+            },
+            "groups": {
+                "web": {
+                    "title": "Tu web",
+                    "description": "Para saber quién visita, qué compra o qué formulario llena, y poner popups y el botón de WhatsApp.",
+                    "descriptionServices": "Para saber quién visita y qué formulario llena, y poner formularios y el botón de WhatsApp. ¿Sin WordPress? Usa una página de captura."
+                },
+                "conversations": {
+                    "title": "Conversaciones",
+                    "description": "Los mensajes de tus clientes llegan a la bandeja, para responder en equipo o con el agente con IA."
+                },
+                "email": {
+                    "title": "Correo y SMS",
+                    "description": "Desde dónde salen tus correos (y SMS, si los usas), para que lleguen a la bandeja de entrada."
+                },
+                "ads": {
+                    "title": "Anuncios",
+                    "description": "Envía tus ventas y contactos a tus anuncios para que encuentren a quien compra, y sincroniza tus grupos de clientes como audiencias."
+                },
+                "agenda": {
+                    "title": "Agenda",
+                    "description": "Las citas no se cruzan con el calendario de cada persona de tu equipo."
+                }
+            },
+            "cards": {
+                "web": {
+                    "name": "Tu web (WordPress)",
+                    "allows": "Conecta tu WordPress o WooCommerce con el plugin: visitas, compras, formularios y lo que pasa en tu web, en el perfil de cada cliente.",
+                    "bullets": [
+                        "Sabe quién visita tu web, qué mira y qué formulario llena.",
+                        "Con WooCommerce: pedidos, carritos y productos, y trae tu historial.",
+                        "Pone popups, formularios y el botón de WhatsApp sin tocar código.",
+                        "No pone lenta tu web: todo sale por detrás, en lotes."
+                    ]
+                },
+                "capture": {
+                    "name": "Página de captura y QR",
+                    "allows": "¿No tienes WordPress o una buena web? Una página con tu formulario y un QR para imprimir en tu local.",
+                    "bullets": [
+                        "Una página propia con tu logo, un formulario corto y las casillas de consentimiento.",
+                        "Un QR para el local, el volante o el empaque que abre la página.",
+                        "Cada persona que la llena llega como contacto, con su origen."
+                    ]
+                },
+                "whatsapp": {
+                    "name": "WhatsApp",
+                    "allows": "Tu número oficial de WhatsApp Business: mensajes automáticos, campañas y la bandeja, con un clic desde tu cuenta de Meta.",
+                    "bullets": [
+                        "Se conecta con un clic: entras a tu cuenta de Meta y eliges el número.",
+                        "Sirve aunque sigas usando la app de WhatsApp Business en el celular.",
+                        "Mensajes automáticos, campañas y la bandeja con el agente con IA.",
+                        "Tú le pagas a Meta los mensajes desde tu cuenta; los de atención dentro de 24 horas son gratis."
+                    ]
+                },
+                "messenger": {
+                    "name": "Messenger",
+                    "allows": "Los mensajes de tu página de Facebook llegan a la bandeja, junto con WhatsApp.",
+                    "bullets": [
+                        "Responde Messenger desde la bandeja, con tu equipo y el agente con IA.",
+                        "Usa la misma cuenta de Meta de tu WhatsApp.",
+                        "Messenger no cobra los mensajes."
+                    ]
+                },
+                "instagram": {
+                    "name": "Instagram",
+                    "allows": "Los mensajes directos, las respuestas a historias y las menciones de tu Instagram profesional, en la bandeja.",
+                    "bullets": [
+                        "Responde los mensajes directos y las respuestas a tus historias desde la bandeja.",
+                        "La cuenta debe ser profesional y estar vinculada a tu página de Facebook.",
+                        "Instagram no cobra los mensajes."
+                    ]
+                },
+                "email": {
+                    "name": "Correo",
+                    "allows": "Tus correos salen desde tu dominio (hola@tunegocio.com) y llegan a la bandeja de entrada, no a spam.",
+                    "bullets": [
+                        "Con tu dominio verificado (DKIM, SPF y DMARC) tus correos llegan a la bandeja de entrada.",
+                        "Rebotes, quejas y bajas se respetan solos en todos tus envíos.",
+                        "Los primeros días sube el volumen poco a poco para cuidar tu reputación."
+                    ]
+                },
+                "sms": {
+                    "name": "SMS (opcional)",
+                    "allows": "Para respaldo, códigos o clientes que lo prefieren, con tu cuenta de Twilio.",
+                    "bullets": [
+                        "Útil como respaldo o para quien no usa WhatsApp.",
+                        "Necesitas una cuenta de Twilio: tú pagas los mensajes allí."
+                    ]
+                },
+                "meta": {
+                    "name": "Meta (Facebook e Instagram)",
+                    "allows": "Envía tus ventas y contactos a tus anuncios de Facebook e Instagram y sincroniza audiencias.",
+                    "bullets": [
+                        "Las ventas y los contactos llegan a Meta desde el servidor, sin depender del navegador.",
+                        "Tus anuncios aprenden a quién mostrarse: más ventas por el mismo dinero.",
+                        "Sincroniza tus grupos de clientes como audiencias y trae lo que gastaste."
+                    ]
+                },
+                "google": {
+                    "name": "Google (Ads y Analytics)",
+                    "allows": "Envía tus ventas y contactos a Google Ads y Analytics, sincroniza audiencias y trae el gasto.",
+                    "bullets": [
+                        "Conversiones completas en Google Ads (también las de contactos que se vuelven clientes).",
+                        "Las ventas en Google Analytics sin depender del navegador.",
+                        "Tus grupos de clientes como audiencias en Google."
+                    ]
+                },
+                "tiktok": {
+                    "name": "TikTok",
+                    "allows": "Envía tus ventas y contactos a TikTok para que tus anuncios rindan más, y sincroniza audiencias.",
+                    "bullets": [
+                        "Las ventas y los contactos llegan a TikTok desde el servidor.",
+                        "Tus anuncios aprenden a quién mostrarse.",
+                        "Sincroniza tus grupos de clientes como audiencias."
+                    ]
+                },
+                "calendar": {
+                    "name": "Google Calendar",
+                    "allows": "Cada persona de tu equipo conecta su calendario: la agenda no ofrece horas en las que ya tiene algo.",
+                    "bullets": [
+                        "La agenda solo ofrece las horas libres de cada persona.",
+                        "Cada cita nueva aparece en su calendario de Google.",
+                        "Cada persona conecta el suyo; nadie ve el calendario de otro."
+                    ]
+                }
+            },
+            "status": {
+                "notConnected": "Sin conectar",
+                "connected_one": "Conectado",
+                "connected_other": "{{count}} conectados",
+                "unofficial": "Conectado sin la API oficial",
+                "error": "Tiene un error",
+                "paused": "En pausa",
+                "pending": "Sin terminar",
+                "webNone": "Sin conectar",
+                "webOk_one": "Conectada y recibiendo datos",
+                "webOk_other": "{{count}} sitios recibiendo datos",
+                "webPending": "Conexión sin terminar",
+                "webDisconnected": "Desconectada (tus datos siguen)",
+                "webNoData": "No está enviando datos",
+                "webLagging": "Con atraso en los datos",
+                "captureAlways": "Para negocios sin WordPress",
+                "emailDomain": "Enviando desde tu dominio",
+                "emailSmtp": "Enviando por tu servidor",
+                "emailDns": "Falta verificar el dominio",
+                "reconnect": "Hay que volver a conectar",
+                "pickAccounts": "Falta elegir las cuentas",
+                "deliveryError": "Hay errores al enviar",
+                "sending": "Enviando conversiones",
+                "sendingManual": "Enviando (datos a mano)",
+                "calendarOn_one": "{{count}} persona conectada",
+                "calendarOn_other": "{{count}} personas conectadas"
+            },
+            "actions": {
+                "connect": "Conectar",
+                "fix": "Revisar",
+                "manage": "Ver detalle",
+                "capture": "Ver cómo funciona"
+            },
+            "unavailableTitle": "Con un clic todavía no está disponible aquí",
+            "sheet": {
+                "allows": "Qué permite",
+                "connect": "Conectar",
+                "another": "Agregar otra",
+                "howTo": "Cómo se conecta",
+                "yourSites": "Tus sitios",
+                "numbers": "Tus números",
+                "plugin": "plugin {{version}}",
+                "lastData": "último dato {{when}}",
+                "siteDetail": "Ver estado e importación",
+                "web": {
+                    "step1": "Descarga el plugin de Imagina Growth y súbelo a tu WordPress (Plugins › Añadir nuevo).",
+                    "step2": "Toca «Conectar tu web» aquí y copia el código de conexión.",
+                    "step3": "Pégalo en el plugin: tu web queda conectada y empieza a traer tu historial.",
+                    "connect": "Conectar tu web",
+                    "another": "Conectar otro sitio",
+                    "noWordpress": "¿No tienes WordPress?",
+                    "noWordpressHelp": "Crea una página de captura con tu formulario y un QR para tu local: los contactos llegan igual, con su origen.",
+                    "toCapture": "Usar una página de captura"
+                },
+                "capture": {
+                    "yours": "Tus páginas",
+                    "none": "Todavía no tienes una. La creamos con tu nombre, un formulario corto y las casillas de consentimiento; después le cambias lo que quieras.",
+                    "create": "Crear mi página de captura",
+                    "created": "Tu página de captura está publicada",
+                    "error": "No se pudo crear la página",
+                    "url": "Dirección de la página",
+                    "copy": "Copiar la dirección",
+                    "open": "Abrir la página",
+                    "publish": "Publicar",
+                    "qr": "Descargar el QR",
+                    "stats": "{{views}} visitas · {{leads}} contactos",
+                    "status": {
+                        "draft": "Borrador",
+                        "published": "Publicada",
+                        "archived": "Archivada"
+                    }
+                },
+                "whatsapp": {
+                    "another": "Conectar otro número",
+                    "coexistenceTitle": "¿Ya usas la app de WhatsApp Business?",
+                    "coexistence": "Puedes seguir usándola en tu celular: elige tu número en la ventana de Meta y lo que respondas desde el celular también aparece en la bandeja.",
+                    "manual": "Conectar a mano u otras opciones",
+                    "cost": "Meta le cobra los mensajes a tu cuenta según su tarifa. Los que respondes dentro de las 24 horas de un mensaje del cliente son gratis."
+                },
+                "messenger": {
+                    "accounts": "Tus páginas",
+                    "how": "Entra con tu cuenta de Meta y elige la página de Facebook: sus mensajes llegan a la bandeja."
+                },
+                "instagram": {
+                    "accounts": "Tus cuentas",
+                    "how": "Entra con tu cuenta de Meta y elige la página vinculada a tu Instagram profesional."
+                },
+                "social": {
+                    "withMeta": "Conectar con Meta",
+                    "pickPage": "Elegir la página",
+                    "manual": "Conectar a mano"
+                },
+                "email": {
+                    "accounts": "Tus remitentes",
+                    "platform": "Con tu dominio, por la plataforma",
+                    "platformHelp": "Verificas tu dominio con unos registros DNS y los correos salen por los servidores de la plataforma, con buena entrega.",
+                    "recommended": "Recomendado",
+                    "notInPlan": "No incluido en tu plan",
+                    "own": "Con tu propio servidor (SMTP)",
+                    "ownHelp": "Si ya tienes un servicio de correo (Gmail de empresa, Zoho, tu hosting), usa sus datos SMTP.",
+                    "connect": "Conectar mi correo"
+                },
+                "sms": {
+                    "accounts": "Tus remitentes"
+                },
+                "ads": {
+                    "account": "Tu cuenta",
+                    "connect_meta": "Conectar con Meta",
+                    "connect_google": "Conectar con Google",
+                    "connect_tiktok": "Conectar con TikTok",
+                    "manual": "Conectar a mano",
+                    "sending": "Qué envía",
+                    "active": "Enviando",
+                    "paused": "En pausa",
+                    "lastSent": "Último envío {{when}}",
+                    "notYet": "Todavía no ha enviado nada",
+                    "cta": "Clics que valen",
+                    "ctaHelp_meta": "Cuenta como conversión cuando alguien toca WhatsApp, llamar o escribir un correo en tu web (evento «Contact»). Ideal si vendes por chat o teléfono.",
+                    "ctaHelp_google": "Cuenta como conversión cuando alguien toca WhatsApp, llamar o escribir un correo en tu web (evento «contact» en Analytics y la acción de conversión que elijas en Google Ads).",
+                    "ctaHelp_tiktok": "Cuenta como conversión cuando alguien toca WhatsApp, llamar o escribir un correo en tu web (evento «Contact»).",
+                    "ctaOn": "Listo: los clics que valen se envían como conversión",
+                    "ctaOff": "Los clics que valen ya no se envían",
+                    "saveError": "No se pudo guardar",
+                    "contactAction": "Acción de conversión en Google Ads: {{id}}",
+                    "contactMissing": "Elige la acción de conversión de Google Ads para estos clics; mientras tanto solo llegan a Analytics.",
+                    "pickContact": "Elegir la acción de conversión",
+                    "more": "Más detalle",
+                    "deliveries": "Ver entregas y calidad",
+                    "audiences": "Audiencias"
+                },
+                "calendar": {
+                    "who": "Tu equipo",
+                    "count_one": "{{count}} persona conectó su calendario.",
+                    "count_other": "{{count}} personas conectaron su calendario.",
+                    "none": "Nadie ha conectado su calendario todavía.",
+                    "go": "Conectar mi calendario"
+                }
             }
         }
     }

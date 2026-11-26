@@ -61,7 +61,7 @@ function GooglePicker({ connection, onDone }: { connection: Connection; onDone: 
     const { workspace } = useWorkspace();
     const assets = useConnectionAssets<GoogleAssets>(workspace.id, connection.id);
     const [customer, setCustomer] = useState('');
-    const [actions, setActions] = useState({ purchase: '', lead: '', lead_won: '' });
+    const [actions, setActions] = useState({ purchase: '', lead: '', lead_won: '', contact: '' });
     const [property, setProperty] = useState('');
     const [stream, setStream] = useState('');
     const chosen = assets.data?.ads_customers.find((c) => c.id === customer);
@@ -91,6 +91,7 @@ function GooglePicker({ connection, onDone }: { connection: Connection; onDone: 
                     conversion_action_purchase: actions.purchase || null,
                     conversion_action_lead: actions.lead || null,
                     conversion_action_lead_won: actions.lead_won || null,
+                    conversion_action_contact: actions.contact || null,
                     ga4_stream: stream || null,
                 });
             }}
@@ -108,8 +109,8 @@ function GooglePicker({ connection, onDone }: { connection: Connection; onDone: 
                     help={data.ads_customers.length === 0 ? t('connections.pick.google.noCustomers') : undefined}
                 />
                 {chosen ? (
-                    <div className="igr:grid igr:gap-3 igr:sm:grid-cols-3">
-                        {(['purchase', 'lead', 'lead_won'] as const).map((k) => (
+                    <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2">
+                        {(['purchase', 'lead', 'lead_won', 'contact'] as const).map((k) => (
                             <SelectField
                                 key={k}
                                 id={`g-action-${k}`}
@@ -119,6 +120,7 @@ function GooglePicker({ connection, onDone }: { connection: Connection; onDone: 
                                 placeholder={conversions.isPending ? t('common.loading') : t('connections.pick.none')}
                                 options={actionOptions}
                                 disabled={conversions.isPending}
+                                help={k === 'contact' ? t('connections.pick.google.contactHelp') : undefined}
                             />
                         ))}
                     </div>

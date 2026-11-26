@@ -218,12 +218,8 @@ export const SECTIONS: NavSection[] = [
                 icon: Link2,
                 tone: 'indigo',
                 ability: 'viewWorkspace',
+                // Centro único (frente de Configuración): `sitios` y `canales` llevan a su tarjeta; `sitios/:id` es su detalle.
                 also: ['sitios', 'canales'],
-                children: [
-                    { key: 'connectionsAccounts', to: 'conexiones' },
-                    { key: 'sites', to: 'sitios' },
-                    { key: 'channels', to: 'canales' },
-                ],
                 shortcut: 's',
             },
             { key: 'team', to: 'equipo', icon: UsersRound, tone: 'sky', ability: 'viewWorkspace', shortcut: 'e' },
