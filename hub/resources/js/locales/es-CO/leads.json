@@ -27,7 +27,10 @@
             "quote": "Cotizador",
             "booking": "Agenda",
             "manual": "Manual",
-            "api": "API"
+            "api": "API",
+            "landing": "Página de captura",
+            "meta_lead_ads": "Formulario de Facebook o Instagram",
+            "google_lead_form": "Formulario de Google Ads"
         },
         "stages": {
             "new": "Nuevo",

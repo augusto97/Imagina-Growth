@@ -1,9 +1,20 @@
 /* Leads (M18): tipos de la API. Las cifras de dinero llegan como texto decimal. */
-import type { LeadQualification } from './qualification';
+import type { LeadQualification } from "./qualification";
 
-export type Temperature = 'cold' | 'warm' | 'hot';
-export type Origin = 'form' | 'whatsapp' | 'messenger' | 'instagram' | 'quote' | 'booking' | 'manual' | 'api';
-export type StageKind = 'open' | 'won' | 'lost';
+export type Temperature = "cold" | "warm" | "hot";
+export type Origin =
+    | "form"
+    | "whatsapp"
+    | "messenger"
+    | "instagram"
+    | "quote"
+    | "booking"
+    | "manual"
+    | "api"
+    | "landing"
+    | "meta_lead_ads"
+    | "google_lead_form";
+export type StageKind = "open" | "won" | "lost";
 
 export interface Stage {
     key: string;
@@ -54,20 +65,35 @@ export interface ScoreReason {
 export interface Activity {
     id: number;
     kind: string;
-    actor: 'system' | 'ai' | 'api' | 'user';
+    actor: "system" | "ai" | "api" | "user";
     actor_name: string | null;
     data: Record<string, unknown>;
     at: string;
 }
 
 /** La ficha que llena la IA con la conversación: cada campo con su frase de origen y quién lo puso. */
-export type BriefKey = 'need' | 'quantity' | 'city' | 'zone' | 'timing' | 'budget' | 'temperature';
+export type BriefKey =
+    | "need"
+    | "quantity"
+    | "city"
+    | "zone"
+    | "timing"
+    | "budget"
+    | "temperature";
 
-export const BRIEF_KEYS: BriefKey[] = ['need', 'quantity', 'city', 'zone', 'timing', 'budget', 'temperature'];
+export const BRIEF_KEYS: BriefKey[] = [
+    "need",
+    "quantity",
+    "city",
+    "zone",
+    "timing",
+    "budget",
+    "temperature",
+];
 
 export interface BriefField {
     value: string | null;
-    by: 'ai' | 'user';
+    by: "ai" | "user";
     quote: string | null;
     reason: string | null;
     at: string | null;
@@ -78,11 +104,11 @@ export type Brief = Record<BriefKey, BriefField | null>;
 /** Tarea o llamada del vendedor (salen en «Hoy»). */
 export interface LeadTask {
     id: string;
-    kind: 'task' | 'call';
+    kind: "task" | "call";
     title: string;
     note: string | null;
-    status: 'open' | 'done';
-    source: 'user' | 'flow';
+    status: "open" | "done";
+    source: "user" | "flow";
     due_at: string;
     done_at: string | null;
     owner_id: string | null;
@@ -136,11 +162,11 @@ export interface LeadFilters {
     contact?: string;
     stage?: string;
     owner?: string;
-    temperature?: Temperature | '';
+    temperature?: Temperature | "";
     source?: string;
     service?: string;
-    status?: 'open' | 'won' | 'lost' | 'all' | '';
-    sort?: 'recent' | 'score' | 'value' | 'activity';
+    status?: "open" | "won" | "lost" | "all" | "";
+    sort?: "recent" | "score" | "value" | "activity";
     page?: number;
 }
 
@@ -154,9 +180,28 @@ export interface Kpis {
     conversion_rate: number | null;
     won: { count: number; value: string };
     open: { count: number; hot: number; unanswered: number };
-    first_response: { answered: number; unanswered: number; median_seconds: number | null; within_15m: number; within_15m_rate: number | null };
-    by_source: { channel: string; label: string; leads: number; won: number; won_value: string; conversion_rate: number | null }[];
-    funnel: { stage: string; label: string; kind: StageKind; leads: number; rate: number | null }[];
+    first_response: {
+        answered: number;
+        unanswered: number;
+        median_seconds: number | null;
+        within_15m: number;
+        within_15m_rate: number | null;
+    };
+    by_source: {
+        channel: string;
+        label: string;
+        leads: number;
+        won: number;
+        won_value: string;
+        conversion_rate: number | null;
+    }[];
+    funnel: {
+        stage: string;
+        label: string;
+        kind: StageKind;
+        leads: number;
+        rate: number | null;
+    }[];
 }
 
 /** El embudo de leads del lunes (leads/funnel): la semana frente a la anterior. */
@@ -183,13 +228,37 @@ export interface LeadFunnelWeek {
     week: { from: string; to: string };
     previous_week: { from: string; to: string };
     stages: FunnelStage[];
-    drop: { from: string; from_label: string; to: string; to_label: string; conversion: number; entered: number; passed: number; cohort: number; days: number } | null;
-    lost: { count: number; previous: number; reasons: { reason: string | null; count: number }[]; by_stage: { stage: string; label: string; count: number }[] };
-    stalled: { stage: string; label: string; count: number; max_days: number; buckets: { up_to_14: number; from_15_to_30: number; over_30: number } }[];
+    drop: {
+        from: string;
+        from_label: string;
+        to: string;
+        to_label: string;
+        conversion: number;
+        entered: number;
+        passed: number;
+        cohort: number;
+        days: number;
+    } | null;
+    lost: {
+        count: number;
+        previous: number;
+        reasons: { reason: string | null; count: number }[];
+        by_stage: { stage: string; label: string; count: number }[];
+    };
+    stalled: {
+        stage: string;
+        label: string;
+        count: number;
+        max_days: number;
+        buckets: { up_to_14: number; from_15_to_30: number; over_30: number };
+    }[];
     stale_days: number;
     first_response: { week: FirstResponseWeek; previous: FirstResponseWeek };
-    won: { week: { count: number; value: string }; previous: { count: number; value: string } };
-    conclusion: { text: string; source: 'ai' | 'fallback' };
+    won: {
+        week: { count: number; value: string };
+        previous: { count: number; value: string };
+    };
+    conclusion: { text: string; source: "ai" | "fallback" };
     currency: string;
 }
 
@@ -221,7 +290,7 @@ export interface ScoringRules {
 export interface AlertRules {
     on_hot: boolean;
     on_new: boolean;
-    channel: 'whatsapp' | 'email';
+    channel: "whatsapp" | "email";
     whatsapp_template_id: string | null;
 }
 
@@ -234,7 +303,7 @@ export interface AssistantRules {
 export interface LeadSettings {
     scoring: ScoringRules;
     alerts: AlertRules;
-    assignment: { mode: 'round_robin' | 'rules' | 'none' };
+    assignment: { mode: "round_robin" | "rules" | "none" };
     whatsapp_leads: boolean;
     ai_qualify: boolean;
     ai_brief: boolean;
