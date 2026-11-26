@@ -74,7 +74,7 @@ it('los endpoints de un espacio de trabajo no son accesibles desde otro', functi
     $a = $this->a;
     $b = $this->b;
     $wsB = $b['ws']->publicId();
-    foreach (['', '/overview', '/members', '/sites', '/contacts', '/audit-logs', "/sites/{$b['site']->publicId()}"] as $path) {
+    foreach (['', '/overview', '/members', '/sites', '/contacts', '/audit-logs', "/sites/{$b['site']->publicId()}", '/strategies', '/strategies/abandoned_cart', '/home', '/onboarding'] as $path) {
         $this->actingAs($a['owner'])->getJson("/api/w/{$wsB}{$path}")->assertNotFound();
     }
     // Un ID de sitio de B dentro de la ruta de A tampoco existe para A.

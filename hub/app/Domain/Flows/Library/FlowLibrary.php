@@ -73,10 +73,23 @@ final class FlowLibrary
         ];
     }
 
+    /**
+     * Flujos listos que no están en la tabla de los 20 de M09 y que crean las estrategias
+     * (docs/diseno/rediseno-v2.md §6): «Reactivar con IA» con el nodo `ai_reactivate` para
+     * la base dormida (RFM «Hibernando»). No salen en la biblioteca de Flujos; se crean desde
+     * Estrategias con CreateFlowFromLibrary, como cualquier otro.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function extras(): array
+    {
+        return [self::aiReactivate()];
+    }
+
     /** @return array<string, mixed>|null */
     public static function find(string $key): ?array
     {
-        foreach (self::all() as $flow) {
+        foreach ([...self::all(), ...self::extras()] as $flow) {
             if ($flow['key'] === $key) {
                 return $flow;
             }
@@ -405,6 +418,18 @@ final class FlowLibrary
         return self::flow(20, 'renewal', 'Renovación', '15 días antes de la fecha de renovación: recordatorio con la oferta y, si un día antes no ha renovado, aviso al equipo. Sale cuando renueva (lead ganado).',
             ['type' => 'date', 'attribute' => 'renewal_at', 'offset_days' => -15, 'hour' => 10],
             ['event' => 'lead.won'], ['mode' => 'every_days', 'days' => 300], $g, 5);
+    }
+
+    /** @return array<string, mixed> */
+    private static function aiReactivate(): array
+    {
+        $g = (new LibraryGraph)
+            ->node('ai', 'ai_reactivate', ['channels' => ['whatsapp', 'email'], 'lookback_days' => 365, 'offer' => ''])
+            ->chain('trigger', 'ai');
+
+        return self::flow(21, 'ai_reactivate', 'Reactivar con IA', 'Entra en «Hibernando»: la IA escribe un mensaje personal con lo último que habló y lo que compró, y termina con una pregunta fácil. Sin oferta del dueño no ofrece descuentos.',
+            ['type' => 'segment', 'system_key' => 'rfm_hibernating', 'on' => 'entered'],
+            ['event' => 'order.paid'], ['mode' => 'every_days', 'days' => 120], $g, 4);
     }
 
     // ── Ayudas ──────────────────────────────────────────────────────────

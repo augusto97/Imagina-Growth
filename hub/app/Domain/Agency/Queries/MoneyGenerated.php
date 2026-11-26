@@ -45,64 +45,21 @@ final class MoneyGenerated
      */
     public function forWorkspace(Workspace $workspace, CarbonImmutable $from, CarbonImmutable $to): array
     {
-        $ws = $workspace->id;
-        $agentOrders = DB::table('carts')->where('workspace_id', $ws)
-            ->whereIn('id', DB::table('ai_agent_turns')->where('workspace_id', $ws)->whereNotNull('cart_id')->select('cart_id'))
-            ->selectRaw('COALESCE(recovered_order_id, order_id) AS oid')->pluck('oid')->filter()->map(fn ($v) => (string) $v)->flip()->all();
-        $recovered = DB::table('carts')->where('workspace_id', $ws)->whereNotNull('recovered_order_id')
-            ->pluck('recovered_order_id')->map(fn ($v) => (string) $v)->flip()->all();
-
-        $rows = DB::table('orders as o')
-            ->leftJoin('messages as m', 'm.id', '=', 'o.attributed_message_id')
-            ->where('o.workspace_id', $ws)->where('o.is_paid', true)
-            ->whereNotIn('o.status', ['cancelled', 'failed', 'refunded'])
-            ->where('o.paid_at', '>=', $from->utc())->where('o.paid_at', '<', $to->utc())
-            ->get(['o.id', 'o.total_ws', 'o.attributed_affiliate_id', 'o.attributed_referral_id', 'o.attributed_flow_id', 'o.attributed_campaign_id',
-                'o.attributed_widget_id', 'o.attributed_message_id', 'm.source_type as msg_source']);
-
         $modules = array_fill_keys(self::MODULES, ['revenue' => '0.00', 'orders' => 0]);
         $store = '0.00';
         $total = '0.00';
         $count = 0;
-        foreach ($rows as $r) {
-            $amount = Decimal::of((string) ($r->total_ws ?? '0'));
-            $store = Decimal::add($store, $amount);
-            $key = match (true) {
-                $r->attributed_affiliate_id !== null => 'affiliates',
-                $r->attributed_referral_id !== null => 'referrals',
-                $r->attributed_flow_id !== null => 'flows',
-                $r->attributed_campaign_id !== null => 'campaigns',
-                isset($agentOrders[(string) $r->id]) => 'ai_agent',
-                $r->attributed_message_id !== null && $r->msg_source === 'inbox' => 'inbox',
-                $r->attributed_widget_id !== null => 'widgets',
-                isset($recovered[(string) $r->id]) => 'recovered_carts',
-                $r->attributed_message_id !== null => 'messages',
-                default => null,
-            };
-            if ($key === null) {
-                continue;
-            }
-            $modules[$key]['revenue'] = Decimal::add($modules[$key]['revenue'], $amount);
-            $modules[$key]['orders']++;
-            $total = Decimal::add($total, $amount);
-            $count++;
-        }
-
-        $sales = $rows->count();
-        $won = DB::table('leads')->where('workspace_id', $ws)->where('stage', 'won')->whereNotNull('won_at')
-            ->where('won_at', '>=', $from->utc())->where('won_at', '<', $to->utc())
-            ->get(['origin', 'value_ws']);
-        foreach ($won as $lead) {
-            $amount = Decimal::of((string) ($lead->value_ws ?? '0'));
-            $store = Decimal::add($store, $amount);
+        $sales = 0;
+        foreach ($this->sales($workspace, $from, $to) as $sale) {
+            $store = Decimal::add($store, $sale['amount']);
             $sales++;
-            $key = self::LEAD_ORIGINS[(string) $lead->origin] ?? null;
-            if ($key === null) {
+            $key = $sale['module'];
+            if ($key === null || ! isset($modules[$key])) {
                 continue;
             }
-            $modules[$key]['revenue'] = Decimal::add($modules[$key]['revenue'], $amount);
+            $modules[$key]['revenue'] = Decimal::add($modules[$key]['revenue'], $sale['amount']);
             $modules[$key]['orders']++;
-            $total = Decimal::add($total, $amount);
+            $total = Decimal::add($total, $sale['amount']);
             $count++;
         }
 
@@ -123,6 +80,98 @@ final class MoneyGenerated
             'share_pct' => (float) $store > 0 ? round((float) $total / (float) $store * 100, 1) : 0.0,
             'modules' => $list,
         ];
+    }
+
+    /**
+     * El mismo dinero generado, con la fuente de cada venta: por módulo y, dentro de flujos, campañas y captación en
+     * el sitio, por flujo, campaña o widget. Con la misma regla de una sola vez por pedido, así la suma de las fuentes
+     * es el total de `forWorkspace`. Lo usan las estrategias y el Inicio para el desglose por estrategia.
+     *
+     * @return array{total: string, orders: int, modules: array<string, array{revenue: string, orders: int}>,
+     *     flows: array<string, array{revenue: string, orders: int}>, campaigns: array<string, array{revenue: string, orders: int}>,
+     *     widgets: array<string, array{revenue: string, orders: int}>}
+     */
+    public function bySource(Workspace $workspace, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $out = ['total' => '0.00', 'orders' => 0, 'modules' => [], 'flows' => [], 'campaigns' => [], 'widgets' => []];
+        foreach ($this->sales($workspace, $from, $to) as $sale) {
+            $module = $sale['module'];
+            if ($module === null) {
+                continue;
+            }
+            $out['total'] = Decimal::add($out['total'], $sale['amount']);
+            $out['orders']++;
+            $out['modules'][$module] = self::plus($out['modules'][$module] ?? null, $sale['amount']);
+            $bucket = match ($module) {
+                'flows' => 'flows', 'campaigns' => 'campaigns', 'widgets' => 'widgets', default => null,
+            };
+            if ($bucket !== null && $sale['source'] !== null) {
+                $out[$bucket][$sale['source']] = self::plus($out[$bucket][$sale['source']] ?? null, $sale['amount']);
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Cada venta del periodo (pedidos pagados y leads ganados) con el módulo que la explica (null si ninguno) y, en
+     * flujos, campañas y widgets, el ID interno de esa fuente.
+     *
+     * @return \Generator<int, array{amount: string, module: string|null, source: string|null}>
+     */
+    private function sales(Workspace $workspace, CarbonImmutable $from, CarbonImmutable $to): \Generator
+    {
+        $ws = $workspace->id;
+        $agentOrders = DB::table('carts')->where('workspace_id', $ws)
+            ->whereIn('id', DB::table('ai_agent_turns')->where('workspace_id', $ws)->whereNotNull('cart_id')->select('cart_id'))
+            ->selectRaw('COALESCE(recovered_order_id, order_id) AS oid')->pluck('oid')->filter()->map(fn ($v) => (string) $v)->flip()->all();
+        $recovered = DB::table('carts')->where('workspace_id', $ws)->whereNotNull('recovered_order_id')
+            ->pluck('recovered_order_id')->map(fn ($v) => (string) $v)->flip()->all();
+
+        $rows = DB::table('orders as o')
+            ->leftJoin('messages as m', 'm.id', '=', 'o.attributed_message_id')
+            ->where('o.workspace_id', $ws)->where('o.is_paid', true)
+            ->whereNotIn('o.status', ['cancelled', 'failed', 'refunded'])
+            ->where('o.paid_at', '>=', $from->utc())->where('o.paid_at', '<', $to->utc())
+            ->get(['o.id', 'o.total_ws', 'o.attributed_affiliate_id', 'o.attributed_referral_id', 'o.attributed_flow_id', 'o.attributed_campaign_id',
+                'o.attributed_widget_id', 'o.attributed_message_id', 'm.source_type as msg_source']);
+        foreach ($rows as $r) {
+            $key = match (true) {
+                $r->attributed_affiliate_id !== null => 'affiliates',
+                $r->attributed_referral_id !== null => 'referrals',
+                $r->attributed_flow_id !== null => 'flows',
+                $r->attributed_campaign_id !== null => 'campaigns',
+                isset($agentOrders[(string) $r->id]) => 'ai_agent',
+                $r->attributed_message_id !== null && $r->msg_source === 'inbox' => 'inbox',
+                $r->attributed_widget_id !== null => 'widgets',
+                isset($recovered[(string) $r->id]) => 'recovered_carts',
+                $r->attributed_message_id !== null => 'messages',
+                default => null,
+            };
+            $source = match ($key) {
+                'flows' => (string) $r->attributed_flow_id,
+                'campaigns' => (string) $r->attributed_campaign_id,
+                'widgets' => (string) $r->attributed_widget_id,
+                default => null,
+            };
+            yield ['amount' => Decimal::of((string) ($r->total_ws ?? '0')), 'module' => $key, 'source' => $source];
+        }
+
+        $won = DB::table('leads')->where('workspace_id', $ws)->where('stage', 'won')->whereNotNull('won_at')
+            ->where('won_at', '>=', $from->utc())->where('won_at', '<', $to->utc())
+            ->get(['origin', 'value_ws']);
+        foreach ($won as $lead) {
+            yield ['amount' => Decimal::of((string) ($lead->value_ws ?? '0')), 'module' => self::LEAD_ORIGINS[(string) $lead->origin] ?? null, 'source' => null];
+        }
+    }
+
+    /**
+     * @param  array{revenue: string, orders: int}|null  $sum
+     * @return array{revenue: string, orders: int}
+     */
+    private static function plus(?array $sum, string $amount): array
+    {
+        return $sum === null ? ['revenue' => $amount, 'orders' => 1] : ['revenue' => Decimal::add($sum['revenue'], $amount), 'orders' => $sum['orders'] + 1];
     }
 
     /**
