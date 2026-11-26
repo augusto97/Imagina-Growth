@@ -589,12 +589,14 @@ Público, en caché de CDN 5 min. Solo calculadoras `active` (y del sitio, si ti
 ```jsonc
 { "ok": true, "calculator": { "id": "qc_…", "name": "Pintura de interiores", "kind": "service|area|package", "currency": "COP",
     "definition": { "fields": [{ "key": "area", "label": "…", "type": "number|select|checkbox", "required": true, "help": null,
-                                 "unit": "m²", "min": 5, "max": 2000, "step": 1, "default": null, "options": [{ "value": "vinilo", "label": "Vinilo" }] }],
-                    "packages": [{ "key": "basico", "label": "Básico", "description": null }], "note": "Incluye materiales." },
+                                 "icon": "📐", "unit": "m²", "min": 5, "max": 2000, "step": 1, "default": null,
+                                 "options": [{ "value": "vinilo", "label": "Vinilo", "icon": "🏠", "description": "Interiores" }] }],
+                    "packages": [{ "key": "basico", "label": "Básico", "description": null, "icon": "🚀" }],
+                    "intro": "Tres preguntas y ves tu precio.", "note": "Incluye materiales." },
     "capture": { "required": true, "fields": ["first_name", "phone", "email"], "require": "phone|email|phone_or_email",
                  "consents": [{ "channel": "whatsapp", "label": "…", "version": "v3" }], "title": "…", "cta": "Ver mi cotización" } } }
 ```
-`404` `{"ok": false, "error": {"code": "unknown_calculator"}}`.
+`icon` (un emoji) y la `description` de una opción solo vienen si el negocio los puso (lote 0.3.0); el widget los pinta en las tarjetas, una pregunta por paso. `404` `{"ok": false, "error": {"code": "unknown_calculator"}}`.
 
 #### `POST /p/{public_key}/quotes/{calculator_id}/estimate` (Fase 5)
 ```json
@@ -604,6 +606,11 @@ Público, en caché de CDN 5 min. Solo calculadoras `active` (y del sitio, si ti
 - **`200`:** `{"ok": true, "quote_id": "qt_…", "estimate": {"min": "686000.00", "max": "839000.00", "currency": "COP", "text": "$686.000 – $839.000 COP"}, "lines": [{"label", "amount"}], "note", "message", "whatsapp": "https://wa.me/…" | null}`. Sin datos personales.
 - **`422`:** `{"ok": false, "message": "…", "errors": {"answers.area": ["…"], "fields.phone": ["…"]}}`: respuesta fuera de rango u opción que no existe, o falta el contacto cuando se pide.
 - **`429`:** 20 por minuto por IP (con hash) y 10 por `anonymous_id`.
+
+#### Página del cotizador (lote 0.3.0, página del hub)
+Sin tracker ni CORS: página Blade del hub para compartir el cotizador por enlace o QR sin WordPress. La clave es la del sitio del cotizador o el ID del espacio de trabajo (`ws_…`).
+- `GET /p/{key}/cotizar/{qc_…}` (una pregunta por paso con JavaScript; sin él, un formulario normal) y `POST /p/{key}/cotizar/{qc_…}` (`a[campo]`, `a[campo][]`, `a[package]`, `c[first_name|last_name|phone|email]`, `consent[canal]=1`, `utm[…]` y el campo trampa `website`): `303` al resultado firmado, `422` con los errores junto a cada pregunta. 10 envíos por minuto por IP.
+- `GET /p/{key}/cotizar/{qc_…}/r/{qt_…}/{firma}`: el rango, lo que incluye, la nota y «Hablar por WhatsApp» con la referencia; la firma es un HMAC de la cotización con la llave de la app y el enlace vale 30 días.
 
 #### Agenda de citas (Fase 5, páginas del hub)
 Sin tracker ni CORS: páginas Blade del hub, enlazadas desde el sitio con `[igr_booking service=""]` (bloque `imagina-growth/booking`, widget de Elementor «Botón de reservas»), que pinta `<a class="igr-booking igr-booking-button" data-igr-cta="booking" href="{hub}/p/{public_key}/reservar/{servicio}">`. La clave también puede ser el ID del espacio de trabajo (`ws_…`).
