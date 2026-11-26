@@ -68,16 +68,21 @@ palabras (cliente, paciente, estudiante).
    de volver a comprar. Los grupos listos («Campeones», «En riesgo»).
 4. **Conversaciones (1 min):** la bandeja de WhatsApp con el equipo y el agente con IA respondiendo una pregunta de
    precio y stock real.
-5. **Resultados (30 s):** ventas, de dónde vienen y el informe mensual en PDF.
+5. **Resultados (30 s):** el Resumen (lo vendido, lo que generó cada estrategia y cada canal), una recomendación con
+   el dinero en juego y el informe mensual en PDF.
 
 **Si el cliente es de servicios**, usa la demo de servicios (por ejemplo «Clínica Sonrisa Demo»):
-1. **Inicio:** leads del mes y de dónde vinieron, tiempo de primera respuesta, citas y asistencia, valor ganado.
+1. **Inicio:** leads del mes y de dónde vinieron, tiempo de primera respuesta, citas y asistencia, valor ganado y
+   «Para hoy» (a quién responder primero).
 2. **Clientes:** el tablero de leads por etapa (Nuevo → Contactado → Cita → Asistió → Paciente) y la ficha de un lead
    con su resumen automático y lo que sigue.
 3. **Estrategias:** «Confirmación de citas», «Recuperar inasistencias» y «Control periódico», con la vista previa del
    mensaje.
-4. **En tu web:** el formulario, la página de captura con su QR para el local y los leads de Facebook e Instagram.
+4. **En tu web:** la página de captura con su vista previa y su QR para el local, el WhatsApp con QR, el formulario
+   de contacto de la galería y los leads de Facebook, Instagram y Google.
 5. **Conversaciones:** el agente con IA respondiendo horarios y precios de servicios y agendando.
+6. **Resultados:** el resumen de servicios (embudo, primera respuesta, citas y valor ganado por cada parte de la
+   plataforma).
 
 Cierre: «Empiezas con el plan gratis de diagnóstico: conectas tu web y en 10 minutos ves lo que estás dejando de
 vender. Si te sirve, prendes las estrategias.»
@@ -88,13 +93,16 @@ vender. Si te sirve, prendes las estrategias.»
 plugin, y para WhatsApp una cuenta de WhatsApp Business (la conexión es con un clic; puede seguir usando la app del
 celular en el mismo número). El correo se puede enviar por la plataforma o por su propio servidor.
 
-**Pasos (el asistente los guía):**
+**Pasos (la bienvenida y el asistente los guían; se puede dejar para después y retomar):**
 1. Recibe la invitación por correo o el enlace y crea su contraseña (con verificación en dos pasos).
-2. El asistente pregunta si es tienda, servicios o ambos.
-3. Descarga el plugin, lo instala y pega el código de conexión.
-4. Mientras se importa su historial, conecta WhatsApp y el correo.
-5. Prende las 3 estrategias recomendadas para su negocio.
-6. Desde ese día ve en el Inicio lo que pasa; a la semana recibe el primer informe.
+2. Ve la **bienvenida** (qué hace la plataforma para su tipo de negocio) y toca «Configurar en 10 minutos».
+3. Elige a qué se dedica (tienda, servicios o los dos, y su actividad): el menú, las estrategias y las palabras se
+   adaptan.
+4. Descarga el plugin, lo instala y pega el código; el asistente lo detecta solo. Sin WordPress, publica su página de
+   contacto con enlace y QR.
+5. Mientras se importa su historial, conecta WhatsApp (con un clic) y el correo.
+6. Prende las 3 estrategias recomendadas para su negocio, con la vista previa de cada mensaje.
+7. Desde ese día ve en el Inicio lo que pasa; a la semana recibe el primer informe.
 
 ## Planes de referencia (COP al mes)
 

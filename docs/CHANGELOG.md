@@ -1,5 +1,57 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-26 — Versión 0.2.0: rediseño completo, estrategias y negocios sin tienda
+
+Se instala con el botón de actualizar, sin consola (las migraciones nuevas corren solas). Contrato de eventos v8
+(connector en v6, tracker en v4). Especificación del rediseño: `docs/diseno/rediseno-v2.md`; guion comercial:
+`docs/producto/presentacion.md`.
+
+**Se entiende desde el primer minuto:**
+- **Bienvenida** (qué hace la plataforma en 3 pilares, para una tienda, un negocio de servicios o los dos) y
+  **asistente de 6 pasos** a pantalla completa: a qué se dedica el negocio (9 actividades), conectar la web (o, sin
+  WordPress, publicar una página de contacto con enlace y QR), lo que ya se aprendió de la importación, WhatsApp y
+  correo, las 3 estrategias recomendadas y «Listo». Se puede dejar para después y retomar.
+- **Inicio:** el dinero que generó la plataforma este mes con su desglose, «Para hoy», tus estrategias y la salud de
+  las conexiones. Sin dinero todavía, muestra lo que se puede recuperar y el botón para prenderlo.
+- **Estrategias:** catálogo por objetivo con lo que genera cada una, «Recomendadas para ti» y el detalle en una hoja:
+  qué hace en 3 pasos, la vista previa real del mensaje, lo que necesita (con un botón por cosa) y prender o pausar.
+- **Menú en 8 secciones** con nombres de resultado (Inicio, Estrategias, Clientes, Conversaciones, Mensajes, En tu
+  web, Resultados, Configuración), cada una con su página de entrada (para qué sirve, cifras y «Empieza por aquí»).
+  Lo que no aplica al negocio no se muestra; lo que falta configurar se ve con un candado que dice qué falta.
+
+**Cada sección, rehecha** (escritorio, tableta y celular; modo oscuro):
+- **Clientes:** personas con filtros rápidos y acciones masivas, perfil 360 en palabras, grupos explicados con su
+  tendencia y «Enviar campaña» directo, tablero de leads usable en el celular, «Hoy» por motivo y agenda con
+  confirmar, asistió o no asistió a un toque.
+- **Conversaciones:** bandeja que se abre aunque WhatsApp esté desconectado, la ventana de 24 h explicada, respuestas
+  rápidas con botón, el agente con IA visible en cada chat y su configuración en palabras con prueba en vivo.
+- **Mensajes:** automatizaciones con su resultado del mes, biblioteca de 35 como galería con el recorrido paso a paso,
+  constructor con formularios de fechas y ayuda en cada paso, campañas en 4 pasos con la ventana legal explicada,
+  calendario comercial propio, plantillas con el estado de Meta en palabras y galería por objetivo, copiloto con
+  ejemplos por negocio.
+- **En tu web:** páginas de captura con vista previa en vivo y QR, WhatsApp con QR, leads de Facebook, Instagram y
+  Google, popups desde una galería por objetivo (sin cupones en servicios), reseñas de Google sin tienda, y cifras
+  claras en fidelización, avisos, referidos y cotizador.
+- **Resultados:** resumen con lo vendido y lo generado (por estrategia y por canal), tableros que dicen su conclusión,
+  informes mensual y semanal en una pantalla, recomendaciones con el dinero en juego y «posponer», predicciones y
+  anuncios explicados en palabras.
+- **Configuración:** Conexiones en un solo lugar (11 tarjetas en 5 grupos), Tu negocio con actividad y horario de
+  atención, equipo, privacidad en 3 pestañas, plan con lo que ganarías al subir y registro de actividad en palabras.
+- Se dice «automatización» en toda la interfaz (antes, a veces, «flujo»).
+
+**Negocios de servicios (sin tienda):** 9 actividades (salud, servicios profesionales, educación, inmobiliaria,
+turismo y restaurantes, automotriz, B2B…) que adaptan el embudo, las estrategias, los grupos y las palabras
+(paciente, estudiante); 15 automatizaciones nuevas (confirmación de citas, inasistencias, cotizaciones, control
+periódico, eventos…); calendario comercial de Colombia, México y Venezuela; resultados propios (leads, primera
+respuesta, citas, cierre y valor ganado); un widget o formulario de En tu web ya abre el lead; demo de servicios
+(`igr:seed-demo --tipo=servicios`).
+
+**Más rápido:** arranque del panel de 381 a 250 kB, sin saltos al cargar, menos llamadas por pantalla (el Inicio pasa
+de 7 a 2), precarga al pasar el puntero, índices nuevos y caché de las métricas.
+
+**Pendiente de terceros:** las plantillas de WhatsApp de las automatizaciones nuevas necesitan la aprobación de Meta
+(mientras, salen por correo); los leads de Facebook e Instagram necesitan los permisos de la app de Meta.
+
 ## 2026-11-20 — Versión 0.1.10: todo desde el panel, celular y actualizaciones que no se traban
 
 Se instala con el botón de actualizar.
