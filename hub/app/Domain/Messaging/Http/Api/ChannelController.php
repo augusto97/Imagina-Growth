@@ -13,6 +13,9 @@ use App\Domain\Messaging\Channels\DriverRegistry;
 use App\Domain\Messaging\Channels\Drivers\MetaCloudDriver;
 use App\Domain\Messaging\Channels\Drivers\MetaSocialDriver;
 use App\Domain\Messaging\Channels\Drivers\SesDriver;
+use App\Domain\Messaging\Channels\ImaginaWhats\ImaginaWhatsClient;
+use App\Domain\Messaging\Channels\ImaginaWhats\ImaginaWhatsError;
+use App\Domain\Messaging\Channels\ImaginaWhats\ImaginaWhatsSetup;
 use App\Domain\Messaging\Contracts\MessageDispatcher;
 use App\Domain\Messaging\Data\OutboundMessage;
 use App\Domain\Messaging\Enums\Channel;
@@ -39,8 +42,8 @@ use RuntimeException;
 /**
  * Configuración → Canales (M07): cuentas de correo (SES con asistente de
  * dominio, o SMTP), WhatsApp oficial (manual aquí; Embedded Signup con un clic en
- * Connections\Http\WhatsAppSignupController), Zender (con el aviso de riesgo que
- * acepta el owner) y SMS (Twilio). Messenger e Instagram se conectan en
+ * Connections\Http\WhatsAppSignupController), WhatsApp no oficial —Zender e Imagina Whats— (con el aviso de
+ * riesgo que acepta el owner) y SMS (Twilio). Messenger e Instagram se conectan en
  * SocialChannelController (Fase 5) o con un clic desde Conexiones → Meta.
  */
 final class ChannelController
@@ -60,6 +63,11 @@ final class ChannelController
                 'embedded_signup' => ['configured' => $providers->configured(ConnectionProvider::MetaWhatsApp), 'missing' => $providers->for(ConnectionProvider::MetaWhatsApp)->missing()],
                 'meta_login' => ['configured' => $providers->configured(ConnectionProvider::Meta), 'missing' => $providers->for(ConnectionProvider::Meta)->missing()],
                 'zender_caps' => ['hourly' => (int) config('igr-messaging.zender.hourly_cap'), 'daily' => (int) config('igr-messaging.zender.daily_cap')],
+                'imagina_whats' => [
+                    'url' => rtrim((string) config('igr-messaging.imagina_whats.url'), '/'),
+                    'caps' => ['hourly' => (int) config('igr-messaging.imagina_whats.hourly_cap'), 'daily' => (int) config('igr-messaging.imagina_whats.daily_cap')],
+                    'abilities' => array_values((array) config('igr-messaging.imagina_whats.abilities')),
+                ],
                 // Si el plan incluye correo por la cuenta de SES de la plataforma (S3); si no, solo SMTP propio.
                 'platform_email' => PlatformSending::emailAllowed($this->current->get()),
             ],
@@ -198,6 +206,61 @@ final class ChannelController
         return response()->json(['data' => ChannelAccountPresenter::present($account), 'webhook_secret' => $account->credential('webhook_secret')], 201);
     }
 
+    /**
+     * POST /api/w/{ws}/channels/whatsapp/imagina-whats/check — con la clave de API: la cuenta de Imagina Whats, los
+     * permisos que le faltan y los números que puede usar. No guarda nada.
+     */
+    public function imaginaWhatsCheck(Request $request, ImaginaWhatsSetup $setup): JsonResponse
+    {
+        Gate::authorize('ws.manageWorkspace');
+        $data = $request->validate(['api_key' => ['required', 'string', 'min:10', 'max:300']]);
+
+        return response()->json(['data' => $this->inspectImaginaWhats($setup, $data['api_key'])]);
+    }
+
+    /**
+     * POST /api/w/{ws}/channels/whatsapp/imagina-whats — solo el owner, aceptando el riesgo (cumplimiento.md §5.2). El
+     * número debe estar conectado en Imagina Whats. Registra el webhook firmado de los entrantes y estados; si falla
+     * (p. ej. el panel no es público), la cuenta queda activa para enviar con el motivo en `last_error`.
+     */
+    public function imaginaWhats(Request $request, ImaginaWhatsSetup $setup): JsonResponse
+    {
+        Gate::authorize('ws.manageWorkspace');
+        abort_unless($this->current->role() === WorkspaceRole::Owner, 403, __('Solo el dueño del espacio de trabajo puede activar la conexión no oficial.'));
+        $data = $request->validate([
+            'api_key' => ['required', 'string', 'min:10', 'max:300'],
+            'wa_account_id' => ['required', 'integer', 'min:1'],
+            'display_name' => ['nullable', 'string', 'max:120'],
+            'accept_risk' => ['accepted'],
+        ]);
+        $info = $this->inspectImaginaWhats($setup, $data['api_key']);
+        if ($info['missing'] !== []) {
+            throw ValidationException::withMessages(['api_key' => __('A la clave de API le faltan estos permisos en Imagina Whats: :list.', ['list' => implode(', ', $info['missing'])])]);
+        }
+        $number = collect($info['numbers'])->firstWhere('id', (int) $data['wa_account_id']);
+        if ($number === null) {
+            throw ValidationException::withMessages(['wa_account_id' => __('Ese número no está en la cuenta de Imagina Whats de esta clave.')]);
+        }
+        if ($number['status'] !== 'connected' || ! $number['enabled']) {
+            throw ValidationException::withMessages(['wa_account_id' => __('Ese número no está conectado en Imagina Whats. Vincúlalo allá (QR o código) y vuelve a intentarlo.')]);
+        }
+        $externalId = (string) $number['id'];
+        $config = ['api_key' => $data['api_key'], 'wa_account_id' => $externalId];
+        $account = ChannelAccount::query()->where('provider', ChannelAccount::IMAGINA_WHATS)->where('external_id', $externalId)->where('status', '!=', 'disconnected')->first();
+        if ($account !== null) {
+            $account->mergeConfig($config);
+            $account->forceFill(['identity' => $number['phone'] ?? $account->identity, 'display_name' => mb_substr($data['display_name'] ?? $account->display_name, 0, 120), 'status' => 'active'])->save();
+        } else {
+            $account = $this->create(Channel::WhatsApp, ChannelAccount::IMAGINA_WHATS, $data['display_name'] ?? ($number['name'] ?? __('WhatsApp (Imagina Whats)')), $config, $externalId, $number['phone'], 'active');
+        }
+        $account->forceFill(['risk_accepted_at' => now(), 'risk_accepted_by' => (string) $request->user()?->getAuthIdentifier()])->save();
+        $problem = $setup->registerWebhook($account);
+        $account->forceFill(['last_error' => $problem])->save();
+        $this->audit->handle('channel.imagina_whats_risk_accepted', $account, ['caps' => $account->unofficialCaps(), 'webhook' => $problem === null], $account->workspace_id);
+
+        return response()->json(['data' => ChannelAccountPresenter::present($account->refresh()), 'webhook_problem' => $problem], 201);
+    }
+
     /** POST /api/w/{ws}/channels/sms/twilio */
     public function twilio(Request $request): JsonResponse
     {
@@ -252,11 +315,14 @@ final class ChannelController
      * cuenta se conectó con un clic y nadie más usa esa conexión de WhatsApp, también se revoca (la cuenta deja
      * de mandar sus webhooks a la app).
      */
-    public function destroy(string $channel, DisconnectConnection $disconnect): JsonResponse
+    public function destroy(string $channel, DisconnectConnection $disconnect, ImaginaWhatsSetup $setup): JsonResponse
     {
         Gate::authorize('ws.manageWorkspace');
         $account = $this->find($channel);
         $connection = $account->linkedConnection();
+        if ($account->provider === ChannelAccount::IMAGINA_WHATS) {
+            $setup->forget($account); // el webhook de Imagina Whats deja de avisar (si falla, el hub responde 410)
+        }
         $account->forceFill(['status' => 'disconnected', 'is_default' => false, 'oauth_connection_id' => null, 'config' => array_intersect_key($account->config ?? [], array_flip(['domain', 'from_email']))])->save();
         if ($connection !== null && $connection->provider === ConnectionProvider::MetaWhatsApp
             && ! ChannelAccount::query()->where('oauth_connection_id', $connection->id)->where('status', '!=', 'disconnected')->exists()) {
@@ -276,6 +342,9 @@ final class ChannelController
         if ($social instanceof MetaSocialDriver) {
             // Messenger e Instagram: no hay plantillas; se vuelve a comprobar la conexión.
             return response()->json(['data' => ChannelAccountPresenter::present(SocialChannelController::check($account, $social)), 'templates' => 0]);
+        }
+        if ($account->provider === ChannelAccount::IMAGINA_WHATS) {
+            return response()->json(['data' => ChannelAccountPresenter::present($this->checkImaginaWhats($account)), 'templates' => 0]);
         }
         abort_unless($account->provider === 'meta_cloud', 422, __('Solo las cuentas de WhatsApp oficial tienen plantillas.'));
         try {
@@ -339,10 +408,48 @@ final class ChannelController
         return $account;
     }
 
+    /**
+     * @return array{workspace: string|null, credits: float|null, missing: list<string>, numbers: list<array{id: int, phone: string|null, name: string|null, status: string, enabled: bool}>}
+     */
+    private function inspectImaginaWhats(ImaginaWhatsSetup $setup, string $apiKey): array
+    {
+        try {
+            return $setup->inspect($apiKey, strtoupper((string) ($this->current->get()->country ?: 'CO')));
+        } catch (ImaginaWhatsError $e) {
+            throw ValidationException::withMessages(['api_key' => $e->human()]);
+        }
+    }
+
+    /** «Comprobar» una cuenta de Imagina Whats: el número sigue conectado allá y la clave sigue valiendo. */
+    private function checkImaginaWhats(ChannelAccount $account): ChannelAccount
+    {
+        $client = ImaginaWhatsClient::for($account);
+        $number = $account->credential('wa_account_id');
+        if ($client === null || $number === null || ! ctype_digit($number)) {
+            throw ValidationException::withMessages(['account' => __('Faltan los datos de Imagina Whats en la cuenta.')]);
+        }
+        try {
+            $info = $client->waAccount((int) $number);
+        } catch (ImaginaWhatsError $e) {
+            $account->forceFill(['last_error' => mb_substr($e->human(), 0, 500)])->save();
+            throw ValidationException::withMessages(['account' => $e->human()]);
+        }
+        $status = is_string($info['status'] ?? null) ? $info['status'] : 'unknown';
+        $problem = match (true) {
+            $status === 'connected' && ($info['is_enabled'] ?? true) !== false => null,
+            $status === 'banned' => __('WhatsApp bloqueó este número en Imagina Whats.'),
+            $status === 'connected' => __('El número está deshabilitado en Imagina Whats.'),
+            default => __('El número no está conectado en Imagina Whats (:status). Vincúlalo otra vez allá.', ['status' => $status]),
+        };
+        $account->forceFill(['last_error' => $problem])->save();
+
+        return $account;
+    }
+
     private function ensureDefault(ChannelAccount $account): void
     {
         $hasDefault = ChannelAccount::query()->where('channel', $account->channel->value)->where('is_default', true)->where('status', 'active')->whereKeyNot($account->id)->exists();
-        if (! $hasDefault && $account->provider !== ChannelAccount::ZENDER) {
+        if (! $hasDefault && ! $account->isUnofficial()) {
             $account->forceFill(['is_default' => true])->save();
         }
     }

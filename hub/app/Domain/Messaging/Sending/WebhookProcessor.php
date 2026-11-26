@@ -7,6 +7,7 @@ namespace App\Domain\Messaging\Sending;
 use App\Domain\Consent\Policy\PolicyRequest;
 use App\Domain\Consent\Policy\SendPolicy;
 use App\Domain\Contacts\Models\Contact;
+use App\Domain\Contacts\Models\ContactIdentity;
 use App\Domain\Messaging\Actions\DisconnectWhatsAppFromMeta;
 use App\Domain\Messaging\Channels\Data\StatusUpdate;
 use App\Domain\Messaging\Channels\Data\WebhookBatch;
@@ -32,7 +33,8 @@ use Illuminate\Support\Facades\Log;
  * Aplica lo que trae un webhook ya verificado (hub/CLAUDE.md §8): estados de
  * los mensajes (cada evento message.* una sola vez), rebotes y quejas a la
  * supresión, mensajes entrantes, estado de las plantillas y calidad del número y, en coexistencia de WhatsApp, lo
- * que el negocio escribe desde el celular, el historial, la libreta y la salida del número (lote 4, hub/CLAUDE.md §8).
+ * que el negocio escribe desde el celular, el historial, la libreta y la salida del número (lote 4, hub/CLAUDE.md §8),
+ * y las bajas que avisa el proveedor (Imagina Whats).
  * Los webhooks llegan sin espacio de trabajo: se busca por el ID del proveedor
  * y se trabaja dentro del contexto del mensaje o la cuenta.
  */
@@ -92,6 +94,12 @@ final class WebhookProcessor
         foreach ($batch->accountUpdates as $item) {
             $this->offboarding->handle($item['waba'], $item['event'], $item['reason']);
         }
+        foreach ($batch->optOuts as $item) {
+            $target = $account ?? $this->account($providers, $item['account']);
+            if ($target !== null) {
+                $this->optOut($target, $item['phone']);
+            }
+        }
         foreach ($batch->templates as $item) {
             $query = WaTemplate::withoutWorkspaceScope();
             $template = $item['meta_template_id'] !== null
@@ -113,6 +121,29 @@ final class WebhookProcessor
                 }
             }
         }
+    }
+
+    /**
+     * Baja en el proveedor (Imagina Whats `contact.unsubscribed`): se revoca el marketing de ese canal al contacto con
+     * ese número, como una baja por palabra clave. Si el número no es de nadie, no hay nada que revocar.
+     */
+    private function optOut(ChannelAccount $account, string $phone): void
+    {
+        $workspace = Workspace::query()->find($account->workspace_id);
+        if ($workspace === null) {
+            return;
+        }
+        $this->current->run($workspace, function () use ($workspace, $account, $phone): void {
+            $bidx = BlindIndex::phone($workspace->id, $phone);
+            $contact = Contact::query()->where('phone_bidx', $bidx)->whereNull('merged_into_id')->first();
+            if ($contact === null) {
+                $owner = ContactIdentity::query()->where('type', 'phone_hash')->where('value', $bidx)->value('contact_id');
+                $contact = is_string($owner) ? Contact::query()->find($owner) : null;
+            }
+            if ($contact !== null) {
+                $this->unsubscribe->unsubscribe($workspace, $contact->id, $account->channel->value, 'channel', 'provider', null, ['provider' => $account->provider]);
+            }
+        });
     }
 
     /** @param list<string> $providers */

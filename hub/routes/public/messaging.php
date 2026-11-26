@@ -3,6 +3,7 @@
 use App\Domain\Messaging\Http\Public\PreferenceCenterController;
 use App\Domain\Messaging\Http\Public\TrackedLinkController;
 use App\Domain\Messaging\Http\Public\UnsubscribeController;
+use App\Domain\Messaging\Http\Webhooks\ImaginaWhatsWebhookController;
 use App\Domain\Messaging\Http\Webhooks\MetaWebhookController;
 use App\Domain\Messaging\Http\Webhooks\SesWebhookController;
 use App\Domain\Messaging\Http\Webhooks\TwilioWebhookController;
@@ -25,4 +26,5 @@ Route::get('webhooks/meta', [MetaWebhookController::class, 'verify']);
 Route::post('webhooks/meta', [MetaWebhookController::class, 'handle']);
 Route::post('webhooks/ses', SesWebhookController::class);
 Route::post('webhooks/zender/{account}', ZenderWebhookController::class);
+Route::post('webhooks/imagina-whats/{account}', ImaginaWhatsWebhookController::class);
 Route::post('webhooks/twilio/{account}', TwilioWebhookController::class);

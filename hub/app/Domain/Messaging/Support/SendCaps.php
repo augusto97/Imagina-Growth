@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Redis;
  * Topes de envío de una cuenta, aparte de la frecuencia por contacto:
  * - Calentamiento de un dominio de correo nuevo: tope diario creciente
  *   (config igr-messaging.warmup) desde `warmup_started_at`.
- * - Zender: topes fijos por hora y por día de la plataforma (cumplimiento.md §5.2).
+ * - WhatsApp no oficial (Zender, Imagina Whats): topes fijos por hora y por día de la plataforma (cumplimiento.md §5.2).
  * `reserve` devuelve null si hay cupo (y lo toma) o cuándo se puede volver a intentar.
  */
 final class SendCaps
@@ -73,9 +73,9 @@ final class SendCaps
     private static function caps(ChannelAccount $account, CarbonImmutable $now): array
     {
         $caps = [];
-        if ($account->provider === ChannelAccount::ZENDER) {
-            $caps[] = [self::key($account, 'h', $now->format('YmdH')), (int) config('igr-messaging.zender.hourly_cap'), $now->addHour()->startOfHour()];
-            $caps[] = [self::key($account, 'd', $now->format('Ymd')), (int) config('igr-messaging.zender.daily_cap'), $now->addDay()->startOfDay()];
+        if (($fixed = $account->unofficialCaps()) !== null) {
+            $caps[] = [self::key($account, 'h', $now->format('YmdH')), $fixed['hourly'], $now->addHour()->startOfHour()];
+            $caps[] = [self::key($account, 'd', $now->format('Ymd')), $fixed['daily'], $now->addDay()->startOfDay()];
         }
         $warmup = self::warmup($account);
         if ($warmup !== null && $warmup['limit'] !== null) {

@@ -32,7 +32,7 @@ use Throwable;
  * 1. Revisa otra vez la ventana legal justo antes del proveedor: si la cola se
  *    demoró y ya cerró, el mensaje queda `deferred` hasta la siguiente apertura
  *    (lo vuelve a encolar `igr:messages:requeue`, cada minuto).
- * 2. Topes de la cuenta: calentamiento del dominio y topes fijos de Zender.
+ * 2. Topes de la cuenta: calentamiento del dominio y topes fijos del WhatsApp no oficial.
  * 3. Límite de velocidad por cuenta (Redis).
  * 4. Pasa a `sending` de forma atómica (un reintento nunca envía dos veces) y
  *    llama al driver. Un error transitorio vuelve a `queued` con espera; uno
@@ -98,7 +98,7 @@ final class SendMessageJob implements ShouldQueue, WorkspaceAware
             return;
         }
 
-        // 2. Topes de la cuenta (calentamiento, Zender).
+        // 2. Topes de la cuenta (calentamiento, WhatsApp no oficial).
         $capUntil = SendCaps::reserve($account);
         if ($capUntil !== null) {
             $message->forceFill(['status' => 'deferred', 'deferred_until' => $capUntil, 'policy_reason' => 'account_cap'])->save();
@@ -158,6 +158,12 @@ final class SendMessageJob implements ShouldQueue, WorkspaceAware
             return;
         }
         SendCaps::release($account);
+        if ($result->retryAt !== null) {
+            // El proveedor dijo hasta cuándo no recibe (tope diario de calentamiento): se aplaza sin gastar intentos.
+            $message->forceFill(['status' => 'deferred', 'deferred_until' => $result->retryAt, 'policy_reason' => 'provider_cap', 'failed_reason' => $result->error, 'error_code' => $result->errorCode])->save();
+
+            return;
+        }
         $attempts = (int) ($payload['attempts'] ?? 0) + 1;
         if ($result->retryable && $attempts < self::MAX_PROVIDER_ATTEMPTS) {
             $payload['attempts'] = $attempts;

@@ -48,6 +48,11 @@ class ChannelAccount extends Model
 
     public const ZENDER = 'zender';
 
+    public const IMAGINA_WHATS = 'imagina_whats';
+
+    /** WhatsApp no oficial (WhatsApp Web): sin marketing, con topes fijos de la plataforma (cumplimiento.md §5.2). */
+    public const UNOFFICIAL = [self::ZENDER, self::IMAGINA_WHATS];
+
     protected $fillable = ['workspace_id', 'channel', 'provider', 'display_name', 'config', 'oauth_connection_id', 'identity', 'external_id', 'quality_rating', 'messaging_limit_tier', 'warmup_started_at', 'is_default', 'status', 'last_error', 'alert_state', 'alert_sent_at', 'risk_accepted_at', 'risk_accepted_by'];
 
     protected $hidden = ['config'];
@@ -84,6 +89,24 @@ class ChannelAccount extends Model
     public function isActive(): bool
     {
         return $this->status === 'active';
+    }
+
+    /** Zender o Imagina Whats: conexión por WhatsApp Web, que WhatsApp puede bloquear. */
+    public function isUnofficial(): bool
+    {
+        return in_array($this->provider, self::UNOFFICIAL, true);
+    }
+
+    /**
+     * Topes fijos por hora y por día de una conexión no oficial, o null.
+     *
+     * @return array{hourly: int, daily: int}|null
+     */
+    public function unofficialCaps(): ?array
+    {
+        return $this->isUnofficial()
+            ? ['hourly' => (int) config("igr-messaging.{$this->provider}.hourly_cap"), 'daily' => (int) config("igr-messaging.{$this->provider}.daily_cap")]
+            : null;
     }
 
     /** La cuenta por defecto y activa del canal en el espacio de trabajo actual. */

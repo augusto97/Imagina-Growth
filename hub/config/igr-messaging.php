@@ -29,6 +29,18 @@ return [
         'hourly_cap' => 30,
         'daily_cap' => 200,
     ],
+    // Imagina Whats (WhatsApp Web por API REST v1 y webhooks firmados): la misma regla que Zender, porque también es una
+    // conexión no oficial (cumplimiento.md §5.2). Cada cliente pega su clave de API; la URL es la de la plataforma.
+    'imagina_whats' => [
+        'url' => env('IGR_IMAGINA_WHATS_URL', 'https://whats.imagina.cloud'),
+        'hourly_cap' => 30,
+        'daily_cap' => 200,
+        // Permisos mínimos de la clave: probar la conexión, ver y usar el número, leer estados y registrar el webhook.
+        'abilities' => ['account.view', 'wa.send', 'wa.read', 'wa.accounts.view', 'webhooks.view', 'webhooks.manage'],
+        // Eventos del webhook que escucha el hub.
+        'events' => ['wa.message.received', 'wa.message.sent', 'wa.message.delivered', 'wa.message.read', 'wa.message.failed', 'wa.message.canceled', 'contact.unsubscribed'],
+        'timeout' => 20,
+    ],
     'twilio' => [
         'api_url' => env('IGR_TWILIO_API_URL', 'https://api.twilio.com'),
         'rate_per_second' => 10,

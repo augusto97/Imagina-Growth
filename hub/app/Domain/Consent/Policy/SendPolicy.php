@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Redis;
  * Motor de política de envío (cumplimiento.md §4.2, hub/CLAUDE.md §8). Decide
  * Allow, Defer(until) o Deny antes de cada mensaje, en este orden:
  *
- * 1. Cuenta del canal: activa; la conexión no oficial (Zender) nunca envía
+ * 1. Cuenta del canal: activa; la conexión no oficial (Zender, Imagina Whats) nunca envía
  *    marketing; con la calidad de WhatsApp en rojo no sale marketing y en amarillo
  *    se frenan las campañas.
  * 2. Contacto: tiene la dirección del canal; no está suprimido (rebote, queja,
@@ -127,7 +127,7 @@ final class SendPolicy
         if ($account === null || ! $account->isActive()) {
             return PolicyDecision::deny(PolicyDecision::CHANNEL_UNAVAILABLE);
         }
-        if ($commercial && $account->provider === ChannelAccount::ZENDER) {
+        if ($commercial && $account->isUnofficial()) {
             return PolicyDecision::deny(PolicyDecision::UNOFFICIAL_MARKETING);
         }
         if ($commercial && $request->channel->isSocial()) {

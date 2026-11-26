@@ -12,6 +12,8 @@ Route::get('channels', [ChannelController::class, 'index']);
 Route::post('channels/email', [ChannelController::class, 'storeEmail']);
 Route::post('channels/whatsapp/manual', [ChannelController::class, 'whatsappManual']);
 Route::post('channels/whatsapp/zender', [ChannelController::class, 'zender']);
+Route::post('channels/whatsapp/imagina-whats/check', [ChannelController::class, 'imaginaWhatsCheck']);
+Route::post('channels/whatsapp/imagina-whats', [ChannelController::class, 'imaginaWhats']);
 Route::post('channels/sms/twilio', [ChannelController::class, 'twilio']);
 Route::post('channels/messenger', [SocialChannelController::class, 'messenger']);
 Route::post('channels/instagram', [SocialChannelController::class, 'instagram']);

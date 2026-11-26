@@ -227,8 +227,8 @@ final class DefaultMessageDispatcher implements MessageDispatcher
         $vars['enlaces'] = array_merge((array) ($vars['enlaces'] ?? []), $links);
         $rendered = app(TemplateRenderer::class)->render($message->templateId, new RenderContext($workspace, $contact, $vars));
 
-        // Zender solo manda texto: la plantilla de WhatsApp se compone con sus parámetros.
-        if ($account->provider === ChannelAccount::ZENDER && $rendered->text === null && $rendered->waTemplateName !== null) {
+        // WhatsApp no oficial (Zender, Imagina Whats) solo manda texto: la plantilla de WhatsApp se compone con sus parámetros.
+        if ($account->isUnofficial() && $rendered->text === null && $rendered->waTemplateName !== null) {
             $tpl = WaTemplate::query()->where('name', $rendered->waTemplateName)->where('language', $rendered->waLanguage ?? 'es')->first();
             $text = $tpl !== null ? WaTemplateText::compose($tpl, $rendered->waComponents) : null;
 
