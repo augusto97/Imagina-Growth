@@ -13,15 +13,16 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Crea un widget en borrador con los valores por defecto de su tipo (WidgetSchema::defaults) y su quiz de ejemplo
- * (modulos.md M12). Lo usan «Nuevo widget» de En el sitio y las estrategias (que además ajustan los textos o el
- * cupón con `overrides`). Queda en la auditoría.
+ * (modulos.md M12). Lo usan «Nuevo widget» de En el sitio, la galería de plantillas (WidgetTemplates) y las
+ * estrategias, que ajustan los textos, el cupón, el disparador, el diseño o el quiz con `overrides`. Queda en la
+ * auditoría.
  */
 final class CreateWidget
 {
     public function __construct(private readonly CurrentWorkspace $current, private readonly RecordAuditLog $audit) {}
 
     /**
-     * @param  array{content?: array<string, mixed>, consent_config?: array<string, mixed>, coupon_config?: array<string, mixed>}  $overrides
+     * @param  array{content?: array<string, mixed>, consent_config?: array<string, mixed>, coupon_config?: array<string, mixed>, targeting?: array<string, mixed>, design?: array<string, mixed>, quiz?: array<string, mixed>}  $overrides
      */
     public function handle(string $name, string $kind, ?string $siteId, ?string $userId, array $overrides = []): OnsiteWidget
     {
@@ -29,22 +30,25 @@ final class CreateWidget
         $content = array_replace($defaults['content'], $overrides['content'] ?? []);
         $consent = array_replace($defaults['consent_config'], $overrides['consent_config'] ?? []);
         $coupon = array_replace($defaults['coupon_config'], $overrides['coupon_config'] ?? []);
-        $widget = DB::transaction(function () use ($name, $kind, $siteId, $userId, $defaults, $content, $consent, $coupon): OnsiteWidget {
+        $targeting = array_replace($defaults['targeting'], $overrides['targeting'] ?? []);
+        $design = array_replace($defaults['design'], $overrides['design'] ?? []);
+        $quiz = is_array($defaults['quiz']) ? array_replace($defaults['quiz'], $overrides['quiz'] ?? []) : null;
+        $widget = DB::transaction(function () use ($name, $kind, $siteId, $userId, $targeting, $design, $quiz, $content, $consent, $coupon): OnsiteWidget {
             $widget = OnsiteWidget::query()->create([
                 'workspace_id' => $this->current->id(),
                 'site_id' => $siteId,
                 'name' => trim($name),
                 'kind' => $kind,
-                'targeting' => $defaults['targeting'],
-                'design' => $defaults['design'],
+                'targeting' => $targeting,
+                'design' => $design,
                 'content' => $content,
-                'variants' => [['key' => 'a', 'weight' => 100, 'design' => $defaults['design'], 'content' => $content]],
+                'variants' => [['key' => 'a', 'weight' => 100, 'design' => $design, 'content' => $content]],
                 'consent_config' => $consent,
                 'coupon_config' => $coupon,
                 'created_by' => $userId,
             ]);
-            if (is_array($defaults['quiz'])) {
-                Quiz::query()->create(['widget_id' => $widget->id] + $defaults['quiz']);
+            if (is_array($quiz)) {
+                Quiz::query()->create(['widget_id' => $widget->id] + $quiz);
             }
 
             return $widget;

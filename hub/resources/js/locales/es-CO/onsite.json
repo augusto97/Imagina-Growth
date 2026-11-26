@@ -2,15 +2,7 @@
     "onsite": {
         "title": "Popups y formularios",
         "description": "Popups, formularios, quiz y botón de WhatsApp para que tus visitantes te dejen sus datos con su consentimiento.",
-        "new": "Nuevo widget",
-        "tabs": {
-            "label": "Secciones de En el sitio",
-            "widgets": "Widgets",
-            "recommendations": "Recomendaciones",
-            "alerts": "Avisos de stock y precio",
-            "banners": "Banners personalizados",
-            "quotes": "Cotizador"
-        },
+        "new": "Crear",
         "empty": {
             "title": "Aún no tienes widgets",
             "description": "Crea un popup con cupón de bienvenida: es la forma más rápida de convertir visitantes anónimos en contactos con permiso para escribirles.",
@@ -29,7 +21,8 @@
             "coupon": "Con cupón",
             "window": "Últimos 30 días. Los ingresos son los pedidos pagados de quienes dejaron sus datos en el widget en los 7 días anteriores.",
             "showArchived": "Ver archivados",
-            "hideArchived": "Ver activos y borradores"
+            "hideArchived": "Ver activos y borradores",
+            "windowServices": "Últimos 30 días. Envíos: personas que dejaron sus datos en el widget."
         },
         "status": {
             "draft": "Borrador",
@@ -93,7 +86,9 @@
             "delete": "Eliminar",
             "duplicate": "Duplicar",
             "more": "Más acciones",
-            "confirmDelete": "¿Eliminar este widget? Solo se puede si todavía no capturó contactos; si ya lo hizo, archívalo."
+            "confirmDelete": "Se borra del todo. Solo se puede si todavía no capturó contactos; si ya lo hizo, archívalo para conservar sus cifras.",
+            "duplicateNamed": "Duplicar «{{name}}»",
+            "deleteTitle": "¿Eliminar «{{name}}»?"
         },
         "channels": {
             "email": "Correo",
@@ -125,7 +120,7 @@
         },
         "editor": {
             "name": "Nombre del widget",
-            "save": "Guardar",
+            "save": "Guardar cambios",
             "saved": "Cambios guardados",
             "activated": "Widget activo: ya se muestra en tu sitio (la caché tarda hasta 5 minutos).",
             "archived": "Widget archivado",
@@ -394,7 +389,8 @@
             "product": "Producto {{n}}",
             "question": "Pregunta {{n}} de {{total}}",
             "nextIs": "Siguiente: {{text}}",
-            "note": "Aproximación: en tu tienda usa la tipografía del sitio. El código del cupón es de ejemplo."
+            "note": "Aproximación: en tu tienda usa la tipografía del sitio. El código del cupón es de ejemplo.",
+            "noteServices": "Aproximación: en tu web usa la tipografía del sitio."
         },
         "stats": {
             "range": "Periodo",
@@ -434,7 +430,141 @@
             "when": "Fecha",
             "known": "Ya era contacto",
             "hidden": "Oculto para tu rol",
-            "unnamed": "Sin nombre"
+            "unnamed": "Sin nombre",
+            "attributionServices": "Envíos: personas que dejaron sus datos en este widget.",
+            "days_one": "{{count}} día",
+            "days_other": "{{count}} días"
+        },
+        "descriptionServices": "Formularios de contacto, botón de WhatsApp y popups para que quien visita tu web te deje sus datos y te escriba.",
+        "totals": {
+            "views": "Vistas",
+            "active_one": "{{count}} activo ahora",
+            "active_other": "{{count}} activos ahora",
+            "captures": "Datos capturados",
+            "capturesHelp": "Personas que dejaron su correo o su WhatsApp en tus popups y formularios.",
+            "rate": "Tasa de captura",
+            "rateHelp": "De cada 100 veces que se mostró un widget, cuántas terminaron en un dato capturado.",
+            "revenue": "Ventas atribuidas",
+            "revenueHelp": "Pedidos pagados de quienes dejaron sus datos en un widget en los 7 días anteriores.",
+            "newContacts": "Contactos nuevos",
+            "newContactsHelp": "Personas que no estaban en tu base y llegaron por un widget.",
+            "window": "Últimos 30 días"
+        },
+        "gallery": {
+            "title": "¿Qué quieres lograr?",
+            "description": "Elige una plantilla: se crea lista, con textos y reglas recomendadas. La revisas en la vista previa y la prendes cuando quieras.",
+            "emptyTitle": "Empieza con una plantilla",
+            "emptyStore": "Un popup con cupón convierte a quien solo mira en un contacto con permiso para escribirle. Elige el objetivo: se crea en borrador para que lo revises antes de prenderlo.",
+            "emptyServices": "Que quien visita tu web te deje sus datos o te escriba por WhatsApp. Elige una plantilla: se crea en borrador para que la revises antes de prenderla.",
+            "objective": "Objetivo",
+            "objectives": {
+                "all": "Todas",
+                "capture": "Conseguir contactos",
+                "exit": "Antes de que se vaya",
+                "quiz": "Recomendar productos",
+                "survey": "Conocer a tus visitantes",
+                "contact": "Que te escriban",
+                "announce": "Anunciar algo"
+            },
+            "use": "Usar esta plantilla",
+            "created": "Plantilla lista",
+            "createdBody": "Revisa los textos en la vista previa y préndela cuando quieras.",
+            "blank": "O empieza en blanco con un tipo de widget"
+        },
+        "templates": {
+            "whatsapp_coupon": {
+                "name": "WhatsApp a cambio de un cupón",
+                "description": "Un popup a los pocos segundos ofrece 10% en la primera compra a cambio del WhatsApp.",
+                "result": "Lo que más contactos trae en una tienda."
+            },
+            "exit_coupon": {
+                "name": "Antes de irte: 10%",
+                "description": "Aparece cuando la persona va a cerrar la página y le ofrece un cupón para volver.",
+                "result": "Recupera a quien se iba sin comprar."
+            },
+            "spin_wheel": {
+                "name": "Ruleta de premios",
+                "description": "Gira y gana: descuentos o envío gratis a cambio del WhatsApp, con tus probabilidades.",
+                "result": "Más llamativa que un popup: ideal para temporadas."
+            },
+            "product_quiz": {
+                "name": "Quiz: encuentra tu producto",
+                "description": "Tres preguntas y le recomiendas los productos que le sirven; las respuestas quedan en su perfil.",
+                "result": "Ayuda a decidir a quien no sabe qué elegir."
+            },
+            "survey": {
+                "name": "Encuesta rápida",
+                "description": "Dos preguntas sobre qué busca y qué le importa, sin pedir datos (los deja si quiere).",
+                "result": "Aprendes qué quieren tus visitantes."
+            },
+            "two_step": {
+                "name": "Correo y luego WhatsApp",
+                "description": "Primero el correo con el cupón; después, si quiere, también su WhatsApp.",
+                "result": "Más contactos con dos canales."
+            },
+            "newsletter": {
+                "name": "Suscripción en tu web",
+                "description": "Un formulario dentro de tu página (bloque o shortcode) para recibir novedades por correo.",
+                "result": "Para el pie de página o tu blog."
+            },
+            "shipping_bar": {
+                "name": "Barra de envío gratis",
+                "description": "Una franja arriba de la tienda con tu promoción y un campo para el correo.",
+                "result": "Anuncia sin interrumpir."
+            },
+            "contact_form": {
+                "name": "Formulario de contacto",
+                "description": "Nombre, WhatsApp y correo dentro de tu página, con el permiso por canal.",
+                "result": "Cada envío queda en tu base y le respondes al instante."
+            },
+            "wa_button": {
+                "name": "Botón de WhatsApp",
+                "description": "El botón flotante que abre tu chat con un mensaje listo y dice de qué página vino.",
+                "result": "La forma más rápida de que te escriban."
+            },
+            "callback": {
+                "name": "¿Te ayudamos a elegir?",
+                "description": "Un popup cuando la persona ya leyó la mitad de la página: deja su WhatsApp y le escribes.",
+                "result": "Contactos interesados, sin cupones."
+            },
+            "exit_info": {
+                "name": "Antes de irte: te enviamos la información",
+                "description": "Cuando va a cerrar la página, le ofreces enviarle precios y disponibilidad por WhatsApp.",
+                "result": "Recupera a quien se iba sin escribirte."
+            }
+        },
+        "rules": {
+            "title": "Cuándo se muestra",
+            "and": "y",
+            "embedded": "Siempre visible donde lo pongas en tu web (bloque, shortcode o Elementor)",
+            "waAlways": "Siempre visible en la esquina de la página",
+            "exit_intent": "Cuando la persona va a salir de la página",
+            "immediate": "Apenas abre la página",
+            "click": "Cuando hace clic en el botón que elijas",
+            "time_one": "Al segundo de abrir la página",
+            "time_other": "A los {{count}} segundos de abrir la página",
+            "scroll": "Cuando baja el {{value}} % de la página",
+            "allPages": "en todas las páginas",
+            "pageTypes": "en {{list}}",
+            "include": "solo en {{list}}",
+            "exclude": "menos en {{list}}",
+            "devices": "en {{list}}",
+            "newVisitors": "solo a quien visita por primera vez",
+            "returning": "solo a quien vuelve",
+            "countries": "desde {{list}}",
+            "utm": "si llega desde {{list}}",
+            "segments_one": "solo a {{count}} grupo de clientes",
+            "segments_other": "solo a {{count}} grupos de clientes",
+            "segmentsNamed": "solo a {{list}}",
+            "cart": "con un carrito desde {{value}}",
+            "referral": "solo a quien llega con un enlace de referido",
+            "hideSubscribers": "no a quien ya te dejó sus datos",
+            "noLimit": "Sin límite de veces",
+            "frequency_one": "Máximo {{count}} vez cada {{days}} días por persona",
+            "frequency_other": "Máximo {{count}} veces cada {{days}} días por persona",
+            "frequencyTotal_one": "Máximo {{count}} vez por persona",
+            "frequencyTotal_other": "Máximo {{count}} veces por persona",
+            "change": "Cambiar las reglas"
         }
     }
 }

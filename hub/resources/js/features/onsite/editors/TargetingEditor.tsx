@@ -1,13 +1,30 @@
 import { useTranslation } from 'react-i18next';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { linesToList } from '../model';
+import type { RulesSummary } from '../rules';
 import type { OnsiteOptions, Targeting, TriggerType, WidgetKind } from '../types';
 import { Check, Field, MultiCheck, Section } from './fields';
 
 const COUNTRIES = ['CO', 'MX', 'VE', 'EC', 'PE', 'CL', 'AR', 'PA', 'CR', 'GT', 'DO', 'US', 'ES'];
 
 /** Cuándo y a quién se muestra: disparador, páginas, dispositivos, origen, país, segmentos y frecuencia. */
-export function TargetingEditor({ kind, targeting, options, onChange }: { kind: WidgetKind; targeting: Targeting; options: OnsiteOptions | undefined; onChange: (t: Targeting) => void }) {
+export function TargetingEditor({
+    kind,
+    targeting,
+    options,
+    onChange,
+    store = true,
+    summary,
+}: {
+    kind: WidgetKind;
+    targeting: Targeting;
+    options: OnsiteOptions | undefined;
+    onChange: (t: Targeting) => void;
+    /** Sin tienda no hay carrito ni referidos: esas condiciones no se muestran. */
+    store?: boolean;
+    /** Las reglas en palabras, arriba de los controles (se actualizan en vivo). */
+    summary?: RulesSummary;
+}) {
     const { t } = useTranslation();
     const set = (patch: Partial<Targeting>) => onChange({ ...targeting, ...patch });
     const trigger = targeting.trigger;
@@ -15,6 +32,17 @@ export function TargetingEditor({ kind, targeting, options, onChange }: { kind: 
 
     return (
         <div className="igr:space-y-5">
+            {summary ? (
+                <div className="igr:rounded-lg igr:bg-brand-soft/60 igr:p-4" aria-live="polite">
+                    <p className="igr:text-[13px] igr:font-semibold igr:text-foreground">{summary.when}</p>
+                    <ul className="igr:mt-1 igr:space-y-0.5 igr:text-support igr:text-muted-foreground">
+                        {summary.conditions.map((c) => (
+                            <li key={c}>· {c}</li>
+                        ))}
+                        {summary.frequency ? <li>· {summary.frequency}</li> : null}
+                    </ul>
+                </div>
+            ) : null}
             {!embedded ? (
                 <Section title={t('onsite.targeting.trigger.title')} description={t('onsite.targeting.trigger.help')}>
                     <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2">
@@ -73,9 +101,11 @@ export function TargetingEditor({ kind, targeting, options, onChange }: { kind: 
                             </Select>
                         )}
                     </Field>
-                    <Field label={t('onsite.targeting.audience.cart')} help={t('onsite.targeting.audience.cartHelp')}>
-                        {(id) => <Input id={id} type="number" min={0} value={targeting.cart_value_min ?? ''} onChange={(e) => set({ cart_value_min: e.target.value === '' ? null : e.target.value })} />}
-                    </Field>
+                    {store ? (
+                        <Field label={t('onsite.targeting.audience.cart')} help={t('onsite.targeting.audience.cartHelp')}>
+                            {(id) => <Input id={id} type="number" min={0} value={targeting.cart_value_min ?? ''} onChange={(e) => set({ cart_value_min: e.target.value === '' ? null : e.target.value })} />}
+                        </Field>
+                    ) : null}
                 </div>
                 <Field label={t('onsite.targeting.audience.countries')} help={t('onsite.targeting.audience.countriesHelp')}>
                     {() => <MultiCheck values={COUNTRIES} selected={targeting.countries} onChange={(countries) => set({ countries })} label={(v) => v} />}
@@ -105,9 +135,11 @@ export function TargetingEditor({ kind, targeting, options, onChange }: { kind: 
                 <Check checked={targeting.hide_for_subscribers} onChange={(v) => set({ hide_for_subscribers: v })} help={t('onsite.targeting.audience.hideHelp')}>
                     {t('onsite.targeting.audience.hide')}
                 </Check>
-                <Check checked={targeting.referral} onChange={(v) => set({ referral: v })} help={t('onsite.targeting.audience.referralHelp')}>
-                    {t('onsite.targeting.audience.referral')}
-                </Check>
+                {store || targeting.referral ? (
+                    <Check checked={targeting.referral} onChange={(v) => set({ referral: v })} help={t('onsite.targeting.audience.referralHelp')}>
+                        {t('onsite.targeting.audience.referral')}
+                    </Check>
+                ) : null}
             </Section>
 
             {!embedded ? (

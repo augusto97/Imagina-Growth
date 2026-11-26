@@ -13,6 +13,7 @@ use App\Domain\Onsite\Models\Quiz;
 use App\Domain\Onsite\Models\WidgetCapture;
 use App\Domain\Onsite\Queries\WidgetStats;
 use App\Domain\Onsite\Support\WidgetSchema;
+use App\Domain\Onsite\Support\WidgetTemplates;
 use App\Domain\Onsite\Support\WidgetValidator;
 use App\Domain\Segments\Models\Segment;
 use App\Domain\Sites\Models\Site;
@@ -76,6 +77,7 @@ final class WidgetController
             'page_types' => WidgetSchema::PAGE_TYPES,
             'devices' => WidgetSchema::DEVICES,
             'triggers' => WidgetSchema::TRIGGERS,
+            'templates' => WidgetTemplates::catalog(),
             'sites' => $sites,
             'segments' => $segments,
             'consent_texts' => $texts->current($ws),
@@ -86,15 +88,18 @@ final class WidgetController
         ]);
     }
 
-    /** POST onsite/widgets {name, kind, site_id?} */
+    /** POST onsite/widgets {name, kind, site_id?} o {name, template, site_id?} (galería de plantillas, WidgetTemplates) */
     public function store(Request $request, CreateWidget $create): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:160'],
-            'kind' => ['required', Rule::in(OnsiteWidget::KINDS)],
+            'template' => ['nullable', 'string', Rule::in(array_keys(WidgetTemplates::ALL))],
+            'kind' => ['required_without:template', 'nullable', Rule::in(OnsiteWidget::KINDS)],
             'site_id' => ['nullable', 'string'],
         ]);
+        $template = is_string($data['template'] ?? null) ? $data['template'] : null;
+        $kind = $template !== null ? (string) WidgetTemplates::kind($template) : (string) $data['kind'];
         $siteId = null;
         if (! empty($data['site_id'])) {
             $site = Site::findByPublicId((string) $data['site_id']);
@@ -105,7 +110,8 @@ final class WidgetController
         }
         /** @var User $user */
         $user = $request->user();
-        $widget = $create->handle((string) $data['name'], (string) $data['kind'], $siteId, $user->id);
+        $overrides = $template !== null ? WidgetTemplates::overrides($template, $this->current->get()) : [];
+        $widget = $create->handle((string) $data['name'], $kind, $siteId, $user->id, $overrides);
 
         return response()->json(WidgetPresenter::make($widget->load('quiz'), true), 201);
     }

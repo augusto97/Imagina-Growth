@@ -1,54 +1,74 @@
-import { CheckCircle2, CircleHelp, Trophy } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2, CircleHelp, Eye, Receipt, Send, ShoppingBag, Trophy, UserPlus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { Badge } from '@/components/ui/badge';
-import { Select } from '@/components/ui/input';
 import { ErrorState } from '@/components/ui/misc';
+import { SegmentedControl } from '@/components/ui/segmented';
+import { StatCard, StatCardSkeleton, StatGrid } from '@/components/ui/stat-card';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { TrendChart } from '@/features/analytics/components/charts';
 import { Notice, Section } from '@/features/analytics/components/Section';
-import { DashboardSkeleton, StatTile, TileGrid } from '@/features/analytics/components/StatTile';
 import { makeFormatters } from '@/features/analytics/format';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { formatDateTime } from '@/lib/format';
 import { useWidgetCaptures, useWidgetStats } from './api';
+import { useAudience } from './audience';
 import type { WidgetDetail } from './types';
 
 /** Estadísticas del widget (skill dataviz): cifras clave, envíos por día con su tabla, variantes A/B y últimas capturas. */
 export function StatsPanel({ widget }: { widget: WidgetDetail }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
-    const [days, setDays] = useState(30);
-    const stats = useWidgetStats(workspace.id, widget.id, days);
+    const { store } = useAudience();
+    const [days, setDays] = useState<'7' | '30' | '90'>('30');
+    const stats = useWidgetStats(workspace.id, widget.id, Number(days));
     const fmt = useMemo(() => makeFormatters(workspace.locale, stats.data?.currency ?? workspace.currency), [workspace.locale, workspace.currency, stats.data?.currency]);
+    const header = (
+        <div className="igr:flex igr:flex-wrap igr:items-center igr:justify-between igr:gap-3">
+            <p className="igr:min-w-0 igr:flex-1 igr:text-caption igr:text-muted-foreground">{store ? t('onsite.stats.attribution') : t('onsite.stats.attributionServices')}</p>
+            <SegmentedControl
+                size="sm"
+                label={t('onsite.stats.range')}
+                value={days}
+                onChange={setDays}
+                options={(['7', '30', '90'] as const).map((d) => ({ value: d, label: t('onsite.stats.days', { count: Number(d) }) }))}
+            />
+        </div>
+    );
 
     if (stats.isError) return <ErrorState error={stats.error} onRetry={() => void stats.refetch()} />;
-    if (stats.isPending) return <DashboardSkeleton />;
+    if (stats.isPending) {
+        return (
+            <div className="igr:space-y-4">
+                {header}
+                <StatGrid className="igr:lg:grid-cols-3">
+                    {Array.from({ length: store ? 6 : 3 }, (_, i) => (
+                        <StatCardSkeleton key={i} />
+                    ))}
+                </StatGrid>
+            </div>
+        );
+    }
     const s = stats.data;
     const tot = s.totals;
     const ab = s.ab;
 
     return (
         <div className="igr:space-y-4">
-            <div className="igr:flex igr:items-center igr:justify-between igr:gap-3">
-                <p className="igr:text-xs igr:text-muted-foreground">{t('onsite.stats.attribution')}</p>
-                <Select aria-label={t('onsite.stats.range')} value={days} onChange={(e) => setDays(Number(e.target.value))} className="igr:w-40">
-                    {[7, 30, 90].map((d) => (
-                        <option key={d} value={d}>
-                            {t('onsite.stats.lastDays', { count: d })}
-                        </option>
-                    ))}
-                </Select>
-            </div>
-            <TileGrid className="igr:lg:grid-cols-3">
-                <StatTile label={t('onsite.stats.views')} value={tot.views} unit="count" fmt={fmt} hint={t('onsite.stats.visitors', { value: fmt.number(tot.visitors) })} />
-                <StatTile label={t('onsite.stats.submissions')} value={tot.submissions} unit="count" fmt={fmt} hint={t('onsite.stats.newContacts', { value: fmt.number(tot.new_contacts) })} />
-                <StatTile label={t('onsite.stats.submitRate')} value={tot.submit_rate} unit="ratio" fmt={fmt} help={t('onsite.stats.submitRateHelp')} />
-                <StatTile label={t('onsite.stats.orders')} value={tot.orders} unit="count" fmt={fmt} hint={t('onsite.stats.buyers', { value: fmt.number(tot.buyers) })} />
-                <StatTile label={t('onsite.stats.conversion')} value={tot.conversion_rate} unit="ratio" fmt={fmt} help={t('onsite.stats.conversionHelp')} />
-                <StatTile label={t('onsite.stats.revenue')} value={Number(tot.revenue)} unit="money" fmt={fmt} help={t('onsite.stats.revenueHelp')} />
-            </TileGrid>
+            {header}
+            <StatGrid className="igr:lg:grid-cols-3">
+                <StatCard label={t('onsite.stats.views')} value={fmt.number(tot.views)} hint={t('onsite.stats.visitors', { value: fmt.number(tot.visitors) })} icon={Eye} tone="sky" />
+                <StatCard label={t('onsite.stats.submissions')} value={fmt.number(tot.submissions)} hint={t('onsite.stats.newContacts', { value: fmt.number(tot.new_contacts) })} icon={Send} tone="emerald" />
+                <StatCard label={t('onsite.stats.submitRate')} value={fmt.percent(tot.submit_rate, 1)} help={t('onsite.stats.submitRateHelp')} icon={ArrowUpRight} tone="violet" />
+                {store ? (
+                    <>
+                        <StatCard label={t('onsite.stats.orders')} value={fmt.number(tot.orders)} hint={t('onsite.stats.buyers', { value: fmt.number(tot.buyers) })} icon={Receipt} tone="indigo" />
+                        <StatCard label={t('onsite.stats.conversion')} value={fmt.percent(tot.conversion_rate, 1)} help={t('onsite.stats.conversionHelp')} icon={UserPlus} tone="rose" />
+                        <StatCard label={t('onsite.stats.revenue')} value={fmt.money(Number(tot.revenue))} help={t('onsite.stats.revenueHelp')} icon={ShoppingBag} tone="amber" />
+                    </>
+                ) : null}
+            </StatGrid>
 
             <Section
                 title={t('onsite.stats.daily')}
@@ -85,8 +105,8 @@ export function StatsPanel({ widget }: { widget: WidgetDetail }) {
                             <TH className="igr:text-right">{t('onsite.stats.submissions')}</TH>
                             <TH className="igr:text-right">{t('onsite.stats.submitRate')}</TH>
                             <TH className="igr:text-right">{t('onsite.stats.newShort')}</TH>
-                            <TH className="igr:text-right">{t('onsite.stats.orders')}</TH>
-                            <TH className="igr:text-right">{t('onsite.stats.revenue')}</TH>
+                            {store ? <TH className="igr:text-right">{t('onsite.stats.orders')}</TH> : null}
+                            {store ? <TH className="igr:text-right">{t('onsite.stats.revenue')}</TH> : null}
                         </TR>
                     </THead>
                     <TBody>
@@ -105,8 +125,8 @@ export function StatsPanel({ widget }: { widget: WidgetDetail }) {
                                 <TD className="igr:text-right igr:tabular-nums">{fmt.number(v.submissions)}</TD>
                                 <TD className="igr:text-right igr:tabular-nums">{fmt.percent(v.submit_rate, 2)}</TD>
                                 <TD className="igr:text-right igr:tabular-nums">{fmt.number(v.new_contacts)}</TD>
-                                <TD className="igr:text-right igr:tabular-nums">{fmt.number(v.orders)}</TD>
-                                <TD className="igr:text-right igr:tabular-nums">{fmt.money(v.revenue)}</TD>
+                                {store ? <TD className="igr:text-right igr:tabular-nums">{fmt.number(v.orders)}</TD> : null}
+                                {store ? <TD className="igr:text-right igr:tabular-nums">{fmt.money(v.revenue)}</TD> : null}
                             </TR>
                         ))}
                     </TBody>

@@ -16,6 +16,7 @@ use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Messaging\Models\Message;
 use App\Domain\Onsite\Models\OnsiteWidget;
+use App\Domain\Onsite\Support\WidgetSchema;
 use App\Domain\Quotes\Models\Quote;
 use App\Domain\Quotes\Models\QuoteCalculator;
 use App\Domain\Quotes\Support\QuoteCapture;
@@ -180,8 +181,14 @@ final class DemoServicesSeeder
             ]], 'service')]);
         $forms = [];
         foreach ($d['forms'] as $name) {
+            // Con la configuración completa de su tipo (como los crea el panel), para que el constructor y el sitio la lean entera.
+            $defaults = WidgetSchema::defaults('embedded_form');
+            $phone = ['key' => 'phone', 'type' => 'tel', 'required' => false, 'label' => __('Tu WhatsApp')];
+            $content = ['title' => $name, 'fields' => [...$defaults['content']['fields'], $phone]] + $defaults['content'];
             $forms[] = OnsiteWidget::query()->create(['workspace_id' => $workspace->id, 'site_id' => $site->id, 'name' => $name, 'kind' => 'embedded_form', 'status' => 'active',
-                'content' => ['title' => $name, 'button' => 'Enviar'], 'consent_config' => ['channels' => ['email', 'whatsapp']], 'created_by' => $ownerId]);
+                'targeting' => $defaults['targeting'], 'design' => $defaults['design'], 'content' => $content,
+                'variants' => [['key' => 'a', 'weight' => 100, 'design' => $defaults['design'], 'content' => $content]],
+                'consent_config' => ['channels' => ['email', 'whatsapp']] + $defaults['consent_config'], 'coupon_config' => $defaults['coupon_config'], 'created_by' => $ownerId]);
         }
 
         // Dos automatizaciones de la biblioteca (en borrador: la demo no envía nada) con los mensajes que ayudaron a cerrar.

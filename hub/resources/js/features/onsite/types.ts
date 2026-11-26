@@ -177,8 +177,18 @@ export interface WidgetDetail extends WidgetSummary {
     ab: { auto_winner: boolean; winner: { key: string; confidence: number; lift: number | null; decided_at: string } | null };
 }
 
+/** Una plantilla de la galería (WidgetTemplates en el hub). Sus textos van en onsite.templates.<key>. */
+export interface WidgetTemplate {
+    key: string;
+    kind: WidgetKind;
+    objective: 'capture' | 'exit' | 'quiz' | 'survey' | 'contact' | 'announce';
+    audience: 'store' | 'services' | 'both';
+    gives_coupon: boolean;
+}
+
 export interface OnsiteOptions {
     kinds: WidgetKind[];
+    templates: WidgetTemplate[];
     page_types: string[];
     devices: string[];
     triggers: TriggerType[];

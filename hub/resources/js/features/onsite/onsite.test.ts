@@ -1,6 +1,9 @@
+import i18n from 'i18next';
 import { describe, expect, it } from 'vitest';
+import { describeTargeting, rulesSentence } from './rules';
+import { templatesFor } from './templates';
 import { addVariant, consentsForFields, evenWeights, fillPlaceholders, linesToList, nextQuestion, payload, prizeOdds, removeVariant, slugKey } from './model';
-import type { Quiz, WidgetDraft, WidgetVariant } from './types';
+import type { Quiz, Targeting, WidgetDraft, WidgetTemplate, WidgetVariant } from './types';
 
 const variant = (key: string, weight = 100): WidgetVariant => ({
     key,
@@ -75,5 +78,70 @@ describe('payload', () => {
     it('no manda el tipo de campo (lo pone el hub)', () => {
         const draft = { variants: [variant('a')] } as unknown as WidgetDraft;
         expect(payload(draft).variants[0]?.content.fields[0]).toEqual({ key: 'email', required: true, label: 'Correo' });
+    });
+});
+
+const targeting = (patch: Partial<Targeting> = {}): Targeting => ({
+    trigger: { type: 'time', value: 8 },
+    pages: { include: [], exclude: [] },
+    page_types: [],
+    devices: [],
+    new_visitors: null,
+    utm: {},
+    referral: false,
+    countries: [],
+    segments: [],
+    cart_value_min: null,
+    hide_for_subscribers: true,
+    frequency: { max_views: 2, cooldown_days: 7 },
+    ...patch,
+});
+
+describe('reglas en palabras', () => {
+    const t = i18n.getFixedT('es-CO');
+
+    it('dice cuándo, dónde, a quién y cuántas veces', () => {
+        const summary = describeTargeting('popup', targeting(), t);
+        expect(summary.when).toBe('A los 8 segundos de abrir la página');
+        expect(summary.conditions).toEqual(['en todas las páginas', 'no a quien ya te dejó sus datos']);
+        expect(summary.frequency).toBe('Máximo 2 veces cada 7 días por persona');
+    });
+
+    it('nombra las condiciones que restringen y calla las que no', () => {
+        const summary = describeTargeting(
+            'popup',
+            targeting({
+                trigger: { type: 'exit_intent', value: null },
+                page_types: ['product', 'category'],
+                devices: ['mobile'],
+                new_visitors: true,
+                segments: ['sg_1'],
+                hide_for_subscribers: false,
+                frequency: { max_views: 0, cooldown_days: 0 },
+            }),
+            t,
+            { segments: [{ id: 'sg_1', name: 'VIP', member_count: 3 }] },
+        );
+        expect(rulesSentence(summary)).toBe('Cuando la persona va a salir de la página · en producto y categoría · en celular · solo a quien visita por primera vez · solo a VIP · Sin límite de veces');
+    });
+
+    it('un formulario incrustado está siempre donde lo pongas, sin frecuencia', () => {
+        const summary = describeTargeting('embedded_form', targeting({ hide_for_subscribers: false }), t);
+        expect(summary.when).toMatch(/Siempre visible/);
+        expect(summary.conditions).toEqual([]);
+        expect(summary.frequency).toBeNull();
+    });
+});
+
+describe('galería de plantillas', () => {
+    const tpl = (key: string, audience: WidgetTemplate['audience'], gives_coupon = false): WidgetTemplate => ({ key, kind: 'popup', objective: 'capture', audience, gives_coupon });
+    const all = [tpl('whatsapp_coupon', 'store', true), tpl('wa_button', 'both'), tpl('contact_form', 'services'), tpl('survey', 'store')];
+
+    it('un negocio sin tienda ve el contacto y WhatsApp primero y nunca un cupón', () => {
+        expect(templatesFor(all, { store: false, services: true }).map((x) => x.key)).toEqual(['contact_form', 'wa_button']);
+    });
+
+    it('una tienda empieza por el cupón y no ve lo de servicios', () => {
+        expect(templatesFor(all, { store: true, services: false }).map((x) => x.key)).toEqual(['whatsapp_coupon', 'survey', 'wa_button']);
     });
 });
