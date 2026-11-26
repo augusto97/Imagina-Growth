@@ -7,9 +7,9 @@ import { Card } from '@/components/ui/card';
 import { Select } from '@/components/ui/input';
 import { EmptyState, ErrorState, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
-import { StatCardSkeleton } from '@/components/ui/stat-card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { StatTile, TileGrid } from '@/features/analytics/components/StatTile';
+import { StatTile, TileGrid, TileGridSkeleton } from '@/features/analytics/components/StatTile';
+import { PHONE_QUERY, useMedia } from '@/hooks/useMedia';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { formatDate, formatRelative } from '@/lib/format';
 import { CATEGORIES, type Insight, type InsightCategory, LIST_STATUSES, useInsights } from './api';
@@ -81,11 +81,7 @@ export function InsightsPage() {
                     />
                 </TileGrid>
             ) : insights.isPending ? (
-                <TileGrid className="igr:mb-5 igr:lg:grid-cols-3">
-                    <StatCardSkeleton />
-                    <StatCardSkeleton />
-                    <StatCardSkeleton />
-                </TileGrid>
+                <TileGridSkeleton count={3} className="igr:mb-5 igr:lg:grid-cols-3" />
             ) : null}
             <div className="igr:mb-4 igr:flex igr:flex-wrap igr:items-center igr:gap-2">
                 <Tabs value={status} onValueChange={(v) => setParam('estado', v)} className="igr:max-w-full igr:min-w-0">
@@ -148,6 +144,7 @@ function InsightCard({ insight: i, base }: { insight: Insight; base: string }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const fmt = useInsightFormatters();
+    const phone = useMedia(PHONE_QUERY);
     const open = i.status === 'new' || i.status === 'seen' || i.status === 'snoozed';
     const impact = i.impact !== null && Number(i.impact) > 0 ? Number(i.impact) : null;
     return (
@@ -181,7 +178,7 @@ function InsightCard({ insight: i, base }: { insight: Insight; base: string }) {
                 </div>
                 <div className="igr:mt-4 igr:flex igr:flex-wrap igr:items-center igr:gap-2 igr:border-t igr:pt-3">
                     {open ? <InsightActionButton insight={i} className="igr:max-w-full igr:sm:max-w-md" /> : null}
-                    <InsightTriage insight={i} />
+                    <InsightTriage insight={i} compact={phone} />
                     <Button asChild size="sm" variant="ghost" className="igr:ml-auto">
                         <Link to={`${base}/hallazgos/${i.id}`}>
                             {t('insights.details')}

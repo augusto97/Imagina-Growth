@@ -6,7 +6,7 @@ import { BarList, TrendChart } from '../components/charts';
 import { DataTable } from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import { Notice, Section } from '../components/Section';
-import { StatTile, TileGrid } from '../components/StatTile';
+import { DashboardSkeleton, StatTile, TileGrid } from '../components/StatTile';
 import { regionName } from '@/lib/regions';
 import { useServicesResults } from '@/features/services/api';
 import { leadSourceName } from '../summary/narrative';
@@ -261,6 +261,10 @@ export function ServicesDashboard({ response, data, fmt }: DashboardProps<'servi
     ];
     const bestSource = r ? [...r.leads.by_source].sort((a, b) => b.leads - a.leads)[0] : undefined;
     const minutes = r?.kpis.first_response_minutes.value ?? null;
+    if (results.isPending) {
+        // Las cifras de contactos llegan de otra consulta: todo junto, para que nada salte.
+        return <DashboardSkeleton tiles={4} />;
+    }
     const formColumns: Column<Form>[] = [
         { key: 'form', label: t('analytics.services.form'), render: (r) => labels.orNone(r.form), value: (r) => r.form },
         { key: 'plugin', label: t('analytics.services.plugin'), render: (r) => labels.orNone(r.plugin), value: (r) => r.plugin },

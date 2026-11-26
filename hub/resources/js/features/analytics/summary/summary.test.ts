@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { Ability } from '@/api/types';
 import i18n from '@/lib/i18n';
 import type { ServicesResults } from '@/features/services/types';
 import type { SummaryData } from '../api';
@@ -102,7 +103,7 @@ describe('Tableros: la conclusión de cada gráfica', () => {
 });
 
 describe('Resultados por tipo de negocio', () => {
-    const base = { abilities: [], modules: null, connections: null, upgrade_plans: null, vertical: null } as const;
+    const base = { abilities: [] as Ability[], vertical: null };
 
     it('una clínica no ve los tableros de tienda y una tienda no ve el de contactos', () => {
         const services = resultsAudience({ ...base, business_type: 'services', capabilities: { store: false, services: true } });

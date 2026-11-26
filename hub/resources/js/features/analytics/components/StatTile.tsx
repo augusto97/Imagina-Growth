@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard, StatCardSkeleton, StatGrid, StatList, StatRow } from '@/components/ui/stat-card';
 import { PHONE_QUERY, useMedia } from '@/hooks/useMedia';
+import { cn } from '@/lib/cn';
 import type { CompareMode, MetricUnit } from '../api';
 import { delta } from '../format';
 import type { Formatters } from '../format';
@@ -101,19 +102,32 @@ export function TileGrid({ children, className }: { children: ReactNode; classNa
     return <StatGrid className={className}>{children}</StatGrid>;
 }
 
-export function DashboardSkeleton() {
+/**
+ * El esqueleto de una `TileGrid` con `count` cifras, del mismo alto que lo que llega: tarjetas en filas en la tableta
+ * y el escritorio, la lista de filas de 56 px en el celular (sin saltos de diseño).
+ */
+export function TileGridSkeleton({ count, className }: { count: number; className?: string }) {
     const phone = useMedia(PHONE_QUERY);
+    if (count <= 0) {
+        return null;
+    }
+    if (phone) {
+        return <Skeleton className={cn('igr:rounded-xl', className)} style={{ height: count * 57 + 1 }} />;
+    }
+    return (
+        <StatGrid className={className}>
+            {Array.from({ length: count }, (_, i) => (
+                <StatCardSkeleton key={i} />
+            ))}
+        </StatGrid>
+    );
+}
+
+/** Mientras carga un tablero: sus cifras (`tiles`, las de su primera rejilla) y los bloques de abajo. */
+export function DashboardSkeleton({ tiles = 4 }: { tiles?: number }) {
     return (
         <div className="igr:space-y-4" aria-busy>
-            {phone ? (
-                <Skeleton className="igr:h-56 igr:rounded-xl" />
-            ) : (
-                <StatGrid>
-                    {Array.from({ length: 4 }, (_, i) => (
-                        <StatCardSkeleton key={i} />
-                    ))}
-                </StatGrid>
-            )}
+            <TileGridSkeleton count={tiles} />
             <Skeleton className="igr:h-72 igr:rounded-xl" />
             <div className="igr:grid igr:gap-4 igr:lg:grid-cols-2">
                 <Skeleton className="igr:h-64 igr:rounded-xl" />

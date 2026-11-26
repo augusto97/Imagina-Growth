@@ -224,10 +224,10 @@
             "actionedImpact": "{{value}} en juego atendidos"
         },
         "filters": {
-            "category": "Categoría",
-            "allCategories": "Todas las categorías",
+            "category": "Tema",
+            "allCategories": "Tema: todos",
             "severity": "Urgencia",
-            "allSeverities": "Cualquier urgencia"
+            "allSeverities": "Urgencia: todas"
         },
         "doNow": "Hacer ahora",
         "openDetail": "Ver el detalle de la recomendación",

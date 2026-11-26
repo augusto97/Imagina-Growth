@@ -25,6 +25,9 @@ import { useAnalyticsParams } from './params';
 import { dashboardHref, slugFromPath } from './paths';
 import { resultsAudience, TRAFFIC_ONLY, TRAFFIC_PARTIAL, visibleDashboards, visibleGroups } from './results';
 
+/** Cuántas cifras tiene arriba cada tablero (para que el esqueleto mida lo mismo y nada salte al llegar). */
+const TILES: Partial<Record<DashboardSlug, number>> = { overview: 8, funnel: 4, customers: 4, searches: 2, coupons: 4, profitability: 4, services: 4, hdyhau: 2, messaging: 4 };
+
 /** Sin sesiones ni pedidos en el rango: no hay nada que dibujar. */
 function isEmpty(slug: DashboardSlug, data: unknown): boolean {
     if (slug === 'overview') {
@@ -210,7 +213,7 @@ export function AnalyticsPage() {
             {result.isError ? (
                 <ErrorState error={result.error} onRetry={() => void result.refetch()} />
             ) : response === undefined ? (
-                <DashboardSkeleton />
+                <DashboardSkeleton tiles={TILES[slug] ?? 0} />
             ) : isEmpty(slug, response.data) ? (
                 TRAFFIC_ONLY.includes(slug) && noTracker.length > 0 ? (
                     <TrackerMissing site={noTracker[0]} base={base} />

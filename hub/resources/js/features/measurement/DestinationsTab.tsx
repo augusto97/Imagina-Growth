@@ -208,7 +208,9 @@ function DestinationCard({
                             ) : null}
                         </div>
                         <p className="igr:mt-1 igr:flex igr:items-start igr:gap-1.5 igr:text-support">
-                            <StatusDot tone={STATE_TONE[state]} />
+                            <span className="igr:mt-1.5 igr:inline-flex igr:shrink-0">
+                                <StatusDot tone={STATE_TONE[state]} />
+                            </span>
                             <span className="igr:min-w-0">
                                 <span className="igr:font-medium">{t(`measurement.state.${state}.title`)}</span>{' '}
                                 <span className="igr:text-muted-foreground">

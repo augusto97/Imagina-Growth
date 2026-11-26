@@ -80,12 +80,15 @@ export function FilterBar({
                         {t('analytics.filters.clear', { count: filters })}
                     </Button>
                 ) : null}
-                {period ? (
-                    <span className="igr:text-xs igr:text-muted-foreground igr:tabular-nums igr:max-md:w-full igr:md:ml-auto">
-                        {fmt.date(period.from)} – {fmt.date(period.to)}
-                        {period.compare ? ` · ${t('analytics.filters.vs')} ${fmt.date(period.compare.from)} – ${fmt.date(period.compare.to)}` : ''}
-                    </span>
-                ) : null}
+                {/* Siempre está (vacía mientras carga): en el celular ocupa su propia línea y no debe empujar el tablero al llegar. */}
+                <span className="igr:min-h-8 igr:text-xs igr:text-muted-foreground igr:tabular-nums igr:max-md:w-full igr:md:ml-auto igr:md:min-h-0">
+                    {period ? (
+                        <>
+                            {fmt.date(period.from)} – {fmt.date(period.to)}
+                            {period.compare ? ` · ${t('analytics.filters.vs')} ${fmt.date(period.compare.from)} – ${fmt.date(period.compare.to)}` : ''}
+                        </>
+                    ) : null}
+                </span>
             </div>
             {phone && !periodOnly ? (
                 <Sheet open={open} onOpenChange={setOpen}>
