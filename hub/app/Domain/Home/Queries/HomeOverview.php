@@ -67,7 +67,7 @@ final class HomeOverview
         $results = $this->catalog->results($ctx);
         $money = $this->moneyBlock($workspace, $ctx, $results);
         $potentials = $this->potential->forWorkspace($workspace);
-        $setup = $this->onboarding->summary($workspace, $ctx);
+        $setup = $this->onboarding->summary($workspace, $ctx, $user);
         $first = trim(explode(' ', trim((string) $user?->name))[0] ?? '');
 
         return [
@@ -188,7 +188,7 @@ final class HomeOverview
         }
         // Contactos de servicios por atender hoy (la lista «Hoy» del vendedor).
         if ($ctx->module('services') && DB::table('leads')->where('workspace_id', $workspace->id)->whereNull('won_at')->whereNull('lost_at')->exists()) {
-            $counts = app(TodayList::class)->handle($workspace, null)['counts'];
+            $counts = app(TodayList::class)->counts($workspace, null);
             $n = (int) ($counts['reply'] ?? 0) + (int) ($counts['first_contact'] ?? 0) + (int) ($counts['task'] ?? 0) + (int) ($counts['next_step'] ?? 0);
             if ($n > 0) {
                 $items[] = $this->item('contact_leads', 'leads', 82, 'hoy', ['count' => $n], ['count' => $n]);

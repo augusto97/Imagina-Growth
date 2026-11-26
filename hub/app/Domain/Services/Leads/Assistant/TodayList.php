@@ -44,6 +44,42 @@ final class TodayList
     public function handle(Workspace $workspace, ?string $ownerId, ?CarbonImmutable $now = null): array
     {
         $now ??= CarbonImmutable::now();
+        [$visible, $leads, $staleDays] = $this->visible($workspace, $ownerId, $now);
+
+        return ['items' => $this->present($workspace->id, array_slice($visible, 0, self::LIMIT), $leads, $now), 'counts' => self::count($visible), 'stale_days' => $staleDays];
+    }
+
+    /**
+     * Solo cuántas hay de cada tipo, sin armar las tarjetas (sin descifrar contactos): lo que pide el Inicio.
+     *
+     * @return array<string, int>
+     */
+    public function counts(Workspace $workspace, ?string $ownerId, ?CarbonImmutable $now = null): array
+    {
+        return self::count($this->visible($workspace, $ownerId, $now ?? CarbonImmutable::now())[0]);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $visible
+     * @return array<string, int>
+     */
+    private static function count(array $visible): array
+    {
+        $counts = array_fill_keys(array_keys(self::ORDER), 0);
+        foreach ($visible as $c) {
+            $counts[$c['kind']]++;
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Lo que toca hoy, en orden, sin lo que el vendedor marcó hecho o pospuso.
+     *
+     * @return array{0: list<array<string, mixed>>, 1: Collection<int, Lead>, 2: int}
+     */
+    private function visible(Workspace $workspace, ?string $ownerId, CarbonImmutable $now): array
+    {
         $rules = LeadSettings::for($workspace->id)->assistantRules();
         $endOfDay = $now->setTimezone($workspace->timezone ?: 'America/Bogota')->endOfDay()->utc();
         $staleBefore = $now->subDays($rules['stale_days']);
@@ -79,12 +115,8 @@ final class TodayList
             return $mark->status === 'snoozed' && $mark->until !== null && $mark->until->lessThanOrEqualTo($now);
         }));
         usort($visible, fn (array $a, array $b) => [self::ORDER[$a['kind']], $a['at']->getTimestamp()] <=> [self::ORDER[$b['kind']], $b['at']->getTimestamp()]);
-        $counts = array_fill_keys(array_keys(self::ORDER), 0);
-        foreach ($visible as $c) {
-            $counts[$c['kind']]++;
-        }
 
-        return ['items' => $this->present($workspace->id, array_slice($visible, 0, self::LIMIT), $leads, $now), 'counts' => $counts, 'stale_days' => $rules['stale_days']];
+        return [$visible, $leads, (int) $rules['stale_days']];
     }
 
     /** @return array<string, mixed>|null */
