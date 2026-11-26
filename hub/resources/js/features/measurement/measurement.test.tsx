@@ -4,6 +4,7 @@ import i18n from '@/lib/i18n';
 import texts from '@/locales/es-CO/measurement.json';
 import { CREDENTIAL_FIELDS, type DeliveryStatus } from './api';
 import { DeliveryBadge, ModeBadge } from './bits';
+import { CTA_EVENT, destinationState, withCta } from './logic';
 
 type Tree = { [key: string]: string | Tree };
 
@@ -56,5 +57,30 @@ describe('Medición: textos de las claves dinámicas', () => {
         expect(screen.getByText('Entregada')).toBeTruthy();
         expect(screen.getByText('Falló')).toBeTruthy();
         expect(screen.getByText('Completo')).toBeTruthy();
+    });
+});
+
+describe('Anuncios y conversiones: estado en palabras y clics que valen', () => {
+    const base = { status: 'active' as const, last_error: null, endpoints: { meta_capi: true }, test_event_code: null, last_delivered_at: null };
+
+    it('el estado de cada plataforma, de lo que más urge a lo que menos', () => {
+        expect(destinationState({ ...base, status: 'paused', last_error: 'x' })).toBe('paused');
+        expect(destinationState({ ...base, last_error: 'Token vencido' })).toBe('error');
+        expect(destinationState({ ...base, endpoints: { meta_capi: false } })).toBe('missing');
+        expect(destinationState({ ...base, test_event_code: 'TEST1' })).toBe('test');
+        expect(destinationState({ ...base, last_delivered_at: '2026-11-26T08:00:00Z' })).toBe('sending');
+        expect(destinationState(base)).toBe('waiting');
+        for (const state of ['paused', 'error', 'missing', 'test', 'sending', 'waiting']) {
+            expect(has(`measurement.state.${state}.title`)).toBe(true);
+        }
+    });
+
+    it('prender y apagar los clics que valen no toca los demás eventos', () => {
+        expect(withCta(['order.paid'], true)).toEqual(['order.paid', CTA_EVENT]);
+        expect(withCta(['order.paid', CTA_EVENT], true)).toEqual(['order.paid', CTA_EVENT]);
+        expect(withCta([CTA_EVENT, 'form.submitted'], false)).toEqual(['form.submitted']);
+        for (const platform of ['meta', 'google', 'tiktok']) {
+            expect(has(`measurement.cta.help.${platform}`)).toBe(true);
+        }
     });
 });

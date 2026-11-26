@@ -1,11 +1,11 @@
 {
     "measurement": {
         "title": "Anuncios y conversiones",
-        "description": "Envía tus ventas a Meta, Google y TikTok desde el servidor para que tus anuncios encuentren mejores clientes.",
+        "description": "Tus ventas y contactos llegan a Meta, Google y TikTok desde el servidor, para que tus anuncios aprendan a quién mostrarse aunque el navegador bloquee el píxel.",
         "tabs": {
-            "destinos": "Destinos",
-            "entregas": "Entregas",
-            "calidad": "Calidad de la señal",
+            "destinos": "Plataformas",
+            "entregas": "Envíos",
+            "calidad": "Calidad de los datos",
             "gasto": "Gasto en anuncios"
         },
         "platform": {
@@ -37,11 +37,16 @@
             "skipped": "Omitida"
         },
         "empty": {
-            "title": "Conecta tu primera plataforma de anuncios",
-            "description": "Envía las compras, carritos y leads desde el servidor para que Meta, Google y TikTok optimicen tus anuncios con datos completos, aunque el navegador bloquee el píxel."
+            "title": "Haz que tus anuncios aprendan de tus ventas reales",
+            "description": "Conecta Meta, Google o TikTok y les enviamos cada compra, contacto y negocio ganado desde el servidor: tus anuncios encuentran a gente parecida a tus mejores clientes.",
+            "connect": "Conectar Meta, Google o TikTok",
+            "manual": "Agregar con mis claves",
+            "step1": "Conectas tu cuenta de anuncios con un clic en Conexiones.",
+            "step2": "Elegimos qué se envía: compras, contactos y, si quieres, los clics a WhatsApp o para llamar.",
+            "step3": "Aquí ves cada envío, si llegó y, si falló, qué hacer."
         },
         "destinations": {
-            "add": "Agregar destino",
+            "add": "Agregar otra plataforma",
             "paused": "En pausa",
             "testMode": "Modo de prueba",
             "noEndpoints": "Faltan credenciales para enviar conversiones",
@@ -50,11 +55,15 @@
             "neverDelivered": "Todavía no ha enviado conversiones",
             "events_one": "{{count}} evento",
             "events_other": "{{count}} eventos",
-            "edit": "Editar destino",
-            "delete": "Eliminar",
-            "deleteTitle": "¿Eliminar este destino?",
+            "edit": "Editar plataforma",
+            "delete": "Quitar",
+            "deleteTitle": "¿Quitar esta plataforma?",
             "deleteHelp": "Dejarán de enviarse conversiones a esta plataforma. El historial de entregas se conserva.",
-            "deleted": "Destino eliminado"
+            "deleted": "Plataforma quitada",
+            "connectionsHelp": "Conecta o cambia tus cuentas de anuncios con un clic, sin pegar claves.",
+            "whatWeSend": "Qué se envía",
+            "nothing": "Nada todavía: edita la plataforma y elige qué enviar.",
+            "spendOnLong": "También traemos el gasto diario de tus campañas para calcular el retorno."
         },
         "endpoint": {
             "meta_capi": "Conversions API",
@@ -69,7 +78,9 @@
             "checkout_started": "Inició el pago",
             "order_paid": "Compra",
             "form_submitted": "Formulario enviado (lead)",
-            "customer_registered": "Registro de cliente"
+            "customer_registered": "Registro de cliente",
+            "cta_clicked": "Clic en WhatsApp, llamar o escribir",
+            "lead_won": "Contacto ganado"
         },
         "test": {
             "action": "Probar conexión",
@@ -179,6 +190,48 @@
             "impressions": "Impresiones",
             "clicksHeader": "Clics",
             "spend": "Gasto"
+        },
+        "modesTitle": "Formas de medir",
+        "modesHelp": "Cómo convive el envío desde el servidor con el píxel de tu web. Se elige en cada plataforma.",
+        "state": {
+            "sending": {
+                "title": "Enviando.",
+                "body": "Lo último llegó {{when}}."
+            },
+            "waiting": {
+                "title": "Lista.",
+                "body": "Enviará la próxima venta o contacto que llegue."
+            },
+            "test": {
+                "title": "En modo de prueba.",
+                "body": "Los envíos aparecen en «Probar eventos» y no cuentan para tus anuncios. Quita el código de prueba cuando termines."
+            },
+            "missing": {
+                "title": "Faltan datos para enviar.",
+                "body": "Conéctala en Conexiones o completa sus claves."
+            },
+            "error": {
+                "title": "Con errores:",
+                "body": ""
+            },
+            "paused": {
+                "title": "En pausa.",
+                "body": "No se envía nada hasta que la reanudes."
+            }
+        },
+        "cta": {
+            "title": "Clics que valen",
+            "on": "Prendido",
+            "off": "Apagado",
+            "turnOn": "Prender",
+            "turnOff": "Apagar",
+            "turnedOn": "Listo: los clics en WhatsApp, llamar o escribir se envían como conversión",
+            "turnedOff": "Los clics ya no se envían como conversión",
+            "help": {
+                "meta": "Cuando alguien toca WhatsApp, llamar o escribir en tu web, se envía a Meta como «Contact». Sirve si tus clientes te compran por chat o por teléfono.",
+                "google": "Cuando alguien toca WhatsApp, llamar o escribir en tu web, se envía como «contact» a GA4 y a la acción de conversión de contacto de Google Ads.",
+                "tiktok": "Cuando alguien toca WhatsApp, llamar o escribir en tu web, se envía a TikTok como «Contact». Sirve si tus clientes te compran por chat o por teléfono."
+            }
         }
     }
 }
