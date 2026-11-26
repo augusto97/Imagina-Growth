@@ -1,4 +1,4 @@
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate } from 'react-router';
 import { Button } from '@/components/ui/button';
@@ -6,8 +6,10 @@ import { ErrorState } from '@/components/ui/misc';
 import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCardSkeleton } from '@/components/ui/stat-card';
+import { preloadAssistant } from '@/features/assistant/AssistantHost';
+import { useAssistant } from '@/features/assistant/model';
 import { useConnectionAlerts } from '@/features/connections/api';
-import { useWorkspace } from '@/hooks/useWorkspace';
+import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { useHome } from './api';
 import { BusinessKpis } from './BusinessKpis';
 import { ForToday } from './ForToday';
@@ -48,6 +50,8 @@ function HomeSkeleton() {
 export function HomePage() {
     const { t } = useTranslation();
     const { workspace, me } = useWorkspace();
+    const canAsk = useCan('useAi');
+    const askAi = useAssistant((st) => st.ask);
     const home = useHome(workspace.id);
     // Los avisos de conexiones salen abajo, con los de salud; se piden a la vez que el Inicio.
     const alerts = useConnectionAlerts(workspace.id);
@@ -75,12 +79,20 @@ export function HomePage() {
                 title={greeting}
                 description={t('home.subtitle', { workspace: data.workspace.name, month: monthName(data.period.from, workspace.locale, true) })}
                 actions={
-                    <Button asChild variant="outline" size="sm">
-                        <Link to={`${base}/resultados`}>
-                            {t('home.openResults')}
-                            <ArrowRight aria-hidden />
-                        </Link>
-                    </Button>
+                    <>
+                        {canAsk ? (
+                            <Button variant="outline" size="sm" onClick={() => askAi()} onMouseEnter={preloadAssistant} onFocus={preloadAssistant}>
+                                <Sparkles aria-hidden />
+                                {t('nav.askAi')}
+                            </Button>
+                        ) : null}
+                        <Button asChild variant="outline" size="sm">
+                            <Link to={`${base}/resultados`}>
+                                {t('home.openResults')}
+                                <ArrowRight aria-hidden />
+                            </Link>
+                        </Button>
+                    </>
                 }
             />
 
