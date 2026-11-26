@@ -58,6 +58,11 @@
                 "site": "Pídele a quien administra la cuenta que conecte la web.",
                 "channel": "Pídele a quien administra la cuenta que conecte un canal."
             }
+        },
+        "copy": {
+            "copy": "Copiar",
+            "copied": "Copiado",
+            "copyThing": "Copiar {{thing}}"
         }
     }
 }

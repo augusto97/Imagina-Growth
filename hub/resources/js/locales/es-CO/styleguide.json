@@ -11,6 +11,7 @@
             "shape": "Forma y elevación",
             "buttons": "Botones e insignias",
             "fields": "Campos",
+            "share": "Compartir y vista previa",
             "header": "Encabezado de página",
             "sectionNav": "Subnavegación de sección",
             "hero": "Tarjeta héroe",
@@ -31,7 +32,8 @@
             "shape": "Escala de 4 px. Tarjetas rounded-xl con borde sutil y sombra mínima; 24 a 32 px entre bloques.",
             "header": "Miga de la sección, título, una línea de para qué sirve y la acción principal. Igual en todas las pantallas.",
             "sectionNav": "En el escritorio, debajo de la sección en la barra lateral; en el celular, la tableta o con la barra contraída, control segmentado arriba del contenido.",
-            "locked": "Cuando falta algo, la pantalla dice qué hace, qué le falta y el botón para resolverlo."
+            "locked": "Cuando falta algo, la pantalla dice qué hace, qué le falta y el botón para resolverlo.",
+            "share": "CopyField y CopyButton copian un enlace o un código y lo confirman; SegmentedControl elige entre 2 a 4 opciones a la vista (grupo de radio con flechas); DeviceFrame enmarca una vista previa en vivo en escritorio o celular; ConfirmDialog confirma lo que no se deshace con un botón que repite la acción."
         },
         "tokens": {
             "background": "Fondo de la página",
@@ -192,6 +194,20 @@
             "two": "Mensajes",
             "three": "Ventas",
             "content": "El contenido de cada pestaña aparece aquí."
+        },
+        "share": {
+            "link": "Enlace de tu página",
+            "linkHint": "Compártelo por WhatsApp, en tu Instagram o imprímelo en un QR.",
+            "copyCode": "Copiar el código",
+            "device": "Vista previa en",
+            "desktop": "Escritorio",
+            "mobile": "Celular",
+            "preview": "Vista previa de ejemplo",
+            "previewTitle": "Agenda tu valoración gratis",
+            "previewBody": "Déjanos tus datos y te escribimos hoy mismo por WhatsApp.",
+            "archive": "Archivar página",
+            "confirmTitle": "¿Archivar la página?",
+            "confirmBody": "El enlace y el QR dejan de funcionar. Lo que ya llegó se conserva."
         }
     }
 }

@@ -1,13 +1,17 @@
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LockedPage } from '@/components/layout/LockedPage';
 import { locate, SECTIONS } from '@/components/layout/nav';
 import { PageContext } from '@/components/layout/pageContext';
 import { checklistProgress, withCurrentStep } from './checklist';
+import { ConfirmDialog } from './confirm-dialog';
+import { CopyButton, CopyField } from './copy-field';
+import { DeviceFrame } from './device-frame';
 import { EmptyState } from './empty-state';
 import { ILLUSTRATION_NAMES } from './illustrations';
 import { PageHeader } from './page-header';
+import { nextSegment, SegmentedControl } from './segmented';
 import { changeTone, sparklinePoints } from './stat-card';
 
 afterEach(cleanup);
@@ -124,5 +128,72 @@ describe('EmptyState v2', () => {
         render(<EmptyState illustration="messages" title="Activa tu primera automatización" steps={['Elige una', 'Revisa el mensaje', 'Actívala']} />);
         expect(screen.getByText('Cómo funciona')).toBeInTheDocument();
         expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    });
+});
+
+describe('CopyField y CopyButton', () => {
+    it('copia el valor y lo confirma para el lector de pantalla', async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined);
+        Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+        render(<CopyField label="Enlace" value="https://growth.imagina.cloud/p/sonrisa" />);
+        expect(screen.getByLabelText('Enlace')).toHaveValue('https://growth.imagina.cloud/p/sonrisa');
+        fireEvent.click(screen.getByRole('button', { name: 'Copiar enlace' }));
+        expect(writeText).toHaveBeenCalledWith('https://growth.imagina.cloud/p/sonrisa');
+        expect(await screen.findByText('Copiado')).toBeInTheDocument();
+    });
+
+    it('con texto, el botón dice lo que copia', () => {
+        render(<CopyButton value="ABC">Copiar el código</CopyButton>);
+        expect(screen.getByRole('button', { name: /Copiar el código/ })).toBeInTheDocument();
+    });
+});
+
+describe('SegmentedControl', () => {
+    const options = [
+        { value: 'desktop', label: 'Escritorio' },
+        { value: 'mobile', label: 'Celular' },
+    ] as const;
+
+    it('es un grupo de radio: la opción elegida es la única que recibe el foco con Tab', () => {
+        const onChange = vi.fn();
+        render(<SegmentedControl label="Vista previa en" value="desktop" onChange={onChange} options={options} />);
+        const group = screen.getByRole('radiogroup', { name: 'Vista previa en' });
+        const [desk, mobile] = within(group).getAllByRole('radio');
+        expect(desk).toHaveAttribute('aria-checked', 'true');
+        expect(desk).toHaveAttribute('tabindex', '0');
+        expect(mobile).toHaveAttribute('tabindex', '-1');
+        if (mobile) fireEvent.click(mobile);
+        expect(onChange).toHaveBeenCalledWith('mobile');
+    });
+
+    it('las flechas cambian de opción y dan la vuelta', () => {
+        expect(nextSegment(options, 'desktop', 'ArrowRight')).toBe('mobile');
+        expect(nextSegment(options, 'mobile', 'ArrowRight')).toBe('desktop');
+        expect(nextSegment(options, 'desktop', 'ArrowLeft')).toBe('mobile');
+        expect(nextSegment(options, 'desktop', 'Enter')).toBe('desktop');
+    });
+});
+
+describe('DeviceFrame', () => {
+    it('la vista previa es una región con nombre que se recorre con el teclado', () => {
+        render(
+            <DeviceFrame device="mobile" label="Vista previa de la página">
+                <p>Hola</p>
+            </DeviceFrame>,
+        );
+        const region = screen.getByRole('region', { name: 'Vista previa de la página' });
+        expect(region).toHaveAttribute('tabindex', '0');
+        expect(within(region).getByText('Hola')).toBeInTheDocument();
+    });
+});
+
+describe('ConfirmDialog', () => {
+    it('pregunta por la acción, el foco empieza en Cancelar y el botón repite la acción', () => {
+        const onConfirm = vi.fn();
+        render(<ConfirmDialog open onOpenChange={() => undefined} title="¿Archivar la página?" description="El enlace deja de funcionar." confirmLabel="Archivar" tone="danger" onConfirm={onConfirm} />);
+        const dialog = screen.getByRole('alertdialog', { name: '¿Archivar la página?' });
+        expect(within(dialog).getByRole('button', { name: 'Cancelar' })).toHaveFocus();
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Archivar' }));
+        expect(onConfirm).toHaveBeenCalledOnce();
     });
 });
