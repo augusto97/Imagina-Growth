@@ -1,5 +1,16 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-26 — Versión 0.2.3: el cifrado del correo tiene que ir con el puerto
+
+Se instala con el botón de actualizar.
+
+- **Plataforma → Ajustes → Correo** ya no guarda un cifrado que no va con el puerto: «SSL/TLS» es del 465; el 25, el
+  587 y el 2525 usan «STARTTLS». Esa mezcla hacía fallar la prueba con `wrong version number`. Al guardar, el campo
+  «Cifrado» dice cuál elegir.
+- Si la prueba falla por el cifrado, el mensaje dice qué cambiar según el puerto que pusiste.
+- El detalle técnico ya no tapa el servidor cuando el usuario SMTP es parte de su nombre (Emailit usa `emailit` y se
+  veía `smtp.***.com`). La contraseña sigue sin mostrarse.
+
 ## 2026-11-26 — Versión 0.2.2: la prueba del correo de la plataforma dice qué pasó
 
 Se instala con el botón de actualizar.

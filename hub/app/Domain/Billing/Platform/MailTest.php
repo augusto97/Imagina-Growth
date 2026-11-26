@@ -81,9 +81,22 @@ final class MailTest
         return match ($reason) {
             'connection' => __('No se pudo conectar con el servidor de correo :host. Revisa la dirección y el puerto (casi siempre 587 con STARTTLS o 465 con SSL); algunos servidores bloquean la salida por el 25 y el 465.', ['host' => $host ?? '']),
             'auth' => __('El servidor de correo rechazó el usuario o la contraseña. Cópialos otra vez desde tu proveedor (algunos piden una clave de aplicación o de SMTP, no la del buzón).'),
-            'tls' => __('Falló el cifrado con el servidor de correo. Prueba STARTTLS con el puerto 587 o SSL con el 465, según lo que indique tu proveedor.'),
+            'tls' => self::tlsHint(),
             'sender' => __('El servidor de correo no acepta el remitente :from. Verifica ese dominio o esa dirección en tu proveedor de correo.', ['from' => $from]),
             default => __('No se pudo enviar el correo de prueba.'),
+        };
+    }
+
+    /** El cifrado que no va con el puerto es la causa más común: se dice cuál elegir. */
+    private static function tlsHint(): string
+    {
+        $port = (int) config('mail.mailers.smtp.port');
+        $ssl = config('mail.mailers.smtp.scheme') === 'smtps';
+
+        return match (true) {
+            $ssl && $port !== 465 => __('Elegiste «SSL/TLS» con el puerto :port, pero ese puerto usa STARTTLS: en «Cifrado» elige «STARTTLS» y guarda (o usa el puerto 465 con «SSL/TLS»).', ['port' => $port]),
+            ! $ssl && $port === 465 => __('El puerto 465 usa «SSL/TLS»: en «Cifrado» elige «SSL/TLS» y guarda (o usa el puerto 587 con «STARTTLS»).'),
+            default => __('Falló el cifrado con el servidor de correo. Prueba STARTTLS con el puerto 587 o SSL con el 465, según lo que indique tu proveedor.'),
         };
     }
 
@@ -100,12 +113,20 @@ final class MailTest
         return $last !== null ? mb_substr(trim($last), 0, 200) : null;
     }
 
-    /** El detalle técnico sin usuarios ni contraseñas que algunos errores repiten. */
+    /**
+     * El detalle técnico sin la contraseña ni el usuario que algunos errores repiten. Un usuario que es parte del
+     * servidor (Emailit usa «emailit») no es secreto: taparlo dejaba «smtp.***.com».
+     */
     private static function clean(string $error): string
     {
         $user = (string) config('mail.mailers.smtp.username');
         $password = (string) config('mail.mailers.smtp.password');
-        foreach (array_filter([$password, $user, base64_encode($user), base64_encode($password)], fn (string $v) => strlen($v) >= 3) as $secret) {
+        $host = mb_strtolower((string) config('mail.mailers.smtp.host'));
+        $secrets = [$password, base64_encode($password)];
+        if ($user !== '' && ! str_contains($host, mb_strtolower($user))) {
+            array_push($secrets, $user, base64_encode($user));
+        }
+        foreach (array_filter($secrets, fn (string $v) => strlen($v) >= 3) as $secret) {
             $error = str_replace($secret, '***', $error);
         }
 

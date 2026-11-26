@@ -68,6 +68,13 @@ it('guarda los secretos cifrados con la llave de la app y los aplica en el momen
     // SSL directo: smtps, sin exigir STARTTLS.
     $this->actingAs($this->admin)->putJson('/api/platform/settings/mail', ['values' => ['smtp_encryption' => 'ssl', 'smtp_port' => 465]])->assertOk();
     expect(config('mail.mailers.smtp.scheme'))->toBe('smtps')->and(config('mail.mailers.smtp.require_tls'))->toBeFalse();
+
+    // Cifrado que no va con el puerto: no se guarda y se dice cuál elegir (el SSL/TLS en el 2525 falla con «wrong version number»).
+    $this->actingAs($this->admin)->putJson('/api/platform/settings/mail', ['values' => ['smtp_port' => 2525]])
+        ->assertUnprocessable()->assertJsonPath('errors', fn (array $e) => str_contains($e['values.smtp_encryption'][0], 'STARTTLS'));
+    $this->actingAs($this->admin)->putJson('/api/platform/settings/mail', ['values' => ['smtp_encryption' => 'starttls']])->assertUnprocessable();
+    $this->actingAs($this->admin)->putJson('/api/platform/settings/mail', ['values' => ['smtp_port' => 2525, 'smtp_encryption' => 'starttls']])->assertOk();
+    expect(config('mail.mailers.smtp.scheme'))->toBe('smtp')->and((int) config('mail.mailers.smtp.port'))->toBe(2525);
 });
 
 it('el valor del panel manda sobre el .env y vacío vuelve al .env (también con la configuración en caché)', function () {

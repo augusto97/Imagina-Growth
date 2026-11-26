@@ -8,6 +8,7 @@ use App\Domain\Workspaces\Models\Invitation;
 use App\Domain\Workspaces\Models\Workspace;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Symfony\Component\Mailer\Exception\TransportException;
 
 /*
  * Administración de planes y clientes desde la plataforma (y alta de clientes desde la agencia).
@@ -166,12 +167,24 @@ it('dice si el correo de la plataforma está configurado y prueba el envío', fu
     $this->actingAs($this->owner)->getJson('/api/platform/mail')->assertForbidden();
 });
 
+it('con SSL/TLS en un puerto de STARTTLS dice qué cifrado elegir y deja ver el servidor sin la contraseña', function () {
+    config(['mail.default' => 'smtp', 'mail.from.address' => 'no-responder@imagina.test', 'mail.mailers.smtp.host' => 'smtp.emailit.com', 'mail.mailers.smtp.port' => 2525,
+        'mail.mailers.smtp.scheme' => 'smtps', 'mail.mailers.smtp.username' => 'emailit', 'mail.mailers.smtp.password' => 'secreto-largo']);
+    Mail::shouldReceive('purge')->andReturnNull();
+    Mail::shouldReceive('raw')->andThrow(new TransportException('Connection could not be established with host "ssl://smtp.emailit.com:2525": stream_socket_client(): SSL operation failed with code 1. OpenSSL Error messages: error:0A00010B:SSL routines::wrong version number (secreto-largo)'));
+    $res = $this->actingAs($this->admin)->postJson('/api/platform/mail/test')->assertUnprocessable();
+    expect($res->json('reason'))->toBe('tls')
+        ->and($res->json('message'))->toContain('2525')->toContain('«STARTTLS»')
+        ->and($res->json('detail'))->toContain('ssl://smtp.emailit.com:2525')->not->toContain('secreto-largo');
+});
+
 it('explica en palabras por qué no salió el correo de prueba', function (string $error, string $reason) {
     expect(MailTest::reason($error))->toBe($reason);
 })->with([
     ['Connection could not be established with host "smtp.emailit.com:587": stream_socket_client(): Connection timed out', 'connection'],
     ['Failed to authenticate on SMTP server with username "x" using 2 possible authenticators. Authenticator LOGIN returned Expected response code "235" but got code "535"', 'auth'],
     ['Unable to connect with STARTTLS: stream_socket_enable_crypto(): SSL operation failed with code 1', 'tls'],
+    ['Connection could not be established with host "ssl://smtp.emailit.com:2525": stream_socket_client(): SSL operation failed with code 1. OpenSSL Error messages: error:0A00010B:SSL routines::wrong version number', 'tls'],
     ['Expected response code "250" but got code "550", with message "550 5.7.1 Sender domain not verified"', 'sender'],
     ['Email address is not verified. The following identities failed the check in region US-EAST-1: hola@tienda.co', 'sender'],
     ['Algo raro', 'other'],

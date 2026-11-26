@@ -69,8 +69,37 @@ final class PlatformSettingsController
             $definition = $definitions[(string) $name];
             $values[$definition->key] = $definition->cast($value);
         }
+        if ($section === 'mail' && ($problem = self::smtpMismatch($values)) !== null) {
+            return response()->json(['message' => $problem, 'errors' => ['values.smtp_encryption' => [$problem]]], 422);
+        }
 
         return $this->save($request, $values);
+    }
+
+    /**
+     * El cifrado que no va con el puerto (lo que hace fallar el correo con «wrong version number»): SSL/TLS directo es
+     * del 465; 25, 587 y 2525 hablan primero en claro y suben a STARTTLS. Mira lo que llega y, si no viene, lo guardado.
+     *
+     * @param  array<string, mixed>  $values
+     */
+    public static function smtpMismatch(array $values): ?string
+    {
+        $port = array_key_exists('mail.smtp_port', $values) ? $values['mail.smtp_port'] : config('mail.mailers.smtp.port');
+        $encryption = array_key_exists('mail.smtp_encryption', $values)
+            ? $values['mail.smtp_encryption']
+            : (config('mail.mailers.smtp.scheme') === 'smtps' ? 'ssl' : (config('mail.mailers.smtp.auto_tls') === false ? 'none' : 'starttls'));
+        if (! is_numeric($port) || ! is_string($encryption)) {
+            return null;
+        }
+        $port = (int) $port;
+        if ($encryption === 'ssl' && in_array($port, [25, 587, 2525], true)) {
+            return __('Con el puerto :port el cifrado es STARTTLS: elige «STARTTLS» (o usa el puerto 465 con «SSL/TLS»).', ['port' => $port]);
+        }
+        if ($encryption === 'starttls' && $port === 465) {
+            return __('Con el puerto 465 el cifrado es «SSL/TLS» (o usa el puerto 587 con «STARTTLS»).');
+        }
+
+        return null;
     }
 
     /**
