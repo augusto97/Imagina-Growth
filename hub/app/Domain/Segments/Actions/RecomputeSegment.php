@@ -105,6 +105,12 @@ final class RecomputeSegment
             'channel_counts' => $channels,
             'last_computed_at' => now(),
         ])->save();
+
+        // El tamaño del día para la tendencia de la lista de grupos (SegmentTrends); el último cálculo del día gana.
+        DB::table('segment_daily_counts')->upsert([[
+            'segment_id' => $segment->id, 'day' => now()->toDateString(), 'workspace_id' => $workspaceId,
+            'member_count' => (int) ($totals->n ?? 0), 'whatsapp_count' => $channels['whatsapp'], 'email_count' => $channels['email'], 'updated_at' => now(),
+        ]], ['segment_id', 'day'], ['member_count', 'whatsapp_count', 'email_count', 'updated_at']);
     }
 
     /** Recorre la tabla temporal por páginas (clave, no OFFSET) y emite un lote por página. */

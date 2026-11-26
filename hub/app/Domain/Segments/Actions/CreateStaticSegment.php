@@ -78,6 +78,40 @@ final class CreateStaticSegment
     }
 
     /**
+     * Un grupo fijo nuevo con las personas elegidas en la lista de Clientes (ids internos, ya filtrados por acceso).
+     *
+     * @param  list<string>  $ids
+     */
+    public function fromContacts(string $name, array $ids, User $user): Segment
+    {
+        return $this->create($name, null, null, array_values(array_unique($ids)), $user, ['source' => 'contacts', 'matched' => count(array_unique($ids))]);
+    }
+
+    /**
+     * Suma personas a un grupo fijo que ya existe (los que ya estaban no se repiten). Devuelve cuántas entraron.
+     *
+     * @param  list<string>  $ids
+     */
+    public function append(Segment $segment, array $ids, User $user): int
+    {
+        if ($segment->isDynamic() || $segment->is_system) {
+            throw new \InvalidArgumentException('Solo se agregan personas a un grupo fijo propio.');
+        }
+        $workspaceId = $this->current->id();
+        $at = now();
+        $added = 0;
+        foreach (array_chunk(array_values(array_unique($ids)), 1000) as $chunk) {
+            $added += DB::table('segment_memberships')->insertOrIgnore(array_map(fn (string $id) => [
+                'segment_id' => $segment->id, 'contact_id' => $id, 'workspace_id' => $workspaceId, 'entered_at' => $at,
+            ], $chunk));
+        }
+        $this->stats->refreshStats($segment);
+        $this->audit->handle('segment.members_added', $segment, ['name' => $segment->name, 'added' => $added], $workspaceId, null, $user->id);
+
+        return $added;
+    }
+
+    /**
      * @param  list<string>  $ids
      * @param  array<string, mixed>  $auditChanges
      */

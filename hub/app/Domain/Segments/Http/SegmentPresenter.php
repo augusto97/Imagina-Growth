@@ -8,8 +8,11 @@ use App\Domain\Segments\Models\Segment;
 
 final class SegmentPresenter
 {
-    /** @return array<string, mixed> */
-    public static function make(Segment $s, bool $withDefinition = false): array
+    /**
+     * @param  array{points: list<int>, change: int|null, days: int}|null  $trend  tamaño de los últimos días (SegmentTrends)
+     * @return array<string, mixed>
+     */
+    public static function make(Segment $s, bool $withDefinition = false, ?array $trend = null): array
     {
         $data = [
             'id' => $s->publicId(),
@@ -24,6 +27,7 @@ final class SegmentPresenter
             'channel_counts' => $s->channel_counts ?? ['email' => 0, 'whatsapp' => 0],
             'last_computed_at' => $s->last_computed_at?->toIso8601String(),
             'updated_at' => $s->updated_at?->toIso8601String(),
+            'trend' => $trend,
         ];
         if ($withDefinition) {
             $data['definition'] = $s->definition;
