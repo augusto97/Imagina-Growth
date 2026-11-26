@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BillingBanner } from '@/features/billing/BillingBanner';
 import { Link, Navigate, Outlet, useLocation, useMatches, useNavigate, useParams } from 'react-router';
@@ -13,7 +13,6 @@ import { DESKTOP_QUERY, useMedia } from '@/hooks/useMedia';
 import { useShortcuts } from '@/hooks/useShortcuts';
 import { setLocale } from '@/lib/i18n';
 import { useUi } from '@/stores/ui';
-import { CommandPalette } from './CommandPalette';
 import { LockedPage } from './LockedPage';
 import { LAYOUT_CLASS, pageLayout } from './pageLayout';
 import { PageContext, type PageContextValue } from './pageContext';
@@ -21,6 +20,9 @@ import { flattenNav, itemLock, itemPath, locate, navContext, visibleSections, ty
 import { MobileNav } from './MobileNav';
 import { SectionNav } from './SectionNav';
 import { Sidebar } from './Sidebar';
+
+/** La paleta ⌘K (cmdk) se baja al abrirla por primera vez: no pesa en el arranque (docs/rendimiento.md §7.1, 7). */
+const CommandPalette = lazy(async () => ({ default: (await import('./CommandPalette')).CommandPalette }));
 
 export function FullPageSkeleton() {
     return (
@@ -99,6 +101,7 @@ export function WorkspaceLayout() {
     const setSidebarCollapsed = useUi((s) => s.setSidebarCollapsed);
     const desktop = useMedia(DESKTOP_QUERY);
     const sidebarCollapsed = useUi((s) => s.sidebarCollapsed);
+    const commandOpen = useUi((s) => s.commandOpen);
     const workspace = me?.workspaces.find((w) => w.id === workspaceId) ?? null;
     const layout = pageLayout(useMatches().map((m) => m.handle));
 
@@ -184,7 +187,11 @@ export function WorkspaceLayout() {
                     </main>
                 </div>
             </div>
-            <CommandPalette />
+            {commandOpen ? (
+                <Suspense fallback={null}>
+                    <CommandPalette />
+                </Suspense>
+            ) : null}
         </WorkspaceContext.Provider>
     );
 }
