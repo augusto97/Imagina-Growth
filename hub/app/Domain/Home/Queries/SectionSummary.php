@@ -190,6 +190,23 @@ final class SectionSummary
         $widgets = DB::table('onsite_widgets')->where('workspace_id', $ws)->where('status', 'active')->count();
         $captured = DB::table('widget_captures')->where('workspace_id', $ws)->whereBetween('captured_at', [$from, $to])->count()
             + DB::table('landing_submissions')->where('workspace_id', $ws)->whereBetween('created_at', [$from, $to])->count();
+        if ($ctx->businessType() === 'services') {
+            // Sin tienda se capta también sin web: la página de captura y el WhatsApp con QR van primero.
+            $pages = DB::table('landing_pages')->where('workspace_id', $ws)->where('status', 'published')->count();
+            $figures = [
+                self::figure('captured_month', $captured, 'count', null),
+                self::figure('landing_pages', $pages, 'count', 'paginas-de-captura'),
+                self::figure('active_widgets', $widgets, 'count', 'en-el-sitio'),
+                $this->moneyFigure($workspace, 'onsite'),
+            ];
+            $next = match (true) {
+                $pages === 0 => self::next('first_landing', 'paginas-de-captura'),
+                $ctx->hasSite() && $widgets === 0 => self::next('first_contact_form', 'en-el-sitio'),
+                default => self::next('landing_results', 'paginas-de-captura'),
+            };
+
+            return [$figures, $next];
+        }
         $figures = [
             self::figure('active_widgets', $widgets, 'count', 'en-el-sitio'),
             self::figure('captured_month', $captured, 'count', null),

@@ -171,7 +171,9 @@ vertical (`GET verticals`):
 importa con cifras (`GET sections/{section}`, `Home\Queries\SectionSummary`: solo números y claves; los textos de cada
 sección van en `locales/es-CO/section-entry.json`, que cada frente ajusta para la suya), «Empieza por aquí» con lo
 primero que conviene hacer y su botón, y debajo lo que hay dentro. Las tarjetas ya no piden un conteo cada una (eran 5
-consultas por sección): todo llega en una sola llamada, que el menú precarga al pasar el puntero.
+consultas por sección): todo llega en una sola llamada, que el menú precarga al pasar el puntero. En un negocio sin
+tienda, En tu web cuenta los contactos captados y las páginas de captura publicadas y empieza por crear la página (no
+pide la web); con la web conectada y sin formularios, por poner uno de contacto.
 
 **Cómo quedaron Conversaciones y Configuración** (frente B3, nov. 2026; cambios al plan con su motivo):
 

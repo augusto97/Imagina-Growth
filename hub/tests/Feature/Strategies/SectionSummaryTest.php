@@ -95,6 +95,19 @@ it('Mensajes, Conversaciones, En tu web, Resultados y Configuración dicen sus c
         ->and(sectionSummary($this, 'messages')['next']['kind'])->toBe('first_automation');
 });
 
+it('En tu web, sin tienda, empieza por la página de captura (no pide la web) y la cuenta', function () {
+    $this->strategyWorld(site: false, channels: []);
+    $this->ws->forceFill(['vertical' => 'health'])->save();
+    $web = sectionSummary($this, 'onsite');
+    expect(array_keys(sectionFigures($web)))->toBe(['captured_month', 'landing_pages', 'active_widgets', 'money'])
+        ->and($web['next'])->toMatchArray(['kind' => 'first_landing', 'to' => 'paginas-de-captura']);
+
+    DB::table('landing_pages')->insert(['id' => (string) Str::ulid(), 'workspace_id' => $this->ws->id, 'slug' => 'valoracion', 'name' => 'Valoración',
+        'status' => 'published', 'published_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+    $web = sectionSummary($this, 'onsite');
+    expect(sectionFigures($web)['landing_pages'])->toBe(1)->and($web['next']['kind'])->toBe('landing_results');
+});
+
 it('sin web: cada sección empieza por conectarla', function () {
     $this->strategyWorld(site: false, channels: []);
     expect(sectionSummary($this, 'customers')['next']['kind'])->toBe('connect_site')

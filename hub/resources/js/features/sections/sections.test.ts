@@ -31,7 +31,7 @@ describe('página de entrada de una sección', () => {
     it('cada cifra y cada «Empieza por aquí» que puede mandar el servidor tiene su texto', () => {
         const figures = entry.sectionEntry.figures as Record<string, unknown>;
         for (const key of ['people', 'customers', 'new_customers', 'at_risk', 'open_leads', 'today', 'appointments_week', 'won_month', 'waiting', 'open', 'unassigned',
-            'active_flows', 'campaigns_month', 'sent_month', 'active_widgets', 'captured_month', 'reviews_month', 'money_month', 'sales_month', 'won_value', 'share',
+            'active_flows', 'campaigns_month', 'sent_month', 'active_widgets', 'landing_pages', 'captured_month', 'reviews_month', 'money_month', 'sales_month', 'won_value', 'share',
             'open_insights', 'sites', 'channels', 'members']) {
             expect(figures[key], key).toBeTypeOf('object');
         }
@@ -41,7 +41,7 @@ describe('página de entrada de una sección', () => {
         }
         const next = entry.sectionEntry.next as Record<string, Record<string, string>>;
         for (const kind of ['connect_site', 'finish_site', 'import_contacts', 'win_back', 'create_group', 'attend_today', 'first_lead', 'review_leads', 'connect_channel',
-            'reply', 'assign', 'agent', 'first_automation', 'campaign', 'first_widget', 'widgets', 'insights', 'dashboards', 'invite']) {
+            'reply', 'assign', 'agent', 'first_automation', 'campaign', 'first_widget', 'widgets', 'first_landing', 'first_contact_form', 'landing_results', 'insights', 'dashboards', 'invite']) {
             expect(next[kind]?.action, kind).toBeTypeOf('string');
             expect(next[kind]?.why, kind).toBeTypeOf('string');
         }

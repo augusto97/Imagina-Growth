@@ -65,6 +65,10 @@
                 "label": "Formularios en tu web",
                 "help": "Popups, botones y formularios que se están mostrando en tu web."
             },
+            "landing_pages": {
+                "label": "Páginas de captura publicadas",
+                "help": "Páginas con tu formulario que puedes compartir por WhatsApp, en redes o con un QR, aunque no tengas web."
+            },
             "captured_month": {
                 "label": "Contactos captados",
                 "help": "Personas que dejaron sus datos en tu web o en tu página de contacto este mes."
@@ -205,6 +209,21 @@
                 "title": "Revisa lo que se muestra en tu web",
                 "why": "Mira cuántos contactos capta cada formulario y ajusta el que menos convierte.",
                 "action": "Ver formularios"
+            },
+            "first_landing": {
+                "title": "Crea tu página de captura",
+                "why": "Una página con tu formulario que compartes por WhatsApp, en Instagram o con un QR en tu local. No necesitas web: los contactos llegan directo a tu tablero de leads.",
+                "action": "Crear mi página"
+            },
+            "first_contact_form": {
+                "title": "Pon un formulario de contacto en tu web",
+                "why": "Quien visita tu web te deja su WhatsApp y entra como lead, con el seguimiento que ya tienes prendido.",
+                "action": "Elegir un formulario"
+            },
+            "landing_results": {
+                "title": "Mira qué página te trae más contactos",
+                "why": "Compara visitas y envíos de cada página y comparte más la que mejor convierte.",
+                "action": "Ver mis páginas"
             },
             "insights": {
                 "title_one": "Tienes 1 recomendación para revisar",
