@@ -7,6 +7,7 @@ namespace App\Domain\Intelligence\Insights;
 use App\Domain\Intelligence\Insights\Detectors\CartAbandonmentProductsDetector;
 use App\Domain\Intelligence\Insights\Detectors\ChannelLtvDetector;
 use App\Domain\Intelligence\Insights\Detectors\CityPotentialDetector;
+use App\Domain\Intelligence\Insights\Detectors\CommercialMomentDetector;
 use App\Domain\Intelligence\Insights\Detectors\ConcentrationDetector;
 use App\Domain\Intelligence\Insights\Detectors\ConversionDropDetector;
 use App\Domain\Intelligence\Insights\Detectors\ConversionsFailingDetector;
@@ -29,8 +30,9 @@ use App\Domain\Intelligence\Insights\Detectors\ViewedNotBoughtDetector;
 use App\Domain\Intelligence\Insights\Detectors\WhatsappQualityDetector;
 
 /**
- * Los 23 detectores de inteligencia.md §5.1 con su número, categoría y cadencia.
- * Los de servicios (21 a 23) llegaron en la Fase 5 con los leads (M18).
+ * Los 24 detectores de inteligencia.md §5.1 con su número, categoría y cadencia.
+ * Los de servicios (21 a 23) llegaron en la Fase 5 con los leads (M18) y el 24
+ * (momento comercial cerca) con el calendario comercial (rediseño v2 §11.5).
  */
 final class DetectorCatalog
 {
@@ -61,6 +63,7 @@ final class DetectorCatalog
         ['number' => 21, 'key' => 'leads_unanswered', 'category' => 'services', 'cadence' => 'nightly', 'class' => LeadsUnansweredDetector::class, 'phase' => 5],
         ['number' => 22, 'key' => 'form_low_conversion', 'category' => 'services', 'cadence' => 'weekly', 'class' => FormLowConversionDetector::class, 'phase' => 5],
         ['number' => 23, 'key' => 'lead_source_close', 'category' => 'services', 'cadence' => 'weekly', 'class' => LeadSourceCloseDetector::class, 'phase' => 5],
+        ['number' => 24, 'key' => 'commercial_moment', 'category' => 'messaging', 'cadence' => 'nightly', 'class' => CommercialMomentDetector::class, 'phase' => 5],
     ];
 
     /** @return list<array{number: int, key: string, category: string, cadence: 'nightly'|'weekly', class: class-string<Detector>|null, phase: int}> */

@@ -208,12 +208,16 @@ Los detectores se ejecutan cada noche (o cada semana, según el detector). Cada 
 22. **Formulario con baja conversión**: vistas de la página frente a envíos.
 23. **Cierre por fuente:** la fuente con más leads frente a la fuente con más leads ganados.
 
+**Calendario**
+
+24. **Momento comercial cerca** (rediseño v2 §11.5): unas semanas antes del día sugerido para la campaña de un momento del calendario comercial del país que aplica al negocio (tipo y vertical), si todavía no tiene su campaña: «En 25 días es Día de la Madre: tu campaña ya está lista para revisar», con «Crear la campaña» en un clic (borrador). Sin dinero estimado.
+
 ### 5.2 Impacto estimado
 Siempre conservador, con el supuesto visible: «Estimación: 37 clientes × 18% de reactivación de referencia × $185.000 de ticket = **$1.232.100**. Supuesto editable». Nunca se presenta como promesa.
 
 ### 5.3 Estado (Fase 4)
 - **Detectores:** los 23 de §5.1 funcionan (`App\Domain\Intelligence\Insights\DetectorCatalog`, con número, categoría y cadencia). Los de servicios (21 a 23) llegaron en la Fase 5 con los leads: **#21** (nocturno) leads de los últimos 7 días que esperaron más de 15 minutos, con el dinero en juego = abiertos sin respuesta × tasa de cierre de 180 días × valor promedio ganado; **#22** (semanal) la página con formulario que convierte menos de la mitad del promedio de las páginas con formulario (28 días, al menos 200 vistas); **#23** (semanal) la fuente con más leads frente a la que más leads ganados deja (90 días, al menos 5 leads por fuente), si la de volumen cierra a la mitad o menos.
-  - **Nocturnos:** 1, 2, 6, 8, 9, 15, 16, 17, 19 y 20.
+  - **Nocturnos:** 1, 2, 6, 8, 9, 15, 16, 17, 19, 20 y 24 (este, en la categoría de mensajería, llegó con el calendario comercial: avisa desde 14 días antes del envío sugerido hasta el día del momento, vence ese día y deja de salir cuando la campaña existe; acción `calendar_campaign`).
   - **Semanales:** 3, 4, 5, 7, 10, 11, 12, 13, 14 y 18. Corren los lunes, o si nunca corrieron (`igr:insights --all` los fuerza; `--detector=` corre solo los que se nombren).
 - **Umbrales** (`config/igr-insights.php`):
   - **#3:** tráfico en el cuartil superior y conversión en el decil inferior, con al menos 30 vistas.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Intelligence\Insights\Actions;
 
+use App\Domain\Campaigns\Actions\CreateCalendarCampaign;
 use App\Domain\Campaigns\Audience\AudienceQuery;
 use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Flows\Actions\CreateFlowFromLibrary;
@@ -12,6 +13,7 @@ use App\Domain\Intelligence\Models\Insight;
 use App\Domain\Segments\Models\Segment;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Domain\Workspaces\Models\User;
+use App\Domain\Workspaces\Models\Workspace;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -24,6 +26,7 @@ final class RunInsightAction
     public function __construct(
         private readonly CreateFlowFromLibrary $flows,
         private readonly RecordAuditLog $audit,
+        private readonly CreateCalendarCampaign $calendar,
     ) {}
 
     /** @return array{to: string, result: string} */
@@ -35,6 +38,7 @@ final class RunInsightAction
         [$to, $result] = match ($kind) {
             'activate_flow' => $this->activateFlow((string) ($payload['library_key'] ?? ''), $user),
             'create_campaign' => $this->createCampaign($payload, $user, (string) $insight->workspace_id),
+            'calendar_campaign' => $this->calendarCampaign($payload, $user, (string) $insight->workspace_id),
             default => [(string) ($action['to'] ?? 'hallazgos'), 'link'],
         };
         $insight->forceFill(['status' => 'actioned', 'dismissed_at' => now()])->save();
@@ -53,6 +57,20 @@ final class RunInsightAction
         $created = $this->flows->handle($key, true, $user->id);
 
         return ['flujos/'.$created['flow']->publicId(), $created['activated'] ? 'flow_activated' : 'flow_draft'];
+    }
+
+    /**
+     * La campaña de un momento del calendario comercial, lista en borrador (idempotente).
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{0: string, 1: string}
+     */
+    private function calendarCampaign(array $payload, User $user, string $workspaceId): array
+    {
+        $workspace = Workspace::query()->findOrFail($workspaceId);
+        $result = $this->calendar->handle($workspace, (string) ($payload['moment'] ?? ''), is_numeric($payload['year'] ?? null) ? (int) $payload['year'] : null, $user->id);
+
+        return ['campanas/'.$result['campaign']->publicId().'/editar?paso=audience', $result['created'] ? 'campaign_created' : 'campaign_exists'];
     }
 
     /**

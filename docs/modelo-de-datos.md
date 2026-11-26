@@ -420,3 +420,18 @@ La base es la migración `2026_11_23_000100_create_phase5_tables` (más `2026_11
   el `.env`. La fila `_generation` no es un ajuste: cambia cuando algo que los procesos guardan en memoria cambió (los
   festivos) para que lo vuelvan a leer sin reiniciar. Las tarifas de WhatsApp (`wa_rates`) y los festivos
   (`holiday_overrides`) también se editan ahí, cada uno en su tabla.
+
+## 20. Negocios sin tienda (rediseño v2 §11)
+
+- `commercial_calendar_overrides` (`2026_11_28_400100`): id, event_key (la clave del momento de `CommercialCalendar`),
+  country (CO, MX o VE), year, starts_on?, ends_on?, disabled, note?, created_by?, timestamps; único por (event_key,
+  country, year). Las fechas del calendario comercial que el organizador fija cada año (Hot Sale, El Buen Fin,
+  CyberLunes) o que ese año no se hacen; las edita el superadmin en Plataforma → Calendario comercial
+  (`/api/platform/calendar`). Sin fila rige la regla del código. Es de la plataforma, no de un espacio de trabajo.
+- `workspaces.settings` (sin columnas nuevas): `vertical_defaults` ({vertical, pipeline, industry, applied_at}: lo último
+  que dejó ApplyVerticalDefaults) y `calendar_campaigns` ({«clave:año»: id de la campaña} de las campañas creadas desde
+  el calendario comercial, para no crearlas dos veces).
+- `lead_pipelines.stages`: sin cambio de esquema; el principal nace con el embudo de la vertical (`VerticalCatalog`).
+- `templates`: las de WhatsApp de la biblioteca (`library_key` `wa_*`) quedan en `status = draft` con `body_text` (el
+  texto propuesto) y `variables` (el mapeo) hasta enlazarse con la aprobada (`wa_template_id`); por clave, los flujos
+  solo usan una lista o enlazada con una `wa_templates.status = APPROVED`.
