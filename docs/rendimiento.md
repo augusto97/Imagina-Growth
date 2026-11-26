@@ -238,7 +238,7 @@ librería): pendiente pasarlas al mismo patrón que `charts.tsx`.
 5. **Precarga al pasar el puntero o enfocar** un enlace del menú (`queryClient.prefetchQuery` de las consultas de la
    pantalla y el `import()` de su chunk): hoy la primera visita a cada pantalla espera chunk + API (150–250 ms en
    escritorio, 250–650 ms en 4G).
-6. **Peticiones duplicadas** al abrir la Bandeja (`inbox/conversations` dos veces y, con un chat abierto, también el
+6. **Hecho (frente de Conversaciones y Configuración):** con un canal desconectado con historial la clínica de la demo abre la bandeja; al abrirla sale cada consulta una vez (la lista la pide la página, una sola). Lo que se repetía eran las acciones: cada una invalidaba todo `['ws', ws, 'inbox']` (chat, perfil, plantillas, respuestas rápidas, equipo y métricas). Ahora la respuesta deja el chat en la caché y solo se refresca la lista (cambiar el modo de la IA: un PATCH y la lista), el tiempo real refresca listas y chats, las plantillas se piden solo con la ventana cerrada o al abrir «Plantilla» y «Disponible» ya no avisa al entrar si está apagado. Canales es ahora una tarjeta de Conexiones (`/channels` una vez). Antes decía: **Peticiones duplicadas** al abrir la Bandeja (`inbox/conversations` dos veces y, con un chat abierto, también el
    chat y el panel) y Canales (`/channels` dos veces): revisar las claves y las invalidaciones de esas pantallas.
 7. **La paleta ⌘K (cmdk) y los diálogos del menú** pueden cargar al abrirse (unos 15 kB del grupo `ui`).
 8. **Consola limpia:** React Router avisa «No `HydrateFallback` element provided» en cada carga (rutas perezosas sin
