@@ -88,6 +88,10 @@ para activar esto»). Los módulos fuera del plan muestran el plan que los inclu
   datos (En tu web y Resultados); sin canal de conversación (WhatsApp, Messenger o Instagram), la bandeja y el agente.
   Una web que se conectó y hoy está desconectada no bloquea (sus datos siguen; el aviso de salud dice qué hacer).
   Personas, grupos, mensajes y configuración nunca se bloquean.
+- **Tipo de negocio y vertical (§11.1):** el menú oculta lo que no aplica según `business_type` (lo elegido en el
+  asistente; si no, lo que implica la vertical; si no, lo que dicen los sitios): un negocio sin tienda no ve carritos,
+  pedidos ni catálogo, y una tienda no ve leads, agenda ni cotizador. Sin ninguna señal se muestra todo. La sección
+  Clientes se llama «Pacientes» en salud y «Estudiantes» en educación; las demás palabras quedan iguales.
 
 ## 4. Primera vez (onboarding)
 
