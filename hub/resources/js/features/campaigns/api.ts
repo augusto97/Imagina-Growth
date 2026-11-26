@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { wsPath } from '@/api/queries';
 import { api } from '@/lib/api';
 import type { Audience, CalendarResponse, CampaignChannel, CampaignDetail, CampaignOptions, CampaignReport, CampaignSummary, ReviewResponse } from './types';
@@ -14,8 +14,12 @@ export const campaignKeys = {
 const base = (ws: string) => `${wsPath(ws)}/campaigns`;
 const one = (ws: string, id: string) => `${base(ws)}/${encodeURIComponent(id)}`;
 
+export function campaignsQuery(ws: string) {
+    return queryOptions({ queryKey: campaignKeys.all(ws), queryFn: async ({ signal }) => (await api.get<{ data: CampaignSummary[] }>(base(ws), signal)).data });
+}
+
 export function useCampaigns(ws: string) {
-    return useQuery({ queryKey: campaignKeys.all(ws), queryFn: async ({ signal }) => (await api.get<{ data: CampaignSummary[] }>(base(ws), signal)).data });
+    return useQuery(campaignsQuery(ws));
 }
 
 export function useCampaign(ws: string, id: string | undefined) {

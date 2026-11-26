@@ -53,13 +53,16 @@ function resolveImport(from: string, spec: string): string | null {
     return null;
 }
 
-/** Los archivos que alcanza un conjunto de entradas (imports estáticos y, si se pide, también los perezosos). */
-function graph(entries: string[], withDynamic: boolean): Set<string> {
+/**
+ * Los archivos que alcanza un conjunto de entradas (imports estáticos y, si se pide, también los perezosos). `stop`: lo
+ * que ya trae el arranque, que no se recorre (sus textos ya están).
+ */
+function graph(entries: string[], withDynamic: boolean, stop: ReadonlySet<string> = new Set()): Set<string> {
     const seen = new Set<string>();
     const stack = [...entries];
     while (stack.length > 0) {
         const file = stack.pop() ?? '';
-        if (seen.has(file)) {
+        if (seen.has(file) || stop.has(file)) {
             continue;
         }
         seen.add(file);
@@ -124,12 +127,13 @@ const features = readdirSync(join(root, 'features')).filter((f) => statSync(join
 const routeFiles = features.map((f) => join(root, 'features', f, 'routes.tsx')).filter((p) => existsSync(p));
 
 /** El marco de la app: lo que carga el arranque (sin las pantallas perezosas). */
-const shell = modulesFor(patterns(graph([join(root, 'main.tsx'), ...routeFiles], false)));
+const shellFiles = graph([join(root, 'main.tsx'), ...routeFiles], false);
+const shell = modulesFor(patterns(shellFiles));
 
 /** Cada carpeta de pantallas: sus archivos y lo que importan, menos lo que ya trae el arranque. */
 const computed: Record<string, string[]> = Object.fromEntries(
     features
-        .map((f) => [f, [...modulesFor(patterns(graph(sourceFiles(join(root, 'features', f)), true)))].filter((m) => !shell.has(m)).sort()] as const)
+        .map((f) => [f, [...modulesFor(patterns(graph(sourceFiles(join(root, 'features', f)), true, shellFiles)))].filter((m) => !shell.has(m)).sort()] as const)
         .filter(([, list]) => list.length > 0)
         .sort(([a], [b]) => a.localeCompare(b)),
 );

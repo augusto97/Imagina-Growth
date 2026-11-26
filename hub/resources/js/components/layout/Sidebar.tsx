@@ -12,6 +12,8 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useUi, type ThemePreference } from '@/stores/ui';
+import { useIntentPrefetch } from '@/app/prefetch';
+import { preloadCommandPalette } from './commandPaletteLoader';
 import { Logo } from './Logo';
 import { locate, navContext, sectionLock, sectionName, sectionPath, visibleSections, type NavLock, type NavSection } from './nav';
 import { lockLabelKey, SectionNavTree } from './SectionNav';
@@ -109,12 +111,14 @@ function NavEntry({
     const Icon = section.icon;
     const label = sectionName(t, section.key, vertical);
     const lockText = lock ? t(lockLabelKey(lock)) : null;
+    const intent = useIntentPrefetch();
     // Contraída no se ve la subnavegación: la sección se marca entera aunque la persona esté en una de sus pantallas.
     const current = state === 'page' || (collapsed && state === 'inside');
     return (
         <WithTooltip collapsed={collapsed} label={lockText ? `${label} · ${lockText}` : label}>
             <Link
                 to={sectionPath(base, section)}
+                {...intent(sectionPath(base, section))}
                 aria-current={current ? 'page' : undefined}
                 className={cn(
                     'igr:group igr:relative igr:text-[13.5px] igr:transition-colors',
@@ -296,6 +300,8 @@ export function Sidebar({ mode = 'fixed' }: { mode?: 'fixed' | 'drawer' }) {
                     <button
                         type="button"
                         onClick={() => setCommandOpen(true)}
+                        onMouseEnter={preloadCommandPalette}
+                        onFocus={preloadCommandPalette}
                         aria-label={collapsed ? searchLabel : undefined}
                         aria-keyshortcuts={isMac ? 'Meta+K' : 'Control+K'}
                         className={cn(

@@ -20,6 +20,7 @@ import { useFlows } from '@/features/flows/api';
 import { useInsights } from '@/features/insights/api';
 import { useWidgets } from '@/features/onsite/api';
 import { useSegments } from '@/features/segments/api';
+import { useIntentPrefetch } from '@/app/prefetch';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/cn';
@@ -152,9 +153,11 @@ const STATS: Partial<Record<string, () => ReactNode>> = {
 function ItemCard({ item, base, lock, quiet }: { item: NavItem; base: string; lock: NavLock | null; quiet: boolean }) {
     const { t } = useTranslation();
     const stat = lock ? null : STATS[item.key];
+    const intent = useIntentPrefetch();
     return (
         <Link
             to={itemPath(base, item)}
+            {...intent(itemPath(base, item))}
             className={cn(
                 'igr:group igr:flex igr:min-w-0 igr:flex-col igr:rounded-xl igr:border igr:bg-card igr:p-5 igr:shadow-xs igr:transition-[box-shadow,border-color] igr:hover:border-primary/25 igr:hover:shadow-md',
                 lock && 'igr:bg-card/70',

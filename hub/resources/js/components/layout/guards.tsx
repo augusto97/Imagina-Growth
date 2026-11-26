@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo } from 'react';
+import { Suspense, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BillingBanner } from '@/features/billing/BillingBanner';
 import { Link, Navigate, Outlet, useLocation, useMatches, useNavigate, useParams } from 'react-router';
@@ -13,6 +13,7 @@ import { DESKTOP_QUERY, useMedia } from '@/hooks/useMedia';
 import { useShortcuts } from '@/hooks/useShortcuts';
 import { setLocale } from '@/lib/i18n';
 import { useUi } from '@/stores/ui';
+import { LazyCommandPalette } from './commandPaletteLoader';
 import { LockedPage } from './LockedPage';
 import { LAYOUT_CLASS, pageLayout } from './pageLayout';
 import { PageContext, type PageContextValue } from './pageContext';
@@ -20,9 +21,6 @@ import { flattenNav, itemLock, itemPath, locate, navContext, visibleSections, ty
 import { MobileNav } from './MobileNav';
 import { SectionNav } from './SectionNav';
 import { Sidebar } from './Sidebar';
-
-/** La paleta ⌘K (cmdk) se baja al abrirla por primera vez: no pesa en el arranque (docs/rendimiento.md §7.1, 7). */
-const CommandPalette = lazy(async () => ({ default: (await import('./CommandPalette')).CommandPalette }));
 
 export function FullPageSkeleton() {
     return (
@@ -190,7 +188,7 @@ export function WorkspaceLayout() {
             </div>
             {commandOpen ? (
                 <Suspense fallback={null}>
-                    <CommandPalette />
+                    <LazyCommandPalette />
                 </Suspense>
             ) : null}
         </WorkspaceContext.Provider>

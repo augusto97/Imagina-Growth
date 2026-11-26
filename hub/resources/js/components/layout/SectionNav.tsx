@@ -2,6 +2,7 @@ import { LayoutGrid, Lock } from 'lucide-react';
 import { useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router';
+import { useIntentPrefetch } from '@/app/prefetch';
 import { cn } from '@/lib/cn';
 import { activeChild, itemLock, itemPath, sectionName, sectionPath, type NavContext, type NavItem, type NavLocation, type NavLock, type NavSection } from './nav';
 
@@ -61,6 +62,7 @@ function LockMark({ lock }: { lock: NavLock }) {
 export function SectionNavTree({ section, location, base, ctx }: { section: NavSection; location: NavLocation; base: string; ctx: NavContext }) {
     const { t } = useTranslation();
     const entries = useEntries(section, location, base, ctx, false);
+    const intent = useIntentPrefetch();
     return (
         <ul
             aria-label={t('ui.sectionNav.label', { section: sectionName(t, section.key, ctx.vertical) })}
@@ -70,6 +72,7 @@ export function SectionNavTree({ section, location, base, ctx }: { section: NavS
                 <li key={entry.key}>
                     <Link
                         to={entry.to}
+                        {...intent(entry.to)}
                         aria-current={entry.active && entry.children.length === 0 ? 'page' : undefined}
                         title={entry.lock ? t(lockLabelKey(entry.lock)) : undefined}
                         className={cn(
@@ -115,6 +118,7 @@ export function SectionNavTree({ section, location, base, ctx }: { section: NavS
 export function SectionNav({ section, location, base, ctx, className }: { section: NavSection; location: NavLocation; base: string; ctx: NavContext; className?: string }) {
     const { t } = useTranslation();
     const entries = useEntries(section, location, base, ctx, true);
+    const intent = useIntentPrefetch();
     const scroller = useRef<HTMLDivElement>(null);
 
     useLayoutEffect(() => {
@@ -153,7 +157,7 @@ export function SectionNav({ section, location, base, ctx, className }: { sectio
                         }
                         return [
                             <li key={entry.key} className="igr:shrink-0">
-                                <Link to={entry.to} aria-current={entry.active ? 'page' : undefined} className={pill(entry.active)}>
+                                <Link to={entry.to} {...intent(entry.to)} aria-current={entry.active ? 'page' : undefined} className={pill(entry.active)}>
                                     <Icon className={cn('igr:size-3.5 igr:shrink-0', entry.active && 'igr:text-primary')} aria-hidden />
                                     {entry.label}
                                     {entry.lock ? <LockMark lock={entry.lock} /> : null}
