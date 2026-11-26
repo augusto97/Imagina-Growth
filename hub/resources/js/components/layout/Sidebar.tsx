@@ -1,4 +1,4 @@
-import { Check, ChevronsUpDown, Lock, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Plus, Search, ShieldCheck, Sun, SunMoon } from 'lucide-react';
+import { Check, ChevronsUpDown, Lock, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Plus, Search, ShieldCheck, Sparkles, Sun, SunMoon, Wand2 } from 'lucide-react';
 import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router';
@@ -197,7 +197,7 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const qc = useQueryClient();
-    const { me } = useWorkspace();
+    const { me, workspace } = useWorkspace();
     const { theme, setTheme } = useUi();
 
     const logout = async () => {
@@ -233,6 +233,17 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
                     <span className="igr:flex-1">{t('nav.security')}</span>
                     {me.user.two_factor_enabled ? <Badge variant="success">{t('security.on')}</Badge> : <Badge variant="warning">{t('security.off')}</Badge>}
                 </DropdownMenuItem>
+                {/* Primera vez (rediseño v2 §4): volver a ver la bienvenida y retomar el asistente. */}
+                <DropdownMenuItem onSelect={() => void navigate(`/w/${workspace.id}/bienvenida`)}>
+                    <Sparkles />
+                    {t('nav.welcome')}
+                </DropdownMenuItem>
+                {workspace.abilities.includes('manageWorkspace') ? (
+                    <DropdownMenuItem onSelect={() => void navigate(`/w/${workspace.id}/configurar`)}>
+                        <Wand2 />
+                        {t('nav.setupWizard')}
+                    </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>{t('theme.title')}</DropdownMenuLabel>
                 {THEMES.map(({ value, icon: Icon }) => (

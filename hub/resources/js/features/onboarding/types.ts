@@ -22,12 +22,25 @@ export type OnboardingStep =
           status: ImportStatus;
           progress: number | null;
           site_id: string | null;
-          /** Lo que ya se aprendió mientras se importa (sin datos personales). */
-          learned: { customers: number; orders: number; revenue: string; top_products: string[] } | null;
+          /** Lo que ya se aprendió mientras se importa (sin datos personales); null sin web conectada. */
+          learned: LearnedSoFar | null;
       })
     | (StepBase<'channels'> & { channels: { whatsapp: 'active' | 'down' | null; email: 'active' | 'down' | null } })
     | (StepBase<'strategies'> & { active: StrategyKey[] })
     | StepBase<'done'>;
+
+/** Lo aprendido del historial: la tienda (clientes, pedidos, ventas y productos) y, para todos, personas y contactos. */
+export interface LearnedSoFar {
+    customers: number;
+    orders: number;
+    revenue: string;
+    top_products: string[];
+    contacts: number;
+    leads: number;
+    appointments: number;
+    /** De dónde llegan los contactos (negocios sin tienda), los 3 primeros. */
+    sources: { origin: string; label: string; count: number }[];
+}
 
 export type RecommendedStrategy = StrategySummary & Pick<StrategyDetail, 'steps' | 'preview'>;
 
@@ -71,7 +84,7 @@ export interface OnboardingUpdate {
     welcome_seen?: boolean;
 }
 
-export type ActivationResultKind = 'activated' | 'already_active' | 'needs_setup' | 'not_in_plan' | 'forbidden';
+export type ActivationResultKind = 'activated' | 'already_active' | 'needs_setup' | 'coming_soon' | 'not_in_plan' | 'forbidden';
 
 export interface ActivationResult {
     key: StrategyKey;

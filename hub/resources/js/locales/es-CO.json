@@ -206,6 +206,8 @@
     },
     "nav": {
         "main": "Navegación principal",
+        "welcome": "Ver la bienvenida",
+        "setupWizard": "Asistente de configuración",
         "home": "Inicio",
         "contacts": "Personas",
         "segments": "Grupos de clientes",

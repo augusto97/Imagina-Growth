@@ -63,7 +63,13 @@ export function waiting(state: Pick<Onboarding, 'steps' | 'current_step'> | unde
     }
     const connect = step(state, 'connect');
     const history = step(state, 'history');
-    return (state.current_step === 'connect' && connect !== undefined && !connect.done) || history?.status === 'running' || history?.status === 'queued';
+    return (
+        (state.current_step === 'connect' && connect !== undefined && !connect.done) ||
+        history?.status === 'running' ||
+        history?.status === 'queued' ||
+        // Recién conectada: se espera a que la web empiece a mandar su historial.
+        (state.current_step === 'history' && connect?.done === true && history !== undefined && !history.done)
+    );
 }
 
 /** El paso siguiente al actual (para «Continuar»). */
