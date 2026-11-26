@@ -1,103 +1,112 @@
 {
     "home": {
-        "openAnalytics": "Abrir analítica",
-        "last30": "Últimos 30 días frente a los 30 anteriores",
-        "salesTitle": "Ventas pagadas",
-        "salesDescription": "Últimos 30 días. La contraentrega cuenta cuando se cobra.",
-        "insightsTitle": "Hallazgos principales",
-        "allInsights": "Ver todos",
-        "noInsights": "No hay hallazgos abiertos. Revisamos tus datos cada noche.",
+        "greeting": {
+            "morning": "Buenos días, {{name}}",
+            "afternoon": "Buenas tardes, {{name}}",
+            "evening": "Buenas noches, {{name}}"
+        },
+        "subtitle": "{{workspace}} · {{month}}",
+        "openResults": "Ver resultados",
+        "money": {
+            "eyebrow": "Dinero generado este mes",
+            "help": "Ventas (o valor ganado, si no tienes tienda) que llegaron gracias a la plataforma: un mensaje, una automatización, una campaña, un formulario o un referido. Cada venta cuenta una sola vez.",
+            "helpLabel": "Cómo se calcula el dinero generado",
+            "vs": "vs. {{month}}",
+            "byStrategy": "De dónde salió",
+            "more_one": "Y {{count}} fuente más.",
+            "more_other": "Y {{count}} fuentes más.",
+            "share": "Es el {{pct}} de tus {{total}} en ventas de este mes.",
+            "shareServices": "Es el {{pct}} de los {{total}} que ganaste este mes.",
+            "details": "Ver el detalle"
+        },
+        "potential": {
+            "eyebrow": "Lo que puedes recuperar este mes",
+            "value": "≈ {{amount}}",
+            "assumption": "Con una recuperación conservadora del {{rate}}. «{{name}}» lo hace por ti.",
+            "recovers": "«{{name}}» lo aprovecha por ti, sola.",
+            "cta": "Prender «{{name}}»",
+            "resume": "Reanudar «{{name}}»",
+            "soFar": "Hasta ahora generaste {{amount}} este mes."
+        },
+        "empty": {
+            "title": "Prende tu primera estrategia",
+            "body": "Recupera carritos, cobra pagos pendientes y trae de vuelta a tus clientes. Aquí verás cada peso que genere.",
+            "bodyServices": "Responde al instante a cada contacto, haz seguimiento sin olvidar a nadie y agenda citas solo. Aquí verás lo que genere.",
+            "cta": "Ver estrategias",
+            "connectTitle": "Conecta tu tienda y empieza a vender más",
+            "connectTitleServices": "Conecta tu web y convierte más contactos en clientes",
+            "connectBody": "En unos minutos sabremos quién te compra, quién se fue y qué hacer para vender más. Aquí verás el dinero que genera la plataforma.",
+            "connectBodyServices": "En unos minutos sabremos de dónde llegan tus contactos y a quién responder primero. Aquí verás lo que genera la plataforma.",
+            "connectCta": "Conectar en unos minutos"
+        },
+        "working": {
+            "title_one": "Tu estrategia ya está trabajando",
+            "title_other": "Tus {{count}} estrategias ya están trabajando",
+            "body": "Aquí verás cada peso que generen. Las primeras ventas recuperadas suelen llegar en los primeros días.",
+            "bodyServices": "Aquí verás lo que generen. Los primeros contactos respondidos y las primeras citas suelen llegar en los primeros días.",
+            "cta": "Ver tus estrategias"
+        },
+        "today": {
+            "title": "Para hoy",
+            "count_one": "{{count}} cosa",
+            "count_other": "{{count}} cosas",
+            "emptyTitle": "Todo al día",
+            "emptyBody": "No hay nada urgente. Tus estrategias siguen trabajando."
+        },
+        "strategies": {
+            "title": "Tus estrategias",
+            "activeCount_one": "{{count}} prendida y trabajando",
+            "activeCount_other": "{{count}} prendidas y trabajando",
+            "noneActive": "Todavía no tienes ninguna prendida.",
+            "all": "Ver todas",
+            "moreActive_one": "Y {{count}} más prendida.",
+            "moreActive_other": "Y {{count}} más prendidas.",
+            "suggested": "Te conviene prender",
+            "activate": "Ver y prender",
+            "fix": "Ver qué necesita"
+        },
+        "kpis": {
+            "title": "Tu negocio este mes",
+            "subtitle": "Ventas, pedidos y clientes, contra el mismo tramo del mes anterior.",
+            "subtitleServices": "Contactos, respuesta, citas y cierres, contra el mismo tramo del mes anterior.",
+            "more": "Ver resultados",
+            "vsPrevious": "vs. mes anterior",
+            "minutes_one": "{{count}} min",
+            "minutes_other": "{{count}} min",
+            "hours_one": "{{count}} hora",
+            "hours_other": "{{count}} horas",
+            "sources": "De dónde llegan tus contactos",
+            "noSiteTitle": "Aquí verás tus ventas, pedidos y clientes",
+            "noSiteBody": "Conecta tu tienda y traemos tu historial: sin poner lento tu sitio y sin enviar ningún mensaje.",
+            "unavailable": "No pudimos calcular algunas cifras en este momento. Vuelve a intentarlo en unos minutos."
+        },
+        "setup": {
+            "titleNew": "Configura tu cuenta en 10 minutos",
+            "title": "Termina de configurar tu cuenta",
+            "progress": "{{done}} de {{total}} pasos",
+            "next": "Sigue: {{step}}.",
+            "almost": "Ya casi: mira lo que va a pasar ahora.",
+            "start": "Empezar",
+            "resume": "Continuar",
+            "steps": {
+                "business": "cuéntanos de tu negocio",
+                "connect": "conecta tu web",
+                "history": "trae tu historial",
+                "channels": "conecta WhatsApp o tu correo",
+                "strategies": "prende tus primeras estrategias",
+                "done": "listo"
+            }
+        },
+        "health": {
+            "title": "Avisos",
+            "no_data": "No están llegando datos de {{host}}",
+            "lagging": "{{host}} está enviando datos con retraso"
+        },
         "attributedTitle": "Dinero generado",
         "attributedHelp": "Lo que vendieron los flujos, campañas, la bandeja, el agente, los widgets y los referidos de Imagina Growth.",
         "attributedSummary_one": "{{count}} venta · {{share}} de tus ventas del periodo",
         "attributedSummary_other": "{{count}} ventas · {{share}} de tus ventas del periodo",
         "attributedEmpty": "Todavía no hay ventas atribuidas en este periodo. Activa el flujo de carrito abandonado: es el que primero recupera ventas.",
-        "attributedStart": "Ver flujos",
-        "guide": {
-            "title": {
-                "store": "Tu camino a la primera venta recuperada",
-                "services": "Tu camino al primer cliente ganado"
-            },
-            "description": {
-                "store": "Cinco pasos y la plataforma empieza a recuperar carritos sola. Aquí ves en cuál vas.",
-                "services": "Cinco pasos y la plataforma empieza a responder y hacer seguimiento a tus clientes potenciales sola."
-            },
-            "progress": "{{done}} de {{total}} listos",
-            "stateDone": "listo",
-            "statePending": "pendiente",
-            "and": " y ",
-            "channel": {
-                "email": "correo",
-                "whatsapp": "WhatsApp"
-            },
-            "askAdmin": "Pídeselo a un dueño o administrador.",
-            "askMarketing": "Pídeselo a alguien de marketing o a un administrador.",
-            "hide": "Ocultar",
-            "complete": {
-                "store": "¡Listo! La plataforma ya recupera ventas por ti.",
-                "services": "¡Listo! La plataforma ya te consigue clientes."
-            },
-            "actions": {
-                "connect": "Conectar el sitio",
-                "viewSite": "Ver el sitio",
-                "viewImport": "Ver el avance",
-                "fixImport": "Ver qué pasó",
-                "connectChannel": "Conectar un canal",
-                "activateFlow": "Activar el flujo",
-                "reviewFlow": "Revisar y activar",
-                "viewFlows": "Ver flujos"
-            },
-            "steps": {
-                "connect_site": {
-                    "title": "Conecta tu sitio",
-                    "help": "Instala el plugin Imagina Growth Connector en tu WordPress y conéctalo. Toma menos de 2 minutos.",
-                    "done": "Tu sitio está conectado.",
-                    "pending": "El sitio todavía no termina de conectarse. Revisa el plugin en tu WordPress."
-                },
-                "import": {
-                    "title": "Importa tu historial",
-                    "help": "Empieza sola al conectar el sitio: pedidos, clientes y productos de los últimos 24 meses, sin poner lento tu sitio.",
-                    "running": "Importando… {{pct}} %",
-                    "stopped": "La importación se detuvo. Mira qué pasó y vuelve a empezarla desde el sitio.",
-                    "done": "Tu historial ya está en Imagina Growth."
-                },
-                "channel": {
-                    "title": "Conecta WhatsApp o tu correo",
-                    "help": "Es por donde le escribimos a quien dejó su carrito. Con WhatsApp se recuperan más ventas.",
-                    "done": "Conectado: {{channels}}."
-                },
-                "flow": {
-                    "store": {
-                        "title": "Activa el flujo de carrito abandonado",
-                        "help": "Le escribe solo a quien dejó productos en el carrito: WhatsApp a la hora, correo a las 4 horas y un recordatorio al día siguiente.",
-                        "done": "El flujo de carrito abandonado está activo."
-                    },
-                    "services": {
-                        "title": "Activa el flujo «Lead de servicios»",
-                        "help": "Responde al instante a quien deja sus datos en tu sitio o por WhatsApp, y le hace seguimiento.",
-                        "done": "El flujo «Lead de servicios» está activo."
-                    },
-                    "status": {
-                        "draft": "El flujo está en borrador: revísalo y actívalo.",
-                        "paused": "El flujo está en pausa: actívalo de nuevo para que siga trabajando."
-                    }
-                },
-                "first_sale": {
-                    "store": {
-                        "title": "Tu primera venta recuperada",
-                        "help": "Cuando alguien compre después de recibir el mensaje, la verás aquí con su monto.",
-                        "done_one": "Recuperaste {{amount}} en {{count}} venta.",
-                        "done_other": "Ya recuperaste {{amount}} en {{count}} ventas; la primera fue de {{first}}."
-                    },
-                    "services": {
-                        "title": "Tu primer cliente ganado",
-                        "help": "Cuando ganes un cliente que llegó por la plataforma, lo verás aquí con su valor.",
-                        "done_one": "Ganaste {{amount}} con {{count}} cliente que llegó por la plataforma.",
-                        "done_other": "Ya ganaste {{amount}} con {{count}} clientes que llegaron por la plataforma; el primero fue de {{first}}."
-                    },
-                    "when": "Primera: {{date}}."
-                }
-            }
-        }
+        "attributedStart": "Ver flujos"
     }
 }

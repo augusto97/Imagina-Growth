@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { heroMode, isBlocking, moneyTrend } from './api';
+import { heroMode, isBlocking, kpiBetter, kpiSeries, moneyTrend, todayLink } from './api';
+import { greetingKey, hourIn, monthName } from './greeting';
 import type { HomeMoney, HomePotential } from './types';
 
 const money = (overrides: Partial<HomeMoney> = {}): HomeMoney => ({
@@ -46,5 +47,31 @@ describe('Inicio', () => {
     it('conectar la web o un canal bloquea lo demás', () => {
         expect(isBlocking({ kind: 'connect_site' })).toBe(true);
         expect(isBlocking({ kind: 'insight' })).toBe(false);
+    });
+
+    it('mientras el asistente no termine, conectar la web o un canal abre su paso del asistente', () => {
+        expect(todayLink({ kind: 'connect_site', to: 'sitios?conectar=1' }, true)).toBe('configurar?paso=connect');
+        expect(todayLink({ kind: 'connect_channel', to: 'canales' }, true)).toBe('configurar?paso=channels');
+        expect(todayLink({ kind: 'connect_site', to: 'sitios?conectar=1' }, false)).toBe('sitios?conectar=1');
+        expect(todayLink({ kind: 'insight', to: 'hallazgos' }, true)).toBe('hallazgos');
+    });
+
+    it('los KPI: la primera respuesta es mejor cuanto menor, y la minigráfica sale de la serie que manda el servidor', () => {
+        expect(kpiBetter('first_response_minutes')).toBe('down');
+        expect(kpiBetter('revenue')).toBe('up');
+        const kpis = { series_keys: ['leads' as const], series: [{ date: '2026-11-01', leads: 2 }, { date: '2026-11-02' }] };
+        expect(kpiSeries(kpis, 'leads')).toEqual([2, 0]);
+        expect(kpiSeries(kpis, 'won_value')).toBeUndefined();
+        expect(kpiSeries({ series_keys: ['leads'], series: [{ date: '2026-11-01', leads: 0 }] }, 'leads')).toBeUndefined();
+    });
+
+    it('el saludo según la hora del negocio y el nombre del mes', () => {
+        expect(greetingKey(7)).toBe('morning');
+        expect(greetingKey(15)).toBe('afternoon');
+        expect(greetingKey(22)).toBe('evening');
+        expect(greetingKey(3)).toBe('evening');
+        expect(hourIn('America/Bogota', new Date('2026-11-20T15:00:00Z'))).toBe(10);
+        expect(monthName('2026-10-01', 'es-CO')).toBe('octubre');
+        expect(monthName('2026-11-01', 'es-CO', true)).toBe('noviembre de 2026');
     });
 });

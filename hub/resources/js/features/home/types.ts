@@ -123,6 +123,8 @@ export interface HomeSetup {
     current_step: OnboardingStepKey;
     completed: number;
     total: number;
+    /** Si la persona con sesión ya vio la bienvenida (la primera vez el Inicio la lleva a verla). */
+    welcome_seen: boolean;
 }
 
 export interface Home {
