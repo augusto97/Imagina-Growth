@@ -6,10 +6,12 @@ namespace App\Domain\Workspaces\Queries;
 
 use App\Domain\Billing\Contracts\Entitlements;
 use App\Domain\Billing\Plans\PlanCatalog;
+use App\Domain\Billing\Plans\PlanEntitlements;
 use App\Domain\Billing\Plans\PlanResolver;
 use App\Domain\Workspaces\Models\Workspace;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Laravel\Pennant\Drivers\DatabaseDriver;
 use Laravel\Pennant\Feature;
 use Throwable;
 
@@ -49,12 +51,7 @@ final class WorkspaceFeatures
         }
         $ids = $workspaces->map(fn (Workspace $w) => $w->id)->values()->all();
         $modules = PlanCatalog::modules();
-        try {
-            // Pennant en una sola consulta para todos; después `allows()` lee de su memoria.
-            Feature::for($workspaces->all())->loadMissing(array_map(fn (string $m) => PlanResolver::feature($m), $modules));
-        } catch (Throwable) {
-            // Sin Pennant (otro Entitlements): `allows()` responde igual, uno por uno.
-        }
+        $stored = $this->storedModules($workspaces, $modules);
 
         $platforms = [];
         foreach (DB::table('sites')->whereIn('workspace_id', $ids)->where('status', '!=', 'disconnected')
@@ -79,8 +76,11 @@ final class WorkspaceFeatures
                 || ($sites['wordpress'] ?? 0) > 0
                 || isset($usesServices[$ws->id]);
 
+            $scope = $stored === null ? null : Feature::serializeScope($ws);
             $out[$ws->id] = [
-                'modules' => array_values(array_filter($modules, fn (string $m) => $this->entitlements->allows($ws, $m))),
+                'modules' => array_values(array_filter($modules, fn (string $m) => $scope !== null && isset($stored[$scope][$m])
+                    ? $stored[$scope][$m]
+                    : $this->entitlements->allows($ws, $m))),
                 'capabilities' => [
                     'store' => $store,
                     'services' => $servicesSignal ? true : ($store === true ? false : null),
@@ -89,5 +89,52 @@ final class WorkspaceFeatures
         }
 
         return $out;
+    }
+
+    /**
+     * Los módulos ya guardados por Pennant para todos los espacios, con una consulta a su tabla. Pennant guarda en
+     * memoria cada par (módulo, espacio) en una lista que recorre entera en cada lectura: con 40 espacios × 14 módulos
+     * eso eran ~500 ms de CPU en cada /api/me (docs/rendimiento.md §2). Lo que falta (un espacio nuevo, un módulo
+     * olvidado tras un cambio de plan) sigue por `Entitlements::allows`, que lo resuelve y lo guarda como siempre.
+     * Sin el almacén de base de datos de Pennant o con otro Entitlements devuelve null y todo va por `allows`.
+     *
+     * @param  Collection<int, Workspace>  $workspaces
+     * @param  list<string>  $modules
+     * @return array<string, array<string, bool>>|null scope serializado → módulo → activo
+     */
+    private function storedModules(Collection $workspaces, array $modules): ?array
+    {
+        $store = (string) config('pennant.default');
+        try {
+            if (! $this->entitlements instanceof PlanEntitlements || ! Feature::store($store)->getDriver() instanceof DatabaseDriver) {
+                return null;
+            }
+            $names = [];
+            foreach ($modules as $module) {
+                $names[PlanResolver::feature($module)] = $module;
+            }
+            $rows = DB::connection(config("pennant.stores.{$store}.connection"))->table((string) (config("pennant.stores.{$store}.table") ?? 'features'))
+                ->whereIn('name', array_keys($names))
+                ->whereIn('scope', $workspaces->map(fn (Workspace $w) => Feature::serializeScope($w))->values()->all())
+                ->get(['name', 'scope', 'value']);
+        } catch (Throwable) {
+            return null;
+        }
+        $stored = [];
+        foreach ($rows as $row) {
+            // Como Pennant: activo es cualquier valor distinto de false.
+            $stored[(string) $row->scope][$names[(string) $row->name]] = json_decode((string) $row->value, true) !== false;
+        }
+        // Los espacios con módulos sin guardar se resuelven juntos (una consulta y una inserción), no uno por uno.
+        $missing = $workspaces->filter(fn (Workspace $w) => count($stored[Feature::serializeScope($w)] ?? []) < count($modules))->values();
+        if ($missing->isNotEmpty()) {
+            try {
+                Feature::for($missing->all())->loadMissing(array_keys($names));
+            } catch (Throwable) {
+                // `allows()` los resuelve uno por uno.
+            }
+        }
+
+        return $stored;
     }
 }

@@ -243,7 +243,7 @@ final class InboxController
     public function metrics(Request $request, InboxMetrics $metrics): JsonResponse
     {
         Gate::authorize('ws.useInbox');
-        $days = (int) $request->validate(['days' => ['nullable', Rule::in(['7', '30', '90', 7, 30, 90])]])['days'] ?: 30;
+        $days = (int) ($request->validate(['days' => ['nullable', Rule::in(['7', '30', '90', 7, 30, 90])]])['days'] ?? 30) ?: 30;
 
         return response()->json($metrics->handle($this->current->get(), $days));
     }

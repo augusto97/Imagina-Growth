@@ -21,17 +21,21 @@ final class MeController
         /** @var User $user */
         $user = $request->user();
 
+        // Los roles salen de las dos membresías ya cargadas (directa y por cuenta), no de dos consultas por espacio:
+        // una agencia con 40 clientes hacía más de 200 consultas en cada carga del panel.
         $direct = $user->workspaces()->get();
-        $accountIds = $user->accounts()->pluck('accounts.id');
-        $viaAgency = Workspace::query()->whereIn('account_id', $accountIds)->whereNotIn('id', $direct->modelKeys())->get();
+        $accountRoles = $user->accounts()->get()->mapWithKeys(fn ($a) => [(string) $a->getKey() => $a->getRelationValue('pivot')?->getAttribute('role')]);
+        $viaAgency = Workspace::query()->whereIn('account_id', $accountRoles->keys())->whereNotIn('id', $direct->modelKeys())->get();
 
         $all = $direct->concat($viaAgency)->values();
         $computed = $features->forMany($all);
+        $billing = Presenters::billingFor(array_values(array_unique($all->map(fn (Workspace $ws) => (string) $ws->account_id)->all())));
         $workspaces = $all
-            ->map(function (Workspace $ws) use ($user, $computed): array {
-                $role = ResolveWorkspace::roleFor($user, $ws) ?? WorkspaceRole::Viewer;
+            ->map(function (Workspace $ws) use ($accountRoles, $computed, $billing): array {
+                $directRole = $ws->relationLoaded('pivot') ? $ws->getRelationValue('pivot')?->getAttribute('role') : null;
+                $role = ResolveWorkspace::roleFrom($directRole, $accountRoles->get((string) $ws->account_id)) ?? WorkspaceRole::Viewer;
 
-                return Presenters::workspace($ws, $role, $computed[$ws->id] ?? null);
+                return Presenters::workspace($ws, $role, $computed[$ws->id] ?? null, $billing[(string) $ws->account_id] ?? null);
             })
             ->sortBy('name')
             ->values();
