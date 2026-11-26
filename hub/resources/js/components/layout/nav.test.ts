@@ -132,7 +132,10 @@ describe('secciones del menú (rediseño v2 §3)', () => {
             }
             return sectionLock(section, ctx);
         };
-        expect(lockOf('onsite')).toEqual({ kind: 'site', state: 'none' });
+        // En tu web tiene captación que no necesita la web (páginas de captura, QR de WhatsApp, leads de anuncios).
+        expect(lockOf('onsite')).toBeNull();
+        expect(itemLock(item('capturePages'), ctx)).toBeNull();
+        expect(itemLock(item('onsite'), ctx)).toEqual({ kind: 'site', state: 'none' });
         expect(lockOf('results')).toEqual({ kind: 'site', state: 'none' });
         expect(lockOf('conversations')).toEqual({ kind: 'channel' });
         expect(lockOf('customers')).toBeNull();

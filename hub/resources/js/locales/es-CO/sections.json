@@ -18,7 +18,7 @@
             "purpose": "Mensajes que venden solos: automatizaciones, campañas y plantillas"
         },
         "onsite": {
-            "purpose": "Formularios, reseñas, puntos y referidos en tu sitio"
+            "purpose": "Capta contactos con formularios, páginas y QR, y haz que tus clientes vuelvan y te recomienden"
         },
         "results": {
             "purpose": "Cuánto vendiste y cuánto generó la plataforma"
@@ -48,7 +48,7 @@
             "templates": "Los correos y mensajes de WhatsApp que usan tus automatizaciones y campañas.",
             "copilot": "Propuestas de campañas y automatizaciones hechas con IA en el tono de tu marca.",
             "onsite": "Popups, formularios, quiz y botón de WhatsApp para que tus visitantes te dejen sus datos.",
-            "reviews": "Pide reseñas con foto después de cada entrega y muéstralas en tu tienda.",
+            "reviews": "Pide reseñas a tus clientes, modéralas y muéstralas en tu web y en Google.",
             "loyalty": "Puntos por cada compra, niveles VIP y recompensas para que tus clientes vuelvan.",
             "referrals": "Tus clientes y creadores recomiendan tu tienda y ganan por cada venta que traen.",
             "recommendations": "Productos sugeridos para cada visitante en tu tienda, sin frenar tu sitio.",
@@ -68,7 +68,10 @@
             "consent": "Los textos que aceptan tus clientes y cómo se respetan sus datos y su consentimiento.",
             "billing": "Tu plan, lo que llevas usado este mes y tus facturas.",
             "integrations": "Conecta tus otros sistemas con la API, los webhooks y el servidor MCP.",
-            "audit": "Quién hizo qué y cuándo en este negocio. Los datos personales salen ocultos."
+            "audit": "Quién hizo qué y cuándo en este negocio. Los datos personales salen ocultos.",
+            "capturePages": "Una página con tu formulario para compartir por WhatsApp, redes o un QR impreso. No necesitas web.",
+            "whatsappLinks": "Un QR para tu local o un enlace con mensaje listo: cada chat llega con su origen y como lead.",
+            "leadAds": "Los formularios de tus anuncios de Facebook, Instagram y Google llegan solos como leads."
         },
         "unlocks": {
             "inbox": "Responde a tus clientes por WhatsApp, Messenger e Instagram desde aquí, con tu equipo y con ayuda de la IA. Cada venta que cierres en el chat queda atribuida.",

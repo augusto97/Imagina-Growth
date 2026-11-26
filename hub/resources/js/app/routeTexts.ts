@@ -12,6 +12,7 @@ export const ROUTE_TEXTS: Record<string, readonly string[]> = {
     analytics: ['agency', 'analytics', 'contacts', 'home', 'insights', 'regions'],
     calendar: ['analytics'],
     campaigns: ['analytics', 'campaigns', 'contacts', 'copilot'],
+    capture: ['analytics', 'capture', 'contacts'],
     channels: ['channels', 'connections'],
     connections: ['connections', 'platform-settings'],
     consent: ['consent', 'contacts', 'privacy'],

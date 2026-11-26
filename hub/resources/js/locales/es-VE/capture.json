@@ -1,0 +1,12 @@
+{
+    "capture": {
+        "preview": {
+            "privacy": "Política de privacidad"
+        },
+        "editor": {
+            "after": {
+                "urlPlaceholder": "https://tuweb.com.ve/gracias"
+            }
+        }
+    }
+}

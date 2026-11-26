@@ -43,6 +43,9 @@ import {
     Workflow,
     Globe,
     LineChart,
+    LayoutTemplate,
+    Magnet,
+    QrCode,
 } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import type { Ability, PlanModule, Workspace, WorkspaceCapabilities, WorkspaceConnections } from '@/api/types';
@@ -162,6 +165,10 @@ export const SECTIONS: NavSection[] = [
         tone: 'teal',
         items: [
             { key: 'onsite', to: 'en-el-sitio', icon: MousePointerClick, tone: 'teal', ability: 'viewDashboards', module: 'onsite', requires: ['site'], shortcut: 'w' },
+            // Captación sin web (rediseño v2 §11.3): páginas de captura, QR de WhatsApp y leads de anuncios no necesitan la web conectada.
+            { key: 'capturePages', to: 'paginas-de-captura', icon: LayoutTemplate, tone: 'violet', ability: 'viewDashboards', module: 'onsite' },
+            { key: 'whatsappLinks', to: 'whatsapp-qr', icon: QrCode, tone: 'emerald', ability: 'viewDashboards', module: 'onsite' },
+            { key: 'leadAds', to: 'leads-de-anuncios', icon: Magnet, tone: 'sky', ability: 'viewDashboards', module: 'services', audience: 'services' },
             { key: 'reviews', to: 'resenas', icon: MessageSquareQuote, tone: 'amber', ability: 'viewDashboards', module: 'reviews', requires: ['site'], shortcut: 'v' },
             { key: 'loyalty', to: 'fidelizacion', icon: Gift, tone: 'rose', ability: 'viewDashboards', module: 'loyalty', audience: 'store', requires: ['site'], shortcut: 'l' },
             {
