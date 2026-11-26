@@ -108,7 +108,7 @@ export function PageHeader({
             <div className="igr:min-w-0 igr:flex-1">
                 <Breadcrumbs items={crumbs} className="igr:mb-1.5" />
                 <div className="igr:flex igr:min-w-0 igr:items-center igr:gap-3">
-                    {icon ? <IconTile icon={icon} tone={tone} size="lg" /> : null}
+                    {icon ? <IconTile icon={icon} tone={tone} size="lg" className="igr:max-sm:hidden" /> : null}
                     <div className="igr:min-w-0">
                         <div className="igr:flex igr:min-w-0 igr:flex-wrap igr:items-center igr:gap-x-2.5 igr:gap-y-1">
                             <h1 className="igr:text-[22px] igr:leading-7 igr:font-semibold igr:tracking-tight igr:break-words igr:text-foreground igr:sm:text-title">{title}</h1>

@@ -70,7 +70,7 @@ export function DashboardSkeleton() {
         <div className="igr:space-y-4" aria-busy>
             <TileGrid>
                 {Array.from({ length: 4 }, (_, i) => (
-                    <Skeleton key={i} className="igr:h-[118px] igr:rounded-xl" />
+                    <Skeleton key={i} className="igr:h-[132px] igr:rounded-xl" />
                 ))}
             </TileGrid>
             <Skeleton className="igr:h-72 igr:rounded-xl" />

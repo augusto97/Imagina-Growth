@@ -88,7 +88,7 @@ export function HomePage() {
                                       help={catalog.data?.metrics[tile.key]?.definition}
                                   />
                               ))
-                            : Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="igr:h-[98px]" />)}
+                            : Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="igr:h-[132px] igr:rounded-xl" />)}
                     </TileGrid>
                 </>
             )}

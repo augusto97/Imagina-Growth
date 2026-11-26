@@ -73,7 +73,7 @@ export function SectionNavTree({ section, location, base, ctx }: { section: NavS
                         aria-current={entry.active && entry.children.length === 0 ? 'page' : undefined}
                         title={entry.lock ? t(lockLabelKey(entry.lock)) : undefined}
                         className={cn(
-                            'igr:flex igr:min-h-8 igr:items-center igr:gap-2 igr:rounded-md igr:px-2.5 igr:py-1.5 igr:text-[13px] igr:leading-tight igr:transition-colors',
+                            'igr:relative igr:flex igr:min-h-8 igr:items-center igr:gap-2 igr:rounded-md igr:px-2.5 igr:py-1.5 igr:text-[13px] igr:leading-tight igr:transition-colors',
                             entry.active
                                 ? 'igr:bg-card igr:font-medium igr:text-foreground igr:shadow-xs igr:ring-1 igr:ring-border'
                                 : 'igr:text-muted-foreground igr:hover:bg-accent igr:hover:text-foreground',
@@ -137,7 +137,7 @@ export function SectionNav({ section, location, base, ctx, className }: { sectio
 
     return (
         <nav aria-label={t('ui.sectionNav.label', { section: t(`nav.sections.${section.key}`) })} className={cn('igr:mb-5', className)}>
-            <div ref={scroller} className="igr:scrollbar-none igr:-mx-4 igr:overflow-x-auto igr:px-4 igr:md:mx-0 igr:md:px-0">
+            <div ref={scroller} className="igr:scrollbar-none igr:relative igr:-mx-4 igr:overflow-x-auto igr:px-4 igr:md:mx-0 igr:md:px-0">
                 <ul className="igr:inline-flex igr:min-w-max igr:items-center igr:gap-1 igr:rounded-xl igr:border igr:bg-muted/60 igr:p-1">
                     {entries.flatMap((entry) => {
                         const Icon = entry.icon;
