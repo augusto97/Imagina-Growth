@@ -313,6 +313,7 @@
             },
             "status": {
                 "notConnected": "Sin conectar",
+                "disconnected": "Desconectado: reconéctalo para seguir respondiendo",
                 "connected_one": "Conectado",
                 "connected_other": "{{count}} conectados",
                 "unofficial": "Conectado sin la API oficial",

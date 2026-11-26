@@ -75,8 +75,12 @@ export function webStatus(sites: readonly Site[] | undefined): CardStatus {
     return { tone: 'on', label: 'webOk', params: { count: live.length }, detail };
 }
 
-/** WhatsApp, Messenger, Instagram o SMS: la cuenta en uso (activa) y, si no, la que tiene un problema. */
-export function channelStatus(accounts: readonly ChannelAccount[] | undefined, kind: Exclude<ChannelKind, 'email'>): CardStatus {
+/**
+ * WhatsApp, Messenger, Instagram o SMS: la cuenta en uso (activa) y, si no, la que tiene un problema. `inUse` es si el
+ * canal sigue contando en el espacio (`/api/me` → `connections.channels`: uno de conversación desconectado que ya tiene
+ * conversaciones): entonces no está «sin conectar» sino desconectado, con su historial esperando que lo reconectes.
+ */
+export function channelStatus(accounts: readonly ChannelAccount[] | undefined, kind: Exclude<ChannelKind, 'email'>, inUse = false): CardStatus {
     const list = (accounts ?? []).filter((a) => a.channel === kind && a.status !== 'disconnected');
     const active = list.filter((a) => a.status === 'active');
     if (active.length > 0) {
@@ -86,7 +90,7 @@ export function channelStatus(accounts: readonly ChannelAccount[] | undefined, k
     }
     const problem = list.find((a) => a.status === 'error') ?? list.find((a) => a.status === 'paused') ?? list.find((a) => a.status === 'pending');
     if (problem) return { tone: 'attention', label: problem.status === 'error' ? 'error' : problem.status === 'paused' ? 'paused' : 'pending', detail: problem.identity ?? problem.display_name };
-    return { tone: 'off', label: 'notConnected' };
+    return inUse ? { tone: 'attention', label: 'disconnected' } : { tone: 'off', label: 'notConnected' };
 }
 
 /** Correo: el dominio propio por la plataforma (SES, con su DNS) o un servidor SMTP propio. */

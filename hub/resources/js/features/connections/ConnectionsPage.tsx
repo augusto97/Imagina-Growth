@@ -115,13 +115,14 @@ export function ConnectionsPage() {
     };
 
     const accounts = channels.data?.data;
+    const inUse = workspace.connections?.channels ?? [];
     const dest = destinations.data?.destinations;
     const statuses: Partial<Record<CardKey, CardStatus>> = {
         web: canSeeSites ? (sites.data ? webStatus(sites.data) : undefined) : undefined,
         capture: { tone: 'off', label: 'captureAlways' },
-        whatsapp: accounts ? channelStatus(accounts, 'whatsapp') : undefined,
-        messenger: accounts ? channelStatus(accounts, 'messenger') : undefined,
-        instagram: accounts ? channelStatus(accounts, 'instagram') : undefined,
+        whatsapp: accounts ? channelStatus(accounts, 'whatsapp', inUse.includes('whatsapp')) : undefined,
+        messenger: accounts ? channelStatus(accounts, 'messenger', inUse.includes('messenger')) : undefined,
+        instagram: accounts ? channelStatus(accounts, 'instagram', inUse.includes('instagram')) : undefined,
         email: accounts ? emailStatus(accounts) : undefined,
         sms: accounts ? channelStatus(accounts, 'sms') : undefined,
         calendar: list.data ? calendarStatus(list.data.calendar_connections) : undefined,

@@ -59,6 +59,8 @@ describe('Conexiones: el estado de cada tarjeta en palabras', () => {
         expect(channelStatus([account({ provider: 'zender' })], 'whatsapp').label).toBe('unofficial');
         expect(channelStatus([account({ status: 'error' })], 'whatsapp').label).toBe('error');
         expect(channelStatus([account({ status: 'disconnected' })], 'whatsapp').tone).toBe('off');
+        // Desconectado con conversaciones (sigue en connections.channels): se pide reconectar, no «sin conectar».
+        expect(channelStatus([account({ status: 'disconnected' })], 'whatsapp', true)).toMatchObject({ tone: 'attention', label: 'disconnected' });
         expect(channelStatus([account({})], 'messenger').tone).toBe('off');
     });
 
