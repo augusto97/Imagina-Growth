@@ -12,7 +12,6 @@ use App\Domain\Billing\Plans\PlanResolver;
 use App\Domain\Onboarding\Models\WorkspaceOnboarding;
 use App\Domain\Onboarding\Support\Verticals;
 use App\Domain\Workspaces\Models\Workspace;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Laravel\Pennant\Drivers\DatabaseDriver;
@@ -143,12 +142,7 @@ final class WorkspaceFeatures
      */
     private function declaredBusinessTypes(array $ids): array
     {
-        try {
-            $rows = DB::table('workspace_onboarding')->whereIn('workspace_id', $ids)->whereNotNull('business_type')->pluck('business_type', 'workspace_id');
-        } catch (QueryException) {
-            // Una base sin la migración del asistente (2026_11_28) todavía: nadie lo ha elegido.
-            return [];
-        }
+        $rows = DB::table('workspace_onboarding')->whereIn('workspace_id', $ids)->whereNotNull('business_type')->pluck('business_type', 'workspace_id');
         $out = [];
         foreach ($rows as $workspaceId => $type) {
             if (in_array($type, WorkspaceOnboarding::BUSINESS_TYPES, true)) {
