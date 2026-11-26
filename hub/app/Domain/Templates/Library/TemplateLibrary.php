@@ -138,7 +138,7 @@ final class TemplateLibrary
      * @param  array<string, mixed>  $entry
      * @return array<string, string>
      */
-    private static function copy(array $entry, ?string $industry): array
+    public static function copy(array $entry, ?string $industry): array
     {
         $copy = (array) ($entry['copy']['default'] ?? []);
         if ($industry !== null && is_array($entry['copy'][$industry] ?? null)) {

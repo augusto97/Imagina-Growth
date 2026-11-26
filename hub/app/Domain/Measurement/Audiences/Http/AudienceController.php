@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Domain\Measurement\Audiences\Http;
 
+use App\Domain\Measurement\Audiences\Actions\CreateAudienceSync;
 use App\Domain\Measurement\Audiences\AudienceEligibility;
 use App\Domain\Measurement\Audiences\Jobs\SyncAudienceJob;
 use App\Domain\Measurement\Audiences\Models\AudienceMember;
 use App\Domain\Measurement\Audiences\Models\AudienceSync;
 use App\Domain\Measurement\Audiences\Platforms\AudiencePlatforms;
 use App\Domain\Measurement\Models\AdDestination;
-use App\Domain\Segments\Actions\SaveSegment;
 use App\Domain\Segments\Models\Segment;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Domain\Workspaces\Models\User;
@@ -35,11 +35,7 @@ use Illuminate\Validation\ValidationException;
 final class AudienceController
 {
     /** @var array<string, array{purpose: string, system?: string}> */
-    private const PRESETS = [
-        'recent_buyers_exclusion' => ['purpose' => 'exclusion'],
-        'high_value_seed' => ['purpose' => 'lookalike_seed', 'system' => 'rfm_champions'],
-        'at_risk_reactivation' => ['purpose' => 'target', 'system' => 'rfm_at_risk'],
-    ];
+    private const PRESETS = CreateAudienceSync::PRESETS;
 
     public function __construct(private readonly CurrentWorkspace $current, private readonly RecordAuditLog $audit) {}
 
@@ -70,7 +66,7 @@ final class AudienceController
     }
 
     /** POST /api/w/{ws}/measurement/audiences */
-    public function store(Request $request, SaveSegment $save): JsonResponse
+    public function store(Request $request, CreateAudienceSync $create): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
         $data = $request->validate([
@@ -84,28 +80,17 @@ final class AudienceController
         if ($destination === null) {
             throw ValidationException::withMessages(['destination_id' => __('Ese destino de anuncios no existe.')]);
         }
+        $user = $request->user();
         $segment = ! empty($data['preset'])
-            ? $this->presetSegment((string) $data['preset'], $request->user(), $save)
+            ? $create->presetSegment((string) $data['preset'], $user instanceof User ? $user : null)
             : Segment::findByPublicId((string) $data['segment_id']);
         if ($segment === null) {
             throw ValidationException::withMessages(['segment_id' => __('Ese segmento no existe.')]);
         }
-        if (AudienceSync::query()->where('segment_id', $segment->id)->where('destination_id', $destination->id)->exists()) {
-            throw ValidationException::withMessages(['segment_id' => __('Ese segmento ya se sincroniza con este destino.')]);
-        }
         $purpose = $data['purpose'] ?? (! empty($data['preset']) ? self::PRESETS[$data['preset']]['purpose'] : 'target');
-        $sync = AudienceSync::query()->create([
-            'workspace_id' => $this->current->id(),
-            'segment_id' => $segment->id,
-            'destination_id' => $destination->id,
-            'name' => $data['name'] ?? mb_substr('Imagina Growth · '.$segment->name, 0, 160),
-            'purpose' => $purpose,
-            'created_by' => $request->user()?->getAuthIdentifier(),
-        ]);
-        $this->audit->handle('measurement.audience_created', $sync, ['segment' => $segment->publicId(), 'platform' => $destination->platform->value, 'purpose' => $purpose], $this->current->id());
-        SyncAudienceJob::dispatch($this->current->id(), $sync->id);
+        $sync = $create->handle($destination, $segment, $purpose, $data['name'] ?? null, $user?->getAuthIdentifier() !== null ? (string) $user->getAuthIdentifier() : null);
 
-        return response()->json(self::present($sync->refresh(), $destination, $segment), 201);
+        return response()->json(self::present($sync, $destination, $segment), 201);
     }
 
     /** PATCH /api/w/{ws}/measurement/audiences/{audience} */
@@ -151,29 +136,6 @@ final class AudienceController
         $this->audit->handle('measurement.audience_deleted', $sync, ['name' => $sync->name], $this->current->id());
 
         return response()->json(['deleted' => true]);
-    }
-
-    private function presetSegment(string $preset, mixed $user, SaveSegment $save): ?Segment
-    {
-        $system = self::PRESETS[$preset]['system'] ?? null;
-        if ($system !== null) {
-            return Segment::query()->where('system_key', $system)->first();
-        }
-        $name = __('Compraron en los últimos 30 días');
-        $existing = Segment::query()->where('name', $name)->where('is_system', false)->first();
-        if ($existing !== null) {
-            return $existing;
-        }
-        if (! $user instanceof User) {
-            return null;
-        }
-
-        return $save->handle(null, [
-            'name' => $name,
-            'description' => __('Para excluir de los anuncios a quien acaba de comprar.'),
-            'folder' => __('Anuncios'),
-            'definition' => ['op' => 'and', 'conditions' => [['type' => 'purchase', 'field' => 'last_order_at', 'operator' => 'within_last_days', 'value' => 30]]],
-        ], $user);
     }
 
     /** @return array<string, mixed> */
