@@ -59,10 +59,17 @@ final class TemplateController
             ->when($data['q'] ?? null, fn ($q, $term) => $q->where('name', 'like', '%'.addcslashes((string) $term, '%_').'%'))
             ->orderByDesc('updated_at')
             ->get(['id', 'workspace_id', 'channel', 'name', 'category', 'subject', 'body_text', 'status', 'library_key', 'wa_template_id', 'created_at', 'updated_at']);
-        $waNames = DB::table('wa_templates')->where('workspace_id', $this->current->id())
-            ->whereIn('id', $templates->pluck('wa_template_id')->filter()->all())->pluck('name', 'id');
+        $wa = DB::table('wa_templates')->where('workspace_id', $this->current->id())
+            ->whereIn('id', $templates->pluck('wa_template_id')->filter()->all())->get(['id', 'name', 'status', 'rejected_reason'])
+            ->mapWithKeys(fn ($r) => [(string) $r->id => ['name' => (string) $r->name, 'status' => (string) $r->status, 'rejected_reason' => $r->rejected_reason !== null ? (string) $r->rejected_reason : null]]);
+        // ¿Hay un número oficial de WhatsApp activo? Sin él, las de WhatsApp en borrador no se pueden enviar a Meta.
+        $connected = DB::table('channel_accounts')->where('workspace_id', $this->current->id())->where('channel', 'whatsapp')
+            ->where('provider', 'meta_cloud')->where('status', 'active')->exists();
 
-        return response()->json(['data' => $templates->map(fn (Template $t) => TemplatePresenter::summary($t, $waNames[$t->wa_template_id] ?? null))->values()]);
+        return response()->json([
+            'data' => $templates->map(fn (Template $t) => TemplatePresenter::summary($t, $wa->get((string) $t->wa_template_id), false))->values(),
+            'meta' => ['whatsapp_connected' => $connected],
+        ]);
     }
 
     /** GET templates/{template} */

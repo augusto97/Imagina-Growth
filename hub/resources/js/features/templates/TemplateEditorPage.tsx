@@ -21,14 +21,14 @@ import {
     type TemplateCategory,
     type TemplateDetail,
     type TemplateInput,
-    type WaSource,
     type WaVariables,
     usePreviewDraft,
     useTemplate,
     useUpdateTemplate,
     useWaSources,
 } from './api';
-import { insertAt, liveChecks, missingWaSlots, smsSegments } from './content';
+import { insertAt, liveChecks, missingWaSlots, smsSegments, waBodyOf } from './content';
+import { WaStatusCallout } from './WaStatus';
 import { ChecksList } from './editor/ChecksList';
 import type { EmailCanvasHandle, EmailOutput } from './editor/EmailCanvas';
 import { PreviewContactPicker, PreviewView } from './editor/PreviewPanel';
@@ -268,6 +268,7 @@ function Editor({ template }: { template: TemplateDetail }) {
 
             {template.channel === 'email' && <EmailEditor draft={draft} set={set} canEdit={canEdit} canvas={canvas} errors={fieldErrors} />}
             {template.channel === 'sms' && <SmsEditor draft={draft} set={set} canEdit={canEdit} error={fieldErrors.body_text} />}
+            {template.channel === 'whatsapp' ? <WaStatusCallout template={template} /> : null}
             {template.channel === 'whatsapp' && <WhatsAppEditor draft={draft} set={set} canEdit={canEdit} />}
 
             <Card>
@@ -488,20 +489,6 @@ function SmsEditor({ draft, set, canEdit, error }: EditorProps & { error?: strin
             </CardContent>
         </Card>
     );
-}
-
-function waBodyOf(source: WaSource | undefined) {
-    if (!source) return undefined;
-    const header = source.components.find((c) => c.type.toUpperCase() === 'HEADER');
-    const body = source.components.find((c) => c.type.toUpperCase() === 'BODY');
-    const footer = source.components.find((c) => c.type.toUpperCase() === 'FOOTER');
-    const buttons = source.components.find((c) => c.type.toUpperCase() === 'BUTTONS');
-    return {
-        ...(header?.text ? { header: header.text } : {}),
-        body: body?.text ?? '',
-        ...(footer?.text ? { footer: footer.text } : {}),
-        buttons: (buttons?.buttons ?? []).map((b) => b.text ?? ''),
-    };
 }
 
 function WhatsAppEditor({ draft, set, canEdit }: EditorProps) {
