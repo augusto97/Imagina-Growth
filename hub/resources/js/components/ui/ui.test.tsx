@@ -5,10 +5,12 @@ import { LockedPage } from '@/components/layout/LockedPage';
 import { locate, SECTIONS } from '@/components/layout/nav';
 import { PageContext } from '@/components/layout/pageContext';
 import { checklistProgress, withCurrentStep } from './checklist';
+import { ChoiceCard } from './choice-card';
 import { EmptyState } from './empty-state';
 import { ILLUSTRATION_NAMES } from './illustrations';
 import { PageHeader } from './page-header';
 import { changeTone, sparklinePoints } from './stat-card';
+import { Switch } from './switch';
 
 afterEach(cleanup);
 
@@ -124,5 +126,32 @@ describe('EmptyState v2', () => {
         render(<EmptyState illustration="messages" title="Activa tu primera automatización" steps={['Elige una', 'Revisa el mensaje', 'Actívala']} />);
         expect(screen.getByText('Cómo funciona')).toBeInTheDocument();
         expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    });
+});
+
+describe('Switch y ChoiceCard', () => {
+    it('el interruptor se anuncia como switch con su estado y cambia al hacer clic', () => {
+        const changes: boolean[] = [];
+        render(<Switch aria-label="Prender carritos" checked={false} onCheckedChange={(v) => changes.push(v)} />);
+        const sw = screen.getByRole('switch', { name: 'Prender carritos' });
+        expect(sw.getAttribute('aria-checked')).toBe('false');
+        sw.click();
+        expect(changes).toEqual([true]);
+    });
+
+    it('la tarjeta para elegir es un radio nativo con su nombre', () => {
+        const picked: string[] = [];
+        render(
+            <fieldset>
+                <legend>Tipo</legend>
+                <ChoiceCard name="tipo" value="store" checked onChange={(v) => picked.push(v)} title="Tienda" description="Vendes productos" />
+                <ChoiceCard name="tipo" value="services" checked={false} onChange={(v) => picked.push(v)} title="Servicios" />
+            </fieldset>,
+        );
+        const radios = screen.getAllByRole('radio');
+        expect(radios).toHaveLength(2);
+        expect((screen.getByRole('radio', { name: /Tienda/ }) as HTMLInputElement).checked).toBe(true);
+        screen.getByRole('radio', { name: /Servicios/ }).click();
+        expect(picked).toEqual(['services']);
     });
 });

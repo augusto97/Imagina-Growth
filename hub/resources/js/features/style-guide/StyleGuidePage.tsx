@@ -1,11 +1,12 @@
 import { ArrowRight, Gift, Inbox, Palette, Plus, ShoppingCart, Sparkles, TrendingUp, Users } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Callout, type CalloutTone } from '@/components/ui/callout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checklist, Stepper, type ChecklistStep } from '@/components/ui/checklist';
+import { ChoiceCard } from '@/components/ui/choice-card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { HeroCard } from '@/components/ui/hero-card';
 import { ICON_TONES, IconTile } from '@/components/ui/icon-tile';
@@ -18,6 +19,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Skeleton, SkeletonCard, SkeletonText } from '@/components/ui/skeleton';
 import { StatCard, StatGrid } from '@/components/ui/stat-card';
+import { Switch } from '@/components/ui/switch';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotFoundPage } from '@/components/layout/guards';
@@ -70,6 +72,45 @@ const SECTION_KEYS = [
     'table',
     'tabs',
 ] as const;
+
+/** Interruptor y tarjetas para elegir (asistente de configuración): con estado de verdad, para probarlos con el teclado. */
+function GuideChoices() {
+    const { t } = useTranslation();
+    const [on, setOn] = useState(true);
+    const [kind, setKind] = useState('store');
+    return (
+        <>
+            <div className="igr:flex igr:items-center igr:justify-between igr:gap-3 igr:rounded-lg igr:border igr:p-3">
+                <Label htmlFor="guia-switch">{t('styleguide.fields.switch')}</Label>
+                <Switch id="guia-switch" checked={on} onCheckedChange={setOn} />
+            </div>
+            <fieldset className="igr:space-y-2 igr:md:col-span-2">
+                <legend className="igr:mb-2 igr:text-support igr:font-medium">{t('styleguide.fields.choiceLegend')}</legend>
+                <div className="igr:grid igr:gap-2.5 igr:md:grid-cols-2">
+                    <ChoiceCard
+                        name="guia-tipo"
+                        value="store"
+                        checked={kind === 'store'}
+                        onChange={setKind}
+                        icon={ShoppingCart}
+                        title={t('styleguide.fields.choiceStore')}
+                        description={t('styleguide.fields.choiceStoreHint')}
+                    />
+                    <ChoiceCard
+                        name="guia-tipo"
+                        value="services"
+                        checked={kind === 'services'}
+                        onChange={setKind}
+                        icon={Users}
+                        tone="emerald"
+                        title={t('styleguide.fields.choiceServices')}
+                        description={t('styleguide.fields.choiceServicesHint')}
+                    />
+                </div>
+            </fieldset>
+        </>
+    );
+}
 
 function GuideSection({ id, children, note }: { id: (typeof SECTION_KEYS)[number]; children: ReactNode; note?: boolean }) {
     const { t } = useTranslation();
@@ -258,6 +299,7 @@ export function StyleGuidePage() {
                         <Input id="guia-error" aria-invalid defaultValue="Pi" />
                         <FieldError message={t('styleguide.fields.error')} />
                     </div>
+                    <GuideChoices />
                 </div>
             </GuideSection>
 

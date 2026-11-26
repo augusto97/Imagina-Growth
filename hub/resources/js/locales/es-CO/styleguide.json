@@ -88,7 +88,13 @@
             "country": "País",
             "message": "Mensaje",
             "messagePlaceholder": "Hola Laura, dejaste algo en tu carrito…",
-            "error": "Escribe un nombre de al menos 3 letras."
+            "error": "Escribe un nombre de al menos 3 letras.",
+            "switch": "Prender la estrategia",
+            "choiceLegend": "¿Qué vendes?",
+            "choiceStore": "Productos en mi tienda online",
+            "choiceStoreHint": "Carritos, pedidos y clientes que vuelven.",
+            "choiceServices": "Servicios",
+            "choiceServicesHint": "Contactos que cotizan o agendan una cita."
         },
         "header": {
             "crumb": "Mensajes",
