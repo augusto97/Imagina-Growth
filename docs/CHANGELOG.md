@@ -1,5 +1,48 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-27 — Versión 0.3.0: más ancho, la IA a la mano, páginas públicas cuidadas, cotizador con asistente y guías
+
+Se instala con el botón de actualizar; las migraciones nuevas corren solas. Sin cambios en el contrato de eventos.
+
+**El panel usa la pantalla.** El contenido ya no se encierra en una columna de 1280 px: llega hasta 1760 px y la
+bandeja ocupa todo el ancho. «Tu negocio» pasa a dos columnas en pantallas anchas.
+
+**IA configurable y a la mano** (docs/inteligencia.md §6):
+- Plataforma → Ajustes → IA: «Modelo principal» y «Modelo rápido», cada uno con su esfuerzo, y en «Avanzado» el
+  modelo o el esfuerzo de una función concreta. Rige al guardar, sin reiniciar. Cada modelo dice su precio y el hub
+  no guarda un esfuerzo que el modelo no admite. «Probar la IA» dice en palabras si funcionó (con la latencia y el
+  costo) o qué falló (clave, saldo, modelo, red), sin mostrar la clave.
+- «Pregúntale a la IA» desde cualquier pantalla: botón en la barra lateral y en la del celular, ⌘J / Ctrl+J y
+  «Preguntar a la IA: …» en ⌘K. Sabe en qué pantalla estás (inicio, contacto, grupo, campaña, automatización,
+  conversación, leads, resultados), sugiere preguntas, responde con los datos ya calculados (sin inventar cifras) y
+  propone el siguiente paso (un borrador de campaña o automatización con el copiloto, o una pantalla), siempre para
+  revisarlo. Si la IA está apagada, dice cómo encenderla o a quién pedírselo.
+
+**Páginas públicas cuidadas:**
+- Reservas: pasos con avance (servicio → día y hora → tus datos → confirmada), días tipo calendario, horarios en
+  botones grandes por mañana, tarde y noche, el resumen siempre a la vista y una confirmación con «Agregar a Google
+  Calendar», `.ics`, WhatsApp y gestionar la cita. Color propio en Agenda → Página de reservas, con la vista previa.
+- Landing con formulario: tres diseños (Clásica, Destacada, Sencilla), beneficios, preguntas frecuentes, reseñas
+  publicadas opcionales, llamado final y botón fijo en el celular. El editor muestra la página real y «Nueva página»
+  es un asistente por objetivo (contacto, cotización, cita, promoción, evento) con textos listos y «Escribir con IA».
+
+**Cotizador con asistente** (M18):
+- «Crear cotizador» en cinco pasos con 10 plantillas por oficio (pintura, limpieza, pisos, jardinería, mudanzas,
+  fumigación, diseño web, eventos, reparaciones, clases) con precios de ejemplo en la moneda del negocio, «Empezar de
+  cero» o «Descríbelo y la IA lo arma» (solo propone; un precio que no escribiste queda en 0 para que lo pongas).
+  Ejemplos calculados al lado y la página real en celular o computador antes de publicar.
+- El cotizador del sitio pregunta paso a paso con tarjetas, barra de progreso y el precio revelado al final; y cada
+  cotizador tiene su página propia en el hub (`/p/{clave}/cotizar/{qc_…}`) para compartir por enlace o QR sin WordPress.
+
+**Guías para conectar** (docs/guias-conexiones.md):
+- En Plataforma → Ajustes, cada sección que pide credenciales de un tercero (correo, Amazon SES, Meta, Google, TikTok,
+  IA, monitoreo) trae una «Guía paso a paso»: qué necesitas, pasos con el botón a la consola, los valores para copiar
+  ya calculados (dirección de retorno, webhook, dominios, permisos, políticas de AWS), errores típicos y cómo saber
+  que funcionó, con el avance según lo guardado.
+- En Configuración → Conexiones, cada tarjeta trae «Antes de conectar»: lo que necesitas y lo que suele fallar.
+- Meta y Google exigen una política de privacidad, términos y una página de borrado de datos publicadas en el sitio
+  de la empresa; la guía lo pide en el primer paso.
+
 ## 2026-11-26 — Versión 0.2.3: el cifrado del correo tiene que ir con el puerto
 
 Se instala con el botón de actualizar.
