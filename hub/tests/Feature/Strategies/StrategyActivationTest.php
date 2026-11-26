@@ -63,7 +63,7 @@ dataset('estrategias de flujos', [
     'clientes en riesgo' => ['winback', 'winback'],
     'reactivar con IA' => ['ai_reactivate', 'ai_reactivate'],
     'cumpleaños' => ['birthday', 'birthday'],
-    'contactos de servicios' => ['lead_response', 'service_lead'],
+    'contactos de servicios' => ['service_lead', 'service_lead'],
     'renovación' => ['renewal', 'renewal'],
 ]);
 

@@ -24,7 +24,7 @@ final class StrategyResults
     /** Módulo de MoneyGenerated → estrategia (si no hay, va a «otros»). */
     private const MODULE_OWNERS = [
         'referrals' => 'referrals', 'inbox' => 'inbox_assignment', 'recovered_carts' => 'abandoned_cart',
-        'leads' => 'lead_response', 'bookings' => 'appointment_reminders', 'quotes' => 'quote_calculator', 'ai_agent' => 'ai_sales_agent',
+        'leads' => 'service_lead', 'bookings' => 'appointment_reminders', 'quotes' => 'quote_calculator', 'ai_agent' => 'ai_sales_agent',
     ];
 
     public function __construct(private readonly MoneyGenerated $money) {}
@@ -157,7 +157,7 @@ final class StrategyResults
             $agentOwner => ['messages' => $count('ai_agent_turns', 'created_at', fn ($q) => $q->where('is_test', false))],
             'appointment_reminders' => ['conversions' => ['kind' => 'appointments', 'count' => $count('appointments', 'created_at')]],
             'quote_calculator' => ['conversions' => ['kind' => 'quotes', 'count' => $count('quotes', 'created_at')]],
-            'lead_response' => ['conversions' => ['kind' => 'leads', 'count' => $count('leads', 'created_at', fn ($q) => $q->whereIn('origin', ['form', 'whatsapp']))]],
+            'service_lead' => ['conversions' => ['kind' => 'leads', 'count' => $count('leads', 'created_at', fn ($q) => $q->whereIn('origin', ['form', 'whatsapp']))]],
             'chat_qualification' => ['conversions' => ['kind' => 'leads', 'count' => $count('leads', 'created_at', fn ($q) => $q->whereIn('origin', ['whatsapp', 'messenger', 'instagram']))]],
         ];
     }

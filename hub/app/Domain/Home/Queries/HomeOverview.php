@@ -9,6 +9,7 @@ use App\Analytics\Semantic\MetricQueryRunner;
 use App\Analytics\Semantic\Period;
 use App\Domain\Agency\Queries\MoneyGenerated;
 use App\Domain\Intelligence\Insights\Money;
+use App\Domain\Intelligence\Insights\Support\Data;
 use App\Domain\Intelligence\Models\Insight;
 use App\Domain\Onboarding\Queries\OnboardingState;
 use App\Domain\Services\Leads\Assistant\TodayList;
@@ -129,7 +130,7 @@ final class HomeOverview
         $bestScore = null;
         foreach (StrategyRegistry::all() as $definition) {
             $p = $definition->potential !== null ? ($potentials[$definition->potential] ?? null) : null;
-            if ($p === null || ! $ctx->serves($definition->audience)) {
+            if ($p === null || ! $ctx->serves($definition)) {
                 continue;
             }
             $status = $this->catalog->evaluate($definition, $ctx)['status'];
@@ -283,55 +284,115 @@ final class HomeOverview
         return ['active' => $active, 'suggested' => $suggested];
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * «Tu negocio»: los KPI que aplican según el tipo de negocio (`applicable`, en orden, con su unidad y su ayuda en
+     * `definitions`): una tienda ve ventas, pedidos y clientes; un negocio sin tienda, contactos, primera respuesta,
+     * citas, tasa de cierre y valor ganado (nada de pedidos ni carritos, §11.2); «tienda + servicios», los dos grupos.
+     *
+     * @return array<string, mixed>
+     */
     private function kpis(Workspace $workspace, StrategyContext $ctx, string $tz): array
     {
         $now = CarbonImmutable::now($tz);
         $month = Period::make($tz, $now->startOfMonth()->toDateString(), $now->toDateString(), 'previous', 'day');
         $series = Period::make($tz, $now->subDays(29)->toDateString(), $now->toDateString(), 'none', 'day');
-        if ($ctx->businessType() === 'services') {
-            return MetricQueryRunner::remember($workspace, 'home:kpis:services:'.$now->toDateString(), fn () => $this->servicesKpis($workspace, $month, $series));
+        $type = $ctx->businessType();
+        $parts = [];
+        if ($type === 'store' || $type === 'both') {
+            $parts[] = $this->storeKpis($workspace, $month, $series);
         }
-        $names = ['revenue', 'orders', 'new_customers', 'returning_customers'];
+        if ($type === 'services' || $type === 'both') {
+            $parts[] = MetricQueryRunner::remember($workspace, 'home:kpis:services:'.$now->toDateString(), fn () => $this->servicesKpis($workspace, $month, $series));
+        }
+        $applicable = [];
+        $metrics = [];
+        $seriesKeys = [];
+        $points = [];
+        $sources = [];
+        $available = true;
+        foreach ($parts as $part) {
+            $available = $available && $part['available'];
+            $applicable = [...$applicable, ...array_keys($part['units'])];
+            $metrics += $part['metrics'];
+            $seriesKeys = [...$seriesKeys, ...$part['series_keys']];
+            foreach ($part['series'] as $i => $point) {
+                $points[$i] = ($points[$i] ?? []) + $point;
+            }
+            $sources = [...$sources, ...$part['lead_sources']];
+        }
+        $definitions = [];
+        foreach ($parts as $part) {
+            foreach ($part['units'] as $key => $unit) {
+                $definitions[$key] = ['unit' => $unit, 'label' => __('home.kpis.'.$key.'.label'), 'help' => __('home.kpis.'.$key.'.help')];
+            }
+        }
+
+        return [
+            'kind' => $type, 'available' => $available, 'period' => $month->toArray(),
+            'applicable' => $applicable, 'definitions' => $definitions, 'metrics' => $metrics,
+            'series_keys' => $seriesKeys, 'series' => array_values($points), 'lead_sources' => $sources,
+        ];
+    }
+
+    /**
+     * Ventas, pedidos y clientes nuevos y recurrentes de la capa semántica (en caché por la ingesta).
+     *
+     * @return array{available: bool, units: array<string, string>, metrics: array<string, array{value: float|null, previous: float|null, change_pct: float|null}>, series_keys: list<string>, series: list<array<string, float|string>>, lead_sources: list<array<string, mixed>>}
+     */
+    private function storeKpis(Workspace $workspace, Period $month, Period $series): array
+    {
+        $units = ['revenue' => 'money', 'orders' => 'count', 'new_customers' => 'count', 'returning_customers' => 'count'];
+        $names = array_keys($units);
         try {
             $totals = $this->metrics->run($workspace, new MetricQuery($names, [], $month));
             $rows = $this->metrics->run($workspace, new MetricQuery($names, ['date'], $series))['rows'];
         } catch (Throwable $e) {
             report($e);
 
-            return ['kind' => 'store', 'available' => false, 'period' => $month->toArray(), 'metrics' => [], 'series' => []];
+            return ['available' => false, 'units' => $units, 'metrics' => [], 'series_keys' => ['revenue', 'orders'], 'series' => self::fill($series, [], ['revenue', 'orders']), 'lead_sources' => []];
         }
         $metrics = [];
         foreach ($names as $name) {
-            $value = (float) ($totals['totals'][$name] ?? 0);
-            $previous = $totals['compare_totals'] !== null ? (float) ($totals['compare_totals'][$name] ?? 0) : null;
-            $metrics[$name] = ['value' => $value, 'previous' => $previous, 'change_pct' => $previous !== null && $previous > 0 ? round(($value - $previous) / $previous * 100, 1) : null];
+            $metrics[$name] = self::kpi((float) ($totals['totals'][$name] ?? 0), $totals['compare_totals'] !== null ? (float) ($totals['compare_totals'][$name] ?? 0) : null);
         }
 
-        return ['kind' => 'store', 'available' => true, 'period' => $month->toArray(), 'metrics' => $metrics, 'series' => self::fill($series, $rows, $names)];
+        return ['available' => true, 'units' => $units, 'metrics' => $metrics, 'series_keys' => $names, 'series' => self::fill($series, $rows, $names), 'lead_sources' => []];
     }
 
-    /** @return array<string, mixed> contactos nuevos, clientes ganados y su valor, y citas (negocio de servicios) */
+    /**
+     * Negocio sin tienda: contactos nuevos y de dónde vienen, tiempo de primera respuesta (mediana en minutos), citas
+     * agendadas y cumplidas, tasa de cierre (ganados ÷ cerrados del periodo) y valor ganado.
+     *
+     * @return array{available: bool, units: array<string, string>, metrics: array<string, array{value: float|null, previous: float|null, change_pct: float|null}>, series_keys: list<string>, series: list<array<string, float|string>>, lead_sources: list<array<string, mixed>>}
+     */
     private function servicesKpis(Workspace $workspace, Period $month, Period $series): array
     {
         $ws = $workspace->id;
-        $count = function (Period $p) use ($ws): array {
+        $units = ['leads' => 'count', 'first_response_minutes' => 'minutes', 'appointments_booked' => 'count', 'appointments_attended' => 'count', 'close_rate' => 'percent', 'won_value' => 'money'];
+        $measure = function (Period $p) use ($ws): array {
             $range = [$p->from->utc(), $p->to->utc()];
-            $won = DB::table('leads')->where('workspace_id', $ws)->whereBetween('won_at', $range)->selectRaw('COUNT(*) AS n, COALESCE(SUM(value_ws), 0) AS v')->first();
+            $leads = DB::table('leads')->where('workspace_id', $ws)->whereBetween('created_at', $range);
+            $seconds = array_values(array_map('floatval', (clone $leads)->whereNotNull('first_response_at')
+                ->selectRaw('TIMESTAMPDIFF(SECOND, created_at, first_response_at) AS s')->limit(5000)->pluck('s')->all()));
+            $won = DB::table('leads')->where('workspace_id', $ws)->whereBetween('won_at', $range);
+            $wonCount = (clone $won)->count();
+            $closed = $wonCount + DB::table('leads')->where('workspace_id', $ws)->whereBetween('lost_at', $range)->count();
+            $appointments = DB::table('appointments')->where('workspace_id', $ws);
 
             return [
-                'leads' => (float) DB::table('leads')->where('workspace_id', $ws)->whereBetween('created_at', $range)->count(),
-                'won_leads' => (float) ($won->n ?? 0),
-                'won_value' => (float) ($won->v ?? 0),
-                'appointments' => (float) DB::table('appointments')->where('workspace_id', $ws)->whereBetween('created_at', $range)->count(),
+                'leads' => (float) (clone $leads)->count(),
+                'first_response_minutes' => $seconds === [] ? null : round(max(0.0, Data::percentile($seconds, 0.5)) / 60, 1),
+                'appointments_booked' => (float) (clone $appointments)->whereBetween('created_at', $range)->count(),
+                'appointments_attended' => (float) (clone $appointments)->where('status', 'completed')->whereBetween('starts_at', $range)->count(),
+                'close_rate' => $closed > 0 ? round($wonCount / $closed * 100, 1) : null,
+                'won_value' => (float) $won->sum('value_ws'),
             ];
         };
-        $now = $count($month);
-        $before = $month->compare !== null ? $count($month->compare) : null;
+        $now = $measure($month);
+        $before = $month->compare !== null ? $measure($month->compare) : [];
         $metrics = [];
         foreach ($now as $name => $value) {
-            $previous = $before[$name] ?? null;
-            $metrics[$name] = ['value' => $value, 'previous' => $previous, 'change_pct' => $previous !== null && $previous > 0 ? round(($value - $previous) / $previous * 100, 1) : null];
+            $metrics[$name] = self::kpi($value, $before[$name] ?? null);
         }
         // Día local con el desfase de la zona (LATAM no usa horario de verano).
         $offset = [(int) $series->offsetSeconds()];
@@ -342,16 +403,28 @@ final class HomeOverview
             $rows[(string) $r->d]['leads'] = (float) $r->n;
         }
         foreach (DB::table('leads')->where('workspace_id', $ws)->whereBetween('won_at', $range)
-            ->selectRaw('DATE(DATE_ADD(won_at, INTERVAL ? SECOND)) AS d, COUNT(*) AS n, COALESCE(SUM(value_ws), 0) AS v', $offset)->groupBy('d')->get() as $r) {
-            $rows[(string) $r->d]['won_leads'] = (float) $r->n;
+            ->selectRaw('DATE(DATE_ADD(won_at, INTERVAL ? SECOND)) AS d, COALESCE(SUM(value_ws), 0) AS v', $offset)->groupBy('d')->get() as $r) {
             $rows[(string) $r->d]['won_value'] = (float) $r->v;
         }
         $list = [];
         foreach ($rows as $date => $values) {
             $list[] = ['date' => $date] + $values;
         }
+        $sources = [];
+        foreach (DB::table('leads')->where('workspace_id', $ws)->whereBetween('created_at', [$month->from->utc(), $month->to->utc()])
+            ->selectRaw('origin, COUNT(*) AS n')->groupBy('origin')->orderByDesc('n')->get() as $r) {
+            $origin = (string) ($r->origin ?? 'other');
+            $label = __('home.lead_origins.'.$origin);
+            $sources[] = ['origin' => $origin, 'label' => $label !== 'home.lead_origins.'.$origin ? $label : __('home.lead_origins.other'), 'count' => (int) $r->n];
+        }
 
-        return ['kind' => 'services', 'available' => true, 'period' => $month->toArray(), 'metrics' => $metrics, 'series' => self::fill($series, $list, ['leads', 'won_leads', 'won_value'])];
+        return ['available' => true, 'units' => $units, 'metrics' => $metrics, 'series_keys' => ['leads', 'won_value'], 'series' => self::fill($series, $list, ['leads', 'won_value']), 'lead_sources' => $sources];
+    }
+
+    /** @return array{value: float|null, previous: float|null, change_pct: float|null} */
+    private static function kpi(?float $value, ?float $previous): array
+    {
+        return ['value' => $value, 'previous' => $previous, 'change_pct' => $value !== null && $previous !== null && $previous > 0 ? round(($value - $previous) / $previous * 100, 1) : null];
     }
 
     /**

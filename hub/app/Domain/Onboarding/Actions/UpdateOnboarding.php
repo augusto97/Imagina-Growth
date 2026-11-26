@@ -5,27 +5,41 @@ declare(strict_types=1);
 namespace App\Domain\Onboarding\Actions;
 
 use App\Domain\Onboarding\Models\WorkspaceOnboarding;
+use App\Domain\Onboarding\Support\Verticals;
 use App\Domain\Strategies\Support\StrategyCache;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
+use App\Domain\Workspaces\Actions\UpdateWorkspaceSettings;
 use App\Domain\Workspaces\Models\Workspace;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Guarda lo que decide la persona en el asistente (docs/diseno/rediseno-v2.md §4): el tipo de negocio, el paso donde
- * va y si lo salta, lo retoma o lo termina; y, por persona, que ya vio la bienvenida. El tipo de negocio y terminar o
+ * Guarda lo que decide la persona en el asistente (docs/diseno/rediseno-v2.md §4 y §11.1): el tipo de negocio, a qué
+ * se dedica (la vertical, en el espacio de trabajo), el paso donde va y si lo salta, lo retoma o lo termina; y, por
+ * persona, que ya vio la bienvenida. El tipo de negocio y terminar o
  * saltar quedan en la auditoría.
  */
 final class UpdateOnboarding
 {
     public const ACTIONS = ['skip', 'resume', 'complete'];
 
-    public function __construct(private readonly RecordAuditLog $audit) {}
+    public function __construct(private readonly RecordAuditLog $audit, private readonly UpdateWorkspaceSettings $settings) {}
 
-    /** @param array{business_type?: string|null, current_step?: string|null, action?: string|null} $changes ya validados */
+    /**
+     * La vertical se guarda en el espacio de trabajo (se cambia después en Configuración); si todavía no hay tipo de
+     * negocio, toma el que implica la vertical.
+     *
+     * @param  array{business_type?: string|null, vertical?: string|null, current_step?: string|null, action?: string|null}  $changes  ya validados
+     */
     public function handle(Workspace $workspace, array $changes, ?string $userId): WorkspaceOnboarding
     {
         $row = WorkspaceOnboarding::query()->firstOrNew(['workspace_id' => $workspace->id]);
         $before = $row->exists ? $row->only(['business_type', 'skipped_at', 'completed_at']) : [];
+        if (($changes['vertical'] ?? null) !== null) {
+            $this->settings->handle($workspace, ['vertical' => $changes['vertical']]);
+            if ($row->business_type === null && ($changes['business_type'] ?? null) === null) {
+                $row->business_type = Verticals::businessType((string) $changes['vertical']);
+            }
+        }
         if (array_key_exists('business_type', $changes) && $changes['business_type'] !== null) {
             $row->business_type = $changes['business_type'];
         }

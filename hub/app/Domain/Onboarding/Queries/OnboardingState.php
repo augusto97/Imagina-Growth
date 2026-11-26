@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Onboarding\Queries;
 
 use App\Domain\Onboarding\Models\WorkspaceOnboarding;
+use App\Domain\Onboarding\Support\Verticals;
 use App\Domain\Strategies\Queries\StrategyCatalog;
 use App\Domain\Strategies\StrategyRegistry;
 use App\Domain\Strategies\Support\StrategyContext;
@@ -39,6 +40,9 @@ final class OnboardingState
             'status' => self::status($row),
             'business_type' => $row?->business_type,
             'suggested_business_type' => $ctx->detectedBusinessType(),
+            'vertical' => Verticals::valid(is_string($v = $workspace->getAttribute('vertical')) ? $v : null) ? $v : null,
+            'suggested_vertical' => $ctx->vertical(),
+            'verticals' => Verticals::options(),
             'current_step' => $this->current($row, $steps),
             'steps' => $steps,
             'progress' => self::progress($steps),
@@ -119,7 +123,7 @@ final class OnboardingState
         $channels = $ctx->channels();
         $active = $this->activeStrategies($ctx);
         $steps = [
-            ['key' => 'business', 'done' => $row?->business_type !== null],
+            ['key' => 'business', 'done' => $row?->business_type !== null || Verticals::valid(is_string($v = $ctx->workspace->getAttribute('vertical')) ? $v : null)],
             ['key' => 'connect', 'done' => $ctx->hasSite(), 'site_id' => ($id = $ctx->siteId() ?? $ctx->pendingSiteId()) !== null ? 'st_'.$id : null, 'pending' => $ctx->pendingSiteId() !== null],
             ['key' => 'history', 'done' => $ctx->historyImported(), 'status' => $import['status'], 'progress' => $import['progress'],
                 'site_id' => $import['site_id'] !== null ? 'st_'.$import['site_id'] : null] + ($details ? ['learned' => $this->learned($ctx)] : []),

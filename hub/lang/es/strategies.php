@@ -274,7 +274,7 @@ return [
                 'Solo van quienes aceptaron recibir publicidad.',
             ],
         ],
-        'lead_response' => [
+        'service_lead' => [
             'name' => 'Responde al instante a cada contacto',
             'promise' => 'Quien deja sus datos en tu web o te escribe recibe respuesta en segundos y un seguimiento hasta que avance.',
             'steps' => [
@@ -319,7 +319,147 @@ return [
                 'Te llega como un contacto nuevo con todo lo que pidió.',
             ],
         ],
+
+        // Biblioteca ampliada (docs/diseno/rediseno-v2.md §11.4, flujos 21 a 35).
+        'lead_nurture' => [
+            'name' => 'Acompaña a quien todavía no decide',
+            'promise' => 'Quien pidió información recibe 4 o 5 correos útiles en 3 semanas, hasta que agenda, cotiza o compra.',
+            'steps' => [
+                'Un contacto deja sus datos pero todavía no está listo.',
+                'Recibe correos con consejos, casos y respuestas a las dudas de siempre.',
+                'Apenas agenda, pide una cotización o compra, deja de recibirlos.',
+            ],
+        ],
+        'quote_followup' => [
+            'name' => 'Haz seguimiento a tus cotizaciones',
+            'promise' => 'Una cotización sin respuesta recibe un WhatsApp, un correo y un último aviso, y tu vendedor se entera.',
+            'steps' => [
+                'Envías una cotización y el cliente no responde.',
+                'Le escribimos por WhatsApp al día 2 y por correo al día 5.',
+                'Al día 10 va un último aviso y le contamos a tu vendedor para que llame.',
+            ],
+        ],
+        'appointment_confirmation' => [
+            'name' => 'Confirma las citas antes de que lleguen',
+            'promise' => 'Dos días antes, tu cliente confirma su cita con un toque; si no confirma, tu equipo se entera.',
+            'steps' => [
+                'Alguien agenda una cita contigo.',
+                '48 horas antes le pedimos que la confirme con un botón.',
+                'Si no confirma, avisamos a tu equipo para que llame y no pierdas el espacio.',
+            ],
+        ],
+        'no_show_recovery' => [
+            'name' => 'Recupera las citas perdidas',
+            'promise' => 'Quien no llegó recibe un mensaje amable con el enlace para agendar otra vez el mismo día.',
+            'steps' => [
+                'Un cliente no llega a su cita.',
+                'Ese mismo día le escribimos sin reproches.',
+                'Con el enlace para elegir otro horario en un toque.',
+            ],
+        ],
+        'post_service' => [
+            'name' => 'Pide opinión después del servicio',
+            'promise' => 'Después de atenderlo, tu cliente cuenta cómo le fue, te deja una reseña en Google y recibe su enlace para recomendarte.',
+            'steps' => [
+                'Terminas el servicio o la cita.',
+                'Le preguntamos cómo le fue.',
+                'Le pedimos la reseña en Google y le damos su enlace para recomendarte.',
+            ],
+        ],
+        'periodic_service' => [
+            'name' => 'Recuerda los controles y mantenimientos',
+            'promise' => 'Cada cierto tiempo, tu cliente recibe el recordatorio de su control o mantenimiento con el enlace para agendar.',
+            'steps' => [
+                'Tu cliente se hace un control, una limpieza o un mantenimiento.',
+                'Cuando se cumple el tiempo para el siguiente, le recordamos.',
+                'Agenda en un toque desde el enlace del mensaje.',
+            ],
+        ],
+        'event_registration' => [
+            'name' => 'Llena tus eventos y clases',
+            'promise' => 'Quien se inscribe a un evento o una clase recibe la confirmación, los recordatorios y la grabación.',
+            'steps' => [
+                'Alguien se inscribe a tu evento, webinar o clase de prueba.',
+                'Recibe la confirmación y recordatorios un día y una hora antes.',
+                'Después le enviamos la grabación o el siguiente paso.',
+            ],
+        ],
+        'enrollment_followup' => [
+            'name' => 'Convierte interesados en inscritos',
+            'promise' => 'Quien pregunta por un curso recibe la información, testimonios y la fecha límite para inscribirse.',
+            'steps' => [
+                'Un interesado pregunta por un curso o programa.',
+                'Le enviamos la información y lo que dicen quienes ya lo tomaron.',
+                'Le recordamos la fecha límite antes de que se cierren las inscripciones.',
+            ],
+        ],
+        'property_interest' => [
+            'name' => 'Acompaña el interés por una propiedad',
+            'promise' => 'Quien pregunta por una propiedad recibe opciones parecidas, la invitación a visitarla y seguimiento.',
+            'steps' => [
+                'Alguien pregunta por una propiedad.',
+                'Le mostramos otras parecidas y lo invitamos a agendar la visita.',
+                'Si no avanza, le hacemos seguimiento sin que se te olvide.',
+            ],
+        ],
+        'lost_lead_revival' => [
+            'name' => 'Vuelve a intentar con los que no cerraron',
+            'promise' => 'Tres meses después de perder un contacto, le escribimos con una novedad para retomar la conversación.',
+            'steps' => [
+                'Un contacto no cerró contigo.',
+                'Pasados 90 días, le escribimos con algo nuevo que contarle.',
+                'Si responde, vuelve a tu lista para que lo atiendas.',
+            ],
+        ],
+        'new_client_welcome' => [
+            'name' => 'Dale la bienvenida a cada cliente nuevo',
+            'promise' => 'Quien te contrata recibe qué esperar, cómo contactarte y los próximos pasos.',
+            'steps' => [
+                'Cierras con un cliente nuevo.',
+                'Le enviamos la bienvenida con lo que va a pasar.',
+                'Con tus datos de contacto y los próximos pasos.',
+            ],
+        ],
+        'services_reactivation' => [
+            'name' => 'Trae de vuelta a los clientes que no volvieron',
+            'promise' => 'Quien lleva meses sin contratarte recibe un mensaje personal con una buena razón para volver.',
+            'steps' => [
+                'Un cliente deja de contratarte por varios meses.',
+                'Le escribimos un mensaje personal.',
+                'Con una razón para volver: una novedad, un control o una oferta tuya.',
+            ],
+        ],
+        'cross_sell' => [
+            'name' => 'Ofrece lo que combina con su compra',
+            'promise' => 'Una semana después de comprar, tu cliente recibe los complementos de lo que compró.',
+            'steps' => [
+                'Tu cliente compra un producto.',
+                'A los 7 días le mostramos lo que combina con su compra.',
+                'Compra los complementos en un clic.',
+            ],
+        ],
+        'delivery_check' => [
+            'name' => 'Pregunta si su pedido llegó bien',
+            'promise' => 'Dos días después de la entrega le preguntamos a tu cliente si todo llegó bien y te avisamos si hubo un problema.',
+            'steps' => [
+                'Tu cliente recibe su pedido.',
+                'Dos días después le preguntamos si llegó bien.',
+                'Si algo salió mal, te avisamos al instante para que lo resuelvas.',
+            ],
+        ],
+        'first_purchase_anniversary' => [
+            'name' => 'Celebra el aniversario de su primera compra',
+            'promise' => 'Un año después de su primera compra, tu cliente recibe un detalle de agradecimiento.',
+            'steps' => [
+                'Guardamos la fecha de la primera compra de cada cliente.',
+                'Al cumplir el año le escribimos para agradecerle.',
+                'Con un detalle para que vuelva a comprarte.',
+            ],
+        ],
     ],
+
+    'coming_soon' => 'Próximamente',
+    'coming_soon_hint' => 'Esta estrategia llega pronto: su automatización todavía no está disponible.',
 
     'modules' => [
         'onsite' => 'captación en tu web',
@@ -395,6 +535,9 @@ return [
         'unassigned' => '{1} 1 conversación abierta no tiene a nadie asignado.|[2,*] :count conversaciones abiertas no tienen a nadie asignado.',
         'unanswered_leads' => '{1} 1 contacto de los últimos :days días sigue sin respuesta.|[2,*] :count contactos de los últimos :days días siguen sin respuesta.',
         'chat_leads' => '{1} 1 contacto llegó por el chat en los últimos :days días.|[2,*] :count contactos llegaron por el chat en los últimos :days días.',
+        'open_leads' => '{1} Tienes 1 contacto abierto que todavía no decide.|[2,*] Tienes :count contactos abiertos que todavía no deciden.',
+        'lost_leads' => '{1} 1 contacto que no cerró hace más de :days días puede volver a intentarse.|[2,*] :count contactos que no cerraron hace más de :days días pueden volver a intentarse.',
+        'no_shows' => '{1} 1 cita no se cumplió en los últimos :days días.|[2,*] :count citas no se cumplieron en los últimos :days días.',
         'upcoming_appointments' => '{1} Tienes 1 cita en los próximos :days días.|[2,*] Tienes :count citas en los próximos :days días.',
         'renewals' => '{1} 1 cliente renueva en los próximos :days días.|[2,*] :count clientes renuevan en los próximos :days días.',
         'visitors' => '{1} 1 persona visitó tu web en los últimos :days días.|[2,*] :count personas visitaron tu web en los últimos :days días.',

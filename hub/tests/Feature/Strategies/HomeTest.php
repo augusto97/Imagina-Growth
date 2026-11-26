@@ -63,7 +63,9 @@ it('el dinero generado del mes y del anterior con el desglose por estrategia', f
         ->and(collect($res['strategies']['active'])->pluck('key')->all())->toBe(['abandoned_cart', 'back_in_stock'])
         ->and($res['strategies']['active'][0]['result']['revenue'])->toBe('300000.00')
         ->and($res['kpis']['kind'])->toBe('store')
+        ->and($res['kpis']['applicable'])->toBe(['revenue', 'orders', 'new_customers', 'returning_customers'])
         ->and(array_keys($res['kpis']['metrics']))->toBe(['revenue', 'orders', 'new_customers', 'returning_customers'])
+        ->and($res['kpis']['definitions']['revenue'])->toMatchArray(['unit' => 'money', 'label' => 'Ventas'])
         ->and($res['kpis']['series'])->toHaveCount(30)
         ->and($res['kpis']['series'][29])->toHaveKeys(['date', 'revenue', 'orders']);
 });
@@ -109,19 +111,52 @@ it('«Para hoy» prioriza estrategias con problemas y conversaciones esperando, 
         ->and($today[3])->toMatchArray(['title' => '2 clientes esperan tu respuesta', 'to' => 'bandeja', 'count' => 2]);
 });
 
-it('un negocio de servicios ve sus contactos y clientes ganados como KPI', function () {
+it('un negocio sin tienda ve contactos, primera respuesta, citas, cierre y valor ganado, sin pedidos ni carritos', function () {
     $this->strategyWorld();
     DB::table('sites')->where('id', $this->site->id)->update(['platform' => 'wordpress']);
-    DB::table('leads')->insert(['id' => strtoupper((string) Str::ulid()), 'workspace_id' => $this->ws->id, 'contact_id' => strtoupper((string) Str::ulid()),
-        'origin' => 'form', 'stage' => 'won', 'won_at' => now(), 'value_ws' => '1500000.00', 'created_at' => now()->subDay(), 'updated_at' => now()]);
+    $lead = fn (array $row) => DB::table('leads')->insert($row + ['id' => strtoupper((string) Str::ulid()), 'workspace_id' => $this->ws->id,
+        'contact_id' => strtoupper((string) Str::ulid()), 'stage' => 'new', 'updated_at' => now()]);
+    $lead(['origin' => 'form', 'stage' => 'won', 'won_at' => now(), 'value_ws' => '1500000.00', 'created_at' => now()->subHours(5), 'first_response_at' => now()->subHours(5)->addMinutes(10)]);
+    $lead(['origin' => 'whatsapp', 'created_at' => now()->subHours(3), 'first_response_at' => now()->subHours(3)->addMinutes(30)]);
+    $lead(['origin' => 'whatsapp', 'stage' => 'lost', 'lost_at' => now(), 'created_at' => now()->subHours(2)]);
+    $service = strtoupper((string) Str::ulid());
+    foreach (['completed', 'booked'] as $status) {
+        DB::table('appointments')->insert(['id' => strtoupper((string) Str::ulid()), 'workspace_id' => $this->ws->id, 'contact_id' => strtoupper((string) Str::ulid()),
+            'service_id' => $service, 'starts_at' => now()->subHour(), 'ends_at' => now(), 'status' => $status, 'manage_token' => Str::random(32),
+            'created_at' => now()->subDay(), 'updated_at' => now()]);
+    }
 
     $res = strategyHome($this);
+    $kpis = $res['kpis'];
     expect($res['business_type'])->toBe('services')
-        ->and($res['kpis']['kind'])->toBe('services')
-        ->and($res['kpis']['metrics']['won_value']['value'])->toEqual(1500000)
-        ->and($res['kpis']['metrics']['leads']['value'])->toEqual(1)
-        ->and($res['money']['breakdown'][0])->toMatchArray(['strategy' => 'lead_response', 'revenue' => '1500000.00'])
-        ->and(collect($res['strategies']['suggested'])->pluck('key')->first())->toBe('lead_response');
+        ->and($kpis['kind'])->toBe('services')
+        ->and($kpis['applicable'])->toBe(['leads', 'first_response_minutes', 'appointments_booked', 'appointments_attended', 'close_rate', 'won_value'])
+        ->and($kpis['definitions']['first_response_minutes'])->toMatchArray(['unit' => 'minutes', 'label' => 'Primera respuesta'])
+        ->and($kpis['definitions']['close_rate']['unit'])->toBe('percent')
+        ->and($kpis['metrics']['leads']['value'])->toEqual(3)
+        ->and($kpis['metrics']['first_response_minutes']['value'])->toEqual(20)
+        ->and($kpis['metrics']['appointments_booked']['value'])->toEqual(2)
+        ->and($kpis['metrics']['appointments_attended']['value'])->toEqual(1)
+        ->and($kpis['metrics']['close_rate']['value'])->toEqual(50)
+        ->and($kpis['metrics']['won_value']['value'])->toEqual(1500000)
+        ->and(array_keys($kpis['metrics']))->not->toContain('orders')
+        ->and($kpis['series_keys'])->toBe(['leads', 'won_value'])
+        ->and($kpis['series'][29])->toHaveKeys(['date', 'leads', 'won_value'])
+        ->and($kpis['lead_sources'])->toBe([['origin' => 'whatsapp', 'label' => 'WhatsApp', 'count' => 2], ['origin' => 'form', 'label' => 'Formularios de tu web', 'count' => 1]])
+        ->and($res['money']['breakdown'][0])->toMatchArray(['strategy' => 'service_lead', 'revenue' => '1500000.00'])
+        ->and(collect($res['strategies']['suggested'])->pluck('key')->first())->toBe('service_lead')
+        // Nada de carritos ni pedidos en lo que se le sugiere.
+        ->and(collect($res['strategies']['suggested'])->pluck('business_types')->flatten()->unique()->all())->not->toContain('store');
+});
+
+it('una tienda + servicios ve los dos grupos de KPI', function () {
+    $this->strategyWorld();
+    $this->actingAs($this->owner)->putJson("/api/w/{$this->ws->publicId()}/onboarding", ['business_type' => 'both'])->assertOk();
+    $kpis = strategyHome($this)['kpis'];
+    expect($kpis['kind'])->toBe('both')
+        ->and($kpis['applicable'])->toBe(['revenue', 'orders', 'new_customers', 'returning_customers', 'leads', 'first_response_minutes', 'appointments_booked',
+            'appointments_attended', 'close_rate', 'won_value'])
+        ->and($kpis['series'][0])->toHaveKeys(['date', 'revenue', 'orders', 'leads', 'won_value']);
 });
 
 it('la caché se invalida al activar o pausar y no se mezcla entre espacios de trabajo', function () {

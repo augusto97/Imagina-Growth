@@ -101,6 +101,12 @@ final class StrategyPotential
         $row = self::sum($leads()->whereNull('won_at')->whereNull('lost_at')->whereNull('first_response_at'), 'value_ws');
         $out['unanswered_leads'] = $this->make('unanswered_leads', $currency, $row['n'], $row['v'] > 0 ? $row['v'] : null);
         $out['chat_leads'] = $this->make('chat_leads', $currency, $leads()->whereIn('origin', ['whatsapp', 'messenger', 'instagram'])->count());
+        $open = self::sum(DB::table('leads')->where('workspace_id', $ws)->whereNull('won_at')->whereNull('lost_at'), 'value_ws');
+        $out['open_leads'] = $this->make('open_leads', $currency, $open['n'], $open['v'] > 0 ? $open['v'] : null);
+        $lost = self::sum(DB::table('leads')->where('workspace_id', $ws)->whereNotNull('lost_at')
+            ->whereBetween('lost_at', [$now->subYear()->utc(), $now->subDays(90)->utc()]), 'value_ws');
+        $out['lost_leads'] = $this->make('lost_leads', $currency, $lost['n'], $lost['v'] > 0 ? $lost['v'] : null, null, null, ['days' => 90]);
+        $out['no_shows'] = $this->make('no_shows', $currency, DB::table('appointments')->where('workspace_id', $ws)->where('status', 'no_show')->where('starts_at', '>=', $since)->count());
         $out['upcoming_appointments'] = $this->make('upcoming_appointments', $currency, DB::table('appointments')->where('workspace_id', $ws)
             ->whereBetween('starts_at', [$now->utc(), $now->addDays(self::WINDOW_DAYS)->utc()])->whereNotIn('status', ['cancelled', 'no_show', 'completed'])->count());
         $out['renewals'] = $this->make('renewals', $currency, $contacts()->whereBetween('renewal_at', [$now->utc(), $now->addDays(60)->utc()])->count(), null, null, null, ['days' => 60]);

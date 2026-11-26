@@ -193,3 +193,39 @@ it('no mezcla espacios de trabajo', function () {
     expect(DB::table('flows')->where('workspace_id', $other->id)->value('status'))->toBe('active')
         ->and(DB::table('flows')->where('workspace_id', $mine->id)->count())->toBe(0);
 });
+
+it('«Recomendadas para ti» sigue la vertical del negocio o la que se pida, y lo de «Próximamente» no se activa', function () {
+    $this->strategyWorld();
+    $this->ws->forceFill(['vertical' => 'real_estate'])->save();
+    $catalog = strategyCatalog($this);
+    $interest = $this->strategyIn($catalog, 'property_interest');
+    expect($catalog)->toMatchArray(['vertical' => 'real_estate', 'business_type' => 'services'])
+        ->and($catalog['recommended'])->toBe(['service_lead', 'chat_qualification', 'appointment_reminders'])
+        ->and($catalog['for_you'][0])->toBe('service_lead')
+        ->and($interest)->toMatchArray(['status' => 'coming_soon', 'available' => false, 'unavailable_reason' => 'Próximamente',
+            'recommended_rank' => 2, 'verticals' => ['real_estate'], 'business_types' => ['services'], 'relevant' => true])
+        ->and($this->strategyIn($catalog, 'abandoned_cart'))->toMatchArray(['relevant' => false, 'recommended_rank' => null, 'verticals' => 'all', 'business_types' => ['store']])
+        ->and($this->strategyIn($catalog, 'enrollment_followup')['relevant'])->toBeFalse();
+
+    $health = $this->actingAs($this->owner)->getJson($this->strategies('?vertical=health'))->assertOk()->json();
+    expect($health['vertical'])->toBe('health')
+        ->and($this->strategyIn($health, 'appointment_confirmation')['recommended_rank'])->toBe(1)
+        ->and($health['for_you'])->not->toContain('appointment_confirmation')
+        ->and($health['recommended'][0])->toBe('appointment_reminders');
+    $this->actingAs($this->owner)->getJson($this->strategies('?vertical=dentista'))->assertStatus(422);
+
+    $res = $this->actingAs($this->owner)->postJson($this->strategies('/property_interest/activate'))->assertStatus(422)->json();
+    expect($res['error'])->toBe('coming_soon')
+        ->and($this->actingAs($this->owner)->postJson($this->strategies('/property_interest/pause'))->assertOk()->json('paused'))->toBeFalse()
+        ->and($this->actingAs($this->owner)->getJson($this->strategies('/property_interest'))->assertOk()->json('preview'))->toBeNull();
+});
+
+it('una tienda + servicios intercala las recomendadas de la tienda y de su vertical', function () {
+    $this->strategyWorld();
+    $this->ws->forceFill(['vertical' => 'automotive'])->save();
+    $this->actingAs($this->owner)->putJson("/api/w/{$this->ws->publicId()}/onboarding", ['business_type' => 'both'])->assertOk();
+    $catalog = strategyCatalog($this);
+    expect($catalog['business_type'])->toBe('both')
+        ->and($catalog['recommended'])->toBe(['abandoned_cart', 'service_lead', 'payment_pending'])
+        ->and($this->strategyIn($catalog, 'periodic_service')['relevant'])->toBeTrue();
+});

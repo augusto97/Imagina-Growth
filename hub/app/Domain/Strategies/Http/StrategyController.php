@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Strategies\Http;
 
+use App\Domain\Onboarding\Support\Verticals;
 use App\Domain\Strategies\Actions\ActivateStrategy;
 use App\Domain\Strategies\Actions\PauseStrategy;
 use App\Domain\Strategies\Queries\StrategyCatalog;
@@ -16,6 +17,7 @@ use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 /**
  * Estrategias (docs/diseno/rediseno-v2.md §6). Ver el catálogo y el detalle: `viewDashboards`. Activar y pausar:
@@ -26,12 +28,13 @@ final class StrategyController
 {
     public function __construct(private readonly CurrentWorkspace $current, private readonly StrategyCatalog $catalog) {}
 
-    /** GET strategies */
-    public function index(): JsonResponse
+    /** GET strategies?vertical= (opcional: ordena «Recomendadas para ti» para esa vertical) */
+    public function index(Request $request): JsonResponse
     {
         Gate::authorize('ws.viewDashboards');
+        $data = $request->validate(['vertical' => ['sometimes', 'nullable', Rule::in(Verticals::keys())]]);
 
-        return response()->json($this->catalog->catalog($this->current->get()));
+        return response()->json($this->catalog->catalog($this->current->get(), $data['vertical'] ?? null));
     }
 
     /** GET strategies/{key} */
@@ -73,7 +76,7 @@ final class StrategyController
     public static function notReady(StrategyNotReady $e): JsonResponse
     {
         return response()->json([
-            'error' => 'needs_setup',
+            'error' => $e->error,
             'message' => $e->getMessage(),
             'requirements' => array_map(fn (Requirement $r) => $r->toArray(), $e->requirements),
             'issues' => $e->issues,

@@ -8,7 +8,11 @@ export type StrategyAudience = 'store' | 'services' | 'both';
 
 export type BusinessType = 'store' | 'services' | 'both';
 
-export type StrategyStatus = 'available' | 'needs_setup' | 'active' | 'paused' | 'attention' | 'not_in_plan';
+/** A qué se dedica el negocio (docs/diseno/rediseno-v2.md §11.1); se guarda en el espacio de trabajo. */
+export type Vertical = 'store' | 'professional' | 'health' | 'education' | 'real_estate' | 'hospitality' | 'automotive' | 'b2b' | 'other';
+
+/** `coming_soon`: declarada pero su flujo de la biblioteca todavía no existe (se activa sola al llegar). */
+export type StrategyStatus = 'available' | 'needs_setup' | 'active' | 'paused' | 'attention' | 'not_in_plan' | 'coming_soon';
 
 export type StrategyKey =
     | 'abandoned_cart'
@@ -35,11 +39,27 @@ export type StrategyKey =
     | 'after_hours'
     | 'ads_conversions'
     | 'ads_audiences'
-    | 'lead_response'
+    | 'service_lead'
     | 'chat_qualification'
     | 'appointment_reminders'
     | 'renewal'
-    | 'quote_calculator';
+    | 'quote_calculator'
+    // Biblioteca ampliada (§11.4, flujos 21 a 35): «Próximamente» hasta que su flujo exista en la biblioteca.
+    | 'lead_nurture'
+    | 'quote_followup'
+    | 'appointment_confirmation'
+    | 'no_show_recovery'
+    | 'post_service'
+    | 'periodic_service'
+    | 'event_registration'
+    | 'enrollment_followup'
+    | 'property_interest'
+    | 'lost_lead_revival'
+    | 'new_client_welcome'
+    | 'services_reactivation'
+    | 'cross_sell'
+    | 'delivery_check'
+    | 'first_purchase_anniversary';
 
 export type RequirementKey =
     | 'module'
@@ -107,10 +127,20 @@ export interface StrategySummary {
     key: StrategyKey;
     goal: StrategyGoal;
     audience: StrategyAudience;
-    /** Le sirve a este tipo de negocio. */
+    /** Para qué tipos de negocio sirve. */
+    business_types: ('store' | 'services')[];
+    /** Para qué verticales sirve (`all`: todas las de sus tipos de negocio). */
+    verticals: 'all' | Vertical[];
+    /** Le sirve a este negocio (tipo y vertical). */
     relevant: boolean;
-    /** Está entre las recomendadas (asistente y catálogo). */
+    /** Está entre las 3 recomendadas (asistente y catálogo). */
     recommended: boolean;
+    /** Su lugar en «Recomendadas para ti» para la vertical del negocio (1 = la primera), o null. */
+    recommended_rank: number | null;
+    /** false mientras su flujo de la biblioteca no exista (status `coming_soon`). */
+    available: boolean;
+    /** «Próximamente» u otro motivo cuando `available` es false. */
+    unavailable_reason: string | null;
     name: string;
     promise: string;
     status: StrategyStatus;
@@ -174,6 +204,10 @@ export interface StrategyGoalInfo {
 
 export interface StrategyCatalog {
     business_type: BusinessType;
+    /** La vertical con la que se ordenó (la del negocio o la de `?vertical=`). */
+    vertical: Vertical;
+    /** «Recomendadas para ti», en orden (hasta 6, sin las de «Próximamente» ni las que el plan no incluye). */
+    for_you: StrategyKey[];
     currency: string;
     month: MonthRange;
     goals: StrategyGoalInfo[];
@@ -197,9 +231,9 @@ export interface PauseResponse extends StrategyDetail {
     paused: boolean;
 }
 
-/** Cuerpo del 422 `needs_setup` al activar. */
+/** Cuerpo del 422 `needs_setup` (o `coming_soon`, sin requisitos) al activar. */
 export interface NeedsSetupError {
-    error: 'needs_setup';
+    error: 'needs_setup' | 'coming_soon';
     message: string;
     requirements: StrategyRequirement[];
     issues: Record<string, string[]>;

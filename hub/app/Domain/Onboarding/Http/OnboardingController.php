@@ -8,6 +8,7 @@ use App\Domain\Onboarding\Actions\ActivateRecommendedStrategies;
 use App\Domain\Onboarding\Actions\UpdateOnboarding;
 use App\Domain\Onboarding\Models\WorkspaceOnboarding;
 use App\Domain\Onboarding\Queries\OnboardingState;
+use App\Domain\Onboarding\Support\Verticals;
 use App\Domain\Strategies\StrategyRegistry;
 use App\Domain\Workspaces\Models\User;
 use App\Support\Tenancy\CurrentWorkspace;
@@ -33,18 +34,19 @@ final class OnboardingController
         return response()->json($this->state->handle($this->current->get(), $this->user($request)));
     }
 
-    /** PUT onboarding {business_type?, current_step?, action?: skip|resume|complete, welcome_seen?} */
+    /** PUT onboarding {business_type?, vertical?, current_step?, action?: skip|resume|complete, welcome_seen?} */
     public function update(Request $request, UpdateOnboarding $update): JsonResponse
     {
         Gate::authorize('ws.viewWorkspace');
         $data = $request->validate([
             'business_type' => ['sometimes', 'nullable', Rule::in(WorkspaceOnboarding::BUSINESS_TYPES)],
+            'vertical' => ['sometimes', 'nullable', Rule::in(Verticals::keys())],
             'current_step' => ['sometimes', 'nullable', Rule::in(WorkspaceOnboarding::STEPS)],
             'action' => ['sometimes', 'nullable', Rule::in(UpdateOnboarding::ACTIONS)],
             'welcome_seen' => ['sometimes', 'boolean'],
         ]);
         $user = $this->user($request);
-        $workspaceChanges = array_intersect_key($data, array_flip(['business_type', 'current_step', 'action']));
+        $workspaceChanges = array_intersect_key($data, array_flip(['business_type', 'vertical', 'current_step', 'action']));
         if (array_filter($workspaceChanges, fn ($v) => $v !== null) !== []) {
             Gate::authorize('ws.manageWorkspace');
             $update->handle($this->current->get(), $workspaceChanges, $user?->id);

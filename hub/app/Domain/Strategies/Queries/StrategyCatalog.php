@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Strategies\Queries;
 
 use App\Domain\Billing\Models\Plan;
+use App\Domain\Onboarding\Support\Verticals;
 use App\Domain\Strategies\Blocks\BlockState;
 use App\Domain\Strategies\Blocks\FlowBlock;
 use App\Domain\Strategies\StrategyRegistry;
@@ -25,12 +26,16 @@ use App\Domain\Workspaces\Models\Workspace;
  * - `paused`: el bloque existe y se detuvo (o la persona la pausó).
  * - `needs_setup`: falta un requisito obligatorio (web, canal, plantilla aprobada…), con el enlace para resolverlo.
  * - `available`: lista para activarse con un clic.
+ * - `coming_soon`: declarada, pero su flujo todavía no está en la biblioteca («Próximamente»); se vuelve disponible sola.
  *
  * El estado se lee en vivo de los bloques; el potencial y el resultado del mes vienen de su caché.
  */
 final class StrategyCatalog
 {
-    public const STATUSES = ['available', 'needs_setup', 'active', 'paused', 'attention', 'not_in_plan'];
+    public const STATUSES = ['available', 'needs_setup', 'active', 'paused', 'attention', 'not_in_plan', 'coming_soon'];
+
+    /** Cuántas van en «Recomendadas para ti». */
+    public const FOR_YOU = 6;
 
     public function __construct(private readonly StrategyPotential $potential, private readonly StrategyResults $results) {}
 
@@ -41,6 +46,7 @@ final class StrategyCatalog
     public function evaluate(StrategyDefinition $definition, StrategyContext $ctx, array $options = []): array
     {
         return $ctx->remember('eval:'.$definition->key.':'.md5((string) json_encode($options)), function () use ($definition, $ctx, $options): array {
+            $available = StrategyRegistry::available($definition);
             $missing = array_values(array_filter($definition->modules, fn (string $m) => ! $ctx->module($m)));
             $requirements = [];
             foreach ($definition->modules as $module) {
@@ -48,6 +54,10 @@ final class StrategyCatalog
             }
             foreach ($definition->requires as $key) {
                 $requirements[] = Requirements::check($key, $ctx, $options);
+            }
+            if (! $available) {
+                // Su flujo todavía no está en la biblioteca: «Próximamente», sin estado de bloque que leer.
+                return ['status' => 'coming_soon', 'state' => BlockState::off(null), 'requirements' => $requirements, 'missing_modules' => $missing];
             }
             foreach ($definition->primary()->requirements($ctx, $options) as $requirement) {
                 $requirements[] = $requirement;
@@ -69,24 +79,31 @@ final class StrategyCatalog
         });
     }
 
-    /** @return array<string, mixed> el catálogo completo para `GET strategies` */
-    public function catalog(Workspace $workspace): array
+    /**
+     * El catálogo completo para `GET strategies`. Con `vertical`, «Recomendadas para ti» se ordena para esa vertical
+     * en lugar de la del negocio.
+     *
+     * @return array<string, mixed>
+     */
+    public function catalog(Workspace $workspace, ?string $vertical = null): array
     {
         $ctx = StrategyContext::for($workspace);
         $potentials = $this->potential->forWorkspace($workspace);
         $results = $this->results($ctx);
-        $recommended = $this->recommended($ctx, 3);
+        $recommended = $this->recommended($ctx, 3, false, $vertical);
         $items = [];
         foreach (StrategyRegistry::all() as $definition) {
-            $items[] = $this->present($definition, $ctx, $potentials, $results['strategies'], in_array($definition->key, $recommended, true));
+            $items[] = $this->present($definition, $ctx, $potentials, $results['strategies'], in_array($definition->key, $recommended, true), $vertical);
         }
 
         return [
             'business_type' => $ctx->businessType(),
+            'vertical' => $vertical ?? $ctx->vertical(),
             'currency' => (string) ($workspace->currency ?: 'COP'),
             'month' => $results['month'],
             'goals' => array_map(fn (string $g) => ['key' => $g, 'name' => __('strategies.goals.'.$g.'.name'), 'description' => __('strategies.goals.'.$g.'.description')], StrategyRegistry::GOALS),
             'recommended' => $recommended,
+            'for_you' => $this->recommended($ctx, self::FOR_YOU, false, $vertical),
             'data' => $items,
         ];
     }
@@ -125,26 +142,59 @@ final class StrategyCatalog
     }
 
     /**
-     * Las estrategias recomendadas para el negocio, en orden: las del tipo de negocio (StrategyRegistry::RECOMMENDED;
-     * contraentrega o pago pendiente según si hay pedidos contraentrega) que están en el plan y le sirven, sin las que
-     * ya están prendidas salvo que `includeActive` (el paso 5 del asistente las muestra con su interruptor).
+     * El orden de «Recomendadas para ti» para el negocio (todas las que su vertical recomienda, también las de
+     * «Próximamente»): la lista de su vertical (`recommendedFor`) y, si es «tienda + servicios», intercalada con la de
+     * la tienda. Con `vertical`, la de esa vertical.
      *
      * @return list<string>
      */
-    public function recommended(StrategyContext $ctx, int $limit, bool $includeActive = false): array
+    public function rankedOrder(StrategyContext $ctx, ?string $vertical = null): array
     {
-        $type = $ctx->businessType();
-        $candidates = StrategyRegistry::RECOMMENDED[$type] ?? StrategyRegistry::RECOMMENDED['store'];
+        return $ctx->remember('ranked:'.($vertical ?? '-'), function () use ($ctx, $vertical): array {
+            $type = $ctx->businessType();
+            if ($vertical !== null && $type !== 'both') {
+                $type = Verticals::businessType($vertical);
+            }
+            $vertical ??= $ctx->vertical();
+            $lists = [];
+            if ($type === 'store' || $type === 'both') {
+                $lists[] = Verticals::STORE;
+            }
+            if ($type === 'services' || $type === 'both') {
+                $lists[] = $vertical === Verticals::STORE ? Verticals::OTHER : $vertical;
+            }
+            $ranked = [];
+            foreach ($lists as $i => $list) {
+                foreach (StrategyRegistry::rankedFor($list) as $key) {
+                    $rank = StrategyRegistry::find($key)?->rankFor($list) ?? 99;
+                    $ranked[$key] = min($ranked[$key] ?? PHP_INT_MAX, $rank * 10 + $i);
+                }
+            }
+            asort($ranked);
+
+            return array_keys($ranked);
+        });
+    }
+
+    /**
+     * Las recomendadas que se pueden prender ya, en el orden de rankedOrder (contraentrega o pago pendiente según si
+     * hay pedidos contraentrega), sin las de «Próximamente», las que el plan no incluye ni, salvo que `includeActive`
+     * (el paso 5 del asistente las muestra con su interruptor), las que ya están prendidas o en pausa.
+     *
+     * @return list<string>
+     */
+    public function recommended(StrategyContext $ctx, int $limit, bool $includeActive = false, ?string $vertical = null): array
+    {
         $hasCod = ($this->potential->forWorkspace($ctx->workspace)['cod_pending'] ?? null) !== null;
-        $candidates = array_values(array_diff($candidates, [$hasCod ? 'payment_pending' : 'cod_confirm']));
+        $candidates = array_values(array_diff($this->rankedOrder($ctx, $vertical), [$hasCod ? 'payment_pending' : 'cod_confirm']));
         $out = [];
         foreach ($candidates as $key) {
             $definition = StrategyRegistry::find($key);
-            if ($definition === null || ! $ctx->serves($definition->audience)) {
+            if ($definition === null || ($vertical === null && ! $ctx->serves($definition))) {
                 continue;
             }
             $status = $this->evaluate($definition, $ctx)['status'];
-            if ($status === 'not_in_plan' || (! $includeActive && in_array($status, ['active', 'attention', 'paused'], true))) {
+            if (in_array($status, ['not_in_plan', 'coming_soon'], true) || (! $includeActive && in_array($status, ['active', 'attention', 'paused'], true))) {
                 continue;
             }
             $out[] = $key;
@@ -168,7 +218,7 @@ final class StrategyCatalog
         $potentials = $this->potential->forWorkspace($ctx->workspace);
         $rest = [];
         foreach (StrategyRegistry::all() as $definition) {
-            if (in_array($definition->key, $recommended, true) || ! $ctx->serves($definition->audience)) {
+            if (in_array($definition->key, $recommended, true) || ! $ctx->serves($definition)) {
                 continue;
             }
             if (in_array($this->evaluate($definition, $ctx)['status'], ['available', 'needs_setup'], true)) {
@@ -196,9 +246,11 @@ final class StrategyCatalog
      * @param  array<string, array<string, mixed>>  $results
      * @return array<string, mixed>
      */
-    public function present(StrategyDefinition $definition, StrategyContext $ctx, array $potentials, array $results, bool $recommended = false): array
+    public function present(StrategyDefinition $definition, StrategyContext $ctx, array $potentials, array $results, bool $recommended = false, ?string $vertical = null): array
     {
         $eval = $this->evaluate($definition, $ctx);
+        $rank = array_search($definition->key, $this->rankedOrder($ctx, $vertical), true);
+        $available = $eval['status'] !== 'coming_soon';
         $row = $ctx->row($definition->key);
         $text = $this->texts($definition->key, $ctx);
         $on = in_array($eval['status'], ['active', 'attention', 'paused'], true);
@@ -207,8 +259,13 @@ final class StrategyCatalog
             'key' => $definition->key,
             'goal' => $definition->goal,
             'audience' => $definition->audience,
-            'relevant' => $ctx->serves($definition->audience),
+            'business_types' => $definition->businessTypes(),
+            'verticals' => $definition->verticals ?? 'all',
+            'relevant' => $ctx->serves($definition),
             'recommended' => $recommended,
+            'recommended_rank' => $rank === false ? null : $rank + 1,
+            'available' => $available,
+            'unavailable_reason' => $available ? null : __('strategies.coming_soon'),
             'name' => $text['name'],
             'promise' => $text['promise'],
             'status' => $eval['status'],

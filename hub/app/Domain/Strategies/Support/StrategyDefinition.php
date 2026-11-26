@@ -25,6 +25,8 @@ final class StrategyDefinition
      * @param  list<string>  $abilities  permisos además de `manageMarketing` para activarla o pausarla
      * @param  list<string>  $exclusive  estrategias que usan el mismo bloque con otra configuración
      * @param  list<string>  $money  de qué fuentes de MoneyGenerated sale su dinero (además de sus flujos y widgets)
+     * @param  list<string>|null  $verticals  verticales a las que sirve (null = todas las de sus tipos de negocio)
+     * @param  array<string, int>  $recommendedFor  vertical → lugar en «Recomendadas para ti» (1 = la primera)
      */
     public function __construct(
         public readonly string $key,
@@ -37,7 +39,25 @@ final class StrategyDefinition
         public readonly array $abilities = [],
         public readonly array $exclusive = [],
         public readonly array $money = [],
+        public readonly ?array $verticals = null,
+        public readonly array $recommendedFor = [],
     ) {}
+
+    /** @return list<string> los tipos de negocio a los que sirve: `store`, `services` o los dos */
+    public function businessTypes(): array
+    {
+        return match ($this->audience) {
+            'store' => ['store'],
+            'services' => ['services'],
+            default => ['store', 'services'],
+        };
+    }
+
+    /** Su lugar en «Recomendadas para ti» para esa vertical, o null si no se recomienda ahí. */
+    public function rankFor(string $vertical): ?int
+    {
+        return $this->recommendedFor[$vertical] ?? null;
+    }
 
     public function primary(): StrategyBlock
     {

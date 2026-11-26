@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $timezone
  * @property string $currency
  * @property string $locale
+ * @property string|null $vertical a qué se dedica (config/igr-verticals.php), docs/diseno/rediseno-v2.md §11.1
  * @property array<string, mixed>|null $settings
  * @property array<string, mixed>|null $brand_kit
  * @property string $status
@@ -34,7 +35,7 @@ class Workspace extends Model
     public const ID_PREFIX = 'ws';
 
     protected $fillable = [
-        'account_id', 'name', 'slug', 'country', 'timezone', 'currency', 'locale', 'industry',
+        'account_id', 'name', 'slug', 'country', 'timezone', 'currency', 'locale', 'industry', 'vertical',
         'legal_name', 'privacy_policy_url', 'settings', 'brand_kit', 'status',
     ];
 

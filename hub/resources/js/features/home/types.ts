@@ -63,13 +63,27 @@ export interface TodayItem {
 }
 
 export interface KpiValue {
-    value: number;
+    /** null cuando no hay con qué calcularlo (p. ej. tiempo de primera respuesta sin contactos respondidos). */
+    value: number | null;
     previous: number | null;
     change_pct: number | null;
 }
 
 export type StoreKpi = 'revenue' | 'orders' | 'new_customers' | 'returning_customers';
-export type ServicesKpi = 'leads' | 'won_leads' | 'won_value' | 'appointments';
+
+/** Negocio sin tienda (§11.2): nada de pedidos ni carritos. */
+export type ServicesKpi = 'leads' | 'first_response_minutes' | 'appointments_booked' | 'appointments_attended' | 'close_rate' | 'won_value';
+
+export type KpiKey = StoreKpi | ServicesKpi;
+
+export type KpiUnit = 'money' | 'count' | 'minutes' | 'percent';
+
+export interface KpiDefinition {
+    unit: KpiUnit;
+    label: string;
+    /** Cómo se calcula, para la ayuda «?». */
+    help: string;
+}
 
 export interface KpiPeriod {
     from: string;
@@ -79,22 +93,21 @@ export interface KpiPeriod {
     compare: { mode: string; from: string; to: string } | null;
 }
 
-export type HomeKpis =
-    | {
-          kind: 'store';
-          available: boolean;
-          period: KpiPeriod;
-          metrics: Partial<Record<StoreKpi, KpiValue>>;
-          /** 30 días para la minigráfica. */
-          series: ({ date: string } & Record<StoreKpi, number>)[];
-      }
-    | {
-          kind: 'services';
-          available: boolean;
-          period: KpiPeriod;
-          metrics: Record<ServicesKpi, KpiValue>;
-          series: ({ date: string } & Record<'leads' | 'won_leads' | 'won_value', number>)[];
-      };
+export interface HomeKpis {
+    /** `store`: ventas y clientes; `services`: contactos, respuesta, citas y cierre; `both`: los dos grupos. */
+    kind: 'store' | 'services' | 'both';
+    available: boolean;
+    period: KpiPeriod;
+    /** Los KPI que aplican a este negocio, en el orden en que se muestran: la UI no adivina. */
+    applicable: KpiKey[];
+    definitions: Partial<Record<KpiKey, KpiDefinition>>;
+    metrics: Partial<Record<KpiKey, KpiValue>>;
+    /** Las métricas que trae la serie de 30 días (minigráficas). */
+    series_keys: KpiKey[];
+    series: ({ date: string } & Partial<Record<KpiKey, number>>)[];
+    /** De dónde vienen los contactos del mes (negocios sin tienda). */
+    lead_sources: { origin: string; label: string; count: number }[];
+}
 
 export interface HealthNotice {
     site_id: string;

@@ -48,7 +48,7 @@ final class ActivateRecommendedStrategies
                 $result = $this->activate->handle($workspace, $key, [], $userId);
                 $out[] = ['key' => $key, 'result' => $result['activated'] ? 'activated' : 'already_active'];
             } catch (StrategyNotReady $e) {
-                $out[] = ['key' => $key, 'result' => 'needs_setup', 'message' => $e->getMessage(), 'requirements' => array_map(fn (Requirement $r) => $r->toArray(), $e->requirements)];
+                $out[] = ['key' => $key, 'result' => $e->error === 'coming_soon' ? 'coming_soon' : 'needs_setup', 'message' => $e->getMessage(), 'requirements' => array_map(fn (Requirement $r) => $r->toArray(), $e->requirements)];
             } catch (PlanRequired $e) {
                 $out[] = ['key' => $key, 'result' => 'not_in_plan', 'message' => $e->getMessage()];
             }

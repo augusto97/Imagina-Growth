@@ -22,6 +22,33 @@ return [
         ],
     ],
 
+    // Los KPI de «Tu negocio»: nombre y cómo se calcula (la ayuda «?»).
+    'kpis' => [
+        'revenue' => ['label' => 'Ventas', 'help' => 'Lo que suman los pedidos pagados del mes.'],
+        'orders' => ['label' => 'Pedidos', 'help' => 'Pedidos pagados del mes.'],
+        'new_customers' => ['label' => 'Clientes nuevos', 'help' => 'Personas cuya primera compra pagada fue este mes.'],
+        'returning_customers' => ['label' => 'Clientes que volvieron', 'help' => 'Personas que ya te habían comprado y volvieron este mes.'],
+        'leads' => ['label' => 'Contactos nuevos', 'help' => 'Personas que dejaron sus datos o te escribieron por primera vez este mes.'],
+        'first_response_minutes' => ['label' => 'Primera respuesta', 'help' => 'Minutos que tardó la primera respuesta a los contactos de este mes (la mediana).'],
+        'appointments_booked' => ['label' => 'Citas agendadas', 'help' => 'Citas que se agendaron este mes.'],
+        'appointments_attended' => ['label' => 'Citas cumplidas', 'help' => 'Citas de este mes a las que la persona llegó.'],
+        'close_rate' => ['label' => 'Tasa de cierre', 'help' => 'De los contactos que se cerraron este mes, cuántos se ganaron.'],
+        'won_value' => ['label' => 'Valor ganado', 'help' => 'Lo que suman los contactos ganados este mes.'],
+    ],
+
+    // De dónde vienen los contactos (leads.origin).
+    'lead_origins' => [
+        'form' => 'Formularios de tu web',
+        'whatsapp' => 'WhatsApp',
+        'messenger' => 'Messenger',
+        'instagram' => 'Instagram',
+        'booking' => 'Página de reservas',
+        'quote' => 'Cotizador',
+        'api' => 'Integraciones',
+        'manual' => 'Creados a mano',
+        'other' => 'Otros',
+    ],
+
     'today' => [
         'connect_site' => [
             'title' => 'Conecta tu web',

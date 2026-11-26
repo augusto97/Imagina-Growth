@@ -43,6 +43,9 @@ final class ActivateStrategy
         return Cache::lock('ws:'.$workspace->id.':strategy:'.$key, 60)->block(15, function () use ($workspace, $definition, $options, $userId): array {
             $ctx = StrategyContext::for($workspace);
             $eval = $this->catalog->evaluate($definition, $ctx, $options);
+            if ($eval['status'] === 'coming_soon') {
+                throw new StrategyNotReady(__('strategies.coming_soon_hint'), [], [], null, 'coming_soon');
+            }
             if ($eval['status'] === 'not_in_plan') {
                 $plans = $this->catalog->present($definition, $ctx, [], [])['plans'];
                 throw new PlanRequired($eval['missing_modules'], $plans);

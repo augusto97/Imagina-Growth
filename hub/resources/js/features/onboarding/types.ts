@@ -1,4 +1,4 @@
-import type { BusinessType, StrategyDetail, StrategyKey, StrategyRequirement, StrategySummary } from '@/features/strategies/types';
+import type { BusinessType, StrategyDetail, StrategyKey, StrategyRequirement, StrategySummary, Vertical } from '@/features/strategies/types';
 
 /* El asistente de configuración (docs/diseno/rediseno-v2.md §4): GET/PUT /api/w/{ws}/onboarding y
  * POST /api/w/{ws}/onboarding/strategies (App\Domain\Onboarding). */
@@ -37,6 +37,11 @@ export interface Onboarding {
     business_type: BusinessType | null;
     /** Lo que dicen los datos, para precargar el paso 1. */
     suggested_business_type: BusinessType;
+    /** A qué se dedica (se guarda en el espacio de trabajo y se cambia después en Configuración). */
+    vertical: Vertical | null;
+    suggested_vertical: Vertical;
+    /** Las opciones del paso 1, con su nombre, ejemplos y el tipo de negocio que implican. */
+    verticals: VerticalOption[];
     current_step: OnboardingStepKey;
     steps: OnboardingStep[];
     progress: { completed: number; total: number };
@@ -51,8 +56,16 @@ export interface Onboarding {
     timeline: { when: 'today' | 'week' | 'month'; text: string }[];
 }
 
+export interface VerticalOption {
+    key: Vertical;
+    name: string;
+    examples: string;
+    business_type: 'store' | 'services';
+}
+
 export interface OnboardingUpdate {
     business_type?: BusinessType;
+    vertical?: Vertical;
     current_step?: OnboardingStepKey;
     action?: 'skip' | 'resume' | 'complete';
     welcome_seen?: boolean;

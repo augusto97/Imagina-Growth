@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Ability } from '@/api/types';
 import { ApiError } from '@/lib/api';
-import { activationProblem, blockingRequirements, byGoal, canActivate, canManage, isOn, nextFix } from './api';
+import { activationProblem, blockingRequirements, byGoal, canActivate, canManage, forYou, isOn, nextFix } from './api';
 import type { StrategyCatalog, StrategyRequirement, StrategySummary } from './types';
 
 const requirement = (key: StrategyRequirement['key'], met: boolean, required = true): StrategyRequirement => ({
@@ -18,8 +18,13 @@ const strategy = (overrides: Partial<StrategySummary> = {}): StrategySummary => 
     key: 'abandoned_cart',
     goal: 'recover_sales',
     audience: 'store',
+    business_types: ['store'],
+    verticals: 'all',
     relevant: true,
     recommended: false,
+    recommended_rank: null,
+    available: true,
+    unavailable_reason: null,
     name: 'Recupera carritos abandonados',
     promise: '…',
     status: 'available',
@@ -44,6 +49,12 @@ describe('estrategias', () => {
         expect(canActivate(strategy({ status: 'paused' }))).toBe(true);
         expect(canActivate(strategy({ status: 'not_in_plan' }))).toBe(false);
         expect(canActivate(strategy({ status: 'active' }))).toBe(false);
+        expect(canActivate(strategy({ status: 'coming_soon', available: false, unavailable_reason: 'Próximamente' }))).toBe(false);
+    });
+
+    it('«Recomendadas para ti» sigue el orden del servidor y omite claves que no vinieron', () => {
+        const data = [strategy({ key: 'abandoned_cart' }), strategy({ key: 'service_lead' }), strategy({ key: 'renewal' })];
+        expect(forYou({ for_you: ['renewal', 'quote_followup', 'service_lead'], data }).map((s) => s.key)).toEqual(['renewal', 'service_lead']);
     });
 
     it('solo quien tiene todos los permisos de la estrategia la cambia', () => {
@@ -67,14 +78,14 @@ describe('estrategias', () => {
                 { key: 'services', name: 'Servicios', description: '' },
             ],
             data: [
-                strategy({ key: 'lead_response', goal: 'services', relevant: false }),
+                strategy({ key: 'service_lead', goal: 'services', relevant: false }),
                 strategy({ key: 'abandoned_cart' }),
                 strategy({ key: 'renewal', goal: 'services', relevant: true }),
             ],
         };
         expect(byGoal(catalog).map((g) => [g.goal, g.items.map((i) => i.key)])).toEqual([
             ['recover_sales', ['abandoned_cart']],
-            ['services', ['renewal', 'lead_response']],
+            ['services', ['renewal', 'service_lead']],
         ]);
     });
 
@@ -83,6 +94,7 @@ describe('estrategias', () => {
         const plan = new ApiError(402, 'plan_required', 'Plan', {}, { error: 'plan_required', module: 'loyalty', modules: ['loyalty'], plans: [{ id: 'tienda_crece', name: 'Crece' }], message: 'Plan' });
         expect(activationProblem(needs)).toMatchObject({ kind: 'needs_setup', body: { to: 'sitios?conectar=1' } });
         expect(activationProblem(plan)).toMatchObject({ kind: 'plan_required', body: { module: 'loyalty' } });
+        expect(activationProblem(new ApiError(422, 'coming_soon', 'Próximamente', {}, { error: 'coming_soon', message: 'Próximamente', requirements: [], issues: {}, to: null }))).toMatchObject({ kind: 'needs_setup' });
         expect(activationProblem(new Error('x'))).toBeNull();
     });
 });

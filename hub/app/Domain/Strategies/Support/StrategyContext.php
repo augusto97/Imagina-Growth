@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace App\Domain\Strategies\Support;
 
 use App\Domain\Billing\Contracts\Entitlements;
+use App\Domain\Billing\Plans\PlanCatalog;
+use App\Domain\Billing\Plans\PlanResolver;
 use App\Domain\Intelligence\Ai\Contracts\AiGateway;
 use App\Domain\Onboarding\Models\WorkspaceOnboarding;
+use App\Domain\Onboarding\Support\Verticals;
 use App\Domain\Strategies\Models\WorkspaceStrategy;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Domain\Workspaces\Queries\WorkspaceFeatures;
 use Closure;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Laravel\Pennant\Feature;
 use Throwable;
 
 /**
@@ -257,6 +261,17 @@ final class StrategyContext
 
     public function module(string $module): bool
     {
+        $this->remember('modules_loaded', function (): bool {
+            try {
+                // Pennant en una sola consulta para todos los módulos; después `allows()` lee de su memoria.
+                Feature::for($this->workspace)->loadMissing(array_map(fn (string $m) => PlanResolver::feature($m), PlanCatalog::modules()));
+            } catch (Throwable) {
+                // Otro Entitlements (pruebas, sin Pennant): `allows()` responde igual, uno por uno.
+            }
+
+            return true;
+        });
+
         return $this->remember('module:'.$module, fn () => app(Entitlements::class)->allows($this->workspace, $module));
     }
 
@@ -303,17 +318,54 @@ final class StrategyContext
         });
     }
 
+    /** Lo elegido en el asistente; si no, lo que implica la vertical guardada; si no, lo que dicen los datos. */
     public function businessType(): string
     {
-        return $this->declaredBusinessType() ?? $this->detectedBusinessType();
+        $vertical = $this->workspace->getAttribute('vertical');
+
+        return $this->declaredBusinessType()
+            ?? (Verticals::valid(is_string($vertical) ? $vertical : null) ? Verticals::businessType((string) $vertical) : null)
+            ?? $this->detectedBusinessType();
     }
 
-    /** ¿La estrategia de esa audiencia le sirve a este negocio? */
-    public function serves(string $audience): bool
+    /**
+     * A qué se dedica (docs/diseno/rediseno-v2.md §11.1): la guardada en el espacio de trabajo; si no, la que sugiere
+     * su industria; si no, `store` para una tienda y `other` para servicios.
+     */
+    public function vertical(): string
+    {
+        return $this->remember('vertical', function (): string {
+            $saved = $this->workspace->getAttribute('vertical');
+            if (is_string($saved) && Verticals::valid($saved)) {
+                return $saved;
+            }
+            $industry = $this->workspace->getAttribute('industry');
+            $suggested = Verticals::fromIndustry(is_string($industry) ? $industry : null);
+            $type = $this->declaredBusinessType() ?? $this->detectedBusinessType();
+            if ($suggested !== null && ($type === 'both' || Verticals::businessType($suggested) === $type)) {
+                return $suggested;
+            }
+
+            return $type === 'services' ? Verticals::OTHER : Verticals::STORE;
+        });
+    }
+
+    /**
+     * ¿La estrategia le sirve a este negocio? Por su tipo (tienda, servicios o los dos) y, si la estrategia es de
+     * ciertas verticales, por la vertical del negocio (uno «tienda + servicios» también cuenta como tienda).
+     */
+    public function serves(StrategyDefinition $definition): bool
     {
         $type = $this->businessType();
+        if ($type !== 'both' && ! in_array($type, $definition->businessTypes(), true)) {
+            return false;
+        }
+        if ($definition->verticals === null) {
+            return true;
+        }
+        $mine = $type === 'both' ? [$this->vertical(), Verticals::STORE] : [$this->vertical()];
 
-        return $audience === 'both' || $type === 'both' || $type === $audience;
+        return array_intersect($mine, $definition->verticals) !== [];
     }
 
     /** Los textos van en su versión de servicios cuando el negocio solo vende servicios. */

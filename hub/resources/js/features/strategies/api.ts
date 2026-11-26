@@ -15,6 +15,7 @@ import type {
     StrategyRequirement,
     StrategyStatus,
     StrategySummary,
+    Vertical,
 } from './types';
 
 /* Hooks de TanStack Query de las estrategias y la lógica pura que comparten las pantallas. */
@@ -26,10 +27,11 @@ export const strategyKeys = {
 
 const base = (ws: string) => `${wsPath(ws)}/strategies`;
 
-export function useStrategies(ws: string, enabled = true) {
+/** El catálogo; con `vertical`, ordena «Recomendadas para ti» para esa vertical en lugar de la del negocio. */
+export function useStrategies(ws: string, enabled = true, vertical?: Vertical) {
     return useQuery({
-        queryKey: strategyKeys.all(ws),
-        queryFn: ({ signal }) => api.get<StrategyCatalog>(base(ws), signal),
+        queryKey: vertical === undefined ? strategyKeys.all(ws) : [...strategyKeys.all(ws), { vertical }],
+        queryFn: ({ signal }) => api.get<StrategyCatalog>(vertical === undefined ? base(ws) : `${base(ws)}?vertical=${encodeURIComponent(vertical)}`, signal),
         staleTime: 30_000,
         enabled,
     });
@@ -84,6 +86,11 @@ export function canActivate(strategy: Pick<StrategySummary, 'status'>): boolean 
     return strategy.status === 'available' || strategy.status === 'paused' || strategy.status === 'needs_setup';
 }
 
+/** «Recomendadas para ti» en el orden que mandó el servidor. */
+export function forYou(catalog: Pick<StrategyCatalog, 'for_you' | 'data'>): StrategySummary[] {
+    return catalog.for_you.map((key) => catalog.data.find((s) => s.key === key)).filter((s): s is StrategySummary => s !== undefined);
+}
+
 /** La persona tiene todos los permisos que pide la estrategia para activarla o pausarla. */
 export function canManage(strategy: Pick<StrategySummary, 'abilities'>, abilities: readonly Ability[]): boolean {
     return strategy.abilities.every((a) => abilities.includes(a));
@@ -111,7 +118,7 @@ export function byGoal(catalog: Pick<StrategyCatalog, 'goals' | 'data'>): { goal
 
 /** El error de activar, para mostrar qué falta (422) o qué plan la incluye (402). */
 export function activationProblem(error: unknown): { kind: 'needs_setup'; body: NeedsSetupError } | { kind: 'plan_required'; body: PlanRequiredError } | null {
-    if (isApiError(error, 'needs_setup')) {
+    if (isApiError(error, 'needs_setup') || isApiError(error, 'coming_soon')) {
         return { kind: 'needs_setup', body: error.body as NeedsSetupError };
     }
     if (isApiError(error, 'plan_required')) {

@@ -114,6 +114,15 @@ final class FlowBlock implements StrategyBlock
         return Previews::flow($ctx, $definition, $this->useWhatsapp($ctx));
     }
 
+    /**
+     * ¿El flujo existe en la biblioteca? Las estrategias de la biblioteca ampliada (§11.4) se declaran antes de que
+     * su flujo exista: quedan «Próximamente» y se activan solas cuando el flujo llega a FlowLibrary.
+     */
+    public function available(): bool
+    {
+        return is_array(FlowLibrary::find($this->libraryKey)['graph'] ?? null);
+    }
+
     /** ¿Se puede prender ya (canal y plantillas)? Lo preguntan los flujos de apoyo, que no bloquean la estrategia. */
     public function ready(StrategyContext $ctx): bool
     {
