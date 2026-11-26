@@ -319,3 +319,41 @@ para su vertical, y su estrategia en el catálogo (§6).
   agendadas y cumplidas, tasa de cierre y valor ganado) con `applicable` y `definitions`, sin pedidos ni carritos.
 - La estrategia del flujo 18 se llama `service_lead`, como el flujo (antes `lead_response` en el borrador del
   backend), para que todas las claves de estrategias de flujos coincidan con las de la biblioteca.
+
+## 12. Mensajes: cómo quedó (fase B)
+
+Pantallas de la sección Mensajes (automatizaciones, campañas, calendario comercial, plantillas y copiloto), en tienda y
+en servicios. Lo que cambió frente al plan y por qué:
+
+- **Automatizaciones** (`flujos`): cada una dice qué hace en una frase, su estado, lo que logró este mes (en pesos en
+  una tienda; en un negocio de servicios, cuántos agendaron, confirmaron o avanzaron, con la palabra de su meta) y cómo
+  va contra su grupo de control (sin grupo, «midiendo N de 30» o la diferencia en puntos de los últimos 90 días). Las
+  que vienen de la biblioteca enlazan a su estrategia (`/estrategias?estrategia=<clave>`) en lugar de repetirla.
+- **«Nueva automatización» abre la biblioteca** (`?tab=biblioteca`) como galería: objetivos propios de la galería
+  (recuperar ventas, que vuelvan, fidelizar, captar, reseñas, convertir contactos en clientes, citas y eventos; en
+  servicios primero los dos últimos), «Para tu negocio / Ver todas», «Recomendadas para tu negocio» con el lugar de su
+  estrategia para la vertical y la tarjeta «Desde cero». «Ver recorrido» abre el recorrido paso a paso (la misma lista
+  del celular) con cada mensaje como le llega al cliente, con datos de ejemplo de su país, antes de crearla.
+- **Constructor:** los pasos tienen nombres sin jerga («Cuándo empieza», «Preguntar algo», «Esperar a que haga algo»,
+  «Avisar a otro sistema») y una línea de ayuda arriba de cada formulario; `wait` con `mode: until_date` y `condition`
+  con `mode: date` tienen su formulario (fecha de referencia: la cita o una fecha del disparador; cuánto antes o
+  después; qué hacer si ya pasó) y su resumen («Espera hasta 48 horas antes de la cita», «¿Falta más de 49 horas para la
+  cita?», ramas «Sí, falta más» / «No, es muy pronto»).
+- **Campañas:** el asistente pasa de 5 a 4 pasos (a quién → qué → cuándo → revisar; el canal se elige en «¿Qué les
+  dices?» con cuántos aceptaron cada uno). «¿A quién?» muestra el alcance real por canal y consentimiento y el costo
+  aproximado de WhatsApp; «¿Qué les dices?» la vista previa en el celular o en la bandeja; «¿Cuándo?» explica la
+  ventana legal en una frase («Se enviará el lunes, 7 de diciembre a las 7:00 a. m. porque el sábado solo se puede
+  enviar de 8:00 a 15:00 y el domingo no se envían mensajes comerciales»). El informe empieza por el dinero generado.
+  Sin tienda no aparecen las reglas de compras.
+- **Calendario comercial** (`campanas/calendario`, entrada propia en Mensajes): la próxima fecha en grande y las
+  demás por mes, cada una con cuándo enviarla («cuanto antes» si ya pasó el día ideal), canal, plantilla, a quién y
+  sus ideas (las de servicios cuando las de tienda hablan de regalos o envíos), y «Crear la campaña» en un clic, que la
+  deja en borrador y abre la revisión. Las 3 próximas salen también arriba de Campañas. `?vista=calendario` lleva ahí.
+- **Plantillas:** «Tus plantillas» por canal con el estado de Meta en palabras (aprobada, en revisión, rechazada con
+  el motivo, falta conectar el número, lista para enviar a Meta con su botón) y «Galería» (antes «Biblioteca»;
+  `?tab=biblioteca` sigue funcionando) por objetivo y tipo de negocio, con la vista previa realista e instalar en un
+  clic. El selector de variables muestra solo los grupos del tipo de negocio, explica cada grupo (cita, lead,
+  cotización, evento, enlaces para agendar y reseña en Google) y su ejemplo, sin «Fase N».
+- **Copiloto:** «Cómo funciona» en tres pasos y ejemplos de pedidos por vertical (salud, educación, inmobiliaria,
+  servicios profesionales, servicios en general o tienda) que abren el copiloto con el pedido escrito.
+
