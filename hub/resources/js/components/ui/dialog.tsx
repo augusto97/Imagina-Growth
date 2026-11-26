@@ -15,7 +15,7 @@ export function DialogContent({ className, children, ...props }: ComponentProps<
             <DialogPrimitive.Overlay className="igr:fixed igr:inset-0 igr:z-50 igr:bg-slate-950/40 igr:backdrop-blur-[2px]" />
             <DialogPrimitive.Content
                 className={cn(
-                    'igr-enter igr:fixed igr:left-1/2 igr:top-[12vh] igr:z-50 igr:w-[calc(100%-2rem)] igr:max-w-lg igr:-translate-x-1/2 igr:rounded-2xl igr:border igr:bg-popover igr:p-6 igr:text-popover-foreground igr:shadow-lg igr:focus:outline-none',
+                    'igr-enter igr:fixed igr:left-1/2 igr:top-[3dvh] igr:z-50 igr:max-h-[94dvh] igr:w-[calc(100%-2rem)] igr:max-w-lg igr:-translate-x-1/2 igr:overflow-y-auto igr:overscroll-contain igr:rounded-2xl igr:border igr:bg-popover igr:p-6 igr:text-popover-foreground igr:shadow-lg igr:focus:outline-none igr:sm:top-[12vh] igr:sm:max-h-[84dvh]',
                     className,
                 )}
                 {...props}
