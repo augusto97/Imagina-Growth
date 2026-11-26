@@ -164,10 +164,11 @@ La ley aplica a los mensajes **comerciales o publicitarios** por SMS, mensajerí
 - **Instagram:** fuera de la ventana no sale nada hasta que el cliente vuelva a escribir (la bandeja muestra «Ventana cerrada»).
 - Estos mensajes no tienen costo de Meta. Las palabras de baja («baja», «STOP») se procesan igual que en WhatsApp.
 
-### 5.2 Zender (no oficial)
+### 5.2 WhatsApp no oficial (Zender e Imagina Whats)
 - Usa WhatsApp Web, que **no está autorizado** por los términos de WhatsApp para automatizar, así que el número puede ser **bloqueado**.
 - En el producto queda limitado a conversaciones 1:1 y mensajes transaccionales de bajo volumen, con topes fijos por hora y por día (30 y 200, definidos por la plataforma en `config/igr-messaging.php`; el cliente no los puede subir), y **sin campañas ni flujos masivos de marketing** (el driver rechaza todo mensaje de marketing).
 - La activación exige que el `owner` acepte un aviso de riesgo (auditoría).
+- Imagina Whats aplica además su propio calentamiento, ritmo humanizado y horas silenciosas, que no se apagan por API; el hub respeta su tope diario aplazando el envío, y una baja en Imagina Whats (`contact.unsubscribed`) revoca el marketing de WhatsApp en el hub.
 - No se implementan técnicas para evadir la detección de WhatsApp.
 
 ---

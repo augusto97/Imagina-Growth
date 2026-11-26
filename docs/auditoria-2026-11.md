@@ -179,8 +179,9 @@ Antes solo Google Calendar usaba OAuth de verdad; el resto pedía pegar tokens. 
    `IGR_GOOGLE_CLIENT_ID`; las conexiones de antes siguen con su cliente).
 4. ✅ (lote 3) Meta Login for Business: conjunto de datos (píxel) y cuenta publicitaria para CAPI, audiencias y gasto;
    5. ✅ TikTok for Business (anunciante y píxel); 6. ✅ Messenger e Instagram (eligiendo la página).
-7. ⏳ **Imagina Whats** (WhatsApp Web por QR, API REST con token): falta su documentación (URL base, autenticación,
-   envío de texto y medios, webhooks de entrada y estados).
+7. ✅ (0.2.1) **Imagina Whats** (WhatsApp Web por QR, API REST v1 con clave y webhooks firmados): canal de WhatsApp no
+   oficial con la regla de Zender (modulos.md M07, cumplimiento.md §5.2): clave pegada por el dueño, número vinculado
+   allá, webhook registrado solo, envío de texto con idempotencia, entrantes, estados y bajas.
 8. ✅ (lote 4) **Coexistencia de WhatsApp en la bandeja** (`Messaging/Coexistence`): lo que el negocio escribe desde
    la app del celular (`smb_message_echoes`) entra a la conversación como «Desde el celular», sin pasar por el
    despachador ni gastar cupos y sin `sent_at` (Meta no lo cobra ni abre la ventana de 24 h), cuenta como respuesta

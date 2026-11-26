@@ -1,5 +1,25 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-26 — Versión 0.2.1: Imagina Whats como canal de WhatsApp
+
+Se instala con el botón de actualizar, sin consola ni migraciones. Sin cambios en el contrato de eventos.
+
+**Imagina Whats** (https://whats.imagina.cloud) se conecta desde **Configuración → Conexiones → WhatsApp →
+«Conectar con Imagina Whats»**:
+- El dueño pega su clave de API de Imagina Whats; «Verificar la clave» dice qué permisos le faltan y muestra los
+  números vinculados allá con su estado. Elige un número conectado y acepta el aviso de riesgo.
+- El hub registra solo el webhook firmado en Imagina Whats (sin copiar URL ni secretos a mano): los mensajes que
+  escriben los clientes llegan a la bandeja (con el agente con IA, leads y «Hoy»), los estados (enviado, entregado,
+  leído, fallido) se ven en cada mensaje y una baja hecha en Imagina Whats revoca el marketing de WhatsApp aquí.
+- Envía texto: respuestas de la bandeja, confirmaciones y recordatorios de las automatizaciones (las plantillas de
+  WhatsApp salen ya compuestas como texto). Cada envío lleva su referencia y una clave de idempotencia: un reintento
+  nunca duplica el mensaje.
+- Es WhatsApp Web, no oficial: igual que Zender, sin campañas ni automatizaciones de marketing, con topes fijos de 30
+  mensajes por hora y 200 por día, y el riesgo de bloqueo explicado al conectar. Si Imagina Whats llega a su tope
+  diario de calentamiento, el mensaje se aplaza hasta la hora que indica en lugar de fallar.
+- «Comprobar» lee el estado del número en Imagina Whats (conectado, sesión cerrada, bloqueado) y desconectar borra el
+  webhook allá.
+
 ## 2026-11-26 — Versión 0.2.0: rediseño completo, estrategias y negocios sin tienda
 
 Se instala con el botón de actualizar, sin consola (las migraciones nuevas corren solas). Contrato de eventos v8
