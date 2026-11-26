@@ -146,12 +146,12 @@ function BlocksGrid({ overview }: { overview: RecoOverview }) {
                     <Card key={k.kind} className={k.enabled ? '' : 'igr:opacity-70'}>
                         <CardHeader className="igr:space-y-1 igr:pb-2">
                             <div className="igr:flex igr:items-start igr:justify-between igr:gap-2">
-                                <CardTitle className="igr:text-sm">{t(`onsiteCommerce.kinds.${k.kind}.name`)}</CardTitle>
+                                <CardTitle>{t(`onsiteCommerce.kinds.${k.kind}.name`)}</CardTitle>
                                 <Badge variant={k.personal ? 'default' : 'secondary'}>
                                     {k.personal ? t('onsiteCommerce.reco.blocks.personal') : t('onsiteCommerce.reco.blocks.shared')}
                                 </Badge>
                             </div>
-                            <CardDescription className="igr:text-xs">{t(`onsiteCommerce.kinds.${k.kind}.logic`)}</CardDescription>
+                            <CardDescription>{t(`onsiteCommerce.kinds.${k.kind}.logic`)}</CardDescription>
                         </CardHeader>
                         <CardContent className="igr:flex igr:items-center igr:justify-between igr:gap-2 igr:pt-0">
                             <button
@@ -214,7 +214,7 @@ function PreviewCard({ overview }: { overview: RecoOverview }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="igr:text-sm">{t('onsiteCommerce.reco.preview.title')}</CardTitle>
+                <CardTitle>{t('onsiteCommerce.reco.preview.title')}</CardTitle>
                 <CardDescription>{t('onsiteCommerce.reco.preview.help')}</CardDescription>
             </CardHeader>
             <CardContent className="igr:space-y-4">
@@ -342,7 +342,7 @@ function RulesCard({ overview }: { overview: RecoOverview }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="igr:text-sm">{t('onsiteCommerce.reco.rules.title')}</CardTitle>
+                <CardTitle>{t('onsiteCommerce.reco.rules.title')}</CardTitle>
                 <CardDescription>{t('onsiteCommerce.reco.rules.help', { min: overview.config.min_pair_orders, days: overview.config.window_days })}</CardDescription>
             </CardHeader>
             <CardContent className="igr:space-y-3">

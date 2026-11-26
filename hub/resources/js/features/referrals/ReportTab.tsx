@@ -1,14 +1,14 @@
-import { Gift, Share2 } from 'lucide-react';
+import { Coins, Gift, HandCoins, ShoppingBag, UserCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/input';
 import { EmptyState, ErrorState } from '@/components/ui/misc';
+import { SegmentedControl } from '@/components/ui/segmented';
+import { StatCard, StatCardSkeleton, StatGrid } from '@/components/ui/stat-card';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { StackedBars } from '@/features/analytics/components/charts';
 import { DataTable, type Column } from '@/features/analytics/components/DataTable';
 import { Section } from '@/features/analytics/components/Section';
-import { DashboardSkeleton, StatTile, TileGrid } from '@/features/analytics/components/StatTile';
 import { useFormatters } from '@/features/analytics/format';
 import { useAffiliates, useProgram, useReport } from './api';
 import { isoDay } from './labels';
@@ -36,7 +36,13 @@ export function ReportTab({ onConfigure }: { onConfigure: () => void }) {
     const affiliates = useAffiliates(workspace.id);
 
     if (report.isPending || program.isPending) {
-        return <DashboardSkeleton />;
+        return (
+            <StatGrid>
+                {[0, 1, 2, 3].map((i) => (
+                    <StatCardSkeleton key={i} />
+                ))}
+            </StatGrid>
+        );
     }
     if (report.isError) {
         return <ErrorState error={report.error} onRetry={() => void report.refetch()} />;
@@ -47,10 +53,16 @@ export function ReportTab({ onConfigure }: { onConfigure: () => void }) {
     if (nothingYet) {
         return (
             <EmptyState
-                icon={Share2}
+                illustration="customers"
                 title={t('referrals.report.emptyTitle')}
                 description={t('referrals.report.emptyDescription')}
-                action={<Button onClick={onConfigure}><Gift />{t('referrals.report.configure')}</Button>}
+                action={
+                    <Button size="lg" onClick={onConfigure}>
+                        <Gift aria-hidden />
+                        {t('referrals.report.configure')}
+                    </Button>
+                }
+                steps={[t('referrals.report.emptyStep1'), t('referrals.report.emptyStep2'), t('referrals.report.emptyStep3')]}
             />
         );
     }
@@ -75,7 +87,9 @@ export function ReportTab({ onConfigure }: { onConfigure: () => void }) {
             label: t('referrals.report.bestCampaign'),
             help: t('referrals.report.bestCampaignHelp'),
             render: (r) =>
-                r.best_campaign === null ? '—' : (
+                r.best_campaign === null ? (
+                    '—'
+                ) : (
                     <span>
                         {r.best_campaign.campaign ?? t(`referrals.via.${r.best_campaign.via ?? 'link'}`)}
                         <span className="igr:text-muted-foreground"> · {fmt.money(r.best_campaign.revenue)}</span>
@@ -86,32 +100,49 @@ export function ReportTab({ onConfigure }: { onConfigure: () => void }) {
 
     return (
         <div className="igr:space-y-4">
-            <div className="igr:flex igr:items-center igr:justify-end igr:gap-2">
-                <label htmlFor="referrals-range" className="igr:text-xs igr:text-muted-foreground">
-                    {t('referrals.report.range')}
-                </label>
-                <Select id="referrals-range" className="igr:w-auto" value={days} onChange={(e) => setDays(Number(e.target.value) as (typeof RANGES)[number])}>
-                    {RANGES.map((d) => (
-                        <option key={d} value={d}>
-                            {t('referrals.report.lastDays', { count: d })}
-                        </option>
-                    ))}
-                </Select>
+            <div className="igr:flex igr:justify-end">
+                <SegmentedControl
+                    size="sm"
+                    label={t('referrals.report.range')}
+                    value={String(days)}
+                    onChange={(v) => setDays(Number(v) as (typeof RANGES)[number])}
+                    options={RANGES.map((d) => ({ value: String(d), label: t('referrals.report.days', { count: d }) }))}
+                />
             </div>
-            <TileGrid>
-                <StatTile label={t('referrals.report.kpi.referralRevenue')} value={Number(k.referral_revenue)} unit="money" fmt={fmt} hint={t('referrals.report.kpi.orders', { count: k.referral_orders })} help={t('referrals.report.kpi.referralRevenueHelp')} />
-                <StatTile label={t('referrals.report.kpi.affiliateRevenue')} value={Number(k.affiliate_revenue)} unit="money" fmt={fmt} hint={t('referrals.report.kpi.commissions', { amount: fmt.money(k.commissions) })} help={t('referrals.report.kpi.affiliateRevenueHelp')} />
-                <StatTile
+            <StatGrid>
+                <StatCard
+                    label={t('referrals.report.kpi.referralRevenue')}
+                    value={fmt.money(Number(k.referral_revenue))}
+                    hint={t('referrals.report.kpi.orders', { count: k.referral_orders })}
+                    help={t('referrals.report.kpi.referralRevenueHelp')}
+                    icon={ShoppingBag}
+                    tone="emerald"
+                />
+                <StatCard
+                    label={t('referrals.report.kpi.affiliateRevenue')}
+                    value={fmt.money(Number(k.affiliate_revenue))}
+                    hint={t('referrals.report.kpi.commissions', { amount: fmt.money(k.commissions) })}
+                    help={t('referrals.report.kpi.affiliateRevenueHelp')}
+                    icon={HandCoins}
+                    tone="violet"
+                />
+                <StatCard
                     label={t('referrals.report.kpi.costPerReferral')}
-                    value={k.cost_per_referral === null ? null : Number(k.cost_per_referral)}
-                    unit="money"
-                    fmt={fmt}
-                    better="down"
+                    value={k.cost_per_referral === null ? '—' : fmt.money(Number(k.cost_per_referral))}
                     help={t('referrals.report.kpi.costPerReferralHelp')}
                     hint={k.points_given > 0 ? t('referrals.report.kpi.points', { count: k.points_given, points: fmt.number(k.points_given) }) : undefined}
+                    icon={Coins}
+                    tone="amber"
                 />
-                <StatTile label={t('referrals.report.kpi.rewarded')} value={k.rewarded} unit="count" fmt={fmt} hint={t('referrals.report.kpi.signups', { count: k.signups })} help={t('referrals.report.kpi.rewardedHelp')} />
-            </TileGrid>
+                <StatCard
+                    label={t('referrals.report.kpi.rewarded')}
+                    value={fmt.number(k.rewarded)}
+                    hint={t('referrals.report.kpi.signups', { count: k.signups })}
+                    help={t('referrals.report.kpi.rewardedHelp')}
+                    icon={UserCheck}
+                    tone="sky"
+                />
+            </StatGrid>
             <Section
                 title={t('referrals.report.seriesTitle')}
                 description={t('referrals.report.seriesDescription')}
@@ -135,7 +166,13 @@ export function ReportTab({ onConfigure }: { onConfigure: () => void }) {
                     <DataTable columns={referrerColumns} rows={data.top_referrers} rowKey={(r, i) => r.contact?.id ?? String(i)} empty={t('referrals.report.noReferrers')} />
                 </Section>
                 <Section title={t('referrals.report.creators')} description={t('referrals.report.creatorsDescription')} flush>
-                    <DataTable columns={creatorColumns} rows={data.creators} rowKey={(r) => r.affiliate.id} initialSort={{ key: 'revenue', dir: 'desc' }} empty={t('referrals.report.noCreators')} />
+                    <DataTable
+                        columns={creatorColumns}
+                        rows={data.creators}
+                        rowKey={(r) => r.affiliate.id}
+                        initialSort={{ key: 'revenue', dir: 'desc' }}
+                        empty={t('referrals.report.noCreators')}
+                    />
                 </Section>
             </div>
         </div>

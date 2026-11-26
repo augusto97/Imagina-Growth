@@ -88,7 +88,7 @@
             "range": "Periodo",
             "lastDays_one": "Último día",
             "lastDays_other": "Últimos {{count}} días",
-            "emptyTitle": "Activa los referidos o agrega tu primer creador",
+            "emptyTitle": "Que tus clientes te traigan clientes",
             "emptyDescription": "Tus clientes ya te recomiendan: dales un enlace y una razón para hacerlo, y mide cuánto venden tus influencers.",
             "configure": "Configurar el programa",
             "kpi": {
@@ -131,7 +131,12 @@
             "commission": "Comisión",
             "bestCampaign": "Mejor campaña",
             "bestCampaignHelp": "La utm_campaign del enlace que más vendió; si no trae campaña, si vendió más con el cupón o con el enlace.",
-            "noCreators": "Ningún creador vendió en este periodo."
+            "noCreators": "Ningún creador vendió en este periodo.",
+            "days_one": "{{count}} día",
+            "days_other": "{{count}} días",
+            "emptyStep1": "Elige el regalo del amigo (un descuento en su primera compra) y la recompensa de quien recomienda.",
+            "emptyStep2": "Cada cliente recibe su enlace y su código para compartir por WhatsApp.",
+            "emptyStep3": "Cuando el amigo compra, quien lo trajo gana su recompensa y ves cuánto vendió."
         },
         "program": {
             "statusTitle": "Programa de referidos",

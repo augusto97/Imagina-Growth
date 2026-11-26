@@ -227,7 +227,8 @@
             "noMovements": "Todavía no hay movimientos. Aparecen cuando se confirman los puntos de las primeras compras.",
             "byTier": "Clientes por nivel",
             "byTierHelp": "Dónde está cada cliente hoy.",
-            "noTiers": "Sin niveles VIP."
+            "noTiers": "Sin niveles VIP.",
+            "redemptionsHint": "Pedidos con canje: {{revenue}}"
         },
         "members": {
             "search": "Buscar por correo, teléfono o nombre",
@@ -345,6 +346,10 @@
             "summaryPoints": "+{{points}} puntos",
             "summaryWallet": "+{{amount}} de saldo",
             "missing": "Indica la cantidad"
+        },
+        "intro": {
+            "title": "Una razón concreta para volver a comprarte",
+            "body": "Tus clientes ganan puntos con cada compra y los cambian por descuentos, envío gratis o saldo. En cinco pasos lo dejas listo; nadie gana puntos hasta que lo actives."
         }
     }
 }

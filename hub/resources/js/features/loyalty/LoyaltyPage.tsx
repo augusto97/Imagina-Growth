@@ -1,10 +1,12 @@
-import { Pause, Play } from 'lucide-react';
+import { Gift, Pause, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Callout } from '@/components/ui/callout';
 import { ErrorState, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatCardSkeleton, StatGrid } from '@/components/ui/stat-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { toast } from '@/stores/toast';
@@ -41,12 +43,12 @@ export function LoyaltyPage() {
         return (
             <>
                 <PageHeader title={t('loyalty.title')} description={t('loyalty.description')} />
-                <Skeleton className="igr:mb-4 igr:h-10 igr:w-96" />
-                <div className="igr:grid igr:gap-3 igr:md:grid-cols-4">
-                    {[0, 1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="igr:h-24" />
+                <Skeleton className="igr:mb-5 igr:h-10 igr:w-full igr:max-w-xl" />
+                <StatGrid className="igr:lg:grid-cols-3 igr:xl:grid-cols-5">
+                    {[0, 1, 2, 3, 4].map((i) => (
+                        <StatCardSkeleton key={i} />
                     ))}
-                </div>
+                </StatGrid>
             </>
         );
     }
@@ -54,6 +56,9 @@ export function LoyaltyPage() {
         return (
             <>
                 <PageHeader title={t('loyalty.title')} description={t('loyalty.description')} />
+                <Callout tone="brand" icon={Gift} className="igr:mb-5" title={t('loyalty.intro.title')}>
+                    {t('loyalty.intro.body')}
+                </Callout>
                 <SetupWizard data={loyalty.data} />
             </>
         );
@@ -87,12 +92,8 @@ function Program({ data }: { data: LoyaltyOverview }) {
     return (
         <>
             <PageHeader
-                title={
-                    <span className="igr:flex igr:items-center igr:gap-2">
-                        {t('loyalty.title')}
-                        <Badge variant={status === 'active' ? 'success' : status === 'paused' ? 'warning' : 'outline'}>{t(`loyalty.status.${status}`)}</Badge>
-                    </span>
-                }
+                title={t('loyalty.title')}
+                meta={<Badge variant={status === 'active' ? 'success' : status === 'paused' ? 'warning' : 'outline'}>{t(`loyalty.status.${status}`)}</Badge>}
                 description={t('loyalty.programOf', { name: data.program.currency_name })}
                 actions={
                     canManage ? (
@@ -110,11 +111,15 @@ function Program({ data }: { data: LoyaltyOverview }) {
                     ) : null
                 }
             />
-            {status !== 'active' ? <p className="igr:mb-4 igr:rounded-md igr:border igr:bg-muted/40 igr:p-3 igr:text-[13px] igr:text-muted-foreground">{t(`loyalty.status.${status}Help`)}</p> : null}
+            {status !== 'active' ? (
+                <Callout tone={status === 'paused' ? 'warning' : 'brand'} className="igr:mb-5">
+                    {t(`loyalty.status.${status}Help`)}
+                </Callout>
+            ) : null}
             <Tabs value={tab} onValueChange={setTab}>
-                <TabsList className="igr:overflow-x-auto">
+                <TabsList>
                     {tabs.map((key) => (
-                        <TabsTrigger key={key} value={key} className="igr:shrink-0">
+                        <TabsTrigger key={key} value={key}>
                             {t(`loyalty.tabs.${key}`)}
                         </TabsTrigger>
                     ))}

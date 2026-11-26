@@ -402,6 +402,34 @@
                 }
             },
             "privacy": "Las reseñas importadas no se publican de nuevo en WooCommerce ni dan puntos."
+        },
+        "descriptionServices": "Más reseñas en Google: quien te busca confía en lo que dicen tus clientes.",
+        "google": {
+            "title": "Tu enlace de reseñas de Google",
+            "description": "Con un toque, tu cliente abre la ventana para calificarte en tu Perfil de Empresa de Google.",
+            "link": "Enlace para dejar una reseña",
+            "linkHint": "Mándalo después de atender a cada cliente, por WhatsApp o en tus mensajes.",
+            "howToGet": "En tu Perfil de Empresa de Google, toca «Pedir reseñas» y copia el enlace.",
+            "invalid": "Pega el enlace completo, que empiece por https://",
+            "save": "Guardar el enlace",
+            "saved": "Enlace de Google guardado",
+            "change": "Cambiar el enlace",
+            "open": "Probarlo",
+            "shareWhatsapp": "Enviarlo por WhatsApp",
+            "shareText": "¡Gracias por venir! Si te gustó la atención, nos ayudas mucho con una reseña aquí:",
+            "tipsTitle": "Cómo conseguir más reseñas",
+            "tipsDescription": "Lo que mejor funciona en negocios de servicios.",
+            "tip1": "Pídela el mismo día, cuando la experiencia está fresca: un mensaje corto y el enlace.",
+            "tip2": "Pon el enlace en el QR de tu local y en el mensaje de gracias de tu página de captura.",
+            "tip3": "Responde cada reseña, buena o mala: los próximos clientes leen cómo atiendes.",
+            "toQr": "Crear un QR para el local",
+            "toCampaign": "Enviar una campaña",
+            "policy": "Pídela a todos tus clientes por igual. Google no permite pedirla solo a los que quedaron contentos."
+        },
+        "start": {
+            "title": "Pide la reseña sola después de cada entrega",
+            "body": "Prende la solicitud automática: unos días después de entregado el pedido, tu cliente recibe el enlace para calificar con foto, sin iniciar sesión.",
+            "action": "Configurar la solicitud"
         }
     }
 }

@@ -1,18 +1,18 @@
-import { BellRing, Table2, BarChart3 } from 'lucide-react';
+import { BarChart3, BellRing, Send, ShoppingBag, Table2, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import type { TooltipContentProps } from 'recharts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/input';
 import { EmptyState, ErrorState, PageHeader } from '@/components/ui/misc';
+import { SegmentedControl } from '@/components/ui/segmented';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatCard, StatCardSkeleton, StatGrid } from '@/components/ui/stat-card';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
-import { Legend } from '@/features/analytics/components/charts';
-import { useChartTheme } from '@/features/analytics/theme';
+import { TrendChart } from '@/features/analytics/components/charts';
+import { useFormatters } from '@/features/analytics/format';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
 import { formatDate, formatDateTime, formatMoney, formatNumber, formatPercent } from '@/lib/format';
@@ -46,19 +46,22 @@ export function WatchesPage() {
                 title={t('onsiteCommerce.watches.title')}
                 description={t('onsiteCommerce.watches.description')}
                 actions={
-                    <Select aria-label={t('onsiteCommerce.watches.range')} value={days} onChange={(e) => setDays(Number(e.target.value))} className="igr:w-40">
-                        {RANGES.map((d) => (
-                            <option key={d} value={d}>
-                                {t('onsiteCommerce.watches.lastDays', { count: d })}
-                            </option>
-                        ))}
-                    </Select>
+                    <SegmentedControl
+                        label={t('onsiteCommerce.watches.range')}
+                        value={String(days)}
+                        onChange={(v) => setDays(Number(v))}
+                        options={RANGES.map((d) => ({ value: String(d), label: t('onsiteCommerce.watches.days', { count: d }) }))}
+                    />
                 }
             />
             {summary.isPending ? (
-                <div className="igr:grid igr:gap-3">
-                    <Skeleton className="igr:h-24" />
-                    <Skeleton className="igr:h-64" />
+                <div className="igr:space-y-5">
+                    <StatGrid>
+                        {[0, 1, 2, 3].map((i) => (
+                            <StatCardSkeleton key={i} />
+                        ))}
+                    </StatGrid>
+                    <Skeleton className="igr:h-72 igr:rounded-xl" />
                 </div>
             ) : summary.isError ? (
                 <ErrorState error={summary.error} onRetry={() => void summary.refetch()} />
@@ -66,10 +69,15 @@ export function WatchesPage() {
                 <div className="igr:space-y-5">
                     <Kpis summary={summary.data} />
                     {summary.data.totals.active + summary.data.totals.notified + summary.data.totals.cancelled === 0 ? (
-                        <EmptyState icon={BellRing} title={t('onsiteCommerce.watches.empty.title')} description={t('onsiteCommerce.watches.empty.description')} />
+                        <EmptyState
+                            illustration="messages"
+                            title={t('onsiteCommerce.watches.empty.title')}
+                            description={t('onsiteCommerce.watches.empty.description')}
+                            steps={[t('onsiteCommerce.watches.empty.step1'), t('onsiteCommerce.watches.empty.step2'), t('onsiteCommerce.watches.empty.step3')]}
+                        />
                     ) : (
                         <>
-                            <div className="igr:grid igr:gap-5 igr:xl:grid-cols-[1.4fr_1fr]">
+                            <div className="igr:grid igr:gap-5 igr:xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
                                 <WeeklyChart summary={summary.data} />
                                 <TopProducts summary={summary.data} />
                             </div>
@@ -87,68 +95,62 @@ function Kpis({ summary }: { summary: WatchSummary }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const s = summary.totals;
-    const tiles = [
-        {
-            label: t('onsiteCommerce.watches.kpi.active'),
-            value: formatNumber(s.active, workspace.locale),
-            detail: t('onsiteCommerce.watches.kpi.activeSplit', { stock: s.active_back_in_stock, price: s.active_price_drop }),
-        },
-        {
-            label: t('onsiteCommerce.watches.kpi.notified'),
-            value: formatNumber(s.notified_in_range, workspace.locale),
-            detail: t('onsiteCommerce.watches.kpi.notifiedTotal', { count: s.notified }),
-        },
-        {
-            label: t('onsiteCommerce.watches.kpi.buyers'),
-            value: formatNumber(s.buyers_after, workspace.locale),
-            detail:
-                s.conversion_rate === null
-                    ? t('onsiteCommerce.watches.kpi.noRate')
-                    : t('onsiteCommerce.watches.kpi.rate', { rate: formatPercent(s.conversion_rate, workspace.locale, 1) }),
-        },
-        {
-            label: t('onsiteCommerce.watches.kpi.revenue'),
-            value: formatMoney(s.revenue_after, summary.currency, workspace.locale),
-            detail: t('onsiteCommerce.watches.kpi.revenueHelp', { days: summary.sale_window_days, count: s.orders_after }),
-        },
-    ];
-
     return (
-        <div className="igr:grid igr:grid-cols-2 igr:gap-3 igr:lg:grid-cols-4">
-            {tiles.map((tile) => (
-                <Card key={tile.label}>
-                    <CardContent className="igr:py-4">
-                        <p className="igr:text-xs igr:text-muted-foreground">{tile.label}</p>
-                        <p className="igr:mt-1 igr:text-2xl igr:font-semibold igr:tracking-tight igr:tabular-nums">{tile.value}</p>
-                        <p className="igr:mt-1 igr:text-xs igr:text-muted-foreground">{tile.detail}</p>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
+        <StatGrid>
+            <StatCard
+                label={t('onsiteCommerce.watches.kpi.active')}
+                value={formatNumber(s.active, workspace.locale)}
+                hint={t('onsiteCommerce.watches.kpi.activeSplit', { stock: s.active_back_in_stock, price: s.active_price_drop })}
+                icon={BellRing}
+                tone="sky"
+            />
+            <StatCard
+                label={t('onsiteCommerce.watches.kpi.notified')}
+                value={formatNumber(s.notified_in_range, workspace.locale)}
+                hint={t('onsiteCommerce.watches.kpi.notifiedTotal', { count: s.notified })}
+                icon={Send}
+                tone="violet"
+            />
+            <StatCard
+                label={t('onsiteCommerce.watches.kpi.buyers')}
+                value={formatNumber(s.buyers_after, workspace.locale)}
+                hint={
+                    s.conversion_rate === null
+                        ? t('onsiteCommerce.watches.kpi.noRate')
+                        : t('onsiteCommerce.watches.kpi.rate', { rate: formatPercent(s.conversion_rate, workspace.locale, 1) })
+                }
+                icon={UserCheck}
+                tone="emerald"
+            />
+            <StatCard
+                label={t('onsiteCommerce.watches.kpi.revenue')}
+                value={formatMoney(s.revenue_after, summary.currency, workspace.locale)}
+                help={t('onsiteCommerce.watches.kpi.revenueHelp', { days: summary.sale_window_days, count: s.orders_after })}
+                icon={ShoppingBag}
+                tone="amber"
+            />
+        </StatGrid>
     );
 }
 
-/** Suscripciones y avisos por semana: dos series de conteo en el mismo eje, barras agrupadas. */
+/** Suscripciones o avisos por semana (una serie a la vez, en la gráfica perezosa de Resultados) y su vista de tabla. */
 function WeeklyChart({ summary }: { summary: WatchSummary }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
-    const theme = useChartTheme();
+    const fmt = useFormatters(summary.currency);
     const [asTable, setAsTable] = useState(false);
-    const series = [
-        { key: 'created' as const, label: t('onsiteCommerce.watches.chart.created'), color: theme.series[0] ?? '#2a78d6' },
-        { key: 'notified' as const, label: t('onsiteCommerce.watches.chart.notified'), color: theme.series[1] ?? '#eb6834' },
-    ];
+    const [metric, setMetric] = useState<'created' | 'notified'>('created');
     const week = (iso: string) => formatDate(iso, workspace.locale);
 
     return (
-        <Card>
-            <CardHeader className="igr:flex igr:flex-row igr:items-start igr:justify-between igr:gap-2 igr:space-y-0">
-                <div>
-                    <CardTitle className="igr:text-sm">{t('onsiteCommerce.watches.chart.title')}</CardTitle>
-                    <CardDescription className="igr:text-xs">{t('onsiteCommerce.watches.chart.help')}</CardDescription>
+        <Card className="igr:min-w-0">
+            <CardHeader className="igr:flex-row igr:flex-wrap igr:items-start igr:justify-between igr:gap-2">
+                <div className="igr:min-w-0">
+                    <CardTitle>{t('onsiteCommerce.watches.chart.title')}</CardTitle>
+                    <CardDescription>{t('onsiteCommerce.watches.chart.help')}</CardDescription>
                 </div>
                 <Button variant="ghost" size="sm" onClick={() => setAsTable(!asTable)} aria-pressed={asTable}>
-                    {asTable ? <BarChart3 /> : <Table2 />}
+                    {asTable ? <BarChart3 aria-hidden /> : <Table2 aria-hidden />}
                     {asTable ? t('onsiteCommerce.watches.chart.asChart') : t('onsiteCommerce.watches.chart.asTable')}
                 </Button>
             </CardHeader>
@@ -159,11 +161,8 @@ function WeeklyChart({ summary }: { summary: WatchSummary }) {
                             <THead>
                                 <TR>
                                     <TH>{t('onsiteCommerce.watches.chart.week')}</TH>
-                                    {series.map((s) => (
-                                        <TH key={s.key} className="igr:text-right">
-                                            {s.label}
-                                        </TH>
-                                    ))}
+                                    <TH className="igr:text-right">{t('onsiteCommerce.watches.chart.created')}</TH>
+                                    <TH className="igr:text-right">{t('onsiteCommerce.watches.chart.notified')}</TH>
                                 </TR>
                             </THead>
                             <TBody>
@@ -178,50 +177,27 @@ function WeeklyChart({ summary }: { summary: WatchSummary }) {
                         </Table>
                     </div>
                 ) : (
-                    <>
-                        <Legend items={series.map((s) => ({ label: s.label, color: s.color }))} />
-                        <div className="igr:h-56" role="img" aria-label={t('onsiteCommerce.watches.chart.title')}>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={summary.weekly} margin={{ top: 4, right: 4, bottom: 0, left: 0 }} barCategoryGap="24%" barGap={2}>
-                                    <CartesianGrid vertical={false} stroke={theme.grid} />
-                                    <XAxis
-                                        dataKey="week"
-                                        tickFormatter={week}
-                                        tick={{ fill: theme.muted, fontSize: 11 }}
-                                        tickLine={false}
-                                        axisLine={{ stroke: theme.axis }}
-                                        minTickGap={16}
-                                    />
-                                    <YAxis allowDecimals={false} width={36} tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={false} />
-                                    <Tooltip
-                                        cursor={{ fill: theme.grid, opacity: 0.5 }}
-                                        isAnimationActive={false}
-                                        content={(props: TooltipContentProps) => {
-                                            const row = props.payload[0]?.payload as WatchSummary['weekly'][number] | undefined;
-                                            if (!props.active || row === undefined) return null;
-                                            return (
-                                                <div className="igr:min-w-40 igr:rounded-md igr:border igr:bg-popover igr:px-2.5 igr:py-2 igr:text-xs igr:shadow-md">
-                                                    <p className="igr:mb-1 igr:font-medium">{t('onsiteCommerce.watches.chart.weekOf', { date: week(row.week) })}</p>
-                                                    {series.map((s) => (
-                                                        <div key={s.key} className="igr:flex igr:items-center igr:justify-between igr:gap-4">
-                                                            <span className="igr:flex igr:items-center igr:gap-1.5 igr:text-muted-foreground">
-                                                                <span className="igr:size-2 igr:rounded-full" style={{ background: s.color }} />
-                                                                {s.label}
-                                                            </span>
-                                                            <span className="igr:font-medium igr:tabular-nums">{row[s.key]}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            );
-                                        }}
-                                    />
-                                    {series.map((s) => (
-                                        <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]} maxBarSize={18} isAnimationActive={false} />
-                                    ))}
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </>
+                    <div className="igr:space-y-3">
+                        <SegmentedControl
+                            size="sm"
+                            label={t('onsiteCommerce.watches.chart.metric')}
+                            value={metric}
+                            onChange={setMetric}
+                            options={[
+                                { value: 'created', label: t('onsiteCommerce.watches.chart.created') },
+                                { value: 'notified', label: t('onsiteCommerce.watches.chart.notified') },
+                            ]}
+                        />
+                        <TrendChart
+                            data={summary.weekly.map((w) => ({ date: w.week, created: w.created, notified: w.notified }))}
+                            metric={metric}
+                            label={t(`onsiteCommerce.watches.chart.${metric}`)}
+                            unit="count"
+                            granularity="week"
+                            fmt={fmt}
+                            height={220}
+                        />
+                    </div>
                 )}
             </CardContent>
         </Card>
@@ -233,8 +209,8 @@ function TopProducts({ summary }: { summary: WatchSummary }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="igr:text-sm">{t('onsiteCommerce.watches.top.title')}</CardTitle>
-                <CardDescription className="igr:text-xs">{t('onsiteCommerce.watches.top.help')}</CardDescription>
+                <CardTitle>{t('onsiteCommerce.watches.top.title')}</CardTitle>
+                <CardDescription>{t('onsiteCommerce.watches.top.help')}</CardDescription>
             </CardHeader>
             <CardContent>
                 {summary.top_products.length === 0 ? (
@@ -281,7 +257,7 @@ function WatchList() {
     return (
         <Card>
             <CardHeader className="igr:flex igr:flex-row igr:flex-wrap igr:items-center igr:justify-between igr:gap-2 igr:space-y-0">
-                <CardTitle className="igr:text-sm">{t('onsiteCommerce.watches.list.title')}</CardTitle>
+                <CardTitle>{t('onsiteCommerce.watches.list.title')}</CardTitle>
                 <div className="igr:flex igr:gap-2">
                     <Select
                         aria-label={t('onsiteCommerce.watches.list.status')}
@@ -441,7 +417,7 @@ function SettingsCard({ settings }: { settings: WatchSettings }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="igr:text-sm">{t('onsiteCommerce.watches.settings.title')}</CardTitle>
+                <CardTitle>{t('onsiteCommerce.watches.settings.title')}</CardTitle>
                 <CardDescription>{t('onsiteCommerce.watches.settings.help')}</CardDescription>
             </CardHeader>
             <CardContent className="igr:space-y-4 igr:text-[13px]">
