@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace App\Domain\Referrals\Http;
 
 use App\Domain\Loyalty\Contracts\LoyaltyLedger;
+use App\Domain\Referrals\Actions\SaveReferralProgram;
 use App\Domain\Referrals\Models\ReferralProgram;
 use App\Domain\Referrals\Support\ProgramSettings;
 use App\Domain\Referrals\Support\ReferralCodes;
-use App\Domain\Referrals\Support\ReferralSwitch;
 use App\Domain\Sites\Models\Site;
-use App\Domain\Workspaces\Actions\RecordAuditLog;
-use App\Support\Money\Decimal;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,7 +35,7 @@ final class ReferralProgramController
     }
 
     /** PUT referrals/program */
-    public function update(Request $request, LoyaltyLedger $ledger, RecordAuditLog $audit): JsonResponse
+    public function update(Request $request, LoyaltyLedger $ledger, SaveReferralProgram $save): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
         $data = $request->validate([
@@ -82,49 +80,14 @@ final class ReferralProgramController
             throw ValidationException::withMessages($errors);
         }
 
-        $program = ReferralProgram::query()->first() ?? new ReferralProgram;
-        $before = $program->exists ? $program->only(['status', 'friend_reward', 'referrer_reward', 'rules', 'share_text']) : [];
-        $program->fill([
-            'status' => $data['status'],
-            'friend_reward' => array_filter([
-                'kind' => $friend['kind'],
-                'amount' => $friend['kind'] === 'free_shipping' ? '0.00' : Decimal::of((string) $friend['amount']),
-                'expires_days' => (int) $friend['expires_days'],
-                'minimum_amount' => isset($friend['minimum_amount']) && (float) $friend['minimum_amount'] > 0 ? Decimal::of((string) $friend['minimum_amount']) : null,
-            ], fn ($v) => $v !== null),
-            'referrer_reward' => array_filter([
-                'type' => $referrer['type'],
-                'points' => $referrer['type'] === 'points' ? (int) $referrer['points'] : null,
-                'amount' => $referrer['type'] !== 'points' ? Decimal::of((string) ($referrer['amount'] ?? '0')) : null,
-                'coupon_kind' => $referrer['type'] === 'coupon' ? $referrer['coupon_kind'] : null,
-                'expires_days' => $referrer['type'] === 'coupon' ? (int) ($referrer['expires_days'] ?? 60) : null,
-            ], fn ($v) => $v !== null),
-            'rules' => [
-                'min_order' => isset($data['rules']['min_order']) && (float) $data['rules']['min_order'] > 0 ? Decimal::of((string) $data['rules']['min_order']) : null,
-                'monthly_limit' => isset($data['rules']['monthly_limit']) ? (int) $data['rules']['monthly_limit'] : null,
-                'return_days' => (int) $data['rules']['return_days'],
-                'qualify_on' => $data['rules']['qualify_on'],
-                'review_suspicious' => (bool) $data['rules']['review_suspicious'],
-                'signal_window_days' => (int) ($data['rules']['signal_window_days'] ?? 30),
-            ],
-            'share_text' => $share !== '' ? $share : null,
-        ]);
-        $program->save();
-        ReferralSwitch::forget($this->current->id());
-        $audit->handle('referrals.program_saved', $program, ['before' => $before, 'after' => $program->only(['status', 'friend_reward', 'referrer_reward', 'rules'])], $this->current->id());
+        $program = $save->handle($data['status'], $friend, $referrer, $data['rules'], $share);
 
         return response()->json($this->present($program, true, $ledger));
     }
 
     private function draft(): ReferralProgram
     {
-        return new ReferralProgram([
-            'status' => 'draft',
-            'friend_reward' => ['kind' => 'percent', 'amount' => '10.00', 'expires_days' => 30],
-            'referrer_reward' => ['type' => 'wallet', 'amount' => $this->current->get()->currency === 'COP' ? '20000.00' : '10.00'],
-            'rules' => ProgramSettings::defaultRules(),
-            'share_text' => null,
-        ]);
+        return new ReferralProgram(['status' => 'draft', 'share_text' => null] + SaveReferralProgram::recommended($this->current->get(), false));
     }
 
     /** @return array<string, mixed> */

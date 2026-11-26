@@ -103,8 +103,12 @@ para activar esto»). Los módulos fuera del plan muestran el plan que los inclu
       pedidos, mejores productos).
    4. **Conecta tus canales:** WhatsApp con un clic (o «después»), correo; qué permite cada uno.
    5. **Prende tus primeras estrategias:** 3 recomendadas según el negocio (tienda: carrito abandonado, pago pendiente
-      o contraentrega, segunda compra; servicios: respuesta inmediata a leads, seguimiento, recordatorio de cita) con
-      una vista previa del mensaje y un interruptor cada una.
+      o contraentrega, segunda compra; servicios: respuesta inmediata a leads con su seguimiento, recordatorio de cita
+      y calificación en el chat) con una vista previa del mensaje y un interruptor cada una. *Cambio (backend, nov.
+      2026): la respuesta inmediata y el seguimiento son el mismo flujo 18 (una sola estrategia, `service_lead`), así
+      que la tercera de servicios es la calificación en el chat; si el plan no la incluye, sigue la siguiente de la
+      lista (`StrategyRegistry::RECOMMENDED`). En tienda va contraentrega si el negocio tiene pedidos contraentrega y
+      pago pendiente si no.*
    6. **Listo:** «qué va a pasar ahora» en una línea de tiempo (hoy, esta semana, este mes) y al Inicio.
 3. Mientras la configuración no termine, el Inicio muestra la tarjeta de progreso arriba; nada bloquea explorar.
 
@@ -147,6 +151,23 @@ módulo del plan, requisitos verificables, cómo calcular el potencial, cómo ac
 existentes —`CreateFlowFromLibrary`, widgets, programas—, y cómo medir su resultado con `MoneyGenerated`). Nada de
 lógica duplicada: la estrategia es una capa de orquestación y presentación. API: `GET strategies` (catálogo con
 estado, requisitos y potencial por espacio de trabajo), `POST strategies/{key}/activate`, `POST strategies/{key}/pause`.
+
+**Cómo quedó el backend (nov. 2026, `docs/modulos.md` M23, `hub/CLAUDE.md` §20)** y lo que cambió frente a este plan,
+con el motivo:
+
+- Se suma `GET strategies/{key}` (cómo funciona, vista previa y partes) para la pantalla de detalle, y el Inicio y el
+  asistente tienen su API propia (`GET home`, `GET/PUT onboarding`, `POST onboarding/strategies`).
+- **NPS y Reseñas de Google son de tienda:** la encuesta sale tras la entrega de un pedido y el enlace de Google va en
+  la página de gracias de WooCommerce; un sitio de servicios sin pedidos nunca los mostraría.
+- **«Reactivar con IA»** usa un flujo listo nuevo (`FlowLibrary::extras`, RFM «Hibernando») porque el nodo
+  `ai_reactivate` no tenía flujo en la biblioteca; no aparece entre los 20 de Flujos.
+- **«Respuestas fuera de horario»** es el mismo agente de ventas con el horario del equipo (`handoff_rules.hours`): el
+  agente todo el día y fuera de horario son excluyentes.
+- **Avisos de stock y asignación de la bandeja** vienen prendidos por defecto en sus módulos: cuentan como activas,
+  pero no completan el paso 5 del asistente.
+- Con WhatsApp conectado pero sin las plantillas aprobadas por Meta, las estrategias de mensajes se activan solo por
+  correo (si hay correo) en lugar de quedar en borrador; nunca sale un WhatsApp con una plantilla sin aprobar.
+- El potencial del Inicio se muestra con el dinero generado en cero o por debajo del 2 % de las ventas del mes.
 
 ## 7. Sistema visual
 
@@ -276,3 +297,17 @@ para su vertical, y su estrategia en el catálogo (§6).
   antes. También para servicios (p. ej. «chequeo antes de vacaciones», «inscripciones de enero»).
 - **Galería de plantillas** por objetivo y vertical (bienvenida, promoción, novedad, recordatorio, invitación a evento,
   saludo de temporada, encuesta, reseña), en WhatsApp y correo, que se instalan con un clic.
+
+### 11.6 Cómo quedó en el backend (nov. 2026)
+
+- La vertical se guarda en `workspaces.vertical` (`config/igr-verticals.php`), la elige el paso 1 del asistente
+  (`PUT onboarding {vertical}`) y se cambia en Configuración (`PATCH` del espacio de trabajo). Sin elegir, la sugiere
+  la industria; si no hay tipo de negocio, toma el que implica la vertical.
+- Cada estrategia declara `business_types`, `verticals` y `recommended_for` por vertical; «Recomendadas para ti» y
+  las 3 del paso 5 siguen la vertical. Las 15 de §11.4 están en el catálogo con su clave (la del flujo) y quedan
+  «Próximamente» hasta que su flujo exista en la biblioteca: mientras tanto el asistente toma la siguiente de la lista
+  de la vertical (p. ej. salud: recordatorios de la agenda y contactos al instante).
+- El Inicio de un negocio sin tienda devuelve sus KPI (contactos del mes y de dónde vienen, primera respuesta, citas
+  agendadas y cumplidas, tasa de cierre y valor ganado) con `applicable` y `definitions`, sin pedidos ni carritos.
+- La estrategia del flujo 18 se llama `service_lead`, como el flujo (antes `lead_response` en el borrador del
+  backend), para que todas las claves de estrategias de flujos coincidan con las de la biblioteca.

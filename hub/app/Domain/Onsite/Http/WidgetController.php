@@ -6,6 +6,8 @@ namespace App\Domain\Onsite\Http;
 
 use App\Domain\Consent\Actions\ConsentTexts;
 use App\Domain\Contacts\Models\Contact;
+use App\Domain\Onsite\Actions\ChangeWidgetStatus;
+use App\Domain\Onsite\Actions\CreateWidget;
 use App\Domain\Onsite\Models\OnsiteWidget;
 use App\Domain\Onsite\Models\Quiz;
 use App\Domain\Onsite\Models\WidgetCapture;
@@ -85,7 +87,7 @@ final class WidgetController
     }
 
     /** POST onsite/widgets {name, kind, site_id?} */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, CreateWidget $create): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
         $data = $request->validate([
@@ -103,28 +105,7 @@ final class WidgetController
         }
         /** @var User $user */
         $user = $request->user();
-        $defaults = WidgetSchema::defaults((string) $data['kind']);
-        $widget = DB::transaction(function () use ($data, $siteId, $defaults, $user): OnsiteWidget {
-            $widget = OnsiteWidget::query()->create([
-                'workspace_id' => $this->current->id(),
-                'site_id' => $siteId,
-                'name' => trim((string) $data['name']),
-                'kind' => $data['kind'],
-                'targeting' => $defaults['targeting'],
-                'design' => $defaults['design'],
-                'content' => $defaults['content'],
-                'variants' => [['key' => 'a', 'weight' => 100, 'design' => $defaults['design'], 'content' => $defaults['content']]],
-                'consent_config' => $defaults['consent_config'],
-                'coupon_config' => $defaults['coupon_config'],
-                'created_by' => $user->id,
-            ]);
-            if (is_array($defaults['quiz'])) {
-                Quiz::query()->create(['widget_id' => $widget->id] + $defaults['quiz']);
-            }
-
-            return $widget;
-        });
-        $this->audit->handle('onsite_widget.created', $widget, ['name' => $widget->name, 'kind' => $widget->kind], $this->current->id());
+        $widget = $create->handle((string) $data['name'], (string) $data['kind'], $siteId, $user->id);
 
         return response()->json(WidgetPresenter::make($widget->load('quiz'), true), 201);
     }
@@ -212,29 +193,27 @@ final class WidgetController
     }
 
     /** POST onsite/widgets/{widget}/activate */
-    public function activate(string $widget, WidgetValidator $validator): JsonResponse
+    public function activate(string $widget, ChangeWidgetStatus $status): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
-        $model = $this->find($widget);
-        $validator->assertActivatable($model);
 
-        return $this->transition($model, 'active', 'onsite_widget.activated');
+        return $this->transition($status, $this->find($widget), 'active');
     }
 
     /** POST onsite/widgets/{widget}/pause */
-    public function pause(string $widget): JsonResponse
+    public function pause(string $widget, ChangeWidgetStatus $status): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
 
-        return $this->transition($this->find($widget), 'paused', 'onsite_widget.paused');
+        return $this->transition($status, $this->find($widget), 'paused');
     }
 
     /** POST onsite/widgets/{widget}/archive */
-    public function archive(string $widget): JsonResponse
+    public function archive(string $widget, ChangeWidgetStatus $status): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
 
-        return $this->transition($this->find($widget), 'archived', 'onsite_widget.archived');
+        return $this->transition($status, $this->find($widget), 'archived');
     }
 
     /** GET onsite/widgets/{widget}/stats?days=30 | from=&to= */
@@ -280,11 +259,9 @@ final class WidgetController
         })->values()]);
     }
 
-    private function transition(OnsiteWidget $model, string $status, string $action): JsonResponse
+    private function transition(ChangeWidgetStatus $status, OnsiteWidget $model, string $to): JsonResponse
     {
-        $from = $model->status;
-        $model->forceFill(['status' => $status])->save();
-        $this->audit->handle($action, $model, ['from' => $from, 'to' => $status], $this->current->id());
+        $status->handle($model, $to);
 
         return response()->json(WidgetPresenter::make($model->load('quiz'), true));
     }

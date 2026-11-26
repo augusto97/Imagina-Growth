@@ -99,7 +99,7 @@ final class AgentSettingsController
     }
 
     /** @return array<string, mixed> */
-    private static function present(AgentSettings $s): array
+    public static function present(AgentSettings $s): array
     {
         $policies = [];
         foreach (AgentSettings::POLICY_KEYS as $key) {

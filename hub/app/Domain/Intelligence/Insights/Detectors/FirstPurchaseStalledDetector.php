@@ -37,7 +37,7 @@ final class FirstPurchaseStalledDetector implements Detector
         if ($flow === Flow::ACTIVE) {
             return [];
         }
-        [$median, $pairs] = $this->medianDaysToSecond($workspace);
+        [$median, $pairs] = self::medianDaysToSecond($workspace);
         $row = DB::table('contacts')->where('workspace_id', $workspace->id)->whereNull('deleted_at')->whereNull('merged_into_id')
             ->where('orders_count', 1)->whereNotNull('first_order_at')
             ->where('first_order_at', '<', $now->subDays($median)->utc())->where('first_order_at', '>=', $now->subYear()->utc())
@@ -69,7 +69,7 @@ final class FirstPurchaseStalledDetector implements Detector
     }
 
     /** @return array{0: int, 1: int} días medianos entre el primer y el segundo pedido, y cuántos casos hubo */
-    private function medianDaysToSecond(Workspace $workspace): array
+    public static function medianDaysToSecond(Workspace $workspace): array
     {
         $days = DB::table('orders as o2')
             ->join('orders as o1', fn ($j) => $j->on('o1.contact_id', '=', 'o2.contact_id')->where('o1.order_index', 1)->where('o1.workspace_id', $workspace->id))

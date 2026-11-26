@@ -6,7 +6,7 @@ namespace App\Domain\Loyalty\Http;
 
 use App\Domain\Contacts\Http\ContactAccess;
 use App\Domain\Contacts\Models\Contact;
-use App\Domain\Loyalty\Jobs\RecalculateTiersJob;
+use App\Domain\Loyalty\Actions\SaveLoyaltyProgram;
 use App\Domain\Loyalty\Ledger\Balances;
 use App\Domain\Loyalty\Ledger\DatabaseLoyaltyLedger;
 use App\Domain\Loyalty\Models\LedgerEntry;
@@ -69,7 +69,7 @@ final class LoyaltyController
     }
 
     /** PUT loyalty/program: reglas y estado (crea el programa la primera vez). */
-    public function saveProgram(Request $request, RecordAuditLog $audit): JsonResponse
+    public function saveProgram(Request $request, SaveLoyaltyProgram $save): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
         $data = $request->validate([
@@ -118,24 +118,13 @@ final class LoyaltyController
             'pending_days' => (int) $data['pending_days'],
             'wallet_rules' => ['cashback_pct' => number_format((float) ($data['wallet_rules']['cashback_pct'] ?? 0), 2, '.', '')],
         ];
-        $program = LoyaltyProgram::query()->first();
-        $wasActive = $program?->isActive() ?? false;
-        if ($program === null) {
-            $program = LoyaltyProgram::query()->create($clean + ['status' => $data['status'] ?? 'draft']);
-        } else {
-            $program->fill($clean + (isset($data['status']) ? ['status' => $data['status']] : []))->save();
-        }
-        $this->ledger->forgetProgram();
-        $audit->handle('loyalty.program_saved', $program, ['status' => $program->status, 'currency_name' => $program->currency_name, 'pending_days' => $program->pending_days], $this->current->id());
-        if (! $wasActive && $program->isActive()) {
-            RecalculateTiersJob::dispatch($this->current->id());
-        }
+        $save->handle($clean, $data['status'] ?? null);
 
         return $this->show();
     }
 
     /** PUT loyalty/tiers: la lista completa, de menor a mayor (el orden es el rango). */
-    public function saveTiers(Request $request, RecordAuditLog $audit): JsonResponse
+    public function saveTiers(Request $request, SaveLoyaltyProgram $save): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
         $data = $request->validate([
@@ -165,51 +154,16 @@ final class LoyaltyController
             }
             $previous = (float) $t['threshold'];
         }
-        DB::transaction(function () use ($data, $program): void {
-            $keep = [];
-            // Rangos temporales para no chocar con el índice único (program_id, rank) al reordenar.
-            LoyaltyTier::query()->where('program_id', $program->id)->update(['rank' => DB::raw('`rank` + 1000')]);
-            $existing = LoyaltyTier::query()->where('program_id', $program->id)->get()->keyBy('id');
-            foreach (array_values($data['tiers']) as $i => $t) {
-                $id = PrefixedId::decode(LoyaltyTier::ID_PREFIX, $t['id'] ?? null);
-                $tier = $id !== null ? $existing->get($id) : null;
-                $attrs = [
-                    'name' => trim($t['name']),
-                    'rank' => $i + 1,
-                    'threshold_type' => $t['threshold_type'],
-                    'threshold' => number_format((float) $t['threshold'], 2, '.', ''),
-                    'benefits' => [
-                        'multiplier' => (float) ($t['benefits']['multiplier'] ?? 1),
-                        'free_shipping' => (bool) ($t['benefits']['free_shipping'] ?? false),
-                        'early_access' => (bool) ($t['benefits']['early_access'] ?? false),
-                        'gifts' => trim((string) ($t['benefits']['gifts'] ?? '')),
-                    ],
-                    'wc_role' => isset($t['wc_role']) && $t['wc_role'] !== '' ? $t['wc_role'] : null,
-                ];
-                if ($tier === null) {
-                    $tier = LoyaltyTier::query()->create($attrs + ['program_id' => $program->id]);
-                } else {
-                    $tier->fill($attrs)->save();
-                }
-                $keep[] = $tier->id;
-            }
-            LoyaltyTier::query()->where('program_id', $program->id)->whereNotIn('id', $keep)->delete();
-        });
-        $audit->handle('loyalty.tiers_saved', $program, ['tiers' => array_map(fn ($t) => $t['name'].' ≥ '.$t['threshold'], $data['tiers'])], $this->current->id());
-        if ($program->isActive()) {
-            RecalculateTiersJob::dispatch($this->current->id());
-        }
+        $save->saveTiers($program, $data['tiers'], fn (?string $id) => PrefixedId::decode(LoyaltyTier::ID_PREFIX, $id));
 
         return $this->show();
     }
 
     /** POST loyalty/rewards */
-    public function storeReward(Request $request, RecordAuditLog $audit): JsonResponse
+    public function storeReward(Request $request, SaveLoyaltyProgram $save): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
-        $program = $this->programOrCreate();
-        $reward = LoyaltyReward::query()->create($this->rewardData($request) + ['program_id' => $program->id, 'status' => 'active']);
-        $audit->handle('loyalty.reward_created', $reward, ['name' => $reward->name, 'kind' => $reward->kind, 'points_cost' => $reward->points_cost], $this->current->id());
+        $reward = $save->createReward($this->programOrCreate(), $this->rewardData($request));
 
         return response()->json(LoyaltyPresenter::reward($reward, 0), 201);
     }
@@ -368,20 +322,10 @@ final class LoyaltyController
 
     private function programOrCreate(): LoyaltyProgram
     {
-        $program = LoyaltyProgram::query()->first();
-        if ($program === null) {
-            $d = ProgramRules::defaults();
-            $program = LoyaltyProgram::query()->create([
-                'status' => 'draft', 'currency_name' => $d['currency_name'], 'earn_rules' => $d['earn_rules'],
-                'redeem_rules' => $d['redeem_rules'], 'expiry_policy' => $d['expiry_policy'], 'pending_days' => $d['pending_days'], 'wallet_rules' => $d['wallet_rules'],
-            ]);
-            $this->ledger->forgetProgram();
-        }
-
-        return $program;
+        return app(SaveLoyaltyProgram::class)->ensure();
     }
 
-    /** @return array<string, mixed> */
+    /** @return array{name: string, kind: string, points_cost: int, value: string, config: array<string, mixed>|null} */
     private function rewardData(Request $request): array
     {
         $data = $request->validate([

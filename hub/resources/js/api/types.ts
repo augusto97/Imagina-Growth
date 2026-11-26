@@ -39,6 +39,8 @@ export interface Workspace {
     currency: string;
     locale: string;
     industry: string | null;
+    /** A qué se dedica (rediseño v2 §11.1): `store`, `professional`, `health`… Se edita con el PATCH del espacio de trabajo. */
+    vertical?: string | null;
     legal_name: string | null;
     privacy_policy_url: string | null;
     settings: Record<string, unknown>;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Spa;
 
+use App\Domain\Onboarding\Support\Verticals;
 use App\Domain\Workspaces\Actions\CreateWorkspace;
 use App\Domain\Workspaces\Actions\UpdateWorkspaceSettings;
 use App\Domain\Workspaces\Data\WorkspaceData;
@@ -15,6 +16,7 @@ use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 final class WorkspaceController
 {
@@ -50,6 +52,8 @@ final class WorkspaceController
             'currency' => ['sometimes', 'string', 'size:3'],
             'locale' => ['sometimes', 'in:es-CO,es-MX,es-VE'],
             'industry' => ['sometimes', 'nullable', 'string', 'max:40'],
+            // A qué se dedica (rediseño v2 §11.1): lo elige el asistente y se cambia aquí, en Configuración.
+            'vertical' => ['sometimes', 'nullable', Rule::in(Verticals::keys())],
             'legal_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'privacy_policy_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
         ]);
