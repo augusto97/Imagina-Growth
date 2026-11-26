@@ -143,6 +143,7 @@ export function useAskHistory(ws: string) {
 export function useAsk(ws: string) {
     const qc = useQueryClient();
     return useMutation({
+        mutationKey: ['ws', ws, 'ai', 'ask'],
         mutationFn: (question: string) => api.post<AskAnswer>(`${wsPath(ws)}/ai/ask`, { question }),
         onSuccess: (answer) => {
             qc.setQueryData<AskAnswer[]>(keys.history(ws), (old) => [answer, ...(old ?? [])]);

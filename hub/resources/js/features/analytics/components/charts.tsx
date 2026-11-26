@@ -1,6 +1,8 @@
 import { lazy, Suspense, type ComponentProps, type ComponentType } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { TrendChart as TrendChartImpl, StackedBars as StackedBarsImpl } from './charts-recharts';
+import type { CategoryBars as CategoryBarsImpl, LineTrend as LineTrendImpl, StackedBars as StackedBarsImpl, TrendChart as TrendChartImpl } from './charts-recharts';
+
+export type { ChartTooltipContent } from './charts-recharts';
 
 /*
  * Gráficos de los tableros (skill dataviz). Las gráficas de Recharts (`TrendChart`, `StackedBars`) se cargan perezosas
@@ -12,6 +14,8 @@ export { BarList, Heatmap, Legend } from './charts-lite';
 
 const LazyTrend = lazy(async () => ({ default: (await import('./charts-recharts')).TrendChart as ComponentType<unknown> }));
 const LazyStacked = lazy(async () => ({ default: (await import('./charts-recharts')).StackedBars as ComponentType<unknown> }));
+const LazyCategory = lazy(async () => ({ default: (await import('./charts-recharts')).CategoryBars as ComponentType<unknown> }));
+const LazyLine = lazy(async () => ({ default: (await import('./charts-recharts')).LineTrend as ComponentType<unknown> }));
 
 /** Alto de la leyenda que `StackedBars` pinta arriba de las barras (para que el esqueleto mida lo mismo). */
 const LEGEND_HEIGHT = 24;
@@ -29,6 +33,27 @@ export function StackedBars<T extends { date: string }>(props: ComponentProps<ty
     const Chart = LazyStacked as ComponentType<ComponentProps<typeof StackedBarsImpl<T>>>;
     return (
         <Suspense fallback={<Skeleton className="igr:rounded-lg" style={{ height: (props.height ?? 240) + LEGEND_HEIGHT }} />}>
+            <Chart {...props} />
+        </Suspense>
+    );
+}
+
+/** Barras por categoría (deciles, rangos, notas), perezosas como las demás; el esqueleto mide lo mismo (con su leyenda). */
+export function CategoryBars<T extends object>(props: ComponentProps<typeof CategoryBarsImpl<T>>) {
+    const Chart = LazyCategory as ComponentType<ComponentProps<typeof CategoryBarsImpl<T>>>;
+    const legend = props.legend !== false && props.series.length > 1 ? LEGEND_HEIGHT : 0;
+    return (
+        <Suspense fallback={<Skeleton className="igr:rounded-lg" style={{ height: (props.height ?? 224) + legend }} />}>
+            <Chart {...props} />
+        </Suspense>
+    );
+}
+
+/** Una serie como línea con puntos, perezosa. */
+export function LineTrend<T extends object>(props: ComponentProps<typeof LineTrendImpl<T>>) {
+    const Chart = LazyLine as ComponentType<ComponentProps<typeof LineTrendImpl<T>>>;
+    return (
+        <Suspense fallback={<Skeleton className="igr:rounded-lg" style={{ height: props.height ?? 220 }} />}>
             <Chart {...props} />
         </Suspense>
     );

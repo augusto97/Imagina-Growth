@@ -1,20 +1,22 @@
-import { BarChart3, BrainCircuit, CircleAlert, RefreshCw, Table2 } from 'lucide-react';
+import { ArrowRight, BarChart3, BrainCircuit, RefreshCw, Table2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import type { TooltipContentProps } from 'recharts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Callout } from '@/components/ui/callout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ErrorState, PageHeader } from '@/components/ui/misc';
+import { EmptyState, ErrorState, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
-import { Legend } from '@/features/analytics/components/charts';
+import { CategoryBars } from '@/features/analytics/components/charts';
+import { StatTile, TileGrid } from '@/features/analytics/components/StatTile';
+import { makeFormatters } from '@/features/analytics/format';
+import { resultsAudience } from '@/features/analytics/results';
 import { useChartTheme } from '@/features/analytics/theme';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
-import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
+import { formatDateTime, formatNumber } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { type Decile, type ModelRun, PRESETS, type PredictionsOverview, type Preset, reliabilityFacts, useCreatePresetSegment, usePredictions, useRunPredictions } from './api';
 
@@ -24,6 +26,8 @@ export function PredictionsPage() {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const canManage = useCan('manageMarketing');
+    // Las predicciones salen de las compras: un negocio sin tienda no tiene con qué calcularlas.
+    const store = resultsAudience(workspace).store;
     const query = usePredictions(workspace.id);
     const run = useRunPredictions(workspace.id);
     const start = (train: boolean) =>
@@ -38,7 +42,7 @@ export function PredictionsPage() {
                 title={t('predictions.title')}
                 description={t('predictions.description')}
                 actions={
-                    canManage ? (
+                    canManage && store ? (
                         <>
                             <Button variant="outline" size="sm" loading={run.isPending && !run.variables} onClick={() => start(false)}>
                                 <RefreshCw />
@@ -52,7 +56,21 @@ export function PredictionsPage() {
                     ) : null
                 }
             />
-            {query.isError ? (
+            {!store ? (
+                <EmptyState
+                    illustration="customers"
+                    title={t('predictions.services.title')}
+                    description={t('predictions.services.description')}
+                    action={
+                        <Button asChild>
+                            <Link to={`/w/${workspace.id}/leads`}>
+                                {t('predictions.services.action')}
+                                <ArrowRight aria-hidden />
+                            </Link>
+                        </Button>
+                    }
+                />
+            ) : query.isError ? (
                 <ErrorState error={query.error} onRetry={() => void query.refetch()} />
             ) : query.isPending ? (
                 <div className="igr:grid igr:gap-3 igr:md:grid-cols-3">
@@ -72,25 +90,33 @@ function Overview({ data }: { data: PredictionsOverview }) {
     const { workspace } = useWorkspace();
     const byKey = Object.fromEntries(data.models.map((m) => [m.key, m])) as Record<ModelRun['key'], ModelRun>;
     const clv = byKey.clv;
-    const n = (v: number) => formatNumber(v, workspace.locale);
+    const fmt = makeFormatters(workspace.locale, workspace.currency);
+    const churnHigh = data.distributions.churn.high ?? 0;
+    const soon = data.distributions.next_order.next_7 + data.distributions.next_order.next_30;
 
     return (
         <div className="igr:space-y-4">
             {!data.ml_configured ? (
-                <p className="igr:flex igr:items-start igr:gap-2 igr:rounded-md igr:border igr:bg-muted/40 igr:px-3 igr:py-2 igr:text-xs igr:text-muted-foreground">
-                    <CircleAlert className="igr:mt-0.5 igr:size-3.5 igr:shrink-0" aria-hidden />
+                <Callout tone="neutral" title={t('predictions.mlMissingTitle')}>
                     {t('predictions.mlMissing')}
-                </p>
+                </Callout>
             ) : null}
-            <dl className="igr:grid igr:grid-cols-2 igr:gap-px igr:overflow-hidden igr:rounded-lg igr:border igr:bg-border igr:md:grid-cols-4">
-                <Stat label={t('predictions.coverage.clv')} value={`${n(data.coverage.with_clv)} / ${n(data.coverage.customers)}`} />
-                <Stat label={t('predictions.coverage.churn')} value={`${n(data.coverage.with_churn)} / ${n(data.coverage.customers)}`} />
-                <Stat label={t('predictions.coverage.nextOrder')} value={`${n(data.coverage.with_next_order)} / ${n(data.coverage.customers)}`} />
-                <Stat label={t('predictions.coverage.clvTotal')} value={formatMoney(data.distributions.clv_total, workspace.currency, workspace.locale)} />
-            </dl>
+            <TileGrid>
+                <StatTile label={t('predictions.coverage.clvTotal')} unit="money" value={Number(data.distributions.clv_total)} fmt={fmt} help={t('predictions.coverage.clvTotalHelp')} />
+                <StatTile label={t('predictions.coverage.atRisk')} unit="count" value={churnHigh} fmt={fmt} help={t('predictions.coverage.atRiskHelp')} better="down" />
+                <StatTile label={t('predictions.coverage.soon')} unit="count" value={soon} fmt={fmt} help={t('predictions.coverage.soonHelp')} />
+                <StatTile
+                    label={t('predictions.coverage.covered')}
+                    unit="ratio"
+                    value={data.coverage.customers > 0 ? data.coverage.with_churn / data.coverage.customers : null}
+                    fmt={fmt}
+                    display={data.coverage.customers > 0 ? fmt.percent(data.coverage.with_churn / data.coverage.customers, 0) : '—'}
+                    hint={t('predictions.coverage.coveredHint', { with: fmt.number(data.coverage.with_churn), total: fmt.number(data.coverage.customers) })}
+                />
+            </TileGrid>
             <div className="igr:grid igr:gap-3 igr:md:grid-cols-3">
                 {MAIN.map((k) => (
-                    <ModelCard key={k} run={byKey[k]} />
+                    <ModelCard key={k} run={byKey[k]} mlConfigured={data.ml_configured} />
                 ))}
             </div>
             <div className="igr:grid igr:gap-3 igr:lg:grid-cols-2">
@@ -123,21 +149,24 @@ function Stat({ label, value }: { label: string; value: string }) {
 const STATUS_VARIANT = { completed: 'success', heuristic: 'secondary', insufficient_data: 'outline', failed: 'destructive', never: 'outline' } as const;
 const RELIABILITY_VARIANT = { high: 'success', medium: 'warning', low: 'destructive' } as const;
 
-function ModelCard({ run, compact = false }: { run: ModelRun; compact?: boolean }) {
+function ModelCard({ run, compact = false, mlConfigured = true }: { run: ModelRun; compact?: boolean; mlConfigured?: boolean }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const facts = reliabilityFacts(run);
+    // Sin el servicio de predicciones el valor futuro no se calcula: no es una falla, es algo que falta prender.
+    const needsService = !mlConfigured && run.status === 'failed';
 
     return (
         <Card className="igr:flex igr:flex-col">
             <CardHeader className="igr:space-y-1 igr:pb-2">
                 <div className="igr:flex igr:items-start igr:justify-between igr:gap-2">
                     <CardTitle className="igr:text-sm">{t(`predictions.models.${run.key}.title`)}</CardTitle>
-                    <Badge variant={STATUS_VARIANT[run.status]}>{t(`predictions.status.${run.status}`)}</Badge>
+                    <Badge variant={needsService ? 'outline' : STATUS_VARIANT[run.status]}>{needsService ? t('predictions.status.needsService') : t(`predictions.status.${run.status}`)}</Badge>
                 </div>
-                {!compact ? <CardDescription className="igr:text-xs">{t(`predictions.models.${run.key}.help`)}</CardDescription> : null}
+                <CardDescription>{t(`predictions.models.${run.key}.meaning`)}</CardDescription>
             </CardHeader>
             <CardContent className="igr:mt-auto igr:space-y-2 igr:text-[13px]">
+                {!compact ? <p className="igr:text-caption igr:text-muted-foreground">{t(`predictions.models.${run.key}.help`)}</p> : null}
                 {run.reliability ? (
                     <p className="igr:flex igr:items-center igr:gap-2">
                         <span className="igr:text-xs igr:text-muted-foreground">{t('predictions.reliability.label')}</span>
@@ -147,7 +176,11 @@ function ModelCard({ run, compact = false }: { run: ModelRun; compact?: boolean 
                 {facts ? <p>{t(`predictions.facts.${facts.key}`, formatFacts(facts.values, workspace.locale))}</p> : null}
                 {run.status === 'completed' && !facts ? <p className="igr:text-muted-foreground">{t(`predictions.models.${run.key}.done`, { ...summaryValues(run) })}</p> : null}
                 {run.status === 'heuristic' ? <p className="igr:text-muted-foreground">{t('predictions.heuristicHelp')}</p> : null}
-                {run.reason && run.status !== 'heuristic' ? <p className="igr:text-muted-foreground">{run.reason}</p> : null}
+                {needsService ? (
+                    <p className="igr:text-muted-foreground">{t('predictions.needsServiceHelp')}</p>
+                ) : run.reason && run.status !== 'heuristic' ? (
+                    <p className="igr:text-muted-foreground">{run.reason}</p>
+                ) : null}
                 <p className="igr:text-xs igr:text-muted-foreground">
                     {run.trained_at ? t('predictions.trainedAt', { date: formatDateTime(run.trained_at, workspace.locale, workspace.timezone) }) : t('predictions.neverTrained')}
                 </p>
@@ -227,45 +260,18 @@ function CalibrationChart({ deciles, days }: { deciles: Decile[]; days: number }
                         </TBody>
                     </Table>
                 ) : (
-                    <>
-                        <Legend items={series.map((s) => ({ label: s.label, color: s.color }))} />
-                        <div className="igr:h-56" role="img" aria-label={t('predictions.calibration.title')}>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={deciles} margin={{ top: 4, right: 4, bottom: 0, left: 0 }} barCategoryGap="22%" barGap={2}>
-                                    <CartesianGrid vertical={false} stroke={theme.grid} />
-                                    <XAxis dataKey="decile" tickFormatter={(v: number) => t('predictions.calibration.decileShort', { n: v })} tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={{ stroke: theme.axis }} />
-                                    <YAxis width={36} tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v: number) => num(v)} />
-                                    <Tooltip
-                                        cursor={{ fill: theme.grid, opacity: 0.5 }}
-                                        isAnimationActive={false}
-                                        content={(props: TooltipContentProps) => {
-                                            const row = props.payload[0]?.payload as Decile | undefined;
-                                            if (!props.active || row === undefined) return null;
-                                            return (
-                                                <div className="igr:min-w-44 igr:rounded-md igr:border igr:bg-popover igr:px-2.5 igr:py-2 igr:text-xs igr:shadow-md">
-                                                    <p className="igr:mb-1 igr:font-medium">
-                                                        {t('predictions.calibration.decileN', { n: row.decile })} · {t('predictions.calibration.customersN', { count: row.customers })}
-                                                    </p>
-                                                    {series.map((s) => (
-                                                        <div key={s.key} className="igr:flex igr:items-center igr:justify-between igr:gap-4">
-                                                            <span className="igr:flex igr:items-center igr:gap-1.5 igr:text-muted-foreground">
-                                                                <span className="igr:size-2 igr:rounded-full" style={{ background: s.color }} />
-                                                                {s.label}
-                                                            </span>
-                                                            <span className="igr:font-medium igr:tabular-nums">{num(row[s.key])}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            );
-                                        }}
-                                    />
-                                    {series.map((s) => (
-                                        <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]} maxBarSize={16} isAnimationActive={false} />
-                                    ))}
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </>
+                    <CategoryBars
+                        data={deciles}
+                        x="decile"
+                        series={series}
+                        xTick={(v) => t('predictions.calibration.decileShort', { n: v })}
+                        yTick={(v) => num(v)}
+                        ariaLabel={t('predictions.calibration.title')}
+                        tooltip={(row) => ({
+                            title: `${t('predictions.calibration.decileN', { n: row.decile })} · ${t('predictions.calibration.customersN', { count: row.customers })}`,
+                            rows: series.map((s) => ({ label: s.label, value: num(row[s.key]), color: s.color })),
+                        })}
+                    />
                 )}
             </CardContent>
         </Card>
@@ -289,30 +295,16 @@ function AliveHistogram({ data }: { data: PredictionsOverview }) {
                 {total === 0 ? (
                     <p className="igr:py-10 igr:text-center igr:text-[13px] igr:text-muted-foreground">{t('predictions.alive.empty')}</p>
                 ) : (
-                    <div className="igr:h-56" role="img" aria-label={t('predictions.alive.title')}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={rows} margin={{ top: 4, right: 4, bottom: 0, left: 0 }} barCategoryGap={2}>
-                                <CartesianGrid vertical={false} stroke={theme.grid} />
-                                <XAxis dataKey="label" tick={{ fill: theme.muted, fontSize: 10 }} tickLine={false} axisLine={{ stroke: theme.axis }} interval={1} />
-                                <YAxis allowDecimals={false} width={40} tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={false} />
-                                <Tooltip
-                                    cursor={{ fill: theme.grid, opacity: 0.5 }}
-                                    isAnimationActive={false}
-                                    content={(props: TooltipContentProps) => {
-                                        const row = props.payload[0]?.payload as (typeof rows)[number] | undefined;
-                                        if (!props.active || row === undefined) return null;
-                                        return (
-                                            <div className="igr:rounded-md igr:border igr:bg-popover igr:px-2.5 igr:py-2 igr:text-xs igr:shadow-md">
-                                                <p className="igr:font-medium">{t('predictions.alive.bin', { range: row.label })}</p>
-                                                <p className="igr:tabular-nums igr:text-muted-foreground">{t('predictions.alive.customers', { count: row.n, formatted: formatNumber(row.n, workspace.locale) })}</p>
-                                            </div>
-                                        );
-                                    }}
-                                />
-                                <Bar dataKey="n" fill={theme.series[0] ?? '#2a78d6'} radius={[4, 4, 0, 0]} isAnimationActive={false} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
+                    <CategoryBars
+                        data={rows}
+                        x="label"
+                        series={[{ key: 'n', label: t('predictions.alive.customersLabel'), color: theme.series[0] ?? '#2a78d6' }]}
+                        ariaLabel={t('predictions.alive.title')}
+                        tooltip={(row) => ({
+                            title: t('predictions.alive.bin', { range: row.label }),
+                            rows: [{ label: t('predictions.alive.customersLabel'), value: formatNumber(row.n, workspace.locale) }],
+                        })}
+                    />
                 )}
             </CardContent>
         </Card>

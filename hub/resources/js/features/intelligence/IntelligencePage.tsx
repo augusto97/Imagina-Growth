@@ -1,4 +1,4 @@
-import { BrainCircuit, ChevronRight, FileText, Lightbulb, MessageSquareText, Pin, PinOff } from 'lucide-react';
+import { BrainCircuit, ChevronRight, FileText, Lightbulb, MessageSquareText, Pin, PinOff, Sparkles } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -8,47 +8,77 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ErrorState, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useWorkspace } from '@/hooks/useWorkspace';
+import { resultsAudience } from '@/features/analytics/results';
 import { useChartTheme } from '@/features/analytics/theme';
+import { AskBox } from './AskPage';
 import { type AskAnswer, useAiUsage, useRunSaved, useSavedQueries, useUnsave } from './api';
 import { AnswerResult } from './components';
 import { budgetShare } from './logic';
 
-/* Inteligencia (M17): la entrada a «Pregúntale», los informes del analista, las predicciones, los hallazgos y el uso de IA. */
+/*
+ * Analista con IA (M17): «Pregúntale a tus datos» arriba (con ejemplos según el negocio), las consultas fijadas con
+ * las cifras al día, el uso de la IA y los atajos a los informes semanales, las predicciones y las recomendaciones.
+ */
 export function IntelligencePage() {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const base = `/w/${workspace.id}`;
+    const store = resultsAudience(workspace).store;
+    const canUse = workspace.abilities.includes('useAi');
     const sections: { to: string; icon: LucideIcon; key: string }[] = [
-        { to: `${base}/inteligencia/preguntale`, icon: MessageSquareText, key: 'ask' },
-        { to: `${base}/inteligencia/informes`, icon: FileText, key: 'reports' },
-        { to: `${base}/inteligencia/predicciones`, icon: BrainCircuit, key: 'predictions' },
+        { to: `${base}/reportes?tipo=semanal`, icon: FileText, key: 'reports' },
+        ...(store ? [{ to: `${base}/inteligencia/predicciones`, icon: BrainCircuit, key: 'predictions' }] : []),
         { to: `${base}/hallazgos`, icon: Lightbulb, key: 'insights' },
     ];
 
     return (
         <>
-            <PageHeader title={t('intelligence.title')} description={t('intelligence.description')} />
-            <nav aria-label={t('intelligence.title')} className="igr:grid igr:gap-3 igr:sm:grid-cols-2 igr:xl:grid-cols-4">
-                {sections.map((s) => (
-                    <Link key={s.key} to={s.to} className="igr:group igr:rounded-lg igr:outline-none igr:focus-visible:ring-2 igr:focus-visible:ring-ring">
-                        <Card className="igr:h-full igr:transition-colors igr:group-hover:bg-muted/40">
-                            <CardContent className="igr:flex igr:items-start igr:gap-3 igr:pt-4">
-                                <s.icon className="igr:mt-0.5 igr:size-4 igr:shrink-0 igr:text-muted-foreground" aria-hidden />
-                                <div className="igr:min-w-0 igr:flex-1">
-                                    <p className="igr:text-[13px] igr:font-semibold">{t(`intelligence.sections.${s.key}.title`)}</p>
-                                    <p className="igr:mt-0.5 igr:text-xs igr:text-muted-foreground">{t(`intelligence.sections.${s.key}.description`)}</p>
-                                </div>
-                                <ChevronRight className="igr:size-4 igr:shrink-0 igr:text-muted-foreground" aria-hidden />
-                            </CardContent>
-                        </Card>
-                    </Link>
-                ))}
-            </nav>
-            <div className="igr:mt-6 igr:grid igr:gap-4 igr:lg:grid-cols-3">
-                <div className="igr:lg:col-span-2">
+            <PageHeader title={t('intelligence.title')} description={t('intelligence.description')} icon={Sparkles} tone="indigo" />
+            <Card className="igr:mb-6">
+                <CardHeader>
+                    <CardTitle className="igr:flex igr:items-center igr:gap-2">
+                        <MessageSquareText className="igr:size-4 igr:text-primary" aria-hidden />
+                        {t('intelligence.sections.ask.title')}
+                    </CardTitle>
+                    <CardDescription>{t('intelligence.sections.ask.description')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {canUse ? (
+                        <AskBox goToAnswers />
+                    ) : (
+                        <p className="igr:text-support igr:text-muted-foreground">{t('intelligence.ask.noPermission')}</p>
+                    )}
+                    <Button asChild variant="link" size="sm" className="igr:mt-2 igr:px-0">
+                        <Link to={`${base}/inteligencia/preguntale`}>
+                            {t('intelligence.ask.history')}
+                            <ChevronRight aria-hidden />
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
+            <div className="igr:grid igr:gap-4 igr:lg:grid-cols-3">
+                <div className="igr:min-w-0 igr:lg:col-span-2">
                     <SavedQueries />
                 </div>
-                <UsageCard />
+                <div className="igr:space-y-4">
+                    <nav aria-label={t('intelligence.more')} className="igr:grid igr:gap-3">
+                        {sections.map((s) => (
+                            <Link key={s.key} to={s.to} className="igr:group igr:rounded-xl igr:outline-none igr:focus-visible:ring-2 igr:focus-visible:ring-ring">
+                                <Card className="igr:h-full igr:transition-[box-shadow,border-color] igr:group-hover:border-primary/25 igr:group-hover:shadow-md">
+                                    <CardContent className="igr:flex igr:items-start igr:gap-3 igr:pt-4">
+                                        <s.icon className="igr:mt-0.5 igr:size-4 igr:shrink-0 igr:text-muted-foreground" aria-hidden />
+                                        <div className="igr:min-w-0 igr:flex-1">
+                                            <p className="igr:text-[13px] igr:font-semibold">{t(`intelligence.sections.${s.key}.title`)}</p>
+                                            <p className="igr:mt-0.5 igr:text-xs igr:text-muted-foreground">{t(`intelligence.sections.${s.key}.description`)}</p>
+                                        </div>
+                                        <ChevronRight className="igr:size-4 igr:shrink-0 igr:text-muted-foreground" aria-hidden />
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                        ))}
+                    </nav>
+                    <UsageCard />
+                </div>
             </div>
         </>
     );

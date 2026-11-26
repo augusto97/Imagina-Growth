@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import type { Granularity, MetricUnit } from '../api';
 import type { Formatters } from '../format';
@@ -163,6 +163,138 @@ export function StackedBars<T extends { date: string }>({
                     </BarChart>
                 </ResponsiveContainer>
             </div>
+        </div>
+    );
+}
+
+/** Una fila del cuadro que aparece al pasar el puntero (título y filas con su color). */
+export interface ChartTooltipContent {
+    title: ReactNode;
+    rows: { label: ReactNode; value: ReactNode; color?: string }[];
+}
+
+/**
+ * Barras por categoría (no por fecha): deciles, rangos, notas de una encuesta… Una o varias series lado a lado o
+ * apiladas (`stacked`), con su color y el cuadro del puntero que arma la pantalla. Con 2 o más series lleva leyenda.
+ */
+export function CategoryBars<T extends object>({
+    data,
+    x,
+    series,
+    stacked = false,
+    height = 224,
+    xTick,
+    yTick,
+    tooltip,
+    ariaLabel,
+    legend = true,
+}: {
+    data: T[];
+    x: keyof T & string;
+    series: { key: keyof T & string; label: string; color: string }[];
+    stacked?: boolean;
+    height?: number;
+    xTick?: (value: string) => string;
+    yTick?: (value: number) => string;
+    tooltip: (row: T) => ChartTooltipContent;
+    ariaLabel: string;
+    legend?: boolean;
+}) {
+    const theme = useChartTheme();
+    return (
+        <div>
+            {legend && series.length > 1 ? <Legend items={series.map((s) => ({ label: s.label, color: s.color }))} /> : null}
+            <div style={{ height }} role="img" aria-label={ariaLabel}>
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }} barCategoryGap={stacked ? 2 : '22%'} barGap={2}>
+                        <CartesianGrid vertical={false} stroke={theme.grid} />
+                        <XAxis dataKey={(row: T) => String(row[x])} tickFormatter={xTick} tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={{ stroke: theme.axis }} minTickGap={4} />
+                        <YAxis allowDecimals={false} width={40} tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={yTick} />
+                        <RTooltip
+                            cursor={{ fill: theme.grid, opacity: 0.5 }}
+                            isAnimationActive={false}
+                            content={(props: TooltipContentProps) => {
+                                const row = props.payload[0]?.payload as T | undefined;
+                                if (!props.active || row === undefined) return null;
+                                const box = tooltip(row);
+                                return <TooltipBox title={box.title} rows={box.rows} />;
+                            }}
+                        />
+                        {series.map((s, i) => (
+                            <Bar
+                                key={s.key}
+                                dataKey={(row: T) => Number(row[s.key] ?? 0)}
+                                name={s.label}
+                                fill={s.color}
+                                stackId={stacked ? 'a' : undefined}
+                                radius={!stacked || i === series.length - 1 ? [4, 4, 0, 0] : 0}
+                                maxBarSize={stacked ? 36 : 16}
+                                isAnimationActive={false}
+                            />
+                        ))}
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+}
+
+/** Una serie como línea con puntos (p. ej. la nota de una encuesta por semana), con su dominio y una línea de referencia. */
+export function LineTrend<T extends object>({
+    data,
+    x,
+    y,
+    color,
+    height = 220,
+    domain,
+    referenceY,
+    xTick,
+    yTick,
+    tooltip,
+    ariaLabel,
+}: {
+    data: T[];
+    x: keyof T & string;
+    y: keyof T & string;
+    color?: string;
+    height?: number;
+    domain?: [number, number];
+    referenceY?: number;
+    xTick?: (value: string) => string;
+    yTick?: (value: number) => string;
+    tooltip: (row: T) => ChartTooltipContent;
+    ariaLabel: string;
+}) {
+    const theme = useChartTheme();
+    const stroke = color ?? theme.series[0] ?? '#2a78d6';
+    return (
+        <div style={{ height }} role="img" aria-label={ariaLabel}>
+            <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+                    <CartesianGrid vertical={false} stroke={theme.grid} />
+                    <XAxis dataKey={(row: T) => String(row[x])} tickFormatter={xTick} tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={{ stroke: theme.axis }} minTickGap={24} />
+                    <YAxis domain={domain} tickFormatter={yTick} tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={false} width={48} />
+                    {referenceY !== undefined ? <ReferenceLine y={referenceY} stroke={theme.axis} /> : null}
+                    <RTooltip
+                        cursor={{ stroke: theme.axis, strokeWidth: 1 }}
+                        content={(props: TooltipContentProps) => {
+                            const row = props.payload[0]?.payload as T | undefined;
+                            if (!props.active || row === undefined) return null;
+                            const box = tooltip(row);
+                            return <TooltipBox title={box.title} rows={box.rows} />;
+                        }}
+                    />
+                    <Line
+                        type="monotone"
+                        dataKey={(row: T) => Number(row[y] ?? 0)}
+                        stroke={stroke}
+                        strokeWidth={2}
+                        dot={{ r: 4, strokeWidth: 2, stroke: theme.surface, fill: stroke }}
+                        activeDot={{ r: 5, strokeWidth: 2, stroke: theme.surface }}
+                        isAnimationActive={false}
+                    />
+                </LineChart>
+            </ResponsiveContainer>
         </div>
     );
 }
