@@ -8,10 +8,12 @@ import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { cn } from '@/lib/cn';
 import { type PreviewResult, useContactSearch } from '../api';
 import { fillWaText } from '../content';
+import { PhoneMock, SmsBubble, WaBubble } from './MessageMock';
 
 /** Vista previa renderizada en el hub: correo en un iframe aislado, SMS y WhatsApp en burbujas. */
-export function PreviewView({ result, channel, waBody }: { result: PreviewResult; channel: 'email' | 'sms' | 'whatsapp'; waBody?: { header?: string; body?: string; footer?: string; buttons?: string[] } }) {
+export function PreviewView({ result, channel, waBody }: { result: PreviewResult; channel: 'email' | 'sms' | 'whatsapp'; waBody?: { header?: string; body?: string; footer?: string; buttons?: string[]; urlButtons?: boolean[] } | undefined }) {
     const { t } = useTranslation();
+    const { workspace } = useWorkspace();
     const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
     const [tab, setTab] = useState<'html' | 'text'>('html');
 
@@ -55,14 +57,16 @@ export function PreviewView({ result, channel, waBody }: { result: PreviewResult
 
     if (channel === 'sms') {
         return (
-            <PhoneFrame>
-                <div className="igr:max-w-[85%] igr:self-start igr:whitespace-pre-wrap igr:rounded-2xl igr:rounded-bl-sm igr:bg-white igr:px-3 igr:py-2 igr:text-[13px] igr:text-gray-900 igr:shadow-sm">{result.text}</div>
+            <div>
+                <PhoneMock business={workspace.name} variant="sms">
+                    <SmsBubble text={result.text ?? ''} />
+                </PhoneMock>
                 {result.sms && (
-                    <p className="igr:mt-2 igr:text-center igr:text-[11px] igr:text-gray-600">
+                    <p className="igr:mt-2 igr:text-center igr:text-caption igr:text-muted-foreground">
                         {t('templates.sms.counter', { length: result.sms.length, segments: result.sms.segments, encoding: result.sms.encoding })}
                     </p>
                 )}
-            </PhoneFrame>
+            </div>
         );
     }
 
@@ -71,26 +75,14 @@ export function PreviewView({ result, channel, waBody }: { result: PreviewResult
         return acc;
     }, {});
     return (
-        <PhoneFrame wa>
-            <div className="igr:max-w-[85%] igr:self-start igr:rounded-lg igr:rounded-tl-sm igr:bg-white igr:px-3 igr:py-2 igr:text-[13px] igr:text-gray-900 igr:shadow-sm">
-                {waBody?.header && <p className="igr:mb-1 igr:font-semibold">{fillWaText(waBody.header, values.header ?? [])}</p>}
-                <p className="igr:whitespace-pre-wrap">{fillWaText(waBody?.body ?? '', values.body ?? [])}</p>
-                {waBody?.footer && <p className="igr:mt-1 igr:text-[11px] igr:text-gray-500">{waBody.footer}</p>}
-            </div>
-            {(waBody?.buttons ?? []).map((b) => (
-                <div key={b} className="igr:mt-1 igr:max-w-[85%] igr:self-start igr:rounded-lg igr:bg-white igr:px-3 igr:py-1.5 igr:text-center igr:text-[13px] igr:font-medium igr:text-[#027eb5] igr:shadow-sm">
-                    {b}
-                </div>
-            ))}
-        </PhoneFrame>
-    );
-}
-
-function PhoneFrame({ children, wa = false }: { children: React.ReactNode; wa?: boolean }) {
-    return (
-        <div className="igr:flex igr:justify-center">
-            <div className={cn('igr:flex igr:min-h-[320px] igr:w-[320px] igr:flex-col igr:rounded-[28px] igr:border-[6px] igr:border-gray-800 igr:p-4', wa ? 'igr:bg-[#e5ddd5]' : 'igr:bg-gray-100')}>{children}</div>
-        </div>
+        <PhoneMock business={workspace.name}>
+            <WaBubble
+                header={waBody?.header ? fillWaText(waBody.header, values.header ?? []) : null}
+                body={fillWaText(waBody?.body ?? '', values.body ?? [])}
+                footer={waBody?.footer ?? null}
+                buttons={(waBody?.buttons ?? []).map((text, i) => ({ text, url: waBody?.urlButtons?.[i] ?? false }))}
+            />
+        </PhoneMock>
     );
 }
 
