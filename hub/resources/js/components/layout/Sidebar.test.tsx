@@ -10,6 +10,7 @@ import { useShortcuts } from '@/hooks/useShortcuts';
 import { WorkspaceContext } from '@/hooks/useWorkspace';
 import { useUi } from '@/stores/ui';
 import { LAYOUT_CLASS, pageLayout } from './pageLayout';
+import { CommandPalette } from './CommandPalette';
 import { Sidebar } from './Sidebar';
 
 const workspace: Workspace = {
@@ -147,6 +148,29 @@ describe('barra lateral contraíble (U9)', () => {
         expect(screen.queryByRole('button', { name: /barra lateral/i })).not.toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Clientes' })).toHaveTextContent('Clientes');
         expect(document.querySelector('aside')).toHaveClass('igr:w-60');
+    });
+});
+
+describe('⌘K con las secciones', () => {
+    it('agrupa por sección y encuentra una pantalla por su nombre de antes', async () => {
+        Element.prototype.scrollIntoView = vi.fn();
+        useUi.setState({ commandOpen: true });
+        const user = userEvent.setup();
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+        render(
+            <QueryClientProvider client={client}>
+                <MemoryRouter initialEntries={['/w/ws_1']}>
+                    <WorkspaceContext.Provider value={{ workspace, me }}>
+                        <CommandPalette />
+                    </WorkspaceContext.Provider>
+                </MemoryRouter>
+            </QueryClientProvider>,
+        );
+        expect(screen.getByRole('option', { name: /Mensajes · resumen/ })).toBeInTheDocument();
+        await user.type(screen.getByRole('combobox'), 'flujos');
+        expect(screen.getByRole('option', { name: /Automatizaciones/ })).toBeInTheDocument();
+        expect(screen.queryByRole('option', { name: /Personas/ })).not.toBeInTheDocument();
+        useUi.setState({ commandOpen: false });
     });
 });
 

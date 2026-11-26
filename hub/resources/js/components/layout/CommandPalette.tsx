@@ -129,42 +129,63 @@ export function CommandPalette() {
                                 </Command.Group>
                             ) : null}
                             {/* Cada sección con su página de entrada y sus pantallas; los nombres de antes también encuentran (flujos, segmentos…). */}
-                            {sections.map((section) => {
-                                const sectionName = t(`nav.sections.${section.key}`);
-                                const SectionIcon = section.icon;
-                                return (
-                                    <Command.Group key={section.key} heading={section.items.length === 0 ? t('command.goTo') : sectionName} className={groupClass}>
-                                        <Item
-                                            value={`ir ${sectionName} ${t(`sections.${section.key}.purpose`, { defaultValue: '' })}`}
-                                            onSelect={() => go(sectionPath(base, section))}
-                                        >
-                                            <SectionIcon />
-                                            {section.items.length === 0 ? sectionName : t('command.sectionOverview', { section: sectionName })}
-                                            {section.shortcut ? (
-                                                <span className="igr:ml-auto igr:text-[11px] igr:text-muted-foreground">G {section.shortcut.toUpperCase()}</span>
-                                            ) : null}
-                                        </Item>
-                                        {section.items.map((item) => {
-                                            const Icon = item.icon;
-                                            const locked = itemLock(item, nav) !== null;
-                                            return (
-                                                <Item
-                                                    key={item.key}
-                                                    value={`ir ${t(`nav.${item.key}`)} ${sectionName} ${t(`nav.keywords.${item.key}`, { defaultValue: '' })}`}
-                                                    onSelect={() => go(itemPath(base, item))}
-                                                >
-                                                    <Icon />
-                                                    {t(`nav.${item.key}`)}
-                                                    {locked ? <Lock className="igr:size-3!" aria-label={t('ui.locked.short.generic')} /> : null}
-                                                    {item.shortcut ? (
-                                                        <span className="igr:ml-auto igr:text-[11px] igr:text-muted-foreground">G {item.shortcut.toUpperCase()}</span>
-                                                    ) : null}
-                                                </Item>
-                                            );
-                                        })}
-                                    </Command.Group>
-                                );
-                            })}
+                            {/* Las secciones de una sola página juntas en «Ir a»; las demás, cada una con su resumen y sus pantallas. */}
+                            <Command.Group heading={t('command.goTo')} className={groupClass}>
+                                {sections
+                                    .filter((section) => section.items.length === 0)
+                                    .map((section) => {
+                                        const sectionName = t(`nav.sections.${section.key}`);
+                                        const SectionIcon = section.icon;
+                                        return (
+                                            <Item
+                                                key={section.key}
+                                                value={`ir ${sectionName} ${t(`sections.${section.key}.purpose`, { defaultValue: '' })}`}
+                                                onSelect={() => go(sectionPath(base, section))}
+                                            >
+                                                <SectionIcon />
+                                                {sectionName}
+                                                {section.shortcut ? (
+                                                    <span className="igr:ml-auto igr:text-[11px] igr:text-muted-foreground">G {section.shortcut.toUpperCase()}</span>
+                                                ) : null}
+                                            </Item>
+                                        );
+                                    })}
+                            </Command.Group>
+                            {sections
+                                .filter((section) => section.items.length > 0)
+                                .map((section) => {
+                                    const sectionName = t(`nav.sections.${section.key}`);
+                                    const SectionIcon = section.icon;
+                                    return (
+                                        <Command.Group key={section.key} heading={sectionName} className={groupClass}>
+                                            <Item
+                                                value={`ir ${sectionName} ${t(`sections.${section.key}.purpose`, { defaultValue: '' })}`}
+                                                onSelect={() => go(sectionPath(base, section))}
+                                            >
+                                                <SectionIcon />
+                                                {t('command.sectionOverview', { section: sectionName })}
+                                            </Item>
+                                            {section.items.map((item) => {
+                                                const Icon = item.icon;
+                                                const locked = itemLock(item, nav) !== null;
+                                                return (
+                                                    <Item
+                                                        key={item.key}
+                                                        value={`ir ${t(`nav.${item.key}`)} ${sectionName} ${t(`nav.keywords.${item.key}`, { defaultValue: '' })}`}
+                                                        onSelect={() => go(itemPath(base, item))}
+                                                    >
+                                                        <Icon />
+                                                        {t(`nav.${item.key}`)}
+                                                        {locked ? <Lock className="igr:size-3!" aria-label={t('ui.locked.short.generic')} /> : null}
+                                                        {item.shortcut ? (
+                                                            <span className="igr:ml-auto igr:text-[11px] igr:text-muted-foreground">G {item.shortcut.toUpperCase()}</span>
+                                                        ) : null}
+                                                    </Item>
+                                                );
+                                            })}
+                                        </Command.Group>
+                                    );
+                                })}
                             <Command.Group heading={t('command.actions')} className={groupClass}>
                                 {workspace.abilities.includes('manageSites') ? (
                                     <Item value={t('command.connectSite')} onSelect={() => go(`${base}/sitios?conectar=1`)}>
