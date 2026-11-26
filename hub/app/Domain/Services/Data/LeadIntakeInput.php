@@ -7,7 +7,7 @@ namespace App\Domain\Services\Data;
 final class LeadIntakeInput
 {
     /**
-     * @param  'form'|'whatsapp'|'messenger'|'instagram'|'quote'|'booking'|'manual'|'api'  $origin
+     * @param  'form'|'whatsapp'|'messenger'|'instagram'|'quote'|'booking'|'manual'|'api'|'landing'|'meta_lead_ads'|'google_lead_form'  $origin
      * @param  array<string, mixed>  $source  canal, campaña, página, gclid/fbclid
      */
     public function __construct(

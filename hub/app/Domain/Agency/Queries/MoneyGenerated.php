@@ -37,7 +37,8 @@ final class MoneyGenerated
     public const MODULES = ['affiliates', 'referrals', 'flows', 'campaigns', 'ai_agent', 'inbox', 'widgets', 'recovered_carts', 'messages', 'leads', 'bookings', 'quotes'];
 
     /** Origen del lead (leads.origin) → módulo que lo captó. */
-    private const LEAD_ORIGINS = ['form' => 'leads', 'whatsapp' => 'leads', 'messenger' => 'leads', 'instagram' => 'leads', 'booking' => 'bookings', 'quote' => 'quotes'];
+    private const LEAD_ORIGINS = ['form' => 'leads', 'whatsapp' => 'leads', 'messenger' => 'leads', 'instagram' => 'leads', 'landing' => 'leads',
+        'meta_lead_ads' => 'leads', 'google_lead_form' => 'leads', 'booking' => 'bookings', 'quote' => 'quotes'];
 
     /**
      * @return array{currency: string, from: string, to: string, total: string, orders: int, store_total: string, store_orders: int,
