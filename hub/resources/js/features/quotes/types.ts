@@ -7,6 +7,10 @@ export interface QuoteOption {
     label: string;
     price: number;
     multiplier: number;
+    /** Emoji de la tarjeta en el cotizador público. */
+    icon?: string;
+    /** Una línea que explica la opción. */
+    description?: string;
 }
 
 export interface QuoteField {
@@ -22,6 +26,7 @@ export interface QuoteField {
     default?: number | null;
     unit_price?: number;
     options?: QuoteOption[];
+    icon?: string;
 }
 
 export interface QuotePackage {
@@ -29,6 +34,7 @@ export interface QuotePackage {
     label: string;
     description: string | null;
     price: number;
+    icon?: string;
 }
 
 export interface QuoteDefinition {
@@ -37,6 +43,8 @@ export interface QuoteDefinition {
     minimum: number;
     range_pct: number;
     round_to: number;
+    /** Frase de bienvenida del cotizador público. */
+    intro?: string | null;
     note: string | null;
     internal_notes: string | null;
     fields: QuoteField[];
@@ -63,12 +71,16 @@ export interface Calculator {
     definition: QuoteDefinition;
     capture: QuoteCaptureSettings;
     shortcode: string;
+    /** La página del cotizador en el hub, para compartir por enlace o QR. */
+    page_url: string;
     updated_at: string | null;
     stats?: { quotes_30d: number; contacts_30d: number; leads_30d: number; avg_mid: string | null };
 }
 
 export interface CalculatorList {
     can_manage: boolean;
+    /** Si la IA está disponible para «Descríbelo y la IA lo arma». */
+    ai: boolean;
     currency: string;
     sites: { id: string; name: string; public_key: string }[];
     data: Calculator[];
@@ -93,3 +105,23 @@ export interface QuoteRequest {
     lead_id: string | null;
     contact: { id: string; name: string | null; email: string | null; phone: string | null } | null;
 }
+
+/** Plantilla por oficio del asistente, con precios de ejemplo en la moneda del espacio de trabajo. */
+export interface QuoteTemplate {
+    key: string;
+    icon: string;
+    kind: CalculatorKind;
+    name: string;
+    description: string;
+    definition: QuoteDefinition;
+}
+
+/** Lo que propone la IA (nunca guardado): `needs_price` son las rutas de los precios que la persona debe poner. */
+export interface QuoteProposal {
+    name: string;
+    kind: CalculatorKind;
+    definition: QuoteDefinition;
+    needs_price: string[];
+}
+
+export type ScenarioResult = ({ ok: true } & Estimate) | { ok: false; message: string };

@@ -120,3 +120,82 @@ export function formatRange(min: string, max: string, currency: string, locale =
     const fmt = (v: string) => new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: currency === 'COP' ? 0 : 2 }).format(Number(v));
     return min === max ? fmt(min) : `${fmt(min)} – ${fmt(max)}`;
 }
+
+/** El multiplicador de una opción como ajuste en porcentaje (1,25 → 25; 0,9 → −10), que es como lo piensa el negocio. */
+export function multiplierToPct(multiplier: number): number {
+    return Math.round((multiplier - 1) * 1000) / 10;
+}
+
+export function pctToMultiplier(pct: number): number {
+    return Math.max(0.01, Math.round((1 + pct / 100) * 10000) / 10000);
+}
+
+/** La opción que más sube el precio: la de mayor multiplicador y, a igualdad, la de mayor precio. */
+function priciest<T extends { price: number; multiplier: number }>(options: readonly T[]): T | undefined {
+    return [...options].sort((a, b) => b.multiplier - a.multiplier || b.price - a.price)[0];
+}
+
+/**
+ * Dos ejemplos para el asistente: lo básico (el valor por defecto, la primera opción, sin extras y el primer paquete) y
+ * lo completo (el doble de cantidad, la opción que más sube el precio, todos los extras y el último paquete).
+ */
+export function exampleScenarios(def: QuoteDefinition): [Record<string, unknown>, Record<string, unknown>] {
+    const basic = sampleAnswers(def);
+    const full: Record<string, unknown> = {};
+    const lastPackage = def.packages[def.packages.length - 1];
+    if (lastPackage) full.package = lastPackage.key;
+    for (const f of def.fields) {
+        if (f.type === 'number') {
+            const base = typeof basic[f.key] === 'number' ? (basic[f.key] as number) : Math.max(f.min ?? 0, 1);
+            const doubled = Math.max(base * 2, f.min ?? 0);
+            full[f.key] = f.max != null ? Math.min(doubled, f.max) : doubled;
+        } else if (f.type === 'select') {
+            full[f.key] = priciest(f.options ?? [])?.value ?? basic[f.key];
+        } else {
+            full[f.key] = (f.options ?? []).map((o) => o.value);
+        }
+    }
+    return [basic, full];
+}
+
+/** Lo que pidió la persona en palabras: «40 m² · Lavable premium · 3 extras». */
+export function describeAnswers(def: QuoteDefinition, answers: Record<string, unknown>, t: Translate, locale = 'es-CO'): string {
+    const parts: string[] = [];
+    const pkg = def.packages.find((p) => p.key === answers.package);
+    if (pkg) parts.push(pkg.label);
+    for (const f of def.fields) {
+        const value = answers[f.key];
+        if (f.type === 'number' && typeof value === 'number') {
+            parts.push(`${new Intl.NumberFormat(locale).format(value)}${f.unit ? ` ${f.unit}` : ''}`);
+        } else if (f.type === 'select' && typeof value === 'string') {
+            const label = f.options?.find((o) => o.value === value)?.label;
+            if (label) parts.push(label);
+        } else if (f.type === 'checkbox' && Array.isArray(value) && value.length > 0) {
+            parts.push(value.length === 1 ? (f.options?.find((o) => o.value === value[0])?.label ?? '') : t('quotes.wizard.extras', { count: value.length }));
+        }
+    }
+    return parts.filter((p) => p !== '').join(' · ');
+}
+
+/**
+ * Los precios que falta poner: los que la IA dejó en cero por no estar en la descripción (`needs`) y siguen así, y el
+ * precio por unidad de un cotizador por área.
+ */
+export function missingPrices(kind: CalculatorKind, def: QuoteDefinition, needs: readonly string[] = []): string[] {
+    const value = (path: string): number => {
+        const [head, i, sub, j, leaf] = path.split('.');
+        if (head === 'packages') return def.packages[Number(i)]?.price ?? 0;
+        if (head === 'fields' && sub === 'unit_price') return def.fields[Number(i)]?.unit_price ?? 0;
+        if (head === 'fields' && sub === 'options' && leaf === 'price') return def.fields[Number(i)]?.options?.[Number(j)]?.price ?? 0;
+        if (head === 'fields' && sub === 'options' && leaf === 'multiplier')
+            return Math.abs((def.fields[Number(i)]?.options?.[Number(j)]?.multiplier ?? 1) - 1);
+        if (head === 'base_price' || head === 'minimum') return def[head];
+        return 1;
+    };
+    const out = needs.filter((p) => value(p) === 0);
+    if (kind === 'area' && !def.fields.some((f) => f.type === 'number' && (f.unit_price ?? 0) > 0)) {
+        const i = def.fields.findIndex((f) => f.type === 'number');
+        if (i >= 0 && !out.includes(`fields.${i}.unit_price`)) out.push(`fields.${i}.unit_price`);
+    }
+    return out;
+}

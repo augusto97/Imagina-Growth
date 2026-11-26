@@ -6,16 +6,21 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Callout } from '@/components/ui/callout';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ErrorState, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
 import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
-import { useCalculator, useCalculators, useQuoteMutations } from './api';
-import { formatRange, newField, sampleAnswers } from './model';
+import { QrShare } from '@/features/capture/QrShare';
+import { quoteQrPaths, useCalculator, useCalculators, useQuoteMutations } from './api';
+import { formatRange, multiplierToPct, newField, pctToMultiplier, sampleAnswers } from './model';
+import { EmojiInput } from './PricesEditor';
+import { QuotePagePreview } from './QuotePagePreview';
 import { statusVariant } from './QuotesPage';
 import type { Calculator, CalculatorStatus, Estimate, FieldType, QuoteCaptureSettings, QuoteDefinition, QuoteField, QuoteOption } from './types';
 
@@ -179,6 +184,28 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                         </CardContent>
                     </Card>
 
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>{t('quotes.share.title')}</CardTitle>
+                            <CardDescription>{t('quotes.share.description')}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {calc.status === 'active' ? (
+                                <QrShare
+                                    url={calc.page_url}
+                                    qr={quoteQrPaths(workspace.id, calc.id)}
+                                    name={calc.name}
+                                    linkLabel={t('quotes.share.link')}
+                                    shareText={t('quotes.share.whatsappText', { name: calc.name })}
+                                />
+                            ) : (
+                                <Callout tone="neutral" title={t('quotes.share.notActive')}>
+                                    {t('quotes.share.notActiveHelp')}
+                                </Callout>
+                            )}
+                        </CardContent>
+                    </Card>
+
                     {calc.kind === 'package' || def.packages.length > 0 ? (
                         <Card>
                             <CardHeader>
@@ -187,7 +214,17 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                             </CardHeader>
                             <CardContent className="igr:space-y-2">
                                 {def.packages.map((p, i) => (
-                                    <div key={i} className="igr:grid igr:items-end igr:gap-2 igr:sm:grid-cols-[1fr_1.4fr_9rem_auto]">
+                                    <div key={i} className="igr:grid igr:items-end igr:gap-2 igr:sm:grid-cols-[3.5rem_1fr_1.4fr_9rem_auto]">
+                                        <EmojiInput
+                                            value={p.icon}
+                                            label={t('quotes.wizard.emoji')}
+                                            onChange={(icon) =>
+                                                setD(
+                                                    'packages',
+                                                    def.packages.map((x, j) => (j === i ? { ...x, icon } : x)),
+                                                )
+                                            }
+                                        />
                                         <Input
                                             aria-label={t('quotes.editor.packageName')}
                                             value={p.label}
@@ -263,7 +300,8 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                         <CardContent className="igr:space-y-3">
                             {def.fields.map((f, i) => (
                                 <div key={i} className="igr:space-y-2 igr:rounded-md igr:border igr:p-3">
-                                    <div className="igr:grid igr:items-end igr:gap-2 igr:sm:grid-cols-[1fr_10rem_auto_auto]">
+                                    <div className="igr:grid igr:items-end igr:gap-2 igr:sm:grid-cols-[3.5rem_1fr_10rem_auto_auto]">
+                                        <EmojiInput value={f.icon} label={t('quotes.wizard.emoji')} onChange={(icon) => setField(i, { icon })} />
                                         <div>
                                             <Label htmlFor={`f-${i}`}>{t('quotes.editor.question')}</Label>
                                             <Input
@@ -338,14 +376,16 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                         </div>
                                     ) : (
                                         <div className="igr:space-y-1.5">
-                                            <div className="igr:grid igr:gap-2 igr:text-xs igr:text-muted-foreground igr:sm:grid-cols-[1fr_8rem_7rem_auto]">
+                                            <div className="igr:grid igr:gap-2 igr:text-xs igr:text-muted-foreground igr:sm:grid-cols-[3.5rem_1fr_8rem_7rem_auto]">
+                                                <span>{t('quotes.wizard.emoji')}</span>
                                                 <span>{t('quotes.editor.option')}</span>
                                                 <span>{t('quotes.editor.adds', { currency: cur })}</span>
-                                                <span>{t('quotes.editor.multiplier')}</span>
+                                                <span>{t('quotes.wizard.adjust')}</span>
                                                 <span />
                                             </div>
                                             {(f.options ?? []).map((o, j) => (
-                                                <div key={j} className="igr:grid igr:items-center igr:gap-2 igr:sm:grid-cols-[1fr_8rem_7rem_auto]">
+                                                <div key={j} className="igr:grid igr:items-center igr:gap-2 igr:sm:grid-cols-[3.5rem_1fr_8rem_7rem_auto]">
+                                                    <EmojiInput value={o.icon} label={t('quotes.wizard.emoji')} onChange={(icon) => setOption(i, j, { icon })} />
                                                     <Input
                                                         aria-label={t('quotes.editor.option')}
                                                         value={o.label}
@@ -360,13 +400,12 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                                         onChange={(e) => setOption(i, j, { price: Number(e.target.value) })}
                                                     />
                                                     <Input
-                                                        aria-label={t('quotes.editor.multiplier')}
+                                                        aria-label={t('quotes.wizard.adjust')}
                                                         type="number"
-                                                        step="0.05"
-                                                        min="0.01"
-                                                        value={o.multiplier}
+                                                        step="5"
+                                                        value={multiplierToPct(o.multiplier)}
                                                         disabled={disabled}
-                                                        onChange={(e) => setOption(i, j, { multiplier: Number(e.target.value) || 1 })}
+                                                        onChange={(e) => setOption(i, j, { multiplier: pctToMultiplier(Number(e.target.value) || 0) })}
                                                     />
                                                     <Button
                                                         variant="ghost"
@@ -428,6 +467,18 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                             <NumberBox label={t('quotes.editor.minimum', { currency: cur })} value={def.minimum} disabled={disabled} onChange={(v) => setD('minimum', v ?? 0)} />
                             <NumberBox label={t('quotes.editor.range')} value={def.range_pct} disabled={disabled} onChange={(v) => setD('range_pct', v ?? 0)} />
                             <NumberBox label={t('quotes.editor.round')} value={def.round_to} disabled={disabled} onChange={(v) => setD('round_to', v ?? 0)} />
+                            <div className="igr:sm:col-span-4">
+                                <Label htmlFor="qc-intro">{t('quotes.editor.intro')}</Label>
+                                <Input
+                                    id="qc-intro"
+                                    className="igr:mt-1"
+                                    maxLength={200}
+                                    value={def.intro ?? ''}
+                                    placeholder={t('quotes.editor.introPlaceholder')}
+                                    disabled={disabled}
+                                    onChange={(e) => setD('intro', e.target.value || null)}
+                                />
+                            </div>
                             <div className="igr:sm:col-span-2">
                                 <Label htmlFor="qc-note">{t('quotes.editor.note')}</Label>
                                 <Textarea
@@ -573,86 +624,97 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                             <CardTitle>{t('quotes.editor.preview')}</CardTitle>
                             <CardDescription>{t('quotes.editor.previewHelp')}</CardDescription>
                         </CardHeader>
-                        <CardContent className="igr:space-y-3 igr:text-[13px]">
-                            {def.packages.length > 0 ? (
-                                <fieldset className="igr:space-y-1">
-                                    <legend className="igr:mb-1 igr:font-medium">{t('quotes.editor.choosePackage')}</legend>
-                                    {def.packages.map((p) => (
-                                        <label key={p.key} className="igr:flex igr:items-center igr:gap-2">
-                                            <input type="radio" name="pv-package" checked={answers.package === p.key} onChange={() => setAnswers({ ...answers, package: p.key })} />
-                                            {p.label || '—'}
-                                        </label>
-                                    ))}
-                                </fieldset>
-                            ) : null}
-                            {def.fields.map((f) => (
-                                <div key={f.key}>
-                                    <p className="igr:mb-1 igr:font-medium">{f.label || '—'}</p>
-                                    {f.type === 'number' ? (
-                                        <div className="igr:flex igr:items-center igr:gap-2">
-                                            <Input
-                                                type="number"
-                                                className="igr:w-32"
-                                                aria-label={f.label}
-                                                value={typeof answers[f.key] === 'number' ? (answers[f.key] as number) : ''}
-                                                onChange={(e) => setAnswers({ ...answers, [f.key]: e.target.value === '' ? null : Number(e.target.value) })}
-                                            />
-                                            <span className="igr:text-muted-foreground">{f.unit}</span>
-                                        </div>
-                                    ) : f.type === 'select' ? (
-                                        <Select
-                                            aria-label={f.label}
-                                            value={typeof answers[f.key] === 'string' ? (answers[f.key] as string) : ''}
-                                            onChange={(e) => setAnswers({ ...answers, [f.key]: e.target.value })}
-                                        >
-                                            {(f.options ?? []).map((o) => (
-                                                <option key={o.value} value={o.value}>
-                                                    {o.label}
-                                                </option>
+                        <CardContent>
+                            <Tabs defaultValue="page">
+                                <TabsList className="igr:mb-3">
+                                    <TabsTrigger value="page">{t('quotes.preview.tabPage')}</TabsTrigger>
+                                    <TabsTrigger value="prices">{t('quotes.preview.tabPrices')}</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="page">
+                                    <QuotePagePreview name={name} kind={calc.kind} definition={def} capture={capture} publicUrl={calc.page_url} />
+                                </TabsContent>
+                                <TabsContent value="prices" className="igr:space-y-3 igr:text-[13px]">
+                                    {def.packages.length > 0 ? (
+                                        <fieldset className="igr:space-y-1">
+                                            <legend className="igr:mb-1 igr:font-medium">{t('quotes.editor.choosePackage')}</legend>
+                                            {def.packages.map((p) => (
+                                                <label key={p.key} className="igr:flex igr:items-center igr:gap-2">
+                                                    <input type="radio" name="pv-package" checked={answers.package === p.key} onChange={() => setAnswers({ ...answers, package: p.key })} />
+                                                    {p.label || '—'}
+                                                </label>
                                             ))}
-                                        </Select>
-                                    ) : (
-                                        <div className="igr:flex igr:flex-wrap igr:gap-3">
-                                            {(f.options ?? []).map((o) => {
-                                                const picked = Array.isArray(answers[f.key]) ? (answers[f.key] as string[]) : [];
-                                                return (
-                                                    <label key={o.value} className="igr:flex igr:items-center igr:gap-1.5">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={picked.includes(o.value)}
-                                                            onChange={(e) =>
-                                                                setAnswers({ ...answers, [f.key]: e.target.checked ? [...picked, o.value] : picked.filter((v) => v !== o.value) })
-                                                            }
-                                                        />
-                                                        {o.label}
-                                                    </label>
-                                                );
-                                            })}
+                                        </fieldset>
+                                    ) : null}
+                                    {def.fields.map((f) => (
+                                        <div key={f.key}>
+                                            <p className="igr:mb-1 igr:font-medium">{f.label || '—'}</p>
+                                            {f.type === 'number' ? (
+                                                <div className="igr:flex igr:items-center igr:gap-2">
+                                                    <Input
+                                                        type="number"
+                                                        className="igr:w-32"
+                                                        aria-label={f.label}
+                                                        value={typeof answers[f.key] === 'number' ? (answers[f.key] as number) : ''}
+                                                        onChange={(e) => setAnswers({ ...answers, [f.key]: e.target.value === '' ? null : Number(e.target.value) })}
+                                                    />
+                                                    <span className="igr:text-muted-foreground">{f.unit}</span>
+                                                </div>
+                                            ) : f.type === 'select' ? (
+                                                <Select
+                                                    aria-label={f.label}
+                                                    value={typeof answers[f.key] === 'string' ? (answers[f.key] as string) : ''}
+                                                    onChange={(e) => setAnswers({ ...answers, [f.key]: e.target.value })}
+                                                >
+                                                    {(f.options ?? []).map((o) => (
+                                                        <option key={o.value} value={o.value}>
+                                                            {o.label}
+                                                        </option>
+                                                    ))}
+                                                </Select>
+                                            ) : (
+                                                <div className="igr:flex igr:flex-wrap igr:gap-3">
+                                                    {(f.options ?? []).map((o) => {
+                                                        const picked = Array.isArray(answers[f.key]) ? (answers[f.key] as string[]) : [];
+                                                        return (
+                                                            <label key={o.value} className="igr:flex igr:items-center igr:gap-1.5">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={picked.includes(o.value)}
+                                                                    onChange={(e) =>
+                                                                        setAnswers({ ...answers, [f.key]: e.target.checked ? [...picked, o.value] : picked.filter((v) => v !== o.value) })
+                                                                    }
+                                                                />
+                                                                {o.label}
+                                                            </label>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                            ))}
-                            <div className="igr:rounded-md igr:bg-muted igr:p-3" aria-live="polite">
-                                {estimate ? (
-                                    <>
-                                        <p className="igr:text-xs igr:text-muted-foreground">{t('quotes.editor.estimate')}</p>
-                                        <p className="igr:text-lg igr:font-semibold igr:tabular-nums">{formatRange(estimate.min, estimate.max, cur, i18n.language)}</p>
-                                        {estimate.lines.length > 0 ? (
-                                            <ul className="igr:mt-1 igr:space-y-0.5 igr:text-xs igr:text-muted-foreground">
-                                                {estimate.lines.map((l, i) => (
-                                                    <li key={i} className="igr:flex igr:justify-between igr:gap-2">
-                                                        <span>{l.label}</span>
-                                                        <span className="igr:tabular-nums">{formatRange(l.amount, l.amount, cur, i18n.language)}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        ) : null}
-                                    </>
-                                ) : (
-                                    <p className="igr:text-muted-foreground">{previewError ?? t('common.loading')}</p>
-                                )}
-                            </div>
-                            {capture.required ? <p className="igr:text-xs igr:text-muted-foreground">{t('quotes.editor.previewCapture')}</p> : null}
+                                    ))}
+                                    <div className="igr:rounded-md igr:bg-muted igr:p-3" aria-live="polite">
+                                        {estimate ? (
+                                            <>
+                                                <p className="igr:text-xs igr:text-muted-foreground">{t('quotes.editor.estimate')}</p>
+                                                <p className="igr:text-lg igr:font-semibold igr:tabular-nums">{formatRange(estimate.min, estimate.max, cur, i18n.language)}</p>
+                                                {estimate.lines.length > 0 ? (
+                                                    <ul className="igr:mt-1 igr:space-y-0.5 igr:text-xs igr:text-muted-foreground">
+                                                        {estimate.lines.map((l, i) => (
+                                                            <li key={i} className="igr:flex igr:justify-between igr:gap-2">
+                                                                <span>{l.label}</span>
+                                                                <span className="igr:tabular-nums">{formatRange(l.amount, l.amount, cur, i18n.language)}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                ) : null}
+                                            </>
+                                        ) : (
+                                            <p className="igr:text-muted-foreground">{previewError ?? t('common.loading')}</p>
+                                        )}
+                                    </div>
+                                    {capture.required ? <p className="igr:text-xs igr:text-muted-foreground">{t('quotes.editor.previewCapture')}</p> : null}
+                                </TabsContent>
+                            </Tabs>
                         </CardContent>
                     </Card>
                 </div>
