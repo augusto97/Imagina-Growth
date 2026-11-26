@@ -268,15 +268,37 @@ abstract class MetaSocialDriver implements ChannelDriver
     /** Suscribe la app a los eventos de mensajes de la página [verificar] campos con la app real. */
     public function subscribePage(string $pageId, string $token): ?string
     {
+        // La suscripción reemplaza la lista de campos: se conservan los que la app ya tenía en la página (p. ej. `leadgen`
+        // de Meta Lead Ads, app/Domain/Capture/LeadAds).
+        $fields = array_values(array_unique(array_merge($this->subscribedFields($pageId, $token),
+            ['messages', 'messaging_postbacks', 'message_deliveries', 'message_reads', 'messaging_referrals'])));
         try {
             $response = Http::withToken($token)->timeout(15)->acceptJson()->post($this->url($pageId.'/subscribed_apps'), [
-                'subscribed_fields' => 'messages,messaging_postbacks,message_deliveries,message_reads,messaging_referrals',
+                'subscribed_fields' => implode(',', $fields),
             ]);
         } catch (ConnectionException $e) {
             return $e->getMessage();
         }
 
         return $response->successful() ? null : $this->errorMessage($response);
+    }
+
+    /** @return list<string> los campos de la página a los que ya está suscrita esta app */
+    private function subscribedFields(string $pageId, string $token): array
+    {
+        try {
+            $response = Http::withToken($token)->timeout(15)->acceptJson()->get($this->url($pageId.'/subscribed_apps'));
+        } catch (ConnectionException) {
+            return [];
+        }
+        $appId = (string) config('igr-connections.meta.app_id');
+        foreach ((array) $response->json('data', []) as $app) {
+            if (is_array($app) && $appId !== '' && (string) ($app['id'] ?? '') === $appId) {
+                return array_values(array_filter(array_map(fn ($f) => is_array($f) ? (string) ($f['name'] ?? '') : (string) $f, (array) ($app['subscribed_fields'] ?? []))));
+            }
+        }
+
+        return [];
     }
 
     public function syncTemplates(ChannelAccount $account): int

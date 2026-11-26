@@ -44,6 +44,12 @@ Requisitos que se convierten en funciones:
   los ARCO) y el enlace a la política de tratamiento de datos o al aviso de privacidad del cliente; **en México la página
   no se publica sin el aviso de privacidad** (§6). Quien deja sus datos sin marcar ninguna casilla solo recibe la
   respuesta a su solicitud (información pedida por el consumidor, §4).
+- **Formularios de anuncios (Meta Lead Ads y formularios de clientes potenciales de Google Ads, modulos.md M18):** dejar
+  los datos en un anuncio **no es consentimiento de marketing**. Solo cuenta una casilla del formulario de Meta (sin marcar
+  por defecto: el panel rechaza las premarcadas) o una pregunta de Google asignada a un canal, marcada o respondida con un
+  sí; se registra con su prueba (plataforma, formulario, lead, pregunta, respuesta, el texto que vio la persona, campaña y
+  anuncio). Sin eso el lead solo puede recibir la respuesta 1:1 a lo que pidió. Las preguntas sensibles que traiga un
+  formulario (documento de identidad, fecha de nacimiento, género…) no se guardan.
 - **WhatsApp:** cuando la persona inicia la conversación y acepta por un botón («¿Quieres recibir novedades por aquí?»), con evidencia del mensaje.
   - **Implementación (chats con atribución, rediseño v2 §11.3):** el QR del local y el botón de WhatsApp de una página
     abren el chat con un mensaje de alta prellenado que lleva un código (`ref: Q…`). Ese mensaje **no es

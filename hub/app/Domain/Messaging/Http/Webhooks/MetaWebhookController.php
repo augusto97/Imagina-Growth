@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Messaging\Http\Webhooks;
 
+use App\Domain\Capture\LeadAds\MetaLeadgenWebhook;
 use App\Domain\Messaging\Channels\DriverRegistry;
 use App\Domain\Messaging\Sending\WebhookProcessor;
 use Illuminate\Http\Request;
@@ -13,7 +14,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Webhook de la app de Meta: verificación de la suscripción (GET) y eventos
  * firmados con X-Hub-Signature-256 (POST). El campo `object` dice de dónde vienen:
- * `whatsapp_business_account` (Cloud API), `page` (Messenger) o `instagram`
+ * `whatsapp_business_account` (Cloud API), `page` (Messenger, y los clientes
+ * potenciales de Meta Lead Ads en el campo `leadgen`) o `instagram`
  * (Instagram Direct, Fase 5).
  */
 final class MetaWebhookController
@@ -28,13 +30,15 @@ final class MetaWebhookController
         return response('', 403);
     }
 
-    public function handle(Request $request, DriverRegistry $drivers, WebhookProcessor $processor): Response
+    public function handle(Request $request, DriverRegistry $drivers, WebhookProcessor $processor, MetaLeadgenWebhook $leadgen): Response
     {
         if (! self::validSignature($request)) {
             Log::warning('igr.messaging.meta_bad_signature');
 
             return response('', 403);
         }
+        // Meta Lead Ads: los cambios `leadgen` de una página llegan por aquí con el resto del objeto `page`.
+        $leadgen->handle($request->all());
         $provider = match ($request->input('object')) {
             'page' => 'meta_messenger',
             'instagram' => 'meta_instagram',

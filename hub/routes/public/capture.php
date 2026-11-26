@@ -2,6 +2,7 @@
 
 use App\Domain\Capture\Http\Public\LandingPageController;
 use App\Domain\Capture\Http\Public\WhatsAppLinkController;
+use App\Domain\Capture\Http\Webhooks\GoogleLeadFormController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -18,3 +19,6 @@ Route::get('p/{slug}', [LandingPageController::class, 'show'])->where('slug', $s
 Route::post('p/{slug}', [LandingPageController::class, 'submit'])->where('slug', $slug);
 Route::get('p/{slug}/gracias', [LandingPageController::class, 'thankYou'])->where('slug', $slug);
 Route::get('p/{slug}/i/{name}', [LandingPageController::class, 'image'])->where('slug', $slug)->where('name', '(logo|image)-[a-z0-9]{24}\.(jpg|png)');
+
+// Formularios de clientes potenciales de Google Ads: el token de la URL dice el espacio de trabajo; la clave va en el cuerpo.
+Route::post('webhooks/google/lead-forms/{token}', GoogleLeadFormController::class)->where('token', 'glf_[A-Za-z0-9]{32}');

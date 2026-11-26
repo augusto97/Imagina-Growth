@@ -131,7 +131,10 @@ listas de difusión). Fuentes: [versiones](https://developers.facebook.com/docum
    servidor sin que el cliente tenga que volver).
 3. Activos: **cuentas publicitarias**, **píxeles / conjuntos de datos**, **páginas** y **cuentas de Instagram**.
 4. Permisos: `ads_management`, `ads_read`, `business_management`, `pages_show_list`, `pages_manage_metadata`,
-   `pages_messaging`, `instagram_basic` e `instagram_manage_messages`.
+   `pages_messaging`, `instagram_basic` e `instagram_manage_messages`, y para los clientes potenciales de los anuncios
+   (Meta Lead Ads) `leads_retrieval`, `pages_read_engagement` y `pages_manage_ads`. Sin estos tres, el panel del cliente
+   dice qué le falta a su conexión y le pide volver a conectar; si la configuración no los pide, volver
+   a conectar no basta: agrégalos aquí. **[verificar en el panel]**
 5. Guarda y copia el **ID de la configuración**.
 
 Fuente: [Facebook Login for Business](https://developers.facebook.com/docs/facebook-login/facebook-login-for-business).
@@ -144,6 +147,9 @@ API con ese permiso en los 30 días anteriores (conecta tu propio negocio desde 
 Meta no publica un tiempo fijo para estos permisos; los reportes de 2026 van de unos días a casi tres semanas.
 Para `ads_management` y `business_management` Meta puede pedir además la **verificación de acceso** de proveedor
 de tecnología; hay reportes de octubre de 2026 de que dejó de pedirse **[verificar en el panel]**.
+Para `leads_retrieval`, `pages_read_engagement` y `pages_manage_ads` (Meta Lead Ads) el video muestra elegir la
+página en el panel y un lead de prueba de la [herramienta de prueba de anuncios para clientes potenciales](https://developers.facebook.com/tools/lead-ads-testing)
+llegando como lead con su campaña; la llamada exitosa es leer ese lead.
 
 ### 1.7 Webhooks
 
@@ -163,7 +169,10 @@ de tecnología; hay reportes de octubre de 2026 de que dejó de pedirse **[verif
    [`smb_message_echoes`](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/reference/smb_message_echoes),
    [`account_update`](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/reference/account_update).
 3. En **Messenger** (objeto `page`) e **Instagram** (objeto `instagram`), la misma URL y el mismo token, con los
-   campos `messages`, `messaging_postbacks`, `message_deliveries`, `message_reads` y `messaging_referrals`.
+   campos `messages`, `messaging_postbacks`, `message_deliveries`, `message_reads` y `messaging_referrals`. En el objeto
+   `page` suscribe además el campo **`leadgen`** (Meta Lead Ads): al elegir la página en el panel, la plataforma la
+   suscribe a ese campo (`POST /{página}/subscribed_apps`, conservando los de Messenger), pero los avisos solo llegan si
+   la app también lo tiene suscrito aquí.
 4. La firma de cada aviso se comprueba con la clave secreta de la app (Ajustes → Meta): sin ella el hub responde 403.
 
 ### 1.8 Publicar

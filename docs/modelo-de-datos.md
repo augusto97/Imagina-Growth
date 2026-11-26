@@ -423,8 +423,8 @@ La base es la migración `2026_11_23_000100_create_phase5_tables` (más `2026_11
 
 ## 20. Captación sin tienda (rediseño v2 §11.3)
 
-Migración `2026_11_28_500100_create_capture_pages_tables` (páginas de captura, QR y chats de WhatsApp con atribución;
-modulos.md M12 «Páginas de captura y QR»):
+Migraciones `2026_11_28_500100_create_capture_pages_tables` (páginas de captura, QR y chats de WhatsApp con atribución;
+modulos.md M12 «Páginas de captura y QR») y `2026_11_28_500200_create_lead_ad_tables` (leads de anuncios, M18):
 
 - `landing_pages` (prefijo `lp`): id, workspace_id, site_id? (el sitio con el que se registran los contactos; sin él,
   el primero conectado o ninguno), slug (**único en toda la plataforma**: la página vive en `/p/{slug}`), name (interno),
@@ -448,5 +448,15 @@ modulos.md M12 «Páginas de captura y QR»):
 - `capture_daily`: workspace_id, subject_type (`page` o `wa_link`), subject_id, day (UTC), via (`qr` o `link`), views,
   visitors, submissions; clave primaria compuesta. Sin datos personales: el visitante único se reconoce con un hash de
   la IP y del día que vive un día en la caché (la IP nunca se guarda).
+- `lead_ad_sources` (prefijo `las`, `2026_11_28_500200`): id, workspace_id, platform (`meta`, `google`), external_id?
+  (Meta: el ID de la página), name?, token? (Google: `glf_…` de la URL del webhook, único), secret? (**cifrado**: el token
+  de la página o la clave de Google; nunca sale en la API), status (`active`, `error`, `disabled`), last_error?, settings
+  (JSON: `forms` → por formulario `{name, consent: [{key, channel, text}], service_key}`), oauth_connection_id?,
+  last_lead_at?, test_received_at?, timestamps. Índices (workspace_id, platform) y (platform, external_id).
+- `lead_ad_leads` (prefijo `lal`, `2026_11_28_500200`): id, workspace_id, source_id, platform, external_id (leadgen_id o
+  lead_id), form_id?, campaign_id?, adset_id? (conjunto o grupo), ad_id? (anuncio o creatividad), is_test, status
+  (`received`, `processed`, `failed`, `test`), error?, attempts, contact_id?, lead_id?, data (**cifrado**: respuestas sin
+  los datos sensibles y los nombres de la campaña, el conjunto y el anuncio), consents (JSON), received_at, processed_at?,
+  timestamps. Único por (workspace_id, platform, external_id). La supresión los borra y el acceso los exporta.
 - Imágenes de las páginas: disco `igr-capture.disk` (`capture/{espacio}/{página}/{logo|image}-{al azar}.{jpg|png}`),
   vueltas a codificar con GD (sin metadatos).

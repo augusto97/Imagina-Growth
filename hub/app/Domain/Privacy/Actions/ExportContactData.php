@@ -7,6 +7,7 @@ namespace App\Domain\Privacy\Actions;
 use App\Analytics\Ch;
 use App\Domain\Capture\Models\LandingPage;
 use App\Domain\Capture\Models\LandingSubmission;
+use App\Domain\Capture\Models\LeadAdLead;
 use App\Domain\Commerce\Models\Order;
 use App\Domain\Consent\Models\ConsentEvent;
 use App\Domain\Consent\Models\ContactConsent;
@@ -93,6 +94,9 @@ final class ExportContactData
                 ->map(fn (LandingSubmission $s) => ['page' => LandingPage::query()->whereKey($s->page_id)->value('slug'), 'answers' => $s->data, 'consents' => $s->consents,
                     'source' => array_intersect_key((array) $s->source, array_flip(['channel', 'utm_source', 'utm_medium', 'utm_campaign', 'page', 'via'])),
                     'created_at' => $s->created_at->toIso8601String()])->all(),
+            'ad_leads' => LeadAdLead::query()->whereIn('contact_id', $ids)->orderBy('received_at')->get()
+                ->map(fn (LeadAdLead $l) => ['platform' => $l->platform, 'form' => ((array) ($l->data ?? []))['form_name'] ?? $l->form_id,
+                    'answers' => ((array) ($l->data ?? []))['answers'] ?? [], 'consents' => $l->consents, 'received_at' => $l->received_at->toIso8601String()])->all(),
             'whatsapp_links' => DB::table('whatsapp_link_hits')->where('workspace_id', $workspace->id)->whereIn('contact_id', $ids)->orderBy('created_at')
                 ->get(['created_at', 'consent_asked_at', 'consent_granted_at'])->map(fn ($r) => (array) $r)->all(),
             'appointments' => DB::table('appointments as a')->leftJoin('booking_services as s', 's.id', '=', 'a.service_id')
