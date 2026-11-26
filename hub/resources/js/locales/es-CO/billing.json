@@ -1,7 +1,7 @@
 {
     "billing": {
         "title": "Plan y facturación",
-        "description": "Tu plan, lo que llevas usado este mes y tus facturas.",
+        "description": "Tu plan, cuánto llevas usado este mes, cómo subir de plan y tus facturas.",
         "refresh": "Actualizar uso",
         "refreshed": "Uso actualizado",
         "statusLabel": "Estado de la cuenta:",
@@ -129,6 +129,14 @@
             "note": "Nota para el equipo (opcional)",
             "send": "Enviar pedido",
             "sent": "Pedido enviado"
+        },
+        "page": {
+            "modulesCount": "{{on}} de {{total}} funciones activas",
+            "nextTitle": "Con {{plan}} tendrías",
+            "upgrade": "Ver planes y subir",
+            "planModules_one": "{{count}} función incluida",
+            "planModules_other": "{{count}} funciones incluidas",
+            "compareAll": "Comparar todo en detalle"
         }
     }
 }

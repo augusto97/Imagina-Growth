@@ -173,7 +173,7 @@
     "roleHelp": {
         "owner": "Todo, incluida la facturación y borrar el espacio de trabajo.",
         "admin": "Todo menos la facturación.",
-        "marketing": "Segmentos, flujos, campañas, widgets y analítica. No ve datos de pago ni exporta contactos.",
+        "marketing": "Grupos de clientes, automatizaciones, campañas, popups y resultados. No ve datos de pago ni exporta contactos.",
         "agent": "La bandeja y los contactos que tiene asignados.",
         "viewer": "Solo ve los tableros."
     },
@@ -659,7 +659,7 @@
         "invited": "Invitación enviada a {{email}}",
         "person": "Persona",
         "role": "Rol",
-        "twoFactor": "2 pasos",
+        "twoFactor": "Verificación en 2 pasos",
         "lastLogin": "Último ingreso",
         "you": "tú",
         "remove": "Quitar del equipo",

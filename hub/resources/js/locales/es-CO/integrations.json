@@ -177,5 +177,10 @@
             "search": "Búsquedas y búsquedas sin resultados para mejorar el catálogo.",
             "turbo": "Web Vitals por página para detectar la lentitud que hace perder ventas."
         }
+    },
+    "integrationsPage": {
+        "whatTitle": "¿Para qué sirve?",
+        "what": "Para que tus otras herramientas (tu CRM, tu ERP, Zapier o Make) o tu programador lean y escriban tus datos, reciban un aviso al instante cuando pasa algo (webhooks) o le pregunten a tus datos con IA (MCP). Si no usas otras herramientas, no necesitas nada de esto.",
+        "seePlans": "Ver planes"
     }
 }
