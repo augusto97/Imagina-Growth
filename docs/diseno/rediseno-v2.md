@@ -93,6 +93,29 @@ para activar esto»). Los módulos fuera del plan muestran el plan que los inclu
   pedidos ni catálogo, y una tienda no ve leads, agenda ni cotizador. Sin ninguna señal se muestra todo. La sección
   Clientes se llama «Pacientes» en salud y «Estudiantes» en educación; las demás palabras quedan iguales.
 
+**Cómo quedó En tu web** (frente B5, fase B; `docs/modulos.md` M12, M13 a M16 y M18):
+
+- **Captación sin web, en el menú:** «Páginas de captura» (`paginas-de-captura`), «WhatsApp con QR» (`whatsapp-qr`) y
+  «Leads de anuncios» (`leads-de-anuncios`, solo servicios) no piden la web conectada, así que la sección ya no se
+  bloquea entera sin web: cada entrada que la necesita lleva su candado. Las rutas son de primer nivel (no bajo
+  `en-el-sitio/`) para no chocar con `en-el-sitio/:widgetId`.
+- **Popups y formularios:** se crean desde una galería de plantillas por objetivo (`WidgetTemplates` en el hub, un clic:
+  queda en borrador para revisarla en la vista previa) y no desde un tipo técnico (sigue como «empezar en blanco»). Un
+  negocio sin tienda ve primero el formulario de contacto y el botón de WhatsApp, nunca un cupón. El editor dice
+  «Cuándo se muestra» en palabras (`features/onsite/rules.ts`) y la lista da vistas, datos, tasa y ventas atribuidas
+  (o contactos nuevos sin tienda). Las pestañas internas de «En el sitio» se quitaron: el menú de la sección ya lleva a
+  recomendaciones, avisos, banners y cotizador.
+- **Página de captura:** editor de dos columnas con la vista previa en vivo (escritorio o celular, formulario o gracias;
+  `LandingPreview` replica la página Blade sin cargarla); en el celular, «Editar / Vista previa». Los cambios se
+  guardan con una barra fija abajo; publicar muestra los avisos del hub con el enlace para arreglarlos y lleva a
+  Compartir (enlace, WhatsApp y QR en SVG o PNG). La conversión es envíos ÷ visitas en la lista y en el detalle.
+- **Reseñas en un negocio sin tienda:** sin pedidos no hay solicitud automática, así que la pantalla es su enlace de
+  reseñas de Google (copiar, enviar por WhatsApp) y cómo pedirlas sin filtrar a los satisfechos.
+- **Piezas nuevas del sistema** (guía de estilo, «Compartir y vista previa»): `CopyField`/`CopyButton`,
+  `SegmentedControl` (periodos y dispositivos), `DeviceFrame` y `ConfirmDialog` (reemplaza `window.confirm`). Las
+  cifras de Fidelización, Avisos, Referidos, Reseñas y Cotizador pasaron a `StatCard`, y las gráficas de Fidelización
+  y Avisos, a las perezosas de `charts.tsx`.
+
 ## 4. Primera vez (onboarding)
 
 1. **Bienvenida** (una sola pantalla, no un carrusel largo): la promesa, los tres pilares con un ejemplo concreto cada
@@ -270,8 +293,8 @@ Un espacio de trabajo puede ser «tienda + servicios» (p. ej. una ferretería q
   página o un chat de WhatsApp con un mensaje de alta.
 - **Estado (hub):** páginas de captura, QR y chats de WhatsApp con atribución en modulos.md M12 («Páginas de captura y
   QR»); leads de Meta Lead Ads y de Google Ads en M18 («Leads de anuncios»); clics que valen en M06; orígenes `landing`,
-  `meta_lead_ads` y `google_lead_form` de `lead.created` en el contrato v8 (eventos.md §8). Las pantallas del panel quedan
-  para el lote del sistema visual (tipos y hooks en `hub/resources/js/features/capture`).
+  `meta_lead_ads` y `google_lead_form` de `lead.created` en el contrato v8 (eventos.md §8). Las pantallas del panel
+  están en En tu web (`hub/resources/js/features/capture`; ver «Cómo quedó En tu web» en §3).
 
 ### 11.4 Biblioteca ampliada (flujos 21 en adelante, claves estables)
 
