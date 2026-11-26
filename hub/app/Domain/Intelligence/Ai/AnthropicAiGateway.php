@@ -19,6 +19,7 @@ use App\Domain\Intelligence\Ai\Data\AiTool;
 use App\Domain\Intelligence\Ai\Data\AiUsage;
 use App\Domain\Intelligence\Ai\Exceptions\AiUnavailable;
 use App\Domain\Intelligence\Ai\Support\AiMeter;
+use App\Domain\Intelligence\Ai\Support\AiModels;
 use Illuminate\Support\Facades\Log;
 use Psr\Http\Client\ClientInterface;
 use Throwable;
@@ -29,10 +30,12 @@ use Throwable;
  * - El `system` va como bloque con `cacheControl` (caché de prompts): las
  *   herramientas y las instrucciones son estables por función; lo variable va en
  *   los mensajes.
- * - Modelo y esfuerzo por función (`igr-ai.features`). Los modelos actuales piensan
- *   de forma adaptativa; el esfuerzo controla cuánto.
+ * - Modelo y esfuerzo por función con `AiModels::resolve` (lo de la función en el
+ *   panel, si no el de su grupo, si no `igr-ai.features`). Los modelos actuales
+ *   piensan de forma adaptativa; el esfuerzo controla cuánto.
  * - Con `igr-ai.server_fallbacks`, la llamada usa el respaldo del lado del servidor
- *   (`fallbacks: "default"`) si el modelo se niega por política.
+ *   (`fallbacks: "default"`) si el modelo se niega por política, salvo en los modelos
+ *   que no lo tienen (Claude Haiku 5.5, `igr-ai.catalog`).
  * - Salidas estructuradas con `outputConfig.format` (JSON Schema) y herramientas
  *   con `strict`.
  */
@@ -56,8 +59,8 @@ final class AnthropicAiGateway implements AiGateway
 
     public function withTools(AiRequest $request, array $tools, int $maxSteps = 6): AiResult
     {
-        $feature = (array) config("igr-ai.features.{$request->feature}", []);
-        $model = (string) ($feature['model'] ?? 'claude-sonnet-5-5');
+        $feature = AiModels::resolve($request->feature);
+        $model = $feature['model'];
         $byName = [];
         foreach ($tools as $tool) {
             $byName[$tool->name] = $tool;
@@ -121,14 +124,15 @@ final class AnthropicAiGateway implements AiGateway
     }
 
     /**
-     * @param  array<string, mixed>  $feature
+     * @param  array<string, mixed>  $feature  lo de `AiModels::resolve`
      * @param  list<array<string, mixed>>  $messages
      * @param  list<AiTool>  $tools
      */
     private function call(AiRequest $request, string $model, array $feature, array $messages, array $tools): BetaMessage|Message
     {
+        $effort = $request->effort !== null && AiModels::supportsEffort($model, $request->effort) ? $request->effort : ($feature['effort'] ?? null);
         $outputConfig = array_filter([
-            'effort' => $request->effort ?? ($feature['effort'] ?? null),
+            'effort' => $effort,
             'format' => $request->outputSchema !== null ? ['type' => 'json_schema', 'schema' => $request->outputSchema] : null,
         ]);
         $params = [
@@ -144,7 +148,7 @@ final class AnthropicAiGateway implements AiGateway
             $params['tools'] = array_map(fn (AiTool $t) => $t->definition(), $tools);
         }
         try {
-            if ((bool) config('igr-ai.server_fallbacks', true)) {
+            if (AiModels::serverFallbacks($model)) {
                 // @phpstan-ignore argument.type, argument.type (mensajes y herramientas en forma de arreglo, como documenta el SDK)
                 return $this->client()->beta->messages->create(...$params, fallbacks: 'default', betas: [self::FALLBACK_BETA]);
             }

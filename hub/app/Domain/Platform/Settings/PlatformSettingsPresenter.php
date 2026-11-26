@@ -10,6 +10,7 @@ use App\Domain\Bookings\Google\GoogleCalendar;
 use App\Domain\Connections\Enums\ConnectionProvider;
 use App\Domain\Connections\Providers\ProviderRegistry;
 use App\Domain\Inbox\Push\WebPushNotifier;
+use App\Domain\Intelligence\Ai\Support\AiModels;
 use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Support\SesClientFactory;
 use App\Domain\Messaging\Support\SesEventSetup;
@@ -119,7 +120,7 @@ final class PlatformSettingsPresenter
                 'calendar_legacy' => GoogleCalendar::legacyConfigured(),
             ],
             'tiktok' => ['configured' => $this->providers->configured(ConnectionProvider::TikTok), 'callback_url' => ConnectionProvider::TikTok->callbackUrl()],
-            'ai' => ['configured' => (bool) config('igr-ai.enabled') && (string) config('igr-ai.api_key') !== ''],
+            'ai' => ['configured' => (bool) config('igr-ai.enabled') && (string) config('igr-ai.api_key') !== ''] + self::aiInfo(),
             'security' => [
                 'plans' => $this->plans(),
                 'signature_v1_accepted' => SiteSignatures::acceptsV1(),
@@ -130,6 +131,30 @@ final class PlatformSettingsPresenter
             'push' => ['configured' => WebPushNotifier::configured()],
             default => [],
         };
+    }
+
+    /**
+     * Lo que el formulario de la IA necesita para explicar cada opción: los modelos con su precio y sus esfuerzos, y
+     * cada función con su grupo, lo de fábrica y lo que rige ahora (AiModels).
+     *
+     * @return array{models: list<array<string, mixed>>, features: list<array<string, mixed>>}
+     */
+    private static function aiInfo(): array
+    {
+        $models = [];
+        foreach (AiModels::catalog() as $id => $entry) {
+            $price = (array) config("igr-ai.pricing.{$id}", []);
+            $models[] = ['id' => $id, 'efforts' => $entry['efforts'], 'default_effort' => $entry['default_effort'],
+                'input_usd' => (float) ($price['input'] ?? 0), 'output_usd' => (float) ($price['output'] ?? 0)];
+        }
+        $features = [];
+        foreach (AiModels::features() as $feature => $tier) {
+            $defaults = (array) config("igr-ai.features.{$feature}", []);
+            $features[] = ['key' => $feature, 'tier' => $tier, 'default_model' => (string) ($defaults['model'] ?? ''),
+                'default_effort' => isset($defaults['effort']) ? (string) $defaults['effort'] : null, 'effective' => AiModels::resolve($feature)];
+        }
+
+        return ['models' => $models, 'features' => $features];
     }
 
     /** @return list<array{id: string, name: string}> */

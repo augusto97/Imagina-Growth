@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Platform\Http;
 
 use App\Domain\Billing\Plans\PlanResolver;
+use App\Domain\Intelligence\Ai\Support\AiConnectionTest;
+use App\Domain\Intelligence\Ai\Support\AiModels;
 use App\Domain\Messaging\Support\SesEventSetup;
 use App\Domain\Platform\Settings\PlatformSettings;
 use App\Domain\Platform\Settings\PlatformSettingsPresenter;
@@ -72,6 +74,9 @@ final class PlatformSettingsController
         if ($section === 'mail' && ($problem = self::smtpMismatch($values)) !== null) {
             return response()->json(['message' => $problem, 'errors' => ['values.smtp_encryption' => [$problem]]], 422);
         }
+        if ($section === 'ai' && ($problem = $this->effortMismatch($values)) !== null) {
+            return response()->json(['message' => $problem['message'], 'errors' => ["values.{$problem['field']}" => [$problem['message']]]], 422);
+        }
 
         return $this->save($request, $values);
     }
@@ -100,6 +105,73 @@ final class PlatformSettingsController
         }
 
         return null;
+    }
+
+    /**
+     * POST /api/platform/settings/ai/test {model?, effort?}: una pregunta corta al modelo (por defecto el principal) con
+     * la clave guardada, y en palabras qué pasó (AiConnectionTest). 200 si respondió, 422 si no.
+     */
+    public function aiTest(Request $request, AiConnectionTest $test): JsonResponse
+    {
+        $data = $request->validate([
+            'model' => ['nullable', 'string', 'max:64', 'regex:/^[a-z0-9.-]+$/'],
+            'effort' => ['nullable', 'string', Rule::in(AiModels::EFFORTS)],
+        ]);
+        $result = $test->run(isset($data['model']) ? (string) $data['model'] : null, isset($data['effort']) ? (string) $data['effort'] : null);
+        $this->audit->handle('platform.ai_tested', null, ['model' => $result['model'], 'ok' => $result['ok'], 'reason' => $result['reason'] ?? null]);
+
+        return response()->json($result, $result['ok'] ? 200 : 422);
+    }
+
+    /**
+     * Un esfuerzo que el modelo elegido no admite (en un grupo o en una función): se dice cuáles admite. Mira lo que
+     * llega y, si no viene, lo que rige ahora; vaciar el modelo vuelve al del .env.
+     *
+     * @param  array<string, mixed>  $values
+     * @return array{field: string, message: string}|null
+     */
+    private function effortMismatch(array $values): ?array
+    {
+        $pairs = [['ai.main_model', 'ai.main_effort'], ['ai.fast_model', 'ai.fast_effort']];
+        foreach (array_keys(AiModels::features()) as $feature) {
+            $pairs[] = ["ai.feature_{$feature}_model", "ai.feature_{$feature}_effort"];
+        }
+        foreach ($pairs as [$modelKey, $effortKey]) {
+            if (! array_key_exists($modelKey, $values) && ! array_key_exists($effortKey, $values)) {
+                continue;
+            }
+            $model = $this->valueAfterSave($modelKey, $values);
+            $effort = $this->valueAfterSave($effortKey, $values);
+            if (! is_string($model) || ! is_string($effort) || AiModels::supportsEffort($model, $effort)) {
+                continue;
+            }
+            $allowed = AiModels::catalog()[$model]['efforts'] ?? [];
+            $message = $allowed === []
+                ? __('El modelo :model no admite elegir el esfuerzo: deja «Esfuerzo» vacío.', ['model' => $model])
+                : __('El modelo :model no admite el esfuerzo «:effort». Elige uno de estos: :allowed.', ['model' => $model, 'effort' => $effort, 'allowed' => implode(', ', $allowed)]);
+
+            return ['field' => explode('.', $effortKey, 2)[1], 'message' => is_string($message) ? $message : ''];
+        }
+
+        return null;
+    }
+
+    /**
+     * El valor de un ajuste tras guardar: el que llega, el del .env si se vacía o el que rige ahora si no viene.
+     *
+     * @param  array<string, mixed>  $values
+     */
+    private function valueAfterSave(string $key, array $values): mixed
+    {
+        $definition = PlatformSettingsRegistry::find($key);
+        if ($definition === null) {
+            return null;
+        }
+        if (array_key_exists($key, $values)) {
+            return $values[$key] ?? $this->runtime->fallback($definition);
+        }
+
+        return config($definition->targets[0]);
     }
 
     /**

@@ -13,6 +13,8 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { toast } from '@/stores/toast';
+import { isAiModelField } from './ai-settings-model';
+import { AiModelFields, AiTestPanel } from './AiSettings';
 import { type MailTestResult, useMailTest } from './api';
 import { type SettingField, type SettingsSection, useGenerateVapid, useSaveSettings, useSesSetup } from './settings-api';
 import { type Draft, buildPayload, displayValue, effectiveBool, fieldErrors, initialText, pruneDraft, randomToken } from './settings-model';
@@ -65,9 +67,17 @@ export function SettingsSectionCard({ section }: { section: SettingsSection }) {
                 </CardHeader>
                 <CardContent className="igr:space-y-5">
                     <SectionExtras section={section} />
-                    {section.fields.map((field) => (
-                        <FieldRow key={field.key} section={section} field={field} draft={draft} error={errors[field.key]} onChange={set} />
-                    ))}
+                    {section.fields
+                        .filter((field) => section.key !== 'ai' || !isAiModelField(field.key))
+                        .map((field) => (
+                            <FieldRow key={field.key} section={section} field={field} draft={draft} error={errors[field.key]} onChange={set} />
+                        ))}
+                    {section.key === 'ai' ? (
+                        <>
+                            <AiModelFields section={section} draft={draft} errors={errors} onChange={set} />
+                            <AiTestPanel section={section} dirty={dirty} />
+                        </>
+                    ) : null}
                 </CardContent>
                 <CardFooter className="igr:flex-wrap igr:justify-between">
                     <p className="igr:text-xs igr:text-muted-foreground">{dirty ? t('platformSettings.unsaved') : ''}</p>

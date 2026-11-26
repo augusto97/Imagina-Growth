@@ -43,6 +43,7 @@ final class ModuleServiceProvider extends ServiceProvider
                     Route::get('settings', [PlatformSettingsController::class, 'show']);
                     Route::post('settings/push/vapid', [PlatformSettingsController::class, 'vapid'])->middleware('throttle:6,1');
                     Route::post('settings/ses/setup', [PlatformSettingsController::class, 'sesSetup'])->middleware('throttle:6,1');
+                    Route::post('settings/ai/test', [PlatformSettingsController::class, 'aiTest'])->middleware('throttle:6,1');
                     Route::put('settings/{section}', [PlatformSettingsController::class, 'update'])->middleware('throttle:60,1');
                     Route::get('holidays', [PlatformHolidaysController::class, 'index']);
                     Route::put('holidays/{country}/{date}', [PlatformHolidaysController::class, 'update']);
