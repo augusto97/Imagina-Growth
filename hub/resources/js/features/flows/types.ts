@@ -52,6 +52,34 @@ export interface FlowStats {
     converted: number;
 }
 
+/** El resultado del mes de una automatización (GET flows, FlowListResults). */
+export interface FlowMonthResult {
+    /** Dinero generado este mes (MoneyGenerated, cada venta una sola vez). */
+    revenue: string;
+    orders: number;
+    /** Cuántos lograron la meta este mes (compraron, agendaron, avanzaron…), sin el grupo de control. */
+    conversions: number;
+    messages: number;
+    /** Comparación con el grupo de control de los últimos 90 días. */
+    control: {
+        treatment_n: number;
+        treatment_converted: number;
+        holdout_n: number;
+        holdout_converted: number;
+        /** Al menos 30 en cada grupo. */
+        enough: boolean;
+        /** Diferencia de tasas (fracción): expuestos − control. */
+        difference: number | null;
+    };
+}
+
+export interface FlowListMeta {
+    month: { from: string; to: string };
+    currency: string;
+    control_days: number;
+    min_group: number;
+}
+
 export interface FlowSummary {
     id: string;
     name: string;
@@ -65,6 +93,10 @@ export interface FlowSummary {
     activated_at: string | null;
     updated_at: string | null;
     stats: FlowStats;
+    /** Solo en la lista. */
+    month?: FlowMonthResult | null;
+    /** La estrategia que la usa (si viene de la biblioteca). */
+    strategy?: string | null;
 }
 
 export interface FlowVersionRef {
@@ -131,6 +163,57 @@ export interface LibraryFlow {
     missing_templates: string[];
     created_flow_id: string | null;
     steps: number;
+    /** Evento que la termina como lograda (compró, agendó…). */
+    goal_event: string | null;
+    /** Objetivo en la galería (LibraryCatalog::GOALS). */
+    goal: LibraryGoal;
+    audience: 'store' | 'services' | 'both';
+    /** null = todas las verticales de su tipo de negocio. */
+    verticals: string[] | null;
+    /** Lugar en «Recomendadas para ti» para la vertical del espacio de trabajo. */
+    rank: number | null;
+    /** La estrategia que la usa. */
+    strategy: string | null;
+    channels: ('whatsapp' | 'email' | 'sms')[];
+    messages: number;
+}
+
+export type LibraryGoal = 'recover_sales' | 'sell_again' | 'loyalty' | 'capture' | 'reputation' | 'convert_leads' | 'appointments';
+
+export interface LibraryMeta {
+    whatsapp_connected: boolean;
+    goals: LibraryGoal[];
+    vertical: string | null;
+    business_type: 'store' | 'services' | 'both';
+}
+
+/** Un mensaje del recorrido de un flujo listo, con los datos de ejemplo (GET flows/library/{key}). */
+export interface LibraryMessage {
+    node_id: string;
+    channel: 'whatsapp' | 'email' | 'sms';
+    template_key: string;
+    name: string | null;
+    kind: string;
+    subject: string | null;
+    preheader: string | null;
+    text: string | null;
+    buttons: string[];
+    /** false: una de WhatsApp aprobada que eliges tú (sin texto propio). */
+    in_library: boolean;
+}
+
+export interface LibraryFlowPreview {
+    key: string;
+    number: number;
+    name: string;
+    description: string;
+    module: string | null;
+    trigger: Trigger | null;
+    goal: Goal | null;
+    reentry_policy: ReentryPolicy | null;
+    graph: Graph | null;
+    messages: LibraryMessage[];
+    whatsapp_connected: boolean;
 }
 
 export interface GroupStats {

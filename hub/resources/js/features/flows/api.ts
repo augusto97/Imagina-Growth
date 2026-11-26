@@ -1,13 +1,14 @@
 import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { wsPath } from '@/api/queries';
 import { api } from '@/lib/api';
-import type { FlowAnalytics, FlowDetail, FlowOptions, FlowRunRow, FlowSummary, Graph, LibraryFlow, TestResult } from './types';
+import type { FlowAnalytics, FlowDetail, FlowListMeta, FlowOptions, FlowRunRow, FlowSummary, Graph, LibraryFlow, LibraryFlowPreview, LibraryMeta, TestResult } from './types';
 
 export const flowKeys = {
     all: (ws: string) => ['ws', ws, 'flows'] as const,
     one: (ws: string, id: string) => ['ws', ws, 'flows', id] as const,
     options: (ws: string) => ['ws', ws, 'flows', 'options'] as const,
     library: (ws: string) => ['ws', ws, 'flows', 'library'] as const,
+    libraryPreview: (ws: string, key: string) => ['ws', ws, 'flows', 'library', key] as const,
     analytics: (ws: string, id: string, days: number) => ['ws', ws, 'flows', id, 'analytics', days] as const,
     runs: (ws: string, id: string, status: string, page: number) => ['ws', ws, 'flows', id, 'runs', status, page] as const,
 };
@@ -15,7 +16,10 @@ export const flowKeys = {
 const base = (ws: string) => `${wsPath(ws)}/flows`;
 
 export function flowsQuery(ws: string) {
-    return queryOptions({ queryKey: flowKeys.all(ws), queryFn: ({ signal }) => api.get<{ data: FlowSummary[]; archived_count: number }>(base(ws), signal) });
+    return queryOptions({
+        queryKey: flowKeys.all(ws),
+        queryFn: ({ signal }) => api.get<{ data: FlowSummary[]; archived_count: number; meta?: FlowListMeta }>(base(ws), signal),
+    });
 }
 
 export function useFlows(ws: string) {
@@ -38,9 +42,20 @@ export function useFlowLibrary(ws: string) {
     return useQuery({
         queryKey: flowKeys.library(ws),
         queryFn: async ({ signal }) => {
-            const res = await api.get<{ data: LibraryFlow[]; meta: { whatsapp_connected: boolean } }>(`${base(ws)}/library`, signal);
-            return { flows: res.data, whatsappConnected: res.meta.whatsapp_connected };
+            const res = await api.get<{ data: LibraryFlow[]; meta: LibraryMeta }>(`${base(ws)}/library`, signal);
+            return { flows: res.data, whatsappConnected: res.meta.whatsapp_connected, meta: res.meta };
         },
+        staleTime: 30_000,
+    });
+}
+
+/** El recorrido y los mensajes de un flujo listo antes de crearlo. */
+export function useLibraryFlowPreview(ws: string, key: string | null) {
+    return useQuery({
+        queryKey: flowKeys.libraryPreview(ws, key ?? ''),
+        queryFn: ({ signal }) => api.get<LibraryFlowPreview>(`${base(ws)}/library/${encodeURIComponent(key ?? '')}`, signal),
+        enabled: key !== null && key !== '',
+        staleTime: 5 * 60_000,
     });
 }
 

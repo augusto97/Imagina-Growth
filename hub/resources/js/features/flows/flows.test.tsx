@@ -5,8 +5,11 @@ import i18n from '@/lib/i18n';
 import texts from '@/locales/es-CO/flows.json';
 import { type FlowSettings, SettingsPanel } from './builder/SettingsPanel';
 import { branchesOf, branchLabel, metaOf, NODE_META, PALETTE, summarize, triggerText } from './catalog';
+import { businessKind, servesAudience } from './business';
+import { goalWord } from './FlowsPage';
 import { edgeId, type FlowCanvasNode, freeBranch, fromCanvas, nextNodeId, pruneEdges, toCanvas } from './graph';
-import type { FlowOptions, Graph, GraphNode } from './types';
+import { sortLibrary } from './LibraryGallery';
+import type { FlowOptions, Graph, GraphNode, LibraryFlow } from './types';
 
 type Tree = { [key: string]: string | Tree };
 
@@ -192,5 +195,36 @@ describe('ajustes del flujo', () => {
         expect(screen.queryByLabelText('Este flujo')).toBeNull();
         fireEvent.click(screen.getByLabelText('Bienvenida'));
         expect(state().exclusions).toEqual(['fl_2']);
+    });
+});
+
+describe('galería de la biblioteca', () => {
+    const flow = (key: string, number: number, audience: LibraryFlow['audience'], rank: number | null = null): LibraryFlow => ({
+        key, number, name: key, description: '', phase: 2, available: true, module: null, trigger: null, templates: [], missing_templates: [], created_flow_id: null, steps: 3,
+        goal_event: null, goal: 'sell_again', audience, verticals: null, rank, strategy: null, channels: ['email'], messages: 1,
+    });
+
+    it('pone primero las recomendadas para la vertical y, en servicios, las de servicios antes que las de tienda', () => {
+        const list = [flow('abandoned_cart', 2, 'store'), flow('periodic_service', 26, 'both'), flow('lead_nurture', 21, 'services'), flow('appointment_confirmation', 23, 'services', 1)];
+        expect(sortLibrary(list, 'services').map((f) => f.key)).toEqual(['appointment_confirmation', 'lead_nurture', 'periodic_service', 'abandoned_cart']);
+        expect(sortLibrary(list, 'store').map((f) => f.key)).toEqual(['appointment_confirmation', 'abandoned_cart', 'periodic_service', 'lead_nurture']);
+        expect(servesAudience('services', 'store')).toBe(false);
+        expect(servesAudience('both', 'store')).toBe(true);
+    });
+
+    it('sabe si el negocio es tienda, servicios o los dos (asistente, sitios o nada)', () => {
+        expect(businessKind({ business_type: 'services' })).toBe('services');
+        expect(businessKind({ business_type: null, capabilities: { store: true, services: false } })).toBe('store');
+        expect(businessKind({ business_type: null, capabilities: { store: null, services: null } })).toBe('both');
+    });
+
+    it('dice lo que se logró con la palabra de la meta', () => {
+        expect(goalWord('order.paid')).toBe('order_paid');
+        expect(goalWord('appointment.booked')).toBe('appointment_booked');
+        expect(goalWord('lead.stage_changed')).toBe('lead_stage_changed');
+        expect(goalWord('nps.answered')).toBe('default');
+        expect(goalWord(null)).toBe('default');
+        expect(t('flows.list.goalDone.appointment_booked', { count: 3 })).toBe('3 agendaron');
+        expect(has('flows.library.goals.convert_leads')).toBe(true);
     });
 });

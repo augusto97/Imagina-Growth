@@ -11,6 +11,7 @@ Route::get('flows', [FlowController::class, 'index']);
 Route::post('flows', [FlowController::class, 'store']);
 Route::get('flows/options', [FlowController::class, 'options']);
 Route::get('flows/library', [FlowController::class, 'library']);
+Route::get('flows/library/{key}', [FlowController::class, 'libraryShow'])->where('key', '[a-z_]+');
 Route::post('flows/library/{key}', [FlowController::class, 'fromLibrary'])->where('key', '[a-z_]+');
 Route::get('flows/{flow}', [FlowController::class, 'show']);
 Route::patch('flows/{flow}', [FlowController::class, 'update']);
