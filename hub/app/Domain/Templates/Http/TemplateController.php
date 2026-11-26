@@ -6,9 +6,12 @@ namespace App\Domain\Templates\Http;
 
 use App\Domain\Contacts\Http\ContactAccess;
 use App\Domain\Contacts\Models\Contact;
+use App\Domain\Services\Verticals\VerticalCatalog;
 use App\Domain\Templates\Data\RenderContext;
 use App\Domain\Templates\Exceptions\TemplateRenderException;
+use App\Domain\Templates\Library\InstallLibraryTemplate;
 use App\Domain\Templates\Library\TemplateLibrary;
+use App\Domain\Templates\Library\WhatsAppLibrary;
 use App\Domain\Templates\Liquid\LiquidSandbox;
 use App\Domain\Templates\Models\Template;
 use App\Domain\Templates\Rendering\LiquidTemplateRenderer;
@@ -180,31 +183,83 @@ final class TemplateController
         ]);
     }
 
+    /**
+     * GET templates/gallery?goal=&vertical=&channel=&industry= — la galería por objetivo y vertical (rediseño v2
+     * §11.5). Sin `vertical`, la del espacio de trabajo; `vertical=all` muestra todas.
+     */
+    public function gallery(Request $request): JsonResponse
+    {
+        Gate::authorize('ws.viewDashboards');
+        $data = $request->validate([
+            'goal' => ['nullable', Rule::in(TemplateLibrary::GOALS)],
+            'vertical' => ['nullable', Rule::in([...VerticalCatalog::keys(), 'all'])],
+            'channel' => ['nullable', Rule::in(['email', 'whatsapp'])],
+        ]);
+        $own = VerticalCatalog::forWorkspace($this->current->get())['vertical'];
+        $vertical = ($data['vertical'] ?? null) === 'all' ? null : ($data['vertical'] ?? $own);
+        $industry = $this->industry($request) ?? VerticalCatalog::industry($vertical);
+        $installed = Template::query()->whereNotNull('library_key')->where('status', '!=', 'archived')
+            ->orderByDesc('created_at')->orderByDesc('id')->get(['id', 'library_key', 'status', 'wa_template_id'])->keyBy('library_key');
+
+        return response()->json([
+            'goals' => TemplateLibrary::GOALS,
+            'verticals' => VerticalCatalog::keys(),
+            'vertical' => $vertical,
+            'industry' => $industry,
+            'whatsapp_connected' => DB::table('channel_accounts')->where('workspace_id', $this->current->id())->where('channel', 'whatsapp')->where('provider', 'meta_cloud')->where('status', 'active')->exists(),
+            'data' => array_map(function (array $e) use ($installed) {
+                $mine = $installed->get($e['key']);
+
+                return $e + ['installed' => $mine === null ? null : ['id' => 'tpl_'.$mine->id, 'status' => $mine->status, 'linked' => $mine->wa_template_id !== null]];
+            }, TemplateLibrary::gallery($data['goal'] ?? null, $vertical, $data['channel'] ?? null, $industry)),
+        ]);
+    }
+
     /** GET templates/library/{key}/preview?industry= */
     public function libraryPreview(Request $request, string $key): JsonResponse
     {
         Gate::authorize('ws.viewDashboards');
-        if (TemplateLibrary::entry($key) === null) {
-            abort(404);
-        }
+        $entry = TemplateLibrary::entry($key) ?? abort(404);
         $draft = new Template(['workspace_id' => $this->current->id()] + TemplateLibrary::attributes($key, $this->industry($request)));
+        if ($entry['channel'] === 'whatsapp') {
+            // Todavía no está aprobada en Meta: la vista previa es el texto propuesto con los datos de ejemplo.
+            $workspace = $this->current->get();
+            $sample = SampleData::forWorkspace($workspace, (string) (TemplateVariables::store($workspace)['url'] ?? ''));
+            try {
+                $text = trim($this->sandbox->render((string) $draft->body_text, $sample + ['tienda' => TemplateVariables::store($workspace)], app(TemplateVariables::class)->register($workspace), __('el texto')));
+            } catch (TemplateRenderException $e) {
+                return response()->json(['ok' => false, 'message' => $e->getMessage()], 422);
+            }
+            $compiled = WhatsAppLibrary::compile($entry, (string) $draft->body_text);
+
+            return response()->json(['ok' => true, 'text' => $text, 'whatsapp' => ['name' => $compiled['name'], 'category' => strtolower($compiled['category']),
+                'body' => $compiled['body'], 'footer' => $compiled['footer'], 'buttons' => $compiled['buttons']]]);
+        }
 
         return $this->renderPreview($draft, $request);
     }
 
-    /** POST templates/library/{key} {industry?, copy?} */
-    public function install(Request $request, string $key): JsonResponse
+    /**
+     * POST templates/library/{key} {industry?, copy?, submit?, account?} — instala con un clic (idempotente). Las de
+     * WhatsApp se envían a revisión de Meta si hay un número oficial activo (`submit`, sí por defecto).
+     */
+    public function install(Request $request, string $key, InstallLibraryTemplate $install): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
         if (TemplateLibrary::entry($key) === null) {
             abort(404);
         }
-        $data = $request->validate(['industry' => ['nullable', Rule::in(TemplateLibrary::industries())], 'copy' => ['nullable', 'boolean']]);
+        $data = $request->validate([
+            'industry' => ['nullable', Rule::in(TemplateLibrary::industries())], 'copy' => ['nullable', 'boolean'],
+            'submit' => ['nullable', 'boolean'], 'account' => ['nullable', 'string', 'max:40'],
+        ]);
         /** @var User $user */
         $user = $request->user();
-        $model = TemplateLibrary::install($this->current->get(), $key, $data['industry'] ?? null, $user->id, (bool) ($data['copy'] ?? false));
+        $result = $install->handle($this->current->get(), $key, $data['industry'] ?? null, $user->id, (bool) ($data['copy'] ?? false),
+            ! array_key_exists('submit', $data) || (bool) $data['submit'], $data['account'] ?? null);
+        $model = $result['template'];
 
-        return response()->json(TemplatePresenter::full($model, TemplateChecks::run($model, $this->current->get())), $model->wasRecentlyCreated ? 201 : 200);
+        return response()->json(TemplatePresenter::full($model, TemplateChecks::run($model, $this->current->get())) + ['whatsapp_submission' => $result['whatsapp']], $result['created'] ? 201 : 200);
     }
 
     /** GET templates/wa-sources: plantillas de WhatsApp sincronizadas (M07) con las ranuras de parámetros. */
