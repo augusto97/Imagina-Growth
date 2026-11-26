@@ -61,6 +61,53 @@
                 "how": "¿Cómo creo una campaña de WhatsApp?"
             }
         },
+        "suggestionsServices": {
+            "home": {
+                "week": "¿Cómo me fue esta semana frente a la anterior?",
+                "best": "¿Qué canal me trajo más clientes este mes?",
+                "today": "¿Qué debería hacer hoy para conseguir más clientes?"
+            },
+            "contact": {
+                "who": "Resúmeme a esta persona",
+                "next": "¿Qué le ofrezco a esta persona?",
+                "risk": "¿Esta persona se está enfriando?"
+            },
+            "segment": {
+                "size": "¿Cuántas personas hay en este grupo y cómo ha cambiado?",
+                "message": "¿Qué mensaje les envío a este grupo?",
+                "value": "¿Cuántas personas de este grupo ya son clientes?"
+            },
+            "campaign": {
+                "result": "¿Cómo le fue a esta campaña?",
+                "improve": "¿Qué cambio para que la próxima traiga más clientes?",
+                "next": "¿A quién le escribo después de esta campaña?"
+            },
+            "flow": {
+                "result": "¿Cuántos clientes trajo esta automatización en el último mes?",
+                "improve": "¿Qué paso de esta automatización mejoro?",
+                "holdout": "¿Funciona mejor que sin mensajes?"
+            },
+            "conversation": {
+                "reply": "¿Qué le respondo a esta persona?",
+                "customer": "¿Quién es esta persona y en qué va su proceso?",
+                "offer": "¿Le propongo agendar una cita?"
+            },
+            "leads": {
+                "hot": "¿Qué leads atiendo primero hoy?",
+                "stuck": "¿Cuántos leads llevan días sin respuesta?",
+                "won": "¿Cuánto he ganado en leads este mes?"
+            },
+            "results": {
+                "week": "¿Cuántos clientes nuevos llegaron este mes frente al anterior?",
+                "channels": "¿Qué canales me traen más clientes nuevos?",
+                "compare": "¿De qué ciudades me llegan más clientes?"
+            },
+            "other": {
+                "week": "¿Cómo me fue esta semana?",
+                "best": "¿Qué canal me trae más clientes?",
+                "how": "¿Cómo creo una campaña de WhatsApp?"
+            }
+        },
         "label": "Tu pregunta",
         "placeholder": "Escribe tu pregunta… (Enter envía)",
         "send": "Enviar pregunta",

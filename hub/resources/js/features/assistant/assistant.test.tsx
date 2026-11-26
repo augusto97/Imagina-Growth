@@ -12,6 +12,7 @@ import texts from '@/locales/es-CO/assistant.json';
 import { useUi } from '@/stores/ui';
 import { AssistantPanel } from './AssistantPanel';
 import { ASSISTANT_PAGES, SUGGESTION_KEYS, historyFor, pageFromPath, useAssistant } from './model';
+import { suggestionKey } from './suggestions';
 
 const workspace = {
     id: 'ws_1',
@@ -117,11 +118,23 @@ describe('Pregúntale a la IA: lógica', () => {
     });
 
     it('tiene texto para cada pantalla, cada pregunta sugerida y cada destino', () => {
-        const a = texts.assistant as unknown as { context: Record<string, string>; suggestions: Record<string, Record<string, string>>; pages: Record<string, string> };
+        const a = texts.assistant as unknown as {
+            context: Record<string, string>;
+            suggestions: Record<string, Record<string, string>>;
+            suggestionsServices: Record<string, Record<string, string>>;
+            pages: Record<string, string>;
+        };
         for (const [kind, keys] of Object.entries(SUGGESTION_KEYS)) {
             expect(a.context[kind]).toBeTypeOf('string');
-            for (const key of keys) expect(a.suggestions[kind]?.[key]).toBeTypeOf('string');
+            for (const key of keys) {
+                expect(a.suggestions[kind]?.[key]).toBeTypeOf('string');
+                // Sin tienda: las mismas preguntas, sin ventas ni productos.
+                expect(a.suggestionsServices[kind]?.[key]).toBeTypeOf('string');
+                expect(a.suggestionsServices[kind]?.[key]).not.toMatch(/product|vend|compr/i);
+            }
         }
+        expect(suggestionKey('other', 'best', true)).toBe('assistant.suggestions.other.best');
+        expect(suggestionKey('other', 'best', false)).toBe('assistant.suggestionsServices.other.best');
         for (const page of Object.keys(ASSISTANT_PAGES)) expect(a.pages[page]).toBeTypeOf('string');
     });
 });

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
 import { Textarea } from '@/components/ui/input';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useBusiness } from '@/features/contacts/business';
 import { CopilotDialog } from '@/features/copilot/CopilotDialog';
 import { useSaveAnswer } from '@/features/intelligence/api';
 import { AnswerResult, SourceBadge } from '@/features/intelligence/components';
@@ -14,6 +15,7 @@ import { isApiError } from '@/lib/api';
 import { toast } from '@/stores/toast';
 import { type AssistantAction, type AssistantAnswer, useAssistantAsk } from './api';
 import { ASSISTANT_PAGES, SUGGESTION_KEYS, historyFor, pageFromPath, useAssistant } from './model';
+import { suggestionKey } from './suggestions';
 
 /** Una vuelta de la conversación del panel: la pregunta y, cuando llega, la respuesta. */
 interface Turn {
@@ -36,6 +38,7 @@ export function AssistantPanel() {
     const location = useLocation();
     const base = `/w/${workspace.id}`;
     const page = useMemo(() => pageFromPath(location.pathname, base), [location.pathname, base]);
+    const { store } = useBusiness();
     const ask = useAssistantAsk(workspace.id);
     const [turns, setTurns] = useState<Turn[]>([]);
     const [question, setQuestion] = useState('');
@@ -72,7 +75,7 @@ export function AssistantPanel() {
         end.current?.scrollIntoView({ block: 'end' });
     }, [turns]);
 
-    const suggestions = SUGGESTION_KEYS[page.kind].map((key) => t(`assistant.suggestions.${page.kind}.${key}`));
+    const suggestions = SUGGESTION_KEYS[page.kind].map((key) => t(suggestionKey(page.kind, key, store)));
 
     return (
         <>
