@@ -65,7 +65,7 @@ export function IntegrationsPage() {
                             title={t('integrations.planMissing')}
                             action={
                                 <Button asChild size="sm" variant="outline">
-                                    <Link to={'/w/' + workspace.id + '/facturacion#planes'}>{t('integrationsPage.seePlans')}</Link>
+                                    <Link to={`/w/${workspace.id}/facturacion#planes`}>{t('integrationsPage.seePlans')}</Link>
                                 </Button>
                             }
                         />

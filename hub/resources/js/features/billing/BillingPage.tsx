@@ -181,7 +181,7 @@ function PlanCard({ data }: { data: BillingOverview }) {
                             {gained.slice(0, 4).map((m) => (
                                 <li key={m.key} className="igr:flex igr:gap-2">
                                     <Check aria-hidden className="igr:mt-0.5 igr:size-4 igr:shrink-0 igr:text-success" />
-                                    {t('billing.module.' + m.key)}
+                                    {t(`billing.module.${m.key}`)}
                                 </li>
                             ))}
                         </ul>

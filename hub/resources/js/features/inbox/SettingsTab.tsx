@@ -59,114 +59,114 @@ function AssignmentForm({ initial }: { initial: Omit<InboxSettings, 'push_public
                 <CardDescription>{t('inbox.settings.assignmentHelp')}</CardDescription>
             </CardHeader>
             <CardContent className="igr:flex-1 igr:space-y-4">
-            <Switch checked={draft.auto_assign} onCheckedChange={(v) => setDraft({ ...draft, auto_assign: v })} label={t('inbox.settings.autoAssign')} description={t('inbox.settings.autoAssignHelp')} />
-            <div className="igr:space-y-2">
-                <p className="igr:text-support igr:font-medium">{t('inbox.settings.rules')}</p>
-                <p className="igr:text-xs igr:text-muted-foreground">{t('inbox.settings.rulesHelp')}</p>
-                {draft.rules.map((rule, i) => (
-                    <div key={i} className="igr:grid igr:grid-cols-[minmax(0,1fr)_auto] igr:gap-1.5 igr:rounded-lg igr:border igr:p-2 igr:sm:flex igr:sm:items-center igr:sm:border-0 igr:sm:p-0">
-                        <Select
-                            aria-label={t('inbox.settings.ruleIntent')}
-                            value={rule.intent ?? ''}
-                            onChange={(e) =>
-                                setDraft({
-                                    ...draft,
-                                    rules: draft.rules.map((r, k) =>
-                                        k === i
-                                            ? {
-                                                  ...r,
-                                                  intent: (e.target.value || undefined) as Intent | undefined,
-                                              }
-                                            : r,
-                                    ),
-                                })
-                            }
-                        >
-                            <option value="">{t('inbox.settings.anyIntent')}</option>
-                            {RULE_INTENTS.map((x) => (
-                                <option key={x} value={x}>
-                                    {t(`inbox.intent.${x}`)}
-                                </option>
-                            ))}
-                        </Select>
-                        <Input
-                            aria-label={t('inbox.settings.ruleLabel')}
-                            placeholder={t('inbox.settings.ruleLabel')}
-                            value={rule.label ?? ''}
-                            onChange={(e) =>
-                                setDraft({
-                                    ...draft,
-                                    rules: draft.rules.map((r, k) =>
-                                        k === i
-                                            ? {
-                                                  ...r,
-                                                  label: e.target.value || undefined,
-                                              }
-                                            : r,
-                                    ),
-                                })
-                            }
-                        />
-                        <Select
-                            aria-label={t('inbox.settings.ruleUser')}
-                            value={rule.user}
-                            onChange={(e) =>
-                                setDraft({
-                                    ...draft,
-                                    rules: draft.rules.map((r, k) => (k === i ? { ...r, user: e.target.value } : r)),
-                                })
-                            }
-                        >
-                            {(agents.data?.data ?? []).map((a) => (
-                                <option key={a.id} value={a.id}>
-                                    {a.name}
-                                </option>
-                            ))}
-                        </Select>
-                        <Button
-                            size="icon"
-                            variant="ghost"
-                            aria-label={t('inbox.settings.removeRule')}
-                            onClick={() =>
-                                setDraft({
-                                    ...draft,
-                                    rules: draft.rules.filter((_, k) => k !== i),
-                                })
-                            }
-                        >
-                            <Trash2 aria-hidden />
-                        </Button>
-                    </div>
-                ))}
+                <Switch checked={draft.auto_assign} onCheckedChange={(v) => setDraft({ ...draft, auto_assign: v })} label={t('inbox.settings.autoAssign')} description={t('inbox.settings.autoAssignHelp')} />
+                <div className="igr:space-y-2">
+                    <p className="igr:text-support igr:font-medium">{t('inbox.settings.rules')}</p>
+                    <p className="igr:text-xs igr:text-muted-foreground">{t('inbox.settings.rulesHelp')}</p>
+                    {draft.rules.map((rule, i) => (
+                        <div key={i} className="igr:grid igr:grid-cols-[minmax(0,1fr)_auto] igr:gap-1.5 igr:rounded-lg igr:border igr:p-2 igr:sm:flex igr:sm:items-center igr:sm:border-0 igr:sm:p-0">
+                            <Select
+                                aria-label={t('inbox.settings.ruleIntent')}
+                                value={rule.intent ?? ''}
+                                onChange={(e) =>
+                                    setDraft({
+                                        ...draft,
+                                        rules: draft.rules.map((r, k) =>
+                                            k === i
+                                                ? {
+                                                      ...r,
+                                                      intent: (e.target.value || undefined) as Intent | undefined,
+                                                  }
+                                                : r,
+                                        ),
+                                    })
+                                }
+                            >
+                                <option value="">{t('inbox.settings.anyIntent')}</option>
+                                {RULE_INTENTS.map((x) => (
+                                    <option key={x} value={x}>
+                                        {t(`inbox.intent.${x}`)}
+                                    </option>
+                                ))}
+                            </Select>
+                            <Input
+                                aria-label={t('inbox.settings.ruleLabel')}
+                                placeholder={t('inbox.settings.ruleLabel')}
+                                value={rule.label ?? ''}
+                                onChange={(e) =>
+                                    setDraft({
+                                        ...draft,
+                                        rules: draft.rules.map((r, k) =>
+                                            k === i
+                                                ? {
+                                                      ...r,
+                                                      label: e.target.value || undefined,
+                                                  }
+                                                : r,
+                                        ),
+                                    })
+                                }
+                            />
+                            <Select
+                                aria-label={t('inbox.settings.ruleUser')}
+                                value={rule.user}
+                                onChange={(e) =>
+                                    setDraft({
+                                        ...draft,
+                                        rules: draft.rules.map((r, k) => (k === i ? { ...r, user: e.target.value } : r)),
+                                    })
+                                }
+                            >
+                                {(agents.data?.data ?? []).map((a) => (
+                                    <option key={a.id} value={a.id}>
+                                        {a.name}
+                                    </option>
+                                ))}
+                            </Select>
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                aria-label={t('inbox.settings.removeRule')}
+                                onClick={() =>
+                                    setDraft({
+                                        ...draft,
+                                        rules: draft.rules.filter((_, k) => k !== i),
+                                    })
+                                }
+                            >
+                                <Trash2 aria-hidden />
+                            </Button>
+                        </div>
+                    ))}
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={firstAgent === ''}
+                        onClick={() =>
+                            setDraft({
+                                ...draft,
+                                rules: [...draft.rules, { intent: 'complaint', user: firstAgent }],
+                            })
+                        }
+                    >
+                        <Plus aria-hidden />
+                        {t('inbox.settings.addRule')}
+                    </Button>
+                </div>
+            </CardContent>
+            <CardFooter className="igr:justify-end">
                 <Button
                     size="sm"
-                    variant="outline"
-                    disabled={firstAgent === ''}
+                    loading={save.isPending}
                     onClick={() =>
-                        setDraft({
-                            ...draft,
-                            rules: [...draft.rules, { intent: 'complaint', user: firstAgent }],
+                        save.mutate(draft, {
+                            onSuccess: () => toast.success(t('inbox.settings.saved')),
+                            onError: (e) => toast.error(errorMessage(e, t)),
                         })
                     }
                 >
-                    <Plus aria-hidden />
-                    {t('inbox.settings.addRule')}
+                    {t('inbox.settings.save')}
                 </Button>
-            </div>
-            </CardContent>
-            <CardFooter className="igr:justify-end">
-            <Button
-                size="sm"
-                loading={save.isPending}
-                onClick={() =>
-                    save.mutate(draft, {
-                        onSuccess: () => toast.success(t('inbox.settings.saved')),
-                        onError: (e) => toast.error(errorMessage(e, t)),
-                    })
-                }
-            >
-                {t('inbox.settings.save')}
-            </Button>
             </CardFooter>
         </Card>
     );
@@ -187,70 +187,70 @@ function QuickRepliesCard() {
                 <CardDescription>{t('inbox.settings.quickRepliesHelp')}</CardDescription>
             </CardHeader>
             <CardContent className="igr:space-y-3">
-            {(replies.data?.data ?? []).length === 0 && !replies.isPending ? (
-                <p className="igr:rounded-lg igr:bg-muted/60 igr:px-3 igr:py-2 igr:text-xs igr:text-muted-foreground">{t('inbox.settings.quickRepliesIdeas')}</p>
-            ) : null}
-            <ul className="igr:space-y-1.5">
-                {(replies.data?.data ?? []).map((r) => (
-                    <li key={r.id} className="igr:flex igr:items-start igr:gap-2 igr:rounded-lg igr:border igr:bg-card igr:p-2.5 igr:text-xs">
-                        <div className="igr:min-w-0 igr:flex-1">
-                            <p className="igr:font-medium">
-                                /{r.shortcut} · {r.title}
-                            </p>
-                            <p className="igr:line-clamp-2 igr:text-muted-foreground">{r.body}</p>
+                {(replies.data?.data ?? []).length === 0 && !replies.isPending ? (
+                    <p className="igr:rounded-lg igr:bg-muted/60 igr:px-3 igr:py-2 igr:text-xs igr:text-muted-foreground">{t('inbox.settings.quickRepliesIdeas')}</p>
+                ) : null}
+                <ul className="igr:space-y-1.5">
+                    {(replies.data?.data ?? []).map((r) => (
+                        <li key={r.id} className="igr:flex igr:items-start igr:gap-2 igr:rounded-lg igr:border igr:bg-card igr:p-2.5 igr:text-xs">
+                            <div className="igr:min-w-0 igr:flex-1">
+                                <p className="igr:font-medium">
+                                    /{r.shortcut} · {r.title}
+                                </p>
+                                <p className="igr:line-clamp-2 igr:text-muted-foreground">{r.body}</p>
+                            </div>
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                aria-label={t('inbox.settings.removeReply', {
+                                    shortcut: r.shortcut,
+                                })}
+                                onClick={() => actions.remove.mutate(r.id, { onError: fail })}
+                            >
+                                <Trash2 aria-hidden />
+                            </Button>
+                        </li>
+                    ))}
+                </ul>
+                <form
+                    className="igr:space-y-2"
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        actions.create.mutate(form, {
+                            onSuccess: () => setForm({ shortcut: '', title: '', body: '' }),
+                            onError: fail,
+                        });
+                    }}
+                >
+                    <div className="igr:grid igr:grid-cols-2 igr:gap-2">
+                        <div className="igr:space-y-1">
+                            <Label htmlFor="qr-shortcut">{t('inbox.settings.shortcut')}</Label>
+                            <Input
+                                id="qr-shortcut"
+                                placeholder={t('inbox.settings.shortcutPlaceholder')}
+                                value={form.shortcut}
+                                onChange={(e) =>
+                                    setForm({
+                                        ...form,
+                                        shortcut: e.target.value.toLowerCase(),
+                                    })
+                                }
+                            />
                         </div>
-                        <Button
-                            size="icon"
-                            variant="ghost"
-                            aria-label={t('inbox.settings.removeReply', {
-                                shortcut: r.shortcut,
-                            })}
-                            onClick={() => actions.remove.mutate(r.id, { onError: fail })}
-                        >
-                            <Trash2 aria-hidden />
-                        </Button>
-                    </li>
-                ))}
-            </ul>
-            <form
-                className="igr:space-y-2"
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    actions.create.mutate(form, {
-                        onSuccess: () => setForm({ shortcut: '', title: '', body: '' }),
-                        onError: fail,
-                    });
-                }}
-            >
-                <div className="igr:grid igr:grid-cols-2 igr:gap-2">
-                    <div className="igr:space-y-1">
-                        <Label htmlFor="qr-shortcut">{t('inbox.settings.shortcut')}</Label>
-                        <Input
-                            id="qr-shortcut"
-                            placeholder={t('inbox.settings.shortcutPlaceholder')}
-                            value={form.shortcut}
-                            onChange={(e) =>
-                                setForm({
-                                    ...form,
-                                    shortcut: e.target.value.toLowerCase(),
-                                })
-                            }
-                        />
+                        <div className="igr:space-y-1">
+                            <Label htmlFor="qr-title">{t('inbox.settings.replyTitle')}</Label>
+                            <Input id="qr-title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                        </div>
                     </div>
                     <div className="igr:space-y-1">
-                        <Label htmlFor="qr-title">{t('inbox.settings.replyTitle')}</Label>
-                        <Input id="qr-title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                        <Label htmlFor="qr-body">{t('inbox.settings.replyBody')}</Label>
+                        <Textarea id="qr-body" rows={3} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} />
                     </div>
-                </div>
-                <div className="igr:space-y-1">
-                    <Label htmlFor="qr-body">{t('inbox.settings.replyBody')}</Label>
-                    <Textarea id="qr-body" rows={3} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} />
-                </div>
-                <Button type="submit" size="sm" loading={actions.create.isPending} disabled={form.shortcut.trim() === '' || form.body.trim() === ''}>
-                    <Plus aria-hidden />
-                    {t('inbox.settings.addReply')}
-                </Button>
-            </form>
+                    <Button type="submit" size="sm" loading={actions.create.isPending} disabled={form.shortcut.trim() === '' || form.body.trim() === ''}>
+                        <Plus aria-hidden />
+                        {t('inbox.settings.addReply')}
+                    </Button>
+                </form>
             </CardContent>
         </Card>
     );
