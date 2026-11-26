@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { wsPath } from '@/api/queries';
 import type { Ability } from '@/api/types';
 import { api, isApiError } from '@/lib/api';
@@ -27,6 +27,11 @@ export const strategyKeys = {
 
 const base = (ws: string) => `${wsPath(ws)}/strategies`;
 
+/** El catálogo de la vertical del negocio (también para precargarlo al pasar el puntero por el menú). */
+export function strategiesQuery(ws: string) {
+    return queryOptions({ queryKey: strategyKeys.all(ws), queryFn: ({ signal }) => api.get<StrategyCatalog>(base(ws), signal), staleTime: 30_000 });
+}
+
 /** El catálogo; con `vertical`, ordena «Recomendadas para ti» para esa vertical en lugar de la del negocio. */
 export function useStrategies(ws: string, enabled = true, vertical?: Vertical) {
     return useQuery({
@@ -53,7 +58,7 @@ function useInvalidate(ws: string) {
         void qc.invalidateQueries({ queryKey: strategyKeys.all(ws), exact: true });
         void qc.invalidateQueries({ queryKey: ['ws', ws, 'home'] });
         void qc.invalidateQueries({ queryKey: ['ws', ws, 'onboarding'] });
-        void qc.invalidateQueries({ queryKey: ['ws', ws, 'getting-started'] });
+        void qc.invalidateQueries({ queryKey: ['ws', ws, 'section-summary'] });
     };
 }
 

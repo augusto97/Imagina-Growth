@@ -111,6 +111,8 @@ export interface StrategyPotential {
     window_days: number | null;
     /** La frase lista para mostrar («En los últimos 30 días hubo 37 carritos abandonados por $4.200.000…»). */
     summary: string;
+    /** Lo mismo sin la estimación (para mostrar la cifra estimada aparte). Puede faltar en la caché de antes. */
+    headline?: string;
 }
 
 export type ConversionKind = 'goals' | 'captures' | 'reviews' | 'responses' | 'referrals' | 'redemptions' | 'appointments' | 'quotes' | 'leads';
@@ -174,6 +176,8 @@ export type StrategyPreview =
 export interface StrategyPart {
     kind: string;
     key: string | null;
+    /** Lo que crea o prende, dicho para la persona («Automatización «Carrito abandonado»»). */
+    name: string;
     primary: boolean;
     status: 'on' | 'paused' | 'off';
     problems: StrategyProblemCode[];

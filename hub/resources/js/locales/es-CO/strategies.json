@@ -1,0 +1,170 @@
+{
+    "strategies": {
+        "title": "Estrategia",
+        "page": {
+            "description": "Prende lo que te hace vender más. Cada estrategia trabaja sola, respeta horarios y consentimiento, y te muestra lo que generó.",
+            "descriptionServices": "Prende lo que te trae más clientes. Cada estrategia trabaja sola, respeta horarios y consentimiento, y te muestra lo que generó.",
+            "on": "Prendidas",
+            "onHint_one": "{{count}} trabajando por ti",
+            "onHint_other": "{{count}} trabajando por ti",
+            "generated": "Generaron este mes",
+            "generatedHelp": "Ventas o valor ganado que llegaron gracias a una estrategia prendida este mes (cada venta cuenta una sola vez).",
+            "generatedHint": "Lo que trajeron tus estrategias",
+            "ready": "Listas para prender",
+            "readyHint": "Con un clic quedan funcionando",
+            "forYou": "Recomendadas para ti",
+            "forYouHint": "Las que más le sirven a {{vertical}}, en orden.",
+            "all": "Todas las estrategias",
+            "allHint": "Por lo que quieres lograr. Abre una para ver cómo funciona y qué necesita."
+        },
+        "verticals": {
+            "store": "una tienda online",
+            "professional": "un negocio de servicios profesionales",
+            "health": "un negocio de salud y bienestar",
+            "education": "un negocio de educación",
+            "real_estate": "una inmobiliaria",
+            "hospitality": "un negocio de turismo, hotel o restaurante",
+            "automotive": "un negocio automotriz",
+            "b2b": "una empresa B2B",
+            "other": "tu negocio"
+        },
+        "filters": {
+            "status": "Mostrar",
+            "all": "Todas",
+            "on": "Prendidas",
+            "ready": "Listas para prender",
+            "setup": "Les falta algo",
+            "soon": "Próximamente",
+            "goal": "Objetivo",
+            "allGoals": "Todas",
+            "emptyTitle": "Ninguna estrategia con ese filtro",
+            "emptyBody": "Prueba con otro objetivo o muestra todas.",
+            "clear": "Ver todas",
+            "showOthers_one": "Ver también {{count}} que no aplica a tu tipo de negocio",
+            "showOthers_other": "Ver también las {{count}} que no aplican a tu tipo de negocio",
+            "hideOthers": "Ocultar las que no aplican a tu negocio"
+        },
+        "status": {
+            "available": "Lista para prender",
+            "needs_setup": "Le falta algo",
+            "active": "Prendida",
+            "paused": "En pausa",
+            "attention": "Revisar",
+            "not_in_plan": "No está en tu plan",
+            "coming_soon": "Próximamente"
+        },
+        "card": {
+            "generated": "Generó {{amount}} este mes",
+            "messages_one": "{{formatted}} mensaje enviado este mes",
+            "messages_other": "{{formatted}} mensajes enviados este mes",
+            "waitingResults": "Trabajando: los primeros resultados llegan pronto",
+            "forYou": "Recomendada",
+            "inPlan": "Disponible en el plan {{plan}}",
+            "needs": "Falta: {{what}}",
+            "action": {
+                "activate": "Prender",
+                "resume": "Reanudar",
+                "fix": "Ver qué falta",
+                "review": "Revisar",
+                "view": "Ver",
+                "plan": "Ver planes"
+            }
+        },
+        "conversions": {
+            "goals_one": "{{formatted}} cliente volvió a comprar este mes",
+            "goals_other": "{{formatted}} clientes volvieron a comprar este mes",
+            "captures_one": "{{formatted}} contacto captado este mes",
+            "captures_other": "{{formatted}} contactos captados este mes",
+            "reviews_one": "{{formatted}} reseña este mes",
+            "reviews_other": "{{formatted}} reseñas este mes",
+            "responses_one": "{{formatted}} respuesta este mes",
+            "responses_other": "{{formatted}} respuestas este mes",
+            "referrals_one": "{{formatted}} referido este mes",
+            "referrals_other": "{{formatted}} referidos este mes",
+            "redemptions_one": "{{formatted}} canje de puntos este mes",
+            "redemptions_other": "{{formatted}} canjes de puntos este mes",
+            "appointments_one": "{{formatted}} cita este mes",
+            "appointments_other": "{{formatted}} citas este mes",
+            "quotes_one": "{{formatted}} cotización este mes",
+            "quotes_other": "{{formatted}} cotizaciones este mes",
+            "leads_one": "{{formatted}} contacto atendido este mes",
+            "leads_other": "{{formatted}} contactos atendidos este mes"
+        },
+        "preview": {
+            "whatsapp": "WhatsApp",
+            "waPending": "sale por correo mientras Meta aprueba la plantilla",
+            "email": "Correo",
+            "ai": "Mensaje escrito por la IA",
+            "widget": "Lo que ve la persona en tu web",
+            "none": "Esta estrategia no envía mensajes: trabaja por dentro.",
+            "more_one": "Y {{count}} mensaje más si no responde.",
+            "more_other": "Y {{count}} mensajes más si no responde."
+        },
+        "requirement": {
+            "met": "listo",
+            "missing": "falta",
+            "optional": "opcional"
+        },
+        "detail": {
+            "attention": "Algo dejó de funcionar",
+            "comingSoon": "Su automatización llega pronto. Cuando esté lista la vas a poder prender con un clic, sin configurar nada.",
+            "planTitle": "Disponible en el plan {{plan}}",
+            "planBody": "Cambia de plan y la prendes con un clic.",
+            "planAsk": "Pídele a quien administra la cuenta que cambie de plan.",
+            "seePlans": "Ver planes",
+            "plansWith": "La incluye: {{plans}}.",
+            "thisMonth": "Lo que logró",
+            "potential": "Lo que hay en juego",
+            "how": "Cómo funciona",
+            "preview": "Así se ve",
+            "needs": "Lo que necesita",
+            "inputs": {
+                "google_review_url": "Enlace de tus reseñas en Google",
+                "google_review_urlPlaceholder": "https://g.page/r/…/review",
+                "wa_number": "Número de WhatsApp que abre el botón",
+                "wa_numberPlaceholder": "+57 300 123 4567"
+            },
+            "creates": "Al prenderla se crea",
+            "includes": "Lo que incluye",
+            "support": "de apoyo",
+            "review": "Revisar lo que falta",
+            "askAdmin": "Solo quien maneja el marketing puede prender o pausar estrategias.",
+            "adjust": "Ajustar",
+            "pause": "Pausar",
+            "resume": "Reanudar",
+            "activate": "Prender"
+        },
+        "parts": {
+            "on": "Prendido",
+            "paused": "En pausa",
+            "off": "Se crea al prender"
+        },
+        "confirm": {
+            "activateTitle": "¿Prender «{{name}}»?",
+            "activateBody": "Queda funcionando con los valores recomendados y la puedes ajustar o pausar cuando quieras. Los mensajes respetan el consentimiento, los horarios permitidos y el límite de frecuencia.",
+            "pauseTitle": "¿Pausar «{{name}}»?",
+            "pauseBody": "Deja de enviar mensajes y de mostrarse en tu web. Lo que ya generó se conserva y la puedes reanudar cuando quieras.",
+            "activate": "Sí, prender",
+            "resume": "Sí, reanudar",
+            "pause": "Pausar"
+        },
+        "success": {
+            "title": "«{{name}}» quedó prendida",
+            "body": "Desde ahora trabaja sola. No tienes que hacer nada más.",
+            "now": "Qué pasa ahora",
+            "where": "Dónde ver lo que logra",
+            "home": "En tu Inicio",
+            "homeHint": "verás cuánto dinero generó este mes.",
+            "adjust": "En Ajustar",
+            "adjustHint": "cambias los mensajes, los tiempos o el diseño.",
+            "skippedTitle": "Algunos mensajes de apoyo esperan un canal",
+            "skipped_one": "{{count}} mensaje de apoyo se prende solo cuando conectes el canal que usa.",
+            "skipped_other": "{{count}} mensajes de apoyo se prenden cuando conectes el canal que usan.",
+            "close": "Listo"
+        },
+        "toast": {
+            "alreadyOn": "Ya estaba prendida.",
+            "paused": "«{{name}}» quedó en pausa."
+        }
+    }
+}
