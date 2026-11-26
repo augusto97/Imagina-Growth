@@ -115,7 +115,7 @@ describe('bloqueos que enseñan', () => {
         render(withPage('/w/ws_1/fidelizacion', <LockedPage section={section} item={item} lock={{ kind: 'site', state: 'none' }} base="/w/ws_1" abilities={['manageSites']} />));
         expect(screen.getByRole('heading', { level: 2, name: 'Conecta tu web para usar Puntos y recompensas' })).toBeInTheDocument();
         expect(screen.getByText('Qué hace falta')).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /Conectar tu web/ })).toHaveAttribute('href', '/w/ws_1/sitios?conectar=1');
+        expect(screen.getByRole('link', { name: /Conectar tu web/ })).toHaveAttribute('href', '/w/ws_1/conexiones?tarjeta=web&conectar=1');
     });
 
     it('fuera del plan nombra el plan; sin permiso, dice a quién pedírselo', () => {
@@ -293,5 +293,24 @@ describe('Switch y ChoiceCard', () => {
         expect(screen.getByRole<HTMLInputElement>('radio', { name: /Tienda/ }).checked).toBe(true);
         screen.getByRole('radio', { name: /Servicios/ }).click();
         expect(picked).toEqual(['services']);
+    });
+});
+
+describe('Switch', () => {
+    it('es un interruptor con nombre, descripción y estado, y cambia al hacer clic', () => {
+        const changes: boolean[] = [];
+        render(<Switch checked={false} onCheckedChange={(v) => changes.push(v)} label="Prender el agente" description="Responde por ti" />);
+        const control = screen.getByRole('switch', { name: 'Prender el agente' });
+        expect(control).toHaveAttribute('aria-checked', 'false');
+        expect(control).toHaveAccessibleDescription('Responde por ti');
+        fireEvent.click(control);
+        expect(changes).toEqual([true]);
+    });
+
+    it('sin texto al lado usa aria-label y respeta disabled', () => {
+        render(<Switch checked onCheckedChange={() => undefined} aria-label="Clics que valen" disabled />);
+        const control = screen.getByRole('switch', { name: 'Clics que valen' });
+        expect(control).toHaveAttribute('aria-checked', 'true');
+        expect(control).toBeDisabled();
     });
 });

@@ -94,12 +94,14 @@
             "messagePlaceholder": "Hola Laura, dejaste algo en tu carrito…",
             "error": "Escribe un nombre de al menos 3 letras.",
             "checkbox": "Recibir el resumen semanal por correo",
-            "switch": "Prender la estrategia",
             "choiceLegend": "¿Qué vendes?",
             "choiceStore": "Productos en mi tienda online",
             "choiceStoreHint": "Carritos, pedidos y clientes que vuelven.",
             "choiceServices": "Servicios",
-            "choiceServicesHint": "Contactos que cotizan o agendan una cita."
+            "choiceServicesHint": "Contactos que cotizan o agendan una cita.",
+            "switch": "Prender el agente con IA",
+            "switchHelp": "Responde por ti en WhatsApp con tus precios reales y pasa a tu equipo cuando hace falta.",
+            "switchSmall": "Clics que valen"
         },
         "header": {
             "crumb": "Mensajes",

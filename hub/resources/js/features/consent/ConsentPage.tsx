@@ -2,14 +2,19 @@ import { useQueryClient } from '@tanstack/react-query';
 import { History, Mail, MessageCircle, ShieldCheck, ShoppingCart, TriangleAlert } from 'lucide-react';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router';
 import { useUpdateWorkspace } from '@/api/queries';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Callout } from '@/components/ui/callout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ErrorState, FieldError, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { itemVisible, navContext } from '@/components/layout/nav';
+import { SuppressionsTab } from '@/features/channels/SuppressionsTab';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/cn';
@@ -30,73 +35,120 @@ import {
     usePublishConsentText,
 } from './api';
 
-/** Ajustes de consentimiento y derechos de los titulares (cumplimiento.md §2, §3 y §9). */
+const SECTIONS = ['consentimiento', 'solicitudes', 'supresion'] as const;
+type Section = (typeof SECTIONS)[number];
+
+/**
+ * Privacidad y consentimiento (cumplimiento.md §2, §3 y §9), en tres pestañas: lo que aceptan tus clientes (textos, modo,
+ * política y, si vendes en línea, la captura temprana del checkout), las solicitudes de sus datos y la lista de quienes
+ * no reciben mensajes (bajas, rebotes, quejas y registros de exclusión; antes en Canales). `?seccion=` abre una.
+ */
 export function ConsentPage() {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const canManage = useCan('manageWorkspace');
     const canExport = useCan('exportContacts');
     const canDelete = useCan('deleteContacts');
+    const canMarketing = useCan('manageMarketing');
     const settings = useConsentSettings(workspace.id);
     const requests = useDataRequests(workspace.id, canExport);
+    const store = itemVisible({ audience: 'store' }, navContext({ ...workspace, abilities: [] }));
+    const [params, setParams] = useSearchParams();
+    const sections = SECTIONS.filter((k) => (k === 'solicitudes' ? canExport : k === 'supresion' ? canMarketing : true));
+    const raw = params.get('seccion');
+    const section: Section = sections.find((k) => k === raw) ?? 'consentimiento';
+    const setSection = (next: string) =>
+        setParams(
+            (p) => {
+                if (next === 'consentimiento') p.delete('seccion');
+                else p.set('seccion', next);
+                return p;
+            },
+            { replace: true },
+        );
+    const pending = (requests.data ?? []).filter((r) => r.status === 'pending').length;
 
     return (
         <>
-            <PageHeader title={t('consent.title')} description={t('consent.description')} />
-            {settings.isError ? (
-                <ErrorState error={settings.error} onRetry={() => void settings.refetch()} />
-            ) : settings.isPending ? (
-                <div className="igr:grid igr:gap-4 igr:md:grid-cols-2">
-                    <Skeleton className="igr:h-56" />
-                    <Skeleton className="igr:h-56" />
-                </div>
-            ) : (
-                <div className="igr:space-y-6">
-                    {!canManage && <p className="igr:text-[13px] igr:text-muted-foreground">{t('consent.readOnly')}</p>}
-                    <section aria-labelledby="consent-texts">
-                        <h2 id="consent-texts" className="igr:mb-1 igr:text-sm igr:font-semibold">
-                            {t('consent.texts.title')}
-                        </h2>
-                        <p className="igr:mb-3 igr:text-[13px] igr:text-muted-foreground">{t('consent.texts.description')}</p>
+            <PageHeader title={t('consent.title')} description={t('consent.page.description')} />
+            <Tabs value={section} onValueChange={setSection}>
+                <TabsList>
+                    {sections.map((k) => (
+                        <TabsTrigger key={k} value={k}>
+                            {t(`consent.page.tabs.${k}`)}
+                            {k === 'solicitudes' && pending > 0 ? (
+                                <span className="igr:ml-1.5 igr:rounded-full igr:bg-warning/15 igr:px-1.5 igr:text-[11px] igr:font-semibold igr:text-warning igr:tabular-nums">{pending}</span>
+                            ) : null}
+                        </TabsTrigger>
+                    ))}
+                </TabsList>
+                <TabsContent value="consentimiento" className="igr:mt-5">
+                    {settings.isError ? (
+                        <ErrorState error={settings.error} onRetry={() => void settings.refetch()} />
+                    ) : settings.isPending ? (
                         <div className="igr:grid igr:gap-4 igr:md:grid-cols-2">
-                            {settings.data.texts.map((text) => (
-                                <TextCard key={text.channel} text={text} history={settings.data.history[text.channel] ?? []} canManage={canManage} />
-                            ))}
+                            <Skeleton className="igr:h-56" />
+                            <Skeleton className="igr:h-56" />
                         </div>
-                    </section>
-
-                    <div className="igr:grid igr:gap-4 igr:lg:grid-cols-2">
-                        <ModeCard current={settings.data.mode} canManage={canManage} />
-                        <PolicyCard current={settings.data.privacy_policy_url} canManage={canManage} />
-                    </div>
-
-                    <EarlyCaptureCard state={settings.data.early_capture} minPlugin={settings.data.plugin_min_for_early_capture} canManage={canManage} />
-
-                    {canExport && (
-                        <section aria-labelledby="data-requests">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle id="data-requests">{t('consent.requests.title')}</CardTitle>
-                                    <CardDescription>{t('consent.requests.description')}</CardDescription>
-                                </CardHeader>
-                                {requests.isError ? (
-                                    <CardContent>
-                                        <ErrorState error={requests.error} onRetry={() => void requests.refetch()} />
-                                    </CardContent>
-                                ) : requests.isPending ? (
-                                    <CardContent>
-                                        <Skeleton className="igr:h-24" />
-                                    </CardContent>
-                                ) : (
-                                    <div className={requests.data.length === 0 ? 'igr:p-4 igr:pt-0' : undefined}>
-                                        <DataRequestsTable requests={requests.data} canExport={canExport} canDelete={canDelete} />
-                                    </div>
-                                )}
-                            </Card>
-                        </section>
+                    ) : (
+                        <div className="igr:space-y-8">
+                            {!canManage && <Callout tone="neutral" title={t('consent.readOnly')} />}
+                            <section aria-labelledby="consent-texts">
+                                <h2 id="consent-texts" className="igr:text-section igr:font-semibold igr:tracking-tight">
+                                    {t('consent.texts.title')}
+                                </h2>
+                                <p className="igr:mb-4 igr:text-support igr:text-muted-foreground">{t('consent.texts.description')}</p>
+                                <div className="igr:grid igr:gap-4 igr:md:grid-cols-2">
+                                    {settings.data.texts.map((text) => (
+                                        <TextCard key={text.channel} text={text} history={settings.data.history[text.channel] ?? []} canManage={canManage} />
+                                    ))}
+                                </div>
+                            </section>
+                            <section aria-labelledby="consent-rules" className="igr:space-y-4">
+                                <div>
+                                    <h2 id="consent-rules" className="igr:text-section igr:font-semibold igr:tracking-tight">
+                                        {t('consent.page.rulesTitle')}
+                                    </h2>
+                                    <p className="igr:text-support igr:text-muted-foreground">{t('consent.page.rulesDescription')}</p>
+                                </div>
+                                <div className="igr:grid igr:gap-4 igr:lg:grid-cols-2">
+                                    <ModeCard current={settings.data.mode} canManage={canManage} />
+                                    <PolicyCard current={settings.data.privacy_policy_url} canManage={canManage} />
+                                </div>
+                                {store ? <EarlyCaptureCard state={settings.data.early_capture} minPlugin={settings.data.plugin_min_for_early_capture} canManage={canManage} /> : null}
+                            </section>
+                        </div>
                     )}
-                </div>
-            )}
+                </TabsContent>
+                {canExport ? (
+                    <TabsContent value="solicitudes" className="igr:mt-5">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle id="data-requests">{t('consent.requests.title')}</CardTitle>
+                                <CardDescription>{t('consent.requests.description')}</CardDescription>
+                            </CardHeader>
+                            {requests.isError ? (
+                                <CardContent>
+                                    <ErrorState error={requests.error} onRetry={() => void requests.refetch()} />
+                                </CardContent>
+                            ) : requests.isPending ? (
+                                <CardContent>
+                                    <Skeleton className="igr:h-24" />
+                                </CardContent>
+                            ) : (
+                                <div className={requests.data.length === 0 ? 'igr:p-4 igr:pt-0' : undefined}>
+                                    <DataRequestsTable requests={requests.data} canExport={canExport} canDelete={canDelete} />
+                                </div>
+                            )}
+                        </Card>
+                    </TabsContent>
+                ) : null}
+                {canMarketing ? (
+                    <TabsContent value="supresion" className="igr:mt-5">
+                        <SuppressionsTab />
+                    </TabsContent>
+                ) : null}
+            </Tabs>
         </>
     );
 }
@@ -289,7 +341,7 @@ function ModeCard({ current, canManage }: { current: ConsentMode; canManage: boo
             {canManage && (
                 <CardFooter className="igr:justify-end">
                     <Button disabled={mode === current} loading={save.isPending} onClick={() => save.mutate(mode, { onSuccess: () => toast.success(t('consent.mode.saved')) })}>
-                        {t('common.save')}
+                        {t('consent.page.saveMode')}
                     </Button>
                 </CardFooter>
             )}
@@ -438,7 +490,7 @@ function PolicyCard({ current, canManage }: { current: string | null; canManage:
                             )
                         }
                     >
-                        {t('common.save')}
+                        {t('consent.page.savePolicy')}
                     </Button>
                 </CardFooter>
             )}

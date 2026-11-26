@@ -9,19 +9,19 @@ import { LockedState } from '@/components/ui/locked-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { sectionName, sectionPath, type NavItem, type NavLock, type NavSection } from './nav';
 
-/** Dónde se resuelve cada bloqueo y quién puede hacerlo (las rutas son las de hoy; Conexiones las unificará). */
+/** Dónde se resuelve cada bloqueo y quién puede hacerlo: la tarjeta de Conexiones que lo arregla. */
 export function lockResolution(lock: NavLock): { to: string; ability: Ability; labelKey: string } {
     switch (lock.kind) {
         case 'plan':
             return { to: 'facturacion', ability: 'manageBilling', labelKey: 'ui.locked.plan.action' };
         case 'site':
             return {
-                to: lock.state === 'pending' ? 'sitios' : 'sitios?conectar=1',
+                to: lock.state === 'pending' ? 'conexiones?tarjeta=web' : 'conexiones?tarjeta=web&conectar=1',
                 ability: 'manageSites',
                 labelKey: lock.state === 'pending' ? 'ui.locked.site.finish' : 'ui.locked.site.action',
             };
         case 'channel':
-            return { to: 'canales', ability: 'manageWorkspace', labelKey: 'ui.locked.channel.action' };
+            return { to: 'conexiones?tarjeta=whatsapp', ability: 'manageWorkspace', labelKey: 'ui.locked.channel.action' };
     }
 }
 

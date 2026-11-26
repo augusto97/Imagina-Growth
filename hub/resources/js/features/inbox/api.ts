@@ -4,7 +4,11 @@ import { api } from '@/lib/api';
 import { pollInterval } from '@/lib/realtime';
 import type { AiMode, ContactPanelData, ConversationDetail, ConversationList, ConversationStatus, InboxAgent, InboxChannel, InboxMetrics, InboxProduct, InboxSettings, InboxTemplate, InboxView, QuickReply, SendBody, SendResult } from './types';
 
-/* Bandeja (M11). La lista y el chat abiertos se consultan cada 5 s; con Reverb conectado, cada 30 s (los cambios llegan por el canal). */
+/*
+ * Bandeja (M11). La lista y el chat abiertos se consultan cada 5 s; con Reverb conectado, cada 30 s (los cambios llegan
+ * por el canal). Cada acción refresca solo lo que cambia (docs/rendimiento.md §7.1, 6): el chat con la respuesta de la
+ * API y la lista; nunca las plantillas, las respuestas rápidas, el equipo ni las métricas.
+ */
 
 export const POLL_MS = 5000;
 
@@ -19,7 +23,9 @@ export interface ListFilters {
 
 export const inboxKeys = {
     all: (ws: string) => ['ws', ws, 'inbox'] as const,
+    lists: (ws: string) => ['ws', ws, 'inbox', 'list'] as const,
     list: (ws: string, f: ListFilters) => ['ws', ws, 'inbox', 'list', f] as const,
+    details: (ws: string) => ['ws', ws, 'inbox', 'conversation'] as const,
     detail: (ws: string, id: string) => ['ws', ws, 'inbox', 'conversation', id] as const,
     panel: (ws: string, id: string) => ['ws', ws, 'inbox', 'panel', id] as const,
     replies: (ws: string) => ['ws', ws, 'inbox', 'replies'] as const,
@@ -68,44 +74,55 @@ export function useContactPanel(ws: string, id: string | undefined) {
     });
 }
 
-/** Acciones sobre una conversación; todas refrescan la lista y el chat. */
+/** Lo que cambia con un evento de la bandeja en tiempo real (solo trae IDs): las listas y los chats abiertos. */
+export function invalidateConversations(qc: ReturnType<typeof useQueryClient>, ws: string): void {
+    void qc.invalidateQueries({ queryKey: inboxKeys.lists(ws) });
+    void qc.invalidateQueries({ queryKey: inboxKeys.details(ws) });
+}
+
+/**
+ * Acciones sobre una conversación. La que devuelve el chat lo deja en la caché tal cual (sin volver a pedirlo) y
+ * refresca la lista; enviar un mensaje o una nota pide de nuevo solo ese chat.
+ */
 export function useConversationActions(ws: string, id: string) {
     const qc = useQueryClient();
     const base = `${wsPath(ws)}/inbox/conversations/${id}`;
-    const refresh = (data?: ConversationDetail) => {
-        if (data && 'messages' in data) qc.setQueryData(inboxKeys.detail(ws, id), data);
-        void qc.invalidateQueries({ queryKey: inboxKeys.all(ws) });
+    const lists = () => void qc.invalidateQueries({ queryKey: inboxKeys.lists(ws) });
+    const chat = () => void qc.invalidateQueries({ queryKey: inboxKeys.detail(ws, id) });
+    const replaced = (data: ConversationDetail) => {
+        qc.setQueryData(inboxKeys.detail(ws, id), data);
+        lists();
     };
     return {
         send: useMutation({
             mutationFn: (body: SendBody) => api.post<SendResult>(`${base}/messages`, body),
-            onSuccess: () => refresh(),
+            onSuccess: () => {
+                chat();
+                lists();
+            },
         }),
         assign: useMutation({
             mutationFn: (userId: string | null) =>
                 api.post<ConversationDetail>(`${base}/assign`, {
                     user_id: userId,
                 }),
-            onSuccess: refresh,
+            onSuccess: replaced,
         }),
         update: useMutation({
             mutationFn: (body: { status?: ConversationStatus; labels?: string[]; ai_mode?: AiMode }) => api.patch<ConversationDetail>(base, body),
-            onSuccess: refresh,
+            onSuccess: replaced,
         }),
         handoff: useMutation({
             mutationFn: (reason: string) => api.post<ConversationDetail>(`${base}/handoff`, { reason }),
-            onSuccess: refresh,
+            onSuccess: replaced,
         }),
         note: useMutation({
             mutationFn: (body: string) => api.post<{ id: string }>(`${base}/notes`, { body }),
-            onSuccess: () => refresh(),
+            onSuccess: chat,
         }),
         read: useMutation({
             mutationFn: () => api.post<{ ok: boolean }>(`${base}/read`),
-            onSuccess: () =>
-                void qc.invalidateQueries({
-                    queryKey: [...inboxKeys.all(ws), 'list'],
-                }),
+            onSuccess: lists,
         }),
         suggest: useMutation({
             mutationFn: () => api.post<{ suggestion: string | null }>(`${base}/suggest`),
@@ -117,7 +134,7 @@ export function useQuickReplies(ws: string) {
     return useQuery({
         queryKey: inboxKeys.replies(ws),
         queryFn: ({ signal }) => api.get<{ data: QuickReply[] }>(`${wsPath(ws)}/inbox/quick-replies`, signal),
-        staleTime: 60_000,
+        staleTime: 5 * 60_000,
     });
 }
 
@@ -140,11 +157,13 @@ export function useQuickReplyActions(ws: string) {
     };
 }
 
-export function useInboxTemplates(ws: string) {
+/** Plantillas aprobadas de WhatsApp: solo cuando hacen falta (ventana cerrada o al abrir «Plantilla»). */
+export function useInboxTemplates(ws: string, enabled = true) {
     return useQuery({
         queryKey: inboxKeys.templates(ws),
         queryFn: ({ signal }) => api.get<{ data: InboxTemplate[] }>(`${wsPath(ws)}/inbox/templates`, signal),
-        staleTime: 60_000,
+        staleTime: 5 * 60_000,
+        enabled,
     });
 }
 

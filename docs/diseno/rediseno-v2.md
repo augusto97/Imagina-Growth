@@ -173,6 +173,21 @@ sección van en `locales/es-CO/section-entry.json`, que cada frente ajusta para 
 primero que conviene hacer y su botón, y debajo lo que hay dentro. Las tarjetas ya no piden un conteo cada una (eran 5
 consultas por sección): todo llega en una sola llamada, que el menú precarga al pasar el puntero.
 
+**Cómo quedaron Conversaciones y Configuración** (frente B3, nov. 2026; cambios al plan con su motivo):
+
+- **Conexiones es una sola pantalla** con tarjetas agrupadas (tu web, conversaciones, correo y SMS, anuncios, agenda),
+  cada una con su estado en palabras, qué permite y su botón; el detalle se abre en una hoja lateral para no perder el
+  contexto. Sitios y Canales dejaron de ser pantallas: sus URL abren la tarjeta. La lista de supresión pasó a
+  Privacidad y consentimiento (es una regla de privacidad, no un canal). El resumen de arriba cuenta solo lo esencial
+  (web, WhatsApp, correo y Meta) para no castigar lo opcional.
+- **Un WhatsApp desconectado con historial no bloquea la bandeja**, igual que una web desconectada: se lee todo y un
+  aviso lleva a reconectarlo (antes la clínica de la demo, con 74 conversaciones, veía el bloqueo).
+- **El agente con IA** es una sola pestaña «Configurar y probar» con la prueba en vivo al lado (en el celular, debajo)
+  y otra con lo que respondió. «Cuándo atiende» usa el **horario de atención de Tu negocio** (nuevo, en
+  `workspaces.settings.business_hours`), así el horario se define una vez.
+- **Tu negocio** suma a qué te dedicas (tipo de negocio y actividad, con el aviso de lo que cambia), el horario de
+  atención y la marca y el contacto del pie de los correos; cada bloque se guarda con su botón.
+
 ## 4. Primera vez (onboarding)
 
 1. **Bienvenida** (una sola pantalla, no un carrusel largo): la promesa, los tres pilares con un ejemplo concreto cada

@@ -200,6 +200,22 @@ it('con el horario del equipo, dentro de él pasa a las personas y fuera respond
     expect(agentRun($this, 'Hola, ¿tienen rodillos?')->status)->toBe('replied');
 })->skip(fn () => now('America/Bogota')->format('H:i') < '00:02', 'justo en el minuto del borde');
 
+it('el horario de atención de Tu negocio manda sobre el guardado en el agente', function () {
+    // El agente dice «nunca hay personas» (00:00 a 00:01); el negocio atiende todo el día, toda la semana.
+    ($this->in)(fn () => AgentSettings::query()->whereKey($this->ws->id)->update(['handoff_rules' => json_encode(
+        AgentSettings::defaultHandoff() + ['hours' => ['mode' => 'out_of_hours', 'days' => [1], 'start' => '00:00', 'end' => '00:01']])]));
+    $api = "/api/w/{$this->ws->publicId()}";
+    $this->actingAs($this->owner)->patchJson($api, ['business_hours' => ['days' => [7, 1, 2, 3, 4, 5, 6], 'start' => '00:00', 'end' => '23:59']])->assertOk()
+        ->assertJsonPath('settings.business_hours', ['days' => [1, 2, 3, 4, 5, 6, 7], 'start' => '00:00', 'end' => '23:59']);
+    expect(agentRun($this, 'Hola, ¿tienen rodillos?')->handoff_reason)->toBe('business_hours');
+
+    $this->actingAs($this->owner)->patchJson($api, ['business_hours' => ['days' => [], 'start' => '18:00', 'end' => '08:00']])->assertUnprocessable()
+        ->assertJsonValidationErrors(['business_hours.days', 'business_hours.end']);
+    $show = $this->actingAs($this->owner)->getJson("{$api}/agent/settings")->assertOk();
+    expect($show->json('business_hours.start'))->toBe('00:00')->and($show->json('channels'))->toBe(['whatsapp'])
+        ->and($show->json('services'))->toBe(['qualification' => ['sets' => 0, 'active' => 0], 'booking' => ['module' => true, 'services' => 0]]);
+})->skip(fn () => now('America/Bogota')->format('H:i') >= '23:59', 'justo en el minuto del borde');
+
 it('apagado, en off o con un mensaje propio no hace nada', function () {
     $ai = FakeAiGateway::install();
     $send = function (string $text) {

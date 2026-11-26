@@ -5,7 +5,7 @@
         "readOnly": "Solo un administrador puede cambiar estos ajustes.",
         "texts": {
             "title": "Textos de consentimiento",
-            "description": "Es lo que dice la casilla del checkout y de los formularios. Cada versión queda guardada: la constancia de cada persona indica qué texto aceptó.",
+            "description": "Es lo que dice la casilla de tus formularios (y del pago, si vendes en línea). Cada versión queda guardada: la constancia de cada persona indica qué texto aceptó.",
             "default": "Texto por defecto",
             "publishedOn": "Publicado el {{date}}",
             "version": "{{version}}",
@@ -62,6 +62,18 @@
             "disable": "Apagar",
             "enabled": "Captura temprana activada",
             "disabled": "Captura temprana apagada"
+        },
+        "page": {
+            "description": "Lo que aceptan tus clientes, cómo se respeta su consentimiento, sus solicitudes de datos (habeas data) y quiénes no reciben mensajes.",
+            "tabs": {
+                "consentimiento": "Consentimiento",
+                "solicitudes": "Solicitudes de datos",
+                "supresion": "No reciben mensajes"
+            },
+            "rulesTitle": "Cómo se respeta",
+            "rulesDescription": "Cómo se mide a los visitantes antes de que acepten y dónde está tu política de privacidad.",
+            "saveMode": "Guardar el modo",
+            "savePolicy": "Guardar la política"
         }
     }
 }

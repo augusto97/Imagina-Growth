@@ -1,8 +1,9 @@
-import { BookOpen, Plus, TriangleAlert } from 'lucide-react';
+import { BookOpen, Plug, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
+import { Callout } from '@/components/ui/callout';
 import { Card, CardContent } from '@/components/ui/card';
 import { ErrorState, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -59,11 +60,19 @@ export function IntegrationsPage() {
             ) : (
                 <div className="igr:space-y-5">
                     {!overview.data.plan.api && (
-                        <p className="igr:flex igr:items-center igr:gap-2 igr:rounded-md igr:border igr:border-warning/40 igr:bg-warning/10 igr:p-3 igr:text-[13px]">
-                            <TriangleAlert className="igr:size-4 igr:text-warning" aria-hidden />
-                            {t('integrations.planMissing')}
-                        </p>
+                        <Callout
+                            tone="warning"
+                            title={t('integrations.planMissing')}
+                            action={
+                                <Button asChild size="sm" variant="outline">
+                                    <Link to={`/w/${workspace.id}/facturacion#planes`}>{t('integrationsPage.seePlans')}</Link>
+                                </Button>
+                            }
+                        />
                     )}
+                    <Callout tone="neutral" icon={Plug} title={t('integrationsPage.whatTitle')}>
+                        {t('integrationsPage.what')}
+                    </Callout>
                     <Card>
                         <CardContent className="igr:grid igr:gap-4 igr:pt-4 igr:sm:grid-cols-3">
                             <div className="igr:space-y-1">
@@ -72,13 +81,13 @@ export function IntegrationsPage() {
                             </div>
                             <div>
                                 <p className="igr:text-xs igr:text-muted-foreground">{t('integrations.requestsThisMonth')}</p>
-                                <p className="igr:text-lg igr:font-semibold igr:tabular-nums">{formatNumber(overview.data.requests_this_month)}</p>
+                                <p className="igr:text-figure igr:font-semibold igr:tabular-nums">{formatNumber(overview.data.requests_this_month, workspace.locale)}</p>
                             </div>
                             <div>
                                 <p className="igr:text-xs igr:text-muted-foreground">{t('integrations.rateLimit')}</p>
-                                <p className="igr:text-lg igr:font-semibold igr:tabular-nums">
+                                <p className="igr:text-figure igr:font-semibold igr:tabular-nums">
                                     {t('integrations.perMinute', {
-                                        n: formatNumber(overview.data.rate_limit_per_minute),
+                                        n: formatNumber(overview.data.rate_limit_per_minute, workspace.locale),
                                     })}
                                 </p>
                             </div>
@@ -99,16 +108,16 @@ export function IntegrationsPage() {
                                 </TabsTrigger>
                             ))}
                         </TabsList>
-                        <TabsContent value="tokens">
+                        <TabsContent value="tokens" className="igr:mt-4">
                             <TokensTab ws={workspace.id} overview={overview.data} onCreate={() => setCreating('token')} />
                         </TabsContent>
-                        <TabsContent value="webhooks">
+                        <TabsContent value="webhooks" className="igr:mt-4">
                             <WebhooksTab ws={workspace.id} overview={overview.data} />
                         </TabsContent>
-                        <TabsContent value="mcp">
+                        <TabsContent value="mcp" className="igr:mt-4">
                             <McpTab ws={workspace.id} overview={overview.data} highlight={draft} onCreateToken={() => setCreating('mcp')} />
                         </TabsContent>
-                        <TabsContent value="ecosystem">
+                        <TabsContent value="ecosystem" className="igr:mt-4">
                             <EcosystemTab ws={workspace.id} overview={overview.data} />
                         </TabsContent>
                     </Tabs>

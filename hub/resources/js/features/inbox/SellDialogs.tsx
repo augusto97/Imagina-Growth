@@ -20,11 +20,13 @@ interface DialogProps {
 }
 
 /** Plantilla aprobada de WhatsApp (sirve fuera de la ventana de 24 h), con las variables que llena el agente. */
-export function TemplateDialog({ open, onOpenChange, onSend, busy }: DialogProps) {
+export function TemplateDialog({ open, onOpenChange, onSend, busy, initialId }: DialogProps & { initialId?: string | null }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
-    const templates = useInboxTemplates(workspace.id);
-    const [id, setId] = useState('');
+    const templates = useInboxTemplates(workspace.id, open);
+    const [picked, setId] = useState('');
+    // Elegida desde los atajos del editor (ventana cerrada): se abre con esa plantilla.
+    const id = picked !== '' ? picked : (initialId ?? '');
     const [allVars, setAllVars] = useState<Record<string, Record<string, string>>>({});
     const list = templates.data?.data ?? [];
     const selected = list.find((x) => x.id === id) ?? list[0];
@@ -44,7 +46,7 @@ export function TemplateDialog({ open, onOpenChange, onSend, busy }: DialogProps
                     <DialogDescription>{t('inbox.template.description')}</DialogDescription>
                 </DialogHeader>
                 {list.length === 0 ? (
-                    <p className="igr:text-sm igr:text-muted-foreground">{t('inbox.template.empty')}</p>
+                    <p className="igr:text-sm igr:text-muted-foreground">{templates.isPending ? t('inbox.template.loading') : t('inbox.template.empty')}</p>
                 ) : (
                     <div className="igr:space-y-3">
                         <div className="igr:space-y-1">

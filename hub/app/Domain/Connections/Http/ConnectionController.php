@@ -116,7 +116,7 @@ final class ConnectionController
     {
         Gate::authorize('ws.manageWorkspace');
         $model = $this->find($connection);
-        $fields = ['dataset_id', 'ad_account_id', 'ads_customer_id', 'ads_login_customer_id', 'conversion_action_purchase', 'conversion_action_lead', 'conversion_action_lead_won', 'advertiser_id', 'pixel_code'];
+        $fields = ['dataset_id', 'ad_account_id', 'ads_customer_id', 'ads_login_customer_id', 'conversion_action_purchase', 'conversion_action_lead', 'conversion_action_lead_won', 'conversion_action_contact', 'advertiser_id', 'pixel_code'];
         $rules = array_fill_keys($fields, ['sometimes', 'nullable', 'string', 'max:64']);
         $rules['ga4_stream'] = ['sometimes', 'nullable', 'string', 'regex:#^properties/\d+/dataStreams/\d+$#'];
         $data = $request->validate($rules);

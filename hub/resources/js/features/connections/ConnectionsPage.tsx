@@ -1,41 +1,73 @@
-import { CircleAlert, ListChecks, RefreshCw, Unplug } from 'lucide-react';
+import { Bell, CalendarDays, Camera, CircleCheck, Globe, Mail, MessageCircle, MessagesSquare, QrCode, Smartphone, type LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
+import { useSites } from '@/api/queries';
+import { StatusDot } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card } from '@/components/ui/card';
+import { IconTile, type IconTone } from '@/components/ui/icon-tile';
 import { ErrorState, PageHeader } from '@/components/ui/misc';
+import { Progress } from '@/components/ui/progress';
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import { itemVisible, navContext } from '@/components/layout/nav';
+import { useChannels } from '@/features/channels/api';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
-import { isApiError } from '@/lib/api';
-import { formatDate, formatRelative } from '@/lib/format';
+import { cn } from '@/lib/cn';
 import { toast } from '@/stores/toast';
 import { ConnectionAlertsNotice } from './AlertsNotice';
-import { type Connection, type ProviderInfo, type ProviderKey, useCheckConnection, useConnections, useDisconnectConnection, useStartConnection, useWhatsAppSignupApi } from './api';
-import { ProviderMark, StatusBadge } from './bits';
+import { type Connection, type RedirectProvider, useAdDestinations, useConnections } from './api';
+import { ProviderMark } from './bits';
+import { adsStatus, calendarStatus, type CardKey, type CardStatus, cardFromParam, channelStatus, destinationFor, emailStatus, GROUPS, summarize, webStatus } from './hub';
 import { AssetsDialog } from './Pickers';
-import { WhatsAppOneClick } from './WhatsAppOneClick';
+import { AdsSheet, CalendarSheet, CaptureSheet, EmailSheet, SmsSheet, SocialSheet, WebSheet, WhatsAppSheet } from './Sheets';
 
-const ORDER: ProviderKey[] = ['meta_whatsapp', 'meta', 'google', 'tiktok'];
-const MANUAL_PATH: Record<ProviderKey, string> = { meta_whatsapp: 'canales?tab=whatsapp', meta: 'medicion', google: 'medicion', tiktok: 'medicion' };
-
-/** Plataforma → Ajustes, en la sección de la app que falta (`meta.app_id` → `meta`). Solo la ve quien administra la plataforma. */
-function settingsPath(info: ProviderInfo): string {
-    const section = info.missing[0]?.split('.')[0] ?? (info.key === 'meta_whatsapp' ? 'meta' : info.key);
-    return `plataforma?pestana=ajustes&seccion=${section}`;
-}
+const ICONS: Partial<Record<CardKey, { icon: LucideIcon; tone: IconTone }>> = {
+    web: { icon: Globe, tone: 'indigo' },
+    capture: { icon: QrCode, tone: 'violet' },
+    whatsapp: { icon: MessageCircle, tone: 'emerald' },
+    messenger: { icon: MessagesSquare, tone: 'sky' },
+    instagram: { icon: Camera, tone: 'rose' },
+    email: { icon: Mail, tone: 'indigo' },
+    sms: { icon: Smartphone, tone: 'slate' },
+    calendar: { icon: CalendarDays, tone: 'teal' },
+};
+const ADS: RedirectProvider[] = ['meta', 'google', 'tiktok'];
+/** Lo esencial para que la plataforma sirva: su botón «Conectar» es el principal; lo opcional va en contorno. */
+const ESSENTIALS: CardKey[] = ['web', 'whatsapp', 'email', 'meta'];
 
 /**
- * Configuración → Conexiones: Meta (WhatsApp, anuncios, Messenger e Instagram), Google (Ads, Analytics) y TikTok con
- * un clic. Si la instalación no tiene la app de un proveedor, la tarjeta dice qué falta y lleva a los campos manuales.
+ * Configuración → Conexiones, el centro único (docs/diseno/rediseno-v2.md §3; absorbe Sitios y Canales): todo lo que se
+ * conecta, agrupado (tu web, conversaciones, correo, anuncios y agenda), con el estado de cada cosa en palabras, lo que
+ * permite y el botón para conectarla; el detalle se abre en la hoja lateral (`?tarjeta=`). Las rutas de antes
+ * (`sitios`, `canales`, `conexiones/:tarjeta`) llegan aquí con su tarjeta abierta.
  */
 export function ConnectionsPage() {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
+    const canSeeSites = useCan('viewSites');
+    const canSeeDestinations = useCan('viewDashboards');
+    const sites = useSites(workspace.id, canSeeSites);
+    const channels = useChannels(workspace.id);
     const list = useConnections(workspace.id);
+    const destinations = useAdDestinations(workspace.id, canSeeDestinations);
     const [params, setParams] = useSearchParams();
+    const card = cardFromParam(params.get('tarjeta'));
     const [chosen, setChosen] = useState<Connection | null>(null);
+    const services = itemVisible({ audience: 'services' }, navContext({ ...workspace, abilities: [] }));
+
+    const setCard = (next: CardKey | null) =>
+        setParams(
+            (p) => {
+                if (next === null) {
+                    p.delete('tarjeta');
+                    p.delete('conectar');
+                } else p.set('tarjeta', next);
+                return p;
+            },
+            { replace: next === null },
+        );
 
     // Vuelta del consentimiento: ?conexion=google&estado=ok&id=oac_… (o cancelado / error con motivo). Con «ok» la
     // URL queda con ?elegir=oac_… para abrir la elección de cuentas de la conexión recién hecha.
@@ -57,14 +89,17 @@ export function ConnectionsPage() {
             (p) => {
                 ['conexion', 'estado', 'motivo', 'id'].forEach((k) => p.delete(k));
                 if (status === 'ok' && id !== null) p.set('elegir', id);
+                if (!p.has('tarjeta') && cardFromParam(provider) !== null) p.set('tarjeta', cardFromParam(provider) ?? '');
                 return p;
             },
             { replace: true },
         );
     }, [status, params, setParams, t]);
 
+    const providers = list.data?.providers;
+    const provider = (key: string) => providers?.find((p) => p.key === key);
     const pickId = params.get('elegir');
-    const fromUrl = pickId !== null ? (list.data?.providers.flatMap((p) => p.connections).find((c) => c.id === pickId && c.provider !== 'meta_whatsapp') ?? null) : null;
+    const fromUrl = pickId !== null ? (providers?.flatMap((p) => p.connections).find((c) => c.id === pickId && c.provider !== 'meta_whatsapp') ?? null) : null;
     const picking = chosen ?? fromUrl;
     const closePicker = () => {
         setChosen(null);
@@ -79,246 +114,166 @@ export function ConnectionsPage() {
         }
     };
 
+    const accounts = channels.data?.data;
+    const dest = destinations.data?.destinations;
+    const statuses: Partial<Record<CardKey, CardStatus>> = {
+        web: canSeeSites ? (sites.data ? webStatus(sites.data) : undefined) : undefined,
+        capture: { tone: 'off', label: 'captureAlways' },
+        whatsapp: accounts ? channelStatus(accounts, 'whatsapp') : undefined,
+        messenger: accounts ? channelStatus(accounts, 'messenger') : undefined,
+        instagram: accounts ? channelStatus(accounts, 'instagram') : undefined,
+        email: accounts ? emailStatus(accounts) : undefined,
+        sms: accounts ? channelStatus(accounts, 'sms') : undefined,
+        calendar: list.data ? calendarStatus(list.data.calendar_connections) : undefined,
+    };
+    for (const key of ADS) {
+        statuses[key] = providers && (destinations.data || !canSeeDestinations) ? adsStatus(provider(key), destinationFor(dest, key)) : undefined;
+    }
+    const groups = GROUPS.filter((g) => g.key !== 'agenda' || services).map((g) => ({ ...g, cards: g.cards.filter((c) => c !== 'web' || canSeeSites) }));
+    // El resumen cuenta lo esencial: la web, WhatsApp, el correo y los anuncios de Meta (lo demás es opcional).
+    const essentials = ESSENTIALS.filter((k) => k !== 'web' || canSeeSites);
+    const summary = summarize(statuses, essentials);
+    const loading = channels.isPending || list.isPending;
+
     return (
         <div>
-            <PageHeader title={t('connections.title')} description={t('connections.description')} />
+            <PageHeader title={t('connections.title')} description={t('connections.hub.description')} />
             <ConnectionAlertsNotice className="igr:mb-4" onConnectionsPage />
-            {list.isError ? (
-                <ErrorState error={list.error} onRetry={() => void list.refetch()} />
-            ) : list.isPending ? (
-                <div className="igr:grid igr:gap-3 igr:md:grid-cols-2">
-                    {ORDER.map((k) => (
-                        <Skeleton key={k} className="igr:h-40" />
-                    ))}
+            {channels.isError || list.isError ? (
+                <ErrorState
+                    error={channels.error ?? list.error}
+                    onRetry={() => {
+                        void channels.refetch();
+                        void list.refetch();
+                    }}
+                />
+            ) : null}
+            <Card className="igr:mb-8 igr:p-4 igr:sm:p-5">
+                <div className="igr:flex igr:items-center igr:gap-4">
+                    <IconTile icon={summary.on === summary.total ? CircleCheck : Bell} tone={summary.on === summary.total ? 'emerald' : 'brand'} size="lg" />
+                    <div className="igr:min-w-0 igr:flex-1">
+                        {loading ? (
+                            <Skeleton className="igr:h-5 igr:w-full igr:max-w-64" />
+                        ) : (
+                            <p className="igr:text-body igr:font-semibold">{summary.on === summary.total ? t('connections.hub.summary.allSet') : t('connections.hub.summary.progress', { on: summary.on, total: summary.total })}</p>
+                        )}
+                        <p className="igr:mt-0.5 igr:text-support igr:text-muted-foreground igr:max-sm:hidden">{t('connections.hub.summary.help')}</p>
+                    </div>
+                    <div className="igr:hidden igr:w-48 igr:shrink-0 igr:sm:block">
+                        <Progress value={loading ? 0 : summary.on / Math.max(1, summary.total)} tone={summary.on === summary.total ? 'success' : 'brand'} label={t('connections.hub.summary.label')} />
+                    </div>
                 </div>
-            ) : (
-                <div className="igr:grid igr:gap-3 igr:md:grid-cols-2">
-                    {ORDER.map((key) => {
-                        const info = list.data.providers.find((p) => p.key === key);
-                        return info ? <ProviderCard key={key} info={info} onPick={setChosen} /> : null;
-                    })}
-                </div>
-            )}
+                <Progress className="igr:mt-3 igr:sm:hidden" value={loading ? 0 : summary.on / Math.max(1, summary.total)} tone={summary.on === summary.total ? 'success' : 'brand'} label={t('connections.hub.summary.label')} />
+            </Card>
+            <div className="igr:space-y-10">
+                {groups.map((group) => (
+                    <section key={group.key} aria-labelledby={`grupo-${group.key}`}>
+                        <div className="igr:mb-4">
+                            <h2 id={`grupo-${group.key}`} className="igr:text-section igr:font-semibold igr:tracking-tight">
+                                {t(`connections.hub.groups.${group.key}.title`)}
+                            </h2>
+                            <p className="igr:text-support igr:text-muted-foreground">{t(`connections.hub.groups.${group.key}.description${group.key === 'web' && services ? 'Services' : ''}`, { defaultValue: t(`connections.hub.groups.${group.key}.description`) })}</p>
+                        </div>
+                        <div className="igr:grid igr:gap-3 igr:md:grid-cols-2 igr:xl:grid-cols-3">
+                            {group.cards.map((key) => (
+                                <ConnectionCard key={key} cardKey={key} status={statuses[key]} onOpen={() => setCard(key)} />
+                            ))}
+                        </div>
+                    </section>
+                ))}
+            </div>
+            <Sheet open={card !== null} onOpenChange={(o) => !o && setCard(null)}>
+                <SheetContent className="igr:sm:max-w-lg">
+                    {card !== null ? (
+                        <>
+                            <SheetHeader>
+                                <div className="igr:flex igr:items-center igr:gap-3">
+                                    <CardMark cardKey={card} />
+                                    <div className="igr:min-w-0">
+                                        <SheetTitle>{t(`connections.hub.cards.${card}.name`)}</SheetTitle>
+                                        {statuses[card] ? <StatusLine status={statuses[card]} /> : null}
+                                    </div>
+                                </div>
+                                <SheetDescription className="igr:mt-2">{t(`connections.hub.cards.${card}.allows`)}</SheetDescription>
+                            </SheetHeader>
+                            <SheetBody>
+                                {card === 'web' ? (
+                                    <WebSheet
+                                        sites={sites.data}
+                                        connectOpen={params.get('conectar') === '1'}
+                                        onConnectOpen={(o) =>
+                                            setParams(
+                                                (p) => {
+                                                    if (o) p.set('conectar', '1');
+                                                    else p.delete('conectar');
+                                                    return p;
+                                                },
+                                                { replace: true },
+                                            )
+                                        }
+                                        onCapture={() => setCard('capture')}
+                                    />
+                                ) : null}
+                                {card === 'capture' ? <CaptureSheet /> : null}
+                                {card === 'whatsapp' ? <WhatsAppSheet accounts={accounts ?? []} meta={channels.data?.meta} signup={provider('meta_whatsapp')} /> : null}
+                                {card === 'messenger' || card === 'instagram' ? <SocialSheet kind={card} accounts={accounts ?? []} meta={provider('meta')} onPick={setChosen} /> : null}
+                                {card === 'email' ? <EmailSheet accounts={accounts ?? []} meta={channels.data?.meta} /> : null}
+                                {card === 'sms' ? <SmsSheet accounts={accounts ?? []} /> : null}
+                                {card === 'meta' || card === 'google' || card === 'tiktok' ? (
+                                    <AdsSheet provider={card} info={provider(card)} destination={destinationFor(dest, card)} canSeeDestinations={canSeeDestinations} onPick={setChosen} />
+                                ) : null}
+                                {card === 'calendar' ? <CalendarSheet count={list.data?.calendar_connections ?? 0} /> : null}
+                            </SheetBody>
+                        </>
+                    ) : null}
+                </SheetContent>
+            </Sheet>
             <AssetsDialog connection={picking} onClose={closePicker} />
         </div>
     );
 }
 
-function ProviderCard({ info, onPick }: { info: ProviderInfo; onPick: (c: Connection) => void }) {
+/** El mosaico de la tarjeta: ícono por categoría, o la inicial de la plataforma de anuncios (sin logos de marca). */
+function CardMark({ cardKey }: { cardKey: CardKey }) {
+    if (cardKey === 'meta' || cardKey === 'google' || cardKey === 'tiktok') {
+        return <ProviderMark provider={cardKey} />;
+    }
+    const icon = ICONS[cardKey];
+    return icon ? <IconTile icon={icon.icon} tone={icon.tone} /> : null;
+}
+
+/** El estado en palabras, con un punto de color (nunca el color solo). */
+function StatusLine({ status }: { status: CardStatus | undefined }) {
     const { t } = useTranslation();
-    const { workspace, me } = useWorkspace();
-    const canManage = useCan('manageWorkspace');
-    const start = useStartConnection(workspace.id);
-    const check = useCheckConnection(workspace.id);
-    const [disconnecting, setDisconnecting] = useState<Connection | null>(null);
-    const retry = useWhatsAppSignupApi(workspace.id).chooseNumber;
-    const retryNumber = (connectionId: string, phoneId: string) =>
-        retry.mutate(
-            { id: connectionId, phone_number_id: phoneId },
-            {
-                onSuccess: (r) =>
-                    r.data.status === 'active'
-                        ? toast.success(t('connections.toast.whatsapp', { number: r.data.identity ?? r.data.display_name }))
-                        : toast.error(t('connections.toast.retryError'), r.data.last_error ?? undefined),
-                onError: (e) => toast.error(t('connections.toast.retryError'), isApiError(e) ? e.message : undefined),
-            },
-        );
-    const connection = info.connections[0] ?? null;
-    const isWhatsApp = info.key === 'meta_whatsapp';
-    const state = !info.configured ? 'unavailable' : isWhatsApp ? (info.connections.length > 0 ? 'active' : 'none') : (connection?.status ?? 'none');
-
-    const connect = () => {
-        if (info.key === 'meta_whatsapp') return;
-        start.mutate({ provider: info.key, returnTo: 'conexiones' }, { onError: (e) => toast.error(t('connections.toast.startError'), isApiError(e) ? e.message : undefined) });
-    };
-
+    if (!status) return <Skeleton className="igr:mt-1 igr:h-3.5 igr:w-28" />;
+    const tone = status.tone === 'on' ? 'success' : status.tone === 'attention' ? 'warning' : 'muted';
     return (
-        <Card id={`proveedor-${info.key}`} className="igr:scroll-mt-4">
-            <CardContent className="igr:space-y-3 igr:p-4">
-                <div className="igr:flex igr:items-start igr:gap-3">
-                    <ProviderMark provider={info.key} />
-                    <div className="igr:min-w-0 igr:flex-1">
-                        <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-2">
-                            <h2 className="igr:text-sm igr:font-semibold">{t(`connections.provider.${info.key}.name`)}</h2>
-                            <StatusBadge status={state} />
-                        </div>
-                        <p className="igr:text-xs igr:text-muted-foreground">{t(`connections.provider.${info.key}.description`)}</p>
-                    </div>
+        <p className={cn('igr:mt-0.5 igr:flex igr:items-center igr:gap-1.5 igr:text-xs igr:font-medium', status.tone === 'on' ? 'igr:text-success' : status.tone === 'attention' ? 'igr:text-warning' : 'igr:text-muted-foreground')}>
+            <StatusDot tone={tone} />
+            {t(`connections.hub.status.${status.label}`, status.params ?? {})}
+        </p>
+    );
+}
+
+function ConnectionCard({ cardKey, status, onOpen }: { cardKey: CardKey; status: CardStatus | undefined; onOpen: () => void }) {
+    const { t } = useTranslation();
+    const action = !status ? 'manage' : status.tone === 'off' ? 'connect' : status.tone === 'attention' ? 'fix' : 'manage';
+    return (
+        <Card className={cn('igr:flex igr:flex-col igr:p-4 igr:transition-shadow igr:hover:shadow-md igr:sm:p-5', status?.tone === 'attention' && 'igr:border-warning/40')}>
+            <div className="igr:flex igr:items-start igr:gap-3">
+                <CardMark cardKey={cardKey} />
+                <div className="igr:min-w-0 igr:flex-1">
+                    <h3 className="igr:text-[15px] igr:font-semibold igr:tracking-tight">{t(`connections.hub.cards.${cardKey}.name`)}</h3>
+                    <StatusLine status={status} />
                 </div>
-
-                {!info.configured ? (
-                    <div className="igr:space-y-1 igr:rounded-md igr:bg-muted igr:p-2.5 igr:text-xs igr:text-muted-foreground">
-                        <p>{t('connections.unavailable', { provider: t(`connections.provider.${info.key}.name`) })}</p>
-                        <p>
-                            {t('connections.missing')} {info.missing.map((key) => t(`platformSettings.fields.${key}.label`, { defaultValue: key })).join(', ')}
-                        </p>
-                        {me.user.is_platform_admin ? (
-                            <Link className="igr:block igr:text-primary igr:underline-offset-4 igr:hover:underline" to={`/w/${workspace.id}/${settingsPath(info)}`}>
-                                {t('connections.configure')}
-                            </Link>
-                        ) : null}
-                        <Link className="igr:text-primary igr:underline-offset-4 igr:hover:underline" to={`/w/${workspace.id}/${MANUAL_PATH[info.key]}`}>
-                            {t('connections.manual')}
-                        </Link>
-                    </div>
-                ) : null}
-
-                {isWhatsApp ? (
-                    <>
-                        {info.connections.map((c) => (
-                            <ConnectionSummary key={c.id} connection={c} />
-                        ))}
-                        {canManage ? (
-                            <WhatsAppOneClick
-                                configured={info.configured}
-                                onConnected={(a) => toast.success(t('connections.toast.whatsapp', { number: a.identity ?? a.display_name }))}
-                            />
-                        ) : null}
-                    </>
-                ) : connection !== null ? (
-                    <ConnectionSummary connection={connection} />
-                ) : null}
-
-                {canManage && info.configured && !isWhatsApp ? (
-                    <div className="igr:flex igr:flex-wrap igr:gap-2">
-                        {connection === null || connection.status !== 'active' ? (
-                            <Button onClick={connect} loading={start.isPending}>
-                                {t(connection === null ? 'connections.actions.connect' : 'connections.actions.reconnect')}
-                            </Button>
-                        ) : (
-                            <Button onClick={() => onPick(connection)}>
-                                <ListChecks />
-                                {t('connections.actions.pick')}
-                            </Button>
-                        )}
-                        {connection !== null ? (
-                            <>
-                                <Button
-                                    variant="outline"
-                                    loading={check.isPending}
-                                    onClick={() =>
-                                        check.mutate(connection.id, {
-                                            onSuccess: () => toast.success(t('connections.toast.checked')),
-                                            onError: (e) => toast.error(t('connections.toast.checkError'), isApiError(e) ? e.message : undefined),
-                                        })
-                                    }
-                                >
-                                    <RefreshCw />
-                                    {t('connections.actions.check')}
-                                </Button>
-                                <Button variant="ghost" onClick={() => setDisconnecting(connection)}>
-                                    <Unplug />
-                                    {t('connections.actions.disconnect')}
-                                </Button>
-                            </>
-                        ) : null}
-                    </div>
-                ) : null}
-                {canManage && isWhatsApp && info.connections.length > 0 ? (
-                    <div className="igr:flex igr:flex-wrap igr:gap-2">
-                        {info.connections.map((c) => (
-                            <span key={c.id} className="igr:flex igr:flex-wrap igr:gap-2">
-                                {c.used_by.channels
-                                    .filter((ch) => ch.status === 'error' && ch.external_id !== null)
-                                    .map((ch) => (
-                                        <Button key={ch.id} variant="outline" size="sm" loading={retry.isPending} onClick={() => retryNumber(c.id, ch.external_id ?? '')}>
-                                            <RefreshCw />
-                                            {t('connections.actions.retryNumber', { number: ch.identity ?? ch.name })}
-                                        </Button>
-                                    ))}
-                                <Button variant="ghost" size="sm" onClick={() => setDisconnecting(c)}>
-                                    <Unplug />
-                                    {t('connections.actions.disconnectWaba', { id: c.whatsapp?.waba_id ?? '' })}
-                                </Button>
-                            </span>
-                        ))}
-                    </div>
-                ) : null}
-            </CardContent>
-            <DisconnectDialog connection={disconnecting} onClose={() => setDisconnecting(null)} />
+            </div>
+            <p className="igr:mt-3 igr:flex-1 igr:text-support igr:text-muted-foreground">{t(`connections.hub.cards.${cardKey}.allows`)}</p>
+            {status?.detail ? <p className="igr:mt-2 igr:truncate igr:text-caption igr:text-muted-foreground">{status.detail}</p> : null}
+            <div className="igr:mt-4">
+                <Button size="sm" variant={action === 'connect' && ESSENTIALS.includes(cardKey) ? 'default' : 'outline'} onClick={onOpen} aria-label={`${t(`connections.hub.actions.${action === 'connect' && cardKey === 'capture' ? 'capture' : action}`)}: ${t(`connections.hub.cards.${cardKey}.name`)}`}>
+                    {t(`connections.hub.actions.${action === 'connect' && cardKey === 'capture' ? 'capture' : action}`)}
+                </Button>
+            </div>
         </Card>
-    );
-}
-
-function ConnectionSummary({ connection }: { connection: Connection }) {
-    const { t } = useTranslation();
-    const used = [
-        ...connection.used_by.destinations.map((d) => t(`connections.usedBy.destination`, { platform: d.name ?? d.platform })),
-        ...connection.used_by.channels.map((c) => `${t(`connections.usedBy.${c.channel}`)} ${c.identity ?? c.name}`),
-    ];
-    return (
-        <div className="igr:space-y-1.5 igr:text-xs">
-            <p>
-                <span className="igr:text-muted-foreground">{t('connections.account')}</span> <span className="igr:font-medium">{connection.account_name ?? '—'}</span>
-                {connection.connected_at ? <span className="igr:text-muted-foreground"> · {formatRelative(connection.connected_at)}</span> : null}
-                {connection.whatsapp?.coexistence ? <span className="igr:text-muted-foreground"> · {t('connections.whatsapp.coexistence')}</span> : null}
-            </p>
-            {connection.expires_at && connection.provider !== 'google' ? (
-                <p className="igr:text-warning">{t('connections.expiresAt', { date: formatDate(connection.expires_at) })}</p>
-            ) : null}
-            {connection.uses.length > 0 ? (
-                <p className="igr:text-muted-foreground">
-                    {t('connections.allows')} {connection.uses.map((u) => t(`connections.uses.${u}`)).join(', ')}
-                </p>
-            ) : null}
-            {used.length > 0 ? (
-                <p className="igr:text-muted-foreground">
-                    {t('connections.usedByLabel')} {used.join(', ')}
-                </p>
-            ) : null}
-            {connection.used_by.channels.map((c) =>
-                c.history ? (
-                    <p key={c.id} className="igr:text-muted-foreground">
-                        {c.history.declined
-                            ? t('connections.whatsapp.historyDeclined')
-                            : c.history.progress >= 100
-                              ? t('connections.whatsapp.historyDone', { count: c.history.messages })
-                              : t('connections.whatsapp.historyProgress', { progress: c.history.progress, count: c.history.messages })}
-                    </p>
-                ) : null,
-            )}
-            {connection.last_error ? (
-                <p className="igr:flex igr:items-start igr:gap-1 igr:text-warning">
-                    <CircleAlert className="igr:mt-0.5 igr:size-3.5 igr:shrink-0" aria-hidden="true" />
-                    {connection.last_error}
-                </p>
-            ) : null}
-        </div>
-    );
-}
-
-function DisconnectDialog({ connection, onClose }: { connection: Connection | null; onClose: () => void }) {
-    const { t } = useTranslation();
-    const { workspace } = useWorkspace();
-    const disconnect = useDisconnectConnection(workspace.id);
-    return (
-        <Dialog open={connection !== null} onOpenChange={(next) => !next && onClose()}>
-            <DialogContent className="igr:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>{t('connections.disconnect.title')}</DialogTitle>
-                    <DialogDescription>{t('connections.disconnect.description')}</DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <Button variant="outline" onClick={onClose}>
-                        {t('common.cancel')}
-                    </Button>
-                    <Button
-                        variant="destructive"
-                        loading={disconnect.isPending}
-                        onClick={() =>
-                            connection &&
-                            disconnect.mutate(connection.id, {
-                                onSuccess: () => {
-                                    toast.success(t('connections.toast.disconnected'));
-                                    onClose();
-                                },
-                            })
-                        }
-                    >
-                        {t('connections.actions.disconnect')}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
     );
 }

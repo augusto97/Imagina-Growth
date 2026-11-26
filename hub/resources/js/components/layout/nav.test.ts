@@ -167,12 +167,10 @@ describe('secciones del menú (rediseño v2 §3)', () => {
         expect(visibleSections({ abilities: [...ALL, 'platformAdmin'] }, true).map((s) => s.key)).toContain('styleguide');
     });
 
-    it('Conexiones agrupa WhatsApp y anuncios, tu web y canales', () => {
+    it('Conexiones es una sola pantalla: sin pantallas hermanas (tu web y los canales son tarjetas)', () => {
         const connections = item('connections');
-        expect(activeChild(connections, `${base}/conexiones`, base)).toBe('connectionsAccounts');
-        expect(activeChild(connections, `${base}/sitios/st_1`, base)).toBe('sites');
-        expect(activeChild(connections, `${base}/canales`, base)).toBe('channels');
-        expect(activeChild(connections, `${base}/equipo`, base)).toBeNull();
+        expect(connections.children).toBeUndefined();
+        expect(activeChild(connections, `${base}/conexiones`, base)).toBeNull();
     });
 
     it('el tipo de negocio decide por encima de los sitios: un negocio sin tienda no ve carritos, pedidos ni catálogo', () => {

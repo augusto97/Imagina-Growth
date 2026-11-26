@@ -31,7 +31,9 @@ use Throwable;
  * - `connections.site`: estado de la web para los «bloqueos que enseñan» del panel (docs/diseno/rediseno-v2.md §3):
  *   `connected` (algún sitio conectado o con fallas), `disconnected` (se conectó alguna vez y hoy no: sus datos
  *   siguen), `pending` (conexión empezada sin terminar) o `none`.
- * - `connections.channels`: los canales con una cuenta en uso (activa, en pausa o con error), sin repetir.
+ * - `connections.channels`: los canales con una cuenta en uso (activa, en pausa o con error), sin repetir. Un canal de
+ *   conversación (WhatsApp, Messenger, Instagram) desconectado que ya tiene conversaciones también cuenta: como la web
+ *   desconectada, su historial sigue y la bandeja se abre con el aviso para reconectarlo.
  * - `upgrade_plans`: para cada módulo fuera del plan, el nombre del plan público más barato que lo incluye (del
  *   mismo tipo, tienda o servicios, cuando lo hay), para decir «disponible en el plan X».
  * - `business_type`: `store`, `services` o `both` para que el menú oculte lo que no aplica (rediseño v2 §11.1): lo
@@ -46,6 +48,9 @@ final class WorkspaceFeatures
 {
     /** Industrias de `workspace.industries` que venden servicios, no productos. */
     public const SERVICE_INDUSTRIES = ['servicios_profesionales', 'salud_bienestar', 'educacion'];
+
+    /** Canales que conversan en la bandeja (el correo y el SMS no). */
+    public const CONVERSATION_CHANNELS = ['whatsapp', 'messenger', 'instagram'];
 
     public function __construct(private readonly Entitlements $entitlements) {}
 
@@ -83,7 +88,11 @@ final class WorkspaceFeatures
             ->pluck('plans.metric', 'accounts.id')->map(fn ($m) => (string) $m)->all();
         $siteState = $this->siteStates($ids);
         $channels = [];
-        foreach (DB::table('channel_accounts')->whereIn('workspace_id', $ids)->whereIn('status', ['active', 'paused', 'error'])
+        foreach (DB::table('channel_accounts')->whereIn('workspace_id', $ids)
+            ->where(fn ($q) => $q->whereIn('status', ['active', 'paused', 'error'])
+                // Un canal de conversación que se desconectó conserva su historial: la bandeja se puede abrir (y avisa).
+                ->orWhere(fn ($q) => $q->where('status', 'disconnected')->whereIn('channel', self::CONVERSATION_CHANNELS)
+                    ->whereExists(fn ($q) => $q->selectRaw('1')->from('conversations')->whereColumn('conversations.channel_account_id', 'channel_accounts.id'))))
             ->select('workspace_id', 'channel')->distinct()->orderBy('channel')->get() as $row) {
             $channels[(string) $row->workspace_id][] = (string) $row->channel;
         }

@@ -1,0 +1,61 @@
+{
+    "business": {
+        "description": "Lo que la plataforma sabe de tu negocio: a qué te dedicas, dónde estás, cuándo atiendes y cómo se ve tu marca.",
+        "type": {
+            "title": "A qué te dedicas",
+            "description": "Con esto la plataforma te habla con tus palabras, te recomienda lo que sirve a negocios como el tuyo y oculta lo que no aplica.",
+            "kind": "Tipo de negocio",
+            "vertical": "Tu actividad",
+            "kinds": {
+                "store": { "title": "Tienda online", "help": "Vendes productos en tu web (WooCommerce)." },
+                "services": { "title": "Servicios", "help": "Consigues clientes por formularios, WhatsApp o citas." },
+                "both": { "title": "Tienda y servicios", "help": "Vendes productos y además prestas servicios." }
+            },
+            "changes": {
+                "title": "Esto cambia al guardar",
+                "strategies": "Las estrategias recomendadas para ti.",
+                "store": "El menú muestra carritos, pedidos y catálogo.",
+                "menu": "El menú oculta carritos, pedidos y catálogo, y muestra leads y agenda.",
+                "pipeline": "El embudo de tus leads: {{stages}}.",
+                "words": "Cómo llamamos a tus clientes: «{{clients}}».",
+                "home": "Lo que mide el Inicio.",
+                "safe": "No se borra nada: tus contactos, automatizaciones y lo que personalizaste quedan igual."
+            },
+            "save": "Guardar a qué te dedicas",
+            "saved": "Listo: la plataforma ya habla como tu negocio",
+            "error": "No se pudo guardar"
+        },
+        "details": {
+            "title": "Datos del negocio",
+            "save": "Guardar los datos"
+        },
+        "hours": {
+            "title": "Horario de atención",
+            "description": "Cuándo atiende tu equipo. El agente con IA lo usa para dejarle las conversaciones a tu equipo en horario y atender cuando no hay nadie.",
+            "notSet": "Todavía no lo has definido: por ahora se usa lunes a viernes de 08:00 a 18:00.",
+            "days": "Días de atención",
+            "start": "Abre",
+            "end": "Cierra",
+            "uses": "En la hora de tu negocio ({{timezone}}). Los mensajes de marketing además respetan el horario legal de cada país.",
+            "short": { "1": "Lun", "2": "Mar", "3": "Mié", "4": "Jue", "5": "Vie", "6": "Sáb", "7": "Dom" },
+            "save": "Guardar el horario",
+            "saved": "Horario de atención guardado",
+            "error": "No se pudo guardar el horario"
+        },
+        "brand": {
+            "title": "Tu marca y contacto",
+            "description": "Aparecen en el pie de tus correos (lo exige la ley) y en tus plantillas, para que te reconozcan.",
+            "name": "Nombre que ven tus clientes",
+            "logo": "Logo (dirección de la imagen)",
+            "address": "Dirección o sede",
+            "addressPlaceholder": "Ej.: Calle 10 # 20-30, Bogotá",
+            "contact": "Teléfono o correo de contacto",
+            "contactPlaceholder": "Ej.: hola@tunegocio.com",
+            "whatsapp": "WhatsApp de atención",
+            "whatsappPlaceholder": "+57 300 123 4567",
+            "help": "Si dejas el nombre vacío, se usa el nombre del negocio. El logo debe ser una imagen en https.",
+            "save": "Guardar tu marca",
+            "saved": "Tu marca quedó guardada"
+        }
+    }
+}

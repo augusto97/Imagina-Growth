@@ -1,12 +1,13 @@
-import { Check, Download, ExternalLink, Lock, OctagonAlert, RefreshCw, Sparkles, TriangleAlert } from 'lucide-react';
+import { Check, Download, ExternalLink, Lock, RefreshCw, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Callout } from '@/components/ui/callout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/input';
-import { DescriptionList, EmptyState, ErrorState, PageHeader } from '@/components/ui/misc';
+import { ErrorState, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { useWorkspace } from '@/hooks/useWorkspace';
@@ -68,67 +69,62 @@ function Overview({ data }: { data: BillingOverview }) {
     const { limited, counts } = splitMeters(data.usage.meters);
 
     return (
-        <div className="igr:space-y-4">
+        <div className="igr:space-y-6">
             {banner ? (
-                <div
-                    role="status"
-                    className={cn(
-                        'igr:flex igr:items-start igr:gap-2 igr:rounded-md igr:border igr:px-3 igr:py-2.5 igr:text-sm',
-                        banner.tone === 'critical' ? 'igr:border-destructive/40 igr:bg-destructive/5' : 'igr:border-warning/50 igr:bg-warning/10',
-                    )}
-                >
-                    {banner.tone === 'critical' ? (
-                        <OctagonAlert aria-hidden className="igr:mt-0.5 igr:size-4 igr:shrink-0 igr:text-destructive" />
-                    ) : (
-                        <TriangleAlert aria-hidden className="igr:mt-0.5 igr:size-4 igr:shrink-0 igr:text-warning" />
-                    )}
-                    <div>
-                        <p className="igr:font-medium">{t(`billing.banner.${banner.kind}.title`)}</p>
-                        <p className="igr:text-muted-foreground">
-                            {t(`billing.banner.${banner.kind}.body`, {
-                                date: formatDate(banner.until, locale, workspace.timezone),
-                            })}
-                        </p>
-                    </div>
-                </div>
+                <Callout tone={banner.tone === 'critical' ? 'danger' : 'warning'} title={t(`billing.banner.${banner.kind}.title`)}>
+                    {t(`billing.banner.${banner.kind}.body`, { date: formatDate(banner.until, locale, workspace.timezone) })}
+                </Callout>
             ) : null}
 
-            <div className="igr:grid igr:gap-4 igr:lg:grid-cols-3">
-                <PlanCard data={data} />
-                <Card className="igr:lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle>{t('billing.usage.title')}</CardTitle>
-                        <CardDescription>
-                            {t('billing.usage.description', {
-                                period: data.usage.period,
-                            })}
-                            {data.usage.computed_at ? ` · ${t('billing.usage.computedAt', { at: formatDateTime(data.usage.computed_at, locale, workspace.timezone) })}` : ''}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="igr:space-y-5">
-                        {limited.length > 0 ? (
-                            limited.map((m) => <UsageMeter key={m.metric} meter={m} locale={locale} />)
-                        ) : (
-                            <p className="igr:text-sm igr:text-muted-foreground">{t('billing.usage.noLimits')}</p>
-                        )}
-                        <div className="igr:border-t igr:pt-4">
-                            <p className="igr:mb-2 igr:text-xs igr:font-medium igr:uppercase igr:tracking-wide igr:text-muted-foreground">{t('billing.usage.counts')}</p>
-                            <DescriptionList
-                                items={counts.map((m) => ({
-                                    label: t(`billing.metric.${m.metric}`),
-                                    value: <span className="igr:tabular-nums">{formatMeterValue(m.metric, m.value, locale)}</span>,
-                                }))}
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+            <PlanCard data={data} />
 
+            <Card>
+                <CardHeader>
+                    <CardTitle>{t('billing.usage.title')}</CardTitle>
+                    <CardDescription>
+                        {t('billing.usage.description', { period: data.usage.period })}
+                        {data.usage.computed_at ? ` · ${t('billing.usage.computedAt', { at: formatDateTime(data.usage.computed_at, locale, workspace.timezone) })}` : ''}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="igr:space-y-6">
+                    {limited.length > 0 ? (
+                        <div className="igr:grid igr:gap-x-8 igr:gap-y-5 igr:md:grid-cols-2">
+                            {limited.map((m) => (
+                                <UsageMeter key={m.metric} meter={m} locale={locale} />
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="igr:text-support igr:text-muted-foreground">{t('billing.usage.noLimits')}</p>
+                    )}
+                    {counts.length > 0 ? (
+                        <div className="igr:border-t igr:pt-5">
+                            <p className="igr:mb-3 igr:text-caption igr:font-semibold igr:tracking-wide igr:text-muted-foreground igr:uppercase">{t('billing.usage.counts')}</p>
+                            <dl className="igr:grid igr:grid-cols-2 igr:gap-3 igr:sm:grid-cols-3 igr:lg:grid-cols-5">
+                                {counts.map((m) => (
+                                    <div key={m.metric} className="igr:rounded-lg igr:border igr:bg-muted/30 igr:px-3 igr:py-2.5">
+                                        <dt className="igr:truncate igr:text-xs igr:text-muted-foreground">{t(`billing.metric.${m.metric}`)}</dt>
+                                        <dd className="igr:mt-0.5 igr:text-body igr:font-semibold igr:tabular-nums">{formatMeterValue(m.metric, m.value, locale)}</dd>
+                                    </div>
+                                ))}
+                            </dl>
+                        </div>
+                    ) : null}
+                </CardContent>
+            </Card>
+
+            <ComparePlans data={data} />
             <ModulesCard data={data} />
             {data.invoices !== null ? <InvoicesCard invoices={data.invoices} /> : null}
-            <ComparePlans data={data} />
         </div>
     );
+}
+
+/** El plan más barato por encima del actual (misma métrica): lo que la persona ve como «siguiente paso». */
+function nextPlan(data: BillingOverview): PlanInfo | null {
+    const plans = comparablePlans(data.plans, data.plan);
+    if (data.plan === null) return null;
+    const current = Number(data.plan.price_usd);
+    return plans.find((p) => p.id !== data.plan?.id && Number(p.price_usd) > current) ?? null;
 }
 
 function PlanCard({ data }: { data: BillingOverview }) {
@@ -137,48 +133,65 @@ function PlanCard({ data }: { data: BillingOverview }) {
     const plan = data.plan;
     const status = data.account.billing_status;
     const price = plan ? planPrice(plan, workspace.currency) : null;
+    const next = nextPlan(data);
+    const enabled = data.modules.filter((m) => m.enabled).length;
+    const gained = next ? data.modules.filter((m) => !m.enabled && next.modules.includes(m.key)) : [];
 
     return (
-        <Card>
-            <CardHeader>
-                <CardDescription>{t('billing.plan.current')}</CardDescription>
-                <CardTitle className="igr:text-lg">{plan ? plan.name : t('billing.plan.none')}</CardTitle>
-            </CardHeader>
-            <CardContent className="igr:space-y-3 igr:text-sm">
-                {plan && price ? (
-                    <>
-                        <p>
-                            <span className="igr:text-2xl igr:font-semibold igr:tabular-nums">{formatMoney(price.amount, price.currency, workspace.locale)}</span>
-                            <span className="igr:text-muted-foreground"> {t('billing.plan.perMonth')}</span>
+        <section className="igr:overflow-hidden igr:rounded-2xl igr:border igr:border-primary/15 igr:hero-surface igr:shadow-sm">
+            <div className="igr:grid igr:gap-6 igr:p-5 igr:sm:p-7 igr:lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                <div className="igr:min-w-0">
+                    <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-2">
+                        <p className="igr:text-caption igr:font-semibold igr:tracking-wide igr:text-brand-soft-foreground igr:uppercase">{t('billing.plan.current')}</p>
+                        <Badge variant={status === 'suspended' ? 'destructive' : status === 'grace' ? 'warning' : status === 'trial' ? 'secondary' : 'success'}>{t(`billing.status.${status}`)}</Badge>
+                    </div>
+                    <h2 className="igr:mt-1 igr:text-[22px] igr:leading-7 igr:font-semibold igr:tracking-tight">{plan ? plan.name : t('billing.plan.none')}</h2>
+                    {plan && price ? (
+                        <>
+                            <p className="igr:mt-2">
+                                <span className="igr:text-hero igr:font-semibold igr:tabular-nums">{formatMoney(price.amount, price.currency, workspace.locale)}</span>
+                                <span className="igr:text-muted-foreground"> {t('billing.plan.perMonth')}</span>
+                            </p>
+                            <p className="igr:mt-1 igr:text-support igr:text-muted-foreground">
+                                {plan.included > 0 ? t(`billing.plan.included_${plan.metric}`, { count: plan.included, n: formatNumber(plan.included, workspace.locale) }) : t(`billing.plan.unlimited_${plan.metric}`)}
+                                {' · '}
+                                {t('billing.page.modulesCount', { on: enabled, total: data.modules.length })}
+                            </p>
+                            {data.plan_source === 'default' ? <p className="igr:mt-2 igr:text-support igr:text-muted-foreground">{t('billing.plan.defaultHelp')}</p> : null}
+                        </>
+                    ) : (
+                        <p className="igr:mt-2 igr:text-support igr:text-muted-foreground">{t('billing.plan.noneHelp')}</p>
+                    )}
+                    {data.pending_request ? (
+                        <p className="igr:mt-3 igr:rounded-lg igr:bg-card/80 igr:px-3 igr:py-2 igr:text-support">
+                            {t('billing.compare.pending', { plan: data.plans.find((p) => p.id === data.pending_request?.to_plan)?.name ?? data.pending_request.to_plan })}
                         </p>
-                        <p className="igr:text-muted-foreground">
-                            {plan.included > 0
-                                ? t(`billing.plan.included_${plan.metric}`, {
-                                      count: plan.included,
-                                      n: formatNumber(plan.included, workspace.locale),
-                                  })
-                                : t(`billing.plan.unlimited_${plan.metric}`)}
-                        </p>
-                        {data.plan_source === 'default' ? <p className="igr:text-muted-foreground">{t('billing.plan.defaultHelp')}</p> : null}
-                    </>
-                ) : (
-                    <p className="igr:text-muted-foreground">{t('billing.plan.noneHelp')}</p>
-                )}
-                <div className="igr:flex igr:items-center igr:gap-2">
-                    <span className="igr:text-muted-foreground">{t('billing.statusLabel')}</span>
-                    <Badge variant={status === 'suspended' ? 'destructive' : status === 'grace' ? 'warning' : status === 'trial' ? 'secondary' : 'success'}>
-                        {t(`billing.status.${status}`)}
-                    </Badge>
+                    ) : null}
                 </div>
-                {data.pending_request ? (
-                    <p className="igr:rounded-md igr:bg-muted/50 igr:px-2.5 igr:py-2 igr:text-xs">
-                        {t('billing.compare.pending', {
-                            plan: data.plans.find((p) => p.id === data.pending_request?.to_plan)?.name ?? data.pending_request.to_plan,
-                        })}
-                    </p>
+                {next && gained.length > 0 ? (
+                    <div className="igr:rounded-xl igr:border igr:bg-card/90 igr:p-4 igr:sm:p-5">
+                        <p className="igr:flex igr:items-center igr:gap-1.5 igr:text-support igr:font-semibold">
+                            <Sparkles aria-hidden className="igr:size-4 igr:text-primary" />
+                            {t('billing.page.nextTitle', { plan: next.name })}
+                        </p>
+                        <p className="igr:mt-1 igr:text-support igr:text-muted-foreground">
+                            {next.included > 0 ? t(`billing.plan.included_${next.metric}`, { count: next.included, n: formatNumber(next.included, workspace.locale) }) : t(`billing.plan.unlimited_${next.metric}`)}
+                        </p>
+                        <ul className="igr:mt-3 igr:space-y-1 igr:text-support">
+                            {gained.slice(0, 4).map((m) => (
+                                <li key={m.key} className="igr:flex igr:gap-2">
+                                    <Check aria-hidden className="igr:mt-0.5 igr:size-4 igr:shrink-0 igr:text-success" />
+                                    {t(`billing.module.${m.key}`)}
+                                </li>
+                            ))}
+                        </ul>
+                        <Button asChild className="igr:mt-4" variant="brand">
+                            <a href="#planes">{t('billing.page.upgrade')}</a>
+                        </Button>
+                    </div>
                 ) : null}
-            </CardContent>
-        </Card>
+            </div>
+        </section>
     );
 }
 
@@ -218,7 +231,7 @@ function InvoicesCard({ invoices }: { invoices: Invoice[] }) {
             </CardHeader>
             <CardContent>
                 {invoices.length === 0 ? (
-                    <EmptyState icon={Sparkles} title={t('billing.invoices.empty')} />
+                    <p className="igr:text-support igr:text-muted-foreground">{t('billing.invoices.empty')}</p>
                 ) : (
                     <Table>
                         <THead>
@@ -284,12 +297,44 @@ function ComparePlans({ data }: { data: BillingOverview }) {
     const n = (v: number) => formatNumber(v, workspace.locale);
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{t('billing.compare.title')}</CardTitle>
-                <CardDescription>{t('billing.compare.description')}</CardDescription>
-            </CardHeader>
-            <CardContent className="igr:overflow-x-auto">
+        <section id="planes" aria-labelledby="planes-titulo" className="igr:scroll-mt-6 igr:space-y-4">
+            <div>
+                <h2 id="planes-titulo" className="igr:text-section igr:font-semibold igr:tracking-tight">
+                    {t('billing.compare.title')}
+                </h2>
+                <p className="igr:text-support igr:text-muted-foreground">{t('billing.compare.description')}</p>
+            </div>
+            <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2 igr:xl:grid-cols-4">
+                {plans.map((p) => {
+                    const price = planPrice(p, workspace.currency);
+                    const current = data.plan?.id === p.id;
+                    const requested = data.pending_request?.to_plan === p.id;
+                    return (
+                        <Card key={p.id} className={cn('igr:flex igr:flex-col igr:p-5', current && 'igr:border-primary igr:ring-1 igr:ring-primary/30')}>
+                            <div className="igr:flex igr:items-center igr:justify-between igr:gap-2">
+                                <h3 className="igr:text-[15px] igr:font-semibold">{p.name}</h3>
+                                {current ? <Badge variant="brand">{t('billing.compare.current')}</Badge> : null}
+                            </div>
+                            <p className="igr:mt-2">
+                                <span className="igr:text-figure igr:font-semibold igr:tabular-nums">{formatMoney(price.amount, price.currency, workspace.locale)}</span>
+                                <span className="igr:text-support igr:text-muted-foreground"> {t('billing.plan.perMonth')}</span>
+                            </p>
+                            <p className="igr:mt-1 igr:text-support igr:text-muted-foreground">
+                                {p.included > 0 ? t(`billing.plan.included_${p.metric}`, { count: p.included, n: n(p.included) }) : t(`billing.plan.unlimited_${p.metric}`)}
+                            </p>
+                            <p className="igr:mt-3 igr:flex-1 igr:text-support">{t('billing.page.planModules', { count: p.modules.length })}</p>
+                            {data.can_manage_billing && !current ? (
+                                <Button className="igr:mt-4" size="sm" variant={requested ? 'secondary' : 'outline'} disabled={requested} onClick={() => setTarget(p)}>
+                                    {requested ? t('billing.compare.requested') : t('billing.compare.request')}
+                                </Button>
+                            ) : null}
+                        </Card>
+                    );
+                })}
+            </div>
+            <details className="igr:rounded-xl igr:border igr:bg-card">
+                <summary className="igr:cursor-pointer igr:rounded-xl igr:px-5 igr:py-3 igr:text-support igr:font-medium igr:outline-none igr:focus-visible:ring-2 igr:focus-visible:ring-ring">{t('billing.page.compareAll')}</summary>
+                <div className="igr:border-t">
                 <Table>
                     <THead>
                         <TR>
@@ -376,9 +421,10 @@ function ComparePlans({ data }: { data: BillingOverview }) {
                         ) : null}
                     </TBody>
                 </Table>
-            </CardContent>
+                </div>
+            </details>
             <RequestPlanDialog plan={target} onClose={() => setTarget(null)} />
-        </Card>
+        </section>
     );
 }
 

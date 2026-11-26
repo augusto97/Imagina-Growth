@@ -30,6 +30,7 @@ use App\Domain\Messaging\Models\Message;
 use App\Domain\Messaging\Support\WhatsAppInteractive;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Models\Workspace;
+use App\Domain\Workspaces\Support\BusinessHours;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -252,7 +253,8 @@ final class SalesAgent implements ConversationAgent
 
     /**
      * Con `hours.mode = out_of_hours` el agente solo atiende fuera del horario del
-     * equipo: dentro de él, pasa la conversación a las personas.
+     * equipo (el horario de atención de Tu negocio, `BusinessHours`): dentro de él, pasa
+     * la conversación a las personas.
      *
      * @param  array<string, mixed>  $hours  mode, days (1 = lunes … 7 = domingo), start, end (HH:MM)
      */
@@ -261,6 +263,8 @@ final class SalesAgent implements ConversationAgent
         if (($hours['mode'] ?? 'always') !== 'out_of_hours') {
             return false;
         }
+        // El horario de atención de Tu negocio manda; sin él, los días y horas guardados en el agente.
+        $hours = BusinessHours::of($run->workspace) ?? $hours;
         $now = CarbonImmutable::now($run->workspace->timezone ?: 'America/Bogota');
         $days = array_map('intval', (array) ($hours['days'] ?? [1, 2, 3, 4, 5]));
         $time = $now->format('H:i');

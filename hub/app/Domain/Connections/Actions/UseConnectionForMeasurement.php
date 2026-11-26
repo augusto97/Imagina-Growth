@@ -109,6 +109,8 @@ final class UseConnectionForMeasurement
             'conversion_action_purchase' => self::digits($input['conversion_action_purchase'] ?? null),
             'conversion_action_lead' => self::digits($input['conversion_action_lead'] ?? null),
             'conversion_action_lead_won' => self::digits($input['conversion_action_lead_won'] ?? null),
+            // Clics que valen (M06): tocar WhatsApp, llamar o escribir un correo, si el destino los envía.
+            'conversion_action_contact' => self::digits($input['conversion_action_contact'] ?? null),
         ];
         $stream = $input['ga4_stream'] ?? null;
         if (is_string($stream) && $stream !== '') {

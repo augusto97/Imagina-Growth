@@ -81,17 +81,12 @@ const SECTION_KEYS = [
     'chips',
 ] as const;
 
-/** Interruptor y tarjetas para elegir (asistente de configuración): con estado de verdad, para probarlos con el teclado. */
+/** Tarjetas para elegir (asistente de configuración): con estado de verdad, para probarlos con el teclado. */
 function GuideChoices() {
     const { t } = useTranslation();
-    const [on, setOn] = useState(true);
     const [kind, setKind] = useState('store');
     return (
         <>
-            <div className="igr:flex igr:items-center igr:justify-between igr:gap-3 igr:rounded-lg igr:border igr:p-3">
-                <Label htmlFor="guia-switch">{t('styleguide.fields.switch')}</Label>
-                <Switch id="guia-switch" checked={on} onCheckedChange={setOn} />
-            </div>
             <fieldset className="igr:space-y-2 igr:md:col-span-2">
                 <legend className="igr:mb-2 igr:text-support igr:font-medium">{t('styleguide.fields.choiceLegend')}</legend>
                 <div className="igr:grid igr:gap-2.5 igr:md:grid-cols-2">
@@ -130,6 +125,19 @@ function GuideSection({ id, children, note }: { id: (typeof SECTION_KEYS)[number
             {note ? <p className="igr:mt-1 igr:max-w-3xl igr:text-support igr:text-muted-foreground">{t(`styleguide.notes.${id}`)}</p> : null}
             <div className="igr:mt-5">{children}</div>
         </section>
+    );
+}
+
+/** Interruptor en vivo: prende y apaga (con nombre y descripción, y la variante pequeña). */
+function GuideSwitch() {
+    const { t } = useTranslation();
+    const [on, setOn] = useState(true);
+    const [small, setSmall] = useState(false);
+    return (
+        <div className="igr:space-y-3 igr:md:col-span-2">
+            <Switch checked={on} onCheckedChange={setOn} label={t('styleguide.fields.switch')} description={t('styleguide.fields.switchHelp')} />
+            <Switch size="sm" checked={small} onCheckedChange={setSmall} label={t('styleguide.fields.switchSmall')} />
+        </div>
     );
 }
 
@@ -312,6 +320,7 @@ export function StyleGuidePage() {
                         {t('styleguide.fields.checkbox')}
                     </label>
                     <GuideChoices />
+                    <GuideSwitch />
                 </div>
             </GuideSection>
 

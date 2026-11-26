@@ -16,6 +16,9 @@
         },
         "earlyCapture": {
             "accept": "Acepto la responsabilidad de usar este dato solo para recuperar el carrito y de informarlo en el aviso de privacidad de la tienda. El cambio queda en la auditoría."
+        },
+        "page": {
+            "description": "Lo que aceptan tus clientes, cómo se respeta su consentimiento, sus solicitudes de derechos ARCO y quiénes no reciben mensajes."
         }
     }
 }

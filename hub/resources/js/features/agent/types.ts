@@ -24,6 +24,12 @@ export interface AgentSettingsResponse {
     ai_available: boolean;
     store_connected: boolean;
     can_manage: boolean;
+    /** Las cuentas activas que conversan (whatsapp, messenger, instagram): dónde responde. */
+    channels?: string[];
+    /** El horario de atención de Tu negocio (manda sobre el del agente); null si no lo han definido. */
+    business_hours?: { days: number[]; start: string; end: string } | null;
+    /** Servicios: preguntas de calificación de Leads y servicios de la agenda que puede ofrecer en el chat. */
+    services?: { qualification: { sets: number; active: number }; booking: { module: boolean; services: number } };
 }
 
 export type TurnStatus = 'replied' | 'suggested' | 'handoff' | 'blocked' | 'failed';

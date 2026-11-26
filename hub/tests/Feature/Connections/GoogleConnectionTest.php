@@ -159,11 +159,13 @@ it('elige la cuenta de Ads y el flujo de Analytics, crea el secreto del Measurem
         ->and($this->actingAs($this->owner)->getJson("{$this->api}/connections/{$c->publicId()}/assets?property=properties/321")->assertOk()->json('streams.0'))->toMatchArray(['measurement_id' => 'G-TIENDA1']);
 
     $res = $this->actingAs($this->owner)->postJson("{$this->api}/connections/{$c->publicId()}/measurement", [
-        'ads_customer_id' => '123-456-7890', 'conversion_action_purchase' => '555', 'ga4_stream' => 'properties/321/dataStreams/9',
+        'ads_customer_id' => '123-456-7890', 'conversion_action_purchase' => '555', 'conversion_action_contact' => '556', 'ga4_stream' => 'properties/321/dataStreams/9',
     ])->assertOk();
     expect($res->json('destination'))->toMatchArray(['platform' => 'google', 'status' => 'active', 'pixel_id' => 'G-TIENDA1'])
         ->and($res->json('destination.connection'))->toMatchArray(['provider' => 'google', 'status' => 'active'])
         ->and($res->json('destination.credentials.api_secret'))->toBe('••••reto')
+        // La acción de los clics que valen (WhatsApp, llamada, correo) también se elige desde la conexión.
+        ->and($res->json('destination.credentials.conversion_action_contact'))->toBe('556')
         ->and($res->getContent())->not->toContain('mp-secreto');
 
     $destination = app(CurrentWorkspace::class)->run($this->ws, fn () => AdDestination::query()->firstOrFail());
