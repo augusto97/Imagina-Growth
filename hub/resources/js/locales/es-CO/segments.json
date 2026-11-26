@@ -101,7 +101,8 @@
                 "upcoming": "Con cita próxima",
                 "whatsapp": "Aceptan WhatsApp"
             },
-            "saveShort": "Guardar cambios"
+            "saveShort": "Guardar cambios",
+            "namePlaceholderServices": "Ej.: Pidieron una valoración y no han agendado"
         },
         "detail": {
             "export": "Exportar CSV",

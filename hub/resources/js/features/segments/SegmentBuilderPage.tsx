@@ -171,7 +171,7 @@ function Builder({ segment, options }: { segment: SegmentDetail | null; options:
                                     value={draft.name}
                                     disabled={!editable}
                                     maxLength={160}
-                                    placeholder={t('segments.form.namePlaceholder')}
+                                    placeholder={t(business.servicesOnly ? 'segments.form.namePlaceholderServices' : 'segments.form.namePlaceholder')}
                                     aria-invalid={errors.name ? true : undefined}
                                     onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                                 />

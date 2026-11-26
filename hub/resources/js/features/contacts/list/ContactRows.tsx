@@ -103,7 +103,7 @@ function ContactTable({ rows, business, selected, onToggle, onTogglePage }: Rows
                                     <Checkbox aria-label={t('contacts.bulk.selectRow', { name: c.name || t('contacts.noName') })} checked={isSelected} onChange={() => onToggle(c.id)} />
                                 </TD>
                             ) : null}
-                            <TD className="igr:max-w-80">
+                            <TD className="igr:max-w-64 igr:xl:max-w-80">
                                 <PersonCell row={c} />
                             </TD>
                             {services ? (
