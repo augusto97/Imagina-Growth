@@ -1,4 +1,4 @@
-import { ArrowLeft, FileText, Plus, RefreshCw } from 'lucide-react';
+import { FileText, Plus, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
@@ -41,10 +41,6 @@ export function WaTemplatesPage() {
 
     return (
         <div>
-            <Link to={`/w/${workspace.id}/canales?tab=whatsapp`} className="igr:mb-3 igr:inline-flex igr:items-center igr:gap-1 igr:text-[13px] igr:text-muted-foreground igr:hover:text-foreground">
-                <ArrowLeft className="igr:size-3.5" />
-                {t('channels.templates.back')}
-            </Link>
             <PageHeader
                 title={t('channels.templates.title')}
                 description={t('channels.templates.description')}
@@ -54,7 +50,12 @@ export function WaTemplatesPage() {
                             <Button
                                 variant="outline"
                                 loading={sync.isPending}
-                                onClick={() => sync.mutate(account, { onSuccess: (r) => toast.success(t('channels.toast.synced', { count: r.templates })), onError: (e) => toast.error(t('channels.templates.sync'), isApiError(e) ? e.message : undefined) })}
+                                onClick={() =>
+                                    sync.mutate(account, {
+                                        onSuccess: (r) => toast.success(t('channels.toast.synced', { count: r.templates })),
+                                        onError: (e) => toast.error(t('channels.templates.sync'), isApiError(e) ? e.message : undefined),
+                                    })
+                                }
                             >
                                 <RefreshCw />
                                 {t('channels.templates.sync')}
@@ -81,7 +82,15 @@ export function WaTemplatesPage() {
             {channels.isPending ? (
                 <Skeleton className="igr:h-48" />
             ) : account === null ? (
-                <EmptyState icon={FileText} title={t('channels.templates.noAccount')} action={<Button asChild><Link to={`/w/${workspace.id}/canales?tab=whatsapp`}>{t('channels.actions.connectWhatsApp')}</Link></Button>} />
+                <EmptyState
+                    icon={FileText}
+                    title={t('channels.templates.noAccount')}
+                    action={
+                        <Button asChild>
+                            <Link to={`/w/${workspace.id}/canales?tab=whatsapp`}>{t('channels.actions.connectWhatsApp')}</Link>
+                        </Button>
+                    }
+                />
             ) : templates.isError ? (
                 <ErrorState error={templates.error} onRetry={() => void templates.refetch()} />
             ) : templates.isPending ? (
@@ -105,7 +114,9 @@ export function WaTemplatesPage() {
                                 <TR key={tpl.id}>
                                     <TD>
                                         <span className="igr:font-mono igr:text-xs">{tpl.name}</span>
-                                        {tpl.rejected_reason && <p className="igr:mt-0.5 igr:text-xs igr:text-destructive">{t('channels.templates.rejected', { reason: tpl.rejected_reason })}</p>}
+                                        {tpl.rejected_reason && (
+                                            <p className="igr:mt-0.5 igr:text-xs igr:text-destructive">{t('channels.templates.rejected', { reason: tpl.rejected_reason })}</p>
+                                        )}
                                     </TD>
                                     <TD>{t(`channels.templates.categories.${tpl.category}`)}</TD>
                                     <TD className="igr:text-muted-foreground">{tpl.language}</TD>
@@ -122,7 +133,10 @@ export function WaTemplatesPage() {
                                                     variant="ghost"
                                                     size="sm"
                                                     className="igr:text-destructive"
-                                                    onClick={() => window.confirm(t('channels.templates.deleteConfirm', { name: tpl.name })) && remove.mutate(tpl.id, { onSuccess: () => toast.success(t('channels.templates.deleted')) })}
+                                                    onClick={() =>
+                                                        window.confirm(t('channels.templates.deleteConfirm', { name: tpl.name })) &&
+                                                        remove.mutate(tpl.id, { onSuccess: () => toast.success(t('channels.templates.deleted')) })
+                                                    }
                                                 >
                                                     {t('channels.templates.delete')}
                                                 </Button>

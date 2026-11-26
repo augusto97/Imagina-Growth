@@ -1,7 +1,7 @@
 {
     "agent": {
         "title": "Agente de ventas con IA",
-        "description": "Responde por WhatsApp sobre productos, precios, stock, pedidos y políticas con datos en vivo de tu tienda. Nunca inventa precios ni stock y pasa a una persona cuando hace falta.",
+        "description": "Un vendedor con IA que responde por WhatsApp con tus precios y tu stock reales, y pasa a una persona cuando hace falta.",
         "backToInbox": "Volver a la bandeja",
         "tabs": { "revision": "Revisión", "probar": "Probar el agente", "ajustes": "Ajustes" },
         "notices": {

@@ -1,7 +1,7 @@
 {
     "connections": {
         "title": "Conexiones",
-        "description": "Conecta tus cuentas de Meta, Google y TikTok con un clic: sin copiar ni pegar claves. Tú autorizas en la página de cada empresa y puedes desconectar cuando quieras.",
+        "description": "WhatsApp, Meta, Google y TikTok con un clic: autorizas en la página de cada empresa y puedes desconectar cuando quieras.",
         "account": "Cuenta:",
         "allows": "Sirve para:",
         "usedByLabel": "La usan:",

@@ -1,7 +1,7 @@
 {
     "today": {
         "title": "Hoy",
-        "description": "A quién escribirle hoy y qué decirle. La IA sugiere cada mensaje con lo que pidió el cliente; tú lo revisas y lo envías con un clic.",
+        "description": "A quién escribirle hoy y qué decirle, con el mensaje sugerido listo para revisar y enviar.",
         "forbidden": "Tu rol no atiende leads.",
         "owner": "De",
         "owners": {

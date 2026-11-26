@@ -1,4 +1,4 @@
-import { ArrowLeft, Camera, Copy, Download, Lock, MoreHorizontal, Pencil, RefreshCw, Trash2 } from 'lucide-react';
+import { Camera, Copy, Download, Lock, MoreHorizontal, Pencil, RefreshCw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -74,11 +74,6 @@ function Detail({ segment }: { segment: SegmentDetail }) {
             <PageHeader
                 title={
                     <span className="igr:flex igr:flex-wrap igr:items-center igr:gap-2">
-                        <Button asChild variant="ghost" size="icon" className="igr:size-7">
-                            <Link to={`/w/${workspace.id}/segmentos`} aria-label={t('common.back')}>
-                                <ArrowLeft />
-                            </Link>
-                        </Button>
                         {segment.name}
                         {segment.is_system ? (
                             <Badge variant="secondary">
@@ -153,7 +148,11 @@ function Detail({ segment }: { segment: SegmentDetail }) {
                 <Kpi label={t('segments.detail.value')} value={computing ? null : formatMoney(segment.revenue_ws, workspace.currency, workspace.locale)} />
             </div>
             <p className="igr:text-xs igr:text-muted-foreground">
-                {computing ? t('segments.detail.computing') : dynamic ? t('segments.detail.lastComputed', { when: formatDateTime(segment.last_computed_at, workspace.locale, workspace.timezone) }) : t('segments.detail.staticHelp')}
+                {computing
+                    ? t('segments.detail.computing')
+                    : dynamic
+                      ? t('segments.detail.lastComputed', { when: formatDateTime(segment.last_computed_at, workspace.locale, workspace.timezone) })
+                      : t('segments.detail.staticHelp')}
             </p>
 
             {segment.definition ? <Definition segment={segment} /> : null}
@@ -209,7 +208,17 @@ function Definition({ segment }: { segment: SegmentDetail }) {
                 <p className="igr:text-[13px] igr:text-muted-foreground">{summarize(t, definition, names)}</p>
                 {open && options.data ? (
                     <div className="igr:mt-3">
-                        <BuilderContext.Provider value={{ ws: workspace.id, options: options.data, readOnly: true, errors: {}, selfId: segment.id, currency: workspace.currency, locale: workspace.locale }}>
+                        <BuilderContext.Provider
+                            value={{
+                                ws: workspace.id,
+                                options: options.data,
+                                readOnly: true,
+                                errors: {},
+                                selfId: segment.id,
+                                currency: workspace.currency,
+                                locale: workspace.locale,
+                            }}
+                        >
                             <GroupEditor group={definition} path={[]} root={definition} setRoot={() => undefined} />
                         </BuilderContext.Provider>
                     </div>
@@ -231,7 +240,11 @@ function Members({ segment }: { segment: SegmentDetail }) {
         <Card>
             <CardHeader className="igr:flex-row igr:items-center igr:justify-between">
                 <CardTitle>{t('segments.members.title')}</CardTitle>
-                {meta ? <span className="igr:text-xs igr:text-muted-foreground">{t('segments.members.count', { count: meta.total, formatted: formatNumber(meta.total, workspace.locale) })}</span> : null}
+                {meta ? (
+                    <span className="igr:text-xs igr:text-muted-foreground">
+                        {t('segments.members.count', { count: meta.total, formatted: formatNumber(meta.total, workspace.locale) })}
+                    </span>
+                ) : null}
             </CardHeader>
             <CardContent>
                 {members.isPending ? (

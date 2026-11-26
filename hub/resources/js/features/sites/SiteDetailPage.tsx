@@ -1,6 +1,6 @@
-import { ArrowLeft, ExternalLink, Inbox } from 'lucide-react';
+import { ExternalLink, Inbox } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { useSite } from '@/api/queries';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { ReconciliationTable } from './ReconciliationTable';
 import { BackfillBadge, BackfillProgress } from './SiteBits';
 import { eventLabel, SiteHealthBadge, SiteHealthPanel } from './SiteHealth';
 import { SiteActions } from './SiteActions';
+import { AutoBreadcrumbs } from '@/components/ui/page-header';
 
 function Copyable({ value }: { value: string }) {
     const { t } = useTranslation();
@@ -59,17 +60,19 @@ export function SiteDetailPage() {
 
     return (
         <>
-            <Link to={`/w/${workspace.id}/sitios`} className="igr:mb-3 igr:inline-flex igr:items-center igr:gap-1 igr:text-[13px] igr:text-muted-foreground igr:hover:text-foreground">
-                <ArrowLeft className="igr:size-3.5" />
-                {t('sites.title')}
-            </Link>
-            <div className="igr:mb-5 igr:flex igr:flex-wrap igr:items-start igr:justify-between igr:gap-3">
+            <AutoBreadcrumbs />
+            <div className="igr:mb-6 igr:flex igr:flex-wrap igr:items-start igr:justify-between igr:gap-3">
                 <div>
                     <div className="igr:flex igr:items-center igr:gap-2">
-                        <h1 className="igr:text-lg igr:font-semibold igr:tracking-tight">{site.name ?? site.host}</h1>
+                        <h1 className="igr:text-[22px] igr:leading-7 igr:font-semibold igr:tracking-tight igr:sm:text-title">{site.name ?? site.host}</h1>
                         <SiteHealthBadge site={site} />
                     </div>
-                    <a href={site.url} target="_blank" rel="noreferrer" className="igr:mt-0.5 igr:inline-flex igr:items-center igr:gap-1 igr:text-[13px] igr:text-muted-foreground igr:hover:text-foreground">
+                    <a
+                        href={site.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="igr:mt-0.5 igr:inline-flex igr:items-center igr:gap-1 igr:text-[13px] igr:text-muted-foreground igr:hover:text-foreground"
+                    >
                         {site.host}
                         <ExternalLink className="igr:size-3" />
                     </a>
@@ -95,9 +98,7 @@ export function SiteDetailPage() {
                                 <BackfillBadge backfill={site.backfill} />
                             </div>
                             <CardDescription>
-                                {site.backfill?.from
-                                    ? t('sites.backfill.since', { date: formatDate(site.backfill.from, locale, tz) })
-                                    : t('sites.backfill.description')}
+                                {site.backfill?.from ? t('sites.backfill.since', { date: formatDate(site.backfill.from, locale, tz) }) : t('sites.backfill.description')}
                                 {site.backfill?.finished_at ? ` · ${t('sites.backfill.finished', { when: formatDateTime(site.backfill.finished_at, locale, tz) })}` : ''}
                             </CardDescription>
                         </CardHeader>
@@ -107,7 +108,9 @@ export function SiteDetailPage() {
                             ) : (
                                 <p className="igr:text-[13px] igr:text-muted-foreground">{t('sites.backfill.waiting')}</p>
                             )}
-                            {site.backfill?.error ? <p className="igr:mt-3 igr:rounded-md igr:bg-destructive/10 igr:px-3 igr:py-2 igr:text-[13px] igr:text-destructive">{site.backfill.error}</p> : null}
+                            {site.backfill?.error ? (
+                                <p className="igr:mt-3 igr:rounded-md igr:bg-destructive/10 igr:px-3 igr:py-2 igr:text-[13px] igr:text-destructive">{site.backfill.error}</p>
+                            ) : null}
                         </CardContent>
                     </Card>
                     <Card>
@@ -127,7 +130,18 @@ export function SiteDetailPage() {
                             <DescriptionList
                                 items={[
                                     { label: t('sites.fields.platform'), value: site.platform === 'woocommerce' ? 'WooCommerce' : 'WordPress' },
-                                    { label: t('sites.fields.versions'), value: [site.plugin_version && `${t('sites.fields.plugin')} ${site.plugin_version}`, site.wp_version && `WordPress ${site.wp_version}`, site.wc_version && `WooCommerce ${site.wc_version}`, site.php_version && `PHP ${site.php_version}`].filter(Boolean).join(' · ') || '—' },
+                                    {
+                                        label: t('sites.fields.versions'),
+                                        value:
+                                            [
+                                                site.plugin_version && `${t('sites.fields.plugin')} ${site.plugin_version}`,
+                                                site.wp_version && `WordPress ${site.wp_version}`,
+                                                site.wc_version && `WooCommerce ${site.wc_version}`,
+                                                site.php_version && `PHP ${site.php_version}`,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' · ') || '—',
+                                    },
                                     { label: t('sites.fields.connectedAt'), value: formatDateTime(site.connected_at, locale, tz) },
                                     { label: t('sites.fields.lastSeen'), value: formatRelative(site.last_seen_at, locale) },
                                     { label: t('sites.fields.lastEvent'), value: formatRelative(site.last_event_at, locale) },
@@ -138,7 +152,10 @@ export function SiteDetailPage() {
                                         value:
                                             health.heartbeat_at === undefined
                                                 ? t('sites.fields.noHeartbeat')
-                                                : t('sites.fields.outboxValue', { pending: formatNumber(health.outbox_pending ?? 0, locale), dead: formatNumber(health.outbox_dead ?? 0, locale) }),
+                                                : t('sites.fields.outboxValue', {
+                                                      pending: formatNumber(health.outbox_pending ?? 0, locale),
+                                                      dead: formatNumber(health.outbox_dead ?? 0, locale),
+                                                  }),
                                     },
                                     { label: t('sites.fields.lastError'), value: health.last_error ?? '—' },
                                 ]}
@@ -221,9 +238,20 @@ export function SiteDetailPage() {
                                     { label: t('sites.fields.publicKey'), value: <Copyable value={site.public_key} /> },
                                     { label: t('sites.fields.restUrl'), value: site.rest_url ?? '—' },
                                     { label: t('sites.fields.secretRotated'), value: formatDateTime(site.secret_rotated_at, locale, tz) },
-                                    { label: t('sites.fields.paidStatuses'), value: Array.isArray(site.settings.paid_statuses) ? (site.settings.paid_statuses as string[]).map((s) => t(`orderStatus.${s}`, { defaultValue: s })).join(', ') : '—' },
-                                    { label: t('sites.fields.codGateways'), value: Array.isArray(site.settings.cod_gateways) ? (site.settings.cod_gateways as string[]).join(', ') : '—' },
-                                    { label: t('sites.fields.offlineGateways'), value: Array.isArray(site.settings.offline_gateways) ? (site.settings.offline_gateways as string[]).join(', ') : '—' },
+                                    {
+                                        label: t('sites.fields.paidStatuses'),
+                                        value: Array.isArray(site.settings.paid_statuses)
+                                            ? (site.settings.paid_statuses as string[]).map((s) => t(`orderStatus.${s}`, { defaultValue: s })).join(', ')
+                                            : '—',
+                                    },
+                                    {
+                                        label: t('sites.fields.codGateways'),
+                                        value: Array.isArray(site.settings.cod_gateways) ? (site.settings.cod_gateways as string[]).join(', ') : '—',
+                                    },
+                                    {
+                                        label: t('sites.fields.offlineGateways'),
+                                        value: Array.isArray(site.settings.offline_gateways) ? (site.settings.offline_gateways as string[]).join(', ') : '—',
+                                    },
                                 ]}
                             />
                             <div>

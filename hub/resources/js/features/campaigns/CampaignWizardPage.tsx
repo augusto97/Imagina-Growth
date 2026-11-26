@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Info, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { Check, Info, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
@@ -19,6 +19,7 @@ import { type CampaignPatch, useCampaign, useCampaignActions, useCampaignOptions
 import { CHANNEL_ICON, StatusBadge } from './labels';
 import { isoToWall, wallToIso } from './time';
 import type { AbConfig, Audience, AudienceRule, CampaignChannel, CampaignDetail, CampaignOptions, SendMode, Variant, VariantKey } from './types';
+import { AutoBreadcrumbs } from '@/components/ui/page-header';
 
 export const STEPS = ['channel', 'audience', 'content', 'schedule', 'review'] as const;
 type Step = (typeof STEPS)[number];
@@ -60,17 +61,11 @@ export function formToAudience(f: AudienceForm, channel: CampaignChannel): Audie
 }
 
 export function CampaignWizardPage() {
-    const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const { campaignId = '' } = useParams();
     const campaign = useCampaign(workspace.id, campaignId);
     const options = useCampaignOptions(workspace.id);
-    const back = (
-        <Link to={`/w/${workspace.id}/campanas`} className="igr:mb-3 igr:inline-flex igr:items-center igr:gap-1 igr:text-[13px] igr:text-muted-foreground igr:hover:text-foreground">
-            <ArrowLeft className="igr:size-3.5" />
-            {t('campaigns.title')}
-        </Link>
-    );
+    const back = <AutoBreadcrumbs />;
 
     if (campaign.isError || options.isError) {
         return (
@@ -166,9 +161,15 @@ function Wizard({ campaign, options }: { campaign: CampaignDetail; options: Camp
                 ))}
             </ol>
             <FieldError message={actions.update.isError ? errorMessage(actions.update.error, t) : undefined} />
-            {step === 'channel' && <ChannelStep campaign={campaign} options={options} saving={actions.update.isPending} canManage={canManage} onSave={(p) => save(p, 'audience')} />}
-            {step === 'audience' && <AudienceStep campaign={campaign} options={options} saving={actions.update.isPending} canManage={canManage} onSave={(p) => save(p, 'content')} />}
-            {step === 'content' && <ContentStep campaign={campaign} options={options} saving={actions.update.isPending} canManage={canManage} onSave={(p) => save(p, 'schedule')} />}
+            {step === 'channel' && (
+                <ChannelStep campaign={campaign} options={options} saving={actions.update.isPending} canManage={canManage} onSave={(p) => save(p, 'audience')} />
+            )}
+            {step === 'audience' && (
+                <AudienceStep campaign={campaign} options={options} saving={actions.update.isPending} canManage={canManage} onSave={(p) => save(p, 'content')} />
+            )}
+            {step === 'content' && (
+                <ContentStep campaign={campaign} options={options} saving={actions.update.isPending} canManage={canManage} onSave={(p) => save(p, 'schedule')} />
+            )}
             {step === 'schedule' && <ScheduleStep campaign={campaign} saving={actions.update.isPending} canManage={canManage} onSave={(p) => save(p, 'review')} />}
             {step === 'review' && <ReviewStep campaign={campaign} canManage={canManage} />}
         </>
@@ -220,7 +221,11 @@ function ChannelStep({ campaign, options, saving, canManage, onSave }: StepProps
                 onSave(channel === campaign.channel ? { name } : { name, channel, template_id: null, variants: [] });
             }}
         >
-            <StepCard title={t('campaigns.wizard.step.channel')} description={t('campaigns.wizard.channelHelp')} footer={<NextButton saving={saving} canManage={canManage} disabled={name.trim() === ''} />}>
+            <StepCard
+                title={t('campaigns.wizard.step.channel')}
+                description={t('campaigns.wizard.channelHelp')}
+                footer={<NextButton saving={saving} canManage={canManage} disabled={name.trim() === ''} />}
+            >
                 <div>
                     <Label htmlFor="w-name">{t('campaigns.fields.name')}</Label>
                     <Input id="w-name" className="igr:mt-1 igr:max-w-md" value={name} maxLength={160} onChange={(e) => setName(e.target.value)} disabled={!canManage} />
@@ -232,7 +237,13 @@ function ChannelStep({ campaign, options, saving, canManage, onSave }: StepProps
                             const Icon = CHANNEL_ICON[c];
                             const on = options.active_channels.includes(c);
                             return (
-                                <label key={c} className={cn('igr:flex igr:cursor-pointer igr:flex-col igr:gap-1 igr:rounded-lg igr:border igr:p-3 igr:has-[:focus-visible]:ring-2 igr:has-[:focus-visible]:ring-ring', channel === c && 'igr:border-primary igr:bg-primary/5')}>
+                                <label
+                                    key={c}
+                                    className={cn(
+                                        'igr:flex igr:cursor-pointer igr:flex-col igr:gap-1 igr:rounded-lg igr:border igr:p-3 igr:has-[:focus-visible]:ring-2 igr:has-[:focus-visible]:ring-ring',
+                                        channel === c && 'igr:border-primary igr:bg-primary/5',
+                                    )}
+                                >
                                     <input type="radio" name="channel" className="igr:sr-only" checked={channel === c} onChange={() => setChannel(c)} disabled={!canManage} />
                                     <span className="igr:flex igr:items-center igr:gap-2 igr:text-[13px] igr:font-medium">
                                         <Icon className="igr:size-4" aria-hidden="true" />
@@ -263,19 +274,40 @@ function ChannelStep({ campaign, options, saving, canManage, onSave }: StepProps
     );
 }
 
-function SegmentChecklist({ options, selected, onToggle, disabled, idPrefix }: { options: CampaignOptions; selected: string[]; onToggle: (id: string) => void; disabled?: boolean; idPrefix: string }) {
+function SegmentChecklist({
+    options,
+    selected,
+    onToggle,
+    disabled,
+    idPrefix,
+}: {
+    options: CampaignOptions;
+    selected: string[];
+    onToggle: (id: string) => void;
+    disabled?: boolean;
+    idPrefix: string;
+}) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const [q, setQ] = useState('');
     const list = options.segments.filter((s) => q === '' || s.name.toLocaleLowerCase('es').includes(q.toLocaleLowerCase('es')));
     return (
         <div>
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('campaigns.audience.searchSegments')} aria-label={t('campaigns.audience.searchSegments')} className="igr:mb-2" />
+            <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder={t('campaigns.audience.searchSegments')}
+                aria-label={t('campaigns.audience.searchSegments')}
+                className="igr:mb-2"
+            />
             <ul className="igr:max-h-56 igr:divide-y igr:overflow-y-auto igr:rounded-md igr:border">
                 {list.length === 0 ? <li className="igr:p-3 igr:text-xs igr:text-muted-foreground">{t('campaigns.audience.noSegments')}</li> : null}
                 {list.map((s) => (
                     <li key={s.id}>
-                        <label htmlFor={`${idPrefix}-${s.id}`} className="igr:flex igr:cursor-pointer igr:items-center igr:gap-2 igr:px-3 igr:py-1.5 igr:text-[13px] igr:hover:bg-muted/40">
+                        <label
+                            htmlFor={`${idPrefix}-${s.id}`}
+                            className="igr:flex igr:cursor-pointer igr:items-center igr:gap-2 igr:px-3 igr:py-1.5 igr:text-[13px] igr:hover:bg-muted/40"
+                        >
                             <input id={`${idPrefix}-${s.id}`} type="checkbox" checked={selected.includes(s.id)} onChange={() => onToggle(s.id)} disabled={disabled} />
                             <span className="igr:flex-1 igr:truncate">{s.name}</span>
                             {s.is_system ? <Badge variant="outline">{t('campaigns.audience.system')}</Badge> : null}
@@ -310,7 +342,16 @@ function AudienceStep({ campaign, options, saving, canManage, onSave }: StepProp
             <input id={id} type="checkbox" checked={value !== null} onChange={(e) => set(e.target.checked ? 7 : null)} disabled={!canManage} />
             <label htmlFor={id}>{label}</label>
             {value !== null ? (
-                <Input type="number" min={1} max={730} value={value} onChange={(e) => set(Math.max(1, Number(e.target.value) || 1))} className="igr:w-20" aria-label={t('campaigns.audience.days')} disabled={!canManage} />
+                <Input
+                    type="number"
+                    min={1}
+                    max={730}
+                    value={value}
+                    onChange={(e) => set(Math.max(1, Number(e.target.value) || 1))}
+                    className="igr:w-20"
+                    aria-label={t('campaigns.audience.days')}
+                    disabled={!canManage}
+                />
             ) : null}
             {value !== null ? <span className="igr:text-muted-foreground">{t('campaigns.audience.days')}</span> : null}
         </div>
@@ -323,10 +364,16 @@ function AudienceStep({ campaign, options, saving, canManage, onSave }: StepProp
                 onSave({ audience });
             }}
         >
-            <StepCard title={t('campaigns.wizard.step.audience')} description={t('campaigns.audience.help')} footer={<NextButton saving={saving} canManage={canManage} disabled={!defined} />}>
+            <StepCard
+                title={t('campaigns.wizard.step.audience')}
+                description={t('campaigns.audience.help')}
+                footer={<NextButton saving={saving} canManage={canManage} disabled={!defined} />}
+            >
                 <div className="igr:flex igr:items-center igr:justify-between igr:gap-3 igr:rounded-md igr:bg-muted/50 igr:px-3 igr:py-2" aria-live="polite">
                     <span className="igr:text-[13px]">{t('campaigns.audience.count')}</span>
-                    <strong className="igr:text-lg igr:tabular-nums">{!defined ? '—' : counter.isPending || !counter.data ? '…' : formatNumber(counter.data.count, workspace.locale)}</strong>
+                    <strong className="igr:text-lg igr:tabular-nums">
+                        {!defined ? '—' : counter.isPending || !counter.data ? '…' : formatNumber(counter.data.count, workspace.locale)}
+                    </strong>
                 </div>
                 <label className="igr:flex igr:items-center igr:gap-2 igr:text-[13px]">
                     <input type="checkbox" checked={form.all} onChange={(e) => setForm((f) => ({ ...f, all: e.target.checked }))} disabled={!canManage} />
@@ -353,7 +400,12 @@ function AudienceStep({ campaign, options, saving, canManage, onSave }: StepProp
                         {t('campaigns.audience.onlyConsent', { channel: t(`campaigns.channel.${campaign.channel}`) })}
                     </label>
                     <label className="igr:flex igr:items-center igr:gap-2 igr:text-[13px]">
-                        <input type="checkbox" checked={form.onlyNeverPurchased} onChange={(e) => setForm((f) => ({ ...f, onlyNeverPurchased: e.target.checked }))} disabled={!canManage} />
+                        <input
+                            type="checkbox"
+                            checked={form.onlyNeverPurchased}
+                            onChange={(e) => setForm((f) => ({ ...f, onlyNeverPurchased: e.target.checked }))}
+                            disabled={!canManage}
+                        />
                         {t('campaigns.audience.onlyNeverPurchased')}
                     </label>
                 </fieldset>
@@ -366,9 +418,7 @@ function ContentStep({ campaign, options, saving, canManage, onSave }: StepProps
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const templates = options.templates.filter((tpl) => tpl.channel === campaign.channel);
-    const [variants, setVariants] = useState<Variant[]>(
-        campaign.variants.length > 1 ? campaign.variants : [{ key: 'A', template_id: campaign.template_id, weight: 1 }],
-    );
+    const [variants, setVariants] = useState<Variant[]>(campaign.variants.length > 1 ? campaign.variants : [{ key: 'A', template_id: campaign.template_id, weight: 1 }]);
     const [ab, setAb] = useState<AbConfig>(campaign.ab_config ?? { sample_pct: 20, metric: 'clicks', wait_hours: 4 });
     const [holdout, setHoldout] = useState(campaign.holdout_pct);
     const isAb = variants.length > 1;
@@ -386,7 +436,11 @@ function ContentStep({ campaign, options, saving, canManage, onSave }: StepProps
                 });
             }}
         >
-            <StepCard title={t('campaigns.wizard.step.content')} description={t('campaigns.content.help')} footer={<NextButton saving={saving} canManage={canManage} disabled={!complete} />}>
+            <StepCard
+                title={t('campaigns.wizard.step.content')}
+                description={t('campaigns.content.help')}
+                footer={<NextButton saving={saving} canManage={canManage} disabled={!complete} />}
+            >
                 {templates.length === 0 ? (
                     <p className="igr:flex igr:items-start igr:gap-1.5 igr:text-xs igr:text-warning">
                         <TriangleAlert className="igr:mt-0.5 igr:size-3.5 igr:shrink-0" aria-hidden="true" />
@@ -403,7 +457,13 @@ function ContentStep({ campaign, options, saving, canManage, onSave }: StepProps
                         <div key={v.key} className="igr:flex igr:items-end igr:gap-2">
                             <div className="igr:flex-1 igr:max-w-lg">
                                 <Label htmlFor={`tpl-${v.key}`}>{isAb ? t('campaigns.content.variant', { key: v.key }) : t('campaigns.content.template')}</Label>
-                                <Select id={`tpl-${v.key}`} className="igr:mt-1" value={v.template_id ?? ''} onChange={(e) => setTemplate(v.key, e.target.value)} disabled={!canManage}>
+                                <Select
+                                    id={`tpl-${v.key}`}
+                                    className="igr:mt-1"
+                                    value={v.template_id ?? ''}
+                                    onChange={(e) => setTemplate(v.key, e.target.value)}
+                                    disabled={!canManage}
+                                >
                                     <option value="">{t('campaigns.content.chooseTemplate')}</option>
                                     {templates.map((tpl) => (
                                         <option key={tpl.id} value={tpl.id}>
@@ -440,25 +500,58 @@ function ContentStep({ campaign, options, saving, canManage, onSave }: StepProps
                     <div className="igr:grid igr:gap-3 igr:rounded-md igr:border igr:p-3 igr:sm:grid-cols-3">
                         <div>
                             <Label htmlFor="ab-sample">{t('campaigns.content.samplePct')}</Label>
-                            <Input id="ab-sample" type="number" min={5} max={50} className="igr:mt-1" value={ab.sample_pct} onChange={(e) => setAb((a) => ({ ...a, sample_pct: Number(e.target.value) || 20 }))} disabled={!canManage} />
+                            <Input
+                                id="ab-sample"
+                                type="number"
+                                min={5}
+                                max={50}
+                                className="igr:mt-1"
+                                value={ab.sample_pct}
+                                onChange={(e) => setAb((a) => ({ ...a, sample_pct: Number(e.target.value) || 20 }))}
+                                disabled={!canManage}
+                            />
                         </div>
                         <div>
                             <Label htmlFor="ab-metric">{t('campaigns.content.metric')}</Label>
-                            <Select id="ab-metric" className="igr:mt-1" value={ab.metric} onChange={(e) => setAb((a) => ({ ...a, metric: e.target.value === 'revenue' ? 'revenue' : 'clicks' }))} disabled={!canManage}>
+                            <Select
+                                id="ab-metric"
+                                className="igr:mt-1"
+                                value={ab.metric}
+                                onChange={(e) => setAb((a) => ({ ...a, metric: e.target.value === 'revenue' ? 'revenue' : 'clicks' }))}
+                                disabled={!canManage}
+                            >
                                 <option value="clicks">{t('campaigns.content.metricClicks')}</option>
                                 <option value="revenue">{t('campaigns.content.metricRevenue')}</option>
                             </Select>
                         </div>
                         <div>
                             <Label htmlFor="ab-wait">{t('campaigns.content.waitHours')}</Label>
-                            <Input id="ab-wait" type="number" min={1} max={72} className="igr:mt-1" value={ab.wait_hours} onChange={(e) => setAb((a) => ({ ...a, wait_hours: Number(e.target.value) || 4 }))} disabled={!canManage} />
+                            <Input
+                                id="ab-wait"
+                                type="number"
+                                min={1}
+                                max={72}
+                                className="igr:mt-1"
+                                value={ab.wait_hours}
+                                onChange={(e) => setAb((a) => ({ ...a, wait_hours: Number(e.target.value) || 4 }))}
+                                disabled={!canManage}
+                            />
                         </div>
                         <p className="igr:text-xs igr:text-muted-foreground igr:sm:col-span-3">{t('campaigns.content.abHelp', { pct: ab.sample_pct, hours: ab.wait_hours })}</p>
                     </div>
                 ) : null}
                 <div className="igr:max-w-xs">
                     <Label htmlFor="holdout">{t('campaigns.content.holdout')}</Label>
-                    <Input id="holdout" type="number" min={0} max={50} className="igr:mt-1" value={holdout} onChange={(e) => setHoldout(Math.max(0, Math.min(50, Number(e.target.value) || 0)))} disabled={!canManage} />
+                    <Input
+                        id="holdout"
+                        type="number"
+                        min={0}
+                        max={50}
+                        className="igr:mt-1"
+                        value={holdout}
+                        onChange={(e) => setHoldout(Math.max(0, Math.min(50, Number(e.target.value) || 0)))}
+                        disabled={!canManage}
+                    />
                     <p className="igr:mt-1 igr:text-xs igr:text-muted-foreground">{t('campaigns.content.holdoutHelp')}</p>
                 </div>
             </StepCard>
@@ -481,10 +574,17 @@ function ScheduleStep({ campaign, saving, canManage, onSave }: Omit<StepProps, '
                 onSave({ send_mode: mode, send_at: sendAt });
             }}
         >
-            <StepCard title={t('campaigns.wizard.step.schedule')} description={t('campaigns.schedule.help')} footer={<NextButton saving={saving} canManage={canManage} disabled={invalid} />}>
+            <StepCard
+                title={t('campaigns.wizard.step.schedule')}
+                description={t('campaigns.schedule.help')}
+                footer={<NextButton saving={saving} canManage={canManage} disabled={invalid} />}
+            >
                 <div role="radiogroup" aria-label={t('campaigns.wizard.step.schedule')} className="igr:grid igr:gap-2 igr:sm:grid-cols-2">
                     {SEND_MODES.map((m) => (
-                        <label key={m} className={cn('igr:flex igr:cursor-pointer igr:gap-3 igr:rounded-lg igr:border igr:p-3', mode === m && 'igr:border-primary igr:bg-primary/5')}>
+                        <label
+                            key={m}
+                            className={cn('igr:flex igr:cursor-pointer igr:gap-3 igr:rounded-lg igr:border igr:p-3', mode === m && 'igr:border-primary igr:bg-primary/5')}
+                        >
                             <input type="radio" name="mode" className="igr:mt-0.5" checked={mode === m} onChange={() => setMode(m)} disabled={!canManage} />
                             <span>
                                 <span className="igr:block igr:text-[13px] igr:font-medium">{t(`campaigns.schedule.mode.${m}`)}</span>
@@ -496,7 +596,15 @@ function ScheduleStep({ campaign, saving, canManage, onSave }: Omit<StepProps, '
                 {mode !== 'now' ? (
                     <div className="igr:max-w-xs">
                         <Label htmlFor="send-at">{mode === 'best_time' ? t('campaigns.schedule.day') : t('campaigns.schedule.at')}</Label>
-                        <Input id="send-at" type="datetime-local" className="igr:mt-1" value={wall} onChange={(e) => setWall(e.target.value)} disabled={!canManage} aria-invalid={invalid} />
+                        <Input
+                            id="send-at"
+                            type="datetime-local"
+                            className="igr:mt-1"
+                            value={wall}
+                            onChange={(e) => setWall(e.target.value)}
+                            disabled={!canManage}
+                            aria-invalid={invalid}
+                        />
                         <p className="igr:mt-1 igr:text-xs igr:text-muted-foreground">{t('campaigns.schedule.timezone', { tz: workspace.timezone })}</p>
                     </div>
                 ) : null}
@@ -550,7 +658,9 @@ function ReviewStep({ campaign, canManage }: { campaign: CampaignDetail; canMana
                         <Tile label={t('campaigns.review.excluded')} value={formatNumber(compliance.excluded_total, workspace.locale)} />
                         <Tile label={t('campaigns.review.holdout')} value={formatNumber(compliance.holdout, workspace.locale)} />
                     </div>
-                    {compliance.estimated ? <p className="igr:text-xs igr:text-muted-foreground">{t('campaigns.review.estimated', { n: formatNumber(compliance.checked, workspace.locale) })}</p> : null}
+                    {compliance.estimated ? (
+                        <p className="igr:text-xs igr:text-muted-foreground">{t('campaigns.review.estimated', { n: formatNumber(compliance.checked, workspace.locale) })}</p>
+                    ) : null}
                     <div className="igr:grid igr:gap-4 igr:lg:grid-cols-2">
                         <Card>
                             <CardHeader>
@@ -584,7 +694,9 @@ function ReviewStep({ campaign, canManage }: { campaign: CampaignDetail; canMana
                                 <p className="igr:text-2xl igr:font-semibold igr:tabular-nums">
                                     {formatMoney(cost.total_usd, 'USD', workspace.locale)}
                                     {cost.total_local !== null && cost.currency !== 'USD' ? (
-                                        <span className="igr:ml-2 igr:text-sm igr:font-normal igr:text-muted-foreground">≈ {formatMoney(cost.total_local, cost.currency, workspace.locale)}</span>
+                                        <span className="igr:ml-2 igr:text-sm igr:font-normal igr:text-muted-foreground">
+                                            ≈ {formatMoney(cost.total_local, cost.currency, workspace.locale)}
+                                        </span>
                                     ) : null}
                                 </p>
                                 {cost.by_country.length > 0 ? (
@@ -602,7 +714,11 @@ function ReviewStep({ campaign, canManage }: { campaign: CampaignDetail; canMana
                                                 <TR key={r.country}>
                                                     <TD>{t(`campaigns.countries.${r.country}`, { defaultValue: r.country })}</TD>
                                                     <TD className="igr:text-right igr:tabular-nums">{formatNumber(r.recipients, workspace.locale)}</TD>
-                                                    <TD className="igr:text-right igr:tabular-nums">{r.rate_usd !== null ? `US$ ${r.rate_usd.toLocaleString(workspace.locale, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}` : '—'}</TD>
+                                                    <TD className="igr:text-right igr:tabular-nums">
+                                                        {r.rate_usd !== null
+                                                            ? `US$ ${r.rate_usd.toLocaleString(workspace.locale, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`
+                                                            : '—'}
+                                                    </TD>
                                                     <TD className="igr:text-right igr:tabular-nums">{formatMoney(r.total_usd, 'USD', workspace.locale)}</TD>
                                                 </TR>
                                             ))}

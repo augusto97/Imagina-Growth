@@ -1,7 +1,7 @@
-import { ArrowLeft, Copy, KeyRound, Pencil, Receipt } from 'lucide-react';
+import { Copy, KeyRound, Pencil, Receipt } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,7 @@ import { AffiliateDialog } from './AffiliateDialog';
 import { useAffiliate } from './api';
 import { ConversionsTable } from './ConversionsTable';
 import { PortalLinkDialog } from './PortalLinkDialog';
+import { Breadcrumbs, useAutoCrumbs } from '@/components/ui/page-header';
 
 /** Detalle de un afiliado: sus cifras, enlaces, cupones, material y pedidos. */
 export function AffiliateDetailPage() {
@@ -29,14 +30,8 @@ export function AffiliateDetailPage() {
     const [editing, setEditing] = useState(false);
     const [portal, setPortal] = useState(false);
 
-    const back = (
-        <Button variant="ghost" size="sm" asChild>
-            <Link to={`/w/${workspace.id}/referidos?tab=afiliados`}>
-                <ArrowLeft />
-                {t('referrals.affiliates.back')}
-            </Link>
-        </Button>
-    );
+    const crumbs = useAutoCrumbs();
+    const back = <Breadcrumbs className="igr:mb-3" items={crumbs.map((c, i) => (i === crumbs.length - 1 ? { ...c, to: `/w/${workspace.id}/referidos?tab=afiliados` } : c))} />;
     if (detail.isPending) {
         return <Skeleton className="igr:h-96" />;
     }
@@ -93,7 +88,12 @@ export function AffiliateDetailPage() {
                             {a.links.map((l) => (
                                 <div key={l.url} className="igr:flex igr:gap-2">
                                     <Input readOnly value={l.url} aria-label={l.site} onFocus={(e) => e.currentTarget.select()} className="igr:font-mono" />
-                                    <Button variant="outline" size="icon" aria-label={t('referrals.portal.copy')} onClick={() => void navigator.clipboard.writeText(l.url).then(() => toast.success(t('referrals.portal.copied')))}>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        aria-label={t('referrals.portal.copy')}
+                                        onClick={() => void navigator.clipboard.writeText(l.url).then(() => toast.success(t('referrals.portal.copied')))}
+                                    >
                                         <Copy />
                                     </Button>
                                 </div>
@@ -102,7 +102,9 @@ export function AffiliateDetailPage() {
                                 {t('referrals.affiliates.coupons')}: <span className="igr:font-mono">{a.coupon_codes.join(', ') || '—'}</span>
                             </p>
                             <p className="igr:text-xs igr:text-muted-foreground">
-                                {a.portal_sent_at ? t('referrals.affiliates.portalSent', { when: formatRelative(a.portal_sent_at, workspace.locale) }) : t('referrals.affiliates.portalNever')}
+                                {a.portal_sent_at
+                                    ? t('referrals.affiliates.portalSent', { when: formatRelative(a.portal_sent_at, workspace.locale) })
+                                    : t('referrals.affiliates.portalNever')}
                             </p>
                         </CardContent>
                     </Card>

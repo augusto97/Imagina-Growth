@@ -1,0 +1,63 @@
+{
+    "ui": {
+        "breadcrumb": "Ubicación",
+        "help": "Ayuda",
+        "howItWorks": "Cómo funciona",
+        "open": "Abrir",
+        "soon": "Muy pronto",
+        "sectionNav": {
+            "label": "Secciones de {{section}}",
+            "overview": "Resumen"
+        },
+        "checklist": {
+            "progress": "{{done}} de {{total}} listos",
+            "status": {
+                "done": "listo",
+                "current": "lo que sigue",
+                "todo": "pendiente",
+                "blocked": "bloqueado"
+            }
+        },
+        "stepper": {
+            "mobile": "Paso {{current}} de {{total}}"
+        },
+        "locked": {
+            "needsSetup": "Falta un paso",
+            "notInPlan": "No está en tu plan",
+            "inPlan": "Disponible en el plan {{plan}}",
+            "whatsMissing": "Qué hace falta",
+            "seeSection": "Ver todo en {{section}}",
+            "short": {
+                "plan": "No está en tu plan",
+                "site": "Necesita tu web conectada",
+                "channel": "Necesita un canal conectado",
+                "generic": "Todavía no está lista"
+            },
+            "plan": {
+                "title": "{{name}} no está en tu plan",
+                "requirement": "Un plan que incluya {{name}}",
+                "included": "Viene en el plan {{plan}} y en los superiores.",
+                "action": "Ver planes"
+            },
+            "site": {
+                "title": "Conecta tu web para usar {{name}}",
+                "requirement": "Tu web conectada",
+                "how": "Instala el plugin de Imagina Growth en tu WordPress y pega el código de conexión. Toma unos minutos.",
+                "pending": "La conexión ya empezó: termínala desde el plugin en tu WordPress.",
+                "action": "Conectar tu web",
+                "finish": "Terminar la conexión"
+            },
+            "channel": {
+                "title": "Conecta WhatsApp, Messenger o Instagram para usar {{name}}",
+                "requirement": "Un canal de conversación conectado",
+                "how": "WhatsApp se conecta con un clic desde tu cuenta de Meta. Messenger e Instagram, igual.",
+                "action": "Conectar un canal"
+            },
+            "askAdmin": {
+                "plan": "Pídele a quien administra la cuenta que cambie el plan.",
+                "site": "Pídele a quien administra la cuenta que conecte la web.",
+                "channel": "Pídele a quien administra la cuenta que conecte un canal."
+            }
+        }
+    }
+}

@@ -1,7 +1,7 @@
-import { ArrowLeft, FileDown, GitMerge, MoreHorizontal, Trash2, UserX } from 'lucide-react';
+import { FileDown, GitMerge, MoreHorizontal, Trash2, UserX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { EmptyState, ErrorState } from '@/components/ui/misc';
@@ -30,6 +30,7 @@ import { ProductsTab } from './ProductsTab';
 import { ProfileHeader } from './ProfileHeader';
 import { SummaryTab } from './SummaryTab';
 import { Timeline } from './Timeline';
+import { AutoBreadcrumbs } from '@/components/ui/page-header';
 
 const TABS = ['resumen', 'pedidos', 'productos', 'mensajes', 'fidelizacion', 'datos', 'identidades', 'privacidad'] as const;
 type Tab = (typeof TABS)[number];
@@ -52,15 +53,7 @@ export function ProfilePage() {
     useEffect(() => {
         if (survivor !== null) void navigate(`/w/${workspace.id}/contactos/${survivor}`, { replace: true });
     }, [survivor, navigate, workspace.id]);
-    const back = (
-        <Link
-            to={`/w/${workspace.id}/contactos`}
-            className="igr:mb-3 igr:inline-flex igr:items-center igr:gap-1 igr:text-[13px] igr:text-muted-foreground igr:hover:text-foreground"
-        >
-            <ArrowLeft className="igr:size-3.5" />
-            {t('contacts.title')}
-        </Link>
-    );
+    const back = <AutoBreadcrumbs />;
 
     if (profile.isError) {
         return (

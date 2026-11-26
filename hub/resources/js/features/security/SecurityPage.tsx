@@ -147,7 +147,7 @@ export function SecurityPage() {
     }
 
     return (
-        <div className="igr:min-h-full igr:bg-muted/40 igr:px-4 igr:py-10">
+        <div className="igr:min-h-full igr:hero-surface igr:px-4 igr:py-10">
             <div className="igr:mx-auto igr:max-w-xl">
                 <div className="igr:mb-6 igr:flex igr:items-center igr:justify-between">
                     <Logo />
@@ -192,14 +192,20 @@ export function SecurityPage() {
                         {view === 'setup' ? (
                             <div className="igr:grid igr:gap-5 igr:sm:grid-cols-[180px_1fr]">
                                 <div>
-                                    {qr ? <div className="igr-qr" aria-label={t('security.qrLabel')} dangerouslySetInnerHTML={{ __html: qr }} /> : <Skeleton className="igr:size-44" />}
+                                    {qr ? (
+                                        <div className="igr-qr" aria-label={t('security.qrLabel')} dangerouslySetInnerHTML={{ __html: qr }} />
+                                    ) : (
+                                        <Skeleton className="igr:size-44" />
+                                    )}
                                 </div>
                                 <form className="igr:space-y-3" onSubmit={(e) => void confirm(e)}>
                                     <p className="igr:text-[13px]">{t('security.scan')}</p>
                                     {secret ? (
                                         <div>
                                             <p className="igr:text-xs igr:text-muted-foreground">{t('security.manualKey')}</p>
-                                            <code className="igr:mt-1 igr:block igr:rounded-md igr:bg-muted igr:px-2 igr:py-1.5 igr:font-mono igr:text-xs igr:break-all">{secret}</code>
+                                            <code className="igr:mt-1 igr:block igr:rounded-md igr:bg-muted igr:px-2 igr:py-1.5 igr:font-mono igr:text-xs igr:break-all">
+                                                {secret}
+                                            </code>
                                         </div>
                                     ) : null}
                                     <div className="igr:space-y-1.5">

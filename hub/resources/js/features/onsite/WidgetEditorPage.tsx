@@ -1,7 +1,7 @@
-import { Archive, ArrowLeft, Copy, Monitor, MoreHorizontal, Pause, Play, Save, Smartphone, Trash2 } from 'lucide-react';
+import { Archive, Copy, Monitor, MoreHorizontal, Pause, Play, Save, Smartphone, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -25,9 +25,9 @@ import { draftFrom, payload } from './model';
 import { Preview, type PreviewDevice, type PreviewState } from './Preview';
 import { StatsPanel } from './StatsPanel';
 import type { WidgetDetail, WidgetDraft } from './types';
+import { AutoBreadcrumbs } from '@/components/ui/page-header';
 
 export function WidgetEditorPage() {
-    const { t } = useTranslation();
     const { widgetId } = useParams();
     const { workspace } = useWorkspace();
     const widget = useWidget(workspace.id, widgetId);
@@ -41,10 +41,10 @@ export function WidgetEditorPage() {
             </div>
         );
     }
-    return <Editor key={widget.data.id} widget={widget.data} title={t('onsite.title')} />;
+    return <Editor key={widget.data.id} widget={widget.data} />;
 }
 
-function Editor({ widget, title }: { widget: WidgetDetail; title: string }) {
+function Editor({ widget }: { widget: WidgetDetail }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const navigate = useNavigate();
@@ -83,20 +83,33 @@ function Editor({ widget, title }: { widget: WidgetDetail; title: string }) {
                 then?.();
             },
         });
-    const activate = () => (dirty ? save(() => actions.activate.mutate(undefined, { onSuccess: () => toast.success(t('onsite.editor.activated')) })) : actions.activate.mutate(undefined, { onSuccess: () => toast.success(t('onsite.editor.activated')) }));
-    const states: PreviewState[] = widget.kind === 'quiz' ? ['quiz', 'form', 'success'] : widget.kind === 'two_step' ? ['form', 'step2', 'success'] : widget.kind === 'wa_widget' ? ['form'] : ['form', 'success'];
+    const activate = () =>
+        dirty
+            ? save(() => actions.activate.mutate(undefined, { onSuccess: () => toast.success(t('onsite.editor.activated')) }))
+            : actions.activate.mutate(undefined, { onSuccess: () => toast.success(t('onsite.editor.activated')) });
+    const states: PreviewState[] =
+        widget.kind === 'quiz'
+            ? ['quiz', 'form', 'success']
+            : widget.kind === 'two_step'
+              ? ['form', 'step2', 'success']
+              : widget.kind === 'wa_widget'
+                ? ['form']
+                : ['form', 'success'];
 
     return (
         <>
             <div className="igr:mb-4 igr:flex igr:flex-wrap igr:items-start igr:justify-between igr:gap-3">
                 <div className="igr:min-w-0">
-                    <Link to={base} className="igr:mb-1 igr:inline-flex igr:items-center igr:gap-1 igr:text-xs igr:text-muted-foreground igr:hover:text-foreground">
-                        <ArrowLeft className="igr:size-3.5" />
-                        {title}
-                    </Link>
+                    <AutoBreadcrumbs className="igr:mb-1.5" />
                     <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-2">
                         {canManage ? (
-                            <Input value={draft.name} aria-label={t('onsite.editor.name')} maxLength={160} className="igr:h-8 igr:w-72 igr:text-base igr:font-semibold" onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+                            <Input
+                                value={draft.name}
+                                aria-label={t('onsite.editor.name')}
+                                maxLength={160}
+                                className="igr:h-8 igr:w-72 igr:text-base igr:font-semibold"
+                                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                            />
                         ) : (
                             <h1 className="igr:text-lg igr:font-semibold">{widget.name}</h1>
                         )}
@@ -167,7 +180,9 @@ function Editor({ widget, title }: { widget: WidgetDetail; title: string }) {
                         <TabsTrigger value="content">{t('onsite.editor.tabs.content')}</TabsTrigger>
                         <TabsTrigger value="targeting">{t('onsite.editor.tabs.targeting')}</TabsTrigger>
                         {widget.kind !== 'wa_widget' ? <TabsTrigger value="consent">{t('onsite.editor.tabs.consent')}</TabsTrigger> : null}
-                        {widget.kind !== 'wa_widget' ? <TabsTrigger value="coupon">{widget.kind === 'spin_wheel' ? t('onsite.editor.tabs.prizes') : t('onsite.editor.tabs.coupon')}</TabsTrigger> : null}
+                        {widget.kind !== 'wa_widget' ? (
+                            <TabsTrigger value="coupon">{widget.kind === 'spin_wheel' ? t('onsite.editor.tabs.prizes') : t('onsite.editor.tabs.coupon')}</TabsTrigger>
+                        ) : null}
                         {widget.kind === 'quiz' ? <TabsTrigger value="quiz">{t('onsite.editor.tabs.quiz')}</TabsTrigger> : null}
                         <TabsTrigger value="schedule">{t('onsite.editor.tabs.schedule')}</TabsTrigger>
                         <TabsTrigger value="stats">{t('onsite.editor.tabs.stats')}</TabsTrigger>
@@ -179,7 +194,12 @@ function Editor({ widget, title }: { widget: WidgetDetail; title: string }) {
                                     <ContentEditor kind={widget.kind} draft={draft} variant={variant} onVariant={setVariant} onChange={setDraft} />
                                 </TabsContent>
                                 <TabsContent value="targeting" className="igr:pt-0">
-                                    <TargetingEditor kind={widget.kind} targeting={draft.targeting} options={options.data} onChange={(targeting) => setDraft({ ...draft, targeting })} />
+                                    <TargetingEditor
+                                        kind={widget.kind}
+                                        targeting={draft.targeting}
+                                        options={options.data}
+                                        onChange={(targeting) => setDraft({ ...draft, targeting })}
+                                    />
                                 </TabsContent>
                                 <TabsContent value="consent" className="igr:pt-0">
                                     <ConsentEditor draft={draft} options={options.data} onChange={(consent_config) => setDraft({ ...draft, consent_config })} />
@@ -196,10 +216,24 @@ function Editor({ widget, title }: { widget: WidgetDetail; title: string }) {
                                     <Section title={t('onsite.schedule.title')} description={t('onsite.schedule.help')}>
                                         <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2">
                                             <Field label={t('onsite.schedule.starts')}>
-                                                {(id) => <Input id={id} type="datetime-local" value={isoToWall(draft.starts_at, tz)} onChange={(e) => setDraft({ ...draft, starts_at: e.target.value ? wallToIso(e.target.value, tz) : null })} />}
+                                                {(id) => (
+                                                    <Input
+                                                        id={id}
+                                                        type="datetime-local"
+                                                        value={isoToWall(draft.starts_at, tz)}
+                                                        onChange={(e) => setDraft({ ...draft, starts_at: e.target.value ? wallToIso(e.target.value, tz) : null })}
+                                                    />
+                                                )}
                                             </Field>
                                             <Field label={t('onsite.schedule.ends')}>
-                                                {(id) => <Input id={id} type="datetime-local" value={isoToWall(draft.ends_at, tz)} onChange={(e) => setDraft({ ...draft, ends_at: e.target.value ? wallToIso(e.target.value, tz) : null })} />}
+                                                {(id) => (
+                                                    <Input
+                                                        id={id}
+                                                        type="datetime-local"
+                                                        value={isoToWall(draft.ends_at, tz)}
+                                                        onChange={(e) => setDraft({ ...draft, ends_at: e.target.value ? wallToIso(e.target.value, tz) : null })}
+                                                    />
+                                                )}
                                             </Field>
                                             <Field label={t('onsite.schedule.site')}>
                                                 {(id) => (
@@ -214,7 +248,16 @@ function Editor({ widget, title }: { widget: WidgetDetail; title: string }) {
                                                 )}
                                             </Field>
                                             <Field label={t('onsite.schedule.priority')} help={t('onsite.schedule.priorityHelp')}>
-                                                {(id) => <Input id={id} type="number" min={0} max={1000} value={draft.priority} onChange={(e) => setDraft({ ...draft, priority: Number(e.target.value) })} />}
+                                                {(id) => (
+                                                    <Input
+                                                        id={id}
+                                                        type="number"
+                                                        min={0}
+                                                        max={1000}
+                                                        value={draft.priority}
+                                                        onChange={(e) => setDraft({ ...draft, priority: Number(e.target.value) })}
+                                                    />
+                                                )}
                                             </Field>
                                         </div>
                                         <p className="igr:text-xs igr:text-muted-foreground">{t('onsite.schedule.timezone', { tz })}</p>
@@ -234,7 +277,12 @@ function Editor({ widget, title }: { widget: WidgetDetail; title: string }) {
                             <p className="igr:text-[13px] igr:font-medium">{t('onsite.preview.title')}</p>
                             <div className="igr:flex igr:items-center igr:gap-1">
                                 {draft.variants.length > 1 ? (
-                                    <Select aria-label={t('onsite.preview.variant')} value={variant} onChange={(e) => setVariant(Number(e.target.value))} className="igr:h-8 igr:w-auto">
+                                    <Select
+                                        aria-label={t('onsite.preview.variant')}
+                                        value={variant}
+                                        onChange={(e) => setVariant(Number(e.target.value))}
+                                        className="igr:h-8 igr:w-auto"
+                                    >
                                         {draft.variants.map((v, i) => (
                                             <option key={v.key} value={i}>
                                                 {t('onsite.editor.variants.name', { key: v.key.toUpperCase() })}
@@ -243,7 +291,12 @@ function Editor({ widget, title }: { widget: WidgetDetail; title: string }) {
                                     </Select>
                                 ) : null}
                                 {states.length > 1 ? (
-                                    <Select aria-label={t('onsite.preview.state')} value={state} onChange={(e) => setState(e.target.value as PreviewState)} className="igr:h-8 igr:w-auto">
+                                    <Select
+                                        aria-label={t('onsite.preview.state')}
+                                        value={state}
+                                        onChange={(e) => setState(e.target.value as PreviewState)}
+                                        className="igr:h-8 igr:w-auto"
+                                    >
                                         {states.map((s) => (
                                             <option key={s} value={s}>
                                                 {t(`onsite.preview.states.${s}`)}
@@ -262,7 +315,10 @@ function Editor({ widget, title }: { widget: WidgetDetail; title: string }) {
                                                 aria-label={t(`onsite.devices.${d}`)}
                                                 title={t(`onsite.devices.${d}`)}
                                                 onClick={() => setDevice(d)}
-                                                className={cn('igr:flex igr:size-8 igr:items-center igr:justify-center', device === d ? 'igr:bg-muted igr:text-foreground' : 'igr:text-muted-foreground')}
+                                                className={cn(
+                                                    'igr:flex igr:size-8 igr:items-center igr:justify-center',
+                                                    device === d ? 'igr:bg-muted igr:text-foreground' : 'igr:text-muted-foreground',
+                                                )}
                                             >
                                                 <Icon className="igr:size-4" />
                                             </button>

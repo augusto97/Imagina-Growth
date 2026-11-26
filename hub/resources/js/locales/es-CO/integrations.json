@@ -1,7 +1,7 @@
 {
     "integrations": {
         "title": "API e integraciones",
-        "description": "Conecta Imagina Growth con tus otros sistemas: API pública, webhooks, el servidor MCP para Claude y los productos de Imagina.",
+        "description": "Conecta tus otros sistemas con la API pública, los webhooks, el servidor MCP y los productos de Imagina.",
         "docs": "Documentación de la API",
         "baseUrl": "URL base de la API",
         "requestsThisMonth": "Peticiones este mes",

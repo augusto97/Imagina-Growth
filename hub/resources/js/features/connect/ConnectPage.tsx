@@ -89,7 +89,7 @@ export function ConnectPage() {
     };
 
     return (
-        <div className="igr:min-h-full igr:bg-muted/40 igr:px-4 igr:py-12">
+        <div className="igr:min-h-full igr:hero-surface igr:px-4 igr:py-12">
             <div className="igr:mx-auto igr:max-w-lg">
                 <div className="igr:mb-6">
                     <Logo />
@@ -128,7 +128,10 @@ export function ConnectPage() {
                                     </Select>
                                     <p className="igr:text-xs igr:text-muted-foreground">
                                         {t('connect.orCreate')}{' '}
-                                        <Link className="igr:underline igr:underline-offset-2" to={`/onboarding?next=${encodeURIComponent(self)}&nombre=${encodeURIComponent(name ?? '')}`}>
+                                        <Link
+                                            className="igr:underline igr:underline-offset-2"
+                                            to={`/onboarding?next=${encodeURIComponent(self)}&nombre=${encodeURIComponent(name ?? '')}`}
+                                        >
                                             {t('connect.createWorkspace')}
                                         </Link>
                                     </p>

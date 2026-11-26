@@ -1,7 +1,7 @@
 {
     "insights": {
-        "title": "Hallazgos",
-        "description": "Problemas y oportunidades que detectamos en tus datos, con el dinero en juego, cómo lo calculamos y qué hacer.",
+        "title": "Recomendaciones",
+        "description": "Problemas y oportunidades que encontramos en tus datos, con el dinero en juego y qué hacer.",
         "tabs": {
             "open": "Abiertos",
             "actioned": "Atendidos",

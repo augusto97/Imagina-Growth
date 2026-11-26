@@ -11,7 +11,7 @@ export function Tooltip({ content, children, side = 'top' }: { content: ReactNod
                 <TooltipPrimitive.Content
                     side={side}
                     sideOffset={6}
-                    className="igr:z-50 igr:max-w-xs igr:rounded-md igr:bg-foreground igr:px-2.5 igr:py-1.5 igr:text-xs igr:leading-relaxed igr:text-background igr:shadow-md"
+                    className="igr:z-50 igr:max-w-xs igr:rounded-lg igr:bg-foreground igr:px-2.5 igr:py-1.5 igr:text-xs igr:leading-relaxed igr:text-background igr:shadow-md"
                 >
                     {content}
                     <TooltipPrimitive.Arrow className="igr:fill-foreground" />

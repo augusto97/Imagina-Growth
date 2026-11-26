@@ -1,5 +1,5 @@
-import { Check, ChevronRight, ChevronsUpDown, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Plus, Search, ShieldCheck, Sun, SunMoon } from 'lucide-react';
-import { useMemo, useState, type ReactNode } from 'react';
+import { Check, ChevronsUpDown, Lock, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Plus, Search, ShieldCheck, Sun, SunMoon } from 'lucide-react';
+import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,7 +13,8 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useUi, type ThemePreference } from '@/stores/ui';
 import { Logo } from './Logo';
-import { activeItem, isGroupOpen, itemPath, navContext, visibleNav, type NavGroup, type NavItem } from './nav';
+import { locate, navContext, sectionLock, sectionPath, visibleSections, type NavLock, type NavSection } from './nav';
+import { lockLabelKey, SectionNavTree } from './SectionNav';
 
 export function workspaceInitials(name: string): string {
     return name
@@ -41,7 +42,7 @@ function WithTooltip({ collapsed, label, children }: { collapsed: boolean; label
 }
 
 /** Botón cuadrado de la barra contraída (centrado en la columna de 56 px). */
-const ICON_BUTTON = 'igr:mx-auto igr:flex igr:size-9 igr:items-center igr:justify-center igr:rounded-md';
+const ICON_BUTTON = 'igr:mx-auto igr:flex igr:size-9 igr:items-center igr:justify-center igr:rounded-lg';
 
 function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
     const { t } = useTranslation();
@@ -53,10 +54,12 @@ function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
                 <DropdownMenuTrigger
                     className={cn(
                         'igr:hover:bg-accent igr:aria-expanded:bg-accent',
-                        collapsed ? ICON_BUTTON : 'igr:flex igr:w-full igr:items-center igr:gap-2 igr:rounded-md igr:px-2 igr:py-1.5 igr:text-left',
+                        collapsed
+                            ? ICON_BUTTON
+                            : 'igr:flex igr:w-full igr:items-center igr:gap-2.5 igr:rounded-lg igr:border igr:bg-card igr:px-2 igr:py-1.5 igr:text-left igr:shadow-xs',
                     )}
                 >
-                    <span className="igr:flex igr:size-6 igr:shrink-0 igr:items-center igr:justify-center igr:rounded-md igr:bg-primary/10 igr:text-[11px] igr:font-semibold igr:text-primary">
+                    <span className="igr:brand-gradient igr:flex igr:size-7 igr:shrink-0 igr:items-center igr:justify-center igr:rounded-lg igr:text-[11px] igr:font-semibold igr:text-primary-foreground igr:shadow-xs">
                         {workspaceInitials(workspace.name)}
                     </span>
                     <span className={collapsed ? 'igr:sr-only' : 'igr:min-w-0 igr:flex-1'}>
@@ -87,103 +90,81 @@ function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
     );
 }
 
-function NavEntry({ item, base, active, collapsed }: { item: NavItem; base: string; active: boolean; collapsed: boolean }) {
+function NavEntry({ section, base, state, collapsed, lock }: { section: NavSection; base: string; state: 'page' | 'inside' | null; collapsed: boolean; lock: NavLock | null }) {
     const { t } = useTranslation();
-    const Icon = item.icon;
-    const label = t(`nav.${item.key}`);
+    const Icon = section.icon;
+    const label = t(`nav.sections.${section.key}`);
+    const lockText = lock ? t(lockLabelKey(lock)) : null;
+    // Contraída no se ve la subnavegación: la sección se marca entera aunque la persona esté en una de sus pantallas.
+    const current = state === 'page' || (collapsed && state === 'inside');
     return (
-        <WithTooltip collapsed={collapsed} label={label}>
+        <WithTooltip collapsed={collapsed} label={lockText ? `${label} · ${lockText}` : label}>
             <Link
-                to={itemPath(base, item)}
-                aria-current={active ? 'page' : undefined}
+                to={sectionPath(base, section)}
+                aria-current={current ? 'page' : undefined}
                 className={cn(
-                    'igr:text-[13px] igr:transition-colors',
-                    collapsed ? ICON_BUTTON : 'igr:flex igr:items-center igr:gap-2 igr:rounded-md igr:px-2 igr:py-1.5',
-                    active ? 'igr:bg-accent igr:font-medium igr:text-foreground' : 'igr:text-muted-foreground igr:hover:bg-accent/60 igr:hover:text-foreground',
+                    'igr:group igr:relative igr:text-[13.5px] igr:transition-colors',
+                    collapsed ? ICON_BUTTON : 'igr:flex igr:h-9 igr:items-center igr:gap-2.5 igr:rounded-lg igr:px-2.5',
+                    current
+                        ? 'igr:bg-card igr:font-medium igr:text-foreground igr:shadow-xs igr:ring-1 igr:ring-border'
+                        : state === 'inside'
+                          ? 'igr:font-medium igr:text-foreground igr:hover:bg-accent'
+                          : 'igr:text-muted-foreground igr:hover:bg-accent igr:hover:text-foreground',
                 )}
             >
-                <Icon className="igr:size-4 igr:shrink-0" aria-hidden />
-                <span className={collapsed ? 'igr:sr-only' : 'igr:flex-1 igr:truncate'}>{label}</span>
+                <Icon className={cn('igr:size-[18px] igr:shrink-0', state ? 'igr:text-primary' : 'igr:text-muted-foreground igr:group-hover:text-foreground')} aria-hidden />
+                <span className={collapsed ? 'igr:sr-only' : 'igr:min-w-0 igr:flex-1 igr:truncate'}>{label}</span>
+                {lock ? (
+                    collapsed ? (
+                        <span aria-hidden className="igr:absolute igr:top-1.5 igr:right-1.5 igr:size-1.5 igr:rounded-full igr:bg-muted-foreground/60" />
+                    ) : (
+                        <Lock className="igr:size-3 igr:shrink-0 igr:text-muted-foreground/80" aria-hidden />
+                    )
+                ) : null}
+                {lockText ? <span className="igr:sr-only">{` (${lockText})`}</span> : null}
             </Link>
         </WithTooltip>
     );
 }
 
 /**
- * Menú agrupado por tarea (docs/auditoria-2026-11.md U2): grupos plegables que se recuerdan, el de la página actual
- * abierto, y solo las entradas que aplican al plan y al tipo de negocio (nav.ts). Con la barra contraída, todas las
- * entradas como íconos y cada grupo separado por una línea (con su nombre para los lectores de pantalla); los grupos
- * plegados vuelven a respetarse al expandirla.
+ * El menú principal (rediseño v2 §3): las secciones con nombre de resultado y, aparte, Agencia y Plataforma para quien
+ * tiene ese permiso. Cada sección abre su página de entrada; la sección actual se despliega con su subnavegación
+ * (`SectionNavTree`). Una sección que todavía no puede servir (sin web, sin canal, fuera del plan) lleva un candado.
  */
-function NavGroups({ base, iconsOnly }: { base: string; iconsOnly: boolean }) {
+function NavSections({ base, iconsOnly }: { base: string; iconsOnly: boolean }) {
     const { t } = useTranslation();
-    const { workspace } = useWorkspace();
+    const { workspace, me } = useWorkspace();
     const { pathname } = useLocation();
-    const collapsed = useUi((s) => s.navCollapsed);
-    const setCollapsed = useUi((s) => s.setNavGroupCollapsed);
-    // Plegar el grupo de la página actual vale mientras se siga en esa página.
-    const [closedActiveAt, setClosedActiveAt] = useState<string | null>(null);
-    const groups = useMemo(() => visibleNav(navContext(workspace)), [workspace]);
-    const current = activeItem(groups, pathname, base);
-    const activeKey = current === null ? null : (groups.find((g) => g.items.includes(current))?.key ?? null);
+    const ctx = useMemo(() => navContext(workspace), [workspace]);
+    const sections = useMemo(() => visibleSections(ctx, me.user.is_platform_admin), [ctx, me.user.is_platform_admin]);
+    const location = locate(sections, pathname, base);
+    const main = sections.filter((s) => !s.admin);
+    const admin = sections.filter((s) => s.admin);
+    const stateOf = (section: NavSection) => (location?.section.key !== section.key ? null : location.isEntry ? 'page' : 'inside');
 
-    const toggle = (group: NavGroup, open: boolean) => {
-        if (group.key === activeKey) {
-            setClosedActiveAt(open ? pathname : null);
-        }
-        setCollapsed(group.key, open);
-    };
-
-    if (iconsOnly) {
-        return (
-            <>
-                {groups.map((group, i) => (
-                    <div
-                        key={group.key}
-                        role={group.key === 'home' ? undefined : 'group'}
-                        aria-label={group.key === 'home' ? undefined : t(`nav.groups.${group.key}`)}
-                        className={cn('igr:space-y-0.5', i > 0 && 'igr:mt-2 igr:border-t igr:pt-2')}
-                    >
-                        {group.items.map((item) => (
-                            <NavEntry key={item.key} item={item} base={base} active={current === item} collapsed />
-                        ))}
-                    </div>
-                ))}
-            </>
-        );
-    }
+    const render = (section: NavSection, lock: NavLock | null) => (
+        <li key={section.key}>
+            <NavEntry section={section} base={base} state={stateOf(section)} collapsed={iconsOnly} lock={lock} />
+            {!iconsOnly && location && location.section.key === section.key && section.items.length > 0 ? (
+                <SectionNavTree section={section} location={location} base={base} ctx={ctx} />
+            ) : null}
+        </li>
+    );
 
     return (
         <>
-            {groups.map((group) => {
-                const open = isGroupOpen(group.key, collapsed, activeKey, closedActiveAt === pathname);
-                const items = (
-                    <div id={`nav-group-${group.key}`} className="igr:space-y-0.5">
-                        {group.items.map((item) => (
-                            <NavEntry key={item.key} item={item} base={base} active={current === item} collapsed={false} />
-                        ))}
-                    </div>
-                );
-                if (group.key === 'home') {
-                    return <div key={group.key}>{items}</div>;
-                }
-                return (
-                    <div key={group.key} className="igr:pt-3">
-                        <button
-                            type="button"
-                            aria-expanded={open}
-                            aria-controls={`nav-group-${group.key}`}
-                            onClick={() => toggle(group, open)}
-                            className="igr:group igr:flex igr:w-full igr:items-center igr:gap-1 igr:rounded-md igr:px-2 igr:py-1 igr:text-[11px] igr:font-medium igr:uppercase igr:tracking-wide igr:text-muted-foreground igr:hover:text-foreground"
-                        >
-                            <span className="igr:flex-1 igr:text-left">{t(`nav.groups.${group.key}`)}</span>
-                            {!open && group.items.some((i) => i === current) ? <span className="igr:size-1.5 igr:rounded-full igr:bg-primary" aria-hidden /> : null}
-                            <ChevronRight className={cn('igr:size-3.5 igr:transition-transform', open && 'igr:rotate-90')} aria-hidden />
-                        </button>
-                        {open ? <div className="igr:mt-0.5">{items}</div> : null}
-                    </div>
-                );
-            })}
+            <ul className="igr:space-y-0.5">{main.map((section) => render(section, sectionLock(section, ctx)))}</ul>
+            {admin.length > 0 ? (
+                <div role="group" aria-label={t('nav.groups.admin')} className={cn('igr:mt-4', iconsOnly && 'igr:border-t igr:pt-3')}>
+                    {iconsOnly ? null : (
+                        <p aria-hidden className="igr:px-2.5 igr:pb-1 igr:text-caption igr:font-semibold igr:tracking-wide igr:text-muted-foreground/80 igr:uppercase">
+                            {t('nav.groups.admin')}
+                        </p>
+                    )}
+                    <ul className="igr:space-y-0.5">{admin.map((section) => render(section, null))}</ul>
+                </div>
+            ) : null}
         </>
     );
 }
@@ -277,7 +258,7 @@ export function Sidebar({ mode = 'fixed' }: { mode?: 'fixed' | 'drawer' }) {
             data-collapsed={collapsed ? '' : undefined}
             className={cn('igr:flex igr:h-full igr:shrink-0 igr:flex-col igr:border-r igr:bg-sidebar igr:transition-[width] igr:duration-150', collapsed ? 'igr:w-14' : 'igr:w-60')}
         >
-            <div className={cn('igr:flex igr:h-12 igr:shrink-0 igr:items-center', collapsed ? 'igr:justify-center igr:px-2' : 'igr:gap-2 igr:pr-2 igr:pl-4')}>
+            <div className={cn('igr:flex igr:h-14 igr:shrink-0 igr:items-center', collapsed ? 'igr:justify-center igr:px-2' : 'igr:gap-2 igr:pr-2 igr:pl-4')}>
                 {collapsed ? null : <Logo className="igr:min-w-0 igr:flex-1" brand={workspace.branding ?? null} />}
                 {mode === 'fixed' ? (
                     <Tooltip content={`${toggleLabel} · ${mod}B`} side="right">
@@ -307,7 +288,7 @@ export function Sidebar({ mode = 'fixed' }: { mode?: 'fixed' | 'drawer' }) {
                             'igr:mt-2 igr:text-[13px] igr:text-muted-foreground igr:hover:text-foreground',
                             collapsed
                                 ? `${ICON_BUTTON} igr:hover:bg-accent`
-                                : 'igr:flex igr:w-full igr:items-center igr:gap-2 igr:rounded-md igr:border igr:bg-background igr:px-2 igr:py-1.5',
+                                : 'igr:flex igr:h-9 igr:w-full igr:items-center igr:gap-2 igr:rounded-lg igr:border igr:bg-card/70 igr:px-2.5 igr:transition-colors igr:hover:bg-card',
                         )}
                     >
                         <Search className="igr:size-4" aria-hidden />
@@ -324,8 +305,8 @@ export function Sidebar({ mode = 'fixed' }: { mode?: 'fixed' | 'drawer' }) {
                     </button>
                 </WithTooltip>
             </div>
-            <nav aria-label={t('nav.main')} className="igr:mt-3 igr:flex-1 igr:overflow-y-auto igr:px-2 igr:pb-3">
-                <NavGroups base={base} iconsOnly={collapsed} />
+            <nav aria-label={t('nav.main')} className="igr:mt-4 igr:flex-1 igr:overflow-y-auto igr:px-2 igr:pb-3">
+                <NavSections base={base} iconsOnly={collapsed} />
             </nav>
             <div className="igr:border-t igr:p-2">
                 <UserMenu collapsed={collapsed} />

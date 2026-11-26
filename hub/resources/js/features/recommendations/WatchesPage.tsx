@@ -28,7 +28,6 @@ import {
     useWatchSummary,
     useWatches,
 } from './api';
-import { CommerceNav } from './CommerceNav';
 
 const RANGES = [30, 90, 365] as const;
 const CHANNELS: MessageChannel[] = ['whatsapp', 'email', 'sms'];
@@ -43,7 +42,6 @@ export function WatchesPage() {
 
     return (
         <>
-            <CommerceNav />
             <PageHeader
                 title={t('onsiteCommerce.watches.title')}
                 description={t('onsiteCommerce.watches.description')}
@@ -90,14 +88,29 @@ function Kpis({ summary }: { summary: WatchSummary }) {
     const { workspace } = useWorkspace();
     const s = summary.totals;
     const tiles = [
-        { label: t('onsiteCommerce.watches.kpi.active'), value: formatNumber(s.active, workspace.locale), detail: t('onsiteCommerce.watches.kpi.activeSplit', { stock: s.active_back_in_stock, price: s.active_price_drop }) },
-        { label: t('onsiteCommerce.watches.kpi.notified'), value: formatNumber(s.notified_in_range, workspace.locale), detail: t('onsiteCommerce.watches.kpi.notifiedTotal', { count: s.notified }) },
+        {
+            label: t('onsiteCommerce.watches.kpi.active'),
+            value: formatNumber(s.active, workspace.locale),
+            detail: t('onsiteCommerce.watches.kpi.activeSplit', { stock: s.active_back_in_stock, price: s.active_price_drop }),
+        },
+        {
+            label: t('onsiteCommerce.watches.kpi.notified'),
+            value: formatNumber(s.notified_in_range, workspace.locale),
+            detail: t('onsiteCommerce.watches.kpi.notifiedTotal', { count: s.notified }),
+        },
         {
             label: t('onsiteCommerce.watches.kpi.buyers'),
             value: formatNumber(s.buyers_after, workspace.locale),
-            detail: s.conversion_rate === null ? t('onsiteCommerce.watches.kpi.noRate') : t('onsiteCommerce.watches.kpi.rate', { rate: formatPercent(s.conversion_rate, workspace.locale, 1) }),
+            detail:
+                s.conversion_rate === null
+                    ? t('onsiteCommerce.watches.kpi.noRate')
+                    : t('onsiteCommerce.watches.kpi.rate', { rate: formatPercent(s.conversion_rate, workspace.locale, 1) }),
         },
-        { label: t('onsiteCommerce.watches.kpi.revenue'), value: formatMoney(s.revenue_after, summary.currency, workspace.locale), detail: t('onsiteCommerce.watches.kpi.revenueHelp', { days: summary.sale_window_days, count: s.orders_after }) },
+        {
+            label: t('onsiteCommerce.watches.kpi.revenue'),
+            value: formatMoney(s.revenue_after, summary.currency, workspace.locale),
+            detail: t('onsiteCommerce.watches.kpi.revenueHelp', { days: summary.sale_window_days, count: s.orders_after }),
+        },
     ];
 
     return (
@@ -171,7 +184,14 @@ function WeeklyChart({ summary }: { summary: WatchSummary }) {
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={summary.weekly} margin={{ top: 4, right: 4, bottom: 0, left: 0 }} barCategoryGap="24%" barGap={2}>
                                     <CartesianGrid vertical={false} stroke={theme.grid} />
-                                    <XAxis dataKey="week" tickFormatter={week} tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={{ stroke: theme.axis }} minTickGap={16} />
+                                    <XAxis
+                                        dataKey="week"
+                                        tickFormatter={week}
+                                        tick={{ fill: theme.muted, fontSize: 11 }}
+                                        tickLine={false}
+                                        axisLine={{ stroke: theme.axis }}
+                                        minTickGap={16}
+                                    />
                                     <YAxis allowDecimals={false} width={36} tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={false} />
                                     <Tooltip
                                         cursor={{ fill: theme.grid, opacity: 0.5 }}
@@ -233,7 +253,9 @@ function TopProducts({ summary }: { summary: WatchSummary }) {
                                 <TR key={p.id}>
                                     <TD className="igr:max-w-48">
                                         <span className="igr:block igr:truncate">{p.name ?? p.id}</span>
-                                        <span className="igr:text-[11px] igr:text-muted-foreground">{p.in_stock ? t('onsiteCommerce.stock.in') : t('onsiteCommerce.stock.out')}</span>
+                                        <span className="igr:text-[11px] igr:text-muted-foreground">
+                                            {p.in_stock ? t('onsiteCommerce.stock.in') : t('onsiteCommerce.stock.out')}
+                                        </span>
                                     </TD>
                                     <TD className="igr:text-right igr:tabular-nums">{p.back_in_stock}</TD>
                                     <TD className="igr:text-right igr:tabular-nums">{p.price_drop}</TD>
@@ -261,7 +283,12 @@ function WatchList() {
             <CardHeader className="igr:flex igr:flex-row igr:flex-wrap igr:items-center igr:justify-between igr:gap-2 igr:space-y-0">
                 <CardTitle className="igr:text-sm">{t('onsiteCommerce.watches.list.title')}</CardTitle>
                 <div className="igr:flex igr:gap-2">
-                    <Select aria-label={t('onsiteCommerce.watches.list.status')} value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value as WatchFilters['status'], page: 1 })} className="igr:w-36">
+                    <Select
+                        aria-label={t('onsiteCommerce.watches.list.status')}
+                        value={filters.status}
+                        onChange={(e) => setFilters({ ...filters, status: e.target.value as WatchFilters['status'], page: 1 })}
+                        className="igr:w-36"
+                    >
                         <option value="">{t('onsiteCommerce.watches.list.allStatuses')}</option>
                         {(['active', 'notified', 'cancelled'] as const).map((s) => (
                             <option key={s} value={s}>
@@ -269,7 +296,12 @@ function WatchList() {
                             </option>
                         ))}
                     </Select>
-                    <Select aria-label={t('onsiteCommerce.watches.list.kind')} value={filters.kind} onChange={(e) => setFilters({ ...filters, kind: e.target.value as WatchFilters['kind'], page: 1 })} className="igr:w-44">
+                    <Select
+                        aria-label={t('onsiteCommerce.watches.list.kind')}
+                        value={filters.kind}
+                        onChange={(e) => setFilters({ ...filters, kind: e.target.value as WatchFilters['kind'], page: 1 })}
+                        className="igr:w-44"
+                    >
                         <option value="">{t('onsiteCommerce.watches.list.allKinds')}</option>
                         {KINDS.map((k) => (
                             <option key={k} value={k}>
@@ -319,7 +351,9 @@ function WatchList() {
                                                 )}
                                             </TD>
                                             <TD>
-                                                <Badge variant={w.status === 'notified' ? 'success' : w.status === 'active' ? 'default' : 'outline'}>{t(`onsiteCommerce.watchStatus.${w.status}`)}</Badge>
+                                                <Badge variant={w.status === 'notified' ? 'success' : w.status === 'active' ? 'default' : 'outline'}>
+                                                    {t(`onsiteCommerce.watchStatus.${w.status}`)}
+                                                </Badge>
                                                 <WatchDetail notifiedAt={w.notified_at} nextAttempt={w.next_attempt_at} reason={w.last_reason} />
                                             </TD>
                                             {canManage ? (
@@ -329,7 +363,9 @@ function WatchList() {
                                                             variant="ghost"
                                                             size="sm"
                                                             loading={cancel.isPending && cancel.variables === w.id}
-                                                            onClick={() => cancel.mutate(w.id, { onError: (e) => toast.error(t('errors.title'), isApiError(e) ? e.message : undefined) })}
+                                                            onClick={() =>
+                                                                cancel.mutate(w.id, { onError: (e) => toast.error(t('errors.title'), isApiError(e) ? e.message : undefined) })
+                                                            }
                                                         >
                                                             {t('onsiteCommerce.watches.list.cancel')}
                                                         </Button>
@@ -359,7 +395,24 @@ function WatchList() {
     );
 }
 
-const KNOWN_REASONS = ['frequency_cap', 'no_template', 'no_channel', 'no_consent', 'unsubscribed', 'suppressed', 'outside_hours', 'sunday', 'holiday', 'frequency_day', 'frequency_week', 'channel_unavailable', 'expired', 'product_gone', 'cancelled_by_team', 'disabled'];
+const KNOWN_REASONS = [
+    'frequency_cap',
+    'no_template',
+    'no_channel',
+    'no_consent',
+    'unsubscribed',
+    'suppressed',
+    'outside_hours',
+    'sunday',
+    'holiday',
+    'frequency_day',
+    'frequency_week',
+    'channel_unavailable',
+    'expired',
+    'product_gone',
+    'cancelled_by_team',
+    'disabled',
+];
 
 function WatchDetail({ notifiedAt, nextAttempt, reason }: { notifiedAt: string | null; nextAttempt: string | null; reason: string | null }) {
     const { t } = useTranslation();
@@ -393,7 +446,12 @@ function SettingsCard({ settings }: { settings: WatchSettings }) {
             </CardHeader>
             <CardContent className="igr:space-y-4 igr:text-[13px]">
                 <label className="igr:flex igr:items-center igr:gap-2">
-                    <input type="checkbox" checked={settings.enabled} disabled={!canManage || save.isPending} onChange={(e) => save.mutate({ enabled: e.target.checked }, { onError })} />
+                    <input
+                        type="checkbox"
+                        checked={settings.enabled}
+                        disabled={!canManage || save.isPending}
+                        onChange={(e) => save.mutate({ enabled: e.target.checked }, { onError })}
+                    />
                     {t('onsiteCommerce.watches.settings.enabled')}
                 </label>
                 <fieldset className="igr:space-y-1.5">
@@ -401,7 +459,12 @@ function SettingsCard({ settings }: { settings: WatchSettings }) {
                     <div className="igr:flex igr:flex-wrap igr:gap-4">
                         {CHANNELS.map((c) => (
                             <label key={c} className="igr:flex igr:items-center igr:gap-1.5">
-                                <input type="checkbox" checked={settings.channels.includes(c)} disabled={!canManage || save.isPending} onChange={(e) => toggleChannel(c, e.target.checked)} />
+                                <input
+                                    type="checkbox"
+                                    checked={settings.channels.includes(c)}
+                                    disabled={!canManage || save.isPending}
+                                    onChange={(e) => toggleChannel(c, e.target.checked)}
+                                />
                                 {t(`onsiteCommerce.channel.${c}`)}
                             </label>
                         ))}
@@ -427,10 +490,15 @@ function SettingsCard({ settings }: { settings: WatchSettings }) {
                                         return (
                                             <TD key={channel} className="igr:min-w-44">
                                                 <Select
-                                                    aria-label={t('onsiteCommerce.watches.settings.templateFor', { kind: t(`onsiteCommerce.watchKind.${kind}`), channel: t(`onsiteCommerce.channel.${channel}`) })}
+                                                    aria-label={t('onsiteCommerce.watches.settings.templateFor', {
+                                                        kind: t(`onsiteCommerce.watchKind.${kind}`),
+                                                        channel: t(`onsiteCommerce.channel.${channel}`),
+                                                    })}
                                                     value={settings.templates[kind][channel] ?? ''}
                                                     disabled={!canManage || save.isPending}
-                                                    onChange={(e) => save.mutate({ templates: { [kind]: { [channel]: e.target.value === '' ? null : e.target.value } } }, { onError })}
+                                                    onChange={(e) =>
+                                                        save.mutate({ templates: { [kind]: { [channel]: e.target.value === '' ? null : e.target.value } } }, { onError })
+                                                    }
                                                 >
                                                     <option value="">{library ? t('onsiteCommerce.watches.settings.library') : t('onsiteCommerce.watches.settings.none')}</option>
                                                     {options.map((tpl) => (

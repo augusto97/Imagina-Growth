@@ -1,7 +1,7 @@
 {
     "templates": {
         "title": "Plantillas",
-        "description": "Correos, SMS y mensajes de WhatsApp listos para tus flujos y campañas, con variables del contacto, el carrito y el cupón.",
+        "description": "Los correos y mensajes de WhatsApp que usan tus automatizaciones y campañas.",
         "new": "Nueva plantilla",
         "newTitle": "Nueva plantilla de {{channel}}",
         "newHelp": "Ponle un nombre que la distinga en los flujos y las campañas. Luego la diseñas en el editor.",

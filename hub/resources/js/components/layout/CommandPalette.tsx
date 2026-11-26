@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Command } from 'cmdk';
-import { Loader2, Moon, PanelLeftClose, PanelLeftOpen, Plug, Plus, Sun, SunMoon, User, UserPlus } from 'lucide-react';
+import { Loader2, Lock, Moon, PanelLeftClose, PanelLeftOpen, Plug, Plus, Sun, SunMoon, User, UserPlus } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -12,7 +12,7 @@ import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { api } from '@/lib/api';
 import { useUi } from '@/stores/ui';
 import { isMacPlatform, workspaceInitials } from './Sidebar';
-import { itemPath, navContext, visibleNav } from './nav';
+import { itemLock, itemPath, navContext, sectionPath, visibleSections } from './nav';
 
 interface ContactHit {
     id: string;
@@ -71,16 +71,17 @@ export function CommandPalette() {
         close(false);
         void navigate(path);
     };
-    const groups = visibleNav(navContext(workspace));
+    const nav = navContext(workspace);
+    const sections = visibleSections(nav, me.user.is_platform_admin);
     const searching = canSearchContacts && query.trim().length >= 2;
 
     return (
         <DialogPrimitive.Root open={commandOpen} onOpenChange={close}>
             <DialogPrimitive.Portal>
-                <DialogPrimitive.Overlay className="igr:fixed igr:inset-0 igr:z-50 igr:bg-black/40" />
+                <DialogPrimitive.Overlay className="igr:fixed igr:inset-0 igr:z-50 igr:bg-slate-950/40 igr:backdrop-blur-[2px]" />
                 <DialogPrimitive.Content
                     aria-describedby={undefined}
-                    className="igr:fixed igr:left-1/2 igr:top-[15vh] igr:z-50 igr:w-[calc(100%-2rem)] igr:max-w-xl igr:-translate-x-1/2 igr:overflow-hidden igr:rounded-xl igr:border igr:bg-popover igr:text-popover-foreground igr:shadow-2xl"
+                    className="igr-enter igr:fixed igr:left-1/2 igr:top-[15vh] igr:z-50 igr:w-[calc(100%-2rem)] igr:max-w-xl igr:-translate-x-1/2 igr:overflow-hidden igr:rounded-2xl igr:border igr:bg-popover igr:text-popover-foreground igr:shadow-lg"
                 >
                     <DialogPrimitive.Title className="igr:sr-only">{t('command.title')}</DialogPrimitive.Title>
                     <Command label={t('command.title')} loop>
@@ -88,9 +89,9 @@ export function CommandPalette() {
                             value={query}
                             onValueChange={setQuery}
                             placeholder={canSearchContacts ? t('command.placeholderContacts') : t('command.placeholder')}
-                            className="igr:h-11 igr:w-full igr:border-b igr:bg-transparent igr:px-4 igr:text-sm igr:outline-none igr:placeholder:text-muted-foreground"
+                            className="igr:h-12 igr:w-full igr:border-b igr:bg-transparent igr:px-4 igr:text-sm igr:outline-none igr:placeholder:text-muted-foreground"
                         />
-                        <Command.List className="igr:max-h-80 igr:overflow-y-auto igr:p-1">
+                        <Command.List className="igr:max-h-[min(24rem,60dvh)] igr:overflow-y-auto igr:p-1.5">
                             <Command.Empty className="igr:py-8 igr:text-center igr:text-[13px] igr:text-muted-foreground">
                                 {searching && contacts.isFetching ? t('command.searchingContacts') : t('command.empty')}
                             </Command.Empty>
@@ -127,22 +128,43 @@ export function CommandPalette() {
                                     ) : null}
                                 </Command.Group>
                             ) : null}
-                            {groups.map((group) => (
-                                <Command.Group key={group.key} heading={group.key === 'home' ? t('command.goTo') : t(`nav.groups.${group.key}`)} className={groupClass}>
-                                    {group.items.map((item) => {
-                                        const Icon = item.icon;
-                                        return (
-                                            <Item key={item.key} value={`ir ${t(`nav.${item.key}`)} ${t(`nav.groups.${group.key}`)}`} onSelect={() => go(itemPath(base, item))}>
-                                                <Icon />
-                                                {t(`nav.${item.key}`)}
-                                                {item.shortcut ? (
-                                                    <span className="igr:ml-auto igr:text-[11px] igr:text-muted-foreground">G {item.shortcut.toUpperCase()}</span>
-                                                ) : null}
-                                            </Item>
-                                        );
-                                    })}
-                                </Command.Group>
-                            ))}
+                            {/* Cada sección con su página de entrada y sus pantallas; los nombres de antes también encuentran (flujos, segmentos…). */}
+                            {sections.map((section) => {
+                                const sectionName = t(`nav.sections.${section.key}`);
+                                const SectionIcon = section.icon;
+                                return (
+                                    <Command.Group key={section.key} heading={section.items.length === 0 ? t('command.goTo') : sectionName} className={groupClass}>
+                                        <Item
+                                            value={`ir ${sectionName} ${t(`sections.${section.key}.purpose`, { defaultValue: '' })}`}
+                                            onSelect={() => go(sectionPath(base, section))}
+                                        >
+                                            <SectionIcon />
+                                            {section.items.length === 0 ? sectionName : t('command.sectionOverview', { section: sectionName })}
+                                            {section.shortcut ? (
+                                                <span className="igr:ml-auto igr:text-[11px] igr:text-muted-foreground">G {section.shortcut.toUpperCase()}</span>
+                                            ) : null}
+                                        </Item>
+                                        {section.items.map((item) => {
+                                            const Icon = item.icon;
+                                            const locked = itemLock(item, nav) !== null;
+                                            return (
+                                                <Item
+                                                    key={item.key}
+                                                    value={`ir ${t(`nav.${item.key}`)} ${sectionName} ${t(`nav.keywords.${item.key}`, { defaultValue: '' })}`}
+                                                    onSelect={() => go(itemPath(base, item))}
+                                                >
+                                                    <Icon />
+                                                    {t(`nav.${item.key}`)}
+                                                    {locked ? <Lock className="igr:size-3!" aria-label={t('ui.locked.short.generic')} /> : null}
+                                                    {item.shortcut ? (
+                                                        <span className="igr:ml-auto igr:text-[11px] igr:text-muted-foreground">G {item.shortcut.toUpperCase()}</span>
+                                                    ) : null}
+                                                </Item>
+                                            );
+                                        })}
+                                    </Command.Group>
+                                );
+                            })}
                             <Command.Group heading={t('command.actions')} className={groupClass}>
                                 {workspace.abilities.includes('manageSites') ? (
                                     <Item value={t('command.connectSite')} onSelect={() => go(`${base}/sitios?conectar=1`)}>

@@ -1,7 +1,7 @@
-import { ArrowLeft, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input, Textarea } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import { BuilderContext, type BuilderContextValue } from './builder/context';
 import { AddConditionMenu, GroupEditor } from './builder/GroupEditor';
 import { PreviewPanel } from './PreviewPanel';
 import type { Group, SegmentDetail } from './types';
+import { useAutoCrumbs } from '@/components/ui/page-header';
 
 interface Draft {
     name: string;
@@ -86,7 +87,12 @@ function Builder({ segment, options }: { segment: SegmentDetail | null; options:
         }
         setErrors({});
         save.mutate(
-            { name: draft.name.trim(), description: draft.description.trim() === '' ? null : draft.description.trim(), folder: draft.folder.trim() === '' ? null : draft.folder.trim(), definition: draft.definition },
+            {
+                name: draft.name.trim(),
+                description: draft.description.trim() === '' ? null : draft.description.trim(),
+                folder: draft.folder.trim() === '' ? null : draft.folder.trim(),
+                definition: draft.definition,
+            },
             {
                 onSuccess: (saved) => {
                     toast.success(segment ? t('segments.form.saved') : t('segments.form.created'));
@@ -123,20 +129,13 @@ function Builder({ segment, options }: { segment: SegmentDetail | null; options:
     const ctx: BuilderContextValue = { ws: workspace.id, options, readOnly: !editable, errors, selfId: segment?.id, currency: workspace.currency, locale: workspace.locale };
     const setDefinition = (definition: Group) => setDraft((d) => ({ ...d, definition }));
     const back = segment ? `/w/${workspace.id}/segmentos/${segment.id}` : `/w/${workspace.id}/segmentos`;
+    const crumbs = useAutoCrumbs();
 
     return (
         <div>
             <PageHeader
-                title={
-                    <span className="igr:flex igr:items-center igr:gap-2">
-                        <Button asChild variant="ghost" size="icon" className="igr:size-7">
-                            <Link to={back} aria-label={t('common.back')}>
-                                <ArrowLeft />
-                            </Link>
-                        </Button>
-                        {segment ? (editable ? t('segments.form.editTitle') : segment.name) : t('segments.form.newTitle')}
-                    </span>
-                }
+                breadcrumb={segment ? [...crumbs, { label: segment.name, to: back }] : crumbs}
+                title={segment ? (editable ? t('segments.form.editTitle') : segment.name) : t('segments.form.newTitle')}
                 description={editable ? t('segments.form.help') : t('segments.form.readOnly')}
                 actions={
                     editable ? (
@@ -155,12 +154,28 @@ function Builder({ segment, options }: { segment: SegmentDetail | null; options:
                         <CardContent className="igr:grid igr:gap-3 igr:pt-4 igr:md:grid-cols-2">
                             <div className="igr:space-y-1">
                                 <Label htmlFor="segment-name">{t('segments.form.name')}</Label>
-                                <Input id="segment-name" value={draft.name} disabled={!editable} maxLength={160} placeholder={t('segments.form.namePlaceholder')} aria-invalid={errors.name ? true : undefined} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+                                <Input
+                                    id="segment-name"
+                                    value={draft.name}
+                                    disabled={!editable}
+                                    maxLength={160}
+                                    placeholder={t('segments.form.namePlaceholder')}
+                                    aria-invalid={errors.name ? true : undefined}
+                                    onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                                />
                                 <FieldError message={errors.name} />
                             </div>
                             <div className="igr:space-y-1">
                                 <Label htmlFor="segment-folder">{t('segments.form.folder')}</Label>
-                                <Input id="segment-folder" list="segment-folders" value={draft.folder} disabled={!editable} maxLength={80} placeholder={t('segments.form.folderPlaceholder')} onChange={(e) => setDraft({ ...draft, folder: e.target.value })} />
+                                <Input
+                                    id="segment-folder"
+                                    list="segment-folders"
+                                    value={draft.folder}
+                                    disabled={!editable}
+                                    maxLength={80}
+                                    placeholder={t('segments.form.folderPlaceholder')}
+                                    onChange={(e) => setDraft({ ...draft, folder: e.target.value })}
+                                />
                                 <datalist id="segment-folders">
                                     {folders.map((f) => (
                                         <option key={f} value={f} />
@@ -169,7 +184,14 @@ function Builder({ segment, options }: { segment: SegmentDetail | null; options:
                             </div>
                             <div className="igr:space-y-1 igr:md:col-span-2">
                                 <Label htmlFor="segment-description">{t('segments.form.description')}</Label>
-                                <Textarea id="segment-description" className="igr:min-h-14" value={draft.description} disabled={!editable} maxLength={1000} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+                                <Textarea
+                                    id="segment-description"
+                                    className="igr:min-h-14"
+                                    value={draft.description}
+                                    disabled={!editable}
+                                    maxLength={1000}
+                                    onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                                />
                             </div>
                         </CardContent>
                     </Card>

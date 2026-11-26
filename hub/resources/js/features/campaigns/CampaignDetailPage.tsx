@@ -1,4 +1,4 @@
-import { ArrowLeft, CircleCheck, CircleMinus, Copy, Pause, Pencil, Play, Trophy, XCircle } from 'lucide-react';
+import { CircleCheck, CircleMinus, Copy, Pause, Pencil, Play, Trophy, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -17,6 +17,7 @@ import { formatDateTime, formatMoney, formatNumber, formatPercent } from '@/lib/
 import { useCampaignActions, useCampaignReport } from './api';
 import { ChannelLabel, StatusBadge } from './labels';
 import type { CampaignDetail, CampaignReport } from './types';
+import { AutoBreadcrumbs } from '@/components/ui/page-header';
 
 /** Embudo de entrega: cada paso como proporción de los enviados. */
 export function funnelSteps(report: CampaignReport, channel: CampaignDetail['channel']) {
@@ -32,16 +33,10 @@ export function funnelSteps(report: CampaignReport, channel: CampaignDetail['cha
 }
 
 export function CampaignDetailPage() {
-    const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const { campaignId = '' } = useParams();
     const data = useCampaignReport(workspace.id, campaignId);
-    const back = (
-        <Link to={`/w/${workspace.id}/campanas`} className="igr:mb-3 igr:inline-flex igr:items-center igr:gap-1 igr:text-[13px] igr:text-muted-foreground igr:hover:text-foreground">
-            <ArrowLeft className="igr:size-3.5" />
-            {t('campaigns.title')}
-        </Link>
-    );
+    const back = <AutoBreadcrumbs />;
     if (data.isError) {
         return (
             <>
@@ -94,7 +89,9 @@ function Header({ campaign }: { campaign: CampaignDetail }) {
                         <StatusBadge status={campaign.status} />
                         <ChannelLabel channel={campaign.channel} />
                         {when ? <span>· {formatDateTime(when, workspace.locale, workspace.timezone)}</span> : null}
-                        {campaign.finished_at ? <span>· {t('campaigns.detail.finished', { when: formatDateTime(campaign.finished_at, workspace.locale, workspace.timezone) })}</span> : null}
+                        {campaign.finished_at ? (
+                            <span>· {t('campaigns.detail.finished', { when: formatDateTime(campaign.finished_at, workspace.locale, workspace.timezone) })}</span>
+                        ) : null}
                     </span>
                 }
                 actions={
@@ -120,7 +117,11 @@ function Header({ campaign }: { campaign: CampaignDetail }) {
                                     {t('campaigns.actions.resume')}
                                 </Button>
                             ) : null}
-                            <Button variant="outline" loading={actions.duplicate.isPending} onClick={() => actions.duplicate.mutate(undefined, { onSuccess: (c) => void navigate(`${base}/${c.id}/editar`) })}>
+                            <Button
+                                variant="outline"
+                                loading={actions.duplicate.isPending}
+                                onClick={() => actions.duplicate.mutate(undefined, { onSuccess: (c) => void navigate(`${base}/${c.id}/editar`) })}
+                            >
                                 <Copy />
                                 {t('campaigns.actions.duplicate')}
                             </Button>
@@ -145,7 +146,11 @@ function Header({ campaign }: { campaign: CampaignDetail }) {
                         <Button variant="outline" onClick={() => setConfirmCancel(false)}>
                             {t('common.back')}
                         </Button>
-                        <Button variant="destructive" loading={actions.cancel.isPending} onClick={() => actions.cancel.mutate(undefined, { onSuccess: () => setConfirmCancel(false) })}>
+                        <Button
+                            variant="destructive"
+                            loading={actions.cancel.isPending}
+                            onClick={() => actions.cancel.mutate(undefined, { onSuccess: () => setConfirmCancel(false) })}
+                        >
                             {t('campaigns.cancel.confirm')}
                         </Button>
                     </DialogFooter>
@@ -194,10 +199,26 @@ function Overview({ campaign, report }: { campaign: CampaignDetail; report: Camp
     return (
         <div className="igr:space-y-4">
             <div className="igr:grid igr:gap-3 igr:sm:grid-cols-2 igr:lg:grid-cols-4">
-                <Stat label={t('campaigns.report.recipients')} value={formatNumber(recipients, locale)} hint={report.recipients.holdout > 0 ? t('campaigns.report.holdoutHint', { n: formatNumber(report.recipients.holdout, locale) }) : undefined} />
-                <Stat label={t('campaigns.report.sent')} value={formatNumber(d.sent, locale)} hint={t('campaigns.report.deliveredHint', { n: formatNumber(d.delivered, locale) })} />
-                <Stat label={t('campaigns.report.clicks')} value={formatNumber(d.clicked, locale)} hint={d.click_rate !== null ? t('campaigns.report.clickRate', { pct: formatPercent(d.click_rate, locale, 1) }) : undefined} />
-                <Stat label={t('campaigns.report.revenue')} value={formatMoney(report.revenue.total, report.currency, locale)} hint={t('campaigns.report.orders', { count: report.revenue.orders })} />
+                <Stat
+                    label={t('campaigns.report.recipients')}
+                    value={formatNumber(recipients, locale)}
+                    hint={report.recipients.holdout > 0 ? t('campaigns.report.holdoutHint', { n: formatNumber(report.recipients.holdout, locale) }) : undefined}
+                />
+                <Stat
+                    label={t('campaigns.report.sent')}
+                    value={formatNumber(d.sent, locale)}
+                    hint={t('campaigns.report.deliveredHint', { n: formatNumber(d.delivered, locale) })}
+                />
+                <Stat
+                    label={t('campaigns.report.clicks')}
+                    value={formatNumber(d.clicked, locale)}
+                    hint={d.click_rate !== null ? t('campaigns.report.clickRate', { pct: formatPercent(d.click_rate, locale, 1) }) : undefined}
+                />
+                <Stat
+                    label={t('campaigns.report.revenue')}
+                    value={formatMoney(report.revenue.total, report.currency, locale)}
+                    hint={t('campaigns.report.orders', { count: report.revenue.orders })}
+                />
             </div>
             <div className="igr:space-y-2">
                 <div className="igr:grid igr:gap-3 igr:sm:grid-cols-3">
@@ -231,14 +252,20 @@ function Funnel({ campaign, report }: { campaign: CampaignDetail; report: Campai
             <CardHeader>
                 <CardTitle>{t('campaigns.report.funnel')}</CardTitle>
                 <CardDescription>
-                    {campaign.channel === 'email' ? (report.delivery.opened_excludes_mpp ? t('campaigns.report.opensNoMpp') : t('campaigns.report.opensMaybeMpp')) : t('campaigns.report.funnelHelp')}
+                    {campaign.channel === 'email'
+                        ? report.delivery.opened_excludes_mpp
+                            ? t('campaigns.report.opensNoMpp')
+                            : t('campaigns.report.opensMaybeMpp')
+                        : t('campaigns.report.funnelHelp')}
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <ul className="igr:space-y-2.5">
                     {steps.map((s) => (
                         <li key={s.key}>
-                            <Tooltip content={`${t(`campaigns.report.step.${s.key}`)}: ${formatNumber(s.value, workspace.locale)} (${formatPercent(s.ratio, workspace.locale, 1)})`}>
+                            <Tooltip
+                                content={`${t(`campaigns.report.step.${s.key}`)}: ${formatNumber(s.value, workspace.locale)} (${formatPercent(s.ratio, workspace.locale, 1)})`}
+                            >
                                 <div className="igr:group">
                                     <div className="igr:mb-1 igr:flex igr:justify-between igr:text-xs">
                                         <span>{t(`campaigns.report.step.${s.key}`)}</span>
@@ -247,7 +274,10 @@ function Funnel({ campaign, report }: { campaign: CampaignDetail; report: Campai
                                         </span>
                                     </div>
                                     <div className="igr:h-2 igr:w-full igr:rounded-full igr:bg-muted">
-                                        <div className="igr:h-2 igr:rounded-full igr:bg-primary igr:transition-[width] igr:group-hover:bg-primary/80" style={{ width: `${Math.max(s.value > 0 ? 2 : 0, Math.round(s.ratio * 100))}%` }} />
+                                        <div
+                                            className="igr:h-2 igr:rounded-full igr:bg-primary igr:transition-[width] igr:group-hover:bg-primary/80"
+                                            style={{ width: `${Math.max(s.value > 0 ? 2 : 0, Math.round(s.ratio * 100))}%` }}
+                                        />
                                     </div>
                                 </div>
                             </Tooltip>
@@ -255,7 +285,8 @@ function Funnel({ campaign, report }: { campaign: CampaignDetail; report: Campai
                     ))}
                 </ul>
                 <p className="igr:mt-3 igr:text-xs igr:text-muted-foreground">
-                    {t('campaigns.report.unsubscribed', { n: formatNumber(report.delivery.unsubscribed, workspace.locale) })} · {t('campaigns.report.failed', { n: formatNumber(report.delivery.failed, workspace.locale) })}
+                    {t('campaigns.report.unsubscribed', { n: formatNumber(report.delivery.unsubscribed, workspace.locale) })} ·{' '}
+                    {t('campaigns.report.failed', { n: formatNumber(report.delivery.failed, workspace.locale) })}
                 </p>
             </CardContent>
         </Card>
@@ -279,16 +310,30 @@ function Uplift({ report }: { report: CampaignReport }) {
                         <div>
                             <p className="igr:text-xs igr:text-muted-foreground">{t('campaigns.report.treatment')}</p>
                             <p className="igr:text-lg igr:font-semibold igr:tabular-nums">{formatPercent(u.treatment.rate, workspace.locale, 1)}</p>
-                            <p className="igr:text-xs igr:text-muted-foreground">{t('campaigns.report.converted', { n: formatNumber(u.treatment.converted, workspace.locale), of: formatNumber(u.treatment.recipients, workspace.locale) })}</p>
+                            <p className="igr:text-xs igr:text-muted-foreground">
+                                {t('campaigns.report.converted', {
+                                    n: formatNumber(u.treatment.converted, workspace.locale),
+                                    of: formatNumber(u.treatment.recipients, workspace.locale),
+                                })}
+                            </p>
                         </div>
                         <div>
                             <p className="igr:text-xs igr:text-muted-foreground">{t('campaigns.report.control')}</p>
                             <p className="igr:text-lg igr:font-semibold igr:tabular-nums">{formatPercent(u.control.rate, workspace.locale, 1)}</p>
-                            <p className="igr:text-xs igr:text-muted-foreground">{t('campaigns.report.converted', { n: formatNumber(u.control.converted, workspace.locale), of: formatNumber(u.control.recipients, workspace.locale) })}</p>
+                            <p className="igr:text-xs igr:text-muted-foreground">
+                                {t('campaigns.report.converted', {
+                                    n: formatNumber(u.control.converted, workspace.locale),
+                                    of: formatNumber(u.control.recipients, workspace.locale),
+                                })}
+                            </p>
                         </div>
                     </div>
                     <p className="igr:flex igr:items-center igr:gap-1.5 igr:text-[13px]">
-                        {u.significant ? <CircleCheck className="igr:size-4 igr:text-success" aria-hidden="true" /> : <CircleMinus className="igr:size-4 igr:text-muted-foreground" aria-hidden="true" />}
+                        {u.significant ? (
+                            <CircleCheck className="igr:size-4 igr:text-success" aria-hidden="true" />
+                        ) : (
+                            <CircleMinus className="igr:size-4 igr:text-muted-foreground" aria-hidden="true" />
+                        )}
                         <span>
                             <strong>{pp(u.lift)}</strong> {t('campaigns.report.ci', { low: pp(u.ci_low), high: pp(u.ci_high) })} ·{' '}
                             {u.significant ? t('campaigns.report.significant') : t('campaigns.report.notSignificant')}
@@ -311,7 +356,9 @@ function Variants({ report }: { report: CampaignReport }) {
         <Card>
             <CardHeader>
                 <CardTitle>{t('campaigns.report.variants')}</CardTitle>
-                <CardDescription>{report.winner_variant ? t('campaigns.report.winnerChosen', { variant: report.winner_variant }) : t('campaigns.report.winnerPending')}</CardDescription>
+                <CardDescription>
+                    {report.winner_variant ? t('campaigns.report.winnerChosen', { variant: report.winner_variant }) : t('campaigns.report.winnerPending')}
+                </CardDescription>
             </CardHeader>
             <Table>
                 <THead>

@@ -1,7 +1,7 @@
 {
     "onsite": {
-        "title": "En el sitio",
-        "description": "Popups, formularios, ruleta, quiz y widget de WhatsApp para captar contactos con su consentimiento y medir cuánto venden.",
+        "title": "Popups y formularios",
+        "description": "Popups, formularios, quiz y botón de WhatsApp para que tus visitantes te dejen sus datos con su consentimiento.",
         "new": "Nuevo widget",
         "tabs": {
             "label": "Secciones de En el sitio",

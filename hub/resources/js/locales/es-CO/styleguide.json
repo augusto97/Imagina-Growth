@@ -1,0 +1,197 @@
+{
+    "styleguide": {
+        "title": "Guía de estilo",
+        "description": "Tokens, tipografía y componentes del panel v2. Úsala como referencia al diseñar una pantalla: si algo no está aquí, primero se agrega aquí.",
+        "intro": "Claro, cálido y confiable: marca índigo con un acento violeta, neutros pizarra y textos en segunda persona. Una acción principal por bloque, cifras con tabular-nums y estados vacíos que venden.",
+        "toc": "En esta guía",
+        "sections": {
+            "color": "Color",
+            "chart": "Gráficas",
+            "type": "Tipografía",
+            "shape": "Forma y elevación",
+            "buttons": "Botones e insignias",
+            "fields": "Campos",
+            "header": "Encabezado de página",
+            "sectionNav": "Subnavegación de sección",
+            "hero": "Tarjeta héroe",
+            "stats": "Métricas",
+            "tiles": "Mosaicos de íconos",
+            "empty": "Estados vacíos e ilustraciones",
+            "locked": "Bloqueos que enseñan",
+            "checklist": "Pasos",
+            "callout": "Avisos",
+            "sheet": "Cajón lateral",
+            "table": "Tablas y esqueletos",
+            "tabs": "Pestañas"
+        },
+        "notes": {
+            "color": "Los textos de estado cumplen AA (4,5:1) sobre la tarjeta, el fondo y su fondo tenue, en claro y en oscuro. El color nunca va solo: siempre con ícono o texto.",
+            "chart": "Seis colores en orden fijo, validados para daltonismo en claro y oscuro. Con varias series: leyenda o etiquetas y la vista de tabla.",
+            "type": "Inter. Máximo dos pesos por bloque. Las cifras van con tabular-nums.",
+            "shape": "Escala de 4 px. Tarjetas rounded-xl con borde sutil y sombra mínima; 24 a 32 px entre bloques.",
+            "header": "Miga de la sección, título, una línea de para qué sirve y la acción principal. Igual en todas las pantallas.",
+            "sectionNav": "En el escritorio, debajo de la sección en la barra lateral; en el celular, la tableta o con la barra contraída, control segmentado arriba del contenido.",
+            "locked": "Cuando falta algo, la pantalla dice qué hace, qué le falta y el botón para resolverlo."
+        },
+        "tokens": {
+            "background": "Fondo de la página",
+            "card": "Tarjeta",
+            "foreground": "Texto",
+            "muted": "Fondo tenue",
+            "mutedForeground": "Texto de apoyo",
+            "primary": "Marca (índigo)",
+            "brand2": "Acento (violeta)",
+            "brandSoft": "Tinte de marca",
+            "success": "Éxito",
+            "warning": "Aviso",
+            "destructive": "Peligro",
+            "info": "Información",
+            "border": "Borde",
+            "input": "Borde de campo",
+            "ring": "Foco"
+        },
+        "type": {
+            "title": "Título de página · 24/32 semibold",
+            "section": "Título de sección · 18/28 semibold",
+            "body": "Cuerpo · 14/22. Escríbele a cada cliente en el momento justo.",
+            "support": "Apoyo · 13/20. Se actualiza solo cada hora.",
+            "caption": "Detalle · 12/16",
+            "figure": "$ 12.480.000",
+            "hero": "$ 4.250.000"
+        },
+        "shape": {
+            "radius": "Radio {{name}}",
+            "shadow": "Sombra {{name}}"
+        },
+        "buttons": {
+            "primary": "Activar estrategia",
+            "brand": "Configurar en 10 minutos",
+            "outline": "Ver detalle",
+            "ghost": "Cancelar",
+            "secondary": "Duplicar",
+            "destructive": "Eliminar",
+            "link": "Cómo funciona",
+            "small": "Pequeño",
+            "large": "Grande"
+        },
+        "badges": {
+            "brand": "Recomendada",
+            "success": "Activa",
+            "warning": "En pausa",
+            "destructive": "Con error",
+            "info": "Nuevo",
+            "outline": "Borrador"
+        },
+        "fields": {
+            "name": "Nombre del negocio",
+            "namePlaceholder": "Pinturas La 14",
+            "country": "País",
+            "message": "Mensaje",
+            "messagePlaceholder": "Hola Laura, dejaste algo en tu carrito…",
+            "error": "Escribe un nombre de al menos 3 letras."
+        },
+        "header": {
+            "crumb": "Mensajes",
+            "title": "Automatizaciones",
+            "description": "Mensajes que salen solos en el momento justo.",
+            "primary": "Nueva automatización",
+            "secondary": "Ver biblioteca"
+        },
+        "hero": {
+            "eyebrow": "Este mes",
+            "title": "Imagina Growth generó",
+            "value": "$ 4.250.000",
+            "description": "37 ventas recuperadas por carrito abandonado, 12 por segunda compra y 5 por reseñas.",
+            "action": "Ver el detalle"
+        },
+        "stats": {
+            "sales": "Ventas",
+            "salesValue": "$ 149.899.200",
+            "salesHelp": "Pedidos pagados en el periodo, sin envíos ni impuestos.",
+            "orders": "Pedidos",
+            "ordersValue": "288",
+            "conversion": "Conversión",
+            "conversionValue": "2,4 %",
+            "customers": "Clientes nuevos",
+            "customersValue": "126",
+            "vs": "vs. mes anterior",
+            "hint": "3.777 con al menos una compra"
+        },
+        "empty": {
+            "title": "Activa tu primera automatización",
+            "description": "Recupera carritos abandonados por WhatsApp sin hacer nada más.",
+            "action": "Ver automatizaciones",
+            "step1": "Elige una de la biblioteca",
+            "step2": "Revisa el mensaje",
+            "step3": "Actívala y mira lo que vende"
+        },
+        "locked": {
+            "title": "Conecta tu web para usar Popups y formularios",
+            "description": "Muestra popups y el botón de WhatsApp en tu web para que tus visitantes te dejen sus datos.",
+            "web": "Tu web conectada",
+            "webHow": "Instala el plugin y pega el código de conexión.",
+            "plan": "Un plan que incluya Puntos y recompensas",
+            "planTitle": "Puntos y recompensas no está en tu plan",
+            "planDescription": "Tus clientes ganan puntos con cada compra y vuelven a comprarte a ti.",
+            "action": "Conectar tu web",
+            "planAction": "Ver planes"
+        },
+        "checklist": {
+            "business": "Tu negocio",
+            "web": "Conecta tu web",
+            "history": "Trae tu historial",
+            "channels": "Conecta tus canales",
+            "strategies": "Prende tus primeras estrategias",
+            "webDescription": "Descarga el plugin y pega el código de conexión.",
+            "connect": "Conectar"
+        },
+        "callout": {
+            "info": "Tu historial se está importando: verás tus datos en unos minutos.",
+            "success": "Listo: tu web está conectada.",
+            "warning": "Las visitas salen en cero porque no llegan datos del navegador.",
+            "danger": "No pudimos enviar 3 mensajes: revisa el canal de WhatsApp.",
+            "brand": "Consejo: los carritos abandonados se recuperan más por WhatsApp que por correo.",
+            "neutral": "Los datos personales salen ocultos en este registro.",
+            "action": "Ver qué hacer"
+        },
+        "sheet": {
+            "open": "Abrir el cajón",
+            "title": "Filtros",
+            "description": "Elige qué personas ver.",
+            "body": "El cajón atrapa el foco, se cierra con Escape y devuelve el foco al botón que lo abrió.",
+            "apply": "Aplicar"
+        },
+        "table": {
+            "name": "Nombre",
+            "city": "Ciudad",
+            "orders": "Pedidos",
+            "spent": "Compró",
+            "rows": {
+                "1": {
+                    "name": "Laura Gómez",
+                    "city": "Pereira",
+                    "orders": "12",
+                    "spent": "$ 1.240.000"
+                },
+                "2": {
+                    "name": "Andrés Restrepo",
+                    "city": "Medellín",
+                    "orders": "3",
+                    "spent": "$ 389.900"
+                },
+                "3": {
+                    "name": "Camila Ortiz",
+                    "city": "Bogotá",
+                    "orders": "1",
+                    "spent": "$ 74.500"
+                }
+            }
+        },
+        "tabs": {
+            "one": "Resumen",
+            "two": "Mensajes",
+            "three": "Ventas",
+            "content": "El contenido de cada pestaña aparece aquí."
+        }
+    }
+}

@@ -1,6 +1,7 @@
 /**
  * Cómo ocupa la pantalla cada ruta dentro de `WorkspaceLayout` (hub/CLAUDE.md §14), según el `handle` de la ruta:
- * - `default`: columna centrada (máx. 6xl) con márgenes; la página se desplaza dentro de `main`.
+ * - `default`: columna centrada de hasta 1280 px (rediseño v2 §7) con márgenes; la página se desplaza dentro de `main`.
+ *   Si la ruta es de una sección con subnavegación, `WorkspaceLayout` pone `SectionNav` a la izquierda desde `xl`.
  * - `fullBleed` (`handle: { fullBleed: true }`): lienzo de todo el ancho y el alto, sin márgenes (constructor de flujos).
  * - `fill` (`handle: { fill: true }`): la página llena el alto de `main` y reparte el espacio con flex; en el celular sin
  *   márgenes, para usarlo de borde a borde (la bandeja: lista y chat con su propio desplazamiento).
@@ -27,7 +28,7 @@ export function pageLayout(handles: readonly unknown[]): PageLayout {
 }
 
 export const LAYOUT_CLASS: Record<PageLayout, string> = {
-    default: 'igr:mx-auto igr:max-w-6xl igr:px-4 igr:py-4 igr:md:px-8 igr:md:py-6',
+    default: 'igr:mx-auto igr:w-full igr:max-w-7xl igr:px-4 igr:py-5 igr:md:px-6 igr:md:py-7 igr:lg:px-8',
     fullBleed: 'igr:flex igr:min-h-0 igr:flex-col igr:md:h-full',
-    fill: 'igr:mx-auto igr:flex igr:h-full igr:min-h-0 igr:max-w-6xl igr:flex-col igr:md:px-8 igr:md:py-6',
+    fill: 'igr:mx-auto igr:flex igr:h-full igr:min-h-0 igr:w-full igr:max-w-7xl igr:flex-col igr:md:px-6 igr:md:py-6 igr:lg:px-8',
 };

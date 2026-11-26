@@ -1,7 +1,7 @@
 {
     "quotes": {
         "title": "Cotizador",
-        "description": "Calculadoras de precio para tu sitio: la persona responde, deja su contacto y ve un precio estimado. Cada cotización llega como lead.",
+        "description": "Calculadoras de precio para tu sitio: la persona responde, deja su contacto y ve un precio estimado.",
         "new": "Nueva calculadora",
         "empty": "Todavía no tienes calculadoras",
         "emptyHelp": "Crea una por servicio, por área (m², metros, horas) o por paquetes y ponla en tu sitio con un shortcode.",

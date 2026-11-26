@@ -188,8 +188,8 @@
         }
     },
     "client_reports": {
-        "title": "Reportes mensuales",
-        "description": "Cada mes, el dinero que generó la plataforma, los indicadores frente al mes anterior y lo que viene.",
+        "title": "Informes",
+        "description": "El informe de cada mes con el dinero que generó la plataforma y cómo te fue frente al mes anterior.",
         "empty": "El primer reporte llega el día 1 del próximo mes.",
         "generate_last": "Generar el de {{month}}",
         "generated": "Generado",

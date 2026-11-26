@@ -1,6 +1,6 @@
 {
     "consent": {
-        "description": "Los textos que aceptan tus clientes, cómo se respeta su consentimiento y las solicitudes de derechos ARCO.",
+        "description": "Los textos que aceptan tus clientes, cómo se respeta su consentimiento y sus solicitudes de derechos ARCO.",
         "mode": {
             "relaxWarning": "El modo informado relaja la protección: mide antes de que el visitante responda. Úsalo solo si tu aviso de privacidad lo informa. El cambio queda en la auditoría."
         },

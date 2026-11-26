@@ -37,13 +37,13 @@ const me: Me = {
     require_two_factor: false,
 };
 
-function renderSidebar(mode: 'fixed' | 'drawer' = 'fixed') {
+function renderSidebar(mode: 'fixed' | 'drawer' = 'fixed', ws: Workspace = workspace, path = '/w/ws_1/contactos') {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     return render(
         <QueryClientProvider client={client}>
             <TooltipProvider>
-                <MemoryRouter initialEntries={['/w/ws_1/contactos']}>
-                    <WorkspaceContext.Provider value={{ workspace, me }}>
+                <MemoryRouter initialEntries={[path]}>
+                    <WorkspaceContext.Provider value={{ workspace: ws, me: { ...me, workspaces: [ws] } }}>
                         <Sidebar mode={mode} />
                     </WorkspaceContext.Provider>
                 </MemoryRouter>
@@ -53,7 +53,7 @@ function renderSidebar(mode: 'fixed' | 'drawer' = 'fixed') {
 }
 
 beforeEach(() => {
-    useUi.setState({ sidebarCollapsed: false, navCollapsed: [] });
+    useUi.setState({ sidebarCollapsed: false });
     // jsdom no trae ResizeObserver y el tooltip (floating-ui) lo usa para ubicarse.
     if (!('ResizeObserver' in globalThis)) {
         vi.stubGlobal(
@@ -68,29 +68,67 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+describe('menú por secciones (rediseño v2 §3)', () => {
+    it('muestra las secciones con nombre de resultado y despliega la subnavegación de la actual', () => {
+        renderSidebar();
+        const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
+        const names = [...nav.querySelectorAll(':scope > ul > li > a')].map((a) => a.textContent);
+        expect(names).toEqual(['Inicio', 'Estrategias', 'Clientes', 'Conversaciones', 'Mensajes', 'En tu web', 'Resultados', 'Configuración']);
+        // /contactos es parte de Clientes: la sección lleva a su página de entrada y se despliega con sus pantallas.
+        expect(within(nav).getByRole('link', { name: 'Clientes' })).toHaveAttribute('href', '/w/ws_1/clientes');
+        const sub = within(nav).getByRole('list', { name: 'Secciones de Clientes' });
+        expect(within(sub).getByRole('link', { name: 'Personas' })).toHaveAttribute('aria-current', 'page');
+        expect(within(sub).getByRole('link', { name: 'Grupos de clientes' })).toHaveAttribute('href', '/w/ws_1/segmentos');
+        expect(within(nav).queryByRole('link', { name: 'Automatizaciones' })).not.toBeInTheDocument();
+        expect(within(nav).getByRole('link', { name: 'Inicio' })).toHaveAttribute('href', '/w/ws_1');
+    });
+
+    it('en la página de entrada, la sección es la página actual', () => {
+        renderSidebar('fixed', workspace, '/w/ws_1/clientes');
+        expect(screen.getByRole('link', { name: 'Clientes' })).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('una sección que todavía no puede servir lleva un candado con su motivo para el lector de pantalla', () => {
+        renderSidebar('fixed', { ...workspace, abilities: [...workspace.abilities, 'useInbox'], connections: { site: 'none', channels: [] } });
+        const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
+        expect(within(nav).getByRole('link', { name: /^Conversaciones ?\(Necesita un canal conectado\)$/ })).toBeInTheDocument();
+        expect(within(nav).getByRole('link', { name: /^Resultados ?\(Necesita tu web conectada\)$/ })).toBeInTheDocument();
+        expect(within(nav).getByRole('link', { name: 'Clientes' })).toBeInTheDocument();
+    });
+
+    it('Agencia y Plataforma van aparte; la guía de estilo solo para quien administra la plataforma', () => {
+        const admin: Workspace = { ...workspace, abilities: [...workspace.abilities, 'viewAgency', 'platformAdmin'] };
+        renderSidebar('fixed', admin);
+        const group = screen.getByRole('group', { name: 'Administración' });
+        expect(
+            within(group)
+                .getAllByRole('link')
+                .map((a) => a.textContent),
+        ).toEqual(['Agencia', 'Plataforma']);
+    });
+});
+
 describe('barra lateral contraíble (U9)', () => {
     it('se contrae a íconos con su nombre accesible, lo recuerda y vuelve a expandirse', async () => {
         const user = userEvent.setup();
         renderSidebar();
         const toggle = screen.getByRole('button', { name: 'Contraer la barra lateral' });
         expect(toggle).toHaveAttribute('aria-expanded', 'true');
-        expect(screen.getByRole('button', { name: /clientes/i })).toBeInTheDocument();
 
         await user.click(toggle);
         expect(useUi.getState().sidebarCollapsed).toBe(true);
         const expand = screen.getByRole('button', { name: 'Expandir la barra lateral' });
         expect(expand).toHaveAttribute('aria-expanded', 'false');
         expect(document.getElementById('igr-sidebar')).toHaveClass('igr:w-14');
-        // Sin los encabezados plegables: cada grupo es un grupo con nombre y sus entradas siguen siendo enlaces con nombre.
-        expect(screen.queryByRole('button', { name: /clientes/i })).not.toBeInTheDocument();
-        const customers = screen.getByRole('group', { name: 'Clientes' });
-        expect(within(customers).getByRole('link', { name: 'Contactos' })).toHaveAttribute('aria-current', 'page');
+        // Contraída, cada sección sigue siendo un enlace con nombre y sin la subnavegación (va arriba del contenido).
+        expect(screen.getByRole('link', { name: 'Clientes' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.queryByRole('link', { name: 'Personas' })).not.toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Inicio' })).toHaveAttribute('href', '/w/ws_1');
         expect(screen.getByRole('button', { name: 'Buscar o ir a…' })).toBeInTheDocument();
 
         await user.click(expand);
         expect(useUi.getState().sidebarCollapsed).toBe(false);
-        expect(screen.getByRole('button', { name: /clientes/i })).toHaveAttribute('aria-expanded', 'true');
+        expect(document.getElementById('igr-sidebar')).toHaveClass('igr:w-60');
     });
 
     it('con la barra contraída, el nombre aparece en un tooltip al enfocar con el teclado', async () => {
@@ -103,23 +141,11 @@ describe('barra lateral contraíble (U9)', () => {
         expect(await screen.findByRole('tooltip')).toHaveTextContent('Café del Eje');
     });
 
-    it('los grupos plegados se respetan al expandir; contraída se ven todas las entradas', async () => {
-        useUi.setState({ navCollapsed: ['sell'] });
-        const user = userEvent.setup();
-        renderSidebar();
-        expect(screen.queryByRole('link', { name: 'Campañas' })).not.toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: 'Contraer la barra lateral' }));
-        expect(screen.getByRole('link', { name: 'Campañas' })).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: 'Expandir la barra lateral' }));
-        expect(screen.queryByRole('link', { name: 'Campañas' })).not.toBeInTheDocument();
-        expect(useUi.getState().navCollapsed).toEqual(['sell']);
-    });
-
     it('en el panel del celular siempre va expandida y sin el botón de contraer', () => {
         useUi.setState({ sidebarCollapsed: true });
         renderSidebar('drawer');
         expect(screen.queryByRole('button', { name: /barra lateral/i })).not.toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /clientes/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Clientes' })).toHaveTextContent('Clientes');
         expect(document.querySelector('aside')).toHaveClass('igr:w-60');
     });
 });

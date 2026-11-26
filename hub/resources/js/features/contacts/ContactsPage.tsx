@@ -54,7 +54,14 @@ export function ContactsPage() {
         <>
             <PageHeader
                 title={t('contacts.title')}
-                description={meta ? t('contacts.count', { count: meta.total, formatted: formatNumber(meta.total, workspace.locale) }) : t('contacts.description')}
+                description={t('contacts.description')}
+                meta={
+                    meta ? (
+                        <Badge variant="secondary" className="igr:tabular-nums">
+                            {t('contacts.count', { count: meta.total, formatted: formatNumber(meta.total, workspace.locale) })}
+                        </Badge>
+                    ) : undefined
+                }
                 actions={
                     can.edit ? (
                         <Button variant="outline" asChild>
@@ -108,7 +115,12 @@ export function ContactsPage() {
                         </option>
                     ))}
                 </Select>
-                <Select aria-label={t('contacts.filters.buyers')} className="igr:w-auto" value={filters.buyers} onChange={(e) => update({ buyers: e.target.value as ContactFilters['buyers'] })}>
+                <Select
+                    aria-label={t('contacts.filters.buyers')}
+                    className="igr:w-auto"
+                    value={filters.buyers}
+                    onChange={(e) => update({ buyers: e.target.value as ContactFilters['buyers'] })}
+                >
                     <option value="">{t('contacts.filters.anyBuyer')}</option>
                     <option value="1">{t('contacts.filters.buyersOnly')}</option>
                     <option value="0">{t('contacts.filters.nonBuyers')}</option>
@@ -225,8 +237,12 @@ export function ContactsPage() {
                                         )}
                                     </TD>
                                     <TD className="igr:text-right igr:tabular-nums">{formatNumber(c.orders_count, workspace.locale)}</TD>
-                                    <TD className="igr:whitespace-nowrap igr:text-right igr:tabular-nums">{formatMoney(c.revenue_total_ws, workspace.currency, workspace.locale)}</TD>
-                                    <TD className="igr:hidden igr:whitespace-nowrap igr:text-right igr:text-muted-foreground igr:lg:table-cell">{formatDate(c.last_order_at, workspace.locale, workspace.timezone)}</TD>
+                                    <TD className="igr:whitespace-nowrap igr:text-right igr:tabular-nums">
+                                        {formatMoney(c.revenue_total_ws, workspace.currency, workspace.locale)}
+                                    </TD>
+                                    <TD className="igr:hidden igr:whitespace-nowrap igr:text-right igr:text-muted-foreground igr:lg:table-cell">
+                                        {formatDate(c.last_order_at, workspace.locale, workspace.timezone)}
+                                    </TD>
                                     <TD className="igr:hidden igr:text-muted-foreground igr:xl:table-cell">{answerLabel(survey.data, c.hdyhau) ?? '—'}</TD>
                                     <TD className="igr:hidden igr:xl:table-cell">
                                         <div className="igr:flex igr:max-w-48 igr:flex-wrap igr:gap-1">

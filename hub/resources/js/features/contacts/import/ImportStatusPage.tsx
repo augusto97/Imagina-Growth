@@ -1,4 +1,4 @@
-import { ArrowLeft, CircleAlert, FileUp, ShieldAlert, ShieldCheck, Users } from 'lucide-react';
+import { CircleAlert, FileUp, ShieldAlert, ShieldCheck, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { formatDate, formatDateTime, formatNumber } from '@/lib/format';
 import { isApiError } from '@/lib/api';
 import { useImport } from '../api';
 import { ImportStatusBadge } from './StatusBadge';
+import { Breadcrumbs, useAutoCrumbs } from '@/components/ui/page-header';
 
 /** Avance y resultado de una importación CSV (se consulta cada 1,5 s hasta terminar). */
 export function ImportStatusPage() {
@@ -19,21 +20,18 @@ export function ImportStatusPage() {
     const { workspace } = useWorkspace();
     const { importId = '' } = useParams();
     const job = useImport(workspace.id, importId);
-    const back = (
-        <Link
-            to={`/w/${workspace.id}/contactos/importar`}
-            className="igr:mb-3 igr:inline-flex igr:items-center igr:gap-1 igr:text-[13px] igr:text-muted-foreground igr:hover:text-foreground"
-        >
-            <ArrowLeft className="igr:size-3.5" />
-            {t('contacts.import.title')}
-        </Link>
-    );
+    const crumbs = useAutoCrumbs();
+    const back = <Breadcrumbs className="igr:mb-3" items={[...crumbs, { label: t('contacts.import.title'), to: `/w/${workspace.id}/contactos/importar` }]} />;
 
     if (job.isError) {
         return (
             <>
                 {back}
-                {isApiError(job.error, 'not_found') ? <EmptyState icon={FileUp} title={t('contacts.import.status.notFound')} /> : <ErrorState error={job.error} onRetry={() => void job.refetch()} />}
+                {isApiError(job.error, 'not_found') ? (
+                    <EmptyState icon={FileUp} title={t('contacts.import.status.notFound')} />
+                ) : (
+                    <ErrorState error={job.error} onRetry={() => void job.refetch()} />
+                )}
             </>
         );
     }

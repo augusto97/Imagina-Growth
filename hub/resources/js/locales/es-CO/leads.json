@@ -1,7 +1,7 @@
 {
     "leads": {
         "title": "Leads",
-        "description": "Cada persona que pidió algo: de dónde vino, qué tan caliente está, quién la atiende y cuánto dinero dejó.",
+        "description": "Cada persona que pidió algo: de dónde vino, qué tan interesada está y quién la atiende.",
         "tabs": {
             "tablero": "Tablero",
             "lista": "Lista",

@@ -54,6 +54,19 @@ export interface Workspace {
     modules?: PlanModule[];
     /** Tipo de negocio según sus sitios y su plan: null = todavía no se sabe. */
     capabilities?: WorkspaceCapabilities;
+    /** Web y canales conectados, para los «bloqueos que enseñan» del menú y las páginas (rediseño v2 §3). */
+    connections?: WorkspaceConnections;
+    /** Para cada módulo fuera del plan, el nombre del plan más barato que lo incluye. */
+    upgrade_plans?: Partial<Record<PlanModule, string>>;
+}
+
+/**
+ * `site`: `connected` (algún sitio conectado o con fallas), `disconnected` (se conectó alguna vez: sus datos siguen),
+ * `pending` (conexión empezada sin terminar) o `none`. `channels`: canales con una cuenta en uso (email, whatsapp…).
+ */
+export interface WorkspaceConnections {
+    site: 'connected' | 'disconnected' | 'pending' | 'none';
+    channels: string[];
 }
 
 /** Módulos del plan (config/igr-plans.php). */
