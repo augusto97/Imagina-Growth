@@ -150,7 +150,7 @@ describe('Switch y ChoiceCard', () => {
         );
         const radios = screen.getAllByRole('radio');
         expect(radios).toHaveLength(2);
-        expect((screen.getByRole('radio', { name: /Tienda/ }) as HTMLInputElement).checked).toBe(true);
+        expect(screen.getByRole<HTMLInputElement>('radio', { name: /Tienda/ }).checked).toBe(true);
         screen.getByRole('radio', { name: /Servicios/ }).click();
         expect(picked).toEqual(['services']);
     });
