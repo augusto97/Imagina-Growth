@@ -53,7 +53,7 @@ final class FatigueDetector implements Detector
             title: __(':n contactos reciben más de :per mensajes por semana y las bajas subieron', ['n' => Money::number($fatigued), 'per' => $perWeek]),
             facts: ['fatigued_contacts' => $fatigued, 'per_week_limit' => $perWeek, 'unsubscribes_recent' => $recent, 'unsubscribes_before' => $before,
                 'marketing_audience' => $marketing, 'window_days' => 14],
-            assumptions: [__('Baja la frecuencia, excluye de las campañas a quien está en un flujo y prioriza a quien interactúa.')],
+            assumptions: [__('Baja la frecuencia, excluye de las campañas a quien está en una automatización y prioriza a quien interactúa.')],
             action: ['label' => __('Revisa los límites de frecuencia'), 'to' => 'consentimiento'],
             periodStart: $since->toDateString(),
             periodEnd: $now->toDateString(),

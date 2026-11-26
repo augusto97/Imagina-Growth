@@ -306,7 +306,7 @@
             },
             "promising": {
                 "name": "Prometedores",
-                "description": "Una compra reciente. Flujo de segunda compra."
+                "description": "Una compra reciente. Automatización de segunda compra."
             },
             "need_attention": {
                 "name": "Necesitan atención",
@@ -395,7 +395,7 @@
             "aovWith": "Ticket con cupón",
             "aovWithout": "Ticket sin cupón",
             "dependency": "De tus clientes que repiten, {{only}} solo compran con descuento, {{repeat}} repiten en total y {{never}} nunca usan cupones.",
-            "incrementalSoon": "Para saber si un cupón trajo ventas que no habrían pasado igual, deja un grupo de control en el flujo o la campaña que lo envía.",
+            "incrementalSoon": "Para saber si un cupón trajo ventas que no habrían pasado igual, deja un grupo de control en la automatización o la campaña que lo envía.",
             "codesTitle": "Códigos",
             "code": "Código",
             "none": "No se usaron cupones en este periodo",
@@ -404,11 +404,11 @@
         },
         "messaging": {
             "emptyTitle": "Todavía no hay mensajes en este periodo",
-            "emptyDescription": "Cuando conectes WhatsApp o tu correo y actives un flujo o envíes una campaña, aquí verás entregas, lecturas, clics, respuestas, bajas y las ventas de cada mensaje.",
+            "emptyDescription": "Cuando conectes WhatsApp o tu correo y actives una automatización o envíes una campaña, aquí verás entregas, lecturas, clics, respuestas, bajas y las ventas de cada mensaje.",
             "connectChannel": "Conectar un canal",
-            "activateFlow": "Activar un flujo",
+            "activateFlow": "Activar una automatización",
             "sent": "Enviados",
-            "sentHelp": "Mensajes que salieron hacia el proveedor en el periodo (flujos, campañas, bandeja y avisos). No cuenta los que la política de envío frenó por consentimiento, horario o frecuencia.",
+            "sentHelp": "Mensajes que salieron hacia el proveedor en el periodo (automatizaciones, campañas, bandeja y avisos). No cuenta los que la política de envío frenó por consentimiento, horario o frecuencia.",
             "delivered": "Entregados",
             "deliveryRate": "Entrega",
             "read": "Leídos",
@@ -439,10 +439,10 @@
             "seriesDescription": "Cuántos mensajes salieron en cada día del periodo.",
             "byChannelTitle": "Por canal",
             "byChannelDescription": "El porcentaje al lado de cada cifra es sobre lo entregado.",
-            "bySourceTitle": "Por flujo o campaña",
+            "bySourceTitle": "Por automatización o campaña",
             "bySourceDescription": "Qué automatización o envío trajo más ventas.",
             "channelCol": "Canal",
-            "sourceCol": "Flujo o campaña",
+            "sourceCol": "Automatización o campaña",
             "channel": {
                 "whatsapp": "WhatsApp",
                 "email": "Correo",
@@ -456,7 +456,7 @@
                 "other": "Otros envíos",
                 "unnamed": "Sin nombre",
                 "type": {
-                    "flow": "Flujo",
+                    "flow": "Automatización",
                     "campaign": "Campaña",
                     "inbox": "Respuestas del equipo",
                     "other": "API y avisos del sistema"

@@ -174,7 +174,7 @@ describe('textos', () => {
             ],
         };
         expect(summarize(t, definition, { fl_1: 'Carrito abandonado', tr_2: 'Oro' })).toBe(
-            'Hizo clic en mensajes de marketing por WhatsApp del flujo «Carrito abandonado» al menos 2 veces · en los últimos 30 días y Interacción con mensajes de al menos 10 y Nivel VIP es al menos Oro y Puntos por vencer en los próximos 15 días y Llegó referido por alguien',
+            'Hizo clic en mensajes de marketing por WhatsApp de la automatización «Carrito abandonado» al menos 2 veces · en los últimos 30 días y Interacción con mensajes de al menos 10 y Nivel VIP es al menos Oro y Puntos por vencer en los próximos 15 días y Llegó referido por alguien',
         );
     });
 });
@@ -234,7 +234,7 @@ describe('constructor visual', () => {
         expect(ast()).toMatchObject({ type: 'messaging', action: 'opened', channel: 'email' });
         expect(screen.getByRole('combobox', { name: 'Canal' }).querySelectorAll('option')).toHaveLength(1);
 
-        fireEvent.change(screen.getByRole('combobox', { name: 'De qué flujo o campaña' }), { target: { value: 'campaign:cmp_1' } });
+        fireEvent.change(screen.getByRole('combobox', { name: 'De qué automatización o campaña' }), { target: { value: 'campaign:cmp_1' } });
         expect(ast()).toMatchObject({ campaign_id: 'cmp_1' });
         expect(ast()).not.toHaveProperty('flow_id');
 

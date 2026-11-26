@@ -167,7 +167,7 @@
         "zender": {
             "title": "Conexión no oficial de WhatsApp",
             "risk": "Esta conexión usa WhatsApp Web, que los términos de WhatsApp no autorizan para automatizar. Tu número puede ser bloqueado.",
-            "rules": "Por eso: no permite campañas ni flujos de marketing, tiene topes fijos de {{hourly}} mensajes por hora y {{daily}} por día que no se pueden subir, y queda registrado quién la activó.",
+            "rules": "Por eso: no permite campañas ni automatizaciones de marketing, tiene topes fijos de {{hourly}} mensajes por hora y {{daily}} por día que no se pueden subir, y queda registrado quién la activó.",
             "baseUrl": "URL de tu instalación de Zender",
             "baseUrlPlaceholder": "https://zender.tuempresa.co",
             "secret": "Clave de la API",
@@ -333,7 +333,7 @@
             "clicked": "Hizo clic",
             "replied": "Respondió",
             "source": {
-                "flow": "Flujo",
+                "flow": "Automatización",
                 "campaign": "Campaña",
                 "inbox": "Conversación",
                 "api": "API",

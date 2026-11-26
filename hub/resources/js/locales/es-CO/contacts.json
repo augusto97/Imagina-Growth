@@ -242,7 +242,7 @@
                 "back_in_stock": "cuando vuelva",
                 "price_drop": "si baja de precio"
             },
-            "flow": "Flujo «{{name}}»",
+            "flow": "Automatización «{{name}}»",
             "emptyAll": "Todavía no hay actividad"
         },
         "events": {
@@ -299,8 +299,8 @@
             "message_complained": "Marcó un correo como spam",
             "message_unsubscribed": "Se dio de baja",
             "whatsapp_inbound": "Escribió por WhatsApp",
-            "flow_entered": "Entró a un flujo",
-            "flow_exited": "Salió de un flujo",
+            "flow_entered": "Entró a una automatización",
+            "flow_exited": "Salió de una automatización",
             "review_requested": "Se le pidió una reseña",
             "review_collected": "Dejó una reseña",
             "nps_answered": "Respondió la encuesta NPS",
@@ -534,7 +534,7 @@
                 "declared": "Sí, tengo su autorización",
                 "declaredHelp": "Declara los canales, de dónde salió la autorización y su fecha. Queda como constancia en cada contacto.",
                 "none": "Sin consentimiento: solo mensajes transaccionales",
-                "noneHelp": "Se importan sus datos, pero ninguna campaña ni flujo de marketing les llegará hasta que acepten.",
+                "noneHelp": "Se importan sus datos, pero ninguna campaña ni automatización de marketing les llegará hasta que acepten.",
                 "chooseMode": "Elige una de las dos opciones.",
                 "channels": "Canales autorizados",
                 "channelsRequired": "Elige al menos un canal.",

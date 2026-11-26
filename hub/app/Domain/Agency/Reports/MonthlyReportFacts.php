@@ -32,7 +32,7 @@ final class MonthlyReportFacts
         return [
             'affiliates' => __('Afiliados'),
             'referrals' => __('Referidos'),
-            'flows' => __('Flujos automáticos'),
+            'flows' => __('Automatizaciones'),
             'campaigns' => __('Campañas'),
             'ai_agent' => __('Agente de ventas con IA'),
             'inbox' => __('Bandeja de conversaciones'),

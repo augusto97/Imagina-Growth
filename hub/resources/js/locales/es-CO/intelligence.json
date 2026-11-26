@@ -122,7 +122,7 @@
             "sent_other": "Se envió a {{count}} personas",
             "actions": "Tus 3 acciones de la semana",
             "open": "Ir",
-            "openFlow": "Ver el flujo",
+            "openFlow": "Ver la automatización",
             "checked_one": "{{count}} cifra verificada",
             "checked_other": "{{count}} cifras verificadas",
             "checkedHelp": "Cada número del texto se comparó con los datos de la semana."

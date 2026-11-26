@@ -18,7 +18,7 @@
             },
             "suspended": {
                 "title": "Pausamos los envíos de marketing",
-                "body": "Terminó el periodo de gracia. Los datos, la medición, la bandeja y los mensajes de servicio siguen funcionando. Cambia de plan o paga la factura pendiente para reactivar campañas, flujos de marketing e importaciones."
+                "body": "Terminó el periodo de gracia. Los datos, la medición, la bandeja y los mensajes de servicio siguen funcionando. Cambia de plan o paga la factura pendiente para reactivar campañas, automatizaciones de marketing e importaciones."
             },
             "trial": {
                 "title": "Tu prueba termina pronto",

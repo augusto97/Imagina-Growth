@@ -57,10 +57,10 @@ final class EssentialFlowInactiveDetector implements Detector
         return [new InsightCandidate(
             fingerprint: 'abandoned_cart',
             severity: $n >= 50 ? 'warning' : 'opportunity',
-            title: __('Sin el flujo de carrito abandonado dejas ir :n carritos al mes', ['n' => Money::number($n)]),
+            title: __('Sin la automatización de carrito abandonado dejas ir :n carritos al mes', ['n' => Money::number($n)]),
             facts: ['abandoned_carts' => $n, 'avg_cart' => round($ticket, 2), 'cart_recovery_rate' => $rate, 'flow_status' => $status ?? 'missing', 'window_days' => 30],
             assumptions: [__('La tasa de recuperación es una referencia conservadora; tus resultados pueden ser mejores.')],
-            action: ['label' => __('Activa el flujo «Carrito abandonado»'), 'to' => 'flujos?tab=biblioteca', 'kind' => 'activate_flow', 'payload' => ['library_key' => 'abandoned_cart']],
+            action: ['label' => __('Activa la automatización «Carrito abandonado»'), 'to' => 'flujos?tab=biblioteca', 'kind' => 'activate_flow', 'payload' => ['library_key' => 'abandoned_cart']],
             periodStart: $since->toDateString(),
             periodEnd: $now->toDateString(),
             formula: $formula,

@@ -48,7 +48,7 @@
         },
         "earlyCapture": {
             "title": "Captura temprana del checkout",
-            "description": "Si un cliente escribe su correo o WhatsApp en el pago y no termina la compra, su carrito queda unido a ese dato para que el flujo de carrito abandonado sepa a quién escribirle.",
+            "description": "Si un cliente escribe su correo o WhatsApp en el pago y no termina la compra, su carrito queda unido a ese dato para que la automatización de carrito abandonado sepa a quién escribirle.",
             "on": "Activada",
             "off": "Apagada",
             "noticeTitle": "Aviso que el plugin muestra junto al campo",

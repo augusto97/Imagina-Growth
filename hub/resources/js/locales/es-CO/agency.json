@@ -63,7 +63,7 @@
         "modules": {
             "affiliates": "Afiliados",
             "referrals": "Referidos",
-            "flows": "Flujos automáticos",
+            "flows": "Automatizaciones",
             "campaigns": "Campañas",
             "ai_agent": "Agente de ventas con IA",
             "inbox": "Bandeja",
@@ -75,13 +75,13 @@
             "quotes": "Cotizador"
         },
         "templates": {
-            "intro": "Guarda un flujo, segmento, widget, plantilla o campaña de un cliente y aplícalo a otros. Se copian en borrador, sin contactos ni datos personales.",
+            "intro": "Guarda una automatización, un grupo, un widget, una plantilla o campaña de un cliente y aplícalo a otros. Se copian en borrador, sin contactos ni datos personales.",
             "save": "Guardar desde un cliente",
             "copy": "Copiar entre clientes",
             "kind_filter": "Tipo",
             "all_kinds": "Todos los tipos",
             "kinds": {
-                "flow": "Flujo",
+                "flow": "Automatización",
                 "segment": "Segmento",
                 "widget": "Widget",
                 "template": "Plantilla de mensaje",
@@ -103,7 +103,7 @@
             "result_error": "No se pudo: {{error}}",
             "delete": "Borrar",
             "delete_confirm": "¿Borrar «{{name}}» de la biblioteca? Lo que ya se aplicó a los clientes no cambia.",
-            "empty": "La biblioteca está vacía. Guarda tu mejor flujo para reutilizarlo con otros clientes.",
+            "empty": "La biblioteca está vacía. Guarda tu mejor automatización para reutilizarlo con otros clientes.",
             "saved": "Guardado en la biblioteca",
             "copy_title": "Copiar directo a otros clientes"
         },

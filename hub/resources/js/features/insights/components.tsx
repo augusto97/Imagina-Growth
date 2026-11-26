@@ -40,7 +40,7 @@ export function isOneClick(insight: Pick<Insight, 'action' | 'status'>): boolean
 }
 
 /**
- * El botón de la acción, con lo que hace («Crear la campaña de Black Friday», «Activa el flujo de carrito…»): con 1 clic
+ * El botón de la acción, con lo que hace («Crear la campaña de Black Friday», «Activa la automatización de carrito…»): con 1 clic
  * activa el flujo de la biblioteca, crea la campaña con el grupo elegido o la del calendario comercial (detector #24) y
  * lleva allí; las demás enlazan a la pantalla indicada.
  */

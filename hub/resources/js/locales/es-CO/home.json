@@ -103,10 +103,10 @@
             "lagging": "{{host}} está enviando datos con retraso"
         },
         "attributedTitle": "Dinero generado",
-        "attributedHelp": "Lo que vendieron los flujos, campañas, la bandeja, el agente, los widgets y los referidos de Imagina Growth.",
+        "attributedHelp": "Lo que vendieron las automatizaciones, las campañas, la bandeja, el agente, los widgets y los referidos de Imagina Growth.",
         "attributedSummary_one": "{{count}} venta · {{share}} de tus ventas del periodo",
         "attributedSummary_other": "{{count}} ventas · {{share}} de tus ventas del periodo",
-        "attributedEmpty": "Todavía no hay ventas atribuidas en este periodo. Activa el flujo de carrito abandonado: es el que primero recupera ventas.",
-        "attributedStart": "Ver flujos"
+        "attributedEmpty": "Todavía no hay ventas atribuidas en este periodo. Activa la automatización de carrito abandonado: es la que primero recupera ventas.",
+        "attributedStart": "Ver automatizaciones"
     }
 }

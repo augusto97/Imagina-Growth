@@ -53,7 +53,7 @@ final class FirstPurchaseStalledDetector implements Detector
         $rate = $this->assumptions->value('second_purchase_rate');
         $formula = Impact::of(
             new Term(__('clientes de una sola compra'), $n, 'count'),
-            new Term(__('que hace la segunda con un flujo'), $rate, 'rate', 'second_purchase_rate'),
+            new Term(__('que hace la segunda con una automatización'), $rate, 'rate', 'second_purchase_rate'),
             new Term(__('de ticket'), $aov, 'money'),
         );
 
@@ -63,7 +63,7 @@ final class FirstPurchaseStalledDetector implements Detector
             title: __(':n clientes compraron una vez y no han vuelto después de :days días', ['n' => Money::number($n), 'days' => $median]),
             facts: ['customers' => $n, 'median_days_to_second' => $median, 'pairs' => $pairs, 'aov' => round($aov, 2), 'second_purchase_flow' => $flow ?? 'missing'],
             assumptions: [$pairs < 30 ? __('Con pocas segundas compras para medir, se usan 45 días como referencia.') : __('El tiempo mediano sale de tus propios clientes.')],
-            action: ['label' => __('Activa el flujo «Segunda compra»'), 'to' => 'flujos?tab=biblioteca', 'kind' => 'activate_flow', 'payload' => ['library_key' => 'second_purchase']],
+            action: ['label' => __('Activa la automatización «Segunda compra»'), 'to' => 'flujos?tab=biblioteca', 'kind' => 'activate_flow', 'payload' => ['library_key' => 'second_purchase']],
             formula: $formula,
         )];
     }

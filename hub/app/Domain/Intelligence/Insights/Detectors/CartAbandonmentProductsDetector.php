@@ -88,7 +88,7 @@ final class CartAbandonmentProductsDetector implements Detector
         $flow = Data::libraryFlowStatus('abandoned_cart');
         $action = $flow === Flow::ACTIVE
             ? ['label' => __('Revisa el precio con envío y los costos que aparecen en el carrito'), 'to' => 'analitica/productos']
-            : ['label' => __('Activa el flujo de carrito abandonado'), 'to' => 'flujos?tab=biblioteca', 'kind' => 'activate_flow', 'payload' => ['library_key' => 'abandoned_cart']];
+            : ['label' => __('Activa la automatización de carrito abandonado'), 'to' => 'flujos?tab=biblioteca', 'kind' => 'activate_flow', 'payload' => ['library_key' => 'abandoned_cart']];
 
         return [new InsightCandidate(
             fingerprint: 'products',

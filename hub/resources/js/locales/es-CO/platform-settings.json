@@ -142,7 +142,7 @@
             "retention": {
                 "messages_days": { "label": "Mensajes (días)", "help": "Desde 90. Antes de borrarlos se suman al archivo del tablero. Nunca baja de la ventana de atribución más larga más 60 días." },
                 "failed_jobs_days": { "label": "Trabajos fallidos (días)", "help": "Los que se ven en Horizon como fallidos." },
-                "flow_steps_days": { "label": "Pasos de los flujos terminados (días)", "help": "El detalle de cada recorrido de un flujo." },
+                "flow_steps_days": { "label": "Pasos de las automatizaciones terminadas (días)", "help": "El detalle de cada recorrido de una automatización." },
                 "agent_turns_days": { "label": "Conversaciones del agente de IA (días)", "help": "El registro de cada turno del agente de ventas." }
             },
             "fx": {

@@ -346,7 +346,7 @@
             },
             "deletePipeline": "Borrar pipeline",
             "assistantTitle": "«Hoy» y seguimiento",
-            "assistantHelp": "La lista diaria de cada vendedor y el seguimiento automático del flujo «Lead de servicios» (días 2, 10, 20 y 40, editables en el flujo).",
+            "assistantHelp": "La lista diaria de cada vendedor y el seguimiento automático de la automatización «Lead de servicios» (días 2, 10, 20 y 40, editables en ella).",
             "staleDays": "Días quieto en una etapa para avisar",
             "followupTemplate": "Plantilla de WhatsApp para seguimientos",
             "followupTemplateDefault": "La de la biblioteca (wa_lead_followup), si existe",
@@ -408,7 +408,7 @@
             "add": "Agregar",
             "created": "Tarea creada: sale en «Hoy» el día que vence",
             "markDone": "Marcar «{{title}}» como hecha",
-            "fromFlow": "la creó un flujo"
+            "fromFlow": "la creó una automatización"
         },
         "brief": {
             "title": "Ficha del cliente",

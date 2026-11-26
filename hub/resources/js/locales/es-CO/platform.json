@@ -194,7 +194,7 @@
             "includedLabel": "Cantidad incluida al mes",
             "priceCop": "Precio en COP",
             "priceUsd": "Precio en USD",
-            "modulesHelp": "Lo básico (datos, analítica, segmentos, correo, WhatsApp, flujos, campañas y medición) va en todos los planes.",
+            "modulesHelp": "Lo básico (datos, analítica, segmentos, correo, WhatsApp, automatizaciones, campañas y medición) va en todos los planes.",
             "coreOnly": "Solo lo básico",
             "limits": "Límites (vacío = sin límite)",
             "unlimited": "Sin límite",

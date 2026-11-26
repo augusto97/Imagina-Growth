@@ -4,12 +4,12 @@
         "description": "Los correos, WhatsApp y SMS que usan tus automatizaciones y campañas. Las de WhatsApp las aprueba Meta antes de poder enviarlas.",
         "new": "Nueva plantilla",
         "newTitle": "Nueva plantilla de {{channel}}",
-        "newHelp": "Ponle un nombre que la distinga en los flujos y las campañas. Luego la diseñas en el editor.",
+        "newHelp": "Ponle un nombre que la distinga en las automatizaciones y las campañas. Luego la diseñas en el editor.",
         "create": "Crear y abrir",
         "phase": "próximamente",
         "fromLibrary": "De la galería",
         "duplicated": "Plantilla duplicada",
-        "archived": "Plantilla archivada. Los flujos y campañas que la usan la conservan.",
+        "archived": "Plantilla archivada. Las automatizaciones y campañas que la usan la conservan.",
         "restored": "Plantilla restaurada como borrador",
         "tabs": {
             "mine": "Tus plantillas",
@@ -126,7 +126,7 @@
         "editor": {
             "notFound": "Esta plantilla no existe o se eliminó",
             "saved": "Plantilla guardada",
-            "markedReady": "Plantilla lista para usar en flujos y campañas",
+            "markedReady": "Plantilla lista para usar en automatizaciones y campañas",
             "markReady": "Marcar como lista",
             "unsaved": "Cambios sin guardar",
             "saveShortcut": "Guardar (Ctrl+S)",

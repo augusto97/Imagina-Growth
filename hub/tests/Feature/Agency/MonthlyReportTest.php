@@ -46,7 +46,7 @@ it('arma los hechos del mes: dinero por módulo, KPI frente al mes anterior, hal
         ->and($f['dinero_generado']['participacion_pct'])->toEqual(60.0)
         ->and($f['dinero_generado']['mes_anterior'])->toEqual(100000)
         ->and($f['dinero_generado']['cambio_vs_anterior_pct'])->toEqual(200.0)
-        ->and($f['dinero_generado']['por_modulo'][0])->toMatchArray(['clave' => 'flows', 'modulo' => 'Flujos automáticos', 'pedidos' => 1])
+        ->and($f['dinero_generado']['por_modulo'][0])->toMatchArray(['clave' => 'flows', 'modulo' => 'Automatizaciones', 'pedidos' => 1])
         ->and($kpis['ventas']['valor'])->toEqual(500000)->and($kpis['ventas']['anterior'])->toEqual(100000)->and($kpis['ventas']['cambio_pct'])->toEqual(400.0)
         ->and($kpis['pedidos']['valor'])->toBe(2)
         ->and($kpis->has('leads_nuevos'))->toBeFalse()
