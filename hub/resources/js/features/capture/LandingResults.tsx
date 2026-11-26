@@ -44,8 +44,20 @@ export function LandingResults({ page }: { page: LandingPageDetail }) {
                     <StatGrid>
                         {stats.data ? (
                             <>
-                                <StatCard label={t('capture.results.views')} value={fmt.number(stats.data.totals.views)} hint={t('capture.results.visitors', { count: stats.data.totals.visitors, formatted: fmt.number(stats.data.totals.visitors) })} icon={Eye} tone="sky" />
-                                <StatCard label={t('capture.results.submissions')} value={fmt.number(stats.data.totals.submissions)} hint={t('capture.results.newContacts', { count: stats.data.totals.new_contacts, formatted: fmt.number(stats.data.totals.new_contacts) })} icon={Send} tone="emerald" />
+                                <StatCard
+                                    label={t('capture.results.views')}
+                                    value={fmt.number(stats.data.totals.views)}
+                                    hint={t('capture.results.visitors', { count: stats.data.totals.visitors, formatted: fmt.number(stats.data.totals.visitors) })}
+                                    icon={Eye}
+                                    tone="sky"
+                                />
+                                <StatCard
+                                    label={t('capture.results.submissions')}
+                                    value={fmt.number(stats.data.totals.submissions)}
+                                    hint={t('capture.results.newContacts', { count: stats.data.totals.new_contacts, formatted: fmt.number(stats.data.totals.new_contacts) })}
+                                    icon={Send}
+                                    tone="emerald"
+                                />
                                 <StatCard
                                     label={t('capture.results.conversion')}
                                     value={rate(stats.data.totals.submissions, stats.data.totals.views)}
@@ -56,7 +68,11 @@ export function LandingResults({ page }: { page: LandingPageDetail }) {
                                 <StatCard
                                     label={leadsModule ? t('capture.results.leads') : t('capture.results.withConsent')}
                                     value={fmt.number(leadsModule ? stats.data.totals.leads : stats.data.totals.with_consent)}
-                                    hint={leadsModule ? t('capture.results.withConsentHint', { count: stats.data.totals.with_consent, formatted: fmt.number(stats.data.totals.with_consent) }) : undefined}
+                                    hint={
+                                        leadsModule
+                                            ? t('capture.results.withConsentHint', { count: stats.data.totals.with_consent, formatted: fmt.number(stats.data.totals.with_consent) })
+                                            : undefined
+                                    }
                                     help={leadsModule ? t('capture.results.leadsHelp') : t('capture.results.withConsentHelp')}
                                     icon={leadsModule ? Target : UserPlus}
                                     tone="rose"

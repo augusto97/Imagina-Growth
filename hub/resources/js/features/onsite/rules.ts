@@ -15,7 +15,8 @@ export interface RulesSummary {
     frequency: string | null;
 }
 
-const list = (items: string[], t: TFunction) => (items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} ${t('onsite.rules.and')} ${items[items.length - 1] ?? ''}`);
+const list = (items: string[], t: TFunction) =>
+    items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} ${t('onsite.rules.and')} ${items[items.length - 1] ?? ''}`;
 
 export function describeTargeting(kind: WidgetKind, targeting: Targeting, t: TFunction, options?: Pick<OnsiteOptions, 'segments'>): RulesSummary {
     const always = kind === 'embedded_form';
@@ -37,7 +38,14 @@ export function describeTargeting(kind: WidgetKind, targeting: Targeting, t: TFu
     const conditions: string[] = [];
     // Dónde.
     if (targeting.page_types.length > 0) {
-        conditions.push(t('onsite.rules.pageTypes', { list: list(targeting.page_types.map((p) => t(`onsite.pageTypes.${p}`).toLowerCase()), t) }));
+        conditions.push(
+            t('onsite.rules.pageTypes', {
+                list: list(
+                    targeting.page_types.map((p) => t(`onsite.pageTypes.${p}`).toLowerCase()),
+                    t,
+                ),
+            }),
+        );
     }
     if (targeting.pages.include.length > 0) {
         conditions.push(t('onsite.rules.include', { list: targeting.pages.include.join(', ') }));
@@ -50,7 +58,14 @@ export function describeTargeting(kind: WidgetKind, targeting: Targeting, t: TFu
     }
     // A quién.
     if (targeting.devices.length > 0 && targeting.devices.length < 3) {
-        conditions.push(t('onsite.rules.devices', { list: list(targeting.devices.map((d) => t(`onsite.devices.${d}`).toLowerCase()), t) }));
+        conditions.push(
+            t('onsite.rules.devices', {
+                list: list(
+                    targeting.devices.map((d) => t(`onsite.devices.${d}`).toLowerCase()),
+                    t,
+                ),
+            }),
+        );
     }
     if (targeting.new_visitors !== null) {
         conditions.push(targeting.new_visitors ? t('onsite.rules.newVisitors') : t('onsite.rules.returning'));
@@ -64,7 +79,11 @@ export function describeTargeting(kind: WidgetKind, targeting: Targeting, t: TFu
     }
     if (targeting.segments.length > 0) {
         const names = targeting.segments.map((id) => options?.segments.find((s) => s.id === id)?.name).filter((n): n is string => typeof n === 'string');
-        conditions.push(names.length === targeting.segments.length ? t('onsite.rules.segmentsNamed', { list: list(names, t) }) : t('onsite.rules.segments', { count: targeting.segments.length }));
+        conditions.push(
+            names.length === targeting.segments.length
+                ? t('onsite.rules.segmentsNamed', { list: list(names, t) })
+                : t('onsite.rules.segments', { count: targeting.segments.length }),
+        );
     }
     if (targeting.cart_value_min !== null && targeting.cart_value_min !== '' && Number(targeting.cart_value_min) > 0) {
         conditions.push(t('onsite.rules.cart', { value: targeting.cart_value_min }));

@@ -80,7 +80,17 @@ export function LandingPreview({
                 {header}
                 <div style={{ ...card, textAlign: 'center', padding: '30px 20px', maxWidth: 460, margin: '0 auto' }}>
                     <span
-                        style={{ width: 52, height: 52, borderRadius: 999, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: `${accent}24`, color: accent, marginBottom: 8 }}
+                        style={{
+                            width: 52,
+                            height: 52,
+                            borderRadius: 999,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: `${accent}24`,
+                            color: accent,
+                            marginBottom: 8,
+                        }}
                     >
                         <Check size={26} aria-hidden />
                     </span>
@@ -99,7 +109,9 @@ export function LandingPreview({
 
     const lead = (
         <section>
-            <h1 style={{ fontSize: mobile ? 27 : 26, lineHeight: 1.12, letterSpacing: '-.02em', margin: '2px 0 12px', fontWeight: 700 }}>{c.title || t('capture.preview.untitled')}</h1>
+            <h1 style={{ fontSize: mobile ? 27 : 26, lineHeight: 1.12, letterSpacing: '-.02em', margin: '2px 0 12px', fontWeight: 700 }}>
+                {c.title || t('capture.preview.untitled')}
+            </h1>
             {paragraphs(c.body).map((p, i) => (
                 <p key={i} style={{ margin: '0 0 10px', color: PAGE.muted, fontSize: mobile ? 16 : 14.5, whiteSpace: 'pre-line' }}>
                     {p}
@@ -108,7 +120,12 @@ export function LandingPreview({
         </section>
     );
     const media = image ? (
-        <img src={image} alt="" referrerPolicy="no-referrer" style={{ width: '100%', aspectRatio: '16 / 10', objectFit: 'cover', borderRadius: 14, background: '#e2e8f0', display: 'block', marginTop: mobile ? 0 : 8 }} />
+        <img
+            src={image}
+            alt=""
+            referrerPolicy="no-referrer"
+            style={{ width: '100%', aspectRatio: '16 / 10', objectFit: 'cover', borderRadius: 14, background: '#e2e8f0', display: 'block', marginTop: mobile ? 0 : 8 }}
+        />
     ) : null;
     const form = (
         <div style={card}>
@@ -187,7 +204,14 @@ function PreviewField({ field, consents, options, mobile }: { field: LandingFiel
                         {field.label}
                         {!field.required ? <span style={{ color: PAGE.muted, fontWeight: 400, fontSize: 12 }}> ({t('capture.preview.optional')})</span> : null}
                     </span>
-                    <span style={{ ...input, minHeight: type === 'textarea' ? 72 : input.minHeight, alignItems: type === 'textarea' ? 'flex-start' : 'center', justifyContent: 'space-between' }}>
+                    <span
+                        style={{
+                            ...input,
+                            minHeight: type === 'textarea' ? 72 : input.minHeight,
+                            alignItems: type === 'textarea' ? 'flex-start' : 'center',
+                            justifyContent: 'space-between',
+                        }}
+                    >
                         <span>{field.placeholder ?? (type === 'select' ? t('capture.preview.choose') : '')}</span>
                         {type === 'select' ? <span style={{ color: PAGE.muted }}>▾</span> : null}
                     </span>

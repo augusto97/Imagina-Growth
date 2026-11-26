@@ -58,13 +58,37 @@ export function StatsPanel({ widget }: { widget: WidgetDetail }) {
         <div className="igr:space-y-4">
             {header}
             <StatGrid className="igr:lg:grid-cols-3">
-                <StatCard label={t('onsite.stats.views')} value={fmt.number(tot.views)} hint={t('onsite.stats.visitors', { value: fmt.number(tot.visitors) })} icon={Eye} tone="sky" />
-                <StatCard label={t('onsite.stats.submissions')} value={fmt.number(tot.submissions)} hint={t('onsite.stats.newContacts', { value: fmt.number(tot.new_contacts) })} icon={Send} tone="emerald" />
+                <StatCard
+                    label={t('onsite.stats.views')}
+                    value={fmt.number(tot.views)}
+                    hint={t('onsite.stats.visitors', { value: fmt.number(tot.visitors) })}
+                    icon={Eye}
+                    tone="sky"
+                />
+                <StatCard
+                    label={t('onsite.stats.submissions')}
+                    value={fmt.number(tot.submissions)}
+                    hint={t('onsite.stats.newContacts', { value: fmt.number(tot.new_contacts) })}
+                    icon={Send}
+                    tone="emerald"
+                />
                 <StatCard label={t('onsite.stats.submitRate')} value={fmt.percent(tot.submit_rate, 1)} help={t('onsite.stats.submitRateHelp')} icon={ArrowUpRight} tone="violet" />
                 {store ? (
                     <>
-                        <StatCard label={t('onsite.stats.orders')} value={fmt.number(tot.orders)} hint={t('onsite.stats.buyers', { value: fmt.number(tot.buyers) })} icon={Receipt} tone="indigo" />
-                        <StatCard label={t('onsite.stats.conversion')} value={fmt.percent(tot.conversion_rate, 1)} help={t('onsite.stats.conversionHelp')} icon={UserPlus} tone="rose" />
+                        <StatCard
+                            label={t('onsite.stats.orders')}
+                            value={fmt.number(tot.orders)}
+                            hint={t('onsite.stats.buyers', { value: fmt.number(tot.buyers) })}
+                            icon={Receipt}
+                            tone="indigo"
+                        />
+                        <StatCard
+                            label={t('onsite.stats.conversion')}
+                            value={fmt.percent(tot.conversion_rate, 1)}
+                            help={t('onsite.stats.conversionHelp')}
+                            icon={UserPlus}
+                            tone="rose"
+                        />
                         <StatCard label={t('onsite.stats.revenue')} value={fmt.money(Number(tot.revenue))} help={t('onsite.stats.revenueHelp')} icon={ShoppingBag} tone="amber" />
                     </>
                 ) : null}
@@ -143,7 +167,9 @@ export function StatsPanel({ widget }: { widget: WidgetDetail }) {
                                 })}
                             </Notice>
                         ) : (
-                            <Notice icon={CircleHelp}>{ab.enough_data ? t('onsite.stats.ab.notYet', { confidence: fmt.percent(ab.confidence ?? 0, 0) }) : t('onsite.stats.ab.needData')}</Notice>
+                            <Notice icon={CircleHelp}>
+                                {ab.enough_data ? t('onsite.stats.ab.notYet', { confidence: fmt.percent(ab.confidence ?? 0, 0) }) : t('onsite.stats.ab.needData')}
+                            </Notice>
                         )}
                     </div>
                 ) : null}

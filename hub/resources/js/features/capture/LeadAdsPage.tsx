@@ -146,7 +146,9 @@ function SourceRow({ source, canManage, onForms }: { source: LeadAdSource; canMa
         <li className="igr:space-y-2 igr:p-3">
             <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-2">
                 <p className="igr:min-w-0 igr:flex-1 igr:truncate igr:text-[13px] igr:font-medium">{source.name ?? source.page_id}</p>
-                <Badge variant={source.status === 'active' ? 'success' : source.status === 'error' ? 'destructive' : 'secondary'}>{t(`capture.ads.sourceStatus.${source.status}`)}</Badge>
+                <Badge variant={source.status === 'active' ? 'success' : source.status === 'error' ? 'destructive' : 'secondary'}>
+                    {t(`capture.ads.sourceStatus.${source.status}`)}
+                </Badge>
             </div>
             <p className="igr:text-caption igr:text-muted-foreground igr:tabular-nums">
                 {t('capture.ads.sourceStats', {
@@ -220,8 +222,19 @@ function MetaPagesDialog({ onClose }: { onClose: () => void }) {
                     <fieldset className="igr:space-y-2">
                         <legend className="igr:sr-only">{t('capture.ads.meta.pagesTitle')}</legend>
                         {list.map((p) => (
-                            <label key={p.page_id} className="igr:flex igr:cursor-pointer igr:items-center igr:gap-3 igr:rounded-lg igr:border igr:p-3 igr:has-[:checked]:border-primary igr:has-[:checked]:bg-brand-soft/60">
-                                <input type="radio" name="meta-page" className="igr:size-4 igr:accent-primary" value={p.page_id} disabled={p.source_id !== null} checked={chosen === p.page_id} onChange={() => setChosen(p.page_id)} />
+                            <label
+                                key={p.page_id}
+                                className="igr:flex igr:cursor-pointer igr:items-center igr:gap-3 igr:rounded-lg igr:border igr:p-3 igr:has-[:checked]:border-primary igr:has-[:checked]:bg-brand-soft/60"
+                            >
+                                <input
+                                    type="radio"
+                                    name="meta-page"
+                                    className="igr:size-4 igr:accent-primary"
+                                    value={p.page_id}
+                                    disabled={p.source_id !== null}
+                                    checked={chosen === p.page_id}
+                                    onChange={() => setChosen(p.page_id)}
+                                />
                                 <span className="igr:min-w-0 igr:flex-1 igr:truncate igr:text-[13px] igr:font-medium">{p.name}</span>
                                 {p.source_id !== null ? <Badge variant="success">{t('capture.ads.meta.already')}</Badge> : null}
                             </label>
@@ -484,7 +497,9 @@ function LeadRow({ row }: { row: LeadAdLeadRow }) {
                         variant="outline"
                         className="igr:mt-1.5"
                         loading={retryLead.isPending && retryLead.variables === row.id}
-                        onClick={() => retryLead.mutate(row.id, { onSuccess: () => toast.success(t('capture.ads.leads.retried')), onError: (e) => toast.error(errorMessage(e, t)) })}
+                        onClick={() =>
+                            retryLead.mutate(row.id, { onSuccess: () => toast.success(t('capture.ads.leads.retried')), onError: (e) => toast.error(errorMessage(e, t)) })
+                        }
                     >
                         <RefreshCw aria-hidden />
                         {t('capture.ads.leads.retry')}
@@ -515,7 +530,9 @@ function FormsSheet({ source, canManage, onClose }: { source: LeadAdSource; canM
                             <Skeleton className="igr:h-40" />
                         </>
                     ) : forms.data.data.length === 0 ? (
-                        <p className="igr:text-support igr:text-muted-foreground">{source.platform === 'google' ? t('capture.ads.forms.emptyGoogle') : t('capture.ads.forms.empty')}</p>
+                        <p className="igr:text-support igr:text-muted-foreground">
+                            {source.platform === 'google' ? t('capture.ads.forms.emptyGoogle') : t('capture.ads.forms.empty')}
+                        </p>
                     ) : (
                         forms.data.data.map((form) => <FormMapping key={form.id} source={source} form={form} canManage={canManage} />)
                     )}
@@ -533,7 +550,10 @@ function FormMapping({ source, form, canManage }: { source: LeadAdSource; form: 
     const [consent, setConsent] = useState<Record<string, ConsentChannel | ''>>(initial);
     const [service, setService] = useState(form.mapping.service_key ?? '');
     // En Meta, las casillas personalizadas; en Google, las preguntas (una pregunta de sí o no puede dar el permiso).
-    const boxes = form.checkboxes.length > 0 ? form.checkboxes.map((c) => ({ key: c.key, text: c.text, preChecked: c.checked_by_default })) : form.questions.map((q) => ({ key: q.key, text: q.label, preChecked: false }));
+    const boxes =
+        form.checkboxes.length > 0
+            ? form.checkboxes.map((c) => ({ key: c.key, text: c.text, preChecked: c.checked_by_default }))
+            : form.questions.map((q) => ({ key: q.key, text: q.label, preChecked: false }));
     const save = () =>
         saveFormMapping.mutate(
             {

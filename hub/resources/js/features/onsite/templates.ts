@@ -13,8 +13,7 @@ const SERVICES_ORDER = ['contact_form', 'wa_button', 'callback', 'exit_info'];
  * las de servicios y las de los dos, nunca una con cupón. Con los dos tipos (o sin saberlo) se ven todas.
  */
 export function templatesFor(all: readonly WidgetTemplate[], audience: { store: boolean; services: boolean }): WidgetTemplate[] {
-    const fits = (tpl: WidgetTemplate) =>
-        tpl.audience === 'both' || (tpl.audience === 'store' && audience.store) || (tpl.audience === 'services' && audience.services);
+    const fits = (tpl: WidgetTemplate) => tpl.audience === 'both' || (tpl.audience === 'store' && audience.store) || (tpl.audience === 'services' && audience.services);
     const order = audience.store && !audience.services ? STORE_ORDER : !audience.store && audience.services ? SERVICES_ORDER : [...SERVICES_ORDER, ...STORE_ORDER];
     const rank = (key: string) => {
         const i = order.indexOf(key);

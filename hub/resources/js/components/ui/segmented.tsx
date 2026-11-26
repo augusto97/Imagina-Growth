@@ -52,7 +52,11 @@ export function SegmentedControl<T extends string>({
         }
     };
     return (
-        <div role="radiogroup" aria-label={label} className={cn('igr:inline-flex igr:max-w-full igr:items-center igr:gap-0.5 igr:overflow-x-auto igr:rounded-lg igr:bg-muted igr:p-0.5 igr:scrollbar-none', className)}>
+        <div
+            role="radiogroup"
+            aria-label={label}
+            className={cn('igr:inline-flex igr:max-w-full igr:items-center igr:gap-0.5 igr:overflow-x-auto igr:rounded-lg igr:bg-muted igr:p-0.5 igr:scrollbar-none', className)}
+        >
             {options.map((option) => {
                 const active = option.value === value;
                 const Icon = option.icon;

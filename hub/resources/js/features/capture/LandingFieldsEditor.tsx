@@ -61,7 +61,13 @@ export function LandingFieldsEditor({
                             onSelect={() =>
                                 setFields([
                                     ...fields,
-                                    { key, label: t(`capture.fields.builtin.${key}`), type: BUILTIN_TYPES[key], required: key === 'phone' || key === 'name', ...(key === 'service' ? { options: [] } : {}) },
+                                    {
+                                        key,
+                                        label: t(`capture.fields.builtin.${key}`),
+                                        type: BUILTIN_TYPES[key],
+                                        required: key === 'phone' || key === 'name',
+                                        ...(key === 'service' ? { options: [] } : {}),
+                                    },
                                 ])
                             }
                         >
@@ -98,12 +104,18 @@ export function LandingFieldsEditor({
                                 className="igr:mt-0.5 igr:size-4 igr:accent-primary"
                                 checked={channels.includes(channel)}
                                 disabled={!enabled}
-                                onChange={(e) => onChange(fields, e.target.checked ? CHANNELS.filter((c) => c === channel || channels.includes(c)) : channels.filter((c) => c !== channel))}
+                                onChange={(e) =>
+                                    onChange(fields, e.target.checked ? CHANNELS.filter((c) => c === channel || channels.includes(c)) : channels.filter((c) => c !== channel))
+                                }
                             />
                             <span className="igr:min-w-0">
                                 <span className="igr:text-[13px] igr:font-medium">{t('capture.consent.channel', { channel: t(`capture.channels.${channel}`) })}</span>
                                 <span className="igr:block igr:text-caption igr:text-muted-foreground">
-                                    {enabled ? (text ? `«${text.label}»` : t('capture.consent.noText')) : t('capture.consent.needsField', { field: t(`capture.fields.builtin.${consentField(channel)}`) })}
+                                    {enabled
+                                        ? text
+                                            ? `«${text.label}»`
+                                            : t('capture.consent.noText')
+                                        : t('capture.consent.needsField', { field: t(`capture.fields.builtin.${consentField(channel)}`) })}
                                 </span>
                             </span>
                         </label>
@@ -141,7 +153,13 @@ function FieldRow({
                         {t('capture.fields.label')}
                         <Badge variant="outline">{kind}</Badge>
                     </Label>
-                    <Input id={`${id}-label`} value={field.label} maxLength={80} onChange={(e) => onChange({ label: e.target.value })} aria-invalid={field.label.trim() === '' || undefined} />
+                    <Input
+                        id={`${id}-label`}
+                        value={field.label}
+                        maxLength={80}
+                        onChange={(e) => onChange({ label: e.target.value })}
+                        aria-invalid={field.label.trim() === '' || undefined}
+                    />
                 </div>
                 <label className="igr:flex igr:h-9 igr:items-center igr:gap-2 igr:text-[13px]">
                     <input type="checkbox" className="igr:size-4 igr:accent-primary" checked={field.required ?? false} onChange={(e) => onChange({ required: e.target.checked })} />

@@ -76,7 +76,11 @@ function Editor({ page }: { page: LandingPageDetail }) {
     const patch = patchFrom(draft, saved);
     const dirty = Object.keys(patch).length > 0;
     const problem = fieldsProblem(draft.fields, options.data?.max_fields ?? 12);
-    const invalid = problem !== null || draft.content.title.trim() === '' || !slugValid(draft.slug) || (draft.content.redirect_url !== null && draft.content.redirect_url !== '' && !isHttpsUrl(draft.content.redirect_url));
+    const invalid =
+        problem !== null ||
+        draft.content.title.trim() === '' ||
+        !slugValid(draft.slug) ||
+        (draft.content.redirect_url !== null && draft.content.redirect_url !== '' && !isHttpsUrl(draft.content.redirect_url));
 
     const raw = params.get('vista') ?? '';
     const view: View = raw in VIEWS ? VIEWS[raw as keyof typeof VIEWS] : page.status === 'published' ? 'results' : 'design';
@@ -304,14 +308,28 @@ function Design({
                     <Section title={t('capture.editor.text.title')} description={t('capture.editor.text.help')}>
                         <Field label={t('capture.editor.text.headline')} count={[draft.content.title.length, 120]}>
                             {(id) => (
-                                <Input id={id} value={draft.content.title} maxLength={120} onChange={(e) => content({ title: e.target.value })} aria-invalid={draft.content.title.trim() === '' || undefined} />
+                                <Input
+                                    id={id}
+                                    value={draft.content.title}
+                                    maxLength={120}
+                                    onChange={(e) => content({ title: e.target.value })}
+                                    aria-invalid={draft.content.title.trim() === '' || undefined}
+                                />
                             )}
                         </Field>
                         <Field label={t('capture.editor.text.body')} hint={t('capture.editor.text.bodyHelp')}>
                             {(id) => <Textarea id={id} rows={5} maxLength={2000} value={draft.content.body ?? ''} onChange={(e) => content({ body: e.target.value })} />}
                         </Field>
                         <Field label={t('capture.editor.text.button')} hint={t('capture.editor.text.buttonHelp')}>
-                            {(id) => <Input id={id} maxLength={40} value={draft.content.button ?? ''} placeholder={t('capture.preview.send')} onChange={(e) => content({ button: e.target.value })} />}
+                            {(id) => (
+                                <Input
+                                    id={id}
+                                    maxLength={40}
+                                    value={draft.content.button ?? ''}
+                                    placeholder={t('capture.preview.send')}
+                                    onChange={(e) => content({ button: e.target.value })}
+                                />
+                            )}
                         </Field>
                     </Section>
 
@@ -324,7 +342,12 @@ function Design({
                     </Section>
 
                     <Section title={t('capture.editor.form.title')} description={t('capture.editor.form.help')}>
-                        <LandingFieldsEditor fields={draft.fields} channels={draft.consent_channels} options={options} onChange={(fields, consent_channels) => onChange({ ...draft, fields, consent_channels })} />
+                        <LandingFieldsEditor
+                            fields={draft.fields}
+                            channels={draft.consent_channels}
+                            options={options}
+                            onChange={(fields, consent_channels) => onChange({ ...draft, fields, consent_channels })}
+                        />
                         {problem ? <FieldError message={t(`capture.fields.problems.${problem}`, { max: options?.max_fields ?? 12 })} /> : null}
                     </Section>
 
@@ -355,7 +378,10 @@ function Design({
                                         />
                                     )}
                                 </Field>
-                                <Field label={t('capture.editor.whatsapp.message')} hint={page.whatsapp_link ? t('capture.editor.whatsapp.code', { code: page.whatsapp_link.code }) : t('capture.editor.whatsapp.codeLater')}>
+                                <Field
+                                    label={t('capture.editor.whatsapp.message')}
+                                    hint={page.whatsapp_link ? t('capture.editor.whatsapp.code', { code: page.whatsapp_link.code }) : t('capture.editor.whatsapp.codeLater')}
+                                >
                                     {(id) => (
                                         <Input
                                             id={id}
@@ -374,7 +400,10 @@ function Design({
                             <Field label={t('capture.editor.address.name')} hint={t('capture.editor.address.nameHelp')}>
                                 {(id) => <Input id={id} maxLength={160} value={draft.name} onChange={(e) => onChange({ ...draft, name: e.target.value })} />}
                             </Field>
-                            <Field label={t('capture.editor.address.slug')} hint={slugValid(draft.slug) ? `${options?.base_url ?? ''}${draft.slug}` : t('capture.editor.address.slugHelp')}>
+                            <Field
+                                label={t('capture.editor.address.slug')}
+                                hint={slugValid(draft.slug) ? `${options?.base_url ?? ''}${draft.slug}` : t('capture.editor.address.slugHelp')}
+                            >
                                 {(id) => (
                                     <Input
                                         id={id}
@@ -404,7 +433,12 @@ function Design({
                             </Field>
                         ) : null}
                         <label className="igr:flex igr:items-start igr:gap-2 igr:text-[13px]">
-                            <input type="checkbox" className="igr:mt-0.5 igr:size-4 igr:accent-primary" checked={draft.indexable} onChange={(e) => onChange({ ...draft, indexable: e.target.checked })} />
+                            <input
+                                type="checkbox"
+                                className="igr:mt-0.5 igr:size-4 igr:accent-primary"
+                                checked={draft.indexable}
+                                onChange={(e) => onChange({ ...draft, indexable: e.target.checked })}
+                            />
                             <span>
                                 <span className="igr:font-medium">{t('capture.editor.address.indexable')}</span>
                                 <span className="igr:block igr:text-caption igr:text-muted-foreground">{t('capture.editor.address.indexableHelp')}</span>
@@ -453,8 +487,7 @@ function PreviewPane({ page, draft, options, className }: { page: LandingPageDet
                 <LandingPreview draft={draft} device={device} state={state} business={workspace.name} logo={logo} image={image} options={options} />
             </DeviceFrame>
             <p className="igr:text-caption igr:text-muted-foreground">
-                {t('capture.preview.note')}{' '}
-                {state === 'thanks' && draft.content.redirect_url ? t('capture.preview.redirectNote') : null}
+                {t('capture.preview.note')} {state === 'thanks' && draft.content.redirect_url ? t('capture.preview.redirectNote') : null}
             </p>
         </aside>
     );
@@ -506,10 +539,27 @@ function AfterSubmit({ draft, onContent }: { draft: LandingDraft; onContent: (pa
             ) : (
                 <div className="igr:grid igr:gap-4">
                     <Field label={t('capture.editor.after.thanksTitle')}>
-                        {(id) => <Input id={id} maxLength={120} value={draft.content.success_title ?? ''} placeholder={t('capture.preview.thanksTitle')} onChange={(e) => onContent({ success_title: e.target.value })} />}
+                        {(id) => (
+                            <Input
+                                id={id}
+                                maxLength={120}
+                                value={draft.content.success_title ?? ''}
+                                placeholder={t('capture.preview.thanksTitle')}
+                                onChange={(e) => onContent({ success_title: e.target.value })}
+                            />
+                        )}
                     </Field>
                     <Field label={t('capture.editor.after.thanksBody')}>
-                        {(id) => <Textarea id={id} rows={3} maxLength={600} value={draft.content.success_message ?? ''} placeholder={t('capture.preview.thanksBody')} onChange={(e) => onContent({ success_message: e.target.value })} />}
+                        {(id) => (
+                            <Textarea
+                                id={id}
+                                rows={3}
+                                maxLength={600}
+                                value={draft.content.success_message ?? ''}
+                                placeholder={t('capture.preview.thanksBody')}
+                                onChange={(e) => onContent({ success_message: e.target.value })}
+                            />
+                        )}
                     </Field>
                 </div>
             )}
@@ -517,7 +567,19 @@ function AfterSubmit({ draft, onContent }: { draft: LandingDraft; onContent: (pa
     );
 }
 
-function ImageField({ page, kind, draft, options, onUrl }: { page: LandingPageDetail; kind: 'logo' | 'image'; draft: LandingDraft; options: CaptureOptions | undefined; onUrl: (url: string | null) => void }) {
+function ImageField({
+    page,
+    kind,
+    draft,
+    options,
+    onUrl,
+}: {
+    page: LandingPageDetail;
+    kind: 'logo' | 'image';
+    draft: LandingDraft;
+    options: CaptureOptions | undefined;
+    onUrl: (url: string | null) => void;
+}) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const m = useLandingMutations(workspace.id);
@@ -533,7 +595,12 @@ function ImageField({ page, kind, draft, options, onUrl }: { page: LandingPageDe
             <p id={`${id}-label`} className="igr:text-[13px] igr:font-medium">
                 {t(`capture.editor.brand.${kind}`)}
             </p>
-            <div className={cn('igr:flex igr:items-center igr:justify-center igr:overflow-hidden igr:rounded-lg igr:border igr:border-dashed igr:bg-muted/40', kind === 'logo' ? 'igr:h-20' : 'igr:h-28')}>
+            <div
+                className={cn(
+                    'igr:flex igr:items-center igr:justify-center igr:overflow-hidden igr:rounded-lg igr:border igr:border-dashed igr:bg-muted/40',
+                    kind === 'logo' ? 'igr:h-20' : 'igr:h-28',
+                )}
+            >
                 {src && (uploaded || url) ? (
                     <img src={src} alt="" className={kind === 'logo' ? 'igr:max-h-14 igr:max-w-[80%] igr:object-contain' : 'igr:size-full igr:object-cover'} />
                 ) : (
@@ -565,7 +632,13 @@ function ImageField({ page, kind, draft, options, onUrl }: { page: LandingPageDe
                         {uploaded ? t('capture.editor.brand.replace') : t(`capture.editor.brand.upload.${kind}`)}
                     </Button>
                     {uploaded ? (
-                        <Button type="button" size="sm" variant="ghost" loading={busy} onClick={() => m.deleteImage.mutate({ id: page.id, kind }, { onError: (err) => toast.error(errorMessage(err, t)) })}>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            loading={busy}
+                            onClick={() => m.deleteImage.mutate({ id: page.id, kind }, { onError: (err) => toast.error(errorMessage(err, t)) })}
+                        >
                             <Trash2 aria-hidden />
                             {t('capture.editor.brand.remove')}
                         </Button>
@@ -587,8 +660,22 @@ function ColorField({ value, onChange }: { value: string | null; onChange: (valu
         <div className="igr:space-y-1.5">
             <Label htmlFor={id}>{t('capture.editor.brand.color')}</Label>
             <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-2">
-                <input id={id} type="color" value={color} onChange={(e) => onChange(e.target.value)} className="igr:h-9 igr:w-12 igr:cursor-pointer igr:rounded-md igr:border igr:border-input igr:bg-card igr:p-1" />
-                <Input aria-label={t('capture.editor.brand.colorHex')} className="igr:w-28 igr:font-mono" maxLength={7} value={value ?? ''} placeholder={DEFAULT_ACCENT} onChange={(e) => onChange(e.target.value || null)} aria-invalid={(value !== null && value !== '' && !isHexColor(value)) || undefined} />
+                <input
+                    id={id}
+                    type="color"
+                    value={color}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="igr:h-9 igr:w-12 igr:cursor-pointer igr:rounded-md igr:border igr:border-input igr:bg-card igr:p-1"
+                />
+                <Input
+                    aria-label={t('capture.editor.brand.colorHex')}
+                    className="igr:w-28 igr:font-mono"
+                    maxLength={7}
+                    value={value ?? ''}
+                    placeholder={DEFAULT_ACCENT}
+                    onChange={(e) => onChange(e.target.value || null)}
+                    aria-invalid={(value !== null && value !== '' && !isHexColor(value)) || undefined}
+                />
                 {value ? (
                     <Button type="button" size="sm" variant="ghost" onClick={() => onChange(null)}>
                         {t('capture.editor.brand.colorReset')}

@@ -216,7 +216,7 @@ export function emptyWhatsApp(): LandingWhatsApp {
  * que la persona no tocó y conserva lo que estaba editando.
  */
 export function rebase(draft: LandingDraft, prev: LandingDraft, next: LandingDraft): LandingDraft {
-    const pick = <T,>(mine: T, before: T, after: T): T => (same(mine, before) ? after : mine);
+    const pick = <T>(mine: T, before: T, after: T): T => (same(mine, before) ? after : mine);
     const content: Record<string, unknown> = { ...next.content };
     for (const key of Object.keys(next.content) as (keyof LandingDraft['content'])[]) {
         content[key] = pick(draft.content[key], prev.content[key], next.content[key]);

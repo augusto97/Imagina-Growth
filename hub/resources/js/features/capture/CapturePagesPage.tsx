@@ -95,17 +95,26 @@ export function CapturePagesPage() {
 function Totals({ pages }: { pages: LandingPage[] }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
-    const sum = pages.reduce((acc, p) => ({ views: acc.views + (p.stats?.views ?? 0), submissions: acc.submissions + (p.stats?.submissions ?? 0), qr: acc.qr + (p.stats?.qr_views ?? 0) }), {
-        views: 0,
-        submissions: 0,
-        qr: 0,
-    });
+    const sum = pages.reduce(
+        (acc, p) => ({ views: acc.views + (p.stats?.views ?? 0), submissions: acc.submissions + (p.stats?.submissions ?? 0), qr: acc.qr + (p.stats?.qr_views ?? 0) }),
+        {
+            views: 0,
+            submissions: 0,
+            qr: 0,
+        },
+    );
     const rate = conversion(sum.submissions, sum.views);
     const published = pages.filter((p) => p.status === 'published').length;
     return (
         <StatGrid className="igr:mb-6">
             <StatCard label={t('capture.pages.totals.views')} value={formatNumber(sum.views, workspace.locale)} hint={t('capture.pages.totals.window')} icon={Eye} tone="sky" />
-            <StatCard label={t('capture.pages.totals.submissions')} value={formatNumber(sum.submissions, workspace.locale)} hint={t('capture.pages.totals.window')} icon={Send} tone="emerald" />
+            <StatCard
+                label={t('capture.pages.totals.submissions')}
+                value={formatNumber(sum.submissions, workspace.locale)}
+                hint={t('capture.pages.totals.window')}
+                icon={Send}
+                tone="emerald"
+            />
             <StatCard
                 label={t('capture.pages.totals.conversion')}
                 value={rate === null ? '—' : formatPercent(rate, workspace.locale, 1)}
@@ -211,7 +220,16 @@ export function NewPageDialog({ onClose }: { onClose: () => void }) {
                 >
                     <div className="igr:space-y-1.5">
                         <Label htmlFor="lp-name">{t('capture.pages.create.name')}</Label>
-                        <Input id="lp-name" required minLength={2} maxLength={160} value={name} onChange={(e) => setName(e.target.value)} placeholder={t('capture.pages.create.namePlaceholder')} autoFocus />
+                        <Input
+                            id="lp-name"
+                            required
+                            minLength={2}
+                            maxLength={160}
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder={t('capture.pages.create.namePlaceholder')}
+                            autoFocus
+                        />
                         <p className="igr:text-caption igr:text-muted-foreground">{t('capture.pages.create.nameHelp')}</p>
                     </div>
                     <div className="igr:space-y-1.5">

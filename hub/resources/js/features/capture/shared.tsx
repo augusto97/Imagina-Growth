@@ -81,7 +81,10 @@ export function Warnings({ warnings, title, className }: { warnings: readonly Ca
                             {fix.to !== '' && workspace.abilities.includes('viewWorkspace') ? (
                                 <>
                                     {' '}
-                                    <Link to={`/w/${workspace.id}/${fix.to}`} className="igr:inline-flex igr:items-center igr:gap-0.5 igr:font-medium igr:whitespace-nowrap igr:text-foreground igr:underline-offset-2 igr:hover:underline">
+                                    <Link
+                                        to={`/w/${workspace.id}/${fix.to}`}
+                                        className="igr:inline-flex igr:items-center igr:gap-0.5 igr:font-medium igr:whitespace-nowrap igr:text-foreground igr:underline-offset-2 igr:hover:underline"
+                                    >
                                         {t(`capture.warnings.fix.${fix.label}`)}
                                         <ArrowRight className="igr:size-3" aria-hidden />
                                     </Link>

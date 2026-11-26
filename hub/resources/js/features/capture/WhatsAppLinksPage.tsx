@@ -134,12 +134,30 @@ export function WhatsAppLinksPage() {
 function Totals({ links }: { links: WhatsAppLink[] }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
-    const sum = links.reduce((acc, l) => ({ scans: acc.scans + (l.stats?.scans ?? 0), chats: acc.chats + (l.stats?.chats ?? 0), leads: acc.leads + (l.stats?.leads ?? 0) }), { scans: 0, chats: 0, leads: 0 });
+    const sum = links.reduce((acc, l) => ({ scans: acc.scans + (l.stats?.scans ?? 0), chats: acc.chats + (l.stats?.chats ?? 0), leads: acc.leads + (l.stats?.leads ?? 0) }), {
+        scans: 0,
+        chats: 0,
+        leads: 0,
+    });
     const n = (v: number) => formatNumber(v, workspace.locale);
     return (
         <StatGrid className="igr:mb-6 igr:lg:grid-cols-3">
-            <StatCard label={t('capture.wa.totals.scans')} value={n(sum.scans)} hint={t('capture.wa.totals.window')} help={t('capture.wa.totals.scansHelp')} icon={ScanLine} tone="sky" />
-            <StatCard label={t('capture.wa.totals.chats')} value={n(sum.chats)} hint={t('capture.wa.totals.window')} help={t('capture.wa.totals.chatsHelp')} icon={MessageCircle} tone="emerald" />
+            <StatCard
+                label={t('capture.wa.totals.scans')}
+                value={n(sum.scans)}
+                hint={t('capture.wa.totals.window')}
+                help={t('capture.wa.totals.scansHelp')}
+                icon={ScanLine}
+                tone="sky"
+            />
+            <StatCard
+                label={t('capture.wa.totals.chats')}
+                value={n(sum.chats)}
+                hint={t('capture.wa.totals.window')}
+                help={t('capture.wa.totals.chatsHelp')}
+                icon={MessageCircle}
+                tone="emerald"
+            />
             <StatCard label={t('capture.wa.totals.leads')} value={n(sum.leads)} hint={t('capture.wa.totals.window')} icon={Target} tone="rose" />
         </StatGrid>
     );
@@ -239,7 +257,9 @@ function LinkCard({ link, canManage, onEdit, onShare }: { link: WhatsAppLink; ca
 export function ChatBubble({ text }: { text: string }) {
     return (
         <div className="igr:rounded-lg igr:bg-muted/60 igr:p-3">
-            <p className="igr:ml-auto igr:w-fit igr:max-w-[90%] igr:rounded-lg igr:rounded-tr-sm igr:bg-success/15 igr:px-3 igr:py-2 igr:text-[13px] igr:break-words igr:text-foreground">{text}</p>
+            <p className="igr:ml-auto igr:w-fit igr:max-w-[90%] igr:rounded-lg igr:rounded-tr-sm igr:bg-success/15 igr:px-3 igr:py-2 igr:text-[13px] igr:break-words igr:text-foreground">
+                {text}
+            </p>
         </div>
     );
 }
@@ -298,7 +318,14 @@ function LinkSheet({ link, onClose, onCreated }: { link: WhatsAppLink | null; on
                     <SheetBody className="igr:space-y-5">
                         <div className="igr:space-y-1.5">
                             <Label htmlFor="wa-name">{t('capture.wa.form.name')}</Label>
-                            <Input id="wa-name" required maxLength={160} value={form.name} placeholder={t('capture.wa.form.namePlaceholder')} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                            <Input
+                                id="wa-name"
+                                required
+                                maxLength={160}
+                                value={form.name}
+                                placeholder={t('capture.wa.form.namePlaceholder')}
+                                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                            />
                             <p className="igr:text-caption igr:text-muted-foreground">{t('capture.wa.form.nameHelp')}</p>
                         </div>
                         <div className="igr:space-y-1.5">
@@ -326,13 +353,29 @@ function LinkSheet({ link, onClose, onCreated }: { link: WhatsAppLink | null; on
                         <fieldset className="igr:space-y-3 igr:rounded-lg igr:border igr:p-4">
                             <legend className="igr:px-1 igr:text-[13px] igr:font-semibold">{t('capture.wa.form.whenArrives')}</legend>
                             {leadsModule ? (
-                                <Check label={t('capture.wa.form.createLead')} help={t('capture.wa.form.createLeadHelp')} checked={settings.create_lead ?? true} onChange={(v) => setForm({ ...form, settings: { ...settings, create_lead: v } })} />
+                                <Check
+                                    label={t('capture.wa.form.createLead')}
+                                    help={t('capture.wa.form.createLeadHelp')}
+                                    checked={settings.create_lead ?? true}
+                                    onChange={(v) => setForm({ ...form, settings: { ...settings, create_lead: v } })}
+                                />
                             ) : null}
-                            <Check label={t('capture.wa.form.askConsent')} help={t('capture.wa.form.askConsentHelp')} checked={settings.ask_consent ?? true} onChange={(v) => setForm({ ...form, settings: { ...settings, ask_consent: v } })} />
+                            <Check
+                                label={t('capture.wa.form.askConsent')}
+                                help={t('capture.wa.form.askConsentHelp')}
+                                checked={settings.ask_consent ?? true}
+                                onChange={(v) => setForm({ ...form, settings: { ...settings, ask_consent: v } })}
+                            />
                             {leadsModule && (settings.create_lead ?? true) ? (
                                 <div className="igr:space-y-1.5 igr:pl-6">
                                     <Label htmlFor="wa-service">{t('capture.wa.form.service')}</Label>
-                                    <Input id="wa-service" maxLength={120} value={settings.service ?? ''} placeholder={t('capture.wa.form.servicePlaceholder')} onChange={(e) => setForm({ ...form, settings: { ...settings, service: e.target.value } })} />
+                                    <Input
+                                        id="wa-service"
+                                        maxLength={120}
+                                        value={settings.service ?? ''}
+                                        placeholder={t('capture.wa.form.servicePlaceholder')}
+                                        onChange={(e) => setForm({ ...form, settings: { ...settings, service: e.target.value } })}
+                                    />
                                 </div>
                             ) : null}
                         </fieldset>

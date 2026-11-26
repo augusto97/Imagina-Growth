@@ -139,7 +139,14 @@ function Totals({ widgets, store }: { widgets: WidgetSummary[]; store: boolean }
     return (
         <StatGrid className="igr:mb-6">
             <StatCard label={t('onsite.totals.views')} value={n(sum.views)} hint={t('onsite.totals.active', { count: active })} icon={Eye} tone="sky" />
-            <StatCard label={t('onsite.totals.captures')} value={n(sum.submissions)} hint={t('onsite.totals.window')} help={t('onsite.totals.capturesHelp')} icon={Send} tone="emerald" />
+            <StatCard
+                label={t('onsite.totals.captures')}
+                value={n(sum.submissions)}
+                hint={t('onsite.totals.window')}
+                help={t('onsite.totals.capturesHelp')}
+                icon={Send}
+                tone="emerald"
+            />
             <StatCard
                 label={t('onsite.totals.rate')}
                 value={sum.views > 0 ? formatPercent(sum.submissions / sum.views, workspace.locale, 1) : '—'}
@@ -158,7 +165,14 @@ function Totals({ widgets, store }: { widgets: WidgetSummary[]; store: boolean }
                     tone="amber"
                 />
             ) : (
-                <StatCard label={t('onsite.totals.newContacts')} value={n(sum.fresh)} hint={t('onsite.totals.window')} help={t('onsite.totals.newContactsHelp')} icon={UserPlus} tone="amber" />
+                <StatCard
+                    label={t('onsite.totals.newContacts')}
+                    value={n(sum.fresh)}
+                    hint={t('onsite.totals.window')}
+                    help={t('onsite.totals.newContactsHelp')}
+                    icon={UserPlus}
+                    tone="amber"
+                />
             )}
         </StatGrid>
     );
@@ -217,7 +231,10 @@ function Gallery({ canManage }: { canManage: boolean }) {
                     const Icon = KIND_ICON[tpl.kind];
                     const busy = create.isPending && create.variables.template === tpl.key;
                     return (
-                        <li key={tpl.key} className="igr:flex igr:min-w-0 igr:flex-col igr:rounded-xl igr:border igr:bg-card igr:p-4 igr:transition-[border-color,box-shadow] igr:hover:border-primary/25 igr:hover:shadow-sm">
+                        <li
+                            key={tpl.key}
+                            className="igr:flex igr:min-w-0 igr:flex-col igr:rounded-xl igr:border igr:bg-card igr:p-4 igr:transition-[border-color,box-shadow] igr:hover:border-primary/25 igr:hover:shadow-sm"
+                        >
                             <div className="igr:flex igr:items-start igr:gap-3">
                                 <span className="igr:flex igr:size-9 igr:shrink-0 igr:items-center igr:justify-center igr:rounded-lg igr:bg-brand-soft igr:text-brand-soft-foreground">
                                     <Icon className="igr:size-4.5" aria-hidden />
@@ -236,7 +253,14 @@ function Gallery({ canManage }: { canManage: boolean }) {
                             <p className="igr:mt-3 igr:flex-1 igr:text-support igr:text-muted-foreground">{t(`onsite.templates.${tpl.key}.description`)}</p>
                             <p className="igr:mt-2 igr:text-caption igr:font-medium igr:text-foreground">{t(`onsite.templates.${tpl.key}.result`)}</p>
                             {canManage ? (
-                                <Button className="igr:mt-4 igr:self-start" size="sm" variant={tpl === shown[0] ? 'default' : 'outline'} loading={busy} disabled={create.isPending && !busy} onClick={() => use(tpl)}>
+                                <Button
+                                    className="igr:mt-4 igr:self-start"
+                                    size="sm"
+                                    variant={tpl === shown[0] ? 'default' : 'outline'}
+                                    loading={busy}
+                                    disabled={create.isPending && !busy}
+                                    onClick={() => use(tpl)}
+                                >
                                     {t('onsite.gallery.use')}
                                 </Button>
                             ) : null}
@@ -249,7 +273,11 @@ function Gallery({ canManage }: { canManage: boolean }) {
                     {blank ? (
                         <BlankForm />
                     ) : (
-                        <button type="button" onClick={() => setBlank(true)} className="igr:rounded-sm igr:text-support igr:font-medium igr:text-primary igr:underline-offset-2 igr:hover:underline">
+                        <button
+                            type="button"
+                            onClick={() => setBlank(true)}
+                            className="igr:rounded-sm igr:text-support igr:font-medium igr:text-primary igr:underline-offset-2 igr:hover:underline"
+                        >
                             {t('onsite.gallery.blank')}
                         </button>
                     )}
@@ -277,7 +305,10 @@ function BlankForm() {
             className="igr:grid igr:gap-3 igr:sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] igr:sm:items-end"
             onSubmit={(e) => {
                 e.preventDefault();
-                create.mutate({ name: name.trim() || t(`onsite.kinds.${kind}.name`), kind, site_id: site || null }, { onSuccess: (w) => void navigate(`/w/${workspace.id}/en-el-sitio/${w.id}`) });
+                create.mutate(
+                    { name: name.trim() || t(`onsite.kinds.${kind}.name`), kind, site_id: site || null },
+                    { onSuccess: (w) => void navigate(`/w/${workspace.id}/en-el-sitio/${w.id}`) },
+                );
             }}
         >
             <div className="igr:space-y-1.5">
@@ -348,7 +379,9 @@ function WidgetList({ archived }: { archived: boolean }) {
                     ))}
                 </TBody>
             </Table>
-            <p className="igr:border-t igr:px-4 igr:py-2.5 igr:text-caption igr:text-muted-foreground">{audience.store ? t('onsite.list.window') : t('onsite.list.windowServices')}</p>
+            <p className="igr:border-t igr:px-4 igr:py-2.5 igr:text-caption igr:text-muted-foreground">
+                {audience.store ? t('onsite.list.window') : t('onsite.list.windowServices')}
+            </p>
         </Card>
     );
 }
@@ -380,7 +413,11 @@ function WidgetRow({ widget: w, store }: { widget: WidgetSummary; store: boolean
             <TD className="igr:text-right igr:tabular-nums">{s ? formatNumber(s.views, workspace.locale) : '—'}</TD>
             <TD className="igr:text-right igr:tabular-nums">{s ? formatNumber(s.submissions, workspace.locale) : '—'}</TD>
             <TD className="igr:text-right igr:tabular-nums">{s?.submit_rate !== null && s?.submit_rate !== undefined ? formatPercent(s.submit_rate, workspace.locale, 1) : '—'}</TD>
-            {store ? <TD className={cn('igr:text-right igr:tabular-nums', s && Number(s.revenue) > 0 && 'igr:font-medium')}>{s ? formatMoney(s.revenue, workspace.currency, workspace.locale) : '—'}</TD> : null}
+            {store ? (
+                <TD className={cn('igr:text-right igr:tabular-nums', s && Number(s.revenue) > 0 && 'igr:font-medium')}>
+                    {s ? formatMoney(s.revenue, workspace.currency, workspace.locale) : '—'}
+                </TD>
+            ) : null}
             <TD>
                 {canManage && w.status !== 'archived' ? (
                     <Button

@@ -212,7 +212,9 @@ function Editor({ widget }: { widget: WidgetDetail }) {
                         <TabsTrigger value="content">{t('onsite.editor.tabs.content')}</TabsTrigger>
                         <TabsTrigger value="targeting">{t('onsite.editor.tabs.targeting')}</TabsTrigger>
                         {widget.kind !== 'wa_widget' ? <TabsTrigger value="consent">{t('onsite.editor.tabs.consent')}</TabsTrigger> : null}
-                        {showCoupon ? <TabsTrigger value="coupon">{widget.kind === 'spin_wheel' ? t('onsite.editor.tabs.prizes') : t('onsite.editor.tabs.coupon')}</TabsTrigger> : null}
+                        {showCoupon ? (
+                            <TabsTrigger value="coupon">{widget.kind === 'spin_wheel' ? t('onsite.editor.tabs.prizes') : t('onsite.editor.tabs.coupon')}</TabsTrigger>
+                        ) : null}
                         {widget.kind === 'quiz' ? <TabsTrigger value="quiz">{t('onsite.editor.tabs.quiz')}</TabsTrigger> : null}
                         <TabsTrigger value="schedule">{t('onsite.editor.tabs.schedule')}</TabsTrigger>
                         <TabsTrigger value="stats">{t('onsite.editor.tabs.stats')}</TabsTrigger>
