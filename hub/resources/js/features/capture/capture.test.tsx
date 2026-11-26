@@ -1,7 +1,16 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
-import { LandingPreview } from './LandingPreview';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { Me, Workspace } from '@/api/types';
+import { PagePreviewFrame } from '@/components/ui/page-preview';
+import { WorkspaceContext } from '@/hooks/useWorkspace';
+import { api } from '@/lib/api';
+import { NewPageWizard } from './NewPageWizard';
 import {
+    applyTexts,
+    cleanFaq,
     consentsAfter,
     customKey,
     draftFrom,
@@ -19,7 +28,10 @@ import {
 } from './model';
 import type { LandingField, LandingPageDetail } from './types';
 
-afterEach(cleanup);
+afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+});
 
 const page: LandingPageDetail = {
     id: 'lp_1',
@@ -50,6 +62,11 @@ const page: LandingPageDetail = {
         image_key: null,
         image_url: null,
         whatsapp: { enabled: true, label: null, message: 'Hola' },
+        template: 'split',
+        eyebrow: null,
+        benefits: ['Sin costo'],
+        faq: [],
+        reviews: false,
         logo_src: null,
         image_src: null,
     },
@@ -138,18 +155,104 @@ describe('reglas de la página pública', () => {
     });
 });
 
-describe('vista previa', () => {
-    it('pinta el título, los campos con su casilla al lado y el botón de WhatsApp', () => {
-        render(<LandingPreview draft={draftFrom(page)} device="mobile" state="form" business="Clínica Sonrisa" logo={null} image={null} options={undefined} />);
-        expect(screen.getByRole('heading', { level: 1, name: 'Agenda tu valoración' })).toBeInTheDocument();
-        expect(screen.getByText('Sin costo.')).toBeInTheDocument();
-        expect(screen.getByText('Quiero mi cita')).toBeInTheDocument();
-        expect(screen.getByText('Escríbenos por WhatsApp')).toBeInTheDocument();
-        expect(screen.getByText('Clínica Sonrisa usará tus datos solo para responder tu solicitud.', { exact: false })).toBeInTheDocument();
+describe('diseño, beneficios, preguntas e IA', () => {
+    it('el diseño, la etiqueta, los beneficios y las preguntas van en el PATCH solo si cambiaron, sin renglones vacíos', () => {
+        const saved = draftFrom(page);
+        expect(patchFrom(saved, saved)).toEqual({});
+        const draft = {
+            ...saved,
+            content: {
+                ...saved.content,
+                template: 'hero' as const,
+                eyebrow: '  ',
+                benefits: ['Sin costo', ' ', 'Te escribimos hoy '],
+                faq: [
+                    { q: '¿Duele?', a: 'No.' },
+                    { q: ' ', a: 'sin pregunta' },
+                ],
+                reviews: true,
+            },
+        };
+        expect(patchFrom(draft, saved).content).toEqual({
+            eyebrow: null,
+            template: 'hero',
+            reviews: true,
+            benefits: ['Sin costo', 'Te escribimos hoy'],
+            faq: [{ q: '¿Duele?', a: 'No.' }],
+        });
     });
 
-    it('el momento «Gracias» muestra el mensaje por defecto si no hay uno propio', () => {
-        render(<LandingPreview draft={draftFrom(page)} device="desktop" state="thanks" business="Clínica Sonrisa" logo={null} image={null} options={undefined} />);
-        expect(screen.getByText('¡Gracias! Recibimos tus datos')).toBeInTheDocument();
+    it('los textos de la IA reemplazan solo lo que trajeron', () => {
+        const draft = applyTexts(draftFrom(page), { eyebrow: 'Cupos esta semana', title: '', body: 'Nuevo texto', benefits: [], faq: [{ q: '¿Cuánto dura?', a: 'Media hora.' }], button: 'Quiero mi cita ya' });
+        expect(draft.content).toMatchObject({
+            eyebrow: 'Cupos esta semana',
+            title: 'Agenda tu valoración',
+            body: 'Nuevo texto',
+            benefits: ['Sin costo'],
+            faq: [{ q: '¿Cuánto dura?', a: 'Media hora.' }],
+            button: 'Quiero mi cita ya',
+        });
+        expect(cleanFaq([{ q: '  ¿Hay parqueadero? ', a: ' Sí ' }])).toEqual([{ q: '¿Hay parqueadero?', a: 'Sí' }]);
+    });
+
+    it('la vista previa pinta el HTML del hub en un iframe sin scripts ni formularios', () => {
+        render(<PagePreviewFrame device="mobile" title="Vista previa" srcDoc="<h1>Hola</h1>" height={400} />);
+        const frame = screen.getByTitle('Vista previa');
+        expect(frame.getAttribute('srcdoc')).toBe('<h1>Hola</h1>');
+        expect(frame.getAttribute('sandbox')).toBe('');
+        expect(frame).toHaveStyle({ width: '390px' });
+    });
+});
+
+const workspace: Workspace = {
+    id: 'ws_1',
+    name: 'Clínica Sonrisa',
+    slug: 'clinica-sonrisa',
+    account_id: 'acc_1',
+    country: 'CO',
+    timezone: 'America/Bogota',
+    currency: 'COP',
+    locale: 'es-CO',
+    industry: null,
+    legal_name: null,
+    privacy_policy_url: null,
+    settings: {},
+    status: 'active',
+    role: 'owner',
+    abilities: ['viewWorkspace', 'viewDashboards', 'manageMarketing'],
+    requires_two_factor: false,
+};
+const me: Me = {
+    user: { id: 'usr_1', name: 'Laura Gómez', email: 'laura@clinica.co', locale: 'es-CO', two_factor_enabled: true, two_factor_pending: false, is_platform_admin: false },
+    workspaces: [workspace],
+    require_two_factor: false,
+};
+
+describe('asistente de nueva página', () => {
+    it('objetivo → diseño → nombre: crea la página con el objetivo y el diseño elegidos', async () => {
+        const user = userEvent.setup();
+        vi.spyOn(api, 'get').mockRejectedValue(new Error('sin IA'));
+        const post = vi.spyOn(api, 'post').mockResolvedValue({ id: 'lp_9' });
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+        render(
+            <QueryClientProvider client={client}>
+                <MemoryRouter>
+                    <WorkspaceContext.Provider value={{ workspace, me }}>
+                        <NewPageWizard onClose={() => undefined} />
+                    </WorkspaceContext.Provider>
+                </MemoryRouter>
+            </QueryClientProvider>,
+        );
+        expect(screen.getByRole('heading', { name: '¿Para qué es la página?' })).toBeInTheDocument();
+        await user.click(screen.getByRole('radio', { name: /Pedir una cotización/ }));
+        await user.click(screen.getByRole('button', { name: /Siguiente/ }));
+        // Cotizar va con el diseño clásico; se cambia por el destacado.
+        expect(screen.getByRole('radio', { name: /Clásica/ })).toBeChecked();
+        await user.click(screen.getByRole('radio', { name: /Destacada/ }));
+        await user.click(screen.getByRole('button', { name: /Siguiente/ }));
+        expect(screen.getByPlaceholderText('Recibe tu cotización sin costo')).toBeInTheDocument();
+        await user.type(screen.getByLabelText('Nombre de la página'), 'Cotización de pintura');
+        await user.click(screen.getByRole('button', { name: 'Crear y diseñar' }));
+        expect(post).toHaveBeenCalledWith('/api/w/ws_1/capture/pages', { name: 'Cotización de pintura', goal: 'quote', template: 'hero' });
     });
 });

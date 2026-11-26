@@ -18,6 +18,7 @@ Route::middleware('throttle:20,1')->group(function () {
     Route::post('copilot/campaigns', [CopilotController::class, 'campaign']);
     Route::post('copilot/flows', [CopilotController::class, 'flow']);
     Route::post('copilot/content/subjects', [CopilotController::class, 'subjects']);
+    Route::post('copilot/content/landing', [CopilotController::class, 'landing']);
     Route::post('copilot/content/whatsapp', [CopilotController::class, 'whatsapp']);
     Route::post('copilot/content/variants', [CopilotController::class, 'variants']);
     Route::post('copilot/tone', [CopilotController::class, 'learnTone']);

@@ -18,7 +18,9 @@ use Illuminate\Validation\ValidationException;
  *
  * - `content`: `title`, `body` (texto plano con saltos de línea), `logo_key`/`image_key` (imágenes subidas) o
  *   `logo_url`/`image_url` (https), `color` (#RRGGBB), `button`, `success_title`, `success_message`, `redirect_url`
- *   (https) y `whatsapp` (`enabled`, `label`, `message`).
+ *   (https), `whatsapp` (`enabled`, `label`, `message`) y, desde la 0.3: `template` (`split` clásica, `hero` destacada o
+ *   `centered` sencilla), `eyebrow` (la etiqueta corta sobre el título), `benefits` (hasta 6 frases), `faq` (hasta 8
+ *   preguntas con su respuesta) y `reviews` (mostrar las reseñas publicadas del negocio).
  * - `fields`: hasta `max_fields` de `name`, `email`, `phone`, `message`, `service` (con `options`) y propios
  *   `custom_<clave>` de tipo `text`, `textarea`, `select` o `checkbox`. Debe haber correo o teléfono.
  * - `consent_channels`: los canales con casilla (sin marcar, con el texto legal vigente de ConsentTexts); cada uno
@@ -31,6 +33,27 @@ final class LandingSchema
     public const BUILTIN = ['name' => 'text', 'email' => 'email', 'phone' => 'tel', 'message' => 'textarea', 'service' => 'select'];
 
     public const CUSTOM_TYPES = ['text', 'textarea', 'select', 'checkbox'];
+
+    /** Diseños de la página: clásica (texto y formulario lado a lado), destacada (franja de color) o sencilla (una columna). */
+    public const TEMPLATES = ['split', 'hero', 'centered'];
+
+    /** Para qué es la página (el asistente arma los textos y los campos de cada uno). */
+    public const GOALS = ['contact', 'quote', 'appointment', 'offer', 'event'];
+
+    public const MAX_BENEFITS = 6;
+
+    public const MAX_FAQ = 8;
+
+    /**
+     * Lo nuevo de `content` con su valor por defecto, para las páginas creadas antes de que existiera.
+     *
+     * @param  array<string, mixed>  $content
+     * @return array<string, mixed>
+     */
+    public static function withDefaults(array $content): array
+    {
+        return $content + ['template' => 'split', 'eyebrow' => null, 'benefits' => [], 'faq' => [], 'reviews' => false];
+    }
 
     /** @return array{content: array<string, mixed>, fields: list<array<string, mixed>>, consent_channels: list<string>, settings: array<string, mixed>} */
     public static function defaults(Workspace $workspace, bool $hasWhatsApp): array
@@ -51,6 +74,11 @@ final class LandingSchema
                 'image_key' => null,
                 'image_url' => null,
                 'whatsapp' => ['enabled' => $hasWhatsApp, 'label' => __('Escríbenos por WhatsApp'), 'message' => __('Hola, quiero más información')],
+                'template' => 'split',
+                'eyebrow' => null,
+                'benefits' => [],
+                'faq' => [],
+                'reviews' => false,
             ],
             'fields' => [
                 ['key' => 'name', 'label' => __('Nombre'), 'type' => 'text', 'required' => true],
@@ -126,6 +154,15 @@ final class LandingSchema
             'content.whatsapp.enabled' => ['sometimes', 'boolean'],
             'content.whatsapp.label' => ['sometimes', 'nullable', 'string', 'max:40'],
             'content.whatsapp.message' => ['sometimes', 'nullable', 'string', 'max:300'],
+            'content.template' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', self::TEMPLATES)],
+            'content.eyebrow' => ['sometimes', 'nullable', 'string', 'max:60'],
+            'content.benefits' => ['sometimes', 'nullable', 'array', 'max:'.self::MAX_BENEFITS],
+            'content.benefits.*' => ['nullable', 'string', 'max:120'],
+            'content.faq' => ['sometimes', 'nullable', 'array', 'max:'.self::MAX_FAQ],
+            'content.faq.*' => ['array'],
+            'content.faq.*.q' => ['nullable', 'string', 'max:140'],
+            'content.faq.*.a' => ['nullable', 'string', 'max:600'],
+            'content.reviews' => ['sometimes', 'boolean'],
             'fields' => ['sometimes', 'array', 'min:1', 'max:'.(int) config('igr-capture.max_fields', 12)],
             'fields.*' => ['array'],
             'fields.*.key' => ['required', 'string', 'regex:/^(name|email|phone|message|service|custom_[a-z0-9_]{1,30})$/'],
@@ -142,7 +179,9 @@ final class LandingSchema
         ];
         $data = Validator::make($input, $rules, [], [
             'content.title' => __('título'), 'content.redirect_url' => __('dirección de redirección'), 'content.color' => __('color'),
-            'content.logo_url' => __('logo'), 'content.image_url' => __('imagen'),
+            'content.logo_url' => __('logo'), 'content.image_url' => __('imagen'), 'content.eyebrow' => __('etiqueta'),
+            'content.benefits' => __('beneficios'), 'content.benefits.*' => __('beneficio'), 'content.faq' => __('preguntas frecuentes'),
+            'content.faq.*.q' => __('pregunta'), 'content.faq.*.a' => __('respuesta'), 'content.template' => __('diseño'),
         ])->validate();
 
         $out = [];
@@ -182,7 +221,7 @@ final class LandingSchema
     {
         $clean = fn (mixed $v, int $max): ?string => is_string($v) && trim($v) !== '' ? mb_substr(trim(strip_tags($v)), 0, $max) : null;
         $out = $current;
-        foreach (['title' => 120, 'body' => 2000, 'button' => 40, 'success_title' => 120, 'success_message' => 600] as $key => $max) {
+        foreach (['title' => 120, 'body' => 2000, 'button' => 40, 'success_title' => 120, 'success_message' => 600, 'eyebrow' => 60] as $key => $max) {
             if (array_key_exists($key, $given)) {
                 $out[$key] = $clean($given[$key], $max);
             }
@@ -191,6 +230,25 @@ final class LandingSchema
             if (array_key_exists($key, $given)) {
                 $out[$key] = is_string($given[$key]) && $given[$key] !== '' ? $given[$key] : null;
             }
+        }
+        if (array_key_exists('template', $given)) {
+            $out['template'] = in_array($given['template'], self::TEMPLATES, true) ? $given['template'] : 'split';
+        }
+        if (array_key_exists('reviews', $given)) {
+            $out['reviews'] = (bool) $given['reviews'];
+        }
+        if (array_key_exists('benefits', $given)) {
+            $out['benefits'] = array_values(array_filter(array_map(fn ($b) => $clean($b, 120), (array) ($given['benefits'] ?? [])), fn ($b) => $b !== null));
+        }
+        if (array_key_exists('faq', $given)) {
+            $faq = [];
+            foreach ((array) ($given['faq'] ?? []) as $item) {
+                $q = is_array($item) ? $clean($item['q'] ?? null, 140) : null;
+                if ($q !== null) {
+                    $faq[] = ['q' => $q, 'a' => $clean($item['a'] ?? null, 600) ?? ''];
+                }
+            }
+            $out['faq'] = $faq;
         }
         if (isset($given['whatsapp']) && is_array($given['whatsapp'])) {
             $wa = (array) ($current['whatsapp'] ?? []);

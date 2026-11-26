@@ -6,13 +6,10 @@ namespace App\Domain\Capture\Http\Public;
 
 use App\Domain\Capture\Actions\SubmitLandingPage;
 use App\Domain\Capture\Models\LandingPage;
-use App\Domain\Capture\Models\WhatsAppLink;
 use App\Domain\Capture\Support\CaptureCounters;
 use App\Domain\Capture\Support\CaptureUrls;
 use App\Domain\Capture\Support\LandingImages;
 use App\Domain\Capture\Support\LandingToken;
-use App\Domain\Onsite\Support\PublicWidgetConfig;
-use App\Domain\Templates\Support\BusinessProfile;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Http\Request;
@@ -31,7 +28,7 @@ final class LandingPageController
     /** Campos de la URL que viajan con el envío (atribución). */
     public const CARRY = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'gbraid', 'wbraid', 'fbclid', 'ttclid', 'msclkid', 'ref', 'aid', 'rh', 'via'];
 
-    public function __construct(private readonly CurrentWorkspace $current, private readonly PublicCapture $public) {}
+    public function __construct(private readonly CurrentWorkspace $current, private readonly PublicCapture $public, private readonly LandingRenderer $renderer) {}
 
     /** GET /p/{slug}[?utm_…&ref=&gclid=&aid=] (con `vista_previa` firmada, el borrador para el panel) */
     public function show(Request $request, string $slug): Response
@@ -110,13 +107,7 @@ final class LandingPageController
             return $this->public->missing($workspace);
         }
 
-        return $this->current->run($workspace, fn () => $this->public->view('capture.thanks', $workspace, $page, [
-            'title' => $page->text('success_title') ?: __('¡Gracias! Recibimos tus datos'),
-            'message' => $page->text('success_message'),
-            'logo' => self::logo($workspace, $page),
-            'whatsapp' => $this->whatsapp($workspace, $page),
-            'back' => CaptureUrls::origin($request, $workspace).'/p/'.$page->slug,
-        ]));
+        return $this->current->run($workspace, fn () => $this->renderer->thanks($request, $workspace, $page));
     }
 
     /** GET /p/{slug}/i/{nombre}: el logo o la imagen subidos (sin metadatos). */
@@ -145,33 +136,7 @@ final class LandingPageController
      */
     private function page(Request $request, Workspace $workspace, LandingPage $page, array $carry, array $errors, array $old, int $status = 200, bool $preview = false): Response
     {
-        $texts = collect(app(PublicWidgetConfig::class)->legalConsents($workspace))->keyBy('channel');
-        $consents = [];
-        foreach ((array) ($page->consent_channels ?? []) as $channel) {
-            if (isset($texts[$channel])) {
-                $consents[] = ['channel' => (string) $channel, 'label' => (string) $texts[$channel]['label'], 'version' => (string) $texts[$channel]['version'],
-                    'after' => $channel === 'email' ? 'email' : 'phone', 'checked' => ! empty(((array) $request->input('consent', []))[$channel] ?? null) && $status !== 200];
-            }
-        }
-        $privacy = $workspace->getAttribute('privacy_policy_url');
-
-        return $this->public->view('capture.page', $workspace, $page, [
-            'title' => $page->text('title'),
-            'paragraphs' => array_values(array_filter(array_map('trim', preg_split('/\R{2,}/', $page->text('body')) ?: []), fn ($p) => $p !== '')),
-            'button' => $page->text('button') ?: __('Enviar'),
-            'logo' => self::logo($workspace, $page),
-            'image' => $page->text('image_key') !== '' ? CaptureUrls::origin($request, $workspace).'/p/'.$page->slug.'/i/'.$page->text('image_key') : ($page->text('image_url') ?: null),
-            'fields' => self::fields($page, $workspace),
-            'consents' => $consents,
-            'whatsapp' => $this->whatsapp($workspace, $page),
-            'action' => CaptureUrls::origin($request, $workspace).'/p/'.$page->slug,
-            'token' => LandingToken::issue($page),
-            'carry' => $carry,
-            'errors' => $errors,
-            'old' => $old,
-            'privacyUrl' => is_string($privacy) && str_starts_with($privacy, 'http') ? $privacy : null,
-            'preview' => $preview,
-        ], $status);
+        return $this->renderer->page($request, $workspace, $page, $carry, $errors, $old, $status, $preview);
     }
 
     private function thanks(Request $request, Workspace $workspace, LandingPage $page): Response
@@ -180,68 +145,6 @@ final class LandingPageController
         $to = $redirect !== '' && str_starts_with($redirect, 'https://') ? $redirect : CaptureUrls::origin($request, $workspace).'/p/'.$page->slug.'/gracias';
 
         return redirect()->away($to, 303)->withHeaders(['Cache-Control' => 'no-store, private']);
-    }
-
-    /** @return array{url: string, label: string}|null */
-    private function whatsapp(Workspace $workspace, LandingPage $page): ?array
-    {
-        $wa = (array) (($page->content ?? [])['whatsapp'] ?? []);
-        if (! (bool) ($wa['enabled'] ?? false) || $page->wa_link_id === null) {
-            return null;
-        }
-        $link = WhatsAppLink::query()->whereKey($page->wa_link_id)->where('status', 'active')->first();
-
-        return $link === null ? null : ['url' => CaptureUrls::waLink($workspace, $link), 'label' => is_string($wa['label'] ?? null) && $wa['label'] !== '' ? $wa['label'] : __('Escríbenos por WhatsApp')];
-    }
-
-    private static function logo(Workspace $workspace, LandingPage $page): ?string
-    {
-        if ($page->text('logo_key') !== '') {
-            return CaptureUrls::page($workspace, $page).'/i/'.$page->text('logo_key');
-        }
-        $url = $page->text('logo_url') ?: BusinessProfile::for($workspace)['logo_url'];
-
-        return str_starts_with($url, 'https://') ? $url : null;
-    }
-
-    /**
-     * Los campos con lo que necesita el HTML (tipo, autocompletado, teclado del celular).
-     *
-     * @return list<array<string, mixed>>
-     */
-    private static function fields(LandingPage $page, Workspace $workspace): array
-    {
-        $out = [];
-        foreach ((array) ($page->fields ?? []) as $field) {
-            $key = (string) ($field['key'] ?? '');
-            $type = (string) ($field['type'] ?? 'text');
-            $out[] = [
-                'key' => $key,
-                'id' => 'f-'.str_replace('_', '-', $key),
-                'label' => (string) ($field['label'] ?? $key),
-                'type' => $type,
-                'required' => (bool) ($field['required'] ?? false),
-                'options' => array_values((array) ($field['options'] ?? [])),
-                'placeholder' => is_string($field['placeholder'] ?? null) ? $field['placeholder'] : ($key === 'phone' ? self::phoneExample($workspace) : ''),
-                'autocomplete' => match ($key) {
-                    'name' => 'name', 'email' => 'email', 'phone' => 'tel', default => 'off',
-                },
-                'inputmode' => match ($key) {
-                    'email' => 'email', 'phone' => 'tel', default => null,
-                },
-            ];
-        }
-
-        return $out;
-    }
-
-    private static function phoneExample(Workspace $workspace): string
-    {
-        return match (strtoupper((string) $workspace->country)) {
-            'MX' => __('Ej.: 55 1234 5678'),
-            'VE' => __('Ej.: 412 123 4567'),
-            default => __('Ej.: 300 123 4567'),
-        };
     }
 
     /** @return array<string, string> UTM, `ref`, identificadores de clic, `aid`, el host del referente y la vía */

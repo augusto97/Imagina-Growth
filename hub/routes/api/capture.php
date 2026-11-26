@@ -20,6 +20,7 @@ Route::post('capture/pages', [LandingPageController::class, 'store'])->middlewar
 Route::get('capture/pages/{page}', [LandingPageController::class, 'show']);
 Route::patch('capture/pages/{page}', [LandingPageController::class, 'update']);
 Route::delete('capture/pages/{page}', [LandingPageController::class, 'destroy']);
+Route::post('capture/pages/{page}/preview', [LandingPageController::class, 'preview'])->middleware('throttle:120,1');
 Route::post('capture/pages/{page}/publish', [LandingPageController::class, 'publish'])->middleware($onsite);
 Route::post('capture/pages/{page}/unpublish', [LandingPageController::class, 'unpublish']);
 Route::post('capture/pages/{page}/images', [LandingPageController::class, 'uploadImage'])->middleware('throttle:30,1');

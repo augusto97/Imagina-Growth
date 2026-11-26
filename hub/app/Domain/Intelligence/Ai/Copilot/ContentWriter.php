@@ -81,6 +81,45 @@ final class ContentWriter
     }
 
     /**
+     * Los textos de una página de captura (M12): etiqueta, título, texto, beneficios, preguntas frecuentes y botón. Igual
+     * que lo demás, sin cifras, precios ni plazos que no estén en el pedido.
+     *
+     * @param  array{goal: string, offer?: string|null, audience?: string|null, business?: string|null}  $brief
+     * @return array{draft: AiDraft, texts: array{eyebrow: string, title: string, body: string, benefits: list<string>, faq: list<array{q: string, a: string}>, button: string}}
+     */
+    public function landing(Workspace $workspace, ?string $userId, array $brief): array
+    {
+        $schema = ['type' => 'object', 'additionalProperties' => false, 'required' => ['eyebrow', 'title', 'body', 'benefits', 'faq', 'button'], 'properties' => [
+            'eyebrow' => ['type' => 'string'], 'title' => ['type' => 'string'], 'body' => ['type' => 'string'], 'button' => ['type' => 'string'],
+            'benefits' => ['type' => 'array', 'items' => ['type' => 'string']],
+            'faq' => ['type' => 'array', 'items' => ['type' => 'object', 'additionalProperties' => false, 'required' => ['q', 'a'],
+                'properties' => ['q' => ['type' => 'string'], 'a' => ['type' => 'string']]]],
+        ]];
+        $instructions = 'Escribe los textos de una página de captura de datos (landing) para el negocio del pedido: una etiqueta corta sobre el título (máximo 40 caracteres), '
+            .'un título que diga el beneficio (máximo 70), un texto de uno o dos párrafos (máximo 400, separados por una línea en blanco), de 3 a 5 beneficios (máximo 80 cada uno), '
+            .'de 3 a 5 preguntas frecuentes con respuestas cortas (máximo 200) y el texto del botón (máximo 30) en primera persona, como «Quiero mi cotización». '
+            .'La persona deja sus datos y el negocio le escribe: no prometas descuentos, precios, plazos ni garantías que no estén en el pedido.';
+        $json = $this->generate($workspace, $instructions, $brief, $schema);
+        $text = fn (mixed $v, int $max): string => mb_substr(trim(strip_tags(is_string($v) ? $v : '')), 0, $max);
+        $faq = [];
+        foreach (array_slice((array) ($json['faq'] ?? []), 0, 8) as $item) {
+            if (is_array($item) && $text($item['q'] ?? '', 140) !== '') {
+                $faq[] = ['q' => $text($item['q'], 140), 'a' => $text($item['a'] ?? '', 600)];
+            }
+        }
+        $texts = [
+            'eyebrow' => $text($json['eyebrow'] ?? '', 60),
+            'title' => $text($json['title'] ?? '', 120),
+            'body' => $text($json['body'] ?? '', 2000),
+            'benefits' => array_values(array_filter(array_map(fn ($b) => $text($b, 120), array_slice((array) ($json['benefits'] ?? []), 0, 6)), fn ($b) => $b !== '')),
+            'faq' => $faq,
+            'button' => $text($json['button'] ?? '', 40),
+        ];
+
+        return ['draft' => $this->store($workspace, $userId, 'landing', $brief, $texts), 'texts' => $texts];
+    }
+
+    /**
      * Variantes A/B de un texto (asunto, cuerpo o WhatsApp).
      *
      * @return array{draft: AiDraft, variants: list<string>}

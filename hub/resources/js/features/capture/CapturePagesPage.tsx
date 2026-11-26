@@ -1,23 +1,20 @@
 import { ArrowUpRight, Eye, LayoutTemplate, Plus, QrCode, Send } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { CopyButton } from '@/components/ui/copy-field';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ErrorState, FieldError } from '@/components/ui/misc';
+import { ErrorState } from '@/components/ui/misc';
 import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard, StatCardSkeleton, StatGrid } from '@/components/ui/stat-card';
-import { errorMessage } from '@/features/contacts/errors';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { formatNumber, formatPercent } from '@/lib/format';
-import { useLandingMutations, useLandingPages } from './api';
+import { useLandingPages } from './api';
 import { conversion } from './model';
+import { NewPageWizard } from './NewPageWizard';
 import { PageStatusBadge } from './shared';
 import type { LandingPage } from './types';
 
@@ -87,7 +84,7 @@ export function CapturePagesPage() {
                     </div>
                 </>
             )}
-            {creating ? <NewPageDialog onClose={() => setCreating(false)} /> : null}
+            {creating ? <NewPageWizard onClose={() => setCreating(false)} /> : null}
         </>
     );
 }
@@ -191,62 +188,5 @@ function Metric({ label, value }: { label: string; value: string }) {
             <dt className="igr:truncate igr:text-caption igr:text-muted-foreground">{label}</dt>
             <dd className="igr:text-[15px] igr:font-semibold igr:tabular-nums">{value}</dd>
         </div>
-    );
-}
-
-export function NewPageDialog({ onClose }: { onClose: () => void }) {
-    const { t } = useTranslation();
-    const { workspace } = useWorkspace();
-    const navigate = useNavigate();
-    const { create } = useLandingMutations(workspace.id);
-    const [name, setName] = useState('');
-    const [title, setTitle] = useState('');
-    return (
-        <Dialog open onOpenChange={(open) => !open && onClose()}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{t('capture.pages.create.title')}</DialogTitle>
-                    <DialogDescription>{t('capture.pages.create.description')}</DialogDescription>
-                </DialogHeader>
-                <form
-                    className="igr:space-y-4"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        create.mutate(
-                            { name: name.trim(), ...(title.trim() !== '' ? { title: title.trim() } : {}) },
-                            { onSuccess: (page) => void navigate(`/w/${workspace.id}/paginas-de-captura/${page.id}`) },
-                        );
-                    }}
-                >
-                    <div className="igr:space-y-1.5">
-                        <Label htmlFor="lp-name">{t('capture.pages.create.name')}</Label>
-                        <Input
-                            id="lp-name"
-                            required
-                            minLength={2}
-                            maxLength={160}
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder={t('capture.pages.create.namePlaceholder')}
-                            autoFocus
-                        />
-                        <p className="igr:text-caption igr:text-muted-foreground">{t('capture.pages.create.nameHelp')}</p>
-                    </div>
-                    <div className="igr:space-y-1.5">
-                        <Label htmlFor="lp-title">{t('capture.pages.create.headline')}</Label>
-                        <Input id="lp-title" maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('capture.pages.create.headlinePlaceholder')} />
-                    </div>
-                    {create.isError ? <FieldError message={errorMessage(create.error, t)} /> : null}
-                    <DialogFooter>
-                        <Button type="button" variant="ghost" onClick={onClose}>
-                            {t('common.cancel')}
-                        </Button>
-                        <Button type="submit" loading={create.isPending} disabled={name.trim().length < 2}>
-                            {t('capture.pages.create.submit')}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
     );
 }

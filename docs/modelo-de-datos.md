@@ -429,8 +429,10 @@ modulos.md M12 «Páginas de captura y QR») y `2026_11_28_500200_create_lead_ad
 - `landing_pages` (prefijo `lp`): id, workspace_id, site_id? (el sitio con el que se registran los contactos; sin él,
   el primero conectado o ninguno), slug (**único en toda la plataforma**: la página vive en `/p/{slug}`), name (interno),
   status (`draft`, `published`, `archived`), content (JSON: `title`, `body`, `logo_key`/`image_key` de las imágenes
-  subidas o `logo_url`/`image_url` https, `color`, `button`, `success_title`, `success_message`, `redirect_url` https y
-  `whatsapp` `{enabled, label, message}`), fields (JSON: `[{key, label, type, required, options?, placeholder?}]` con
+  subidas o `logo_url`/`image_url` https, `color`, `button`, `success_title`, `success_message`, `redirect_url` https,
+  `whatsapp` `{enabled, label, message}` y, desde la 0.3, `template` (`split`, `hero`, `centered`), `eyebrow`, `benefits`
+  (hasta 6 frases), `faq` (`[{q, a}]`, hasta 8) y `reviews` (bool); sin migración: las páginas de antes las toman por
+  defecto), fields (JSON: `[{key, label, type, required, options?, placeholder?}]` con
   `name`, `email`, `phone`, `message`, `service` y propios `custom_*`), consent_channels (JSON: los canales con casilla),
   settings (JSON: `indexable`, falso por defecto), wa_link_id? (su botón de WhatsApp), published_at?, created_by?,
   timestamps. Índice (workspace_id, status).

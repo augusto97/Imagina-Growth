@@ -12,6 +12,7 @@ use App\Domain\Intelligence\Ai\Copilot\Models\AiDraft;
 use App\Domain\Intelligence\Ai\Copilot\Support\BrandTone;
 use App\Domain\Intelligence\Ai\Copilot\Support\CopilotFailed;
 use App\Domain\Intelligence\Ai\Exceptions\AiUnavailable;
+use App\Domain\Templates\Support\BusinessProfile;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Domain\Workspaces\Models\User;
 use App\Support\Tenancy\CurrentWorkspace;
@@ -170,6 +171,20 @@ final class CopilotController
             $r = $writer->whatsapp($this->current->get(), $this->userId($request), $brief, $category);
 
             return response()->json(['id' => $r['draft']->publicId()] + array_diff_key($r, ['draft' => true]));
+        });
+    }
+
+    /** POST copilot/content/landing {goal, offer?, audience?}: los textos de una página de captura. */
+    public function landing(Request $request, ContentWriter $writer): JsonResponse
+    {
+        Gate::authorize('ws.useAi');
+        $ws = $this->current->get();
+        $brief = $this->brief($request) + ['business' => (string) (BusinessProfile::for($ws)['name'] ?: $ws->name)];
+
+        return $this->guard(function () use ($writer, $request, $brief, $ws) {
+            $r = $writer->landing($ws, $this->userId($request), $brief);
+
+            return response()->json(['id' => $r['draft']->publicId(), 'texts' => $r['texts']]);
         });
     }
 
