@@ -56,7 +56,8 @@ final class PublicCapture
     public function view(string $view, ?Workspace $workspace, ?LandingPage $page, array $data, int $status = 200): Response
     {
         $nonce = Str::random(24);
-        $render = function () use ($view, $workspace, $page, $data, $status, $nonce): Response {
+        $indexable = $page !== null && $page->isPublished() && (bool) $page->setting('indexable', false) && empty($data['preview']);
+        $render = function () use ($view, $workspace, $page, $data, $status, $nonce, $indexable): Response {
             $profile = $workspace !== null ? BusinessProfile::for($workspace) : null;
             $brand = $workspace !== null ? $this->branding->for($workspace) : null;
             $color = $page?->text('color');
@@ -69,12 +70,11 @@ final class PublicCapture
                 'accentFg' => self::readableOn($accent),
                 'poweredBy' => $brand !== null ? $brand->name : 'Imagina Growth',
                 'lang' => $workspace !== null ? str_replace('_', '-', WorkspaceLocale::of($workspace)) : 'es',
-                'indexable' => $page !== null && $page->isPublished() && (bool) $page->setting('indexable', false) && empty($data['preview']),
+                'indexable' => $indexable,
                 'nonce' => $nonce,
             ], $status);
         };
         $response = $workspace !== null ? WorkspaceLocale::run($workspace, $render) : $render();
-        $indexable = $page !== null && $page->isPublished() && (bool) $page->setting('indexable', false) && empty($data['preview']);
 
         return $response->withHeaders([
             'Cache-Control' => 'no-store, private',
