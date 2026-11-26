@@ -33,6 +33,21 @@ tus clientes, responde por WhatsApp y te muestra cada mes cuánto dinero generó
 límite de frecuencia) y el consentimiento de cada persona; entiende PSE, Nequi, Efecty, contraentrega, OXXO, SPEI y
 Pago Móvil; departamentos, ciudades y festivos de cada país.
 
+### Para negocios de servicios (sin tienda)
+
+| Lo que pasa hoy | Lo que hace Imagina Growth |
+|---|---|
+| Las consultas llegan por formulario, WhatsApp, Facebook o Google y se contestan horas después (o nunca) | Todas entran al mismo lugar, el agente con IA responde al instante y avisa al vendedor del lead caliente |
+| Nadie hace seguimiento a la cotización enviada | Recuerda la cotización por WhatsApp y correo y alerta al equipo si el cliente no responde |
+| Los pacientes o clientes no llegan a la cita | Pide confirmar 48 h antes y, si no asiste, ofrece reagendar el mismo día |
+| El cliente vuelve solo cuando se acuerda | Recuerda el control o el mantenimiento a los meses que corresponde |
+| No hay reseñas en Google | Las pide después de cada servicio, a quien quedó contento |
+| No sabe qué anuncio trajo al cliente que firmó | Une cada lead ganado con su origen y lo devuelve a Meta y Google como conversión |
+
+Funciona para servicios profesionales, salud y bienestar, educación, inmobiliarias, turismo y restaurantes,
+automotriz y empresas B2B: el asistente pregunta a qué se dedica el negocio y adapta el embudo, las estrategias y las
+palabras (cliente, paciente, estudiante).
+
 ## Cómo funciona (3 pasos)
 
 1. **Conecta tu web** (10 minutos): se instala un plugin en WordPress y se conecta con un código. Trae los últimos 24
@@ -54,6 +69,15 @@ Pago Móvil; departamentos, ciudades y festivos de cada país.
 4. **Conversaciones (1 min):** la bandeja de WhatsApp con el equipo y el agente con IA respondiendo una pregunta de
    precio y stock real.
 5. **Resultados (30 s):** ventas, de dónde vienen y el informe mensual en PDF.
+
+**Si el cliente es de servicios**, usa la demo de servicios (por ejemplo «Clínica Sonrisa Demo»):
+1. **Inicio:** leads del mes y de dónde vinieron, tiempo de primera respuesta, citas y asistencia, valor ganado.
+2. **Clientes:** el tablero de leads por etapa (Nuevo → Contactado → Cita → Asistió → Paciente) y la ficha de un lead
+   con su resumen automático y lo que sigue.
+3. **Estrategias:** «Confirmación de citas», «Recuperar inasistencias» y «Control periódico», con la vista previa del
+   mensaje.
+4. **En tu web:** el formulario, la página de captura con su QR para el local y los leads de Facebook e Instagram.
+5. **Conversaciones:** el agente con IA respondiendo horarios y precios de servicios y agendando.
 
 Cierre: «Empiezas con el plan gratis de diagnóstico: conectas tu web y en 10 minutos ves lo que estás dejando de
 vender. Si te sirve, prendes las estrategias.»
