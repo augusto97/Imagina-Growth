@@ -13,6 +13,8 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useUi, type ThemePreference } from '@/stores/ui';
 import { useIntentPrefetch } from '@/app/prefetch';
+import { preloadAssistant } from '@/features/assistant/AssistantHost';
+import { useAssistant } from '@/features/assistant/model';
 import { preloadCommandPalette } from './commandPaletteLoader';
 import { Logo } from './Logo';
 import { locate, navContext, sectionLock, sectionName, sectionPath, visibleSections, type NavLock, type NavSection } from './nav';
@@ -280,6 +282,9 @@ export function Sidebar({ mode = 'fixed' }: { mode?: 'fixed' | 'drawer' }) {
     const mod = isMac ? '⌘' : 'Ctrl+';
     const toggleLabel = collapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar');
     const searchLabel = t('command.search');
+    const askLabel = t('nav.askAi');
+    const canAsk = workspace.abilities.includes('useAi');
+    const askAi = useAssistant((st) => st.ask);
 
     return (
         <aside
@@ -335,6 +340,35 @@ export function Sidebar({ mode = 'fixed' }: { mode?: 'fixed' | 'drawer' }) {
                         )}
                     </button>
                 </WithTooltip>
+                {canAsk ? (
+                    <WithTooltip collapsed={collapsed} label={`${askLabel} · ${mod}J`}>
+                        <button
+                            type="button"
+                            onClick={() => askAi()}
+                            onMouseEnter={preloadAssistant}
+                            onFocus={preloadAssistant}
+                            aria-label={collapsed ? askLabel : undefined}
+                            aria-keyshortcuts={isMac ? 'Meta+J' : 'Control+J'}
+                            className={cn(
+                                'igr:mt-1.5 igr:text-[13px] igr:text-brand-soft-foreground',
+                                collapsed
+                                    ? `${ICON_BUTTON} igr:hover:bg-brand-soft`
+                                    : 'igr:flex igr:h-9 igr:w-full igr:items-center igr:gap-2 igr:rounded-lg igr:bg-brand-soft igr:px-2.5 igr:font-medium igr:transition-colors igr:hover:bg-brand-soft/70',
+                            )}
+                        >
+                            <Sparkles className="igr:size-4" aria-hidden />
+                            {collapsed ? null : (
+                                <>
+                                    <span className="igr:flex-1 igr:text-left">{askLabel}</span>
+                                    <span className="igr:hidden igr:items-center igr:gap-1 igr:md:flex" aria-hidden>
+                                        <Kbd>{isMac ? '⌘' : 'Ctrl'}</Kbd>
+                                        <Kbd>J</Kbd>
+                                    </span>
+                                </>
+                            )}
+                        </button>
+                    </WithTooltip>
+                ) : null}
             </div>
             <nav aria-label={t('nav.main')} className="igr:mt-4 igr:flex-1 igr:overflow-y-auto igr:px-2 igr:pb-3">
                 <NavSections base={base} iconsOnly={collapsed} />

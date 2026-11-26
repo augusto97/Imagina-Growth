@@ -21,6 +21,7 @@ import { flattenNav, itemLock, itemPath, locate, navContext, visibleSections, ty
 import { MobileNav } from './MobileNav';
 import { SectionNav } from './SectionNav';
 import { Sidebar } from './Sidebar';
+import { AssistantHost } from '@/features/assistant/AssistantHost';
 
 export function FullPageSkeleton() {
     return (
@@ -191,6 +192,7 @@ export function WorkspaceLayout() {
                     <LazyCommandPalette />
                 </Suspense>
             ) : null}
+            {workspace.abilities.includes('useAi') ? <AssistantHost /> : null}
         </WorkspaceContext.Provider>
     );
 }

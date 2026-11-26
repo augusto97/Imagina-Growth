@@ -187,6 +187,24 @@ final class AskYourData
     /** La respuesta sin IA: los totales de la consulta, en una línea. */
     private function template(Workspace $workspace, MetricQueryTool $tool): string
     {
+        return self::templateFor($workspace, $tool);
+    }
+
+    /**
+     * La tabla y el gráfico de una consulta (también para el asistente «Pregúntale a la IA»).
+     *
+     * @param  array<string, mixed>  $query
+     * @param  array{rows: list<array<string, mixed>>, totals: array<string, float|int>, compare_totals: array<string, float|int>|null}  $result
+     * @return array<string, mixed>
+     */
+    public static function metaFor(array $query, array $result): array
+    {
+        return self::meta($query, $result, null);
+    }
+
+    /** La respuesta sin IA con los totales de la última consulta de la herramienta (también para el asistente). */
+    public static function templateFor(Workspace $workspace, MetricQueryTool $tool): string
+    {
         $parts = [];
         foreach ((array) ($tool->lastResult['totals'] ?? []) as $metric => $value) {
             $unit = Catalog::METRICS[$metric]['unit'] ?? 'count';

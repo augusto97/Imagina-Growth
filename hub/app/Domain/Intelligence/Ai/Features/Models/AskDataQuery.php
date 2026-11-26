@@ -10,8 +10,9 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Una pregunta de «Pregúntale a tus datos» (inteligencia.md §6.3) con la consulta
- * estructurada que armó el modelo y lo que respondió.
+ * Una pregunta de «Pregúntale a tus datos» o del asistente «Pregúntale a la IA»
+ * (inteligencia.md §6.3) con la consulta estructurada que armó el modelo y lo que
+ * respondió.
  *
  * @property string $id
  * @property string $workspace_id
@@ -23,6 +24,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $status
  * @property string|null $model
  * @property array<string, mixed>|null $validation
+ * @property array{kind?: string}|null $context de qué pantalla vino (asistente «Pregúntale a la IA»)
+ * @property list<array{kind: string, prompt: string|null, page: string|null}>|null $actions siguiente paso que propuso
  * @property string|null $saved_as
  * @property string|null $saved_id
  * @property CarbonInterface|null $created_at
@@ -44,6 +47,8 @@ class AskDataQuery extends Model
             'query' => 'array',
             'result_meta' => 'array',
             'validation' => 'array',
+            'context' => 'array',
+            'actions' => 'array',
             'question' => 'encrypted',
         ];
     }

@@ -9,6 +9,8 @@ use App\Domain\Intelligence\Ai\Contracts\AiGateway;
 use App\Domain\Intelligence\Ai\Features\Analyst\WeeklyAnalyst;
 use App\Domain\Intelligence\Ai\Features\AskData\AskYourData;
 use App\Domain\Intelligence\Ai\Features\AskData\SegmentFromQuery;
+use App\Domain\Intelligence\Ai\Features\Assistant\AiAssistant;
+use App\Domain\Intelligence\Ai\Features\Assistant\AssistantContext;
 use App\Domain\Intelligence\Ai\Features\Models\AiReport;
 use App\Domain\Intelligence\Ai\Features\Models\AskDataQuery;
 use App\Domain\Intelligence\Ai\Features\Summaries\ProfileSummary;
@@ -27,6 +29,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\Rule;
 
 /**
  * IA del panel (M17, Fase 4): uso del mes, informes del analista semanal,
@@ -126,6 +129,34 @@ final class AiController
         }
 
         return response()->json(self::presentAsk($ask->handle($ws, $user, (string) $data['question'])), 201);
+    }
+
+    /**
+     * POST ai/assistant {question, page?: {kind, id?}, history?: [{question, answer}]} — «Pregúntale a la IA» desde
+     * cualquier pantalla, con los hechos de esa pantalla si la persona puede verla.
+     */
+    public function assistant(Request $request, AiAssistant $assistant): JsonResponse
+    {
+        Gate::authorize('ws.useAi');
+        $data = $request->validate([
+            'question' => ['required', 'string', 'min:2', 'max:500'],
+            'page' => ['nullable', 'array'],
+            'page.kind' => ['nullable', 'string', Rule::in(AssistantContext::KINDS)],
+            'page.id' => ['nullable', 'string', 'max:40', 'regex:/^[a-z]{2,4}_[0-9A-Za-z]{26}$/'],
+            'history' => ['nullable', 'array', 'max:3'],
+            'history.*.question' => ['required', 'string', 'max:500'],
+            'history.*.answer' => ['required', 'string', 'max:1500'],
+        ]);
+        $ws = $this->current->get();
+        /** @var User $user */
+        $user = $request->user();
+        if (! RateLimiter::attempt('ai-assistant:'.$ws->id.':'.$user->id, 60, fn () => true, 3600)) {
+            abort(429, __('Hiciste muchas preguntas en la última hora. Intenta más tarde.'));
+        }
+        $page = is_array($data['page'] ?? null) ? $data['page'] : [];
+        $history = array_values(array_map(fn (array $h) => ['question' => (string) $h['question'], 'answer' => (string) $h['answer']], (array) ($data['history'] ?? [])));
+
+        return response()->json(self::presentAsk($assistant->handle($ws, $user, (string) $data['question'], $page, $history)), 201);
     }
 
     /** GET ai/ask/{query}/run — las cifras al día de una consulta guardada, sin IA. */
@@ -229,6 +260,9 @@ final class AiController
             'result' => $q->result_meta,
             'source' => $q->result_meta['source'] ?? (isset($q->validation['fallback_reason']) ? 'fallback' : 'ai'),
             'saved_as' => $q->saved_as,
+            'context' => $q->context['kind'] ?? null,
+            'actions' => $q->actions ?? [],
+            'fallback_reason' => $q->validation['fallback_reason'] ?? null,
             'created_at' => $q->created_at?->toIso8601String(),
         ];
     }

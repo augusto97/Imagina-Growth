@@ -314,7 +314,7 @@ La base es la migración `2026_11_22_000100_create_phase4_tables`; cada módulo 
 - `ai_usage`: además de tokens y costo, `requests`, `cache_read` y `cache_write` (la caché de prompts cambia el costo). Clave (workspace_id, date, feature, model).
 - `ai_reports`: `period_start`/`period_end` (único por espacio de trabajo, tipo e inicio del periodo), `actions` (las 3 acciones con su botón), `source` (`ai` o `fallback`: el texto sin IA cuando la validación numérica falla dos veces).
 - `ai_drafts` (nueva): las propuestas del copiloto (campaña o flujo) y del contenido, que siempre esperan aprobación humana; `applied_type`/`applied_id` enlazan con lo que se creó.
-- `ask_data_queries` (nueva): cada pregunta de «Pregúntale a tus datos» con la consulta estructurada que armó el modelo, la respuesta y si se guardó como segmento o en el tablero.
+- `ask_data_queries` (nueva): cada pregunta de «Pregúntale a tus datos» con la consulta estructurada que armó el modelo, la respuesta y si se guardó como segmento o en el tablero. Desde la 0.3.0 también las del asistente «Pregúntale a la IA», con `context` (JSON: solo el tipo de pantalla, `{kind}`; nunca los hechos que se le pasaron al modelo) y `actions` (JSON: el siguiente paso que propuso, `[{kind: campaign|flow|page, prompt, page}]`).
 
 **Predicciones**
 - `contacts`: `p_alive`, `expected_orders_90d`, `expected_orders_365d` (BG/NBD), `propensity_30d`, `brand_affinity` (top 5, como `category_affinity`) y `predictions_at`.

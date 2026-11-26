@@ -1,8 +1,10 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { Menu, Search, X } from 'lucide-react';
+import { Menu, Search, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
+import { preloadAssistant } from '@/features/assistant/AssistantHost';
+import { useAssistant } from '@/features/assistant/model';
 import { DESKTOP_QUERY, useMedia } from '@/hooks/useMedia';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { useUi } from '@/stores/ui';
@@ -19,6 +21,7 @@ export function MobileNav() {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const setCommandOpen = useUi((s) => s.setCommandOpen);
+    const askAi = useAssistant((s) => s.ask);
     const location = useLocation();
     // Al pasar a escritorio (girar la tableta, agrandar la ventana) el panel se cierra: ahí manda la barra lateral fija.
     const desktop = useMedia(DESKTOP_QUERY);
@@ -35,6 +38,17 @@ export function MobileNav() {
                 <div className="igr:min-w-0 igr:flex-1">
                     <Logo brand={workspace.branding ?? null} />
                 </div>
+                {workspace.abilities.includes('useAi') ? (
+                    <button
+                        type="button"
+                        onClick={() => askAi()}
+                        onPointerDown={preloadAssistant}
+                        className="igr:rounded-md igr:p-1.5 igr:text-primary igr:hover:bg-accent"
+                        aria-label={t('nav.askAi')}
+                    >
+                        <Sparkles className="igr:size-5" aria-hidden />
+                    </button>
+                ) : null}
                 <button
                     type="button"
                     onClick={() => setCommandOpen(true)}

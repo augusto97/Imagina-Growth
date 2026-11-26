@@ -15,6 +15,7 @@ Route::get('ai/reports/{report}', [AiController::class, 'report'])->where('repor
 Route::post('ai/reports/{report}/send', [AiController::class, 'send'])->where('report', 'air_[0-9A-Z]{26}')->middleware('throttle:10,1');
 Route::get('ai/ask', [AiController::class, 'history']);
 Route::post('ai/ask', [AiController::class, 'ask']);
+Route::post('ai/assistant', [AiController::class, 'assistant']);
 Route::get('ai/saved', [AiController::class, 'saved']);
 Route::get('ai/ask/{query}/run', [AiController::class, 'run'])->where('query', 'adq_[0-9A-Z]{26}');
 Route::post('ai/ask/{query}/save', [AiController::class, 'save'])->where('query', 'adq_[0-9A-Z]{26}');
