@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Analytics\Dashboards;
 
 use App\Analytics\Semantic\Filters;
+use App\Analytics\Semantic\MetricQueryRunner;
 use App\Analytics\Semantic\Period;
 use App\Domain\Intelligence\Rfm\RfmSegment;
 use App\Domain\Workspaces\Models\Workspace;
@@ -46,9 +47,10 @@ final class CustomersDashboard extends Dashboard
 
         return [
             'rfm' => ['segments' => $segments, 'grid' => $grid, 'computed_at' => $computedAt],
-            'cohorts' => $this->cohorts($workspace, $period),
-            'repurchase' => $this->repurchase($workspace),
-            'concentration' => $this->concentration($workspace),
+            // No dependen del periodo elegido (miran 12 meses o toda la historia): una vez por hora.
+            'cohorts' => MetricQueryRunner::rememberHourly($workspace, 'customers:cohorts:'.$period->timezone.':'.$period->offsetSeconds(), fn () => $this->cohorts($workspace, $period)),
+            'repurchase' => MetricQueryRunner::rememberHourly($workspace, 'customers:repurchase', fn () => $this->repurchase($workspace)),
+            'concentration' => MetricQueryRunner::rememberHourly($workspace, 'customers:concentration', fn () => $this->concentration($workspace)),
             'new_vs_returning' => $this->newVsReturning($workspace, $period, $filters),
         ];
     }

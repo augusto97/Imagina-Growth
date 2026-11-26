@@ -66,7 +66,8 @@ final class MessagingDashboard extends Dashboard
     public function handle(Workspace $workspace, Period $period, Filters $filters): array
     {
         $events = $this->events($workspace, $period);
-        $totals = $this->totals($workspace, $period, $filters, $events);
+        $live = $this->liveBreakdown($workspace, $period);
+        $totals = $this->totals($workspace, $period, $filters, $events, $live);
         $cost = $this->costs->meta($workspace->currency ?: 'USD');
         if ($totals['sent'] === 0 && $totals['total'] === 0) {
             return ['available' => true, 'empty' => true, 'totals' => $totals, 'compare' => null, 'by_channel' => [], 'by_source' => [], 'series' => [],
@@ -78,8 +79,8 @@ final class MessagingDashboard extends Dashboard
             'empty' => false,
             'totals' => $totals,
             'compare' => $period->compare !== null ? $this->totals($workspace, $period->compare, $filters, $this->events($workspace, $period->compare)) : null,
-            'by_channel' => $this->byChannel($workspace, $period, $filters, $events),
-            'by_source' => $this->bySource($workspace, $period, $filters, $events),
+            'by_channel' => $this->byChannel($workspace, $period, $filters, $events, $live),
+            'by_source' => $this->bySource($workspace, $period, $filters, $events, $live),
             'series' => $this->series($workspace, $period),
             'opens_exclude_mpp' => $events !== null,
             'cost' => $cost,
@@ -91,6 +92,86 @@ final class MessagingDashboard extends Dashboard
         return DB::table('messages as m')->where('m.workspace_id', $workspace->id)->where('m.direction', 'out')
             ->where('m.created_at', '>=', $period->fromUtc())->where('m.created_at', '<', $period->toUtc())
             ->whereNotIn('m.status', self::NOT_SENT)->whereNotIn('m.source_type', BusinessAppMessages::SOURCES);
+    }
+
+    /**
+     * Los mensajes del periodo por canal y origen en dos lecturas (conteos y costo): de ahí salen el total, la tabla por
+     * canal y la de flujos y campañas, que antes leían los mismos mensajes seis veces (docs/rendimiento.md §2).
+     *
+     * @return array{rows: list<\stdClass>, cost: array<string, array{usd: float, local: float|null}>} costo por «canal|origen»
+     */
+    private function liveBreakdown(Workspace $workspace, Period $period): array
+    {
+        $key = sprintf(self::SOURCE_KEY, 'm');
+        $rows = $this->messages($workspace, $period)->groupByRaw('m.channel, source_key')
+            ->selectRaw('m.channel AS channel, '.$key.' AS source_key, '.self::COUNTS)->get()->all();
+        $cost = $this->costs->sum($this->messages($workspace, $period), $workspace->currency ?: 'USD', "CONCAT(m.channel, '|', {$key})");
+
+        return ['rows' => array_values($rows), 'cost' => $cost];
+    }
+
+    /**
+     * Suma los conteos de las filas del desglose (null si no hay filas, como una consulta sin mensajes).
+     *
+     * @param  iterable<\stdClass>  $rows
+     */
+    private static function sumRows(iterable $rows): ?\stdClass
+    {
+        $out = null;
+        foreach ($rows as $r) {
+            $out ??= (object) array_fill_keys(self::COUNT_KEYS, 0);
+            foreach (self::COUNT_KEYS as $k) {
+                $out->{$k} += (int) ($r->{$k} ?? 0);
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Las filas del desglose sumadas por `channel` o por `source_key`; por origen, con sus canales (`channels`, como el
+     * GROUP_CONCAT de antes).
+     *
+     * @param  list<\stdClass>  $rows
+     * @return array<string, \stdClass>
+     */
+    private static function groupRows(array $rows, string $by): array
+    {
+        $groups = [];
+        $channels = [];
+        foreach ($rows as $r) {
+            $groups[(string) $r->{$by}][] = $r;
+            $channels[(string) $r->{$by}][(string) $r->channel] = true;
+        }
+        $out = [];
+        foreach ($groups as $k => $list) {
+            $row = self::sumRows($list) ?? new \stdClass;
+            if ($by === 'source_key') {
+                $names = array_keys($channels[$k]);
+                sort($names);
+                $row->channels = implode(',', $names);
+            }
+            $out[(string) $k] = $row;
+        }
+
+        return $out;
+    }
+
+    /**
+     * El costo del desglose («canal|origen») sumado por canal (0), por origen (1) o en total (null, clave '').
+     *
+     * @param  array<string, array{usd: float, local: float|null}>  $cost
+     * @return array<string, array{usd: float, local: float|null}>
+     */
+    private static function costBy(array $cost, ?int $part): array
+    {
+        $out = [];
+        foreach ($cost as $k => $c) {
+            $parts = explode('|', (string) $k, 2);
+            $out = MessageCosts::merge($out, [$part === null ? '' : ($parts[$part] ?? '') => $c]);
+        }
+
+        return $out;
     }
 
     /** Lo que ya pasó al archivo agregado en los días (UTC) del periodo. */
@@ -111,15 +192,17 @@ final class MessagingDashboard extends Dashboard
 
     /**
      * @param  list<array{channel: string, flow: string, campaign: string, event: string, n: int}>|null  $events
+     * @param  array{rows: list<\stdClass>, cost: array<string, array{usd: float, local: float|null}>}|null  $live  el desglose del periodo ya leído (liveBreakdown)
      * @return array<string, int|float|null>
      */
-    private function totals(Workspace $workspace, Period $period, Filters $filters, ?array $events): array
+    private function totals(Workspace $workspace, Period $period, Filters $filters, ?array $events, ?array $live = null): array
     {
         $currency = $workspace->currency ?: 'USD';
-        $row = self::add($this->messages($workspace, $period)->selectRaw(self::COUNTS)->first(), $this->archived($workspace, $period)->selectRaw(self::ARCHIVE_COUNTS)->first());
+        $archived = $this->archived($workspace, $period)->selectRaw(self::ARCHIVE_COUNTS)->first();
+        $row = self::add($live !== null ? self::sumRows($live['rows']) : $this->messages($workspace, $period)->selectRaw(self::COUNTS)->first(), $archived);
         $sales = $this->attributed($workspace, $period, $filters)->selectRaw('COUNT(*) AS orders, COALESCE(SUM(o.total_ws), 0) AS revenue')->first();
         $cost = MessageCosts::merge(
-            $this->costs->sum($this->messages($workspace, $period), $currency),
+            $live !== null ? self::costBy($live['cost'], null) : $this->costs->sum($this->messages($workspace, $period), $currency),
             $this->costs->sum($this->archived($workspace, $period), $currency, null, true),
         );
 
@@ -128,17 +211,18 @@ final class MessagingDashboard extends Dashboard
 
     /**
      * @param  list<array{channel: string, flow: string, campaign: string, event: string, n: int}>|null  $events
+     * @param  array{rows: list<\stdClass>, cost: array<string, array{usd: float, local: float|null}>}  $live
      * @return list<array<string, int|float|string|null>>
      */
-    private function byChannel(Workspace $workspace, Period $period, Filters $filters, ?array $events): array
+    private function byChannel(Workspace $workspace, Period $period, Filters $filters, ?array $events, array $live): array
     {
         $currency = $workspace->currency ?: 'USD';
-        $rows = $this->messages($workspace, $period)->groupBy('m.channel')->selectRaw('m.channel AS channel, '.self::COUNTS)->get()->keyBy('channel')->all();
+        $rows = self::groupRows($live['rows'], 'channel');
         $archived = $this->archived($workspace, $period)->groupBy('m.channel')->selectRaw('m.channel AS channel, '.self::ARCHIVE_COUNTS)->get()->keyBy('channel')->all();
         $sales = $this->attributed($workspace, $period, $filters)->groupByRaw('sale_channel')
             ->selectRaw("COALESCE(am.channel, 'archived') AS sale_channel, COUNT(*) AS orders, COALESCE(SUM(o.total_ws), 0) AS revenue")->get()->keyBy('sale_channel');
         $cost = MessageCosts::merge(
-            $this->costs->sum($this->messages($workspace, $period), $currency, 'm.channel'),
+            self::costBy($live['cost'], 0),
             $this->costs->sum($this->archived($workspace, $period), $currency, 'm.channel', true),
         );
         $out = [];
@@ -160,20 +244,20 @@ final class MessagingDashboard extends Dashboard
      * Flujos, campañas, bandeja y otros envíos (API, avisos del sistema), con su nombre.
      *
      * @param  list<array{channel: string, flow: string, campaign: string, event: string, n: int}>|null  $events
+     * @param  array{rows: list<\stdClass>, cost: array<string, array{usd: float, local: float|null}>}  $live
      * @return list<array<string, mixed>>
      */
-    private function bySource(Workspace $workspace, Period $period, Filters $filters, ?array $events): array
+    private function bySource(Workspace $workspace, Period $period, Filters $filters, ?array $events, array $live): array
     {
         $currency = $workspace->currency ?: 'USD';
         $key = sprintf(self::SOURCE_KEY, 'm');
-        $rows = $this->messages($workspace, $period)->groupByRaw('source_key')
-            ->selectRaw($key.' AS source_key, GROUP_CONCAT(DISTINCT m.channel ORDER BY m.channel) AS channels, '.self::COUNTS)->get()->keyBy('source_key')->all();
+        $rows = self::groupRows($live['rows'], 'source_key');
         $archived = $this->archived($workspace, $period)->groupByRaw('source_key')
             ->selectRaw($key.' AS source_key, GROUP_CONCAT(DISTINCT m.channel ORDER BY m.channel) AS channels, '.self::ARCHIVE_COUNTS)->get()->keyBy('source_key')->all();
         $sales = $this->attributed($workspace, $period, $filters)->groupByRaw('source_key')
             ->selectRaw(self::ORDER_SOURCE_KEY.' AS source_key, COUNT(*) AS orders, COALESCE(SUM(o.total_ws), 0) AS revenue')->get()->keyBy('source_key');
         $cost = MessageCosts::merge(
-            $this->costs->sum($this->messages($workspace, $period), $currency, $key),
+            self::costBy($live['cost'], 1),
             $this->costs->sum($this->archived($workspace, $period), $currency, $key, true),
         );
 
