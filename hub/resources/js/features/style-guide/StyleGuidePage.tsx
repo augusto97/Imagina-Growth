@@ -1,20 +1,24 @@
-import { ArrowRight, Gift, Inbox, Palette, Plus, ShoppingCart, Sparkles, TrendingUp, Users } from 'lucide-react';
+import { ArrowRight, CalendarDays, Gift, Inbox, MessageSquare, Package, Palette, Plus, ShoppingCart, Sparkles, TrendingUp, Users } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Callout, type CalloutTone } from '@/components/ui/callout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checklist, Stepper, type ChecklistStep } from '@/components/ui/checklist';
+import { Chip, ChipGroup } from '@/components/ui/chip';
 import { EmptyState } from '@/components/ui/empty-state';
 import { HeroCard } from '@/components/ui/hero-card';
 import { ICON_TONES, IconTile } from '@/components/ui/icon-tile';
 import { Illustration, ILLUSTRATION_NAMES } from '@/components/ui/illustrations';
-import { Input, Select, Textarea } from '@/components/ui/input';
+import { Checkbox, Input, Select, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LockedState } from '@/components/ui/locked-state';
 import { FieldError } from '@/components/ui/misc';
 import { PageHeader } from '@/components/ui/page-header';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Skeleton, SkeletonCard, SkeletonText } from '@/components/ui/skeleton';
 import { StatCard, StatGrid } from '@/components/ui/stat-card';
@@ -69,6 +73,7 @@ const SECTION_KEYS = [
     'sheet',
     'table',
     'tabs',
+    'chips',
 ] as const;
 
 function GuideSection({ id, children, note }: { id: (typeof SECTION_KEYS)[number]; children: ReactNode; note?: boolean }) {
@@ -258,6 +263,10 @@ export function StyleGuidePage() {
                         <Input id="guia-error" aria-invalid defaultValue="Pi" />
                         <FieldError message={t('styleguide.fields.error')} />
                     </div>
+                    <label className="igr:flex igr:items-center igr:gap-2 igr:self-end igr:text-body">
+                        <Checkbox defaultChecked />
+                        {t('styleguide.fields.checkbox')}
+                    </label>
                 </div>
             </GuideSection>
 
@@ -515,6 +524,51 @@ export function StyleGuidePage() {
                     </TabsContent>
                 </Tabs>
             </GuideSection>
+
+            <GuideSection id="chips" note>
+                <ChipsExample />
+            </GuideSection>
         </>
+    );
+}
+
+/** Chips de filtro, control segmentado y avatares (frente de Clientes): con estado, para verlos funcionar. */
+function ChipsExample() {
+    const { t } = useTranslation();
+    const [filter, setFilter] = useState('all');
+    const [view, setView] = useState<'day' | 'week'>('week');
+    const chips = [
+        { key: 'all', icon: undefined, count: 24 },
+        { key: 'appointments', icon: CalendarDays, count: 6 },
+        { key: 'messages', icon: MessageSquare, count: 15 },
+        { key: 'orders', icon: Package, count: 3 },
+    ] as const;
+    return (
+        <div className="igr:space-y-5">
+            <ChipGroup label={t('styleguide.chips.filterLabel')} scroll>
+                {chips.map((c) => (
+                    <Chip key={c.key} pressed={filter === c.key} icon={c.icon} count={c.count} onClick={() => setFilter(c.key)}>
+                        {t(`styleguide.chips.${c.key}`)}
+                    </Chip>
+                ))}
+            </ChipGroup>
+            <SegmentedControl
+                label={t('styleguide.chips.viewLabel')}
+                value={view}
+                onChange={setView}
+                options={[
+                    { value: 'day', label: t('styleguide.chips.day') },
+                    { value: 'week', label: t('styleguide.chips.week') },
+                ]}
+            />
+            <div className="igr:flex igr:items-center igr:gap-3">
+                {t('styleguide.chips.people')
+                    .split(/, | y /)
+                    .map((name, i) => (
+                        <Avatar key={name} name={name} size={(['sm', 'md', 'lg'] as const)[i] ?? 'md'} />
+                    ))}
+                <span className="igr:text-support igr:text-muted-foreground">{t('styleguide.chips.people')}</span>
+            </div>
+        </div>
     );
 }

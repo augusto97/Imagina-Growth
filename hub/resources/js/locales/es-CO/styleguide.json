@@ -22,7 +22,8 @@
             "callout": "Avisos",
             "sheet": "Cajón lateral",
             "table": "Tablas y esqueletos",
-            "tabs": "Pestañas"
+            "tabs": "Pestañas",
+            "chips": "Chips, controles segmentados y avatares"
         },
         "notes": {
             "color": "Los textos de estado cumplen AA (4,5:1) sobre la tarjeta, el fondo y su fondo tenue, en claro y en oscuro. El color nunca va solo: siempre con ícono o texto.",
@@ -31,7 +32,8 @@
             "shape": "Escala de 4 px. Tarjetas rounded-xl con borde sutil y sombra mínima; 24 a 32 px entre bloques.",
             "header": "Miga de la sección, título, una línea de para qué sirve y la acción principal. Igual en todas las pantallas.",
             "sectionNav": "En el escritorio, debajo de la sección en la barra lateral; en el celular, la tableta o con la barra contraída, control segmentado arriba del contenido.",
-            "locked": "Cuando falta algo, la pantalla dice qué hace, qué le falta y el botón para resolverlo."
+            "locked": "Cuando falta algo, la pantalla dice qué hace, qué le falta y el botón para resolverlo.",
+            "chips": "Chips para filtrar a la vista (con su conteo), el control segmentado para cambiar de vista y el avatar con las iniciales de cada persona. El color del avatar sale del nombre: siempre el mismo."
         },
         "tokens": {
             "background": "Fondo de la página",
@@ -88,7 +90,8 @@
             "country": "País",
             "message": "Mensaje",
             "messagePlaceholder": "Hola Laura, dejaste algo en tu carrito…",
-            "error": "Escribe un nombre de al menos 3 letras."
+            "error": "Escribe un nombre de al menos 3 letras.",
+            "checkbox": "Recibir el resumen semanal por correo"
         },
         "header": {
             "crumb": "Mensajes",
@@ -192,6 +195,17 @@
             "two": "Mensajes",
             "three": "Ventas",
             "content": "El contenido de cada pestaña aparece aquí."
+        },
+        "chips": {
+            "filterLabel": "Filtrar la actividad",
+            "all": "Todo",
+            "appointments": "Citas",
+            "messages": "Mensajes",
+            "orders": "Pedidos",
+            "viewLabel": "Vista",
+            "day": "Día",
+            "week": "Semana",
+            "people": "Laura Gómez, Andrés Restrepo y Óscar Martínez"
         }
     }
 }
