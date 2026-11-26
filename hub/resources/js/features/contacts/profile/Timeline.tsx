@@ -1,5 +1,6 @@
 import {
     Activity,
+    CalendarCheck,
     Eye,
     Gift,
     type LucideIcon,
@@ -17,26 +18,28 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Chip, ChipGroup } from '@/components/ui/chip';
+import { IconTile, type IconTone } from '@/components/ui/icon-tile';
 import { ErrorState } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useWorkspace } from '@/hooks/useWorkspace';
-import { formatDate, formatMoney, parseApiDate } from '@/lib/format';
-import { cn } from '@/lib/cn';
+import { formatDate, formatDateTime, formatMoney, parseApiDate } from '@/lib/format';
 import { type TimelineEvent, useTimeline } from '../api';
 import { TIMELINE_GROUPS, type TimelineGroup, eventGroup, eventKey, toggleGroup } from '../labels';
 
-const ICONS: Record<TimelineGroup, LucideIcon> = {
-    navegacion: Eye,
-    carrito: ShoppingCart,
-    pedidos: Package,
-    fidelizacion: Gift,
-    cuenta: UserRound,
-    sitio: MousePointerClick,
-    mensajes: MessageSquare,
-    resenas: Star,
-    encuestas: ClipboardList,
-    consentimiento: ShieldCheck,
-    segmentos: Users,
+const ICONS: Record<TimelineGroup, { icon: LucideIcon; tone: IconTone }> = {
+    navegacion: { icon: Eye, tone: 'slate' },
+    carrito: { icon: ShoppingCart, tone: 'orange' },
+    pedidos: { icon: Package, tone: 'emerald' },
+    fidelizacion: { icon: Gift, tone: 'rose' },
+    cuenta: { icon: UserRound, tone: 'sky' },
+    sitio: { icon: MousePointerClick, tone: 'teal' },
+    mensajes: { icon: MessageSquare, tone: 'indigo' },
+    resenas: { icon: Star, tone: 'amber' },
+    encuestas: { icon: ClipboardList, tone: 'violet' },
+    consentimiento: { icon: ShieldCheck, tone: 'emerald' },
+    segmentos: { icon: Users, tone: 'violet' },
+    servicios: { icon: CalendarCheck, tone: 'teal' },
 };
 
 /** Agrupa por día local (los eventos llegan del más nuevo al más viejo). */
@@ -55,11 +58,16 @@ export function groupByDay(events: readonly TimelineEvent[], timeZone: string): 
     return out;
 }
 
-/** Línea de tiempo unificada del perfil 360 con filtros por grupo y carga continua (next_before). */
-export function Timeline({ contactId }: { contactId: string }) {
+/**
+ * Línea de tiempo unificada del perfil 360: agrupada por día, un ícono de color por tipo, filtros a la vista (solo los
+ * que tienen sentido para el negocio, `available`) y carga continua (next_before).
+ */
+export function Timeline({ contactId, available = TIMELINE_GROUPS }: { contactId: string; available?: readonly TimelineGroup[] }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
-    const [groups, setGroups] = useState<TimelineGroup[]>([]);
+    const [picked, setGroups] = useState<TimelineGroup[]>([]);
+    // Sin filtro: todos los grupos que aplican al negocio (en una tienda, nada de servicios; sin tienda, nada de carrito).
+    const groups = picked.length > 0 ? picked : available.length < TIMELINE_GROUPS.length ? [...available] : [];
     const timeline = useTimeline(workspace.id, contactId, groups);
     const sentinel = useRef<HTMLLIElement | null>(null);
     const { hasNextPage, isFetchingNextPage, fetchNextPage } = timeline;
@@ -86,16 +94,16 @@ export function Timeline({ contactId }: { contactId: string }) {
         <Card>
             <CardHeader>
                 <CardTitle>{t('contacts.timeline.title')}</CardTitle>
-                <div role="group" aria-label={t('contacts.timeline.filter')} className="igr:mt-1 igr:flex igr:flex-wrap igr:gap-1">
-                    <Chip active={groups.length === 0} onClick={() => setGroups([])}>
+                <ChipGroup label={t('contacts.timeline.filter')} scroll className="igr:mt-2">
+                    <Chip pressed={picked.length === 0} onClick={() => setGroups([])}>
                         {t('contacts.timeline.all')}
                     </Chip>
-                    {TIMELINE_GROUPS.map((g) => (
-                        <Chip key={g} active={groups.includes(g)} onClick={() => setGroups(toggleGroup(groups, g))}>
+                    {available.map((g) => (
+                        <Chip key={g} pressed={picked.includes(g)} icon={ICONS[g].icon} onClick={() => setGroups(toggleGroup(picked, g))}>
                             {t(`contacts.timeline.groups.${g}`)}
                         </Chip>
                     ))}
-                </div>
+                </ChipGroup>
             </CardHeader>
             <CardContent>
                 {timeline.isError ? (
@@ -108,8 +116,8 @@ export function Timeline({ contactId }: { contactId: string }) {
                     </div>
                 ) : events.length === 0 ? (
                     <div className="igr:flex igr:flex-col igr:items-center igr:gap-1.5 igr:py-8 igr:text-center">
-                        <Activity className="igr:size-5 igr:text-muted-foreground" />
-                        <p className="igr:text-[13px] igr:font-medium">{t('contacts.timeline.empty')}</p>
+                        <Activity className="igr:size-5 igr:text-muted-foreground" aria-hidden />
+                        <p className="igr:text-[13px] igr:font-medium">{t(picked.length > 0 ? 'contacts.timeline.empty' : 'contacts.timeline.emptyAll')}</p>
                         <p className="igr:max-w-xs igr:text-xs igr:text-muted-foreground">{t('contacts.timeline.emptyHelp')}</p>
                     </div>
                 ) : (
@@ -119,22 +127,21 @@ export function Timeline({ contactId }: { contactId: string }) {
                                 <p className="igr:sticky igr:top-0 igr:mb-1.5 igr:bg-card igr:text-[11px] igr:font-medium igr:uppercase igr:tracking-wide igr:text-muted-foreground">
                                     {formatDate(`${day}T12:00:00`, workspace.locale, 'UTC')}
                                 </p>
-                                <ol className="igr:relative igr:space-y-2.5 igr:border-l igr:pl-4">
+                                <ol className="igr:space-y-3">
                                     {dayEvents.map((e) => {
                                         const group = eventGroup(e.event);
-                                        const Icon = ICONS[group];
                                         return (
-                                            <li key={e.id} className="igr:relative">
-                                                <span className="igr:absolute igr:-left-[25px] igr:top-0 igr:flex igr:size-[18px] igr:items-center igr:justify-center igr:rounded-full igr:border igr:bg-card">
-                                                    <Icon className="igr:size-2.5 igr:text-muted-foreground" aria-hidden="true" />
-                                                </span>
-                                                <div className="igr:flex igr:items-baseline igr:justify-between igr:gap-2">
-                                                    <p className="igr:text-[13px] igr:font-medium">{t(`contacts.events.${eventKey(e.event)}`, { defaultValue: e.event })}</p>
-                                                    <time dateTime={e.occurred_at} className="igr:shrink-0 igr:text-[11px] igr:tabular-nums igr:text-muted-foreground">
-                                                        {time.format(parseApiDate(e.occurred_at))}
-                                                    </time>
+                                            <li key={e.id} className="igr:flex igr:gap-2.5">
+                                                <IconTile icon={ICONS[group].icon} tone={ICONS[group].tone} size="sm" />
+                                                <div className="igr:min-w-0 igr:flex-1">
+                                                    <div className="igr:flex igr:items-baseline igr:justify-between igr:gap-2">
+                                                        <p className="igr:text-[13px] igr:font-medium">{t(`contacts.events.${eventKey(e.event)}`, { defaultValue: e.event })}</p>
+                                                        <time dateTime={e.occurred_at} className="igr:shrink-0 igr:text-[11px] igr:tabular-nums igr:text-muted-foreground">
+                                                            {time.format(parseApiDate(e.occurred_at))}
+                                                        </time>
+                                                    </div>
+                                                    <EventDetail event={e} />
                                                 </div>
-                                                <EventDetail event={e} />
                                             </li>
                                         );
                                     })}
@@ -151,22 +158,6 @@ export function Timeline({ contactId }: { contactId: string }) {
                 )}
             </CardContent>
         </Card>
-    );
-}
-
-function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {
-    return (
-        <button
-            type="button"
-            aria-pressed={active}
-            onClick={onClick}
-            className={cn(
-                'igr:rounded-full igr:border igr:px-2 igr:py-0.5 igr:text-[11px] igr:font-medium igr:outline-none igr:transition-colors igr:focus-visible:ring-2 igr:focus-visible:ring-ring',
-                active ? 'igr:border-primary/40 igr:bg-primary/10 igr:text-primary' : 'igr:text-muted-foreground igr:hover:text-foreground',
-            )}
-        >
-            {children}
-        </button>
     );
 }
 
@@ -259,6 +250,21 @@ function EventDetail({ event }: { event: TimelineEvent }) {
     }
     if (s.flow !== undefined) {
         parts.push(t('contacts.timeline.flow', { name: str(s.flow) }));
+    }
+    if (s.service !== undefined) {
+        parts.push(String(s.service));
+    }
+    if (s.appointment_at !== undefined) {
+        parts.push(formatDateTime(String(s.appointment_at), workspace.locale, workspace.timezone));
+    }
+    if (s.lead_value !== undefined) {
+        parts.push(money(s.lead_value) ?? '');
+    }
+    if (s.calculator !== undefined) {
+        parts.push(String(s.calculator));
+    }
+    if (s.estimate_min !== undefined && s.estimate_max !== undefined) {
+        parts.push(`${money(s.estimate_min) ?? ''} – ${money(s.estimate_max) ?? ''}`);
     }
     if (parts.length === 0 && event.path) {
         parts.push(event.path);

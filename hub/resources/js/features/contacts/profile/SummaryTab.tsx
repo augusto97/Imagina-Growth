@@ -6,14 +6,15 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import { formatDate, formatMoney, formatNumber, formatPercent, formatRelative } from '@/lib/format';
 import { answerLabel, useHdyhauSurvey } from '@/features/survey/api';
 import { useContactAbilities } from '../abilities';
-import type { ContactProfile, Touch } from '../api';
+import type { ContactProfile, ContactServices, Touch } from '../api';
 import { touchDetail } from '../labels';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatCard, StatCardSkeleton, StatGrid } from '@/components/ui/stat-card';
 
 /** La gráfica mensual (Recharts) llega en su propio chunk; mientras, un esqueleto de su alto (docs/rendimiento.md §7.1, 3). */
 const MonthlyChart = lazy(async () => ({ default: (await import('./MonthlyChart')).MonthlyChart }));
 
-export function SummaryTab({ profile }: { profile: ContactProfile }) {
+export function SummaryTab({ profile, servicesOnly = false, services }: { profile: ContactProfile; servicesOnly?: boolean; services?: ContactServices | undefined }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const can = useContactAbilities();
@@ -22,6 +23,52 @@ export function SummaryTab({ profile }: { profile: ContactProfile }) {
     const locale = workspace.locale;
     const avgDays = s.avg_days_between_orders === null ? null : Number(s.avg_days_between_orders);
     const couponRatio = s.coupon_orders_ratio === null ? null : Number(s.coupon_orders_ratio);
+    const origin = (
+        <Card>
+            <CardHeader>
+                <CardTitle>{t('contacts.profile.origin.title')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <DescriptionList
+                    items={[
+                        { label: t('contacts.profile.origin.first'), value: <TouchValue touch={profile.first_source} /> },
+                        ...(servicesOnly ? [] : [{ label: t('contacts.profile.origin.firstOrder'), value: <TouchValue touch={profile.first_order_source} /> }]),
+                        {
+                            label: t('contacts.profile.origin.hdyhau'),
+                            value: answerLabel(survey.data, profile.hdyhau) ?? <span className="igr:text-muted-foreground">{t('contacts.profile.origin.noAnswer')}</span>,
+                        },
+                        { label: t('contacts.profile.origin.firstSeen'), value: formatDate(profile.first_seen_at, locale, workspace.timezone) },
+                        { label: t('contacts.profile.origin.lastSeen'), value: profile.last_seen_at ? formatRelative(profile.last_seen_at, locale) : '—' },
+                        ...(profile.merged_count > 0
+                            ? [{ label: t('contacts.profile.origin.merged'), value: t('contacts.profile.origin.mergedCount', { count: profile.merged_count }) }]
+                            : []),
+                    ]}
+                />
+            </CardContent>
+        </Card>
+    );
+
+    if (servicesOnly) {
+        const totals = services?.totals;
+        const money = (v: string | null | undefined) => formatMoney(v ?? '0', services?.currency ?? workspace.currency, locale);
+        return (
+            <div className="igr:space-y-4">
+                <StatGrid className="igr:lg:grid-cols-2 igr:xl:grid-cols-4">
+                    {totals === undefined ? (
+                        [0, 1, 2, 3].map((i) => <StatCardSkeleton key={i} />)
+                    ) : (
+                        <>
+                            <StatCard label={t('contacts.services.kpi.won')} value={money(totals.won_value)} help={t('contacts.services.kpi.wonHelp')} />
+                            <StatCard label={t('contacts.services.kpi.attended')} value={formatNumber(totals.appointments_completed, locale)} />
+                            <StatCard label={t('contacts.services.kpi.noShow')} value={formatNumber(totals.appointments_no_show, locale)} better="down" />
+                            <StatCard label={t('contacts.services.kpi.quotes')} value={formatNumber(totals.quotes, locale)} />
+                        </>
+                    )}
+                </StatGrid>
+                {origin}
+            </div>
+        );
+    }
 
     return (
         <div className="igr:space-y-4">
@@ -44,28 +91,7 @@ export function SummaryTab({ profile }: { profile: ContactProfile }) {
                 <MonthlyChart monthly={profile.monthly} currency={profile.currency} locale={locale} />
             </Suspense>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>{t('contacts.profile.origin.title')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <DescriptionList
-                        items={[
-                            { label: t('contacts.profile.origin.first'), value: <TouchValue touch={profile.first_source} /> },
-                            { label: t('contacts.profile.origin.firstOrder'), value: <TouchValue touch={profile.first_order_source} /> },
-                            {
-                                label: t('contacts.profile.origin.hdyhau'),
-                                value: answerLabel(survey.data, profile.hdyhau) ?? <span className="igr:text-muted-foreground">{t('contacts.profile.origin.noAnswer')}</span>,
-                            },
-                            { label: t('contacts.profile.origin.firstSeen'), value: formatDate(profile.first_seen_at, locale, workspace.timezone) },
-                            { label: t('contacts.profile.origin.lastSeen'), value: profile.last_seen_at ? formatRelative(profile.last_seen_at, locale) : '—' },
-                            ...(profile.merged_count > 0
-                                ? [{ label: t('contacts.profile.origin.merged'), value: t('contacts.profile.origin.mergedCount', { count: profile.merged_count }) }]
-                                : []),
-                        ]}
-                    />
-                </CardContent>
-            </Card>
+            {origin}
         </div>
     );
 }

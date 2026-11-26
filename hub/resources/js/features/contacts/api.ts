@@ -5,7 +5,7 @@ import { ApiError, api, ensureCsrf, toApiError } from '@/lib/api';
 
 /* Perfil 360, lista e importación de contactos (modulos.md M03). Formas de hub/app/Domain/Contacts. */
 
-export type ContactSort = 'last_seen' | 'last_order' | 'revenue' | 'orders' | 'created';
+export type ContactSort = 'last_seen' | 'last_order' | 'revenue' | 'orders' | 'created' | 'lead_score';
 export type ConsentChannel = 'email' | 'whatsapp' | 'sms';
 
 export interface ContactFilters {
@@ -16,8 +16,26 @@ export interface ContactFilters {
     consent: '' | ConsentChannel;
     buyers: '' | '1' | '0';
     tag: string;
+    /** Grupo de clientes (segmento) al que pertenece: `sg_…`. */
+    segment: string;
+    /** Temperatura de su lead abierto (negocios de servicios). */
+    temperature: '' | 'hot' | 'warm' | 'cold';
     sort: ContactSort;
     page: number;
+}
+
+/** El lead abierto de una persona en la lista (negocios de servicios). */
+export interface ContactRowLead {
+    id: string;
+    stage: string;
+    stage_label: string;
+    temperature: 'hot' | 'warm' | 'cold';
+    score: number;
+    value: string | null;
+    service: string | null;
+    /** ¿Ya le respondieron? */
+    answered: boolean;
+    created_at: string | null;
 }
 
 export interface ContactListRow {
@@ -34,6 +52,12 @@ export interface ContactListRow {
     rfm_segment: string | null;
     hdyhau: string | null;
     tags: string[];
+    created_at?: string | null;
+    /** Canales de marketing con consentimiento vigente. */
+    consents?: ConsentChannel[];
+    /** Con `services`: su lead abierto y su próxima cita. */
+    lead?: ContactRowLead | null;
+    next_appointment_at?: string | null;
 }
 
 export interface ConsentState {
@@ -110,6 +134,8 @@ export interface ContactProfile {
     first_seen_at: string | null;
     last_seen_at: string | null;
     currency: string;
+    /** Su conversación más reciente de la bandeja (el botón «Escribir» la abre). */
+    conversation?: { id: string; channel: string; last_message_at: string | null } | null;
 }
 
 export interface TimelineEvent {
@@ -235,10 +261,13 @@ export const contactKeys = {
     import: (ws: string, id: string) => ['ws', ws, 'contact-imports', id] as const,
 };
 
-/** Convierte los filtros en la consulta de GET contacts (solo lo que tiene valor). */
-export function filtersToParams(filters: ContactFilters): URLSearchParams {
+/** Filtros que comparten la lista, la exportación y «Agregar a un grupo». */
+export const FILTER_KEYS = ['q', 'stage', 'city', 'rfm_segment', 'consent', 'buyers', 'tag', 'segment', 'temperature'] as const;
+
+/** Convierte los filtros en la consulta de GET contacts (solo lo que tiene valor). `services`: suma el lead y la cita. */
+export function filtersToParams(filters: ContactFilters, services = false): URLSearchParams {
     const params = new URLSearchParams({ page: String(filters.page) });
-    for (const key of ['q', 'stage', 'city', 'rfm_segment', 'consent', 'buyers', 'tag'] as const) {
+    for (const key of FILTER_KEYS) {
         const value = filters[key].trim();
         if (value !== '') {
             params.set(key, value);
@@ -247,15 +276,120 @@ export function filtersToParams(filters: ContactFilters): URLSearchParams {
     if (filters.sort !== 'last_seen') {
         params.set('sort', filters.sort);
     }
+    if (services) {
+        params.set('services', '1');
+    }
     return params;
 }
 
-export function useContactList(ws: string, filters: ContactFilters, enabled = true) {
+export function useContactList(ws: string, filters: ContactFilters, enabled = true, services = false) {
     return useQuery({
-        queryKey: contactKeys.list(ws, filters),
-        queryFn: ({ signal }) => api.get<Paginated<ContactListRow>>(`${wsPath(ws)}/contacts?${filtersToParams(filters).toString()}`, signal),
+        queryKey: [...contactKeys.list(ws, filters), services] as const,
+        queryFn: ({ signal }) => api.get<Paginated<ContactListRow>>(`${wsPath(ws)}/contacts?${filtersToParams(filters, services).toString()}`, signal),
         placeholderData: keepPreviousData,
         enabled,
+    });
+}
+
+/** A quién aplica una acción masiva: las elegidas o todas las que cumplen los filtros. */
+export type ContactSelection = { ids: string[] } | { all: true; filters: ContactFilters };
+
+/** Los parámetros de una acción masiva (los mismos de la lista, sin página ni orden). */
+export function selectionParams(selection: ContactSelection): URLSearchParams {
+    if ('ids' in selection) {
+        const params = new URLSearchParams();
+        for (const id of selection.ids) {
+            params.append('ids[]', id);
+        }
+        return params;
+    }
+    const params = filtersToParams(selection.filters);
+    params.delete('page');
+    params.delete('sort');
+    params.set('all', '1');
+    return params;
+}
+
+/** La URL de la exportación a CSV (la descarga el navegador con la sesión). */
+export function contactsExportUrl(ws: string, selection: ContactSelection): string {
+    return `${wsPath(ws)}/contacts/export?${selectionParams(selection).toString()}`;
+}
+
+/** Agrega personas a un grupo fijo que ya existe (`segment_id`) o a uno nuevo (`name`). */
+export function useAddToGroup(ws: string) {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ selection, segment_id, name }: { selection: ContactSelection; segment_id?: string; name?: string }) => {
+            const body: Record<string, unknown> =
+                'ids' in selection ? { ids: selection.ids } : { ...Object.fromEntries(selectionParams(selection).entries()), all: true };
+            return api.post<{ segment: { id: string; name: string; member_count: number }; added: number; selected: number }>(`${wsPath(ws)}/contacts/group`, {
+                ...body,
+                ...(segment_id ? { segment_id } : { name }),
+            });
+        },
+        onSuccess: () => {
+            void qc.invalidateQueries({ queryKey: ['ws', ws, 'segments'] });
+        },
+    });
+}
+
+/* Lo de servicios de una persona (leads, citas y cotizaciones): GET services/contacts/{id}. */
+
+export interface ContactServiceLead {
+    id: string;
+    stage: string;
+    stage_label: string;
+    stage_kind: 'open' | 'won' | 'lost';
+    temperature: 'hot' | 'warm' | 'cold';
+    score: number;
+    service: string | null;
+    value: string | null;
+    origin: string;
+    next_step: string | null;
+    next_step_at: string | null;
+    first_response_at: string | null;
+    created_at: string | null;
+    won_at: string | null;
+    lost_at: string | null;
+    lost_reason: string | null;
+}
+
+export type ContactAppointmentStatus = 'booked' | 'confirmed' | 'rescheduled' | 'cancelled' | 'completed' | 'no_show';
+
+export interface ContactAppointment {
+    id: string;
+    status: ContactAppointmentStatus;
+    starts_at: string;
+    ends_at: string;
+    service: string | null;
+    staff: string | null;
+    channel: string;
+}
+
+export interface ContactQuote {
+    id: string;
+    created_at: string;
+    calculator: string | null;
+    estimate_min: string | null;
+    estimate_max: string | null;
+    currency: string;
+    lead_id: string | null;
+}
+
+export interface ContactServices {
+    currency: string;
+    leads: ContactServiceLead[];
+    appointments: ContactAppointment[];
+    quotes: ContactQuote[];
+    totals: { won_value: string; appointments_completed: number; appointments_no_show: number; appointments_upcoming: number; quotes: number };
+}
+
+export function useContactServices(ws: string, id: string, enabled = true) {
+    return useQuery({
+        queryKey: contactKeys.part(ws, id, 'services'),
+        queryFn: ({ signal }) => api.get<ContactServices>(`${wsPath(ws)}/services/contacts/${encodeURIComponent(id)}`, signal),
+        enabled: enabled && id !== '',
+        staleTime: 30_000,
     });
 }
 

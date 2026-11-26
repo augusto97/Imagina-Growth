@@ -15,7 +15,7 @@ export const ROUTE_TEXTS: Record<string, readonly string[]> = {
     channels: ['channels', 'connections'],
     connections: ['connections', 'platform-settings'],
     consent: ['consent', 'contacts', 'privacy'],
-    contacts: ['analytics', 'channels', 'contacts', 'intelligence', 'leads', 'loyalty', 'predictions', 'privacy', 'qualification', 'regions'],
+    contacts: ['analytics', 'channels', 'contacts', 'intelligence', 'leads', 'loyalty', 'privacy', 'qualification', 'regions'],
     copilot: ['copilot'],
     flows: ['analytics', 'copilot', 'flows', 'loyalty', 'reactivation', 'segments'],
     home: ['agency', 'analytics', 'connections', 'contacts', 'home', 'insights'],

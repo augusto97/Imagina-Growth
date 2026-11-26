@@ -4,7 +4,20 @@ import type { Touch } from './api';
 /* Valores dinámicos del perfil 360: grupos de la línea de tiempo, segmentos RFM y canales. */
 
 /** Grupos de la línea de tiempo, en el orden de hub/app/Domain/Contacts/Queries/ProfileQuery::TIMELINE_GROUPS. */
-export const TIMELINE_GROUPS = ['navegacion', 'carrito', 'pedidos', 'fidelizacion', 'cuenta', 'sitio', 'mensajes', 'resenas', 'encuestas', 'consentimiento', 'segmentos'] as const;
+export const TIMELINE_GROUPS = [
+    'navegacion',
+    'carrito',
+    'pedidos',
+    'fidelizacion',
+    'cuenta',
+    'sitio',
+    'mensajes',
+    'resenas',
+    'encuestas',
+    'consentimiento',
+    'segmentos',
+    'servicios',
+] as const;
 export type TimelineGroup = (typeof TIMELINE_GROUPS)[number];
 
 const GROUP_BY_PREFIX: [string, TimelineGroup][] = [
@@ -34,7 +47,16 @@ const GROUP_BY_PREFIX: [string, TimelineGroup][] = [
     ['nps.', 'encuestas'],
     ['consent.', 'consentimiento'],
     ['segment.', 'segmentos'],
+    ['lead.', 'servicios'],
+    ['appointment.', 'servicios'],
+    ['quote.', 'servicios'],
 ];
+
+/** Los filtros de la actividad que tienen sentido para el negocio: sin carrito ni pedidos donde no hay tienda. */
+export function timelineGroupsFor(store: boolean, services: boolean): TimelineGroup[] {
+    const storeOnly: TimelineGroup[] = ['carrito', 'pedidos', 'fidelizacion', 'sitio'];
+    return TIMELINE_GROUPS.filter((g) => (g === 'servicios' ? services : store || !storeOnly.includes(g)));
+}
 
 export function eventGroup(event: string): TimelineGroup {
     return GROUP_BY_PREFIX.find(([prefix]) => event.startsWith(prefix))?.[1] ?? 'navegacion';
@@ -65,6 +87,9 @@ export const RFM_SEGMENTS = [
     'hibernating',
     'lost',
 ] as const;
+
+/** Los grupos RFM que conviene cuidar (para el tono del texto de la probabilidad y los avisos). */
+export const RFM_AT_RISK = ['cant_lose', 'at_risk', 'about_to_sleep', 'hibernating', 'lost'] as const;
 
 export function rfmTone(segment: string | null | undefined): NonNullable<BadgeProps['variant']> {
     switch (segment) {
