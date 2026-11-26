@@ -1,4 +1,4 @@
-import { Clock, MessageCircle, PackageSearch, Search, Sparkles, Ticket, Wallet } from 'lucide-react';
+import { MessageCircle, Search, Sparkles, Ticket, Wallet } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState } from '@/components/ui/misc';
 import type { CouponsData, GeographyData, HdyhauData, SearchTerm, ServicesData } from '../api';
@@ -8,13 +8,18 @@ import type { Column } from '../components/DataTable';
 import { Notice, Section } from '../components/Section';
 import { StatTile, TileGrid } from '../components/StatTile';
 import { regionName } from '@/lib/regions';
-import { useExporter, useLabels } from './shared';
+import { useServicesResults } from '@/features/services/api';
+import { leadSourceName } from '../summary/narrative';
+import { useWorkspace } from '@/hooks/useWorkspace';
+import { cityTop, couponsShare, couponsTop, hdyhauTop, regionTop, searchesZero, servicesTopForm, servicesTopPage, zeroTop } from '../conclusions';
+import { useConclusion, useExporter, useLabels } from './shared';
 import type { DashboardProps } from './shared';
 
 /* 6. Búsquedas */
 export function SearchesDashboard({ response, data, fmt }: DashboardProps<'searches'>) {
     const { t } = useTranslation();
     const exporter = useExporter(response);
+    const conclude = useConclusion();
     if (data.total_searches === 0) {
         return <EmptyState icon={Search} title={t('analytics.searches.empty')} description={t('analytics.searches.emptyHelp')} />;
     }
@@ -32,11 +37,12 @@ export function SearchesDashboard({ response, data, fmt }: DashboardProps<'searc
                 <StatTile label={t('analytics.searches.total')} unit="count" value={data.total_searches} fmt={fmt} />
                 <StatTile label={t('analytics.searches.zeroShare')} unit="ratio" value={data.zero_result_share} fmt={fmt} better="down" help={t('analytics.searches.zeroShareHelp')} />
             </TileGrid>
-            <Section title={t('analytics.searches.title')} onExport={exporter(t('analytics.searches.title'), columns, data.terms)} flush>
+            <Section kicker={t('analytics.searches.title')} title={conclude(searchesZero(data, fmt), t('analytics.searches.title'))} onExport={exporter(t('analytics.searches.title'), columns, data.terms)} flush>
                 <DataTable columns={columns} rows={data.terms} rowKey={(r) => r.query} limit={20} />
             </Section>
             <Section
-                title={t('analytics.searches.zeroTitle')}
+                kicker={t('analytics.searches.zeroTitle')}
+                title={conclude(zeroTop(data.zero_results), t('analytics.searches.zeroTitle'))}
                 description={t('analytics.searches.zeroDescription')}
                 onExport={exporter(t('analytics.searches.zeroTitle'), columns, data.zero_results)}
                 flush
@@ -52,6 +58,7 @@ export function GeographyDashboard({ response, data, fmt }: DashboardProps<'geog
     const { t } = useTranslation();
     const labels = useLabels();
     const exporter = useExporter(response);
+    const conclude = useConclusion();
     type Region = GeographyData['regions'][number];
     type City = GeographyData['cities'][number];
     const regionColumns: Column<Region>[] = [
@@ -86,13 +93,20 @@ export function GeographyDashboard({ response, data, fmt }: DashboardProps<'geog
     return (
         <div className="igr:grid igr:gap-4 igr:xl:grid-cols-[1fr_1.4fr]">
             <Section
-                title={t('analytics.geo.regionsTitle')}
+                kicker={t('analytics.geo.regionsTitle')}
+                title={conclude(
+                    regionTop(data.regions, (r) => labels.orNone(regionName(t, r)), fmt),
+                    t('analytics.geo.regionsTitle'),
+                )}
                 description={t('analytics.geo.regionsDescription')}
                 onExport={exporter(t('analytics.geo.regionsTitle'), regionColumns, data.regions)}
                 chart={<BarList rows={data.regions} label={(r) => labels.orNone(regionName(t, r.region))} value={(r) => r.revenue} format={(v) => fmt.money(v)} max={15} detail={(r) => t('analytics.geo.regionDetail', { orders: fmt.number(r.orders), aov: fmt.money(r.aov) })} />}
                 table={<DataTable columns={regionColumns} rows={data.regions} rowKey={(r) => r.region} />}
             />
-            <Section title={t('analytics.geo.citiesTitle')} description={t('analytics.geo.citiesDescription')} onExport={exporter(t('analytics.geo.citiesTitle'), cityColumns, data.cities)} flush>
+            <Section
+                kicker={t('analytics.geo.citiesTitle')}
+                title={conclude(cityTop(data.cities, fmt), t('analytics.geo.citiesTitle'))}
+                description={t('analytics.geo.citiesDescription')} onExport={exporter(t('analytics.geo.citiesTitle'), cityColumns, data.cities)} flush>
                 <DataTable columns={cityColumns} rows={data.cities} rowKey={(r) => `${r.city}-${r.region}`} limit={20} />
                 {data.conversion_unavailable ? <p className="igr:border-t igr:px-4 igr:py-3 igr:text-xs igr:text-muted-foreground">{t('analytics.geo.unlinked')}</p> : null}
                 {data.sessions && data.sessions.without_city_share >= 0.05 ? (
@@ -109,6 +123,7 @@ export function GeographyDashboard({ response, data, fmt }: DashboardProps<'geog
 export function CouponsDashboard({ response, data, fmt }: DashboardProps<'coupons'>) {
     const { t } = useTranslation();
     const exporter = useExporter(response);
+    const conclude = useConclusion();
     type Code = CouponsData['codes'][number];
     const codeColumns: Column<Code>[] = [
         { key: 'code', label: t('analytics.coupons.code'), render: (r) => <code className="igr:text-xs">{r.code}</code>, value: (r) => r.code },
@@ -144,11 +159,15 @@ export function CouponsDashboard({ response, data, fmt }: DashboardProps<'coupon
                 {t('analytics.coupons.incrementalSoon', { phase: data.incremental.phase ?? 2 })}
             </Notice>
             <div className="igr:grid igr:gap-4 igr:xl:grid-cols-2">
-                <Section title={t('analytics.coupons.codesTitle')} onExport={exporter(t('analytics.coupons.codesTitle'), codeColumns, data.codes)} flush>
+                <Section
+                    kicker={t('analytics.coupons.codesTitle')}
+                    title={conclude(couponsTop(data.codes, fmt), t('analytics.coupons.codesTitle'))}
+                    onExport={exporter(t('analytics.coupons.codesTitle'), codeColumns, data.codes)} flush>
                     <DataTable columns={codeColumns} rows={data.codes} rowKey={(r) => r.code} limit={15} empty={t('analytics.coupons.none')} />
                 </Section>
                 <Section
-                    title={t('analytics.coupons.trendTitle')}
+                    kicker={t('analytics.coupons.trendTitle')}
+                    title={conclude(couponsShare(data, fmt), t('analytics.coupons.trendTitle'))}
                     description={t('analytics.coupons.trendDescription')}
                     onExport={exporter(t('analytics.coupons.trendTitle'), trendColumns, trend)}
                     chart={<TrendChart data={trend} metric="coupon_share" label={t('analytics.coupons.share')} unit="ratio" granularity="month" fmt={fmt} height={220} />}
@@ -219,14 +238,29 @@ export function ServicesDashboard({ response, data, fmt }: DashboardProps<'servi
     const { t } = useTranslation();
     const labels = useLabels();
     const exporter = useExporter(response);
+    const conclude = useConclusion();
     type Form = ServicesData['forms'][number];
     type ByChannel = ServicesData['by_channel'][number];
     type Page = ServicesData['pages'][number];
+    const { workspace } = useWorkspace();
+    // Los contactos (leads) con su fuente y la primera respuesta salen del mismo cálculo del Resumen (GET services/results).
+    const results = useServicesResults(workspace.id, { from: response.period.from, to: response.period.to });
     const submissions = data.forms.reduce((sum, f) => sum + f.submissions, 0);
     const clicks = (kind: string) => data.cta_clicks.filter((c) => c.kind === kind).reduce((sum, c) => sum + c.clicks, 0);
-    if (submissions === 0 && data.cta_clicks.length === 0 && data.pages.length === 0) {
-        return <EmptyState icon={PackageSearch} title={t('analytics.services.empty')} description={t('analytics.services.emptyHelp')} />;
-    }
+    const web = submissions > 0 || data.cta_clicks.length > 0 || data.pages.length > 0;
+    const r = results.data;
+    type Source = NonNullable<typeof r>['leads']['by_source'][number];
+    const sourceName = (row: Source) =>
+        leadSourceName(row, (c) => t(`analytics.summary.services.source.${c}`, { defaultValue: t(`analytics.channel.${c}`, { defaultValue: c }) }));
+    const sourceColumns: Column<Source>[] = [
+        { key: 'channel', label: t('analytics.summary.services.sourceCol'), render: (row) => sourceName(row), value: (row) => sourceName(row) },
+        { key: 'leads', label: t('analytics.summary.services.leadsCol'), align: 'right', render: (row) => fmt.number(row.leads), value: (row) => row.leads },
+        { key: 'won', label: t('analytics.summary.services.wonCol'), align: 'right', render: (row) => fmt.number(row.won), value: (row) => row.won },
+        { key: 'won_value', label: t('analytics.summary.services.valueCol'), align: 'right', render: (row) => fmt.money(Number(row.won_value)), value: (row) => Number(row.won_value) },
+        { key: 'conversion_rate', label: t('analytics.summary.services.rateCol'), align: 'right', render: (row) => fmt.percent(row.conversion_rate, 1), value: (row) => row.conversion_rate },
+    ];
+    const bestSource = r ? [...r.leads.by_source].sort((a, b) => b.leads - a.leads)[0] : undefined;
+    const minutes = r?.kpis.first_response_minutes.value ?? null;
     const formColumns: Column<Form>[] = [
         { key: 'form', label: t('analytics.services.form'), render: (r) => labels.orNone(r.form), value: (r) => r.form },
         { key: 'plugin', label: t('analytics.services.plugin'), render: (r) => labels.orNone(r.plugin), value: (r) => r.plugin },
@@ -250,23 +284,62 @@ export function ServicesDashboard({ response, data, fmt }: DashboardProps<'servi
     return (
         <div className="igr:space-y-4">
             <TileGrid>
+                <StatTile
+                    label={t('analytics.services.leads')}
+                    unit="count"
+                    value={r?.kpis.leads.value ?? null}
+                    previous={r?.kpis.leads.previous ?? null}
+                    compareMode={r?.kpis.leads.previous != null ? 'previous' : null}
+                    fmt={fmt}
+                />
+                <StatTile
+                    label={t('analytics.services.firstResponse')}
+                    unit="count"
+                    value={minutes}
+                    better="down"
+                    fmt={fmt}
+                    help={t('analytics.services.firstResponseHelp')}
+                    display={minutes === null ? '—' : t('analytics.summary.services.minutes', { count: Math.round(minutes), formatted: fmt.number(Math.round(minutes)) })}
+                />
                 <StatTile label={t('analytics.services.submissions')} unit="count" value={submissions} fmt={fmt} />
-                <StatTile label={t('analytics.services.whatsapp')} unit="count" value={clicks('whatsapp')} fmt={fmt} />
-                <StatTile label={t('analytics.services.phone')} unit="count" value={clicks('phone')} fmt={fmt} />
-                <StatTile label={t('analytics.services.email')} unit="count" value={clicks('email')} fmt={fmt} />
+                <StatTile label={t('analytics.services.whatsapp')} unit="count" value={clicks('whatsapp')} fmt={fmt} hint={t('analytics.services.callsHint', { count: clicks('phone') + clicks('email') })} />
             </TileGrid>
-            <Notice icon={Clock}>{t('analytics.services.responseSoon', { phase: data.response_time.phase ?? 4 })}</Notice>
-            <div className="igr:grid igr:gap-4 igr:xl:grid-cols-2">
-                <Section title={t('analytics.services.formsTitle')} onExport={exporter(t('analytics.services.formsTitle'), formColumns, data.forms)} flush>
+            {r && r.leads.by_source.length > 0 ? (
+                <Section
+                    kicker={t('analytics.services.leadsTitle')}
+                    title={bestSource ? t('analytics.summary.services.sourcesTop', { source: sourceName(bestSource), count: bestSource.leads }) : t('analytics.services.leadsTitle')}
+                    description={t('analytics.services.leadsDescription')}
+                    onExport={exporter(t('analytics.services.leadsTitle'), sourceColumns, r.leads.by_source)}
+                    flush
+                >
+                    <DataTable columns={sourceColumns} rows={r.leads.by_source} rowKey={(row) => row.channel} />
+                </Section>
+            ) : null}
+            {!web ? (
+                <EmptyState illustration="web" size="compact" title={t('analytics.services.empty')} description={t('analytics.services.emptyHelp')} />
+            ) : null}
+            <div className={web ? 'igr:grid igr:gap-4 igr:xl:grid-cols-2' : 'igr:hidden'}>
+                <Section
+                    kicker={t('analytics.services.formsTitle')}
+                    title={conclude(servicesTopForm(data.forms, fmt), t('analytics.services.formsTitle'))}
+                    onExport={exporter(t('analytics.services.formsTitle'), formColumns, data.forms)} flush>
                     <DataTable columns={formColumns} rows={data.forms} rowKey={(r, i) => `${r.form}-${r.page}-${i}`} limit={10} />
                 </Section>
                 <Section title={t('analytics.services.channelsTitle')} onExport={exporter(t('analytics.services.channelsTitle'), channelColumns, data.by_channel)} flush>
                     <DataTable columns={channelColumns} rows={data.by_channel} rowKey={(r) => r.channel} />
                 </Section>
             </div>
-            <Section title={t('analytics.services.pagesTitle')} description={t('analytics.services.pagesDescription')} onExport={exporter(t('analytics.services.pagesTitle'), pageColumns, data.pages)} flush>
-                <DataTable columns={pageColumns} rows={data.pages} rowKey={(r) => r.path} limit={15} />
-            </Section>
+            {web ? (
+                <Section
+                    kicker={t('analytics.services.pagesTitle')}
+                    title={conclude(servicesTopPage(data.pages, fmt), t('analytics.services.pagesTitle'))}
+                    description={t('analytics.services.pagesDescription')}
+                    onExport={exporter(t('analytics.services.pagesTitle'), pageColumns, data.pages)}
+                    flush
+                >
+                    <DataTable columns={pageColumns} rows={data.pages} rowKey={(row) => row.path} limit={15} />
+                </Section>
+            ) : null}
         </div>
     );
 }
@@ -276,6 +349,7 @@ export function HdyhauDashboard({ response, data, fmt }: DashboardProps<'hdyhau'
     const { t } = useTranslation();
     const labels = useLabels();
     const exporter = useExporter(response);
+    const conclude = useConclusion();
     if (data.responses === 0) {
         return <EmptyState icon={MessageCircle} title={t('analytics.hdyhau.empty')} description={t('analytics.hdyhau.emptyHelp')} />;
     }
@@ -305,7 +379,8 @@ export function HdyhauDashboard({ response, data, fmt }: DashboardProps<'hdyhau'
                 <StatTile label={t('analytics.hdyhau.rate')} unit="ratio" value={data.response_rate} fmt={fmt} help={t('analytics.hdyhau.rateHelp')} />
             </TileGrid>
             <Section
-                title={t('analytics.hdyhau.answersTitle')}
+                kicker={t('analytics.hdyhau.answersTitle')}
+                title={conclude(hdyhauTop(data.answers, labels.orNone, fmt), t('analytics.hdyhau.answersTitle'))}
                 onExport={exporter(t('analytics.hdyhau.answersTitle'), answerColumns, data.answers)}
                 chart={<BarList rows={data.answers} label={(r) => labels.orNone(r.answer)} value={(r) => r.responses} format={(v) => fmt.number(v)} detail={(r) => t('analytics.hdyhau.detail', { share: fmt.percent(r.share, 1), revenue: fmt.money(r.revenue) })} />}
                 table={<DataTable columns={answerColumns} rows={data.answers} rowKey={(r) => r.answer} />}

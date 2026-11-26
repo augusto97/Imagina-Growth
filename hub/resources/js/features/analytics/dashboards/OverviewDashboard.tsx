@@ -13,7 +13,8 @@ import { MoneyGeneratedCard } from '../components/MoneyGeneratedCard';
 import type { Column } from '../components/DataTable';
 import { Notice, Section } from '../components/Section';
 import { StatTile, TileGrid } from '../components/StatTile';
-import { compareModeOf, useExporter, useLabels } from './shared';
+import { trendConclusion } from '../conclusions';
+import { compareModeOf, useConclusion, useExporter, useLabels } from './shared';
 import type { DashboardProps } from './shared';
 
 export const OVERVIEW_TILES: { key: string; unit: MetricUnit; better?: 'up' | 'down' | 'neutral' }[] = [
@@ -41,6 +42,20 @@ export function OverviewDashboard({ response, data, fmt, base, catalog }: Dashbo
     const exporter = useExporter(response);
     const [metric, setMetric] = useState<(typeof TREND_METRICS)[number]>(TREND_METRICS[0] ?? { key: 'revenue', unit: 'money' });
     const mode = compareModeOf(response);
+    const conclude = useConclusion();
+    const formatMetric = (v: number) => (metric.unit === 'money' ? fmt.money(v) : fmt.number(v));
+    const trendTitle = conclude(
+        trendConclusion(
+            labels.metric(metric.key),
+            data.kpis[metric.key],
+            data.compare?.[metric.key],
+            data.series.map((r) => ({ date: r.date, value: r[metric.key] })),
+            response.period.granularity,
+            formatMetric,
+            fmt,
+        ),
+        t('analytics.overview.trendTitle'),
+    );
 
     const columns: Column<SeriesRow>[] = [
         { key: 'date', label: t('analytics.col.period'), render: (r) => fmt.bucket(r.date, response.period.granularity), value: (r) => r.date },
@@ -77,7 +92,8 @@ export function OverviewDashboard({ response, data, fmt, base, catalog }: Dashbo
             ) : null}
 
             <Section
-                title={t('analytics.overview.trendTitle')}
+                kicker={t('analytics.overview.trendTitle')}
+                title={trendTitle}
                 description={t('analytics.overview.trendDescription')}
                 help={catalog?.[metric.key]?.definition}
                 onExport={exporter(t('analytics.overview.trendTitle'), columns, data.series)}

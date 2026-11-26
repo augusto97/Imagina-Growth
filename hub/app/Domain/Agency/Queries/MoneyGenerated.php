@@ -36,9 +36,19 @@ final class MoneyGenerated
 {
     public const MODULES = ['affiliates', 'referrals', 'flows', 'campaigns', 'ai_agent', 'inbox', 'widgets', 'recovered_carts', 'messages', 'leads', 'bookings', 'quotes'];
 
+    /** Canales del dinero generado (`byChannel`), en el orden en que se muestran. */
+    public const CHANNELS = ['whatsapp', 'email', 'sms', 'social', 'chats', 'web', 'referrals', 'ads', 'other'];
+
     /** Origen del lead (leads.origin) → módulo que lo captó. */
     private const LEAD_ORIGINS = ['form' => 'leads', 'whatsapp' => 'leads', 'messenger' => 'leads', 'instagram' => 'leads', 'landing' => 'leads',
         'meta_lead_ads' => 'leads', 'google_lead_form' => 'leads', 'booking' => 'bookings', 'quote' => 'quotes'];
+
+    /** Origen del lead → canal por el que llegó (`byChannel`). */
+    private const LEAD_CHANNELS = ['form' => 'web', 'landing' => 'web', 'booking' => 'web', 'quote' => 'web', 'whatsapp' => 'whatsapp',
+        'messenger' => 'social', 'instagram' => 'social', 'meta_lead_ads' => 'ads', 'google_lead_form' => 'ads'];
+
+    /** Canal del mensaje (messages.channel) → canal del dinero generado. */
+    private const MESSAGE_CHANNELS = ['whatsapp' => 'whatsapp', 'email' => 'email', 'sms' => 'sms', 'messenger' => 'social', 'instagram' => 'social'];
 
     /**
      * @return array{currency: string, from: string, to: string, total: string, orders: int, store_total: string, store_orders: int,
@@ -115,10 +125,39 @@ final class MoneyGenerated
     }
 
     /**
-     * Cada venta del periodo (pedidos pagados y leads ganados) con el módulo que la explica (null si ninguno) y, en
-     * flujos, campañas y widgets, el ID interno de esa fuente.
+     * El mismo dinero generado por el canal por el que llegó cada venta (una sola vez por venta, así la suma es el total
+     * de `forWorkspace`): el canal del mensaje que la atribuyó (WhatsApp, correo, SMS, Messenger o Instagram → `social`),
+     * `chats` para el agente de ventas con IA, `web` para lo que captó la web (widgets, carritos restaurados, formularios,
+     * reservas y cotizador), `referrals` para referidos y afiliados, `ads` para los leads de anuncios y `other` si el
+     * mensaje ya no está. Lo usa el Resumen de Resultados.
      *
-     * @return \Generator<int, array{amount: string, module: string|null, source: string|null}>
+     * @return list<array{channel: string, revenue: string, orders: int}>
+     */
+    public function byChannel(Workspace $workspace, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $sums = [];
+        foreach ($this->sales($workspace, $from, $to) as $sale) {
+            if ($sale['module'] === null) {
+                continue;
+            }
+            $sums[$sale['channel']] = self::plus($sums[$sale['channel']] ?? null, $sale['amount']);
+        }
+        $list = [];
+        foreach (self::CHANNELS as $channel) {
+            if (isset($sums[$channel])) {
+                $list[] = ['channel' => $channel] + $sums[$channel];
+            }
+        }
+        usort($list, fn (array $a, array $b) => (float) $b['revenue'] <=> (float) $a['revenue']);
+
+        return $list;
+    }
+
+    /**
+     * Cada venta del periodo (pedidos pagados y leads ganados) con el módulo que la explica (null si ninguno), el canal
+     * por el que llegó (`byChannel`) y, en flujos, campañas y widgets, el ID interno de esa fuente.
+     *
+     * @return \Generator<int, array{amount: string, module: string|null, source: string|null, channel: string}>
      */
     private function sales(Workspace $workspace, CarbonImmutable $from, CarbonImmutable $to): \Generator
     {
@@ -135,7 +174,7 @@ final class MoneyGenerated
             ->whereNotIn('o.status', ['cancelled', 'failed', 'refunded'])
             ->where('o.paid_at', '>=', $from->utc())->where('o.paid_at', '<', $to->utc())
             ->get(['o.id', 'o.total_ws', 'o.attributed_affiliate_id', 'o.attributed_referral_id', 'o.attributed_flow_id', 'o.attributed_campaign_id',
-                'o.attributed_widget_id', 'o.attributed_message_id', 'm.source_type as msg_source']);
+                'o.attributed_widget_id', 'o.attributed_message_id', 'm.source_type as msg_source', 'm.channel as msg_channel']);
         foreach ($rows as $r) {
             $key = match (true) {
                 $r->attributed_affiliate_id !== null => 'affiliates',
@@ -155,14 +194,21 @@ final class MoneyGenerated
                 'widgets' => (string) $r->attributed_widget_id,
                 default => null,
             };
-            yield ['amount' => Decimal::of((string) ($r->total_ws ?? '0')), 'module' => $key, 'source' => $source];
+            $channel = match ($key) {
+                'affiliates', 'referrals' => 'referrals',
+                'ai_agent' => 'chats',
+                'widgets', 'recovered_carts' => 'web',
+                default => self::MESSAGE_CHANNELS[(string) ($r->msg_channel ?? '')] ?? 'other',
+            };
+            yield ['amount' => Decimal::of((string) ($r->total_ws ?? '0')), 'module' => $key, 'source' => $source, 'channel' => $channel];
         }
 
         $won = DB::table('leads')->where('workspace_id', $ws)->where('stage', 'won')->whereNotNull('won_at')
             ->where('won_at', '>=', $from->utc())->where('won_at', '<', $to->utc())
             ->get(['origin', 'value_ws']);
         foreach ($won as $lead) {
-            yield ['amount' => Decimal::of((string) ($lead->value_ws ?? '0')), 'module' => self::LEAD_ORIGINS[(string) $lead->origin] ?? null, 'source' => null];
+            yield ['amount' => Decimal::of((string) ($lead->value_ws ?? '0')), 'module' => self::LEAD_ORIGINS[(string) $lead->origin] ?? null, 'source' => null,
+                'channel' => self::LEAD_CHANNELS[(string) $lead->origin] ?? 'other'];
         }
     }
 

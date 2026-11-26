@@ -295,6 +295,45 @@ export interface MessagingData {
     cost: CostMeta;
 }
 
+/* Resumen de Resultados (la entrada de la sección; GET analytics/summary). */
+/** Canales del dinero generado (`MoneyGenerated::CHANNELS` en el hub). */
+export const GENERATED_CHANNELS = ['whatsapp', 'email', 'sms', 'social', 'chats', 'web', 'referrals', 'ads', 'other'] as const;
+export type GeneratedChannel = (typeof GENERATED_CHANNELS)[number];
+
+export interface SummaryStrategyRow {
+    /** Clave de la estrategia o, si no es una, del grupo (campaigns, affiliates, other_flows…). */
+    key: string;
+    strategy: string | null;
+    bucket: string;
+    /** Ya traducido por el servidor. */
+    name: string;
+    revenue: number;
+    orders: number;
+    /** Lo del periodo de comparación (null sin comparación). */
+    previous: number | null;
+    conversions: { kind: string; count: number } | null;
+    messages: number | null;
+}
+
+export interface SummaryData {
+    business_type: 'store' | 'services' | 'both';
+    sales: { totals: Record<string, number>; compare: Record<string, number> | null };
+    series: { date: string; revenue: number; orders: number }[];
+    generated: {
+        total: number;
+        orders: number;
+        /** Todas las ventas del periodo (pedidos pagados y leads ganados). */
+        store_total: number;
+        store_orders: number;
+        share_pct: number;
+        previous: { total: number; orders: number; share_pct: number } | null;
+        change_pct: number | null;
+    };
+    by_strategy: SummaryStrategyRow[];
+    by_channel: { channel: GeneratedChannel; revenue: number; orders: number; previous: number | null }[];
+    insights: OverviewInsight[];
+}
+
 export interface DashboardDataMap {
     overview: OverviewData;
     funnel: FunnelData;
@@ -318,6 +357,19 @@ export function useDashboard<S extends DashboardSlug>(ws: string, slug: S, query
         staleTime: 60_000,
         enabled,
     });
+}
+
+/** El Resumen de Resultados: mismo periodo y comparación que los tableros, sin filtros de sitio, canal ni ciudad. */
+export function summaryQuery(ws: string, query: string) {
+    return {
+        queryKey: ['ws', ws, 'analytics', 'summary', query] as const,
+        queryFn: ({ signal }: { signal: AbortSignal }) => api.get<Omit<DashboardResponse<SummaryData>, 'dashboard'> & { dashboard: 'summary' }>(`${wsPath(ws)}/analytics/summary${query ? `?${query}` : ''}`, signal),
+        staleTime: 60_000,
+    };
+}
+
+export function useSummary(ws: string, query: string, enabled = true) {
+    return useQuery({ ...summaryQuery(ws, query), placeholderData: keepPreviousData, enabled });
 }
 
 export function useMetricCatalog(ws: string) {

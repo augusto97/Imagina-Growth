@@ -4,15 +4,19 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tooltip } from '@/components/ui/tooltip';
+import { HelpTip } from '@/components/ui/help-tip';
 import { cn } from '@/lib/cn';
 
 /**
  * Bloque de un tablero: título, ayuda, exportación CSV y, si hay gráfico y
  * tabla, el cambio entre ambos (la tabla es la vista accesible del gráfico).
+ *
+ * `kicker` es el nombre del dato («Ventas por canal») y `title`, la conclusión («Google trae el 45 % de tus ventas»):
+ * cada gráfica dice qué significa, no solo qué muestra. En el celular las acciones bajan debajo del título.
  */
 export function Section({
     title,
+    kicker,
     description,
     help,
     onExport,
@@ -24,6 +28,8 @@ export function Section({
     actions,
 }: {
     title: ReactNode;
+    /** El nombre del dato, arriba del título cuando el título es la conclusión. */
+    kicker?: ReactNode;
     description?: ReactNode;
     help?: string;
     onExport?: () => void;
@@ -43,17 +49,14 @@ export function Section({
 
     return (
         <Card className={cn('igr:min-w-0', className)}>
-            <CardHeader className="igr:flex igr:flex-row igr:items-start igr:justify-between igr:gap-3 igr:space-y-0">
-                <div className="igr:min-w-0">
-                    <CardTitle className="igr:flex igr:items-center igr:gap-1.5">
-                        {title}
-                        {help ? (
-                            <Tooltip content={help}>
-                                <CircleHelp className="igr:size-3.5 igr:cursor-help igr:text-muted-foreground" aria-label={help} />
-                            </Tooltip>
-                        ) : null}
+            <CardHeader className="igr:flex igr:flex-row igr:flex-wrap igr:items-start igr:justify-between igr:gap-x-3 igr:gap-y-2 igr:space-y-0">
+                <div className="igr:min-w-0 igr:flex-1 igr:basis-64">
+                    {kicker ? <p className="igr:mb-0.5 igr:text-caption igr:font-medium igr:text-muted-foreground">{kicker}</p> : null}
+                    <CardTitle className="igr:flex igr:items-start igr:gap-1.5">
+                        <span className="igr:min-w-0">{title}</span>
+                        {help ? <HelpTip content={help} label={typeof help === 'string' ? help : undefined} className="igr:mt-1" /> : null}
                     </CardTitle>
-                    {description ? <CardDescription>{description}</CardDescription> : null}
+                    {description ? <CardDescription className="igr:mt-0.5">{description}</CardDescription> : null}
                 </div>
                 <div className="igr:flex igr:shrink-0 igr:items-center igr:gap-1">
                     {actions}

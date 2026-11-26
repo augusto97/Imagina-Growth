@@ -8,4 +8,7 @@ import { SECTIONS } from '@/components/layout/nav';
  */
 const page = async () => ({ Component: (await import('./SectionHomePage')).SectionHomePage });
 
-export const workspaceRoutes: RouteObject[] = SECTIONS.filter((s) => s.items.length > 0).map((s) => ({ path: s.to, lazy: page }));
+/** Secciones cuya entrada es una pantalla propia y no la página de tarjetas: Resultados (el Resumen, features/analytics). */
+const OWN_ENTRY = ['results'];
+
+export const workspaceRoutes: RouteObject[] = SECTIONS.filter((s) => s.items.length > 0 && !OWN_ENTRY.includes(s.key)).map((s) => ({ path: s.to, lazy: page }));

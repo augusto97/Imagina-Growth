@@ -82,6 +82,23 @@ it('cuenta cada pedido una sola vez, en el primer módulo que lo explica', funct
     expect((float) app(MoneyGenerated::class)->forWorkspace($this->w->a, $prevFrom, $prevTo)['total'])->toBe(100000.0);
 });
 
+it('reparte el mismo dinero generado por el canal por el que llegó cada venta', function () {
+    [$from, $to] = MoneyGenerated::month($this->w->a);
+    $money = app(MoneyGenerated::class);
+    $by = collect($money->byChannel($this->w->a, $from, $to))->keyBy('channel');
+
+    // Afiliados → referidos; flujo y campaña sin mensaje → sin canal; agente → chats; bandeja y otros mensajes por WhatsApp;
+    // widget y carrito restaurado → tu web.
+    expect((float) $by['referrals']['revenue'])->toBe(100000.0)
+        ->and((float) $by['other']['revenue'])->toBe(250000.0)
+        ->and((float) $by['chats']['revenue'])->toBe(70000.0)
+        ->and((float) $by['whatsapp']['revenue'])->toBe(50000.0)
+        ->and($by['whatsapp']['orders'])->toBe(2)
+        ->and((float) $by['web']['revenue'])->toBe(100000.0)
+        ->and(array_sum(array_map(fn ($x) => (float) $x['revenue'], $by->all())))->toBe((float) $money->forWorkspace($this->w->a, $from, $to)['total'])
+        ->and($by->keys()->first())->toBe('other');
+});
+
 it('en un negocio de servicios los leads ganados son las ventas y suman al módulo que los captó', function () {
     $ws = $this->w->b;
     [$from, $to] = MoneyGenerated::month($ws);

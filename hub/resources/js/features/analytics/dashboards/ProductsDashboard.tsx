@@ -5,7 +5,8 @@ import { DataTable } from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import { Section } from '../components/Section';
 import { STATUS } from '../theme';
-import { useExporter } from './shared';
+import { entryTop, pairsTop, productsTop, viewedNotSold } from '../conclusions';
+import { useConclusion, useExporter } from './shared';
 import type { DashboardProps } from './shared';
 
 /** Días de inventario por debajo de este umbral se marcan (detector #6 usa 14). */
@@ -17,6 +18,7 @@ type Pair = ProductsData['bought_together'][number];
 export function ProductsDashboard({ response, data, fmt }: DashboardProps<'products'>) {
     const { t } = useTranslation();
     const exporter = useExporter(response);
+    const conclude = useConclusion();
 
     const productColumns: Column<ProductRow>[] = [
         { key: 'name', label: t('analytics.col.product'), render: (r) => <span className="igr:line-clamp-1 igr:max-w-72">{r.name}</span>, value: (r) => r.name },
@@ -64,12 +66,16 @@ export function ProductsDashboard({ response, data, fmt }: DashboardProps<'produ
 
     return (
         <div className="igr:space-y-4">
-            <Section title={t('analytics.products.title')} description={t('analytics.products.description')} onExport={exporter(t('analytics.products.title'), productColumns, data.products)} flush>
+            <Section
+                kicker={t('analytics.products.title')}
+                title={conclude(productsTop(data.products, fmt), t('analytics.products.title'))}
+                description={t('analytics.products.description')} onExport={exporter(t('analytics.products.title'), productColumns, data.products)} flush>
                 <DataTable columns={productColumns} rows={data.products} rowKey={(r) => r.product_id} limit={20} initialSort={{ key: 'revenue', dir: 'desc' }} />
             </Section>
             <div className="igr:grid igr:gap-4 igr:xl:grid-cols-2">
                 <Section
-                    title={t('analytics.products.notSoldTitle')}
+                    kicker={t('analytics.products.notSoldTitle')}
+                    title={conclude(viewedNotSold(data.viewed_not_sold, fmt), t('analytics.products.notSoldTitle'))}
                     description={t('analytics.products.notSoldDescription')}
                     onExport={exporter(t('analytics.products.notSoldTitle'), notSoldColumns, data.viewed_not_sold)}
                     flush
@@ -77,7 +83,8 @@ export function ProductsDashboard({ response, data, fmt }: DashboardProps<'produ
                     <DataTable columns={notSoldColumns} rows={data.viewed_not_sold} rowKey={(r) => r.product_id} limit={10} />
                 </Section>
                 <Section
-                    title={t('analytics.products.entryTitle')}
+                    kicker={t('analytics.products.entryTitle')}
+                    title={conclude(entryTop(data.entry_products, fmt), t('analytics.products.entryTitle'))}
                     description={t('analytics.products.entryDescription')}
                     onExport={exporter(t('analytics.products.entryTitle'), entryColumns, data.entry_products)}
                     flush
@@ -86,7 +93,8 @@ export function ProductsDashboard({ response, data, fmt }: DashboardProps<'produ
                 </Section>
             </div>
             <Section
-                title={t('analytics.products.pairsTitle')}
+                kicker={t('analytics.products.pairsTitle')}
+                title={conclude(pairsTop(data.bought_together, fmt), t('analytics.products.pairsTitle'))}
                 description={t('analytics.products.pairsDescription')}
                 onExport={exporter(t('analytics.products.pairsTitle'), pairColumns, data.bought_together)}
                 flush

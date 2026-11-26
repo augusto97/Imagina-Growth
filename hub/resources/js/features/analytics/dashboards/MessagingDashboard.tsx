@@ -10,7 +10,8 @@ import { DataTable } from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import { Notice, Section } from '../components/Section';
 import { StatTile, TileGrid } from '../components/StatTile';
-import { compareModeOf, useExporter } from './shared';
+import { messagingRevenue } from '../conclusions';
+import { compareModeOf, useConclusion, useExporter } from './shared';
 import type { DashboardProps } from './shared';
 
 /* 9. Mensajería (docs/auditoria-2026-11.md F11): resultados reales de WhatsApp, correo y SMS. */
@@ -38,6 +39,7 @@ export function MessagingDashboard({ response, data, fmt, base }: DashboardProps
     const { t } = useTranslation();
     const exporter = useExporter(response);
     const mode = compareModeOf(response);
+    const conclude = useConclusion();
     const channelName = (c: string) => t(`analytics.messaging.channel.${c}`, { defaultValue: c });
     const costMeta = data.cost;
 
@@ -288,7 +290,11 @@ export function MessagingDashboard({ response, data, fmt, base }: DashboardProps
                 />
             </TileGrid>
             <CostNote meta={costMeta} locale={fmt.locale} />
-            <Section title={t('analytics.messaging.seriesTitle')} description={t('analytics.messaging.seriesDescription')}>
+            <Section
+                kicker={t('analytics.messaging.seriesTitle')}
+                title={conclude(messagingRevenue(data.totals, fmt), t('analytics.messaging.seriesTitle'))}
+                description={t('analytics.messaging.seriesDescription')}
+            >
                 <TrendChart data={data.series} metric="sent" label={t('analytics.messaging.sent')} unit="count" granularity={response.period.granularity} fmt={fmt} height={200} />
             </Section>
             <Section

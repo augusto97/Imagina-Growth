@@ -17,6 +17,7 @@ use App\Analytics\Dashboards\ProductsDashboard;
 use App\Analytics\Dashboards\ProfitabilityDashboard;
 use App\Analytics\Dashboards\SearchesDashboard;
 use App\Analytics\Dashboards\ServicesDashboard;
+use App\Analytics\Dashboards\SummaryDashboard;
 use App\Analytics\Semantic\Catalog;
 use App\Analytics\Semantic\Filters;
 use App\Analytics\Semantic\MetricQuery;
@@ -45,6 +46,8 @@ final class AnalyticsController
         'profitability' => ProfitabilityDashboard::class,
         'services' => ServicesDashboard::class,
         'hdyhau' => HdyhauDashboard::class,
+        // El Resumen de Resultados (la entrada de la sección): ventas, dinero generado por estrategia y por canal.
+        'summary' => SummaryDashboard::class,
     ];
 
     public function __construct(private readonly CurrentWorkspace $current) {}
@@ -61,7 +64,7 @@ final class AnalyticsController
 
         $started = microtime(true);
         $data = MetricQueryRunner::remember($workspace, $key, fn () => app($class)->handle($workspace, $period, $filters));
-        if ($dashboard === 'overview') {
+        if ($dashboard === 'overview' || $dashboard === 'summary') {
             $data['insights'] = OverviewDashboard::topInsights();
         }
 

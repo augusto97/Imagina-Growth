@@ -198,12 +198,13 @@ export const SECTIONS: NavSection[] = [
         tone: 'emerald',
         items: [
             { key: 'analytics', to: 'analitica', icon: BarChart3, tone: 'indigo', ability: 'viewDashboards', requires: ['site'], shortcut: 'a' },
-            { key: 'reports', to: 'reportes', icon: FileChartColumn, tone: 'emerald', ability: 'viewDashboards', requires: ['site'], shortcut: 'o' },
+            { key: 'reports', to: 'reportes', icon: FileChartColumn, tone: 'emerald', ability: 'viewDashboards', requires: ['site'], also: ['inteligencia/informes'], shortcut: 'o' },
             { key: 'insights', to: 'hallazgos', icon: Lightbulb, tone: 'amber', ability: 'viewDashboards', requires: ['site'], shortcut: 'i' },
-            { key: 'predictions', to: 'inteligencia/predicciones', icon: LineChart, tone: 'violet', ability: 'viewDashboards', requires: ['site'] },
+            // Predicciones de compra (próxima compra, abandono, valor futuro) y la encuesta de la página de gracias: solo tiendas.
+            { key: 'predictions', to: 'inteligencia/predicciones', icon: LineChart, tone: 'violet', ability: 'viewDashboards', audience: 'store', requires: ['site'] },
             { key: 'intelligence', to: 'inteligencia', icon: Sparkles, tone: 'indigo', ability: 'viewDashboards', requires: ['site'], shortcut: 'k' },
             { key: 'measurement', to: 'medicion', icon: RadioTower, tone: 'sky', ability: 'viewDashboards', requires: ['site'], shortcut: 'm' },
-            { key: 'survey', to: 'encuesta', icon: MessageCircleQuestion, tone: 'rose', ability: 'viewDashboards', requires: ['site'] },
+            { key: 'survey', to: 'encuesta', icon: MessageCircleQuestion, tone: 'rose', ability: 'viewDashboards', audience: 'store', requires: ['site'] },
         ],
     },
     {

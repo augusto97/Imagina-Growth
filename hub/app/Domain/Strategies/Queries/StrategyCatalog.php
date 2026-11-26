@@ -16,6 +16,7 @@ use App\Domain\Strategies\Support\StrategyDefinition;
 use App\Domain\Strategies\Support\StrategyPotential;
 use App\Domain\Strategies\Support\StrategyResults;
 use App\Domain\Workspaces\Models\Workspace;
+use Carbon\CarbonImmutable;
 
 /**
  * El estado de cada estrategia en un espacio de trabajo y cómo se presenta (docs/diseno/rediseno-v2.md §6):
@@ -239,6 +240,19 @@ final class StrategyCatalog
         $afterHours = $this->evaluate(StrategyRegistry::find('after_hours') ?? throw new \LogicException('after_hours'), $ctx)['state']->isOn();
 
         return $this->results->forMonth($ctx->workspace, null, $afterHours);
+    }
+
+    /**
+     * El resultado de cada estrategia en un periodo cualquiera (el Resumen de Resultados): `from` incluido y `to`
+     * excluido, en la zona del espacio de trabajo.
+     *
+     * @return array{month: array{from: string, to: string}, strategies: array<string, array<string, mixed>>, breakdown: list<array<string, mixed>>}
+     */
+    public function resultsFor(StrategyContext $ctx, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $afterHours = $this->evaluate(StrategyRegistry::find('after_hours') ?? throw new \LogicException('after_hours'), $ctx)['state']->isOn();
+
+        return $this->results->forPeriod($ctx->workspace, $from, $to, $afterHours);
     }
 
     /**
