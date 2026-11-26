@@ -193,3 +193,85 @@ principales al alcance del pulgar en el celular (barra inferior fija en formular
 4. Auditoría y arreglos de rendimiento.
 5. `docs/producto/presentacion.md`: qué es, para quién, cómo se presenta en 5 minutos, cómo empieza un cliente y
    preguntas frecuentes (para el equipo comercial).
+
+## 11. Negocios sin tienda (no todo es ecommerce)
+
+Hoy casi todo está pensado para WooCommerce. La plataforma tiene que servir igual de bien a una web de servicios,
+corporativa o de captación de clientes, con su propio lenguaje, sus estrategias, sus métricas y su demo.
+
+### 11.1 Tipos de negocio y verticales
+
+El asistente pregunta **qué tipo de negocio** es y, si no es tienda, **a qué se dedica**. Eso cambia los textos, las
+estrategias recomendadas, el embudo de leads por defecto, las métricas del Inicio y los ejemplos.
+
+| Tipo / vertical (clave) | Ejemplos | Embudo por defecto | Lo que más le importa |
+|---|---|---|---|
+| `store` Tienda online | moda, belleza, hogar, ferretería | — (pedidos) | carritos, recompra, reseñas |
+| `professional` Servicios profesionales | abogados, contadores, consultores, agencias | Nuevo → Contactado → Reunión → Propuesta → Ganado/Perdido | responder rápido, cotizar, seguimiento |
+| `health` Salud y bienestar | clínicas, odontología, estética, spa, gimnasios | Nuevo → Contactado → Cita agendada → Asistió → Paciente | citas, inasistencias, controles periódicos, reseñas |
+| `education` Educación | academias, cursos, colegios, idiomas | Interesado → Info enviada → Visita/clase de prueba → Inscrito | inscripciones, fechas límite, recordatorios |
+| `real_estate` Inmobiliaria | venta y arriendo | Nuevo → Contactado → Visita agendada → Oferta → Cerrado | interés por propiedad, visitas, seguimiento largo |
+| `hospitality` Turismo, hoteles y restaurantes | hoteles, tours, restaurantes | Consulta → Cotizado → Reservado | reservas, reseñas de Google, temporadas |
+| `automotive` Automotriz | talleres, concesionarios | Nuevo → Cotizado → Cita de taller/prueba → Cerrado | mantenimientos periódicos, cotizaciones |
+| `b2b` Empresas B2B / industrial | distribuidores, manufactura, software | Nuevo → Calificado → Reunión → Propuesta → Negociación → Ganado | ciclos largos, cotizaciones, nutrición por correo |
+| `other` Otro | — | Nuevo → Contactado → Ganado/Perdido | leads y seguimiento |
+
+Un espacio de trabajo puede ser «tienda + servicios» (p. ej. una ferretería que también instala).
+
+### 11.2 Qué cambia para un negocio sin tienda
+
+- **Promesa en el Inicio:** «Convierte más contactos en clientes» con: leads del mes y de dónde vienen, tiempo de
+  primera respuesta, citas agendadas y asistidas, tasa de cierre y **valor ganado** (de los leads ganados), más el
+  dinero generado por las estrategias (leads ganados atribuidos a un mensaje, una campaña o un formulario).
+- **Clientes:** el tablero de leads (embudo de su vertical) es la vista principal; «Hoy» del vendedor arriba.
+- **Resultados:** embudo, fuentes de leads (formularios, WhatsApp, anuncios de Facebook/Instagram, Google), tiempo de
+  respuesta, citas y asistencia, cotizaciones y valor ganado. Las métricas de pedidos se ocultan si no hay tienda.
+- **Textos:** «cliente», «paciente», «estudiante» o «prospecto» según la vertical donde haga falta; nunca «carrito» ni
+  «pedido» en un negocio sin tienda.
+- **Demo:** un espacio de trabajo de demostración de servicios (por ejemplo una clínica odontológica o una
+  inmobiliaria) con leads, citas, conversaciones, cotizaciones y formularios creíbles (`igr:seed-demo --tipo=…`).
+
+### 11.3 Captación para negocios sin tienda (funcionalidades nuevas)
+
+- **Formularios de cualquier plugin:** además de Contact Form 7 y WPForms, Elementor Forms, Gravity Forms, Fluent
+  Forms y Ninja Forms (plugin del connector), con el mismo evento `form.submitted`.
+- **Clics que valen:** llamar (`tel:`), escribir (`mailto:`), WhatsApp y agendar cuentan como señales de intención y,
+  con datos, como conversiones hacia los anuncios.
+- **Leads de anuncios:** formularios de Facebook e Instagram (Meta Lead Ads, con la conexión de Meta) y de Google Ads
+  (formularios de clientes potenciales por webhook) entran como leads, con su origen y la campaña.
+- **Página de captura y QR:** una página propia en el dominio de la plataforma (o el del cliente) con un formulario y
+  las casillas de consentimiento, para negocios sin buena web o para el local físico: un QR para imprimir que abre la
+  página o un chat de WhatsApp con un mensaje de alta.
+
+### 11.4 Biblioteca ampliada (flujos 21 en adelante, claves estables)
+
+| # | Clave | Para | Qué hace |
+|---|---|---|---|
+| 21 | `lead_nurture` | servicios | Nutrición por correo: 4–5 mensajes de valor en 3 semanas; sale al agendar, cotizar o comprar |
+| 22 | `quote_followup` | servicios, B2B | Cotización sin respuesta: WhatsApp al día 2, correo al 5, último aviso al 10; alerta al vendedor |
+| 23 | `appointment_confirmation` | salud, servicios | Pide confirmar la cita 48 h antes con botones; si no confirma, avisa al equipo |
+| 24 | `no_show_recovery` | salud, servicios | No asistió: mensaje amable con enlace para reagendar el mismo día |
+| 25 | `post_service` | servicios | Después del servicio: cómo te fue, reseña en Google y enlace de referido |
+| 26 | `periodic_service` | salud, automotriz, belleza | Control o mantenimiento cada N meses: recordatorio con enlace para agendar |
+| 27 | `event_registration` | educación, B2B | Inscripción a evento o webinar: confirmación, recordatorio 1 día y 1 h antes, grabación después |
+| 28 | `enrollment_followup` | educación | Interesado en un curso: información, testimonios y fecha límite de inscripción |
+| 29 | `property_interest` | inmobiliaria | Interés en una propiedad: similares, agendar visita y seguimiento |
+| 30 | `lost_lead_revival` | servicios | Lead perdido hace 90 días: volver a intentar con una novedad |
+| 31 | `new_client_welcome` | servicios | Bienvenida a un cliente nuevo: qué esperar, contacto y próximos pasos |
+| 32 | `services_reactivation` | servicios | Cliente sin servicio en N meses: mensaje personal con una razón para volver |
+| 33 | `cross_sell` | tienda | Compró X: complementos de la categoría a los 7 días |
+| 34 | `delivery_check` | tienda | 2 días después de entregado: ¿llegó bien? Si hay problema, alerta al dueño |
+| 35 | `first_purchase_anniversary` | tienda | Aniversario de la primera compra con un detalle |
+
+Cada flujo trae sus plantillas de WhatsApp (marketing o utilidad, según corresponda) y de correo, con variables
+para su vertical, y su estrategia en el catálogo (§6).
+
+### 11.5 Calendario comercial y plantillas de campaña
+
+- **Calendario comercial por país** (CO, MX, VE): fechas que mueven ventas o consultas (Día de la Madre, del Padre,
+  Amor y Amistad (CO), San Valentín, Buen Fin y Hot Sale (MX), Black Friday, Cyber Lunes, regreso a clases, primas de
+  junio y diciembre (CO), Navidad, Año Nuevo, Halloween, Día del Niño, temporadas de vacaciones), cada una con la
+  campaña sugerida (grupo de clientes, canal, plantilla lista, cuándo enviarla) y un aviso en «Para hoy» unas semanas
+  antes. También para servicios (p. ej. «chequeo antes de vacaciones», «inscripciones de enero»).
+- **Galería de plantillas** por objetivo y vertical (bienvenida, promoción, novedad, recordatorio, invitación a evento,
+  saludo de temporada, encuesta, reseña), en WhatsApp y correo, que se instalan con un clic.
