@@ -94,6 +94,10 @@ it('«Para hoy» prioriza estrategias con problemas y conversaciones esperando, 
         DB::table('conversations')->insert(['id' => strtoupper((string) Str::ulid()), 'workspace_id' => $this->ws->id, 'contact_id' => strtoupper((string) Str::ulid()),
             'channel_account_id' => $account, 'status' => 'open', 'awaiting_since' => now()->subMinutes(30 * $i), 'created_at' => now(), 'updated_at' => now()]);
     }
+    // Un hallazgo que pide prender el carrito abandonado, que ya está prendido, no sale para hoy.
+    DB::table('insights')->insert(['id' => strtoupper((string) Str::ulid()), 'workspace_id' => $this->ws->id, 'detector_key' => 'essential_flow_inactive', 'severity' => 'critical',
+        'title' => 'Sin el carrito abandonado', 'facts' => json_encode([]), 'estimated_impact_ws' => 999999, 'status' => 'new',
+        'recommended_action' => json_encode(['kind' => 'activate_flow', 'payload' => ['library_key' => 'abandoned_cart'], 'to' => 'flujos']), 'created_at' => now(), 'updated_at' => now()]);
     foreach (['critical', 'warning', 'opportunity', 'info'] as $i => $severity) {
         DB::table('insights')->insert(['id' => strtoupper((string) Str::ulid()), 'workspace_id' => $this->ws->id, 'detector_key' => 'd'.$i, 'severity' => $severity,
             'title' => 'Hallazgo '.$severity, 'facts' => json_encode([]), 'estimated_impact_ws' => 100000 * ($i + 1), 'status' => 'new', 'created_at' => now(), 'updated_at' => now()]);

@@ -196,10 +196,17 @@ final class HomeOverview
         }
         // Recomendaciones (hallazgos) abiertas, de la más grave y con más impacto.
         $insights = Insight::query()->whereIn('status', ['new', 'seen'])->get()
-            ->sortByDesc(fn (Insight $i) => [Insight::SEVERITY_ORDER[$i->severity] ?? 0, (float) $i->estimated_impact_ws])->take(3);
+            ->sortByDesc(fn (Insight $i) => [Insight::SEVERITY_ORDER[$i->severity] ?? 0, (float) $i->estimated_impact_ws]);
+        $shown = 0;
         foreach ($insights as $insight) {
             $action = (array) ($insight->recommended_action ?? []);
             $strategy = ($action['kind'] ?? null) === 'activate_flow' && is_string($action['payload']['library_key'] ?? null) ? StrategyRegistry::forFlow($action['payload']['library_key']) : null;
+            // Un hallazgo que pide prender una estrategia que ya está prendida no es para hoy (se resuelve solo en la noche).
+            $definition = $strategy !== null ? StrategyRegistry::find($strategy) : null;
+            if ($shown >= 3 || ($definition !== null && in_array($this->catalog->evaluate($definition, $ctx)['status'], ['active', 'attention'], true))) {
+                continue;
+            }
+            $shown++;
             $impact = $insight->estimated_impact_ws !== null ? (float) $insight->estimated_impact_ws : null;
             $items[] = [
                 'kind' => 'insight', 'key' => 'insight:'.$insight->publicId(), 'group' => 'insight',
