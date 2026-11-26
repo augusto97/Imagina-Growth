@@ -70,6 +70,19 @@ final class ResolveWorkspace
         }
         $accountRole = $user->accounts()->whereKey($workspace->account_id)->first()?->pivot?->getAttribute('role');
 
-        return [is_string($accountRole) ? WorkspaceRole::fromAccountRole(AccountRole::from($accountRole)) : null, false];
+        return [self::roleFrom(null, $accountRole), false];
+    }
+
+    /**
+     * El rol efectivo con los roles ya leídos: el de miembro directo gana; si no, el de la cuenta (agencia). Lo usa
+     * `/api/me` para resolver todos los espacios de trabajo con dos consultas en vez de dos por espacio.
+     */
+    public static function roleFrom(mixed $directRole, mixed $accountRole): ?WorkspaceRole
+    {
+        if (is_string($directRole)) {
+            return WorkspaceRole::from($directRole);
+        }
+
+        return is_string($accountRole) ? WorkspaceRole::fromAccountRole(AccountRole::from($accountRole)) : null;
     }
 }

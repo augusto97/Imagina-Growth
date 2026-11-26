@@ -151,14 +151,17 @@ final class ProfileQuery
             return ['data' => [], 'next_before' => null];
         }
 
-        $rows = Ch::forWorkspace($workspace)->select(
-            "SELECT toString(event_id) AS event_id, event, formatDateTime(occurred_at, '%Y-%m-%dT%H:%i:%S.%fZ', 'UTC') AS occurred_iso,
-                    source_type, page_type, path, channel, device_type, city, product_id, order_id,
-                    toString(revenue) AS revenue, currency, toJSONString(properties) AS properties
+        // En dos pasos (docs/rendimiento.md §2): primero qué eventos van, leyendo solo columnas livianas; después el
+        // detalle de esos eventos por la clave primaria (evento y rango de fechas). En una sola consulta ClickHouse leía
+        // `properties` (JSON) de cada bloque con algún evento del contacto: ~480 MB y ~235 ms para un cliente con
+        // dos años de historia, contra ~115 MB y ~120 ms así.
+        $ch = Ch::forWorkspace($workspace);
+        $picked = $ch->select(
+            "SELECT toString(event_id) AS event_id, event, formatDateTime(occurred_at, '%Y-%m-%dT%H:%i:%S.%fZ', 'UTC') AS occurred_iso
              FROM events
              WHERE workspace_id = {workspace_id:UInt32}
                AND (has({ids:Array(String)}, contact_id) OR has({anon:Array(String)}, anonymous_id))
-               AND has({events:Array(String)}, event)
+               AND event IN {events:Array(String)}
                AND occurred_at < parseDateTime64BestEffort({before:String}, 3)
              ORDER BY occurred_at DESC
              LIMIT {limit:UInt32}",
@@ -167,6 +170,26 @@ final class ProfileQuery
                 'anon' => ExportContactData::chArray($anonymous),
                 'events' => ExportContactData::chArray($events),
                 'before' => $before ?? now()->addMinute()->utc()->toIso8601String(),
+                'limit' => $limit + 1,
+            ],
+        );
+        $rows = $picked === [] ? [] : $ch->select(
+            "SELECT toString(event_id) AS event_id, event, formatDateTime(occurred_at, '%Y-%m-%dT%H:%i:%S.%fZ', 'UTC') AS occurred_iso,
+                    source_type, page_type, path, channel, device_type, city, product_id, order_id,
+                    toString(revenue) AS revenue, currency, toJSONString(properties) AS properties
+             FROM events
+             WHERE workspace_id = {workspace_id:UInt32}
+               AND event IN {events:Array(String)}
+               AND occurred_at >= parseDateTime64BestEffort({from:String}, 3)
+               AND occurred_at <= parseDateTime64BestEffort({to:String}, 3)
+               AND has({event_ids:Array(String)}, toString(event_id))
+             ORDER BY occurred_at DESC
+             LIMIT {limit:UInt32}",
+            [
+                'events' => ExportContactData::chArray(array_values(array_unique(array_map(fn (array $r) => (string) $r['event'], $picked)))),
+                'from' => (string) end($picked)['occurred_iso'],
+                'to' => (string) $picked[0]['occurred_iso'],
+                'event_ids' => ExportContactData::chArray(array_map(fn (array $r) => (string) $r['event_id'], $picked)),
                 'limit' => $limit + 1,
             ],
         );

@@ -11,7 +11,7 @@ Todo escucha en `127.0.0.1` salvo Caddy. El firewall (ufw) solo abre SSH, `80/tc
 
 | Servicio (systemd) | Qué corre | Puerto |
 |---|---|---|
-| `growth-app` | FrankenPHP (`frankenphp run` con `config/frankenphp/Caddyfile`, admin apagado): panel, API, SPA, webhooks, páginas públicas | 8080 |
+| `growth-app` | FrankenPHP (`frankenphp run` con `config/frankenphp/Caddyfile`, admin apagado): panel, API, SPA, webhooks, páginas públicas. Los archivos del build (`/build/assets/*`, con hash en el nombre) salen con `Cache-Control: public, max-age=31536000, immutable` solo si existen (docs/rendimiento.md §4) | 8080 |
 | `growth-ingest-api@1`, `@2` | FrankenPHP: ingesta `/v1/*` y `/p/*` (dos réplicas detrás de Caddy, que las balancea con chequeo en `/up` para no sacarlas si ClickHouse va lento) | 8081, 8082 (`8080 + instancia`) |
 | `growth-ingest@1` … `@4` | `artisan igr:ingest:work --shard=<instancia − 1>` | — |
 | `growth-horizon` | `artisan horizon` | — |
