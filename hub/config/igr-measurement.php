@@ -20,6 +20,11 @@ return [
         'order.paid' => ['meta' => 'Purchase', 'google' => 'purchase', 'tiktok' => 'CompletePayment', 'default' => true],
         'form.submitted' => ['meta' => 'Lead', 'google' => 'generate_lead', 'tiktok' => 'SubmitForm', 'default' => true],
         'customer.registered' => ['meta' => 'CompleteRegistration', 'google' => 'sign_up', 'tiktok' => 'CompleteRegistration', 'default' => true],
+        // Clics que valen (rediseño v2 §11.3): tocar WhatsApp, llamar o escribir un correo en el sitio. Apagado por
+        // defecto: cada espacio de trabajo lo enciende en su destino. Solo esos tipos de clic (`kinds`), no descargas ni
+        // `data-igr-cta`. Meta y TikTok tienen el evento estándar `Contact`; en GA4 es un evento propio y en Google Ads
+        // va a la acción de conversión `conversion_action_contact` del destino (Data Manager). [verificar] nombres.
+        'cta.clicked' => ['meta' => 'Contact', 'google' => 'contact', 'tiktok' => 'Contact', 'default' => false, 'kinds' => ['whatsapp', 'phone', 'email']],
         // Conversión offline de un lead ganado (M18): la envía SendLeadConversion, no el
         // ConversionRouter (es un evento del hub). Meta con action_source system_generated y
         // Google Ads por Data Manager (acción «lead ganado», eventSource OTHER). [verificar] nombres.

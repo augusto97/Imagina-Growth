@@ -26,7 +26,8 @@ use RuntimeException;
 final class DataManagerTarget implements ConversionTarget
 {
     /** Evento de Imagina Growth → clave de la acción de conversión en el config del destino. */
-    private const ACTIONS = ['order.paid' => 'conversion_action_purchase', 'form.submitted' => 'conversion_action_lead', 'lead.won' => 'conversion_action_lead_won'];
+    private const ACTIONS = ['order.paid' => 'conversion_action_purchase', 'form.submitted' => 'conversion_action_lead', 'lead.won' => 'conversion_action_lead_won',
+        'cta.clicked' => 'conversion_action_contact'];
 
     public function __construct(private readonly GoogleAccessToken $tokens) {}
 

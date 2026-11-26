@@ -30,7 +30,7 @@ Para orientar bien las estrategias, cada espacio de trabajo debe responder estas
 - **Productos:** más vistos frente a más vendidos, abandono por producto, productos de entrada, combinaciones, inventario contra velocidad de venta.
 - **Búsquedas:** términos más buscados, búsquedas sin resultados (con Imagina Search) y conversión por búsqueda.
 - **Canales:** tráfico, conversión, LTV por canal de adquisición, CAC y ROAS (con el gasto importado), asistentes de IA como fuente.
-- **Sitios de servicios:** leads por fuente, conversión por formulario, clics a WhatsApp o llamada, tiempo de respuesta y cierre por fuente.
+- **Sitios de servicios:** leads por fuente, conversión por formulario, clics a WhatsApp, llamada o correo, tiempo de respuesta y cierre por fuente.
 - **Salud técnica:** cambios en el sitio (plugins, tema, versiones) correlacionados con caídas de conversión, y Web Vitals si Imagina Turbo está activo.
 - **Mensajería:** rendimiento por flujo y campaña, costo por mensaje e ingreso por mensaje.
 

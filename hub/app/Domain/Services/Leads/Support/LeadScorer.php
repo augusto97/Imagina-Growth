@@ -19,7 +19,7 @@ use Throwable;
  * de 0 a 100:
  *
  * - Cada señal de comportamiento suma una sola vez por lead (página de precios,
- *   visita recurrente, formulario, clic en WhatsApp o llamada, correo corporativo,
+ *   visita recurrente, formulario, clic en WhatsApp, llamada o correo, correo corporativo,
  *   ciudad del área de servicio), con los puntos vigentes cuando ocurrió.
  * - La IA (opcional) deja una razón `ai` de −20 a +20 con su motivo; una nueva
  *   reemplaza a la anterior.
@@ -32,6 +32,9 @@ use Throwable;
 final class LeadScorer
 {
     public const MAX = 100;
+
+    /** Clics que cuentan como intención de contacto (señal `whatsapp_click`): WhatsApp, llamada y correo. */
+    public const CONTACT_CLICKS = ['whatsapp', 'phone', 'email'];
 
     /**
      * Suma una señal si el lead no la tenía. Devuelve true si cambió algo.
@@ -180,7 +183,7 @@ final class LeadScorer
             $row = Ch::forWorkspace($workspace)->select(
                 "SELECT countIf(event = 'page.viewed' AND arrayExists(p -> startsWith(lower(path), p), {paths:Array(String)})) AS pricing_views,
                         uniqExactIf(toDate(occurred_at), event = 'page.viewed' AND occurred_at >= {since7:DateTime64(3)}) AS visit_days_7d,
-                        countIf(event = 'cta.clicked' AND toString(properties.kind) IN ('whatsapp', 'phone')) AS contact_clicks
+                        countIf(event = 'cta.clicked' AND toString(properties.kind) IN ('whatsapp', 'phone', 'email')) AS contact_clicks
                  FROM events
                  WHERE workspace_id = {workspace_id:UInt32} AND event IN ('page.viewed', 'cta.clicked') AND occurred_at >= {since30:DateTime64(3)}
                    AND (contact_id = {contact:String} OR has({aids:Array(String)}, anonymous_id) OR anonymous_id IN (
