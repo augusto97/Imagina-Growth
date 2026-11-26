@@ -143,6 +143,9 @@ export function summarize(t: TFunction, node: GraphNode, options: FlowOptions | 
         case 'trigger':
             return trigger ? triggerText(t, trigger, options) : '';
         case 'wait':
+            if (c.mode === 'until_date') {
+                return untilDateText(t, c);
+            }
             if (c.mode === 'until_time') {
                 const days = Array.isArray(c.weekdays) && c.weekdays.length > 0 && c.weekdays.length < 7 ? (c.weekdays as number[]).map((d) => t(`flows.weekdaysShort.${d}`)).join(', ') : t('flows.summary.everyDay');
                 return t('flows.summary.untilTime', { hour: String(num(c.hour, 9)).padStart(2, '0'), minute: String(num(c.minute, 0)).padStart(2, '0'), days });
@@ -151,6 +154,9 @@ export function summarize(t: TFunction, node: GraphNode, options: FlowOptions | 
         case 'wait_event':
             return t('flows.summary.waitEvent', { event: eventLabel(t, s(c.event)), duration: durationText(t, c.timeout) });
         case 'condition':
+            if (c.mode === 'date') {
+                return t('flows.summary.dateCondition', { duration: durationText(t, c.offset), anchor: anchorText(t, c) });
+            }
             if (c.mode === 'context') {
                 return t('flows.summary.contextCondition', { path: s(c.path), value: s(c.value) });
             }
@@ -164,7 +170,8 @@ export function summarize(t: TFunction, node: GraphNode, options: FlowOptions | 
         case 'send_sms': {
             const template = options?.templates.find((tpl) => tpl.id === c.template_id || (tpl.library_key !== null && tpl.library_key === c.template_key));
             const name = template?.name ?? (typeof c.template_key === 'string' ? c.template_key : null);
-            return name ? `${name}${s(c.kind) !== '' && c.kind !== 'marketing' ? ` · ${t(`flows.kinds.${s(c.kind)}`)}` : ''}` : t('flows.summary.noTemplate');
+            // El tipo (marketing, utilidad) lo dice el detalle del paso (describe.ts), no se repite aquí.
+            return name ?? t('flows.summary.noTemplate');
         }
         case 'coupon':
             return c.kind === 'free_shipping'
@@ -211,6 +218,25 @@ export function summarize(t: TFunction, node: GraphNode, options: FlowOptions | 
         default:
             return metaOf(node.type).phase ? t('flows.summary.comingPhase', { phase: metaOf(node.type).phase }) : '';
     }
+}
+
+/** «la cita» o «la fecha del evento»: la fecha de referencia de una espera o una condición por fecha. */
+export function anchorText(t: TFunction, c: Record<string, unknown>): string {
+    if (c.anchor === 'prop') {
+        const path = s(c.path);
+        return path === '' ? t('flows.anchors.propEmpty') : t(`flows.anchors.paths.${path.replace(/\./g, '_')}`, { defaultValue: t('flows.anchors.prop', { path }) });
+    }
+    return t('flows.anchors.appointment');
+}
+
+/** «Espera hasta 48 horas antes de la cita». */
+export function untilDateText(t: TFunction, c: Record<string, unknown>): string {
+    const anchor = anchorText(t, c);
+    const value = num((c.offset as { value?: unknown } | null)?.value, 0);
+    if (value <= 0) {
+        return t('flows.summary.untilDateExact', { anchor });
+    }
+    return t(c.direction === 'after' ? 'flows.summary.untilDateAfter' : 'flows.summary.untilDateBefore', { duration: durationText(t, c.offset), anchor });
 }
 
 export function eventLabel(t: TFunction, event: string): string {
