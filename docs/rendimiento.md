@@ -217,8 +217,9 @@ Inicio en frío ≈ 264 kB más sus textos (≈ 15 kB), la gráfica llega despu�
 4×: Inicio 0,205 → 0, Perfil 0,148 → 0, Recomendaciones (hallazgos) 0,265 → 0, Tableros 0,074 → 0, Contactos 0. El 6
 no se pudo reproducir aquí: Canales ya pide `/channels` una sola vez y en esta base ningún espacio tiene un canal de
 conversación, así que la Bandeja muestra su bloqueo y no pide conversaciones; queda por medir con un canal conectado.
-Las gráficas de Predicciones, Avisos de stock, Encuestas y Fidelización importan Recharts directo (su pantalla espera la
-librería): pendiente pasarlas al mismo patrón que `charts.tsx`.
+Las gráficas de Avisos de stock y Fidelización importan Recharts directo (su pantalla espera la librería): pendiente
+pasarlas al mismo patrón que `charts.tsx`. Predicciones y Encuestas ya usan `CategoryBars` y `LineTrend` perezosos
+(frente de Resultados).
 
 1. **Textos por módulo con su pantalla** (−100 kB gzip del arranque, ~−0,5 s en 4G lento). Hoy `lib/i18n.ts` mete
    los 39 archivos de `locales/es-CO/` en el arranque. El arranque necesita solo `es-CO.json` (menú, comunes: ~10 kB

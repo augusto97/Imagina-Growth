@@ -93,6 +93,34 @@ para activar esto»). Los módulos fuera del plan muestran el plan que los inclu
   pedidos ni catálogo, y una tienda no ve leads, agenda ni cotizador. Sin ninguna señal se muestra todo. La sección
   Clientes se llama «Pacientes» en salud y «Estudiantes» en educación; las demás palabras quedan iguales.
 
+**Cómo quedó Resultados** (frente B6; `docs/modulos.md` M05, M06, M17 y M22):
+
+- **Resumen** (`resultados`, la entrada de la sección; ya no es la página de tarjetas): el dinero que generó la plataforma
+  en una tarjeta héroe con la frase que lo explica (sin IA: frases fijas con las cifras del servidor), las ventas del
+  periodo, el desglose por estrategia y por canal (WhatsApp, correo, SMS, Messenger e Instagram, chats del agente, tu web,
+  referidos, anuncios) con la comparación, la tendencia, las 3 recomendaciones con más dinero en juego y los tableros que
+  aplican. Lee `GET analytics/summary` (mismo periodo y comparación que los tableros). Sin tienda: el embudo de
+  contactos, primera respuesta, citas y asistencia, cotizaciones y lo ganado con lo que trajo cada parte de la
+  plataforma (`GET services/results`), con la palabra de la vertical («pacientes»).
+- **Tableros:** agrupados (ventas, clientes, tráfico, contactos, mensajes; un selector en el celular), solo los que
+  aplican al negocio (una clínica ve «Contactos y formularios» y «Mensajería»), mismo filtro de periodo en todos (los
+  demás filtros en un panel inferior en el celular), cada gráfica con su conclusión como título y el nombre del dato
+  arriba, estados vacíos que dicen qué falta (sin las visitas del navegador, el embudo y las búsquedas lo explican con
+  el botón para arreglarlo) y, en el celular, las cifras en una lista compacta (`StatList`).
+- **Informes** (`reportes`; `inteligencia/informes` abre la misma pantalla en «Semanal»): el mensual con su vista previa
+  (los hechos del mes anterior aunque todavía no se haya generado), el PDF, reenviar y a quién llega; el semanal del
+  analista con sus 3 acciones. La pantalla vieja de la agencia (`ClientReportsPage`) se retiró.
+- **Recomendaciones:** tarjetas con el dinero en juego, «Por qué» (la cuenta), el botón con lo que hace (la etiqueta de
+  la acción, también «Crear la campaña de …» del calendario comercial con un clic) y **posponer** 1, 3, 7 o 30 días
+  (vuelve sola) junto a descartar.
+- **Predicciones y Analista con IA:** cada predicción dice en palabras qué significa, para qué usarla y qué tan
+  confiable es; solo tiendas (sin compras no hay qué predecir). «Pregúntale a tus datos» queda arriba del Analista con
+  ejemplos según el negocio. Las gráficas de Predicciones y de las encuestas NPS/CSAT pasan a los componentes perezosos.
+- **Anuncios y conversiones:** el estado de cada plataforma en palabras, qué se envía con el nombre que recibe cada
+  plataforma y el interruptor de los «clics que valen» por plataforma; conectar cuentas es de Conexiones (se enlaza).
+- **¿Cómo nos conociste?:** las respuestas arriba con su conclusión y el enlace al tablero que las cruza; la
+  configuración abajo, sin claves internas. Predicciones y la encuesta se ocultan en un negocio sin tienda.
+
 ## 4. Primera vez (onboarding)
 
 1. **Bienvenida** (una sola pantalla, no un carrusel largo): la promesa, los tres pilares con un ejemplo concreto cada
