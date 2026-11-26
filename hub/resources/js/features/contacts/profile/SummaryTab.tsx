@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DescriptionList } from '@/components/ui/misc';
@@ -8,7 +8,10 @@ import { answerLabel, useHdyhauSurvey } from '@/features/survey/api';
 import { useContactAbilities } from '../abilities';
 import type { ContactProfile, Touch } from '../api';
 import { touchDetail } from '../labels';
-import { MonthlyChart } from './MonthlyChart';
+import { Skeleton } from '@/components/ui/skeleton';
+
+/** La gráfica mensual (Recharts) llega en su propio chunk; mientras, un esqueleto de su alto (docs/rendimiento.md §7.1, 3). */
+const MonthlyChart = lazy(async () => ({ default: (await import('./MonthlyChart')).MonthlyChart }));
 
 export function SummaryTab({ profile }: { profile: ContactProfile }) {
     const { t } = useTranslation();
@@ -37,7 +40,9 @@ export function SummaryTab({ profile }: { profile: ContactProfile }) {
                 <Stat label={t('contacts.profile.stats.coupons')}>{couponRatio !== null && Number.isFinite(couponRatio) ? formatPercent(couponRatio, locale) : '—'}</Stat>
             </dl>
 
-            <MonthlyChart monthly={profile.monthly} currency={profile.currency} locale={locale} />
+            <Suspense fallback={<Skeleton className="igr:h-[290px] igr:rounded-xl" />}>
+                <MonthlyChart monthly={profile.monthly} currency={profile.currency} locale={locale} />
+            </Suspense>
 
             <Card>
                 <CardHeader>
@@ -54,7 +59,9 @@ export function SummaryTab({ profile }: { profile: ContactProfile }) {
                             },
                             { label: t('contacts.profile.origin.firstSeen'), value: formatDate(profile.first_seen_at, locale, workspace.timezone) },
                             { label: t('contacts.profile.origin.lastSeen'), value: profile.last_seen_at ? formatRelative(profile.last_seen_at, locale) : '—' },
-                            ...(profile.merged_count > 0 ? [{ label: t('contacts.profile.origin.merged'), value: t('contacts.profile.origin.mergedCount', { count: profile.merged_count }) }] : []),
+                            ...(profile.merged_count > 0
+                                ? [{ label: t('contacts.profile.origin.merged'), value: t('contacts.profile.origin.mergedCount', { count: profile.merged_count }) }]
+                                : []),
                         ]}
                     />
                 </CardContent>

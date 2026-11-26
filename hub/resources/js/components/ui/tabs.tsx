@@ -26,10 +26,7 @@ export function TabsList({ className, ...props }: ComponentProps<typeof TabsPrim
     return (
         <TabsPrimitive.List
             ref={ref}
-            className={cn(
-                'igr:flex igr:w-full igr:items-center igr:gap-1 igr:overflow-x-auto igr:shadow-[inset_0_-1px_0_var(--border)] igr:[scrollbar-width:none] igr:[&::-webkit-scrollbar]:hidden',
-                className,
-            )}
+            className={cn('igr:flex igr:w-full igr:items-center igr:gap-1 igr:overflow-x-auto igr:shadow-[inset_0_-1px_0_var(--border)] igr:scrollbar-none', className)}
             {...props}
         />
     );
@@ -39,7 +36,7 @@ export function TabsTrigger({ className, ...props }: ComponentProps<typeof TabsP
     return (
         <TabsPrimitive.Trigger
             className={cn(
-                'igr:shrink-0 igr:whitespace-nowrap igr:border-b-2 igr:border-transparent igr:px-2.5 igr:py-2 igr:text-[13px] igr:font-medium igr:text-muted-foreground igr:transition-colors igr:hover:text-foreground igr:data-[state=active]:border-primary igr:data-[state=active]:text-foreground',
+                'igr:shrink-0 igr:whitespace-nowrap igr:border-b-2 igr:border-transparent igr:px-3 igr:py-2.5 igr:text-[13px] igr:font-medium igr:text-muted-foreground igr:transition-colors igr:hover:text-foreground igr:data-[state=active]:border-primary igr:data-[state=active]:text-foreground',
                 className,
             )}
             {...props}
@@ -48,5 +45,5 @@ export function TabsTrigger({ className, ...props }: ComponentProps<typeof TabsP
 }
 
 export function TabsContent({ className, ...props }: ComponentProps<typeof TabsPrimitive.Content>) {
-    return <TabsPrimitive.Content className={cn('igr:pt-4 igr:focus-visible:outline-none', className)} {...props} />;
+    return <TabsPrimitive.Content className={cn('igr:pt-5 igr:focus-visible:outline-none', className)} {...props} />;
 }

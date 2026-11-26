@@ -1,7 +1,7 @@
 {
     "campaigns": {
         "title": "Campañas",
-        "description": "Envíos puntuales a un segmento, con revisión de costo y cumplimiento antes de aprobar y el dinero que generaron.",
+        "description": "Envíos puntuales a un grupo de clientes, con el costo revisado antes de aprobar y lo que vendieron.",
         "new": "Nueva campaña",
         "newHelp": "Ponle un nombre y elige el canal. Después armas la audiencia, el contenido y la hora, y la revisas antes de aprobarla.",
         "createAndContinue": "Crear y continuar",

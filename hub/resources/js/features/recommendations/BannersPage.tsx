@@ -13,8 +13,18 @@ import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { toast } from '@/stores/toast';
-import { type Banner, type BannerAudience, type BannerInput, type BannersResponse, type BannerStyle, renderBannerText, useBanners, useDeleteBanner, useSaveBanner, usesPrivateVariables } from './api';
-import { CommerceNav } from './CommerceNav';
+import {
+    type Banner,
+    type BannerAudience,
+    type BannerInput,
+    type BannersResponse,
+    type BannerStyle,
+    renderBannerText,
+    useBanners,
+    useDeleteBanner,
+    useSaveBanner,
+    usesPrivateVariables,
+} from './api';
 
 const AUDIENCES: BannerAudience[] = ['points', 'pending_cart', 'at_risk', 'segment'];
 const STYLES: BannerStyle[] = ['brand', 'info', 'success', 'warning'];
@@ -37,7 +47,6 @@ export function BannersPage() {
 
     return (
         <>
-            <CommerceNav />
             <PageHeader
                 title={t('onsiteCommerce.banners.title')}
                 description={t('onsiteCommerce.banners.description')}
@@ -72,7 +81,9 @@ export function BannersPage() {
                                         <Badge variant={b.live ? 'success' : 'outline'}>{b.live ? t('onsiteCommerce.banners.live') : t('onsiteCommerce.banners.paused')}</Badge>
                                         <Badge variant="secondary">{t(`onsiteCommerce.banners.placement.${b.placement}`)}</Badge>
                                         <span className="igr:text-xs igr:text-muted-foreground">
-                                            {b.audience === 'segment' && b.segment ? t('onsiteCommerce.banners.audienceSegment', { name: b.segment.name ?? '' }) : t(`onsiteCommerce.banners.audience.${b.audience}`)}
+                                            {b.audience === 'segment' && b.segment
+                                                ? t('onsiteCommerce.banners.audienceSegment', { name: b.segment.name ?? '' })
+                                                : t(`onsiteCommerce.banners.audience.${b.audience}`)}
                                         </span>
                                     </div>
                                     <BannerPreview banner={b} />
@@ -128,7 +139,12 @@ function BannerPreview({ banner }: { banner: Pick<Banner, 'text' | 'text_public'
                     {row.text.trim() === '' ? (
                         <span className="igr:text-xs igr:text-muted-foreground igr:italic">{t('onsiteCommerce.banners.hidden')}</span>
                     ) : (
-                        <div className={cn('igr:flex igr:min-w-0 igr:flex-1 igr:items-center igr:justify-between igr:gap-3 igr:rounded-md igr:px-3 igr:py-1.5 igr:text-xs', STYLE_CLASS[banner.style])}>
+                        <div
+                            className={cn(
+                                'igr:flex igr:min-w-0 igr:flex-1 igr:items-center igr:justify-between igr:gap-3 igr:rounded-md igr:px-3 igr:py-1.5 igr:text-xs',
+                                STYLE_CLASS[banner.style],
+                            )}
+                        >
                             <span className="igr:truncate">{renderBannerText(row.text, row.vars)}</span>
                             {banner.cta ? <span className="igr:shrink-0 igr:font-semibold igr:underline">{banner.cta}</span> : null}
                         </div>
@@ -221,7 +237,12 @@ function BannerDialog({ banner, options, onClose }: { banner: Banner | null; opt
                     {form.audience === 'segment' ? (
                         <div className="igr:space-y-1.5">
                             <Label htmlFor="bn-segment">{t('onsiteCommerce.banners.field.segment')}</Label>
-                            <Select id="bn-segment" value={form.segment_id ?? ''} onChange={(e) => set('segment_id', e.target.value || null)} aria-invalid={errors.segment_id ? true : undefined}>
+                            <Select
+                                id="bn-segment"
+                                value={form.segment_id ?? ''}
+                                onChange={(e) => set('segment_id', e.target.value || null)}
+                                aria-invalid={errors.segment_id ? true : undefined}
+                            >
                                 <option value="">{t('onsiteCommerce.banners.field.chooseSegment')}</option>
                                 {options.segments.map((s) => (
                                     <option key={s.id} value={s.id}>
@@ -234,7 +255,13 @@ function BannerDialog({ banner, options, onClose }: { banner: Banner | null; opt
                     ) : form.audience === 'points' ? (
                         <div className="igr:space-y-1.5">
                             <Label htmlFor="bn-points">{t('onsiteCommerce.banners.field.minPoints')}</Label>
-                            <Input id="bn-points" type="number" min={1} value={form.min_points ?? ''} onChange={(e) => set('min_points', e.target.value === '' ? null : Number(e.target.value))} />
+                            <Input
+                                id="bn-points"
+                                type="number"
+                                min={1}
+                                value={form.min_points ?? ''}
+                                onChange={(e) => set('min_points', e.target.value === '' ? null : Number(e.target.value))}
+                            />
                         </div>
                     ) : (
                         <p className="igr:self-end igr:pb-1 igr:text-xs igr:text-muted-foreground">{t(`onsiteCommerce.banners.audienceHelp.${form.audience}`)}</p>
@@ -247,7 +274,13 @@ function BannerDialog({ banner, options, onClose }: { banner: Banner | null; opt
                     </div>
                     <div className="igr:space-y-1.5 igr:md:col-span-2">
                         <Label htmlFor="bn-public">{t('onsiteCommerce.banners.field.textPublic')}</Label>
-                        <Textarea id="bn-public" rows={2} value={form.text_public ?? ''} onChange={(e) => set('text_public', e.target.value)} aria-invalid={publicLeak || errors.text_public ? true : undefined} />
+                        <Textarea
+                            id="bn-public"
+                            rows={2}
+                            value={form.text_public ?? ''}
+                            onChange={(e) => set('text_public', e.target.value)}
+                            aria-invalid={publicLeak || errors.text_public ? true : undefined}
+                        />
                         <p className="igr:text-[11px] igr:text-muted-foreground">{t('onsiteCommerce.banners.field.textPublicHelp')}</p>
                         <FieldError message={publicLeak ? t('onsiteCommerce.banners.field.publicLeak', VARIABLE_NAMES) : errors.text_public} />
                     </div>
@@ -257,7 +290,14 @@ function BannerDialog({ banner, options, onClose }: { banner: Banner | null; opt
                     </div>
                     <div className="igr:space-y-1.5">
                         <Label htmlFor="bn-url">{t('onsiteCommerce.banners.field.url')}</Label>
-                        <Input id="bn-url" type="url" placeholder="https://" value={form.url ?? ''} onChange={(e) => set('url', e.target.value)} aria-invalid={errors.url ? true : undefined} />
+                        <Input
+                            id="bn-url"
+                            type="url"
+                            placeholder="https://"
+                            value={form.url ?? ''}
+                            onChange={(e) => set('url', e.target.value)}
+                            aria-invalid={errors.url ? true : undefined}
+                        />
                         <FieldError message={errors.url} />
                     </div>
                     <div className="igr:space-y-1.5">

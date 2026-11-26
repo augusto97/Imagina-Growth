@@ -1,6 +1,6 @@
 {
     "loyalty": {
-        "title": "Fidelización",
+        "title": "Puntos y recompensas",
         "description": "Puntos por cada compra, niveles VIP, recompensas y saldo a favor para que tus clientes vuelvan.",
         "programOf": "Programa «{{name}}»: puntos, niveles VIP, recompensas y saldo a favor.",
         "status": {

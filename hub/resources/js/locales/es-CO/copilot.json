@@ -106,8 +106,8 @@
             "other": "Disparador: {{type}}"
         },
         "page": {
-            "title": "Copiloto",
-            "description": "Propuestas de campañas y flujos hechas con IA y el tono de tu marca. Todo queda en borrador hasta que lo apruebes.",
+            "title": "Copiloto con IA",
+            "description": "Propuestas de campañas y automatizaciones hechas con IA en el tono de tu marca. Todo queda en borrador hasta que lo apruebes.",
             "history": "Historial",
             "filter": "Filtrar por tipo",
             "empty": "Todavía no hay propuestas",

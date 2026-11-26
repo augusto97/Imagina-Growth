@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 final class Presenters
 {
     /**
-     * @param  array{modules: list<string>, capabilities: array{store: bool|null, services: bool|null}}|null  $features  ya calculados en lote (WorkspaceFeatures::forMany)
+     * @param  array{modules: list<string>, capabilities: array{store: bool|null, services: bool|null}, connections: array{site: string, channels: list<string>}, upgrade_plans: array<string, string>, business_type: string|null}|null  $features  ya calculados en lote (WorkspaceFeatures::forMany)
      * @param  array{status: string, grace_ends_at: string|null, trial_ends_at: string|null}|null  $billing  ya leído en lote (billingFor)
      * @return array<string, mixed>
      */
@@ -55,6 +55,11 @@ final class Presenters
             // U2: el menú oculta los módulos fuera del plan y lo que no aplica al tipo de negocio.
             'modules' => $features['modules'],
             'capabilities' => $features['capabilities'],
+            // Rediseño v2 §3: «bloqueos que enseñan» (web y canales conectados, plan que incluye cada módulo que falta).
+            'connections' => $features['connections'],
+            'upgrade_plans' => (object) $features['upgrade_plans'],
+            // Rediseño v2 §11.1: store, services o both (null sin señales) para ocultar lo que no aplica al negocio.
+            'business_type' => $features['business_type'],
         ];
     }
 

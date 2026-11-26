@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { wsPath } from '@/api/queries';
 import { api } from '@/lib/api';
 import type { FlowAnalytics, FlowDetail, FlowOptions, FlowRunRow, FlowSummary, Graph, LibraryFlow, TestResult } from './types';
@@ -14,8 +14,12 @@ export const flowKeys = {
 
 const base = (ws: string) => `${wsPath(ws)}/flows`;
 
+export function flowsQuery(ws: string) {
+    return queryOptions({ queryKey: flowKeys.all(ws), queryFn: ({ signal }) => api.get<{ data: FlowSummary[]; archived_count: number }>(base(ws), signal) });
+}
+
 export function useFlows(ws: string) {
-    return useQuery({ queryKey: flowKeys.all(ws), queryFn: ({ signal }) => api.get<{ data: FlowSummary[]; archived_count: number }>(base(ws), signal) });
+    return useQuery(flowsQuery(ws));
 }
 
 export function useFlow(ws: string, id: string | undefined) {
@@ -52,7 +56,11 @@ export function useFlowAnalytics(ws: string, id: string, days: number, enabled: 
 export function useFlowRuns(ws: string, id: string, status: string, page: number, enabled: boolean) {
     return useQuery({
         queryKey: flowKeys.runs(ws, id, status, page),
-        queryFn: ({ signal }) => api.get<{ data: FlowRunRow[]; meta: { total: number; page: number; last_page: number } }>(`${base(ws)}/${encodeURIComponent(id)}/runs?status=${status}&page=${page}`, signal),
+        queryFn: ({ signal }) =>
+            api.get<{ data: FlowRunRow[]; meta: { total: number; page: number; last_page: number } }>(
+                `${base(ws)}/${encodeURIComponent(id)}/runs?status=${status}&page=${page}`,
+                signal,
+            ),
         enabled,
         placeholderData: keepPreviousData,
     });
@@ -103,7 +111,9 @@ export function useRestoreVersion(ws: string, id: string) {
 }
 
 export function useCreateFromLibrary(ws: string) {
-    return useFlowMutation(ws, (vars: { key: string; activate: boolean }) => api.post<FlowDetail>(`${base(ws)}/library/${encodeURIComponent(vars.key)}`, { activate: vars.activate }));
+    return useFlowMutation(ws, (vars: { key: string; activate: boolean }) =>
+        api.post<FlowDetail>(`${base(ws)}/library/${encodeURIComponent(vars.key)}`, { activate: vars.activate }),
+    );
 }
 
 export function useDeleteFlow(ws: string) {

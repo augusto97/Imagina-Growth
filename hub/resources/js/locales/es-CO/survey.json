@@ -1,7 +1,7 @@
 {
     "survey": {
-        "title": "Encuesta «¿Cómo nos conociste?»",
-        "description": "Una pregunta en la página de gracias. Las respuestas muestran los canales que la atribución digital no ve, como el boca a boca o la radio.",
+        "title": "¿Cómo nos conociste?",
+        "description": "Una pregunta en la página de gracias que muestra lo que los anuncios no ven, como el boca a boca o la radio.",
         "saved": "Encuesta guardada",
         "discard": "Descartar cambios",
         "readOnly": "Solo marketing o un administrador puede editar la encuesta.",

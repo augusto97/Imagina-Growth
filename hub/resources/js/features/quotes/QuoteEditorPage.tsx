@@ -1,7 +1,7 @@
-import { ArrowLeft, Copy, Pause, Play, Plus, Trash2 } from 'lucide-react';
+import { Copy, Pause, Play, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,7 +77,8 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
             'fields',
             def.fields.map((f, j) => (j === i ? { ...f, ...patch } : f)),
         );
-    const setOption = (i: number, o: number, patch: Partial<QuoteOption>) => setField(i, { options: (def.fields[i]?.options ?? []).map((x, j) => (j === o ? { ...x, ...patch } : x)) });
+    const setOption = (i: number, o: number, patch: Partial<QuoteOption>) =>
+        setField(i, { options: (def.fields[i]?.options ?? []).map((x, j) => (j === o ? { ...x, ...patch } : x)) });
 
     // Vista previa: el hub calcula con la definición sin guardar (mismo motor que en el sitio).
     const { mutate: runPreview } = preview;
@@ -115,9 +116,6 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
             <PageHeader
                 title={
                     <span className="igr:flex igr:items-center igr:gap-2">
-                        <Link to={back} aria-label={t('common.back')} className="igr:text-muted-foreground igr:hover:text-foreground">
-                            <ArrowLeft className="igr:size-4" />
-                        </Link>
                         {calc.name}
                         <Badge variant={statusVariant(calc.status)}>{t(`quotes.status.${calc.status}`)}</Badge>
                     </span>
@@ -266,7 +264,13 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                     <div className="igr:grid igr:items-end igr:gap-2 igr:sm:grid-cols-[1fr_10rem_auto_auto]">
                                         <div>
                                             <Label htmlFor={`f-${i}`}>{t('quotes.editor.question')}</Label>
-                                            <Input id={`f-${i}`} className="igr:mt-1" value={f.label} disabled={disabled} onChange={(e) => setField(i, { label: e.target.value })} />
+                                            <Input
+                                                id={`f-${i}`}
+                                                className="igr:mt-1"
+                                                value={f.label}
+                                                disabled={disabled}
+                                                onChange={(e) => setField(i, { label: e.target.value })}
+                                            />
                                         </div>
                                         <div>
                                             <Label htmlFor={`ft-${i}`}>{t('quotes.editor.type')}</Label>
@@ -340,7 +344,12 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                             </div>
                                             {(f.options ?? []).map((o, j) => (
                                                 <div key={j} className="igr:grid igr:items-center igr:gap-2 igr:sm:grid-cols-[1fr_8rem_7rem_auto]">
-                                                    <Input aria-label={t('quotes.editor.option')} value={o.label} disabled={disabled} onChange={(e) => setOption(i, j, { label: e.target.value })} />
+                                                    <Input
+                                                        aria-label={t('quotes.editor.option')}
+                                                        value={o.label}
+                                                        disabled={disabled}
+                                                        onChange={(e) => setOption(i, j, { label: e.target.value })}
+                                                    />
                                                     <Input
                                                         aria-label={t('quotes.editor.adds', { currency: cur })}
                                                         type="number"
@@ -506,7 +515,9 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                                 type="checkbox"
                                                 checked={capture.consent_channels.includes(c)}
                                                 disabled={disabled}
-                                                onChange={(e) => setC('consent_channels', e.target.checked ? [...capture.consent_channels, c] : capture.consent_channels.filter((x) => x !== c))}
+                                                onChange={(e) =>
+                                                    setC('consent_channels', e.target.checked ? [...capture.consent_channels, c] : capture.consent_channels.filter((x) => x !== c))
+                                                }
                                             />
                                             {t(`quotes.channel.${c}`)}
                                         </label>
@@ -603,7 +614,9 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                                                         <input
                                                             type="checkbox"
                                                             checked={picked.includes(o.value)}
-                                                            onChange={(e) => setAnswers({ ...answers, [f.key]: e.target.checked ? [...picked, o.value] : picked.filter((v) => v !== o.value) })}
+                                                            onChange={(e) =>
+                                                                setAnswers({ ...answers, [f.key]: e.target.checked ? [...picked, o.value] : picked.filter((v) => v !== o.value) })
+                                                            }
                                                         />
                                                         {o.label}
                                                     </label>

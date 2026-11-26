@@ -1,7 +1,7 @@
 {
     "reviews": {
         "title": "Reseñas",
-        "description": "Pide reseñas después de cada entrega, modéralas y publícalas en tu tienda. Mide la satisfacción con NPS y CSAT.",
+        "description": "Pide reseñas con foto después de cada entrega, modéralas y muéstralas en tu tienda.",
         "stars_one": "{{count}} estrella",
         "stars_other": "{{count}} estrellas",
         "tabs": {

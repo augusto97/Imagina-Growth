@@ -1,7 +1,7 @@
 {
     "flows": {
-        "title": "Flujos",
-        "description": "Automatizaciones que venden mientras duermes, sin molestar ni romper la ley: respetan el consentimiento, el horario legal y la frecuencia.",
+        "title": "Automatizaciones",
+        "description": "Mensajes que salen solos en el momento justo y respetan el consentimiento, el horario legal y la frecuencia.",
         "new": "Nuevo flujo",
         "newTitle": "Nuevo flujo",
         "newHelp": "Empieza vacío o elige uno listo de la biblioteca.",

@@ -23,7 +23,11 @@ export function CreateWorkspacePage() {
     const [formError, setFormError] = useState<string | null>(null);
 
     const schema = z.object({
-        name: z.string().trim().min(2, t('validation.min', { count: 2 })).max(120),
+        name: z
+            .string()
+            .trim()
+            .min(2, t('validation.min', { count: 2 }))
+            .max(120),
         country: z.string(),
         timezone: z.string(),
         currency: z.string(),
@@ -50,7 +54,7 @@ export function CreateWorkspacePage() {
     const firstTime = (me?.workspaces.length ?? 0) === 0;
 
     return (
-        <div className="igr:min-h-full igr:bg-muted/40 igr:px-4 igr:py-10">
+        <div className="igr:min-h-full igr:hero-surface igr:px-4 igr:py-10">
             <div className="igr:mx-auto igr:max-w-xl">
                 <div className="igr:mb-6 igr:flex igr:items-center igr:justify-between">
                     <Logo />
@@ -63,7 +67,9 @@ export function CreateWorkspacePage() {
                 <form onSubmit={(e) => void onSubmit(e)} noValidate>
                     <Card>
                         <CardHeader>
-                            <CardTitle className="igr:text-base">{firstTime ? t('onboarding.welcome', { name: me?.user.name.split(' ')[0] ?? '' }) : t('onboarding.newTitle')}</CardTitle>
+                            <CardTitle className="igr:text-base">
+                                {firstTime ? t('onboarding.welcome', { name: me?.user.name.split(' ')[0] ?? '' }) : t('onboarding.newTitle')}
+                            </CardTitle>
                             <CardDescription>{t('onboarding.description')}</CardDescription>
                         </CardHeader>
                         <CardContent>

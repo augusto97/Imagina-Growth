@@ -1,6 +1,6 @@
 {
     "analytics": {
-        "title": "Analítica",
+        "title": "Tableros",
         "dashboardsLabel": "Tableros de analítica",
         "forbidden": "Tu rol no puede ver los tableros",
         "notFound": "Ese tablero no existe",

@@ -54,8 +54,8 @@
             }
         },
         "reco": {
-            "title": "Recomendaciones",
-            "description": "Bloques de productos que se cargan después de la página: no tocan la caché ni frenan el sitio.",
+            "title": "Productos recomendados",
+            "description": "Productos sugeridos para cada visitante en tu tienda. Se cargan después de la página: tu sitio no se pone lento.",
             "site": "Sitio",
             "noSite": {
                 "title": "Conecta tu tienda para recomendar productos",
@@ -151,7 +151,7 @@
         },
         "watches": {
             "title": "Avisos de stock y precio",
-            "description": "Quien pide «avísame» en la ficha recibe un mensaje cuando el producto vuelve o baja de precio, respetando su consentimiento, el horario legal y la frecuencia.",
+            "description": "Avisa a quien lo pidió cuando un producto vuelve o baja de precio, respetando su consentimiento y el horario legal.",
             "range": "Periodo",
             "lastDays_one": "Último día",
             "lastDays_other": "Últimos {{count}} días",
@@ -216,7 +216,7 @@
         },
         "banners": {
             "title": "Banners personalizados",
-            "description": "Un mensaje arriba de la página o en Mi cuenta según quién visita: VIP con puntos, carrito pendiente, en riesgo o un segmento.",
+            "description": "Un mensaje distinto arriba de tu tienda o en Mi cuenta según quién la visita.",
             "new": "Nuevo banner",
             "edit": "Editar banner",
             "delete": "Eliminar banner",

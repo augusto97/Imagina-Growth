@@ -212,6 +212,14 @@ Perfil y Hallazgos no viene de la fuente sino del contenido que llega después (
 
 ### 7.1 SPA (tocan rutas, pantallas o el menú: para el rediseño)
 
+**Estado (rediseño v2, frente base):** 1, 2, 3, 4, 5, 7 y 8 hechos. Arranque 381 → 248 kB gzip (textos 120 → 15 kB);
+Inicio en frío ≈ 264 kB más sus textos (≈ 15 kB), la gráfica llega después; CLS medido en celular con 4G lento y CPU
+4×: Inicio 0,205 → 0, Perfil 0,148 → 0, Recomendaciones (hallazgos) 0,265 → 0, Tableros 0,074 → 0, Contactos 0. El 6
+no se pudo reproducir aquí: Canales ya pide `/channels` una sola vez y en esta base ningún espacio tiene un canal de
+conversación, así que la Bandeja muestra su bloqueo y no pide conversaciones; queda por medir con un canal conectado.
+Las gráficas de Predicciones, Avisos de stock, Encuestas y Fidelización importan Recharts directo (su pantalla espera la
+librería): pendiente pasarlas al mismo patrón que `charts.tsx`.
+
 1. **Textos por módulo con su pantalla** (−100 kB gzip del arranque, ~−0,5 s en 4G lento). Hoy `lib/i18n.ts` mete
    los 39 archivos de `locales/es-CO/` en el arranque. El arranque necesita solo `es-CO.json` (menú, comunes: ~10 kB
    gzip). Cada `lazy` de `features/*/routes.tsx` puede esperar sus textos junto con la pantalla

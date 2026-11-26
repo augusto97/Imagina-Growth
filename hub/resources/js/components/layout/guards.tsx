@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { Suspense, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BillingBanner } from '@/features/billing/BillingBanner';
 import { Link, Navigate, Outlet, useLocation, useMatches, useNavigate, useParams } from 'react-router';
 import { Compass } from 'lucide-react';
 import { useMe } from '@/api/queries';
-import type { Me } from '@/api/types';
+import type { Me, Workspace } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { EmptyState, ErrorState } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,29 +13,36 @@ import { DESKTOP_QUERY, useMedia } from '@/hooks/useMedia';
 import { useShortcuts } from '@/hooks/useShortcuts';
 import { setLocale } from '@/lib/i18n';
 import { useUi } from '@/stores/ui';
-import { CommandPalette } from './CommandPalette';
+import { LazyCommandPalette } from './commandPaletteLoader';
+import { LockedPage } from './LockedPage';
 import { LAYOUT_CLASS, pageLayout } from './pageLayout';
-import { flattenNav, itemPath, navContext, visibleNav } from './nav';
+import { PageContext, type PageContextValue } from './pageContext';
+import { flattenNav, itemLock, itemPath, locate, navContext, visibleSections, type NavLock } from './nav';
 import { MobileNav } from './MobileNav';
+import { SectionNav } from './SectionNav';
 import { Sidebar } from './Sidebar';
 
 export function FullPageSkeleton() {
     return (
         <div className="igr:flex igr:h-full" aria-busy>
-            <div className="igr:hidden igr:w-60 igr:border-r igr:p-4 igr:lg:block">
+            <div className="igr:hidden igr:w-60 igr:border-r igr:bg-sidebar igr:p-4 igr:lg:block">
                 <Skeleton className="igr:h-6 igr:w-32" />
-                <Skeleton className="igr:mt-6 igr:h-8 igr:w-full" />
+                <Skeleton className="igr:mt-6 igr:h-11 igr:w-full igr:rounded-lg" />
+                <Skeleton className="igr:mt-3 igr:h-9 igr:w-full igr:rounded-lg" />
                 {Array.from({ length: 8 }, (_, i) => (
-                    <Skeleton key={i} className="igr:mt-3 igr:h-5 igr:w-40" />
+                    <Skeleton key={i} className="igr:mt-3 igr:h-6 igr:w-40" />
                 ))}
             </div>
-            <div className="igr:flex-1 igr:p-8">
-                <Skeleton className="igr:h-6 igr:w-48" />
-                <div className="igr:mt-6 igr:grid igr:grid-cols-4 igr:gap-4">
+            <div className="igr:mx-auto igr:w-full igr:max-w-7xl igr:flex-1 igr:p-5 igr:md:p-8">
+                <Skeleton className="igr:h-4 igr:w-24" />
+                <Skeleton className="igr:mt-3 igr:h-8 igr:w-64" />
+                <Skeleton className="igr:mt-2 igr:h-4 igr:w-96 igr:max-w-full" />
+                <div className="igr:mt-8 igr:grid igr:gap-4 igr:sm:grid-cols-2 igr:lg:grid-cols-4">
                     {Array.from({ length: 4 }, (_, i) => (
-                        <Skeleton key={i} className="igr:h-24" />
+                        <Skeleton key={i} className="igr:h-28 igr:rounded-xl" />
                     ))}
                 </div>
+                <Skeleton className="igr:mt-4 igr:h-64 igr:rounded-xl" />
             </div>
         </div>
     );
@@ -91,6 +98,8 @@ export function WorkspaceLayout() {
     const setCommandOpen = useUi((s) => s.setCommandOpen);
     const setSidebarCollapsed = useUi((s) => s.setSidebarCollapsed);
     const desktop = useMedia(DESKTOP_QUERY);
+    const sidebarCollapsed = useUi((s) => s.sidebarCollapsed);
+    const commandOpen = useUi((s) => s.commandOpen);
     const workspace = me?.workspaces.find((w) => w.id === workspaceId) ?? null;
     const layout = pageLayout(useMatches().map((m) => m.handle));
 
@@ -107,18 +116,28 @@ export function WorkspaceLayout() {
             if (!workspace) {
                 return;
             }
-            const item = flattenNav(visibleNav(navContext(workspace))).find((i) => i.shortcut === key);
+            const item = flattenNav(visibleSections(navContext(workspace), me?.user.is_platform_admin ?? false)).find((i) => i.shortcut === key);
             if (item) {
                 void navigate(itemPath(`/w/${workspace.id}`, item));
             }
         },
-        [navigate, workspace],
+        [navigate, workspace, me],
     );
     // ⌘B / Ctrl+B: solo hay barra lateral que contraer en el escritorio.
     const onToggleSidebar = useCallback(() => setSidebarCollapsed(!useUi.getState().sidebarCollapsed), [setSidebarCollapsed]);
     useShortcuts({ onPalette, onGo, onToggleSidebar: desktop ? onToggleSidebar : undefined });
 
     const ctx = useMemo(() => (me && workspace ? { me, workspace } : null), [me, workspace]);
+    const nav = useMemo(() => (me && workspace ? navContext(workspace) : null), [me, workspace]);
+    const sections = useMemo(() => (nav ? visibleSections(nav, me?.user.is_platform_admin ?? false) : []), [nav, me]);
+    const base = `/w/${workspaceId}`;
+    // Dónde está la persona: la sección (para la miga y la subnavegación) y si a la entrada le falta algo para servir.
+    const located = useMemo(() => locate(sections, location.pathname, base), [sections, location.pathname, base]);
+    const vertical = workspace?.vertical ?? null;
+    const page = useMemo<PageContextValue | null>(() => (located ? { ...located, base, vertical } : null), [located, base, vertical]);
+    const lock = page?.item && nav ? itemLock(page.item, nav) : null;
+    // Una pantalla bloqueada se ve como una página normal aunque la ruta sea un lienzo o llene el alto.
+    const frame = lock ? 'default' : layout;
 
     if (!me) {
         return <FullPageSkeleton />;
@@ -158,15 +177,56 @@ export function WorkspaceLayout() {
                 <div className="igr:flex igr:min-w-0 igr:flex-1 igr:flex-col">
                     <MobileNav />
                     <main id="igr-main" className="igr:relative igr:min-h-0 igr:flex-1 igr:overflow-y-auto">
-                        <div className={LAYOUT_CLASS[layout]}>
+                        <div className={LAYOUT_CLASS[frame]}>
                             <BillingBanner />
-                            <Outlet />
+                            <PageContext.Provider value={page}>
+                                <SectionFrame page={page} layout={frame} nav={nav} lock={lock} abilities={workspace.abilities} sidebarCollapsed={sidebarCollapsed} />
+                            </PageContext.Provider>
                         </div>
                     </main>
                 </div>
             </div>
-            <CommandPalette />
+            {commandOpen ? (
+                <Suspense fallback={null}>
+                    <LazyCommandPalette />
+                </Suspense>
+            ) : null}
         </WorkspaceContext.Provider>
+    );
+}
+
+/**
+ * El contenido de la página con la subnavegación de su sección (rediseño v2 §3 y §8). En el escritorio la subnavegación
+ * va dentro de la barra lateral, debajo de la sección; arriba del contenido, como control segmentado, solo por debajo de
+ * `lg` o con la barra contraída. Si a la entrada le falta algo (plan, web, canal), `LockedPage` en lugar de la pantalla.
+ * Los lienzos (`fullBleed`) y las pantallas que llenan el alto (`fill`, la bandeja) van sin el control segmentado: la
+ * miga del encabezado lleva de vuelta a la sección.
+ */
+function SectionFrame({
+    page,
+    layout,
+    nav,
+    lock,
+    abilities,
+    sidebarCollapsed,
+}: {
+    page: PageContextValue | null;
+    layout: ReturnType<typeof pageLayout>;
+    nav: ReturnType<typeof navContext> | null;
+    lock: NavLock | null;
+    abilities: Workspace['abilities'];
+    sidebarCollapsed: boolean;
+}) {
+    const content =
+        page?.item && lock ? <LockedPage section={page.section} item={page.item} lock={lock} base={page.base} abilities={abilities} vertical={page.vertical} /> : <Outlet />;
+    if (layout !== 'default' || !page || !nav || page.section.items.length === 0) {
+        return content;
+    }
+    return (
+        <>
+            <SectionNav section={page.section} location={page} base={page.base} ctx={nav} className={sidebarCollapsed ? undefined : 'igr:lg:hidden'} />
+            {content}
+        </>
     );
 }
 

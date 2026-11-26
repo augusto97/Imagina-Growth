@@ -68,6 +68,31 @@ Segmentos → **Grupos de clientes**; Hallazgos → **Recomendaciones**; Intelig
 fuera del plan) no se oculta ni falla: muestra qué hace, qué hace falta y el botón para resolverlo («Conecta tu web
 para activar esto»). Los módulos fuera del plan muestran el plan que los incluye.
 
+**Cómo quedó en el sistema base** (frente 1, `hub/CLAUDE.md` §14; cambios al plan con su motivo):
+
+- **La subnavegación va dentro de la barra lateral**, debajo de la sección actual (como Polaris y Stripe), y no en una
+  segunda columna junto al contenido: en 1366 y 1440 px esa columna le quitaba unos 230 px al contenido y las tablas
+  (personas, pedidos) no cabían. Por debajo de 1024 px o con la barra contraída pasa a un control segmentado
+  desplazable arriba del contenido, que empieza por «Resumen» (la página de entrada).
+- **Nombres dentro de cada sección:** como la sección ya se llama Clientes, la lista de personas se llama «Personas»
+  (y su página también); «Analítica» es «Tableros» dentro de Resultados; Inteligencia se reparte en «Predicciones»
+  (`inteligencia/predicciones`) y «Analista con IA» (`inteligencia`, pregúntale e informes semanales); los widgets de
+  `en-el-sitio` son «Popups y formularios»; Fidelización, «Puntos y recompensas»; Ajustes, «Tu negocio»; Auditoría,
+  «Registro de actividad»; Consentimiento, «Privacidad y consentimiento»; Encuesta, «¿Cómo nos conociste?». Las llaves
+  de i18n y las rutas siguen iguales; ⌘K encuentra también por los nombres de antes.
+- **Ubicación de lo que el plan no nombraba:** el copiloto va en Mensajes; productos recomendados, avisos de stock y
+  precio y banners, en En tu web; las plantillas de WhatsApp (`canales/plantillas-whatsapp`), en Mensajes ›
+  Plantillas. Conexiones muestra sus pantallas hermanas (WhatsApp y anuncios, tu web, canales) hasta que el frente de
+  Configuración las una en una sola.
+- **Qué bloquea qué:** fuera del plan, todo lo que tiene módulo; sin web conectada, lo que vive en la web o sale de sus
+  datos (En tu web y Resultados); sin canal de conversación (WhatsApp, Messenger o Instagram), la bandeja y el agente.
+  Una web que se conectó y hoy está desconectada no bloquea (sus datos siguen; el aviso de salud dice qué hacer).
+  Personas, grupos, mensajes y configuración nunca se bloquean.
+- **Tipo de negocio y vertical (§11.1):** el menú oculta lo que no aplica según `business_type` (lo elegido en el
+  asistente; si no, lo que implica la vertical; si no, lo que dicen los sitios): un negocio sin tienda no ve carritos,
+  pedidos ni catálogo, y una tienda no ve leads, agenda ni cotizador. Sin ninguna señal se muestra todo. La sección
+  Clientes se llama «Pacientes» en salud y «Estudiantes» en educación; las demás palabras quedan iguales.
+
 ## 4. Primera vez (onboarding)
 
 1. **Bienvenida** (una sola pantalla, no un carrusel largo): la promesa, los tres pilares con un ejemplo concreto cada
@@ -172,8 +197,9 @@ con el motivo:
 ## 8. Diseño adaptable
 
 Se mantiene la regla de `hub/CLAUDE.md` §14 (barra superior con menú debajo de 1024 px, barra lateral contraíble,
-nada desborda). La subnavegación de cada sección pasa a un control segmentado desplazable en el celular. Acciones
-principales al alcance del pulgar en el celular (barra inferior fija en formularios largos).
+nada desborda). La subnavegación de cada sección pasa a un control segmentado desplazable en el celular (también en
+la tableta y en el escritorio con la barra contraída; ver §3). Acciones principales al alcance del pulgar en el
+celular (barra inferior fija en formularios largos).
 
 ## 9. Rendimiento y calidad (metas)
 

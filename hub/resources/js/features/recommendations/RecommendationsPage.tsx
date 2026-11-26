@@ -26,7 +26,6 @@ import {
     useRecoPreview,
     useSaveRecoSettings,
 } from './api';
-import { CommerceNav } from './CommerceNav';
 import { ProductCard } from './ProductCard';
 import { ProductPicker } from './ProductPicker';
 
@@ -39,7 +38,6 @@ export function RecommendationsPage() {
 
     return (
         <>
-            <CommerceNav />
             <PageHeader
                 title={t('onsiteCommerce.reco.title')}
                 description={t('onsiteCommerce.reco.description')}

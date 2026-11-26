@@ -1,7 +1,7 @@
 {
     "segments": {
-        "title": "Segmentos",
-        "description": "Grupos de contactos que se actualizan solos para tus campañas, flujos y audiencias.",
+        "title": "Grupos de clientes",
+        "description": "Agrupa a tus clientes por lo que hacen para hablarle a cada uno a su manera. Se actualizan solos.",
         "new": "Nuevo segmento",
         "search": "Buscar segmentos",
         "noMatches": "Ningún segmento coincide con la búsqueda.",

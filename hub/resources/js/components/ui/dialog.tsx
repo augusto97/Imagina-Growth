@@ -12,17 +12,17 @@ export function DialogContent({ className, children, ...props }: ComponentProps<
     const { t } = useTranslation();
     return (
         <DialogPrimitive.Portal>
-            <DialogPrimitive.Overlay className="igr:fixed igr:inset-0 igr:z-50 igr:bg-black/40 igr:backdrop-blur-[1px]" />
+            <DialogPrimitive.Overlay className="igr:fixed igr:inset-0 igr:z-50 igr:bg-slate-950/40 igr:backdrop-blur-[2px]" />
             <DialogPrimitive.Content
                 className={cn(
-                    'igr:fixed igr:left-1/2 igr:top-[12vh] igr:z-50 igr:w-[calc(100%-2rem)] igr:max-w-lg igr:-translate-x-1/2 igr:rounded-xl igr:border igr:bg-popover igr:p-5 igr:text-popover-foreground igr:shadow-xl igr:focus:outline-none',
+                    'igr-enter igr:fixed igr:left-1/2 igr:top-[12vh] igr:z-50 igr:w-[calc(100%-2rem)] igr:max-w-lg igr:-translate-x-1/2 igr:rounded-2xl igr:border igr:bg-popover igr:p-6 igr:text-popover-foreground igr:shadow-lg igr:focus:outline-none',
                     className,
                 )}
                 {...props}
             >
                 {children}
                 <DialogPrimitive.Close
-                    className="igr:absolute igr:right-3 igr:top-3 igr:rounded-md igr:p-1 igr:text-muted-foreground igr:hover:bg-accent igr:hover:text-foreground"
+                    className="igr:absolute igr:right-3.5 igr:top-3.5 igr:rounded-md igr:p-1.5 igr:text-muted-foreground igr:transition-colors igr:hover:bg-accent igr:hover:text-foreground"
                     aria-label={t('common.close')}
                 >
                     <X className="igr:size-4" />
@@ -37,13 +37,13 @@ export function DialogHeader({ className, ...props }: HTMLAttributes<HTMLDivElem
 }
 
 export function DialogFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-    return <div className={cn('igr:mt-5 igr:flex igr:justify-end igr:gap-2', className)} {...props} />;
+    return <div className={cn('igr:mt-6 igr:flex igr:flex-wrap igr:justify-end igr:gap-2', className)} {...props} />;
 }
 
 export function DialogTitle({ className, ...props }: ComponentProps<typeof DialogPrimitive.Title>) {
-    return <DialogPrimitive.Title className={cn('igr:text-base igr:font-semibold', className)} {...props} />;
+    return <DialogPrimitive.Title className={cn('igr:text-section igr:font-semibold igr:tracking-tight', className)} {...props} />;
 }
 
 export function DialogDescription({ className, ...props }: ComponentProps<typeof DialogPrimitive.Description>) {
-    return <DialogPrimitive.Description className={cn('igr:text-[13px] igr:text-muted-foreground', className)} {...props} />;
+    return <DialogPrimitive.Description className={cn('igr:text-support igr:text-muted-foreground', className)} {...props} />;
 }

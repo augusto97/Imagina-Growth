@@ -1,7 +1,7 @@
 {
     "predictions": {
         "title": "Predicciones",
-        "description": "Próxima compra, riesgo de abandono y valor futuro de cada cliente, con qué tan confiable es cada modelo frente a lo que de verdad pasó.",
+        "description": "Quién va a volver a comprar, quién está por irse y cuánto valdrá cada cliente, con qué tan confiable es cada cálculo.",
         "recalculate": "Recalcular",
         "retrain": "Reentrenar modelos",
         "queued": "Recalculando. Tarda unos minutos.",

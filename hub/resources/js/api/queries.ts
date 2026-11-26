@@ -1,17 +1,6 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, isApiError } from '@/lib/api';
-import type {
-    AuditEntry,
-    ContactRow,
-    InvitationPreview,
-    Me,
-    MembersResponse,
-    Overview,
-    Paginated,
-    Site,
-    SiteShowResponse,
-    Workspace,
-} from './types';
+import type { AuditEntry, ContactRow, InvitationPreview, Me, MembersResponse, Overview, Paginated, Site, SiteShowResponse, Workspace } from './types';
 
 export const keys = {
     me: ['me'] as const,
@@ -45,8 +34,13 @@ export function useMe() {
     });
 }
 
+/** El resumen del espacio de trabajo (Inicio y Clientes); también para precargar al pasar el puntero por el menú. */
+export function overviewQuery(ws: string) {
+    return queryOptions({ queryKey: keys.overview(ws), queryFn: ({ signal }) => api.get<Overview>(`${w(ws)}/overview`, signal) });
+}
+
 export function useOverview(ws: string) {
-    return useQuery({ queryKey: keys.overview(ws), queryFn: ({ signal }) => api.get<Overview>(`${w(ws)}/overview`, signal) });
+    return useQuery(overviewQuery(ws));
 }
 
 export function useSites(ws: string, enabled = true) {

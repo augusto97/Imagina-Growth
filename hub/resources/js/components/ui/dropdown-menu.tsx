@@ -11,10 +11,7 @@ export function DropdownMenuContent({ className, sideOffset = 6, ...props }: Com
         <Menu.Portal>
             <Menu.Content
                 sideOffset={sideOffset}
-                className={cn(
-                    'igr:z-50 igr:min-w-48 igr:overflow-hidden igr:rounded-lg igr:border igr:bg-popover igr:p-1 igr:text-popover-foreground igr:shadow-lg',
-                    className,
-                )}
+                className={cn('igr:z-50 igr:min-w-48 igr:overflow-hidden igr:rounded-xl igr:border igr:bg-popover igr:p-1 igr:text-popover-foreground igr:shadow-lg', className)}
                 {...props}
             />
         </Menu.Portal>

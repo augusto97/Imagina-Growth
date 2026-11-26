@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { wsPath } from '@/api/queries';
 import type { Paginated } from '@/api/types';
 import { api, apiRequest } from '@/lib/api';
@@ -16,8 +16,12 @@ export const segmentKeys = {
 
 const base = (ws: string) => `${wsPath(ws)}/segments`;
 
+export function segmentsQuery(ws: string) {
+    return queryOptions({ queryKey: segmentKeys.all(ws), queryFn: async ({ signal }) => (await api.get<{ data: SegmentSummary[] }>(base(ws), signal)).data });
+}
+
 export function useSegments(ws: string) {
-    return useQuery({ queryKey: segmentKeys.all(ws), queryFn: async ({ signal }) => (await api.get<{ data: SegmentSummary[] }>(base(ws), signal)).data });
+    return useQuery(segmentsQuery(ws));
 }
 
 export function useSegment(ws: string, id: string | undefined) {

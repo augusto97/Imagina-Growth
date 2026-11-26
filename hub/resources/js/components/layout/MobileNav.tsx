@@ -6,6 +6,7 @@ import { useLocation } from 'react-router';
 import { DESKTOP_QUERY, useMedia } from '@/hooks/useMedia';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { useUi } from '@/stores/ui';
+import { preloadCommandPalette } from './commandPaletteLoader';
 import { Logo } from './Logo';
 import { Sidebar } from './Sidebar';
 
@@ -34,7 +35,13 @@ export function MobileNav() {
                 <div className="igr:min-w-0 igr:flex-1">
                     <Logo brand={workspace.branding ?? null} />
                 </div>
-                <button type="button" onClick={() => setCommandOpen(true)} className="igr:rounded-md igr:p-1.5 igr:hover:bg-accent" aria-label={t('command.search')}>
+                <button
+                    type="button"
+                    onClick={() => setCommandOpen(true)}
+                    onPointerDown={preloadCommandPalette}
+                    className="igr:rounded-md igr:p-1.5 igr:hover:bg-accent"
+                    aria-label={t('command.search')}
+                >
                     <Search className="igr:size-5" aria-hidden />
                 </button>
             </header>

@@ -1,7 +1,7 @@
 {
     "intelligence": {
-        "title": "Inteligencia",
-        "description": "Pregúntale a tus datos, lee el informe de la semana y mira qué tan confiables son las predicciones.",
+        "title": "Analista con IA",
+        "description": "Pregúntale a tus datos en español, lee el informe de cada semana y mira qué tan confiables son las predicciones.",
         "sections": {
             "ask": { "title": "Pregúntale a tus datos", "description": "Haz una pregunta en español y recibe la tabla, el gráfico y la explicación." },
             "reports": { "title": "Informes del analista", "description": "Cada lunes: qué pasó, por qué y 3 acciones para la semana." },

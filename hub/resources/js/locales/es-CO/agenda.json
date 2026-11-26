@@ -1,7 +1,7 @@
 {
     "agenda": {
         "title": "Agenda",
-        "description": "Citas de tus clientes: servicios, horarios de cada persona, recordatorios y la página para reservar en línea.",
+        "description": "Tus citas, horarios y recordatorios, y la página para que tus clientes reserven solos.",
         "openPage": "Ver página de reservas",
         "edit": "Editar",
         "setup": {

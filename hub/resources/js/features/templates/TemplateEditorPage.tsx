@@ -1,7 +1,7 @@
-import { ArrowLeft, Eye, Mail, MessageCircle, MessageSquareText, Save } from 'lucide-react';
+import { Eye, Mail, MessageCircle, MessageSquareText, Save } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useBlocker, useParams } from 'react-router';
+import { useBlocker, useParams } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +33,7 @@ import { ChecksList } from './editor/ChecksList';
 import type { EmailCanvasHandle, EmailOutput } from './editor/EmailCanvas';
 import { PreviewContactPicker, PreviewView } from './editor/PreviewPanel';
 import { VariablePicker } from './editor/VariablePicker';
+import { AutoBreadcrumbs } from '@/components/ui/page-header';
 
 const EmailCanvas = lazy(() => import('./editor/EmailCanvas'));
 
@@ -79,18 +80,17 @@ export function TemplateEditorPage() {
     const { workspace } = useWorkspace();
     const { templateId = '' } = useParams();
     const template = useTemplate(workspace.id, templateId);
-    const back = (
-        <Link to={`/w/${workspace.id}/plantillas`} className="igr:mb-3 igr:inline-flex igr:items-center igr:gap-1 igr:text-[13px] igr:text-muted-foreground igr:hover:text-foreground">
-            <ArrowLeft className="igr:size-3.5" />
-            {t('templates.title')}
-        </Link>
-    );
+    const back = <AutoBreadcrumbs />;
 
     if (template.isError) {
         return (
             <>
                 {back}
-                {isApiError(template.error, 'not_found') ? <EmptyState icon={Mail} title={t('templates.editor.notFound')} /> : <ErrorState error={template.error} onRetry={() => void template.refetch()} />}
+                {isApiError(template.error, 'not_found') ? (
+                    <EmptyState icon={Mail} title={t('templates.editor.notFound')} />
+                ) : (
+                    <ErrorState error={template.error} onRetry={() => void template.refetch()} />
+                )}
             </>
         );
     }
@@ -141,8 +141,25 @@ function Editor({ template }: { template: TemplateDetail }) {
             if (!source) return [{ level: 'error' as const, code: 'wa_template_missing', message: '' }];
             return missingWaSlots(source.slots, draft.variables).length > 0 ? [{ level: 'error' as const, code: 'wa_variables_missing', message: '' }] : [];
         }
-        return liveChecks({ channel: template.channel, category: draft.category, subject: draft.subject, preheader: draft.preheader, body: template.channel === 'sms' ? draft.body_text : (draft.body_html ?? draft.body_mjml) });
-    }, [template.channel, waSources.data, draft.wa_template_id, draft.variables, draft.category, draft.subject, draft.preheader, draft.body_text, draft.body_html, draft.body_mjml]);
+        return liveChecks({
+            channel: template.channel,
+            category: draft.category,
+            subject: draft.subject,
+            preheader: draft.preheader,
+            body: template.channel === 'sms' ? draft.body_text : (draft.body_html ?? draft.body_mjml),
+        });
+    }, [
+        template.channel,
+        waSources.data,
+        draft.wa_template_id,
+        draft.variables,
+        draft.category,
+        draft.subject,
+        draft.preheader,
+        draft.body_text,
+        draft.body_html,
+        draft.body_mjml,
+    ]);
 
     const save = (status?: 'draft' | 'ready') => {
         let current = draft;
@@ -201,7 +218,13 @@ function Editor({ template }: { template: TemplateDetail }) {
                             <Label htmlFor="tpl-category" className="igr:sr-only">
                                 {t('templates.fields.category')}
                             </Label>
-                            <Select id="tpl-category" value={draft.category} onChange={(e) => set({ category: e.target.value as TemplateCategory })} disabled={!canEdit} className="igr:h-7 igr:w-auto igr:text-[13px]">
+                            <Select
+                                id="tpl-category"
+                                value={draft.category}
+                                onChange={(e) => set({ category: e.target.value as TemplateCategory })}
+                                disabled={!canEdit}
+                                className="igr:h-7 igr:w-auto igr:text-[13px]"
+                            >
                                 {CATEGORIES.map((c) => (
                                     <option key={c} value={c}>
                                         {t(`templates.categories.${c}`)}
@@ -221,7 +244,14 @@ function Editor({ template }: { template: TemplateDetail }) {
                     </Button>
                     {canEdit && (
                         <>
-                            <Button type="button" variant="outline" onClick={() => save()} loading={update.isPending} disabled={!dirty && status !== 'archived'} title={t('templates.editor.saveShortcut')}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => save()}
+                                loading={update.isPending}
+                                disabled={!dirty && status !== 'archived'}
+                                title={t('templates.editor.saveShortcut')}
+                            >
                                 <Save className="igr:size-4" />
                                 {t('common.save')}
                             </Button>
@@ -282,7 +312,25 @@ function fieldById(id: string): HTMLInputElement | HTMLTextAreaElement | null {
 }
 
 /** Campo de texto de una línea con selector de variables que inserta en el cursor. */
-function LiquidField({ id, label, value, onChange, disabled, max, error, help }: { id: string; label: string; value: string; onChange: (v: string) => void; disabled: boolean; max: number; error?: string | undefined; help?: string }) {
+function LiquidField({
+    id,
+    label,
+    value,
+    onChange,
+    disabled,
+    max,
+    error,
+    help,
+}: {
+    id: string;
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    disabled: boolean;
+    max: number;
+    error?: string | undefined;
+    help?: string;
+}) {
     const { t } = useTranslation();
     const length = Array.from(value).length;
     return (
@@ -325,8 +373,25 @@ function EmailEditor({ draft, set, canEdit, canvas, errors }: EditorProps & { ca
         <div className="igr:space-y-4">
             <Card>
                 <CardContent className="igr:grid igr:gap-4 igr:pt-5 igr:md:grid-cols-2">
-                    <LiquidField id="tpl-subject" label={t('templates.fields.subject')} value={draft.subject} onChange={(v) => set({ subject: v })} disabled={!canEdit} max={80} error={errors.subject} />
-                    <LiquidField id="tpl-preheader" label={t('templates.fields.preheader')} value={draft.preheader} onChange={(v) => set({ preheader: v })} disabled={!canEdit} max={120} error={errors.preheader} help={t('templates.fields.preheaderHelp')} />
+                    <LiquidField
+                        id="tpl-subject"
+                        label={t('templates.fields.subject')}
+                        value={draft.subject}
+                        onChange={(v) => set({ subject: v })}
+                        disabled={!canEdit}
+                        max={80}
+                        error={errors.subject}
+                    />
+                    <LiquidField
+                        id="tpl-preheader"
+                        label={t('templates.fields.preheader')}
+                        value={draft.preheader}
+                        onChange={(v) => set({ preheader: v })}
+                        disabled={!canEdit}
+                        max={120}
+                        error={errors.preheader}
+                        help={t('templates.fields.preheaderHelp')}
+                    />
                     {canEdit ? (
                         <div className="igr:flex igr:flex-wrap igr:justify-end igr:gap-1 igr:md:col-span-2">
                             <SuggestSubjectButton onPick={(subject, preheader) => set({ subject, preheader })} />
@@ -401,7 +466,14 @@ function SmsEditor({ draft, set, canEdit, error }: EditorProps & { error?: strin
                         }}
                     />
                 </div>
-                <Textarea id="tpl-sms" rows={6} value={draft.body_text} onChange={(e) => set({ body_text: e.target.value })} disabled={!canEdit} aria-invalid={error ? true : undefined} />
+                <Textarea
+                    id="tpl-sms"
+                    rows={6}
+                    value={draft.body_text}
+                    onChange={(e) => set({ body_text: e.target.value })}
+                    disabled={!canEdit}
+                    aria-invalid={error ? true : undefined}
+                />
                 {canEdit && draft.body_text.trim() !== '' ? (
                     <div className="igr:flex igr:justify-end">
                         <SuggestVariantsButton text={draft.body_text} kind="body" onPick={(body_text) => set({ body_text })} />
@@ -438,7 +510,8 @@ function WhatsAppEditor({ draft, set, canEdit }: EditorProps) {
     const sources = useWaSources(workspace.id);
     const source = sources.data?.find((s) => s.id === draft.wa_template_id);
     const missing = source ? missingWaSlots(source.slots, draft.variables) : [];
-    const setVar = (part: 'header' | 'body' | 'buttons', key: string, value: string) => set({ variables: { ...draft.variables, [part]: { ...(draft.variables[part] ?? {}), [key]: value } } });
+    const setVar = (part: 'header' | 'body' | 'buttons', key: string, value: string) =>
+        set({ variables: { ...draft.variables, [part]: { ...(draft.variables[part] ?? {}), [key]: value } } });
 
     return (
         <div className="igr:grid igr:items-start igr:gap-4 igr:lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -460,7 +533,12 @@ function WhatsAppEditor({ draft, set, canEdit }: EditorProps) {
                     ) : (
                         <div className="igr:space-y-1.5">
                             <Label htmlFor="tpl-wa-source">{t('templates.wa.source')}</Label>
-                            <Select id="tpl-wa-source" value={draft.wa_template_id ?? ''} disabled={!canEdit} onChange={(e) => set({ wa_template_id: e.target.value || null, variables: {} })}>
+                            <Select
+                                id="tpl-wa-source"
+                                value={draft.wa_template_id ?? ''}
+                                disabled={!canEdit}
+                                onChange={(e) => set({ wa_template_id: e.target.value || null, variables: {} })}
+                            >
                                 <option value="">{t('templates.wa.choose')}</option>
                                 {(sources.data ?? []).map((s) => (
                                     <option key={s.id} value={s.id}>
@@ -473,19 +551,42 @@ function WhatsAppEditor({ draft, set, canEdit }: EditorProps) {
                     {source && (
                         <div className="igr:space-y-3">
                             {source.slots.header_media && (
-                                <MappingRow label={t('templates.wa.headerMedia', { kind: t(`templates.wa.media.${source.slots.header_media}`) })} value={draft.variables.header_media ?? ''} onChange={(v) => set({ variables: { ...draft.variables, header_media: v } })} disabled={!canEdit} missing={missing.includes('header_media')} />
+                                <MappingRow
+                                    label={t('templates.wa.headerMedia', { kind: t(`templates.wa.media.${source.slots.header_media}`) })}
+                                    value={draft.variables.header_media ?? ''}
+                                    onChange={(v) => set({ variables: { ...draft.variables, header_media: v } })}
+                                    disabled={!canEdit}
+                                    missing={missing.includes('header_media')}
+                                />
                             )}
                             {source.slots.header.map((k) => (
-                                <MappingRow key={`h${k}`} label={t('templates.wa.headerParam', { key: k })} value={draft.variables.header?.[k] ?? ''} onChange={(v) => setVar('header', k, v)} disabled={!canEdit} missing={missing.includes(`header.${k}`)} />
+                                <MappingRow
+                                    key={`h${k}`}
+                                    label={t('templates.wa.headerParam', { key: k })}
+                                    value={draft.variables.header?.[k] ?? ''}
+                                    onChange={(v) => setVar('header', k, v)}
+                                    disabled={!canEdit}
+                                    missing={missing.includes(`header.${k}`)}
+                                />
                             ))}
                             {source.slots.body.map((k) => (
-                                <MappingRow key={`b${k}`} label={t('templates.wa.bodyParam', { key: k })} value={draft.variables.body?.[k] ?? ''} onChange={(v) => setVar('body', k, v)} disabled={!canEdit} missing={missing.includes(`body.${k}`)} />
+                                <MappingRow
+                                    key={`b${k}`}
+                                    label={t('templates.wa.bodyParam', { key: k })}
+                                    value={draft.variables.body?.[k] ?? ''}
+                                    onChange={(v) => setVar('body', k, v)}
+                                    disabled={!canEdit}
+                                    missing={missing.includes(`body.${k}`)}
+                                />
                             ))}
                             {source.slots.buttons.map((b) =>
                                 b.needs_value || b.type === 'quick_reply' ? (
                                     <MappingRow
                                         key={`btn${b.index}`}
-                                        label={t(b.type === 'quick_reply' ? 'templates.wa.buttonPayload' : b.type === 'copy_code' ? 'templates.wa.buttonCode' : 'templates.wa.buttonUrl', { text: b.text })}
+                                        label={t(
+                                            b.type === 'quick_reply' ? 'templates.wa.buttonPayload' : b.type === 'copy_code' ? 'templates.wa.buttonCode' : 'templates.wa.buttonUrl',
+                                            { text: b.text },
+                                        )}
                                         value={draft.variables.buttons?.[String(b.index)] ?? ''}
                                         onChange={(v) => setVar('buttons', String(b.index), v)}
                                         disabled={!canEdit}
@@ -493,7 +594,9 @@ function WhatsAppEditor({ draft, set, canEdit }: EditorProps) {
                                     />
                                 ) : null,
                             )}
-                            {source.slots.header.length + source.slots.body.length + source.slots.buttons.length === 0 && !source.slots.header_media && <p className="igr:text-[13px] igr:text-muted-foreground">{t('templates.wa.noParams')}</p>}
+                            {source.slots.header.length + source.slots.body.length + source.slots.buttons.length === 0 && !source.slots.header_media && (
+                                <p className="igr:text-[13px] igr:text-muted-foreground">{t('templates.wa.noParams')}</p>
+                            )}
                         </div>
                     )}
                 </CardContent>
@@ -520,7 +623,14 @@ function MappingRow({ label, value, onChange, disabled, missing }: { label: stri
         <div className="igr:space-y-1.5">
             <Label htmlFor={id}>{label}</Label>
             <div className="igr:flex igr:gap-2">
-                <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} placeholder={t('templates.wa.placeholder')} aria-invalid={missing ? true : undefined} />
+                <Input
+                    id={id}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    disabled={disabled}
+                    placeholder={t('templates.wa.placeholder')}
+                    aria-invalid={missing ? true : undefined}
+                />
                 <VariablePicker
                     size="icon"
                     disabled={disabled}
@@ -536,7 +646,19 @@ function MappingRow({ label, value, onChange, disabled, missing }: { label: stri
     );
 }
 
-function PreviewDialog({ open, onOpenChange, channel, draft, canvas }: { open: boolean; onOpenChange: (o: boolean) => void; channel: TemplateDetail['channel']; draft: Draft; canvas: React.RefObject<EmailCanvasHandle | null> }) {
+function PreviewDialog({
+    open,
+    onOpenChange,
+    channel,
+    draft,
+    canvas,
+}: {
+    open: boolean;
+    onOpenChange: (o: boolean) => void;
+    channel: TemplateDetail['channel'];
+    draft: Draft;
+    canvas: React.RefObject<EmailCanvasHandle | null>;
+}) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const preview = usePreviewDraft(workspace.id);

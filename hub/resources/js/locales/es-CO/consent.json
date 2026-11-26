@@ -1,7 +1,7 @@
 {
     "consent": {
-        "title": "Consentimiento",
-        "description": "Los textos que aceptan tus clientes, cómo se respeta su consentimiento y las solicitudes de habeas data.",
+        "title": "Privacidad y consentimiento",
+        "description": "Los textos que aceptan tus clientes, cómo se respeta su consentimiento y sus solicitudes de habeas data.",
         "readOnly": "Solo un administrador puede cambiar estos ajustes.",
         "texts": {
             "title": "Textos de consentimiento",

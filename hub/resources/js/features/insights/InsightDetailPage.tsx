@@ -1,7 +1,7 @@
-import { ArrowLeft, Check, EyeOff, RotateCcw } from 'lucide-react';
+import { Check, EyeOff, RotateCcw } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { toast } from '@/stores/toast';
 import { useInsight, useUpdateInsight } from './api';
 import { ImpactFormula, InsightActionButton } from './components';
 import { SeverityBadge } from './severity';
+import { AutoBreadcrumbs } from '@/components/ui/page-header';
 
 /** Formato de una cifra de los hechos según su nombre (las cifras salen calculadas del detector). */
 function useFactFormatter() {
@@ -94,7 +95,6 @@ export function InsightDetailPage() {
     const update = useUpdateInsight(workspace.id);
     const canManage = useCan('manageMarketing');
     const format = useFactFormatter();
-    const base = `/w/${workspace.id}`;
 
     const setStatus = (status: 'dismissed' | 'actioned' | 'seen') =>
         update.mutate(
@@ -124,12 +124,7 @@ export function InsightDetailPage() {
 
     return (
         <div className="igr:max-w-4xl">
-            <Button asChild variant="ghost" size="sm" className="igr:mb-3 igr:-ml-2">
-                <Link to={`${base}/hallazgos`}>
-                    <ArrowLeft />
-                    {t('insights.back')}
-                </Link>
-            </Button>
+            <AutoBreadcrumbs />
             <div className="igr:flex igr:flex-wrap igr:items-center igr:gap-2">
                 <SeverityBadge severity={i.severity} />
                 <Badge variant="outline">{t(`insights.status.${i.status}`)}</Badge>
@@ -138,9 +133,11 @@ export function InsightDetailPage() {
                     {t(`insights.category.${i.category}`)} · {t(`insights.detector.${i.detector}`, { defaultValue: i.detector })}
                 </span>
             </div>
-            <h1 className="igr:mt-2 igr:text-xl igr:font-semibold igr:tracking-tight">{i.title}</h1>
+            <h1 className="igr:mt-2 igr:text-[22px] igr:leading-7 igr:font-semibold igr:tracking-tight igr:sm:text-title">{i.title}</h1>
             <p className="igr:mt-1 igr:text-xs igr:text-muted-foreground">
-                {i.period_start && i.period_end ? `${t('insights.period', { from: formatDate(i.period_start, workspace.locale, 'UTC'), to: formatDate(i.period_end, workspace.locale, 'UTC') })} · ` : ''}
+                {i.period_start && i.period_end
+                    ? `${t('insights.period', { from: formatDate(i.period_start, workspace.locale, 'UTC'), to: formatDate(i.period_end, workspace.locale, 'UTC') })} · `
+                    : ''}
                 {t('insights.detectedAt', { date: formatDateTime(i.created_at, workspace.locale, workspace.timezone) })}
             </p>
 
@@ -165,11 +162,21 @@ export function InsightDetailPage() {
                             <div className="igr:flex igr:flex-wrap igr:gap-2 igr:border-t igr:pt-3">
                                 {open ? (
                                     <>
-                                        <Button size="sm" variant="outline" loading={update.isPending && update.variables.status === 'actioned'} onClick={() => setStatus('actioned')}>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            loading={update.isPending && update.variables.status === 'actioned'}
+                                            onClick={() => setStatus('actioned')}
+                                        >
                                             <Check />
                                             {t('insights.markActioned')}
                                         </Button>
-                                        <Button size="sm" variant="ghost" loading={update.isPending && update.variables.status === 'dismissed'} onClick={() => setStatus('dismissed')}>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            loading={update.isPending && update.variables.status === 'dismissed'}
+                                            onClick={() => setStatus('dismissed')}
+                                        >
                                             <EyeOff />
                                             {t('insights.dismiss')}
                                         </Button>

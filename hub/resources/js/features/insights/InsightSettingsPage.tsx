@@ -1,7 +1,6 @@
-import { ArrowLeft, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,12 +23,6 @@ export function InsightSettingsPage() {
 
     return (
         <div className="igr:max-w-4xl">
-            <Button asChild variant="ghost" size="sm" className="igr:mb-3 igr:-ml-2">
-                <Link to={`/w/${workspace.id}/hallazgos`}>
-                    <ArrowLeft />
-                    {t('insights.back')}
-                </Link>
-            </Button>
             <PageHeader title={t('insights.settings.title')} description={t('insights.settings.description')} />
             {settings.isError ? (
                 <ErrorState error={settings.error} onRetry={() => void settings.refetch()} />
@@ -123,7 +116,14 @@ function AssumptionRow({ assumption: a }: { assumption: Assumption }) {
                     if (Number.isFinite(pct)) save(pct / 100);
                 }}
             >
-                <Input id={id} inputMode="decimal" value={draft} onChange={(e) => setDraft(e.target.value)} disabled={!canManage} className="igr:h-8 igr:w-20 igr:text-right igr:tabular-nums" />
+                <Input
+                    id={id}
+                    inputMode="decimal"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    disabled={!canManage}
+                    className="igr:h-8 igr:w-20 igr:text-right igr:tabular-nums"
+                />
                 <span className="igr:text-xs igr:text-muted-foreground">%</span>
                 {canManage ? (
                     <>
@@ -146,7 +146,11 @@ function DetectorRow({ detector: d }: { detector: DetectorInfo }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const run = d.last_run;
-    const status = !d.enabled ? t('insights.settings.comingPhase', { phase: d.phase }) : run === null ? t('insights.settings.notYet') : t(`insights.settings.run.${run.status}`, { count: run.found ?? 0 });
+    const status = !d.enabled
+        ? t('insights.settings.comingPhase', { phase: d.phase })
+        : run === null
+          ? t('insights.settings.notYet')
+          : t(`insights.settings.run.${run.status}`, { count: run.found ?? 0 });
     return (
         <TR>
             <TD className="igr:tabular-nums igr:text-muted-foreground">{d.number}</TD>

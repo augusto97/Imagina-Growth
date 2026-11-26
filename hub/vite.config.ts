@@ -39,11 +39,17 @@ export default defineConfig({
                     groups: [
                         { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
                         { name: 'data', test: /node_modules[\\/](@tanstack|react-router|zustand|i18next|react-i18next)[\\/]/ },
-                        { name: 'ui', test: /node_modules[\\/](@radix-ui|cmdk|lucide-react|@floating-ui|tailwind-merge|clsx|class-variance-authority)[\\/]/ },
+                        // cmdk queda fuera: la paleta ⌘K se carga al abrirse (components/layout/CommandPalette.tsx).
+                        { name: 'ui', test: /node_modules[\\/](@radix-ui|lucide-react|@floating-ui|tailwind-merge|clsx|class-variance-authority)[\\/]/ },
                         { name: 'forms', test: /node_modules[\\/](zod|react-hook-form|@hookform)[\\/]/ },
-                        // Los textos (es-CO completo y lo que cambia en es-MX y es-VE): su propio archivo, que se baja en
-                        // paralelo con el código y sigue en caché cuando una versión no cambia ningún texto.
-                        { name: 'locale', test: /resources[\\/]js[\\/]locales[\\/]/ },
+                        // Los textos del arranque (es-<país>.json y los módulos que usa el marco de la app, lib/i18n.ts EAGER): su
+                        // propio archivo, que se baja en paralelo con el código y sigue en caché cuando una versión no cambia
+                        // ningún texto. Los demás módulos de textos van en chunks pequeños que pide cada pantalla
+                        // (app/routeTexts.ts): si este grupo los incluyera, volverían todos al arranque.
+                        {
+                            name: 'locale',
+                            test: /resources[\\/]js[\\/]locales[\\/](es-(CO|MX|VE)\.json|es-(CO|MX|VE)[\\/](ui|sections|billing)\.json)$/,
+                        },
                     ],
                 },
             },

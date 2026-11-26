@@ -1,7 +1,7 @@
 {
     "channels": {
         "title": "Canales",
-        "description": "Por dónde le hablas a tus clientes: correo, WhatsApp, Messenger, Instagram y SMS. Cada mensaje pasa por la política de envío (consentimiento, horario legal y frecuencia).",
+        "description": "Por dónde le hablas a tus clientes: correo, WhatsApp, Messenger, Instagram y SMS, siempre con su consentimiento.",
         "tabs": {
             "email": "Correo",
             "whatsapp": "WhatsApp",
