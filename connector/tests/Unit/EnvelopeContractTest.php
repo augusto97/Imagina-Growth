@@ -120,12 +120,15 @@ final class EnvelopeContractTest extends TestCase {
 	}
 
 	public function test_el_contrato_v8_del_hub_sigue_aceptando_la_version_del_plugin(): void {
-		// La v8 (captación sin tienda) solo cambió un evento del hub: `lead.created.origin` acepta `landing`,
-		// `meta_lead_ads` y `google_lead_form`. El plugin no envía nada nuevo, sigue en la 6 y su sobre sigue siendo válido.
+		// La v8 (negocios sin tienda) solo cambió eventos del hub: `lead.created.origin` acepta `landing`, `meta_lead_ads`
+		// y `google_lead_form`, y hay dos eventos nuevos que solo genera el hub (`appointment.confirmed` y `quote.sent`).
+		// El plugin no envía nada nuevo: sigue en la 6 y su sobre sigue siendo válido.
 		$schema   = json_decode( (string) file_get_contents( dirname( __DIR__, 3 ) . '/hub/resources/schemas/events/_envelope.json' ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- archivo local del contrato.
 		$versions = $schema['properties']['schema_version']['enum'];
 		$this->assertContains( 8, $versions );
 		$this->assertContains( EventFactory::SCHEMA_VERSION, $versions );
+		$this->assertFileExists( dirname( __DIR__, 3 ) . '/hub/resources/schemas/events/appointment.confirmed.json' );
+		$this->assertFileExists( dirname( __DIR__, 3 ) . '/hub/resources/schemas/events/quote.sent.json' );
 		$factory = new EventFactory( self::SITE, 'woocommerce', '0.1.0' );
 		$this->assertSame( array(), Schema::errors( $factory->make( 'custom.igr_test', array() ) ) );
 		// Un formulario del sitio sigue entrando igual: el plugin no conoce los orígenes nuevos de los leads.

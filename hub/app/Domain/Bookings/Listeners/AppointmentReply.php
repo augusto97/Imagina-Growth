@@ -67,7 +67,7 @@ final class AppointmentReply
                 return;
             }
             if ($intent === 'confirm') {
-                $this->change->mark($workspace, $appointment, 'confirmed');
+                $this->change->mark($workspace, $appointment, 'confirmed', 'contact');
                 $reply = __('¡Gracias! Tu cita quedó confirmada. Te esperamos.');
             } else {
                 $reply = __('Claro. Elige el nuevo horario aquí: :url', ['url' => BookingSettings::manageUrl($workspace, (string) $appointment->manage_token).'?reprogramar=1']);

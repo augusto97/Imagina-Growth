@@ -1,8 +1,12 @@
 <?php
 
+use App\Domain\Flows\Library\FlowLibrary;
+use App\Domain\Messaging\Support\WaTemplateBuilder;
 use App\Domain\Templates\Contracts\TemplateRenderer;
 use App\Domain\Templates\Data\RenderContext;
 use App\Domain\Templates\Library\TemplateLibrary;
+use App\Domain\Templates\Library\WhatsAppLibrary;
+use App\Domain\Templates\Liquid\LiquidSandbox;
 use App\Domain\Templates\Models\Template;
 use App\Domain\Templates\Rendering\LiquidTemplateRenderer;
 use App\Domain\Templates\Rendering\SampleData;
@@ -24,8 +28,16 @@ it('cada plantilla de la biblioteca se renderiza con datos de ejemplo en todas l
         foreach (TemplateLibrary::keys() as $key) {
             $template = new Template(['workspace_id' => $this->ws->id] + TemplateLibrary::attributes($key, $industry));
             $template->wa_template_id = null;
-            $rendered = app(CurrentWorkspace::class)->run($this->ws, fn () => app(LiquidTemplateRenderer::class)->renderTemplate($template, new RenderContext($this->ws, null, SampleData::vars())));
             $label = $key.' / '.($industry ?? 'general');
+            if ($template->channel === 'whatsapp') {
+                // WhatsApp: el texto propuesto se renderiza y lo que va a Meta es válido (las revisiones piden la aprobada).
+                $text = app(CurrentWorkspace::class)->run($this->ws, fn () => app(LiquidSandbox::class)->render((string) $template->body_text, SampleData::vars() + ['tienda' => ['nombre' => 'Pinturas La 14', 'url' => 'https://tienda.co']], ['currency' => 'COP', 'locale' => 'es_CO', 'timezone' => 'America/Bogota']));
+                expect(trim($text))->not->toBe('', $label)->and($text)->not->toContain('{{', $label)->and($template->status)->toBe('draft');
+                $count++;
+
+                continue;
+            }
+            $rendered = app(CurrentWorkspace::class)->run($this->ws, fn () => app(LiquidTemplateRenderer::class)->renderTemplate($template, new RenderContext($this->ws, null, SampleData::vars())));
             if ($template->channel === 'email') {
                 expect($rendered->subject)->not->toBe('', $label)
                     ->and($rendered->html)->not->toContain('[[', $label)
@@ -43,10 +55,13 @@ it('cada plantilla de la biblioteca se renderiza con datos de ejemplo en todas l
     expect($renderer)->toBeInstanceOf(TemplateRenderer::class);
 });
 
-it('trae las plantillas que necesitan los 20 flujos, con la copia de la industria', function () {
-    $flows = array_unique(array_map(fn (array $e) => (int) $e['flow'], TemplateLibrary::manifest()['templates']));
+it('trae las plantillas que necesitan los 35 flujos, con la copia de la industria', function () {
+    $flows = array_values(array_unique(array_map(fn (array $e) => (int) $e['flow'], array_filter(TemplateLibrary::manifest()['templates'], fn (array $e) => $e['flow'] !== null))));
     sort($flows);
-    expect($flows)->toBe(range(1, 20))
+    expect($flows)->toBe(range(1, 35))
+        ->and(array_diff(FlowLibrary::EMAIL_KEYS, TemplateLibrary::keys()))->toBe([])
+        // Las de WhatsApp de los flujos 21 a 35 traen su texto propuesto para Meta.
+        ->and(array_diff(array_slice(FlowLibrary::WHATSAPP_KEYS, array_search('wa_quote_followup_1', FlowLibrary::WHATSAPP_KEYS, true)), TemplateLibrary::keys()))->toBe([])
         ->and(TemplateLibrary::keys())->toContain('welcome_1', 'abandoned_cart_1', 'abandoned_cart_2', 'abandoned_checkout', 'browse_abandonment', 'payment_pending_1', 'post_purchase', 'review_request', 'replenishment', 'winback_1', 'birthday', 'sms_abandoned_cart');
 
     $pets = TemplateLibrary::attributes('replenishment', 'mascotas');
@@ -67,7 +82,12 @@ it('instalar es idempotente para los flujos y crea otra copia solo si se pide; u
     $url = "/api/w/{$this->ws->publicId()}/templates/library";
     $list = $this->actingAs($this->owner)->getJson($url)->assertOk();
     expect($list->json('industry'))->toBe('mascotas')
-        ->and(collect($list->json('data'))->firstWhere('key', 'replenishment')['installed_id'])->toBe($first->publicId());
+        ->and(collect($list->json('data'))->firstWhere('key', 'replenishment')['installed_id'])->toBe($first->publicId())
+        // Sin canal, la lista de siempre (correo y SMS); las de WhatsApp se piden aparte o salen en la galería.
+        ->and(collect($list->json('data'))->pluck('channel')->unique()->sort()->values()->all())->not->toContain('whatsapp')
+        ->and(collect($this->actingAs($this->owner)->getJson("{$url}?channel=whatsapp")->assertOk()->json('data'))->pluck('channel')->unique()->all())->toBe(['whatsapp'])
+        ->and(count($this->actingAs($this->owner)->getJson("{$url}?channel=all")->assertOk()->json('data')))->toBe(count(TemplateLibrary::manifest()['templates']));
+    $this->actingAs($this->owner)->getJson("{$url}?channel=fax")->assertUnprocessable();
     $this->actingAs($this->owner)->postJson("{$url}/winback_1", ['industry' => 'moda'])->assertCreated();
     $this->actingAs($this->owner)->postJson("{$url}/winback_1")->assertOk();
     $this->actingAs($this->owner)->postJson("{$url}/no_existe")->assertNotFound();
@@ -96,4 +116,42 @@ it('un producto del carrito sin imagen no deja una imagen rota en el correo', fu
     expect($without->html)->toContain('Chazo Plástico 1/4')->not->toContain('<img src=""')
         ->and($empty->html)->not->toContain('<img src=""')
         ->and($with->html)->toContain('src="https://tienda.co/img/chazo.jpg"');
+});
+
+it('las de WhatsApp se convierten en una plantilla válida para Meta, con su categoría y su mapeo', function () {
+    $whatsapp = array_filter(TemplateLibrary::manifest()['templates'], fn (array $e) => $e['channel'] === 'whatsapp');
+    expect($whatsapp)->not->toBeEmpty();
+    $names = [];
+    foreach ($whatsapp as $entry) {
+        foreach ([null, ...TemplateLibrary::industries()] as $industry) {
+            $attrs = TemplateLibrary::attributes($entry['key'], $industry);
+            $compiled = WhatsAppLibrary::compile($entry, (string) $attrs['body_text']);
+            $label = $entry['key'].' / '.($industry ?? 'general');
+            $components = WhatsAppLibrary::components($compiled);
+            expect(preg_match('/^[a-z0-9_]{1,512}$/', $compiled['name']))->toBe(1, $label)
+                ->and(in_array($entry['category'], ['marketing', 'utility'], true))->toBeTrue($label)
+                // Meta no acepta un cuerpo que empiece o termine con una variable ni dos variables seguidas.
+                ->and(preg_match('/^\s*\{\{\d+\}\}|\{\{\d+\}\}\s*[.!?]?\s*$|\}\}\s*\{\{/', $compiled['body']))->toBe(0, $label)
+                ->and(mb_strlen($compiled['body']))->toBeLessThanOrEqual(1024)
+                ->and(count($compiled['examples']))->toBe(count($compiled['variables']['body']))
+                ->and($attrs['variables'])->toBe($compiled['variables']);
+            // Disfrazar marketing de utilidad está prohibido (cumplimiento.md §5.1).
+            if ($entry['category'] === 'utility') {
+                expect(WaTemplateBuilder::marketingWords('UTILITY', $components))->toBe([], $label);
+            } else {
+                expect(str_contains((string) $compiled['footer'], 'BAJA'))->toBeTrue($label);
+            }
+            foreach (array_keys($compiled['buttons']) as $i) {
+                expect(isset($compiled['variables']['buttons'][$i]))->toBeTrue("{$label}: botón {$i} sin valor");
+            }
+        }
+        $names[] = $compiled['name'];
+    }
+    expect(count(array_unique($names)))->toBe(count($names));
+
+    // La de confirmar la cita usa los botones que ya entiende la agenda.
+    $entry = (array) TemplateLibrary::entry('wa_appointment_confirm');
+    $confirm = WhatsAppLibrary::compile($entry, (string) TemplateLibrary::attributes('wa_appointment_confirm')['body_text']);
+    expect($confirm['category'])->toBe('UTILITY')->and($confirm['variables']['buttons'])->toBe(['appt_confirm', 'appt_reschedule'])
+        ->and($confirm['body'])->toStartWith('Hola {{1}}, tienes una cita de {{2}} el {{3}} a las {{4}}.');
 });

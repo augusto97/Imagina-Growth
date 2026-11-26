@@ -126,6 +126,6 @@ it('cada vertical tiene sus recomendadas, que le sirven, y las del §11.4 en el 
         ->and(array_slice(StrategyRegistry::rankedFor('real_estate'), 0, 3))->toBe(['service_lead', 'property_interest', 'lost_lead_revival'])
         ->and(array_slice(StrategyRegistry::rankedFor('education'), 0, 3))->toBe(['event_registration', 'enrollment_followup', 'lead_nurture'])
         ->and(array_slice(StrategyRegistry::rankedFor('store'), 0, 4))->toBe(['abandoned_cart', 'cod_confirm', 'payment_pending', 'second_purchase']);
-    // El flujo «Reactivar con IA» lo crean las estrategias, no la biblioteca de Flujos (que sigue con los 20 de M09).
-    expect(FlowLibrary::all())->toHaveCount(20)->and(FlowLibrary::find('ai_reactivate'))->not->toBeNull();
+    // El flujo «Reactivar con IA» lo crean las estrategias, no la biblioteca de Flujos (los 35 de M09).
+    expect(FlowLibrary::all())->toHaveCount(35)->and(FlowLibrary::find('ai_reactivate'))->not->toBeNull();
 });

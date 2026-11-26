@@ -811,6 +811,1383 @@
       }
     },
     {
+      "key": "lead_nurture_1",
+      "name": "Nutrición · cómo trabajamos",
+      "flow": 21,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 21, día 1: cómo trabaja el negocio y qué puede esperar.",
+      "goal": "follow_up",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, así trabajamos en {{ tienda.nombre }}",
+          "preheader": "Te contamos paso a paso cómo te ayudamos.",
+          "headline": "Así te acompañamos, {{ contacto.nombre | default: 'hola' }}",
+          "intro": "Gracias por escribirnos. Antes de decidir, queremos contarte cómo trabajamos.",
+          "body": "Escucharte, proponerte una solución clara y acompañarte hasta el final. Si tienes una pregunta, responde este correo: lo lee una persona del equipo.",
+          "cta": "Conocer más",
+          "cta_url": "{{ tienda.url }}"
+        },
+        "salud_bienestar": {
+          "intro": "Gracias por escribirnos. Te contamos cómo es la primera cita y qué puedes esperar.",
+          "body": "En la valoración inicial revisamos tu caso, resolvemos tus dudas y te damos un plan claro, sin compromiso."
+        },
+        "educacion": {
+          "intro": "Gracias por tu interés. Te contamos cómo son nuestras clases y cómo acompañamos a cada estudiante."
+        }
+      }
+    },
+    {
+      "key": "lead_nurture_2",
+      "name": "Nutrición · preguntas frecuentes",
+      "flow": 21,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 21, día 6: las preguntas que más nos hacen.",
+      "goal": "follow_up",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "text",
+        "whatsapp"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Las preguntas que más nos hacen",
+          "preheader": "Precios, tiempos y cómo empezar, en un minuto.",
+          "headline": "Lo que todos preguntan antes de empezar",
+          "intro": "{{ contacto.nombre | default: 'Hola' }}, estas son las dudas más comunes de quienes nos escriben.",
+          "body": "¿Cuánto cuesta? Depende de lo que necesites: te damos una cotización clara antes de empezar. ¿Cuánto se demora? Te lo decimos desde el primer día. ¿Cómo empiezo? Agenda una cita o escríbenos."
+        }
+      }
+    },
+    {
+      "key": "lead_nurture_3",
+      "name": "Nutrición · casos reales",
+      "flow": 21,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 21, día 12: resultados de otros clientes.",
+      "goal": "follow_up",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Lo que lograron personas como tú",
+          "preheader": "Casos reales de clientes que estaban donde estás hoy.",
+          "headline": "Casos reales, resultados reales",
+          "intro": "{{ contacto.nombre | default: 'Hola' }}, te compartimos lo que logramos con clientes que tenían una necesidad parecida a la tuya.",
+          "body": "Escribe aquí uno o dos casos de éxito: qué necesitaba el cliente, qué hicieron y el resultado. Las historias concretas convencen más que cualquier promesa.",
+          "cta": "Agendar una cita",
+          "cta_url": "{{ enlaces.agendar | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "lead_nurture_4",
+      "name": "Nutrición · el siguiente paso",
+      "flow": 21,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 21, día 20: invitación a agendar.",
+      "goal": "follow_up",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "button",
+        "whatsapp"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, ¿damos el siguiente paso?",
+          "preheader": "Agenda en un minuto, sin compromiso.",
+          "headline": "¿Hablamos de lo que necesitas?",
+          "intro": "Cuando quieras, agenda una cita o escríbenos por WhatsApp. Sin compromiso.",
+          "cta": "Agendar ahora",
+          "cta_url": "{{ enlaces.agendar | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_quote_followup_1",
+      "name": "Cotización · ¿pudiste revisarla?",
+      "flow": 22,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Flujo 22, día 2: seguimiento de la cotización por WhatsApp.",
+      "goal": "follow_up",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "whatsapp": {
+        "name": "igr_quote_followup_1",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "QUICK_REPLY",
+            "text": "Tengo una pregunta",
+            "payload": "quote_question"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Quiero seguir",
+            "payload": "quote_accept"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, te escribimos de {{ tienda.nombre }}. ¿Pudiste revisar la cotización de {{ cotizacion.servicio | default: 'tu solicitud' }}? Si tienes dudas o quieres ajustarla, respóndenos por aquí."
+        }
+      }
+    },
+    {
+      "key": "quote_followup_1",
+      "name": "Cotización · ¿pudiste revisarla? (correo)",
+      "flow": 22,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 22, día 2 si no sale por WhatsApp.",
+      "goal": "follow_up",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "button",
+        "whatsapp"
+      ],
+      "copy": {
+        "default": {
+          "subject": "¿Pudiste revisar tu cotización?",
+          "preheader": "Si tienes dudas, te ayudamos a ajustarla.",
+          "headline": "{{ contacto.nombre | default: 'Hola' }}, ¿pudiste revisar tu cotización?",
+          "intro": "Te enviamos la cotización de {{ cotizacion.servicio | default: 'tu solicitud' }}. Si quieres ajustar algo o tienes una pregunta, responde este correo.",
+          "cta": "Hablar con nosotros",
+          "cta_url": "{{ tienda.whatsapp_url | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "quote_followup_2",
+      "name": "Cotización · resolvemos tus dudas",
+      "flow": 22,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 22, día 5: correo con las dudas frecuentes.",
+      "goal": "follow_up",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Tu cotización sigue vigente",
+          "preheader": "Resolvemos tus dudas sobre precio, tiempos y formas de pago.",
+          "headline": "Tu cotización sigue vigente",
+          "intro": "{{ contacto.nombre | default: 'Hola' }}, guardamos tu cotización de {{ cotizacion.servicio | default: 'tu solicitud' }}.",
+          "body": "Podemos ajustarla a tu presupuesto, dividirla por etapas o explicarte cada punto en una llamada corta. Dinos qué prefieres.",
+          "cta": "Agendar una llamada",
+          "cta_url": "{{ enlaces.agendar | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_quote_followup_last",
+      "name": "Cotización · último aviso",
+      "flow": 22,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Flujo 22, día 10: último aviso por WhatsApp.",
+      "goal": "follow_up",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "whatsapp": {
+        "name": "igr_quote_followup_last",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "QUICK_REPLY",
+            "text": "Mantenerla",
+            "payload": "quote_keep"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Por ahora no",
+            "payload": "quote_decline"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, tu cotización de {{ cotizacion.servicio | default: 'tu solicitud' }} en {{ tienda.nombre }} sigue disponible. ¿Quieres que la mantengamos o la cerramos por ahora? Respóndenos cuando puedas."
+        }
+      }
+    },
+    {
+      "key": "quote_followup_3",
+      "name": "Cotización · último aviso (correo)",
+      "flow": 22,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 22, día 10 si no sale por WhatsApp.",
+      "goal": "follow_up",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "¿Mantenemos tu cotización?",
+          "preheader": "Es nuestro último recordatorio: tú decides.",
+          "headline": "¿Mantenemos tu cotización?",
+          "intro": "{{ contacto.nombre | default: 'Hola' }}, no queremos insistir: dinos si mantenemos tu cotización de {{ cotizacion.servicio | default: 'tu solicitud' }} o la cerramos por ahora.",
+          "cta": "Responder",
+          "cta_url": "{{ tienda.whatsapp_url | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_appointment_confirm",
+      "name": "Cita · confirmar asistencia",
+      "flow": 23,
+      "channel": "whatsapp",
+      "category": "utility",
+      "description": "Flujo 23, 48 h antes de la cita: pide confirmar con botones (utilidad: es la cita que la persona agendó).",
+      "goal": "reminder",
+      "verticals": [
+        "health",
+        "professional",
+        "real_estate",
+        "automotive",
+        "education",
+        "other"
+      ],
+      "whatsapp": {
+        "name": "igr_appointment_confirm",
+        "buttons": [
+          {
+            "type": "QUICK_REPLY",
+            "text": "Confirmo",
+            "payload": "appt_confirm"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Reprogramar",
+            "payload": "appt_reschedule"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, tienes una cita de {{ cita.servicio | default: 'servicio' }} el {{ cita.fecha }} a las {{ cita.hora }}. ¿Nos confirmas tu asistencia?"
+        }
+      }
+    },
+    {
+      "key": "appointment_confirm",
+      "name": "Cita · confirmar asistencia (correo)",
+      "flow": 23,
+      "channel": "email",
+      "category": "utility",
+      "description": "Flujo 23, 48 h antes, si no sale por WhatsApp.",
+      "goal": "reminder",
+      "verticals": [
+        "health",
+        "professional",
+        "real_estate",
+        "automotive",
+        "education",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "appointment",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Confirma tu cita: {{ cita.servicio | default: 'tu cita' }}",
+          "preheader": "Un clic para confirmar o cambiar la hora.",
+          "headline": "{{ contacto.nombre | default: 'Hola' }}, ¿nos confirmas tu cita?",
+          "intro": "Te esperamos en esta fecha. Si no puedes asistir, cámbiala para darle el horario a otra persona.",
+          "cta": "Confirmar o reprogramar",
+          "cta_url": "{{ cita.enlace | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_no_show_recovery",
+      "name": "Cita · no asistió",
+      "flow": 24,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Flujo 24, el mismo día: mensaje amable con el enlace para reagendar.",
+      "goal": "reminder",
+      "verticals": [
+        "health",
+        "professional",
+        "real_estate",
+        "automotive",
+        "other"
+      ],
+      "whatsapp": {
+        "name": "igr_no_show_recovery",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "URL",
+            "text": "Reagendar",
+            "tracked": true,
+            "value": "{{ enlaces.agendar | default: tienda.url }}"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, te esperamos hoy en {{ tienda.nombre }} y no pudimos verte. Sabemos que pasan imprevistos: elige otro horario cuando quieras."
+        }
+      }
+    },
+    {
+      "key": "no_show_recovery",
+      "name": "Cita · no asistió (correo)",
+      "flow": 24,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 24, el mismo día: enlace para reagendar.",
+      "goal": "reminder",
+      "verticals": [
+        "health",
+        "professional",
+        "real_estate",
+        "automotive",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Te extrañamos hoy, {{ contacto.nombre | default: 'Hola' }}",
+          "preheader": "Elige otro horario en un minuto.",
+          "headline": "No pudimos verte hoy",
+          "intro": "Sabemos que pasan imprevistos. Elige otro horario cuando quieras y te esperamos.",
+          "cta": "Reagendar mi cita",
+          "cta_url": "{{ enlaces.agendar | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_post_service",
+      "name": "Servicio · ¿cómo te fue?",
+      "flow": 25,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Flujo 25, al día siguiente: cómo le fue y reseña en Google.",
+      "goal": "review",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "whatsapp": {
+        "name": "igr_post_service",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "URL",
+            "text": "Dejar reseña",
+            "tracked": true,
+            "value": "{{ enlaces.resena_google | default: tienda.url }}"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, gracias por elegir a {{ tienda.nombre }}. ¿Cómo te fue? Si te gustó la atención, nos ayudas mucho con una reseña en Google."
+        }
+      }
+    },
+    {
+      "key": "post_service",
+      "name": "Servicio · ¿cómo te fue? (correo)",
+      "flow": 25,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 25: cómo le fue, reseña en Google y enlace de referido.",
+      "goal": "review",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "button",
+        "text"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, ¿cómo te fue con nosotros?",
+          "preheader": "Tu opinión ayuda a otras personas a elegir.",
+          "headline": "Gracias por elegirnos",
+          "intro": "Esperamos que todo haya salido como esperabas. Si te gustó la atención, nos ayudas mucho con una reseña en Google.",
+          "cta": "Dejar mi reseña",
+          "cta_url": "{{ enlaces.resena_google | default: tienda.url }}",
+          "body": "¿Conoces a alguien que necesite lo mismo? Compártele este enlace: {{ enlaces.referido | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_periodic_service",
+      "name": "Control periódico · recordatorio",
+      "flow": 26,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Flujo 26, cada N meses: recordatorio con enlace para agendar.",
+      "goal": "reminder",
+      "verticals": [
+        "health",
+        "automotive",
+        "other"
+      ],
+      "whatsapp": {
+        "name": "igr_periodic_service",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "URL",
+            "text": "Agendar",
+            "tracked": true,
+            "value": "{{ enlaces.agendar | default: tienda.url }}"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, ya es momento de tu próximo control en {{ tienda.nombre }}. Agenda en un minuto el horario que más te sirva."
+        },
+        "salud_bienestar": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, ya es momento de tu control en {{ tienda.nombre }}. Cuidarte a tiempo evita sorpresas: agenda en un minuto."
+        }
+      }
+    },
+    {
+      "key": "periodic_service",
+      "name": "Control periódico · recordatorio (correo)",
+      "flow": 26,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 26: recordatorio del control o mantenimiento.",
+      "goal": "reminder",
+      "verticals": [
+        "health",
+        "automotive",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, ya es momento de tu próximo control",
+          "preheader": "Agenda en un minuto el horario que te sirva.",
+          "headline": "Es hora de tu próximo control",
+          "intro": "Han pasado varios meses desde tu última visita. Un control a tiempo evita problemas más grandes.",
+          "cta": "Agendar mi cita",
+          "cta_url": "{{ enlaces.agendar | default: tienda.url }}"
+        },
+        "salud_bienestar": {
+          "intro": "Han pasado varios meses desde tu última cita. Cuidarte a tiempo evita sorpresas."
+        }
+      }
+    },
+    {
+      "key": "wa_event_confirmation",
+      "name": "Evento · inscripción confirmada",
+      "flow": 27,
+      "channel": "whatsapp",
+      "category": "utility",
+      "description": "Flujo 27, al inscribirse: confirmación (utilidad: confirma la inscripción que hizo la persona).",
+      "goal": "event_invite",
+      "verticals": [
+        "education",
+        "b2b",
+        "professional",
+        "health",
+        "other"
+      ],
+      "whatsapp": {
+        "name": "igr_event_confirmation",
+        "buttons": []
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, tu inscripción a {{ evento.nombre | default: 'nuestro evento' }} quedó confirmada para el {{ evento.fecha | default: 'día del evento' }}. Te enviaremos el enlace antes de empezar."
+        }
+      }
+    },
+    {
+      "key": "event_confirmation",
+      "name": "Evento · inscripción confirmada (correo)",
+      "flow": 27,
+      "channel": "email",
+      "category": "utility",
+      "description": "Flujo 27, al inscribirse: confirmación con la fecha.",
+      "goal": "event_invite",
+      "verticals": [
+        "education",
+        "b2b",
+        "professional",
+        "health",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "event",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Tu inscripción está confirmada: {{ evento.nombre | default: 'nuestro evento' }}",
+          "preheader": "Guarda la fecha: te avisamos antes de empezar.",
+          "headline": "¡Listo, {{ contacto.nombre | default: 'hola' }}! Ya estás inscrito",
+          "intro": "Guarda la fecha. Te enviaremos un recordatorio un día antes y una hora antes.",
+          "cta": "Ver el evento",
+          "cta_url": "{{ evento.enlace | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_event_reminder",
+      "name": "Evento · recordatorio",
+      "flow": 27,
+      "channel": "whatsapp",
+      "category": "utility",
+      "description": "Flujo 27, un día y una hora antes: recordatorio con el enlace.",
+      "goal": "event_invite",
+      "verticals": [
+        "education",
+        "b2b",
+        "professional",
+        "health",
+        "other"
+      ],
+      "whatsapp": {
+        "name": "igr_event_reminder",
+        "buttons": []
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, te recordamos que {{ evento.nombre | default: 'nuestro evento' }} es el {{ evento.fecha | default: 'día programado' }} a las {{ evento.hora | default: 'hora programada' }}. Entra con este enlace: {{ evento.enlace | default: tienda.url }} y te esperamos."
+        }
+      }
+    },
+    {
+      "key": "event_reminder",
+      "name": "Evento · recordatorio (correo)",
+      "flow": 27,
+      "channel": "email",
+      "category": "utility",
+      "description": "Flujo 27, un día y una hora antes: recordatorio con el enlace.",
+      "goal": "event_invite",
+      "verticals": [
+        "education",
+        "b2b",
+        "professional",
+        "health",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "event",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Recordatorio: {{ evento.nombre | default: 'nuestro evento' }}",
+          "preheader": "Aquí tienes el enlace para entrar.",
+          "headline": "Te esperamos, {{ contacto.nombre | default: 'hola' }}",
+          "intro": "Te recordamos la fecha y la hora. Entra unos minutos antes para no perderte nada.",
+          "cta": "Entrar al evento",
+          "cta_url": "{{ evento.enlace | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "event_recording",
+      "name": "Evento · grabación",
+      "flow": 27,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 27, después del evento: la grabación y el siguiente paso.",
+      "goal": "event_invite",
+      "verticals": [
+        "education",
+        "b2b",
+        "professional",
+        "health",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "button",
+        "text"
+      ],
+      "copy": {
+        "default": {
+          "subject": "La grabación de {{ evento.nombre | default: 'nuestro evento' }}",
+          "preheader": "Por si te perdiste algo o quieres verlo otra vez.",
+          "headline": "Gracias por inscribirte, {{ contacto.nombre | default: 'hola' }}",
+          "intro": "Aquí tienes la grabación para verla cuando quieras.",
+          "cta": "Ver la grabación",
+          "cta_url": "{{ evento.grabacion | default: tienda.url }}",
+          "body": "¿Quieres dar el siguiente paso? Responde este correo y te contamos cómo seguir."
+        }
+      }
+    },
+    {
+      "key": "wa_enrollment_info",
+      "name": "Inscripciones · información",
+      "flow": 28,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Flujo 28, al instante: la información del curso que pidió.",
+      "goal": "follow_up",
+      "verticals": [
+        "education"
+      ],
+      "whatsapp": {
+        "name": "igr_enrollment_info",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "URL",
+            "text": "Agendar clase",
+            "tracked": true,
+            "value": "{{ enlaces.agendar | default: tienda.url }}"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, gracias por tu interés en {{ lead.servicio | default: 'nuestros cursos' }} de {{ tienda.nombre }}. Te enviamos la información por correo. ¿Quieres agendar una clase de prueba?"
+        }
+      }
+    },
+    {
+      "key": "enrollment_info",
+      "name": "Inscripciones · información (correo)",
+      "flow": 28,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 28, al instante: información del curso.",
+      "goal": "follow_up",
+      "verticals": [
+        "education"
+      ],
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "La información de {{ lead.servicio | default: 'nuestros cursos' }}",
+          "preheader": "Horarios, metodología y cómo inscribirte.",
+          "headline": "Hola {{ contacto.nombre | default: 'hola' }}, esto es lo que necesitas saber",
+          "intro": "Gracias por tu interés en {{ lead.servicio | default: 'nuestros cursos' }}.",
+          "body": "Escribe aquí los horarios, la duración, el valor y lo que incluye. Cuéntale también cómo es la clase de prueba: es la mejor forma de decidir.",
+          "cta": "Agendar una clase de prueba",
+          "cta_url": "{{ enlaces.agendar | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "enrollment_testimonials",
+      "name": "Inscripciones · testimonios",
+      "flow": 28,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 28, día 3: lo que dicen otros estudiantes.",
+      "goal": "follow_up",
+      "verticals": [
+        "education"
+      ],
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Lo que dicen nuestros estudiantes",
+          "preheader": "Historias de quienes ya dieron el paso.",
+          "headline": "Ellos ya dieron el paso",
+          "intro": "{{ contacto.nombre | default: 'Hola' }}, te compartimos lo que dicen quienes estudian con nosotros.",
+          "body": "Escribe aquí dos o tres testimonios cortos con el nombre y lo que lograron.",
+          "cta": "Quiero inscribirme",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_enrollment_deadline",
+      "name": "Inscripciones · fecha límite",
+      "flow": 28,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Flujo 28, día 7: las inscripciones cierran pronto.",
+      "goal": "follow_up",
+      "verticals": [
+        "education"
+      ],
+      "whatsapp": {
+        "name": "igr_enrollment_deadline",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "QUICK_REPLY",
+            "text": "Quiero mi cupo",
+            "payload": "enroll_yes"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Tengo dudas",
+            "payload": "enroll_question"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, las inscripciones de {{ lead.servicio | default: 'nuestros cursos' }} en {{ tienda.nombre }} cierran pronto y los cupos son limitados. ¿Te ayudamos a reservar el tuyo?"
+        }
+      }
+    },
+    {
+      "key": "enrollment_deadline",
+      "name": "Inscripciones · fecha límite (correo)",
+      "flow": 28,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 28, día 7: fecha límite de inscripción.",
+      "goal": "follow_up",
+      "verticals": [
+        "education"
+      ],
+      "blocks": [
+        "hero",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Las inscripciones cierran pronto",
+          "preheader": "Reserva tu cupo antes de la fecha límite.",
+          "headline": "{{ contacto.nombre | default: 'Hola' }}, quedan pocos cupos",
+          "intro": "Las inscripciones de {{ lead.servicio | default: 'nuestros cursos' }} cierran pronto. Reserva tu cupo y empieza con tu grupo.",
+          "cta": "Reservar mi cupo",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_property_interest",
+      "name": "Propiedad · gracias por tu interés",
+      "flow": 29,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Flujo 29, al instante: respuesta y visita.",
+      "goal": "follow_up",
+      "verticals": [
+        "real_estate"
+      ],
+      "whatsapp": {
+        "name": "igr_property_interest",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "URL",
+            "text": "Agendar visita",
+            "tracked": true,
+            "value": "{{ enlaces.agendar | default: tienda.url }}"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, gracias por tu interés en {{ lead.servicio | default: 'la propiedad' }}. Soy del equipo de {{ tienda.nombre }}. ¿Quieres agendar una visita para conocerla?"
+        }
+      }
+    },
+    {
+      "key": "property_interest",
+      "name": "Propiedad · gracias por tu interés (correo)",
+      "flow": 29,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 29, al instante: datos y visita.",
+      "goal": "follow_up",
+      "verticals": [
+        "real_estate"
+      ],
+      "blocks": [
+        "hero",
+        "button",
+        "whatsapp"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Sobre {{ lead.servicio | default: 'la propiedad que te interesó' }}",
+          "preheader": "Agenda una visita cuando te quede bien.",
+          "headline": "Hola {{ contacto.nombre | default: 'hola' }}, gracias por tu interés",
+          "intro": "Recibimos tu consulta sobre {{ lead.servicio | default: 'la propiedad' }}. La mejor forma de decidir es conocerla: agenda una visita.",
+          "cta": "Agendar una visita",
+          "cta_url": "{{ enlaces.agendar | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "property_similar",
+      "name": "Propiedad · opciones parecidas",
+      "flow": 29,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 29, día 2: propiedades similares.",
+      "goal": "follow_up",
+      "verticals": [
+        "real_estate"
+      ],
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Otras opciones parecidas a la que viste",
+          "preheader": "Por si quieres comparar antes de decidir.",
+          "headline": "Opciones parecidas para comparar",
+          "intro": "{{ contacto.nombre | default: 'Hola' }}, si estás comparando, estas opciones tienen características parecidas.",
+          "body": "Describe aquí dos o tres propiedades similares (zona, área, precio) o enlaza tu catálogo.",
+          "cta": "Ver las propiedades",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_property_visit",
+      "name": "Propiedad · ¿agendamos la visita?",
+      "flow": 29,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Flujo 29, día 7: invitación a la visita.",
+      "goal": "follow_up",
+      "verticals": [
+        "real_estate"
+      ],
+      "whatsapp": {
+        "name": "igr_property_visit",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "URL",
+            "text": "Elegir horario",
+            "tracked": true,
+            "value": "{{ enlaces.agendar | default: tienda.url }}"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, ¿sigues buscando? Podemos mostrarte {{ lead.servicio | default: 'la propiedad' }} esta semana. Elige el día y la hora que te sirvan."
+        }
+      }
+    },
+    {
+      "key": "property_visit",
+      "name": "Propiedad · ¿agendamos la visita? (correo)",
+      "flow": 29,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 29, día 7 si no sale por WhatsApp.",
+      "goal": "follow_up",
+      "verticals": [
+        "real_estate"
+      ],
+      "blocks": [
+        "hero",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "¿Agendamos tu visita?",
+          "preheader": "Elige el día y la hora que te sirvan.",
+          "headline": "{{ contacto.nombre | default: 'Hola' }}, ¿agendamos tu visita?",
+          "intro": "Podemos mostrarte {{ lead.servicio | default: 'la propiedad' }} esta semana.",
+          "cta": "Elegir horario",
+          "cta_url": "{{ enlaces.agendar | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_lost_lead_revival",
+      "name": "Lead perdido · novedad",
+      "flow": 30,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Flujo 30, 90 días después: volver a intentar con una novedad.",
+      "goal": "follow_up",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "whatsapp": {
+        "name": "igr_lost_lead_revival",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "QUICK_REPLY",
+            "text": "Sí, cuéntame",
+            "payload": "revival_yes"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Ahora no",
+            "payload": "revival_no"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, hace un tiempo hablamos sobre {{ lead.servicio | default: 'lo que necesitabas' }}. En {{ tienda.nombre }} tenemos novedades que te pueden servir. ¿Te cuento?"
+        }
+      }
+    },
+    {
+      "key": "lost_lead_revival",
+      "name": "Lead perdido · novedad (correo)",
+      "flow": 30,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 30, 90 días después.",
+      "goal": "follow_up",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, tenemos novedades para ti",
+          "preheader": "Han cambiado cosas desde la última vez que hablamos.",
+          "headline": "Han cambiado cosas desde la última vez",
+          "intro": "Hace un tiempo hablamos sobre {{ lead.servicio | default: 'lo que necesitabas' }}.",
+          "body": "Escribe aquí la novedad: un servicio nuevo, otra forma de pago o un precio especial. Una razón concreta para volver a hablar.",
+          "cta": "Volver a hablar",
+          "cta_url": "{{ tienda.whatsapp_url | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_new_client_welcome",
+      "name": "Cliente nuevo · bienvenida",
+      "flow": 31,
+      "channel": "whatsapp",
+      "category": "utility",
+      "description": "Flujo 31, al ganar el lead: qué esperar, contacto y próximos pasos (utilidad: información del servicio contratado).",
+      "goal": "welcome",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "whatsapp": {
+        "name": "igr_new_client_welcome",
+        "buttons": []
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, bienvenido a {{ tienda.nombre }}. Ya iniciamos tu proceso de {{ lead.servicio | default: 'servicio' }}. Te escribiremos con cada avance; si tienes una pregunta, responde a este mensaje."
+        }
+      }
+    },
+    {
+      "key": "new_client_welcome",
+      "name": "Cliente nuevo · bienvenida (correo)",
+      "flow": 31,
+      "channel": "email",
+      "category": "utility",
+      "description": "Flujo 31, al ganar el lead: qué esperar y los próximos pasos.",
+      "goal": "welcome",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "text",
+        "whatsapp"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Bienvenido a {{ tienda.nombre }}, {{ contacto.nombre | default: 'Hola' }}",
+          "preheader": "Esto es lo que sigue y cómo contactarnos.",
+          "headline": "¡Bienvenido, {{ contacto.nombre | default: 'hola' }}!",
+          "intro": "Gracias por confiar en nosotros. Ya iniciamos tu proceso de {{ lead.servicio | default: 'servicio' }}.",
+          "body": "Lo que sigue: te contactaremos para coordinar los detalles, te avisaremos de cada avance y siempre puedes escribirnos si tienes una pregunta. Escribe aquí los próximos pasos concretos de tu servicio."
+        },
+        "salud_bienestar": {
+          "headline": "¡Bienvenido a la familia, {{ contacto.nombre | default: 'hola' }}!",
+          "intro": "Gracias por confiar en nosotros para tu tratamiento de {{ lead.servicio | default: 'salud' }}."
+        },
+        "educacion": {
+          "headline": "¡Bienvenido, {{ contacto.nombre | default: 'hola' }}! Ya eres parte de {{ tienda.nombre }}",
+          "intro": "Tu inscripción a {{ lead.servicio | default: 'tu curso' }} quedó lista."
+        }
+      }
+    },
+    {
+      "key": "wa_services_reactivation",
+      "name": "Reactivación · una razón para volver",
+      "flow": 32,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Flujo 32, cliente sin servicio en meses: mensaje personal.",
+      "goal": "follow_up",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "whatsapp": {
+        "name": "igr_services_reactivation",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "QUICK_REPLY",
+            "text": "Sí, cuéntame",
+            "payload": "reactivate_yes"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, hace un tiempo no te vemos en {{ tienda.nombre }}. Tenemos algo pensado para clientes como tú. ¿Te cuento?"
+        }
+      }
+    },
+    {
+      "key": "services_reactivation",
+      "name": "Reactivación · una razón para volver (correo)",
+      "flow": 32,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 32: una razón concreta para volver.",
+      "goal": "follow_up",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, hace un tiempo no te vemos",
+          "preheader": "Tenemos algo pensado para ti.",
+          "headline": "Te extrañamos, {{ contacto.nombre | default: 'hola' }}",
+          "intro": "Hace un tiempo no te vemos por {{ tienda.nombre }} y queremos saber cómo estás.",
+          "body": "Escribe aquí la razón para volver: un servicio nuevo, una revisión de cortesía o un beneficio para clientes que ya nos conocen.",
+          "cta": "Agendar",
+          "cta_url": "{{ enlaces.agendar | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "cross_sell",
+      "name": "Venta cruzada · lo que combina",
+      "flow": 33,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 33, 7 días después de comprar: complementos de lo que compró.",
+      "goal": "promotion",
+      "verticals": [
+        "store"
+      ],
+      "blocks": [
+        "hero",
+        "products:para_ti",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, esto combina con tu compra",
+          "preheader": "Complementos elegidos según lo que te llevaste.",
+          "headline": "Completa tu compra",
+          "intro": "Elegimos estos productos pensando en lo que compraste: así le sacas más provecho.",
+          "products_title": "Combina con tu compra",
+          "cta": "Ver más",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_delivery_check",
+      "name": "Pedido · ¿llegó bien?",
+      "flow": 34,
+      "channel": "whatsapp",
+      "category": "utility",
+      "description": "Flujo 34, 2 días después de entregado: pregunta si llegó bien (utilidad: seguimiento del pedido).",
+      "goal": "survey",
+      "verticals": [
+        "store"
+      ],
+      "whatsapp": {
+        "name": "igr_delivery_check",
+        "buttons": [
+          {
+            "type": "QUICK_REPLY",
+            "text": "Todo bien",
+            "payload": "delivery_ok"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Tuve un problema",
+            "payload": "delivery_problem"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, ¿tu pedido #{{ pedido.numero | default: 'reciente' }} de {{ tienda.nombre }} llegó bien? Si hubo algún problema, cuéntanos y lo resolvemos."
+        }
+      }
+    },
+    {
+      "key": "delivery_check",
+      "name": "Pedido · ¿llegó bien? (correo)",
+      "flow": 34,
+      "channel": "email",
+      "category": "utility",
+      "description": "Flujo 34, 2 días después de entregado, si no sale por WhatsApp.",
+      "goal": "survey",
+      "verticals": [
+        "store"
+      ],
+      "blocks": [
+        "hero",
+        "order",
+        "whatsapp"
+      ],
+      "copy": {
+        "default": {
+          "subject": "¿Tu pedido llegó bien?",
+          "preheader": "Si hubo algún problema, lo resolvemos.",
+          "headline": "{{ contacto.nombre | default: 'Hola' }}, ¿llegó bien tu pedido?",
+          "intro": "Queremos asegurarnos de que todo llegó como esperabas. Si hubo algún problema, responde este correo y lo resolvemos."
+        }
+      }
+    },
+    {
+      "key": "wa_first_purchase_anniversary",
+      "name": "Aniversario · un detalle",
+      "flow": 35,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Flujo 35: aniversario de la primera compra con un cupón.",
+      "goal": "seasonal",
+      "verticals": [
+        "store"
+      ],
+      "whatsapp": {
+        "name": "igr_first_purchase_anniversary",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "URL",
+            "text": "Ir a la tienda",
+            "tracked": true,
+            "value": "{{ tienda.url }}"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, hoy hace un año hiciste tu primera compra en {{ tienda.nombre }}. Para celebrarlo te regalamos el código {{ cupon.codigo }} con {{ cupon.descuento | default: 'un descuento' }}. ¡Gracias por seguir con nosotros!"
+        }
+      }
+    },
+    {
+      "key": "first_purchase_anniversary",
+      "name": "Aniversario · un detalle (correo)",
+      "flow": 35,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Flujo 35: aniversario de la primera compra con un cupón.",
+      "goal": "seasonal",
+      "verticals": [
+        "store"
+      ],
+      "blocks": [
+        "hero",
+        "coupon",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Hoy cumplimos un año juntos, {{ contacto.nombre | default: 'Hola' }}",
+          "preheader": "Un detalle para celebrar tu primera compra.",
+          "headline": "¡Feliz aniversario, {{ contacto.nombre | default: 'hola' }}!",
+          "intro": "Hoy hace un año hiciste tu primera compra en {{ tienda.nombre }}. Gracias por seguir con nosotros: este detalle es para ti.",
+          "coupon_label": "Tu regalo de aniversario",
+          "cta": "Usar mi regalo",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
       "key": "sms_abandoned_cart",
       "name": "SMS · carrito abandonado",
       "flow": 2,
@@ -898,6 +2275,488 @@
       "copy": {
         "default": {
           "text": "{{ tienda.nombre }}: te recordamos tu cita el {{ cita.fecha | fecha: 'corta' }} a las {{ cita.hora }}."
+        }
+      }
+    },
+    {
+      "key": "gal_welcome",
+      "name": "Galería · bienvenida",
+      "flow": null,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Bienvenida a un contacto nuevo: quiénes somos y cómo empezar.",
+      "goal": "welcome",
+      "verticals": [
+        "all"
+      ],
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Bienvenido a {{ tienda.nombre }}, {{ contacto.nombre | default: 'Hola' }}",
+          "preheader": "Te contamos quiénes somos y cómo podemos ayudarte.",
+          "headline": "¡Qué bueno tenerte aquí, {{ contacto.nombre | default: 'hola' }}!",
+          "intro": "Gracias por escribirnos. Te contamos en pocas líneas quiénes somos y cómo podemos ayudarte.",
+          "body": "Escribe aquí lo que hace diferente a tu negocio y lo que tu cliente puede esperar.",
+          "cta": "Conocernos",
+          "cta_url": "{{ tienda.url }}"
+        },
+        "salud_bienestar": {
+          "intro": "Gracias por elegirnos para cuidarte. Te contamos cómo trabajamos y cómo agendar tu primera cita.",
+          "cta": "Agendar mi cita",
+          "cta_url": "{{ enlaces.agendar | default: tienda.url }}"
+        },
+        "educacion": {
+          "intro": "Gracias por tu interés. Te contamos cómo aprendes con nosotros y cómo empezar.",
+          "cta": "Ver los cursos"
+        },
+        "servicios_profesionales": {
+          "intro": "Gracias por escribirnos. Te contamos cómo trabajamos y cómo agendar una primera reunión.",
+          "cta": "Agendar una reunión",
+          "cta_url": "{{ enlaces.agendar | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_gal_welcome",
+      "name": "Galería · bienvenida (WhatsApp)",
+      "flow": null,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Bienvenida por WhatsApp a un contacto nuevo que aceptó recibir mensajes.",
+      "goal": "welcome",
+      "verticals": [
+        "all"
+      ],
+      "whatsapp": {
+        "name": "igr_gal_welcome",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": []
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, bienvenido a {{ tienda.nombre }}. Por aquí te contaremos novedades y beneficios. Si necesitas algo, escríbenos cuando quieras."
+        }
+      }
+    },
+    {
+      "key": "gal_promotion",
+      "name": "Galería · promoción",
+      "flow": null,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Promoción por tiempo limitado.",
+      "goal": "promotion",
+      "verticals": [
+        "all"
+      ],
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, una promoción por tiempo limitado",
+          "preheader": "Solo por estos días en {{ tienda.nombre }}.",
+          "headline": "Una promoción pensada para ti",
+          "intro": "Por tiempo limitado tenemos un beneficio especial para ti en {{ tienda.nombre }}.",
+          "body": "Escribe aquí la promoción: qué incluye, hasta cuándo va y cómo se aprovecha.",
+          "cta": "Aprovechar",
+          "cta_url": "{{ tienda.url }}"
+        },
+        "salud_bienestar": {
+          "cta": "Agendar con el beneficio",
+          "cta_url": "{{ enlaces.agendar | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_gal_promotion",
+      "name": "Galería · promoción (WhatsApp)",
+      "flow": null,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Promoción por tiempo limitado por WhatsApp.",
+      "goal": "promotion",
+      "verticals": [
+        "all"
+      ],
+      "whatsapp": {
+        "name": "igr_gal_promotion",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "QUICK_REPLY",
+            "text": "Quiero saber más",
+            "payload": "promo_info"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, en {{ tienda.nombre }} tenemos una promoción especial por tiempo limitado. Responde a este mensaje y te contamos los detalles."
+        }
+      }
+    },
+    {
+      "key": "gal_news",
+      "name": "Galería · novedad",
+      "flow": null,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Una novedad del negocio: producto, servicio, sede u horario.",
+      "goal": "news",
+      "verticals": [
+        "all"
+      ],
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Novedades en {{ tienda.nombre }}",
+          "preheader": "Te contamos lo nuevo antes que a nadie.",
+          "headline": "Tenemos algo nuevo, {{ contacto.nombre | default: 'hola' }}",
+          "intro": "Queríamos contártelo primero a ti.",
+          "body": "Escribe aquí la novedad: un producto o servicio nuevo, una sede, un horario o un integrante del equipo.",
+          "cta": "Ver la novedad",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_gal_news",
+      "name": "Galería · novedad (WhatsApp)",
+      "flow": null,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Una novedad del negocio por WhatsApp.",
+      "goal": "news",
+      "verticals": [
+        "all"
+      ],
+      "whatsapp": {
+        "name": "igr_gal_news",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": []
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, tenemos una novedad en {{ tienda.nombre }} y queríamos contártela primero. Responde a este mensaje y te damos los detalles."
+        }
+      }
+    },
+    {
+      "key": "gal_reminder",
+      "name": "Galería · recordatorio",
+      "flow": null,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Recordatorio de un control, mantenimiento o fecha pendiente.",
+      "goal": "reminder",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "blocks": [
+        "hero",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, te recordamos tu próxima visita",
+          "preheader": "Agenda en un minuto el horario que te sirva.",
+          "headline": "Es un buen momento para volver",
+          "intro": "Te recordamos que ya es tiempo de tu próxima visita. Agenda el horario que mejor te quede.",
+          "cta": "Agendar",
+          "cta_url": "{{ enlaces.agendar | default: tienda.url }}"
+        },
+        "salud_bienestar": {
+          "headline": "Es hora de tu control",
+          "intro": "Cuidarte a tiempo evita sorpresas. Agenda tu control en un minuto."
+        },
+        "educacion": {
+          "headline": "No te quedes por fuera",
+          "intro": "Te recordamos que se acercan las fechas de inscripción. Reserva tu cupo a tiempo.",
+          "cta": "Reservar mi cupo",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_gal_reminder",
+      "name": "Galería · recordatorio (WhatsApp)",
+      "flow": null,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Recordatorio de un control o mantenimiento por WhatsApp.",
+      "goal": "reminder",
+      "verticals": [
+        "professional",
+        "health",
+        "education",
+        "real_estate",
+        "hospitality",
+        "automotive",
+        "b2b",
+        "other"
+      ],
+      "whatsapp": {
+        "name": "igr_gal_reminder",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "URL",
+            "text": "Agendar",
+            "tracked": true,
+            "value": "{{ enlaces.agendar | default: tienda.url }}"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, te escribimos de {{ tienda.nombre }} para recordarte que ya es momento de tu próxima visita. Agenda el horario que mejor te quede."
+        }
+      }
+    },
+    {
+      "key": "gal_event_invite",
+      "name": "Galería · invitación a evento",
+      "flow": null,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Invitación a un evento, taller o webinar.",
+      "goal": "event_invite",
+      "verticals": [
+        "all"
+      ],
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, te invitamos a nuestro evento",
+          "preheader": "Cupos limitados: reserva el tuyo.",
+          "headline": "Estás invitado, {{ contacto.nombre | default: 'hola' }}",
+          "intro": "Preparamos un encuentro que te puede interesar y queremos que estés.",
+          "body": "Escribe aquí el tema, la fecha, la hora y si es presencial o en línea.",
+          "cta": "Inscribirme",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_gal_event_invite",
+      "name": "Galería · invitación a evento (WhatsApp)",
+      "flow": null,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Invitación a un evento por WhatsApp.",
+      "goal": "event_invite",
+      "verticals": [
+        "all"
+      ],
+      "whatsapp": {
+        "name": "igr_gal_event_invite",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "QUICK_REPLY",
+            "text": "Sí, quiero ir",
+            "payload": "event_yes"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Esta vez no",
+            "payload": "event_no"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, en {{ tienda.nombre }} preparamos un evento que te puede interesar y queremos que estés. ¿Te enviamos los detalles para inscribirte?"
+        }
+      }
+    },
+    {
+      "key": "gal_seasonal",
+      "name": "Galería · saludo de temporada",
+      "flow": null,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Saludo de una fecha especial (temporada, festividad o fin de año).",
+      "goal": "seasonal",
+      "verticals": [
+        "all"
+      ],
+      "blocks": [
+        "hero",
+        "text",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "Un saludo especial de {{ tienda.nombre }}",
+          "preheader": "Gracias por estar con nosotros en esta fecha.",
+          "headline": "Gracias por estar con nosotros, {{ contacto.nombre | default: 'hola' }}",
+          "intro": "En esta fecha especial queremos agradecerte por confiar en {{ tienda.nombre }}.",
+          "body": "Escribe aquí un mensaje corto y cercano, y si quieres, el beneficio de temporada.",
+          "cta": "Visítanos",
+          "cta_url": "{{ tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_gal_seasonal",
+      "name": "Galería · saludo de temporada (WhatsApp)",
+      "flow": null,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Saludo de temporada por WhatsApp.",
+      "goal": "seasonal",
+      "verticals": [
+        "all"
+      ],
+      "whatsapp": {
+        "name": "igr_gal_seasonal",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": []
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, en esta fecha especial queremos agradecerte por confiar en {{ tienda.nombre }}. Tenemos un detalle para ti: responde a este mensaje y te contamos."
+        }
+      }
+    },
+    {
+      "key": "gal_survey",
+      "name": "Galería · encuesta",
+      "flow": null,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Encuesta corta de satisfacción (una pregunta).",
+      "goal": "survey",
+      "verticals": [
+        "all"
+      ],
+      "blocks": [
+        "hero",
+        "text"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, ¿nos regalas un minuto?",
+          "preheader": "Una sola pregunta para mejorar.",
+          "headline": "¿Cómo lo estamos haciendo?",
+          "intro": "Tu opinión nos ayuda a mejorar. Es una sola pregunta.",
+          "body": "Del 1 al 5, ¿qué tan probable es que nos recomiendes? Responde este correo con el número y, si quieres, por qué."
+        }
+      }
+    },
+    {
+      "key": "wa_gal_survey",
+      "name": "Galería · encuesta (WhatsApp)",
+      "flow": null,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Encuesta corta por WhatsApp con botones.",
+      "goal": "survey",
+      "verticals": [
+        "all"
+      ],
+      "whatsapp": {
+        "name": "igr_gal_survey",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "QUICK_REPLY",
+            "text": "Excelente",
+            "payload": "survey_great"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Buena",
+            "payload": "survey_good"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Puede mejorar",
+            "payload": "survey_bad"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, en {{ tienda.nombre }} queremos mejorar. ¿Cómo calificarías tu última experiencia con nosotros?"
+        }
+      }
+    },
+    {
+      "key": "gal_review",
+      "name": "Galería · reseña",
+      "flow": null,
+      "channel": "email",
+      "category": "marketing",
+      "description": "Pedir una reseña en Google.",
+      "goal": "review",
+      "verticals": [
+        "all"
+      ],
+      "blocks": [
+        "hero",
+        "button"
+      ],
+      "copy": {
+        "default": {
+          "subject": "{{ contacto.nombre | default: 'Hola' }}, ¿nos dejas una reseña?",
+          "preheader": "Te toma un minuto y ayuda a otras personas a elegir.",
+          "headline": "Tu opinión ayuda a otros a elegir",
+          "intro": "Si te gustó tu experiencia con {{ tienda.nombre }}, nos ayudas mucho con una reseña en Google. Te toma un minuto.",
+          "cta": "Dejar mi reseña",
+          "cta_url": "{{ enlaces.resena_google | default: tienda.url }}"
+        }
+      }
+    },
+    {
+      "key": "wa_gal_review",
+      "name": "Galería · reseña (WhatsApp)",
+      "flow": null,
+      "channel": "whatsapp",
+      "category": "marketing",
+      "description": "Pedir una reseña en Google por WhatsApp.",
+      "goal": "review",
+      "verticals": [
+        "all"
+      ],
+      "whatsapp": {
+        "name": "igr_gal_review",
+        "footer": "Responde BAJA si no quieres recibir más mensajes.",
+        "buttons": [
+          {
+            "type": "URL",
+            "text": "Dejar reseña",
+            "tracked": true,
+            "value": "{{ enlaces.resena_google | default: tienda.url }}"
+          }
+        ]
+      },
+      "copy": {
+        "default": {
+          "text": "Hola {{ contacto.nombre | default: 'hola' }}, gracias por elegir a {{ tienda.nombre }}. Si te gustó tu experiencia, nos ayudas mucho con una reseña en Google. Te toma un minuto."
         }
       }
     }

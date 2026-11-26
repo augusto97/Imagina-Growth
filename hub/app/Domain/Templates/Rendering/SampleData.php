@@ -84,9 +84,12 @@ final class SampleData
             'cupon' => ['codigo' => 'VUELVE-7K2Q9XAB', 'descuento' => '10%', 'vence' => now()->addDays(7)->toDateString()],
             'pedido' => ['numero' => '10620', 'total' => $subtotal, 'estado' => 'Pendiente de pago', 'metodo_pago' => $place['metodo_pago'], 'url_pago' => $base.'/pagar/10620', 'url' => $base.'/mi-cuenta/pedidos/10620'],
             'producto' => ['nombre' => 'Pintura Azul Cielo 1 galón', 'precio' => (string) $price['oferta'], 'precio_anterior' => (string) $price['pintura'], 'imagen' => '', 'url' => $base.'/producto/pintura-azul'],
-            'cita' => ['fecha' => now()->addDay()->toDateString(), 'hora' => '10:30 a. m.', 'lugar' => $place['direccion'], 'url_reprogramar' => $base.'/citas'],
+            'cita' => ['servicio' => 'Valoración inicial', 'fecha' => now()->addDay()->toDateString(), 'hora' => '10:30 a. m.', 'duracion' => '30', 'lugar' => $place['direccion'], 'enlace' => $base.'/cita/ejemplo', 'calendario' => $base.'/cita/ejemplo/calendario.ics', 'url_reprogramar' => $base.'/citas'],
+            'lead' => ['servicio' => 'Valoración inicial', 'valor' => (string) (10 * $price['pintura']), 'etapa' => 'Contactado'],
+            'cotizacion' => ['servicio' => 'Plan de tratamiento', 'valor' => (string) (15 * $price['pintura']), 'moneda' => $currency],
+            'evento' => ['nombre' => 'Charla abierta: cómo elegir bien', 'fecha' => 'jueves 3 de diciembre', 'hora' => '6:00 pm', 'enlace' => $base.'/evento', 'grabacion' => $base.'/grabacion'],
             'aviso' => ['titulo' => 'Nuevo lead de servicios', 'resumen' => 'Laura pidió una cotización desde el formulario de contacto.', 'detalle' => 'Servicio: pintura de fachada. Ciudad: '.$place['ciudad'].'.', 'url' => $base],
-            'enlaces' => ['baja' => '#baja', 'preferencias' => '#preferencias', 'resena' => '#resena?nota=', 'nps' => '#nps?nota=', 'referido' => $base.'/?ref=LAURA10'],
+            'enlaces' => ['baja' => '#baja', 'preferencias' => '#preferencias', 'resena' => '#resena?nota=', 'nps' => '#nps?nota=', 'referido' => $base.'/?ref=LAURA10', 'agendar' => $base.'/reservar', 'resena_google' => 'https://g.page/r/ejemplo/review'],
         ];
     }
 }

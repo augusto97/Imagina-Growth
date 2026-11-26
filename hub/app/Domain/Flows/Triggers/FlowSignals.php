@@ -46,7 +46,9 @@ final class FlowSignals
                 continue;
             }
             try {
-                if ($flow->goalEvent() === $event && Filters::matches((array) ($flow->goal['filters'] ?? []), $props)) {
+                // El evento que hizo entrar al run no es su meta (p. ej. «Venta cruzada»: entra y sale con order.paid).
+                $isTrigger = (($run->context ?? [])['event_id'] ?? null) === $eventId;
+                if (! $isTrigger && $flow->goalEvent() === $event && Filters::matches((array) ($flow->goal['filters'] ?? []), $props)) {
                     $this->goal($run, $event, $eventId, $props);
 
                     continue;

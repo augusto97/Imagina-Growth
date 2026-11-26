@@ -13,7 +13,7 @@ final class InsightCandidate
      * @param  array<string, mixed>  $facts  todas las cifras (las usa la IA: no inventa números)
      * @param  list<string>  $assumptions  notas del impacto, visibles y en español
      * @param  array{label: string, to?: string, url?: string, kind?: string, payload?: array<string, mixed>}|null  $action
-     *                                                                                                                       `kind`: link (por defecto), activate_flow ({library_key}) o create_campaign ({system_key, name, channel}); `to` es siempre el enlace de respaldo
+     *                                                                                                                       `kind`: link (por defecto), activate_flow ({library_key}), create_campaign ({system_key, name, channel}) o calendar_campaign ({moment, year}); `to` es siempre el enlace de respaldo
      * @param  Impact|null  $formula  el impacto como producto de factores (con los supuestos editables)
      * @param  int|null  $validDays  vigencia; por defecto 7 días los nocturnos y 14 los semanales
      * @param  float|null  $magnitude  para los hallazgos sin impacto en dinero: con qué se mide si empeoró

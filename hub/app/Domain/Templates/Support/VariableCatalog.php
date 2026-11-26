@@ -70,9 +70,32 @@ final class VariableCatalog
                 ['expr' => "{% for p in recomendaciones.para_ti limit: 3 %}{{ p.nombre }} — {{ p.precio | moneda }}\n{% endfor %}", 'label' => __('Para ti (3)'), 'example' => 'Rodillo profesional — '.$money($price['rodillo'])],
                 ['expr' => "{% for p in recomendaciones.mas_vendidos limit: 3 %}{{ p.nombre }}\n{% endfor %}", 'label' => __('Más vendidos (3)'), 'example' => 'Pintura Blanca 1 galón'],
             ]],
+            ['key' => 'cita', 'label' => __('Cita'), 'items' => [
+                ['expr' => '{{ cita.servicio }}', 'label' => __('Servicio'), 'example' => 'Valoración inicial', 'phase' => 5],
+                ['expr' => '{{ cita.fecha }}', 'label' => __('Fecha'), 'example' => 'jueves 3 de diciembre', 'phase' => 5],
+                ['expr' => '{{ cita.hora }}', 'label' => __('Hora'), 'example' => '10:30 am', 'phase' => 5],
+                ['expr' => '{{ cita.lugar }}', 'label' => __('Lugar'), 'example' => __('presencial'), 'phase' => 5],
+                ['expr' => '{{ cita.enlace }}', 'label' => __('Enlace para reprogramar o cancelar'), 'example' => $url.'/cita/…', 'phase' => 5],
+            ]],
+            ['key' => 'lead', 'label' => __('Lead'), 'items' => [
+                ['expr' => "{{ lead.servicio | default: 'tu solicitud' }}", 'label' => __('Lo que pidió'), 'example' => 'Valoración inicial', 'phase' => 5],
+                ['expr' => '{{ lead.etapa }}', 'label' => __('Etapa'), 'example' => 'Contactado', 'phase' => 5],
+            ]],
+            ['key' => 'cotizacion', 'label' => __('Cotización'), 'items' => [
+                ['expr' => "{{ cotizacion.servicio | default: 'tu cotización' }}", 'label' => __('Qué se cotizó'), 'example' => 'Plan de tratamiento', 'phase' => 5],
+                ['expr' => '{{ cotizacion.valor | moneda }}', 'label' => __('Valor'), 'example' => $money(15 * $price['pintura']), 'phase' => 5],
+            ]],
+            ['key' => 'evento', 'label' => __('Evento'), 'items' => [
+                ['expr' => "{{ evento.nombre | default: 'nuestro evento' }}", 'label' => __('Nombre del evento'), 'example' => 'Charla abierta', 'phase' => 5],
+                ['expr' => '{{ evento.fecha }}', 'label' => __('Fecha'), 'example' => 'jueves 3 de diciembre', 'phase' => 5],
+                ['expr' => '{{ evento.hora }}', 'label' => __('Hora'), 'example' => '6:00 pm', 'phase' => 5],
+                ['expr' => '{{ evento.enlace }}', 'label' => __('Enlace para entrar'), 'example' => $url.'/evento', 'phase' => 5],
+            ]],
             ['key' => 'enlaces', 'label' => __('Enlaces'), 'items' => [
                 ['expr' => '{{ enlaces.baja }}', 'label' => __('Darse de baja'), 'example' => 'https://go.'.$host.'/u/…'],
                 ['expr' => '{{ enlaces.preferencias }}', 'label' => __('Preferencias'), 'example' => 'https://go.'.$host.'/preferencias/…'],
+                ['expr' => '{{ enlaces.agendar | default: tienda.url }}', 'label' => __('Página para agendar'), 'example' => $url.'/reservar', 'phase' => 5],
+                ['expr' => '{{ enlaces.resena_google | default: tienda.url }}', 'label' => __('Reseña en Google'), 'example' => 'https://g.page/r/…/review', 'phase' => 5],
             ]],
         ];
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Workspaces\Actions;
 
+use App\Domain\Workspaces\Events\WorkspaceVerticalChanged;
 use App\Domain\Workspaces\Models\Workspace;
 
 final class UpdateWorkspaceSettings
@@ -20,6 +21,9 @@ final class UpdateWorkspaceSettings
         if ($changes !== []) {
             $workspace->save();
             $this->audit->handle('workspace.updated', $workspace, $changes, $workspace->id, $workspace->account_id);
+            if (array_key_exists('vertical', $changes)) {
+                WorkspaceVerticalChanged::dispatch($workspace, is_string($changes['vertical']) ? $changes['vertical'] : null);
+            }
         }
 
         return $workspace;

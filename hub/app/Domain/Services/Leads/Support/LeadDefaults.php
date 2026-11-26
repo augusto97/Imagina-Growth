@@ -20,6 +20,12 @@ final class LeadDefaults
         ['key' => 'lost', 'label' => 'Perdido', 'kind' => 'lost'],
     ];
 
+    /**
+     * Etapas en las que el negocio ya envió una cotización, una propuesta o una oferta (las de los embudos de cada
+     * vertical, VerticalCatalog). Entrar a una de ellas desde otra emite `quote.sent` (eventos.md v8).
+     */
+    public const QUOTE_STAGES = ['proposal', 'quoted', 'offer'];
+
     /** Señales del puntaje (§4.9) y sus puntos. Puntos en 0 apagan la señal. */
     public const SIGNALS = ['pricing_page', 'recurring_visit', 'form', 'whatsapp_click', 'corporate_email', 'service_area', 'decay_weekly'];
 

@@ -10,6 +10,7 @@ use App\Domain\Billing\Plans\PlanCatalog;
 use App\Domain\Billing\Plans\PlanResolver;
 use App\Domain\Intelligence\Insights\InsightEngine;
 use App\Domain\Intelligence\Rfm\RfmCalculator;
+use App\Domain\Onboarding\Support\Verticals;
 use App\Domain\Sites\Actions\UpdateBackfillState;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Sites\Queries\ReconciliationQuery;
@@ -20,6 +21,7 @@ use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Ingest\IngestStream;
 use App\Support\Demo\DemoBrowsingWriter;
+use App\Support\Demo\DemoServicesSeeder;
 use App\Support\Demo\DemoStoreGenerator;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
@@ -30,11 +32,17 @@ use Illuminate\Support\Facades\Hash;
 
 /**
  * Tienda colombiana de prueba (CLAUDE.md §6) que entra por el mismo pipeline
- * de ingesta que un backfill real. No se permite en producción.
+ * de ingesta que un backfill real (`--tipo=tienda`, por defecto), o un negocio
+ * de servicios sin WooCommerce (`--tipo=servicios --vertical=health`,
+ * DemoServicesSeeder: leads, citas, cotizaciones, conversaciones, formularios y
+ * consentimiento). No se permite en producción.
  */
 final class SeedDemoCommand extends Command
 {
     protected $signature = 'igr:seed-demo
+        {--tipo=tienda : tienda (WooCommerce, «Pinturas Demo») o servicios (sin tienda)}
+        {--vertical=health : Con --tipo=servicios: health, professional, real_estate u otra vertical del asistente}
+        {--contacts=300 : Con --tipo=servicios: contactos de la demo}
         {--workspace= : ws_… existente; si falta, crea «Pinturas Demo» con demo@growth.test}
         {--customers=2000}
         {--orders=10000}
@@ -52,6 +60,15 @@ final class SeedDemoCommand extends Command
             $this->error('igr:seed-demo no se ejecuta en producción.');
 
             return self::FAILURE;
+        }
+        $tipo = (string) $this->option('tipo');
+        if (! in_array($tipo, ['tienda', 'servicios'], true)) {
+            $this->error('--tipo debe ser tienda o servicios.');
+
+            return self::FAILURE;
+        }
+        if ($tipo === 'servicios') {
+            return $this->services();
         }
 
         $workspace = $this->workspace();
@@ -128,6 +145,27 @@ final class SeedDemoCommand extends Command
 
             return $ok ? self::SUCCESS : self::FAILURE;
         });
+    }
+
+    /** Negocio de servicios de prueba (sin WooCommerce): no pasa por la ingesta, va directo a las tablas. */
+    private function services(): int
+    {
+        $vertical = (string) $this->option('vertical');
+        if (! Verticals::valid($vertical) || $vertical === Verticals::STORE) {
+            $this->error('--vertical debe ser una vertical de servicios: '.implode(', ', array_diff(Verticals::keys(), [Verticals::STORE])).'.');
+
+            return self::FAILURE;
+        }
+        $started = microtime(true);
+        $result = app(DemoServicesSeeder::class)->handle($vertical, max(20, (int) $this->option('contacts')), (int) $this->option('seed'));
+        $this->line('Usuario demo: demo@growth.test / demo-growth-2026 (activa la 2FA al entrar).');
+        if (! $result['created']) {
+            $this->info(sprintf('«%s» ya tenía datos: no se agregó nada.', $result['workspace']->name));
+        }
+        $this->info(sprintf('«%s» (%s): %d contactos, %d leads, %d citas, %d cotizaciones y %d conversaciones en %.1f s.', $result['workspace']->name, $result['workspace']->publicId(),
+            $result['contacts'], $result['leads'], $result['appointments'], $result['quotes'], $result['conversations'], microtime(true) - $started));
+
+        return self::SUCCESS;
     }
 
     private function workspace(): ?Workspace

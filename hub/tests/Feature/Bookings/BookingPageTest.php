@@ -159,7 +159,8 @@ it('la persona confirma, reprograma y cancela desde su enlace', function () {
     expect(str_contains($this->get("{$url}/calendario.ics")->getContent(), 'STATUS:CANCELLED'))->toBeTrue();
 
     $events = collect($this->chRows($this->ws, "SELECT event FROM events WHERE workspace_id = {workspace_id:UInt32} AND event LIKE 'appointment.%'"))->pluck('event')->sort()->values()->all();
-    expect($events)->toBe(['appointment.booked', 'appointment.cancelled', 'appointment.rescheduled']);
+    // v8: confirmar desde el enlace emite appointment.confirmed.
+    expect($events)->toBe(['appointment.booked', 'appointment.cancelled', 'appointment.confirmed', 'appointment.rescheduled']);
     $kinds = collect($this->fake->dispatched)->map(fn ($m) => $m->idempotencyKey)->map(fn ($k) => explode(':', (string) $k)[2])->all();
     expect($kinds)->toBe(['confirmation', 'rescheduled', 'cancelled']);
 });

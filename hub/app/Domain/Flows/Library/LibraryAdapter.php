@@ -57,10 +57,16 @@ final class LibraryAdapter
         return array_values(array_unique($keys));
     }
 
-    /** Las claves que se pueden instalar desde la biblioteca de plantillas de M08. */
+    /**
+     * Las claves que se instalan solas desde la biblioteca de plantillas de M08 (correo y SMS). Las de WhatsApp
+     * también están en la biblioteca, pero necesitan la aprobación de Meta: se instalan desde la galería y el flujo
+     * las sigue pidiendo hasta que hay una aprobada.
+     */
     public static function installable(string $key): bool
     {
-        return in_array($key, TemplateLibrary::keys(), true);
+        $entry = TemplateLibrary::entry($key);
+
+        return $entry !== null && $entry['channel'] !== 'whatsapp';
     }
 
     /**

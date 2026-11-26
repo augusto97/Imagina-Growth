@@ -193,7 +193,7 @@ final class BookingPageController
             }
             try {
                 $ok = match ($action) {
-                    'confirmar' => $change->mark($workspace, $appointment, 'confirmed')->status === 'confirmed' ? 'confirmada' : null,
+                    'confirmar' => $change->mark($workspace, $appointment, 'confirmed', 'contact')->status === 'confirmed' ? 'confirmada' : null,
                     'cancelar' => $change->cancel($workspace, $appointment, 'contact')->status === 'cancelled' ? 'cancelada' : null,
                     'reprogramar' => $change->reschedule($workspace, $appointment, self::instant($request->input('start')), 'contact')->status === 'rescheduled' ? 'reprogramada' : null,
                     default => null,

@@ -9,10 +9,10 @@ use App\Analytics\Semantic\MetricQueryRunner;
 use App\Analytics\Semantic\Period;
 use App\Domain\Agency\Queries\MoneyGenerated;
 use App\Domain\Intelligence\Insights\Money;
-use App\Domain\Intelligence\Insights\Support\Data;
 use App\Domain\Intelligence\Models\Insight;
 use App\Domain\Onboarding\Queries\OnboardingState;
 use App\Domain\Services\Leads\Assistant\TodayList;
+use App\Domain\Services\Queries\ServicesKpis;
 use App\Domain\Sites\Health\SiteHealth;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Strategies\Queries\StrategyCatalog;
@@ -375,57 +375,16 @@ final class HomeOverview
     private function servicesKpis(Workspace $workspace, Period $month, Period $series): array
     {
         $ws = $workspace->id;
-        $units = ['leads' => 'count', 'first_response_minutes' => 'minutes', 'appointments_booked' => 'count', 'appointments_attended' => 'count', 'close_rate' => 'percent', 'won_value' => 'money'];
-        $measure = function (Period $p) use ($ws): array {
-            $range = [$p->from->utc(), $p->to->utc()];
-            $leads = DB::table('leads')->where('workspace_id', $ws)->whereBetween('created_at', $range);
-            $seconds = array_values(array_map('floatval', (clone $leads)->whereNotNull('first_response_at')
-                ->selectRaw('TIMESTAMPDIFF(SECOND, created_at, first_response_at) AS s')->limit(5000)->pluck('s')->all()));
-            $won = DB::table('leads')->where('workspace_id', $ws)->whereBetween('won_at', $range);
-            $wonCount = (clone $won)->count();
-            $closed = $wonCount + DB::table('leads')->where('workspace_id', $ws)->whereBetween('lost_at', $range)->count();
-            $appointments = DB::table('appointments')->where('workspace_id', $ws);
-
-            return [
-                'leads' => (float) (clone $leads)->count(),
-                'first_response_minutes' => $seconds === [] ? null : round(max(0.0, Data::percentile($seconds, 0.5)) / 60, 1),
-                'appointments_booked' => (float) (clone $appointments)->whereBetween('created_at', $range)->count(),
-                'appointments_attended' => (float) (clone $appointments)->where('status', 'completed')->whereBetween('starts_at', $range)->count(),
-                'close_rate' => $closed > 0 ? round($wonCount / $closed * 100, 1) : null,
-                'won_value' => (float) $won->sum('value_ws'),
-            ];
-        };
-        $now = $measure($month);
-        $before = $month->compare !== null ? $measure($month->compare) : [];
+        // Las mismas consultas de los Resultados de servicios (ServicesKpis).
+        $now = ServicesKpis::measure($ws, $month);
+        $before = $month->compare !== null ? ServicesKpis::measure($ws, $month->compare) : [];
         $metrics = [];
         foreach ($now as $name => $value) {
             $metrics[$name] = self::kpi($value, $before[$name] ?? null);
         }
-        // Día local con el desfase de la zona (LATAM no usa horario de verano).
-        $offset = [(int) $series->offsetSeconds()];
-        $range = [$series->from->utc(), $series->to->utc()];
-        $rows = [];
-        foreach (DB::table('leads')->where('workspace_id', $ws)->whereBetween('created_at', $range)
-            ->selectRaw('DATE(DATE_ADD(created_at, INTERVAL ? SECOND)) AS d, COUNT(*) AS n', $offset)->groupBy('d')->get() as $r) {
-            $rows[(string) $r->d]['leads'] = (float) $r->n;
-        }
-        foreach (DB::table('leads')->where('workspace_id', $ws)->whereBetween('won_at', $range)
-            ->selectRaw('DATE(DATE_ADD(won_at, INTERVAL ? SECOND)) AS d, COALESCE(SUM(value_ws), 0) AS v', $offset)->groupBy('d')->get() as $r) {
-            $rows[(string) $r->d]['won_value'] = (float) $r->v;
-        }
-        $list = [];
-        foreach ($rows as $date => $values) {
-            $list[] = ['date' => $date] + $values;
-        }
-        $sources = [];
-        foreach (DB::table('leads')->where('workspace_id', $ws)->whereBetween('created_at', [$month->from->utc(), $month->to->utc()])
-            ->selectRaw('origin, COUNT(*) AS n')->groupBy('origin')->orderByDesc('n')->get() as $r) {
-            $origin = (string) ($r->origin ?? 'other');
-            $label = __('home.lead_origins.'.$origin);
-            $sources[] = ['origin' => $origin, 'label' => $label !== 'home.lead_origins.'.$origin ? $label : __('home.lead_origins.other'), 'count' => (int) $r->n];
-        }
 
-        return ['available' => true, 'units' => $units, 'metrics' => $metrics, 'series_keys' => ['leads', 'won_value'], 'series' => self::fill($series, $list, ['leads', 'won_value']), 'lead_sources' => $sources];
+        return ['available' => true, 'units' => ServicesKpis::UNITS, 'metrics' => $metrics, 'series_keys' => ['leads', 'won_value'],
+            'series' => self::fill($series, ServicesKpis::daily($ws, $series), ['leads', 'won_value']), 'lead_sources' => ServicesKpis::origins($ws, $month)];
     }
 
     /** @return array{value: float|null, previous: float|null, change_pct: float|null} */

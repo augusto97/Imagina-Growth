@@ -12,6 +12,8 @@ Route::post('templates', [TemplateController::class, 'store']);
 Route::post('templates/preview', [TemplateController::class, 'previewDraft']);
 Route::get('templates/variables', [TemplateController::class, 'variables']);
 Route::get('templates/library', [TemplateController::class, 'library']);
+// Galería por objetivo y vertical (rediseño v2 §11.5); se instala con POST templates/library/{key}.
+Route::get('templates/gallery', [TemplateController::class, 'gallery']);
 Route::get('templates/library/{key}/preview', [TemplateController::class, 'libraryPreview'])->where('key', '[a-z0-9_]+');
 Route::post('templates/library/{key}', [TemplateController::class, 'install'])->where('key', '[a-z0-9_]+');
 Route::get('templates/wa-sources', [TemplateController::class, 'waSources']);

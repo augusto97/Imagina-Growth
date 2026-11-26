@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/appointment.confirmed.json",
+  "title": "appointment.confirmed",
+  "description": "Generado en el hub (v8): la persona o el equipo confirmó la cita (botón «Confirmo», el enlace de la cita o el panel).",
+  "type": "object",
+  "required": [
+    "appointment_id",
+    "starts_at"
+  ],
+  "properties": {
+    "appointment_id": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "service_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 40
+    },
+    "starts_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "by": {
+      "enum": [
+        "contact",
+        "staff",
+        "system"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "appointment_id": "ap_01JE",
+      "service_id": "bs_01JE",
+      "starts_at": "2026-11-25T16:00:00Z",
+      "by": "contact"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "appointment_id": "ap_01JE"
+    },
+    {
+      "appointment_id": "ap_01JE",
+      "starts_at": "2026-11-25T16:00:00Z",
+      "by": "robot"
+    }
+  ]
+}

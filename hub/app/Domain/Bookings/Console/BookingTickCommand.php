@@ -60,7 +60,7 @@ final class BookingTickCommand extends Command
                     $missed = Appointment::query()->whereIn('status', Appointment::ACTIVE)
                         ->where('ends_at', '<=', $now->subMinutes((int) config('igr-bookings.no_show_after_min', 30)))->get();
                     foreach ($missed as $appointment) {
-                        $change->mark($workspace, $appointment, 'no_show');
+                        $change->mark($workspace, $appointment, 'no_show', 'system');
                         $noShows++;
                     }
                 }
