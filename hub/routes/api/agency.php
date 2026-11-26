@@ -41,6 +41,7 @@ Route::delete('agency/domains/{domain}', [AgencyBrandingController::class, 'dele
 
 Route::get('reports', [MonthlyReportController::class, 'index']);
 Route::post('reports/generate', [MonthlyReportController::class, 'generate'])->middleware('throttle:20,1');
+Route::get('reports/preview', [MonthlyReportController::class, 'preview'])->middleware('throttle:30,1');
 Route::get('reports/{report}', [MonthlyReportController::class, 'show']);
 Route::get('reports/{report}/pdf', [MonthlyReportController::class, 'pdf']);
 Route::post('reports/{report}/send', [MonthlyReportController::class, 'send'])->middleware('throttle:20,1');
