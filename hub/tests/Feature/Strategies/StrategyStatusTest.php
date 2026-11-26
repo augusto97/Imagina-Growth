@@ -20,18 +20,18 @@ beforeEach(function () {
     FakeAiGateway::install();
 });
 
-function catalogOf($test): array
+function strategyCatalog($test): array
 {
     return $test->actingAs($test->owner)->getJson($test->strategies())->assertOk()->json();
 }
 
-function statusOf($test, string $key): string
+function strategyStatus($test, string $key): string
 {
-    return (string) $test->strategyIn(catalogOf($test), $key)['status'];
+    return (string) $test->strategyIn(strategyCatalog($test), $key)['status'];
 }
 
 /** @param list<string> $deny */
-function denyModules(array $deny): void
+function strategyDenyModules(array $deny): void
 {
     app()->instance(Entitlements::class, new class($deny) implements Entitlements
     {
@@ -57,7 +57,7 @@ function denyModules(array $deny): void
 
 it('sin web conectada todo pide configurarse y enseña qué falta y dónde', function () {
     $this->strategyWorld(site: false, channels: []);
-    $cart = $this->strategyIn(catalogOf($this), 'abandoned_cart');
+    $cart = $this->strategyIn(strategyCatalog($this), 'abandoned_cart');
     $requirements = collect($cart['requirements'])->keyBy('key');
     expect($cart['status'])->toBe('needs_setup')
         ->and($requirements['store']['met'])->toBeFalse()
@@ -72,8 +72,8 @@ it('sin web conectada todo pide configurarse y enseña qué falta y dónde', fun
 
 it('fuera del plan muestra el plan que la incluye y no se activa (402)', function () {
     $this->strategyWorld();
-    denyModules(['loyalty']);
-    $loyalty = $this->strategyIn(catalogOf($this), 'loyalty_points');
+    strategyDenyModules(['loyalty']);
+    $loyalty = $this->strategyIn(strategyCatalog($this), 'loyalty_points');
     expect($loyalty['status'])->toBe('not_in_plan')
         ->and(collect($loyalty['plans'])->pluck('id')->all())->toContain('tienda_crece')
         ->and(collect($loyalty['requirements'])->firstWhere('key', 'module')['met'])->toBeFalse();
@@ -86,15 +86,15 @@ it('activa con un problema queda en atención: canal caído o plantilla rechazad
     $this->waTemplate('wa_abandoned_cart_1');
     $this->waTemplate('wa_abandoned_cart_coupon');
     $this->actingAs($this->owner)->postJson($this->strategies('/abandoned_cart/activate'))->assertOk();
-    expect(statusOf($this, 'abandoned_cart'))->toBe('active');
+    expect(strategyStatus($this, 'abandoned_cart'))->toBe('active');
 
     DB::table('wa_templates')->where('workspace_id', $this->ws->id)->where('name', 'wa_abandoned_cart_coupon')->update(['status' => 'REJECTED']);
-    $cart = $this->strategyIn(catalogOf($this), 'abandoned_cart');
+    $cart = $this->strategyIn(strategyCatalog($this), 'abandoned_cart');
     expect($cart['status'])->toBe('attention')->and(collect($cart['problems'])->pluck('code')->all())->toBe(['template_rejected']);
 
     DB::table('wa_templates')->where('workspace_id', $this->ws->id)->update(['status' => 'APPROVED']);
     DB::table('channel_accounts')->where('workspace_id', $this->ws->id)->where('channel', 'whatsapp')->update(['status' => 'disconnected']);
-    $cart = $this->strategyIn(catalogOf($this), 'abandoned_cart');
+    $cart = $this->strategyIn(strategyCatalog($this), 'abandoned_cart');
     expect($cart['status'])->toBe('attention')->and($cart['problems'][0]['code'])->toBe('channel_down')
         ->and($cart['problems'][0]['message'])->toContain('desconectado');
     // Activar otra vez no duplica nada: ya está prendida.
@@ -105,9 +105,9 @@ it('activa con un problema queda en atención: canal caído o plantilla rechazad
 it('un flujo de la biblioteca creado a mano también cuenta: la estrategia lo reconoce y no crea otro', function () {
     $this->strategyWorld();
     $this->actingAs($this->owner)->postJson("/api/w/{$this->ws->publicId()}/flows/library/second_purchase", ['activate' => true])->assertCreated();
-    expect(statusOf($this, 'second_purchase'))->toBe('active');
+    expect(strategyStatus($this, 'second_purchase'))->toBe('active');
     $this->actingAs($this->owner)->postJson("/api/w/{$this->ws->publicId()}/flows/".$this->inWs(fn () => Flow::query()->first())->publicId().'/pause')->assertOk();
-    expect(statusOf($this, 'second_purchase'))->toBe('paused');
+    expect(strategyStatus($this, 'second_purchase'))->toBe('paused');
     $this->actingAs($this->owner)->postJson($this->strategies('/second_purchase/activate'))->assertOk();
     expect($this->inWs(fn () => Flow::query()->where('template_key', 'second_purchase')->where('status', 'active')->count()))->toBe(1)
         ->and($this->inWs(fn () => Flow::query()->count()))->toBe(1);
@@ -129,7 +129,7 @@ it('calcula el potencial con los datos reales: carritos, contraentregas y client
     DB::table('contacts')->insert(['id' => strtoupper((string) Str::ulid()), 'workspace_id' => $this->ws->id, 'orders_count' => 1, 'aov_ws' => 80000,
         'first_order_at' => now()->subDays(100), 'last_order_at' => now()->subDays(100), 'created_at' => now(), 'updated_at' => now()]);
 
-    $catalog = catalogOf($this);
+    $catalog = strategyCatalog($this);
     $cart = $this->strategyIn($catalog, 'abandoned_cart')['potential'];
     expect($cart['count'])->toBe(3)->and($cart['value'])->toBe('600000.00')
         ->and($cart['rate'])->toBe(0.05)->and($cart['estimated'])->toBe('30000.00')
@@ -153,7 +153,7 @@ it('el resultado del mes sale de MoneyGenerated: el dinero de su flujo, sus meta
 
     // La ingesta mueve la versión de la caché (el último evento del sitio).
     DB::table('sites')->where('id', $this->site->id)->update(['last_event_at' => now()->addMinutes(2)]);
-    $cart = $this->strategyIn(catalogOf($this), 'abandoned_cart');
+    $cart = $this->strategyIn(strategyCatalog($this), 'abandoned_cart');
     expect($cart['result'])->toMatchArray(['revenue' => '282000.00', 'orders' => 1, 'messages' => 1, 'conversions' => ['kind' => 'goals', 'count' => 0]]);
 });
 
@@ -185,7 +185,7 @@ it('no mezcla espacios de trabajo', function () {
 
     $this->ws = $mine;
     $this->owner = $owner;
-    $catalog = catalogOf($this);
+    $catalog = strategyCatalog($this);
     expect($this->strategyIn($catalog, 'abandoned_cart')['status'])->toBe('available')
         ->and($this->strategyIn($catalog, 'ai_sales_agent')['status'])->toBe('needs_setup');
     $this->actingAs($owner)->getJson("/api/w/{$other->publicId()}/strategies")->assertNotFound();

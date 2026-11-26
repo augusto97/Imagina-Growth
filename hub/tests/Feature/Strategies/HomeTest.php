@@ -20,12 +20,12 @@ beforeEach(function () {
     $this->travelTo(CarbonImmutable::parse('2026-11-20 10:00', 'America/Bogota'));
 });
 
-function home($test): array
+function strategyHome($test): array
 {
     return $test->actingAs($test->owner)->getJson("/api/w/{$test->ws->publicId()}/home")->assertOk()->json();
 }
 
-function paidOrder($test, string $amount, ?string $flowId = null, ?CarbonImmutable $at = null): void
+function strategyPaidOrder($test, string $amount, ?string $flowId = null, ?CarbonImmutable $at = null): void
 {
     $at ??= now();
     DB::table('orders')->insert(['id' => strtoupper((string) Str::ulid()), 'workspace_id' => $test->ws->id, 'site_id' => $test->site->id, 'external_id' => (string) Str::uuid(),
@@ -35,7 +35,7 @@ function paidOrder($test, string $amount, ?string $flowId = null, ?CarbonImmutab
 
 it('un negocio nuevo: la tarjeta de progreso, conectar la web primero y nada de dinero todavía', function () {
     $this->strategyWorld(site: false, channels: []);
-    $res = home($this);
+    $res = strategyHome($this);
     expect($res['setup'])->toMatchArray(['status' => 'not_started', 'visible' => true, 'current_step' => 'business', 'completed' => 0, 'total' => 5])
         ->and($res['money']['total'])->toBe('0.00')->and($res['money']['low'])->toBeTrue()
         ->and($res['today'][0])->toMatchArray(['kind' => 'connect_site', 'to' => 'sitios?conectar=1', 'title' => 'Conecta tu web'])
@@ -49,12 +49,12 @@ it('el dinero generado del mes y del anterior con el desglose por estrategia', f
     $this->strategyWorld();
     $this->actingAs($this->owner)->postJson($this->strategies('/abandoned_cart/activate'))->assertOk();
     $flow = $this->inWs(fn () => Flow::query()->where('template_key', 'abandoned_cart')->value('id'));
-    paidOrder($this, '300000.00', $flow);
-    paidOrder($this, '100000.00', $flow, CarbonImmutable::parse('2026-10-15 12:00', 'America/Bogota'));
-    paidOrder($this, '700000.00');  // venta del negocio que no generó la plataforma
+    strategyPaidOrder($this, '300000.00', $flow);
+    strategyPaidOrder($this, '100000.00', $flow, CarbonImmutable::parse('2026-10-15 12:00', 'America/Bogota'));
+    strategyPaidOrder($this, '700000.00');  // venta del negocio que no generó la plataforma
     DB::table('sites')->where('id', $this->site->id)->update(['last_event_at' => now()->addMinutes(2)]);
 
-    $res = home($this);
+    $res = strategyHome($this);
     expect($res['money'])->toMatchArray(['total' => '300000.00', 'orders' => 1, 'store_total' => '1000000.00', 'share_pct' => 30.0, 'change_pct' => 200.0, 'low' => false])
         ->and($res['money']['previous']['total'])->toBe('100000.00')
         ->and($res['money']['breakdown'])->toBe([['strategy' => 'abandoned_cart', 'bucket' => 'other_flows', 'revenue' => '300000.00', 'orders' => 1, 'name' => 'Recupera carritos abandonados']])
@@ -75,7 +75,7 @@ it('sin dinero generado muestra el potencial con datos reales y lo sugiere para 
             'status' => 'abandoned', 'subtotal' => 700000, 'subtotal_ws' => 700000, 'abandoned_at' => now()->subDays(2), 'last_activity_at' => now()->subDays(2),
             'created_at' => now(), 'updated_at' => now()]);
     }
-    $res = home($this);
+    $res = strategyHome($this);
     expect($res['potential'])->toMatchArray(['strategy' => 'abandoned_cart', 'count' => 6, 'value' => '4200000.00', 'status' => 'available'])
         ->and($res['potential']['summary'])->toContain('6 carritos abandonados por $4.200.000');
     $suggest = collect($res['today'])->firstWhere('kind', 'activate_strategy');
@@ -97,7 +97,7 @@ it('«Para hoy» prioriza estrategias con problemas y conversaciones esperando, 
             'title' => 'Hallazgo '.$severity, 'facts' => json_encode([]), 'estimated_impact_ws' => 100000 * ($i + 1), 'status' => 'new', 'created_at' => now(), 'updated_at' => now()]);
     }
 
-    $today = home($this)['today'];
+    $today = strategyHome($this)['today'];
     expect($today)->toHaveCount(5)
         // El correo caído afecta al carrito abandonado y a los avisos de stock, que usan ese canal.
         ->and(array_column($today, 'kind'))->toBe(['strategy_attention', 'strategy_attention', 'insight', 'reply_conversations', 'insight'])
@@ -115,7 +115,7 @@ it('un negocio de servicios ve sus contactos y clientes ganados como KPI', funct
     DB::table('leads')->insert(['id' => strtoupper((string) Str::ulid()), 'workspace_id' => $this->ws->id, 'contact_id' => strtoupper((string) Str::ulid()),
         'origin' => 'form', 'stage' => 'won', 'won_at' => now(), 'value_ws' => '1500000.00', 'created_at' => now()->subDay(), 'updated_at' => now()]);
 
-    $res = home($this);
+    $res = strategyHome($this);
     expect($res['business_type'])->toBe('services')
         ->and($res['kpis']['kind'])->toBe('services')
         ->and($res['kpis']['metrics']['won_value']['value'])->toEqual(1500000)
@@ -126,7 +126,7 @@ it('un negocio de servicios ve sus contactos y clientes ganados como KPI', funct
 
 it('la caché se invalida al activar o pausar y no se mezcla entre espacios de trabajo', function () {
     $this->strategyWorld();
-    $active = fn () => collect(home($this)['strategies']['active'])->pluck('key')->all();
+    $active = fn () => collect(strategyHome($this)['strategies']['active'])->pluck('key')->all();
     expect($active())->not->toContain('abandoned_cart');
     $this->actingAs($this->owner)->postJson($this->strategies('/abandoned_cart/activate'))->assertOk();
     expect($active())->toContain('abandoned_cart');
