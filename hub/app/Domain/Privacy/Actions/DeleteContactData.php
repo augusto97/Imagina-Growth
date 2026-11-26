@@ -98,6 +98,11 @@ final class DeleteContactData
             $counts['survey_requests'] = $ws('survey_requests')->whereIn('contact_id', $ids)->delete();
             $counts['product_watches'] = $ws('product_watches')->whereIn('contact_id', $ids)->delete();
             $counts['widget_captures'] = $ws('widget_captures')->whereIn('contact_id', $ids)->delete();
+            // Captación sin tienda: envíos de las páginas de captura (con lo que escribió, cifrado) y chats del QR.
+            $counts['landing_submissions'] = $ws('landing_submissions')->whereIn('contact_id', $ids)->delete();
+            $counts['whatsapp_link_hits'] = $ws('whatsapp_link_hits')->whereIn('contact_id', $ids)->delete();
+            // Leads de anuncios (Meta y Google): lo que respondió en el formulario.
+            $counts['lead_ad_leads'] = $ws('lead_ad_leads')->whereIn('contact_id', $ids)->delete();
             $ws('tracked_links')->whereIn('contact_id', $ids)->delete();
             // Fase 5: leads (con su historia y notas), citas y cotizaciones; entregas de webhooks.
             $leads = $ws('leads')->whereIn('contact_id', $ids)->pluck('id')->all();

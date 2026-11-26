@@ -29,7 +29,9 @@ use Illuminate\Support\Facades\Log;
  * un identificador fuerte pasa a ese contacto sin fusionar (dispositivo
  * compartido).
  *
- * Debe ejecutarse con el espacio de trabajo activo (CurrentWorkspace).
+ * Debe ejecutarse con el espacio de trabajo activo (CurrentWorkspace). Sin sitio (páginas de captura del hub, leads
+ * de anuncios) no hay `customer_ref` (es por sitio): solo correo, teléfono y navegador, con las identidades sin
+ * `site_id`.
  */
 final class IdentityResolver
 {
@@ -41,7 +43,7 @@ final class IdentityResolver
      * @return array{contact_id: string|null, created: bool, merged: bool, identity_map: list<string>}
      *                                                                                                 identity_map: anonymous_id que quedaron apuntando a contact_id (para la tabla identity_map de ClickHouse)
      */
-    public function resolve(Workspace $workspace, Site $site, IdentityInput $in, CarbonInterface $seenAt): array
+    public function resolve(Workspace $workspace, ?Site $site, IdentityInput $in, CarbonInterface $seenAt): array
     {
         $none = ['contact_id' => null, 'created' => false, 'merged' => false, 'identity_map' => []];
         $identifiers = $this->identifiers($workspace, $site, $in);
@@ -81,7 +83,7 @@ final class IdentityResolver
 
         // Una cuenta nueva del sitio no se pega al contacto de otra cuenta del mismo sitio
         // (p. ej. dos cuentas que comparten el teléfono de la casa).
-        if ($in->customerRef !== null && ! $existing->has('customer_ref|'.$site->id.':'.$in->customerRef)) {
+        if ($site !== null && $in->customerRef !== null && ! $existing->has('customer_ref|'.$site->id.':'.$in->customerRef)) {
             $strongContacts = array_values(array_filter($strongContacts, fn (string $id) => ! $this->hasOtherAccount($id, $site, $in->customerRef)));
         }
 
@@ -139,7 +141,7 @@ final class IdentityResolver
                     'contact_id' => $contact->id,
                     'type' => $i['type'],
                     'value' => $i['value'],
-                    'site_id' => $site->id,
+                    'site_id' => $site?->id,
                     'first_seen_at' => $seenAt,
                     'last_seen_at' => $seenAt,
                 ]);
@@ -174,7 +176,7 @@ final class IdentityResolver
      *
      * @return array{contact_id: string|null, created: bool, merged: bool, identity_map: list<string>}|null
      */
-    private function linkFromMessage(Workspace $workspace, Site $site, string $anonymousId, string $code, CarbonInterface $seenAt): ?array
+    private function linkFromMessage(Workspace $workspace, ?Site $site, string $anonymousId, string $code, CarbonInterface $seenAt): ?array
     {
         if (preg_match('/^[A-Za-z0-9_-]{6,32}$/', $code) !== 1) {
             return null;
@@ -186,7 +188,7 @@ final class IdentityResolver
         }
         $created = ContactIdentity::query()->firstOrCreate(
             ['workspace_id' => $workspace->id, 'type' => 'anonymous_id', 'value' => $anonymousId],
-            ['contact_id' => $owner, 'site_id' => $site->id, 'first_seen_at' => $seenAt, 'last_seen_at' => $seenAt],
+            ['contact_id' => $owner, 'site_id' => $site?->id, 'first_seen_at' => $seenAt, 'last_seen_at' => $seenAt],
         );
         if ($created->contact_id !== $owner) {
             return null;
@@ -255,10 +257,10 @@ final class IdentityResolver
     }
 
     /** @return list<array{type: string, value: string}> */
-    private function identifiers(Workspace $workspace, Site $site, IdentityInput $in): array
+    private function identifiers(Workspace $workspace, ?Site $site, IdentityInput $in): array
     {
         $out = [];
-        if ($in->customerRef !== null) {
+        if ($site !== null && $in->customerRef !== null) {
             // customer_ref es por sitio: wc:77 de dos tiendas son personas distintas.
             $out[] = ['type' => 'customer_ref', 'value' => $site->id.':'.$in->customerRef];
         }

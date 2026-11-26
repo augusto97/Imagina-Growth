@@ -53,7 +53,7 @@ it('el sobre rechaza campos desconocidos, versión distinta e IDs mal formados',
     data_set($example, $path, $value);
     expect(app(SchemaRegistry::class)->validateEnvelope(json_decode(json_encode($example))))->not->toBeNull();
 })->with([
-    ['schema_version', 8],
+    ['schema_version', 9],
     ['event_id', 'no-es-uuid'],
     ['source.site_id', 'st_123'],
     ['source.type', 'otro'],
@@ -70,3 +70,16 @@ it('conoce el catálogo de eventos de eventos.md §4', function () {
         ->and($registry->isKnownEvent('order.inventado'))->toBeFalse()
         ->and(count($registry->knownEvents()))->toBeGreaterThanOrEqual(42);
 });
+
+it('v8: lead.created acepta los orígenes de la captación sin tienda y un sobre v7 sigue valiendo', function (string $origin) {
+    $registry = app(SchemaRegistry::class);
+    $props = (object) ['lead_id' => 'ld_01JG', 'origin' => $origin, 'service' => null, 'score' => 20, 'temperature' => 'cold',
+        'channel' => null, 'form_id' => null, 'value' => null, 'currency' => null];
+    expect($registry->validateProperties('lead.created', $props))->toBeNull();
+
+    foreach ([7, 8] as $version) {
+        $example = json_decode(file_get_contents(resource_path('schemas/events/_envelope.example.json')), true);
+        $example['schema_version'] = $version;
+        expect($registry->validateEnvelope(json_decode(json_encode($example))))->toBeNull("el sobre v{$version} debe valer");
+    }
+})->with(['landing', 'meta_lead_ads', 'google_lead_form']);

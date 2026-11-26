@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Segments\Definition;
 
+use App\Domain\Services\Leads\Models\Lead;
+
 /**
  * Catálogo de campos que puede usar el constructor (modulos.md M04). El tipo
  * decide los operadores. La columna es la de `contacts`; nunca viene del cliente.
@@ -145,7 +147,7 @@ final class Fields
         'temperature' => ['type' => 'enum', 'operators' => ['eq', 'in', 'not_in'], 'column' => 'temperature', 'values' => ['cold', 'warm', 'hot']],
         'score' => ['type' => 'number', 'operators' => self::LOYALTY_NUMBER_OPS, 'column' => 'score'],
         'service' => ['type' => 'string', 'operators' => ['eq', 'contains', 'starts_with', 'in'], 'column' => 'service'],
-        'origin' => ['type' => 'enum', 'operators' => ['eq', 'in', 'not_in'], 'column' => 'origin', 'values' => ['form', 'whatsapp', 'messenger', 'instagram', 'quote', 'booking', 'manual', 'api']],
+        'origin' => ['type' => 'enum', 'operators' => ['eq', 'in', 'not_in'], 'column' => 'origin', 'values' => Lead::ORIGINS],
         'source' => ['type' => 'string', 'operators' => ['eq', 'in', 'not_in'], 'column' => 'source->channel'],
         'value' => ['type' => 'number', 'operators' => self::LOYALTY_NUMBER_OPS, 'column' => 'value_ws'],
         'created_at' => ['type' => 'date', 'operators' => ['before', 'after', 'between', 'within_last_days', 'more_than_days_ago'], 'column' => 'created_at'],

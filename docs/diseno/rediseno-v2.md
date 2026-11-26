@@ -242,6 +242,10 @@ Un espacio de trabajo puede ser «tienda + servicios» (p. ej. una ferretería q
 - **Página de captura y QR:** una página propia en el dominio de la plataforma (o el del cliente) con un formulario y
   las casillas de consentimiento, para negocios sin buena web o para el local físico: un QR para imprimir que abre la
   página o un chat de WhatsApp con un mensaje de alta.
+- **Estado (hub):** páginas de captura, QR y chats de WhatsApp con atribución en modulos.md M12 («Páginas de captura y
+  QR»); leads de Meta Lead Ads y de Google Ads en M18 («Leads de anuncios»); clics que valen en M06; orígenes `landing`,
+  `meta_lead_ads` y `google_lead_form` de `lead.created` en el contrato v8 (eventos.md §8). Las pantallas del panel quedan
+  para el lote del sistema visual (tipos y hooks en `hub/resources/js/features/capture`).
 
 ### 11.4 Biblioteca ampliada (flujos 21 en adelante, claves estables)
 

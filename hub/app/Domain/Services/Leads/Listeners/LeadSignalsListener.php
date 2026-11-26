@@ -26,8 +26,8 @@ use Illuminate\Support\Facades\Cache;
  *   referencia = event_id, servicio y presupuesto de los campos mapeados, fuente
  *   del contexto del evento y el mensaje para la calificación con IA).
  * - `page.viewed` de una página de precios o servicios y visitas en días
- *   distintos, y `cta.clicked` de WhatsApp o llamada → señales del puntaje del
- *   lead abierto del contacto.
+ *   distintos, y `cta.clicked` de WhatsApp, llamada o correo → señales del
+ *   puntaje del lead abierto del contacto.
  *
  * La importación histórica no publica EventIngested; los eventos del hub
  * (`lead.*`) se ignoran.
@@ -161,7 +161,8 @@ final class LeadSignalsListener
         $changed = false;
         if ($event->event === 'cta.clicked') {
             $kind = $event->envelope['properties']['kind'] ?? null;
-            if ($kind === 'whatsapp' || $kind === 'phone') {
+            // Los clics que valen (rediseño v2 §11.3): WhatsApp, llamada o correo suman la señal de contacto directo.
+            if (in_array($kind, LeadScorer::CONTACT_CLICKS, true)) {
                 $changed = $this->scorer->signal($lead, $settings, 'whatsapp_click', ['kind' => $kind]);
             }
         } else {

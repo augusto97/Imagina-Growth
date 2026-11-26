@@ -420,3 +420,43 @@ La base es la migración `2026_11_23_000100_create_phase5_tables` (más `2026_11
   el `.env`. La fila `_generation` no es un ajuste: cambia cuando algo que los procesos guardan en memoria cambió (los
   festivos) para que lo vuelvan a leer sin reiniciar. Las tarifas de WhatsApp (`wa_rates`) y los festivos
   (`holiday_overrides`) también se editan ahí, cada uno en su tabla.
+
+## 20. Captación sin tienda (rediseño v2 §11.3)
+
+Migraciones `2026_11_28_500100_create_capture_pages_tables` (páginas de captura, QR y chats de WhatsApp con atribución;
+modulos.md M12 «Páginas de captura y QR») y `2026_11_28_500200_create_lead_ad_tables` (leads de anuncios, M18):
+
+- `landing_pages` (prefijo `lp`): id, workspace_id, site_id? (el sitio con el que se registran los contactos; sin él,
+  el primero conectado o ninguno), slug (**único en toda la plataforma**: la página vive en `/p/{slug}`), name (interno),
+  status (`draft`, `published`, `archived`), content (JSON: `title`, `body`, `logo_key`/`image_key` de las imágenes
+  subidas o `logo_url`/`image_url` https, `color`, `button`, `success_title`, `success_message`, `redirect_url` https y
+  `whatsapp` `{enabled, label, message}`), fields (JSON: `[{key, label, type, required, options?, placeholder?}]` con
+  `name`, `email`, `phone`, `message`, `service` y propios `custom_*`), consent_channels (JSON: los canales con casilla),
+  settings (JSON: `indexable`, falso por defecto), wa_link_id? (su botón de WhatsApp), published_at?, created_by?,
+  timestamps. Índice (workspace_id, status).
+- `landing_submissions` (prefijo `ls`): id, workspace_id, page_id, contact_id?, lead_id?, via (`qr` o `link`), source
+  (JSON sin datos personales: canal, UTM, `referral_code`, identificadores de clic, página, formulario), data (**cifrado**:
+  lo que escribió la persona), consents (JSON: los canales que marcó), was_known, created_at. Índices (workspace_id,
+  page_id, created_at) y (workspace_id, contact_id). La supresión los borra y el acceso los exporta.
+- `whatsapp_links` (prefijo `wl`): id, workspace_id, page_id? (el botón de una página), channel_account_id? (sin él, el
+  número de WhatsApp por defecto), kind (`qr` o `page`), name, code (7 caracteres, único en la plataforma: `Q…` para el QR
+  impreso y `P…` para el botón de una página; va en el mensaje como «ref: CÓDIGO»), message (el mensaje de alta), status
+  (`active`, `archived`), settings (JSON: `create_lead` y `ask_consent`, sí por defecto, y `service`), created_by?,
+  timestamps.
+- `whatsapp_link_hits`: id, workspace_id, link_id, contact_id, message_id, was_new, lead_id?, consent_asked_at?,
+  consent_granted_at?, created_at; único por (link_id, message_id). Un chat que llegó con el código.
+- `capture_daily`: workspace_id, subject_type (`page` o `wa_link`), subject_id, day (UTC), via (`qr` o `link`), views,
+  visitors, submissions; clave primaria compuesta. Sin datos personales: el visitante único se reconoce con un hash de
+  la IP y del día que vive un día en la caché (la IP nunca se guarda).
+- `lead_ad_sources` (prefijo `las`, `2026_11_28_500200`): id, workspace_id, platform (`meta`, `google`), external_id?
+  (Meta: el ID de la página), name?, token? (Google: `glf_…` de la URL del webhook, único), secret? (**cifrado**: el token
+  de la página o la clave de Google; nunca sale en la API), status (`active`, `error`, `disabled`), last_error?, settings
+  (JSON: `forms` → por formulario `{name, consent: [{key, channel, text}], service_key}`), oauth_connection_id?,
+  last_lead_at?, test_received_at?, timestamps. Índices (workspace_id, platform) y (platform, external_id).
+- `lead_ad_leads` (prefijo `lal`, `2026_11_28_500200`): id, workspace_id, source_id, platform, external_id (leadgen_id o
+  lead_id), form_id?, campaign_id?, adset_id? (conjunto o grupo), ad_id? (anuncio o creatividad), is_test, status
+  (`received`, `processed`, `failed`, `test`), error?, attempts, contact_id?, lead_id?, data (**cifrado**: respuestas sin
+  los datos sensibles y los nombres de la campaña, el conjunto y el anuncio), consents (JSON), received_at, processed_at?,
+  timestamps. Único por (workspace_id, platform, external_id). La supresión los borra y el acceso los exporta.
+- Imágenes de las páginas: disco `igr-capture.disk` (`capture/{espacio}/{página}/{logo|image}-{al azar}.{jpg|png}`),
+  vueltas a codificar con GD (sin metadatos).

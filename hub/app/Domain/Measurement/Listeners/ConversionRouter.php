@@ -30,6 +30,8 @@ use Illuminate\Support\Facades\Cache;
  *    que usa el píxel del navegador: así se deduplica.
  *  - Un mismo evento no se encola dos veces para el mismo destino y endpoint
  *    aunque la ingesta lo reprocese.
+ *  - `cta.clicked` (clics a WhatsApp, llamada o correo) sale como `Contact`
+ *    solo si el destino lo encendió (apagado por defecto) y solo esos tipos.
  */
 final class ConversionRouter
 {
@@ -41,7 +43,12 @@ final class ConversionRouter
 
     public function handle(EventIngested $event): void
     {
-        if (! isset(config('igr-measurement.events')[$event->event])) {
+        $map = config('igr-measurement.events')[$event->event] ?? null;
+        if (! is_array($map)) {
+            return;
+        }
+        // Un evento con `kinds` (los clics que valen) solo sale para esos tipos: WhatsApp, llamada o correo.
+        if (isset($map['kinds']) && ! in_array($event->envelope['properties']['kind'] ?? null, (array) $map['kinds'], true)) {
             return;
         }
         $sourceType = $event->envelope['source']['type'] ?? null;

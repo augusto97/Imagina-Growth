@@ -54,8 +54,11 @@ class Lead extends Model
 
     public const OPEN_STAGES_EXCLUDED = ['won', 'lost'];
 
-    /** De dónde entró el lead (`lead.created.origin`, eventos.md §4.6; Messenger e Instagram desde la v7). */
-    public const ORIGINS = ['form', 'whatsapp', 'messenger', 'instagram', 'quote', 'booking', 'manual', 'api'];
+    /**
+     * De dónde entró el lead (`lead.created.origin`, eventos.md §4.6; Messenger e Instagram desde la v7; la página de
+     * captura del hub y los formularios de anuncios de Meta y de Google desde la v8).
+     */
+    public const ORIGINS = ['form', 'whatsapp', 'messenger', 'instagram', 'quote', 'booking', 'manual', 'api', 'landing', 'meta_lead_ads', 'google_lead_form'];
 
     protected $hidden = ['brief', 'qualification'];
 

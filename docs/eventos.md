@@ -1,7 +1,7 @@
 # Contrato de eventos y datos que se recogen
 
 > Fuente de verdad del dato. El hub valida cada evento contra su JSON Schema en `hub/resources/schemas/events/<evento>.json`. El connector y el tracker tienen pruebas de contrato contra esos mismos esquemas.
-> `schema_version` actual: **7** (el hub acepta de la 1 a la 7; ver §8)
+> `schema_version` actual: **8** (el hub acepta de la 1 a la 8; ver §8)
 
 ---
 
@@ -30,7 +30,7 @@ Para orientar bien las estrategias, cada espacio de trabajo debe responder estas
 - **Productos:** más vistos frente a más vendidos, abandono por producto, productos de entrada, combinaciones, inventario contra velocidad de venta.
 - **Búsquedas:** términos más buscados, búsquedas sin resultados (con Imagina Search) y conversión por búsqueda.
 - **Canales:** tráfico, conversión, LTV por canal de adquisición, CAC y ROAS (con el gasto importado), asistentes de IA como fuente.
-- **Sitios de servicios:** leads por fuente, conversión por formulario, clics a WhatsApp o llamada, tiempo de respuesta y cierre por fuente.
+- **Sitios de servicios:** leads por fuente, conversión por formulario, clics a WhatsApp, llamada o correo, tiempo de respuesta y cierre por fuente.
 - **Salud técnica:** cambios en el sitio (plugins, tema, versiones) correlacionados con caídas de conversión, y Web Vitals si Imagina Turbo está activo.
 - **Mensajería:** rendimiento por flujo y campaña, costo por mensaje e ingreso por mensaje.
 
@@ -169,7 +169,7 @@ Convenciones: `objeto.acción` en inglés y en pasado. Montos en la moneda del p
 
 | Evento | Origen | Propiedades |
 |---|---|---|
-| `form.submitted` | CF7, WPForms, Gravity, Fluent Forms, Elementor Forms, JetFormBuilder, Formidable, formularios del hub | `form_plugin`, `form_id`, `form_name`, `fields` (mapeados: `email`, `phone`, `first_name`, `last_name`, `company`, `city`, `message`, `service`, `budget`), `page_path`, `consents{}` |
+| `form.submitted` | CF7, WPForms, Gravity, Fluent Forms, Elementor Forms, JetFormBuilder, Formidable, formularios del hub | `form_plugin`, `form_id`, `form_name`, `fields` (mapeados: `email`, `phone`, `first_name`, `last_name`, `company`, `city`, `message`, `service`, `budget`), `page_path`, `consents{}`. Las **páginas de captura del hub** (`/p/{slug}`, M12) lo emiten desde el hub con `source.type = hub`, `form_plugin = igr_landing`, `form_id = lp_…` y `consents` con `email_marketing`, `whatsapp_marketing` y `sms_marketing`: dispara flujos, segmentos y webhooks como cualquier formulario, pero no crea un lead de origen `form` (la página ya crea el suyo con origen `landing`) ni sale como conversión a anuncios |
 | `lead.created` | hub, a partir de `form.submitted` o de un chat entrante (WhatsApp, Messenger o Instagram) con intención de compra | `lead_source`, `score` |
 | `appointment.booked` / `.rescheduled` / `.cancelled` / `.completed` / `.no_show` | agenda del hub | `appointment_id`, `service_id`, `starts_at` |
 | `quote.requested` | cotizador del hub | `quote_id`, `items`, `estimated_total` |
@@ -201,7 +201,7 @@ Los de la Fase 3 (v4):
 - `product_watch.created` y `product_watch.notified`: `product_id` y `kind`.
 
 Los de la Fase 5 (v5), solo del hub (ningún sitio los puede enviar):
-- `lead.created`: `lead_id`, `origin` (form, whatsapp, messenger, instagram, quote, booking, manual o api; `messenger` e `instagram` desde la v7), `service`, `score`, `temperature` (cold, warm o hot), `channel` y `form_id`.
+- `lead.created`: `lead_id`, `origin` (form, whatsapp, messenger, instagram, quote, booking, manual, api, landing, meta_lead_ads o google_lead_form; `messenger` e `instagram` desde la v7; `landing`, `meta_lead_ads` y `google_lead_form` desde la v8), `service`, `score`, `temperature` (cold, warm o hot), `channel` y `form_id` (`landing:lp_…`, `meta:<id del formulario>` o `google:<id del formulario>` en los orígenes de la v8).
 - `lead.stage_changed`: `lead_id`, `from`, `to` y `by` (user, system, ai o api).
 - `lead.won`: `lead_id`, `value`, `currency`, `days_to_win` y `service`. Es la **conversión offline** que va a Meta y a Google (M18).
 - `lead.lost`: `lead_id` y `reason`.
@@ -320,6 +320,7 @@ Según la especificación de Meta y Google, se aplica SHA-256 en minúsculas y s
 | 5 | 2026-11-23 | Fase 5. Esquemas de los eventos del hub de servicios: `lead.created`, `lead.stage_changed`, `lead.won`, `lead.lost`, `appointment.booked`, `appointment.rescheduled`, `appointment.cancelled`, `appointment.completed`, `appointment.no_show` y `quote.requested`, más `page.vitals` (métricas web de Imagina Turbo por la API pública, M19; se agregó durante la Fase 5, antes de cerrarla, por eso no abre una versión 6). Los sitios no envían nada nuevo: el connector y el tracker siguen en la 4, que sigue siendo válida. |
 | 6 | 2026-11-25 | Captura temprana del checkout (auditoría F4): `checkout.contact_captured` pasa a ser un evento del plugin, firmado por `/v1/s`, con el correo o el teléfono en `identity` y los opcionales `cart_token` y `checkout`. Ya no viaja cifrado desde el navegador (`encrypted` queda obsoleto). El connector envía la 6 en todos sus eventos; el tracker sigue en la 4. Un evento v5 o anterior sigue siendo válido. |
 | 7 | 2026-11-26 | Leads desde Messenger e Instagram (lote 4): `lead.created.origin` acepta `messenger` e `instagram` (el canal del chat que creó el lead; `channel` lleva el mismo valor). Solo cambia un evento del hub: ningún sitio envía nada nuevo, el connector sigue en la 6 y el tracker en la 4, y un evento v6 o anterior sigue siendo válido. |
+| 8 | 2026-11-28 | Captación sin tienda (rediseño v2 §11.3): `lead.created.origin` acepta `landing` (página de captura alojada en el hub, `/p/{slug}`), `meta_lead_ads` (formularios de clientes potenciales de Meta, Facebook e Instagram) y `google_lead_form` (formularios de clientes potenciales de Google Ads por webhook); `form_id` lleva `landing:lp_…`, `meta:<formulario>` o `google:<formulario>`. Las páginas de captura emiten además `form.submitted` desde el hub (`source.type = hub`, `form_plugin = igr_landing`), sin cambiar su esquema. Solo cambia un evento del hub: ningún sitio envía nada nuevo, el connector sigue en la 6 y el tracker en la 4, y un evento v7 o anterior sigue siendo válido. **Para fusionar con otro cambio de la v8:** este cambio son solo los tres valores nuevos del `enum` de `origin` en `lead.created.json` (con sus ejemplos) y el 8 en `_envelope.json`. |
 
 **Regla de identidad para el navegador (v2):** en eventos con `source.type = browser`, el hub **ignora** `identity.customer_ref` salvo en un `identify` con `token` válido. Así nadie puede atribuirse la identidad de otro cliente desde el navegador.
 
