@@ -106,7 +106,8 @@ export function AnalyticsPage() {
     const { params, update, query, search } = useAnalyticsParams(workspace.timezone);
     const result = useDashboard(workspace.id, slug ?? 'overview', query, canView && slug !== null);
     const catalog = useMetricCatalog(workspace.id);
-    const sites = useSites(workspace.id, useCan('viewSites'));
+    const canViewSites = useCan('viewSites');
+    const sites = useSites(workspace.id, canViewSites);
     const base = `/w/${workspace.id}`;
     const fmt = makeFormatters(workspace.locale, result.data?.currency ?? workspace.currency);
 
@@ -127,7 +128,10 @@ export function AnalyticsPage() {
         );
     }
 
-    const response = result.data?.dashboard === slug ? (result.data as AnyDashboardResponse) : undefined;
+    const loaded = result.data?.dashboard === slug ? (result.data as AnyDashboardResponse) : undefined;
+    // El aviso de salud de los sitios y el tablero se pintan juntos: si el aviso llegara después empujaría las cifras
+    // hacia abajo (docs/rendimiento.md §7.1, 4).
+    const response = canViewSites && sites.isPending ? undefined : loaded;
 
     return (
         <>
@@ -150,7 +154,9 @@ export function AnalyticsPage() {
                 ))}
             </nav>
             <FilterBar params={params} update={update} period={result.data?.period} fmt={fmt} periodOnly={slug === 'messaging'} />
-            {TRAFFIC_DASHBOARDS.includes(slug) ? <SitesHealthNotice sites={(sites.data ?? []).filter((s) => trackerMissing(s.health_status))} base={base} className="igr:mb-4" /> : null}
+            {TRAFFIC_DASHBOARDS.includes(slug) && response !== undefined ? (
+                <SitesHealthNotice sites={(sites.data ?? []).filter((s) => trackerMissing(s.health_status))} base={base} className="igr:mb-4" />
+            ) : null}
             {result.isError ? (
                 <ErrorState error={result.error} onRetry={() => void result.refetch()} />
             ) : response === undefined ? (

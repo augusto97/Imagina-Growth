@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Skeleton } from '@/components/ui/skeleton';
-import { StatCard, StatGrid } from '@/components/ui/stat-card';
+import { StatCard, StatCardSkeleton, StatGrid } from '@/components/ui/stat-card';
 import type { CompareMode, MetricUnit } from '../api';
 import { delta } from '../format';
 import type { Formatters } from '../format';
@@ -70,7 +70,7 @@ export function DashboardSkeleton() {
         <div className="igr:space-y-4" aria-busy>
             <TileGrid>
                 {Array.from({ length: 4 }, (_, i) => (
-                    <Skeleton key={i} className="igr:h-[132px] igr:rounded-xl" />
+                    <StatCardSkeleton key={i} />
                 ))}
             </TileGrid>
             <Skeleton className="igr:h-72 igr:rounded-xl" />

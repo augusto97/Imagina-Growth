@@ -15,6 +15,7 @@ import { CATEGORIES, type Insight, type InsightCategory, LIST_STATUSES, useInsig
 import type { InsightListStatus } from './api';
 import { InsightActionButton, useInsightFormatters } from './components';
 import { SEVERITIES, SeverityBadge } from './severity';
+import { StatCardSkeleton } from '@/components/ui/stat-card';
 
 export function InsightsPage() {
     const { t } = useTranslation();
@@ -53,11 +54,40 @@ export function InsightsPage() {
             />
             {summary ? (
                 <TileGrid className="igr:mb-5 igr:lg:grid-cols-3">
-                    <StatTile label={t('insights.summary.impactOpen')} value={summary.impact_open} unit="money" fmt={fmt} help={t('insights.summary.impactOpenHelp')} better="neutral" />
-                    <StatTile label={t('insights.summary.open')} value={summary.open} unit="count" fmt={fmt} better="neutral"
-                        hint={CATEGORIES.filter((c) => summary.by_category[c] > 0).map((c) => `${t(`insights.category.${c}`)} ${fmt.number(summary.by_category[c])}`).join(' · ') || undefined} />
-                    <StatTile label={t('insights.summary.actionedMonth')} value={summary.actioned_month} unit="count" fmt={fmt} better="neutral"
-                        hint={summary.impact_actioned_month > 0 ? t('insights.summary.actionedImpact', { value: fmt.money(summary.impact_actioned_month) }) : undefined} />
+                    <StatTile
+                        label={t('insights.summary.impactOpen')}
+                        value={summary.impact_open}
+                        unit="money"
+                        fmt={fmt}
+                        help={t('insights.summary.impactOpenHelp')}
+                        better="neutral"
+                    />
+                    <StatTile
+                        label={t('insights.summary.open')}
+                        value={summary.open}
+                        unit="count"
+                        fmt={fmt}
+                        better="neutral"
+                        hint={
+                            CATEGORIES.filter((c) => summary.by_category[c] > 0)
+                                .map((c) => `${t(`insights.category.${c}`)} ${fmt.number(summary.by_category[c])}`)
+                                .join(' · ') || undefined
+                        }
+                    />
+                    <StatTile
+                        label={t('insights.summary.actionedMonth')}
+                        value={summary.actioned_month}
+                        unit="count"
+                        fmt={fmt}
+                        better="neutral"
+                        hint={summary.impact_actioned_month > 0 ? t('insights.summary.actionedImpact', { value: fmt.money(summary.impact_actioned_month) }) : undefined}
+                    />
+                </TileGrid>
+            ) : insights.isPending ? (
+                <TileGrid className="igr:mb-5 igr:lg:grid-cols-3">
+                    <StatCardSkeleton />
+                    <StatCardSkeleton />
+                    <StatCardSkeleton />
                 </TileGrid>
             ) : null}
             <div className="igr:mb-4 igr:flex igr:flex-wrap igr:items-center igr:gap-2">

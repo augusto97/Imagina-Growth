@@ -131,27 +131,31 @@ export function StatCard({
                     </div>
                 )}
             </div>
-            {changeLabel !== undefined || hint ? (
-                <div className="igr:mt-1.5 igr:flex igr:min-h-4 igr:flex-wrap igr:items-center igr:gap-x-1.5 igr:text-caption igr:text-muted-foreground">
-                    {changeLabel !== undefined && changeLabel !== null ? (
-                        <span
-                            className={cn(
-                                'igr:inline-flex igr:items-center igr:gap-0.5 igr:rounded-full igr:px-1.5 igr:py-0.5 igr:font-medium igr:tabular-nums',
-                                toneOf === 'good' && 'igr:bg-success/10 igr:text-success',
-                                toneOf === 'bad' && 'igr:bg-destructive/10 igr:text-destructive',
-                                (toneOf === 'flat' || toneOf === null) && 'igr:bg-muted igr:text-muted-foreground',
-                            )}
-                        >
-                            {toneOf !== null ? <Arrow className="igr:size-3.5" aria-hidden /> : null}
-                            {changeLabel}
-                        </span>
-                    ) : null}
-                    {changeLabel !== undefined && changeLabel !== null && compareLabel ? <span>{compareLabel}</span> : null}
-                    {hint ? <span className="igr:min-w-0 igr:truncate">{hint}</span> : null}
-                </div>
-            ) : null}
+            {/* Siempre está, aunque vaya vacía: todas las tarjetas miden lo mismo y los esqueletos también (sin saltos). */}
+            <div className="igr:mt-1.5 igr:flex igr:min-h-5 igr:items-center igr:gap-x-1.5 igr:overflow-hidden igr:text-caption igr:whitespace-nowrap igr:text-muted-foreground">
+                {changeLabel !== undefined && changeLabel !== null ? (
+                    <span
+                        className={cn(
+                            'igr:inline-flex igr:shrink-0 igr:items-center igr:gap-0.5 igr:rounded-full igr:px-1.5 igr:py-0.5 igr:font-medium igr:tabular-nums',
+                            toneOf === 'good' && 'igr:bg-success/10 igr:text-success',
+                            toneOf === 'bad' && 'igr:bg-destructive/10 igr:text-destructive',
+                            (toneOf === 'flat' || toneOf === null) && 'igr:bg-muted igr:text-muted-foreground',
+                        )}
+                    >
+                        {toneOf !== null ? <Arrow className="igr:size-3.5" aria-hidden /> : null}
+                        {changeLabel}
+                    </span>
+                ) : null}
+                {changeLabel !== undefined && changeLabel !== null && compareLabel ? <span className="igr:min-w-0 igr:truncate">{compareLabel}</span> : null}
+                {hint ? <span className="igr:min-w-0 igr:truncate">{hint}</span> : null}
+            </div>
         </Card>
     );
+}
+
+/** El esqueleto de una `StatCard`: el mismo alto (124 px en el celular, 132 desde `sm`), para que nada salte al cargar. */
+export function StatCardSkeleton({ className }: { className?: string }) {
+    return <Skeleton className={cn('igr:h-[124px] igr:rounded-xl igr:sm:h-[132px]', className)} />;
 }
 
 /** Rejilla de tarjetas de métricas: una columna en el celular, dos en la tableta y hasta cuatro en el escritorio. */

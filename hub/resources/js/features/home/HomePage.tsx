@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorState, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatCardSkeleton } from '@/components/ui/stat-card';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { formatNumber } from '@/lib/format';
@@ -16,10 +17,12 @@ import { MoneyGeneratedCard } from '@/features/analytics/components/MoneyGenerat
 import { StatTile, TileGrid } from '@/features/analytics/components/StatTile';
 import { makeFormatters } from '@/features/analytics/format';
 import { apiQuery, readParams } from '@/features/analytics/params';
+import { useConnectionAlerts } from '@/features/connections/api';
 import { ConnectionAlertsNotice } from '@/features/connections/AlertsNotice';
 import { SeverityBadge } from '@/features/insights/severity';
 import { SitesHealthNotice } from '@/features/sites/SiteHealth';
 import { GettingStartedCard } from './GettingStartedCard';
+import { useGettingStarted } from './gettingStarted';
 
 const HOME_TILES = [
     { key: 'revenue', unit: 'money' },
@@ -28,11 +31,33 @@ const HOME_TILES = [
     { key: 'sessions', unit: 'count' },
 ] as const;
 
+/** El Inicio mientras llegan sus datos: el encabezado, la guía, las cifras y la gráfica en su lugar. */
+function HomeSkeleton() {
+    return (
+        <div aria-busy>
+            <Skeleton className="igr:h-8 igr:w-56" />
+            <Skeleton className="igr:mt-2 igr:mb-6 igr:h-5 igr:w-80 igr:max-w-full" />
+            <Skeleton className="igr:mb-6 igr:h-64 igr:rounded-xl" />
+            <TileGrid>
+                {Array.from({ length: 4 }, (_, i) => (
+                    <StatCardSkeleton key={i} />
+                ))}
+            </TileGrid>
+        </div>
+    );
+}
+
 export function HomePage() {
     const { t } = useTranslation();
     const { workspace, me } = useWorkspace();
     const overview = useOverview(workspace.id);
-    const sites = useSites(workspace.id, useCan('viewSites'));
+    const canViewSites = useCan('viewSites');
+    const sites = useSites(workspace.id, canViewSites);
+    // Lo que se pinta arriba de las cifras (la guía y los avisos) llega con sus propias consultas: el Inicio espera a
+    // tenerlas todas y se pinta de una vez, sin que nada empuje lo de abajo (docs/rendimiento.md §7.1, 4).
+    const guide = useGettingStarted(workspace.id);
+    const alerts = useConnectionAlerts(workspace.id);
+    const settled = !overview.isPending && !guide.isPending && !alerts.isPending && !(canViewSites && sites.isPending);
     const base = `/w/${workspace.id}`;
 
     const data = overview.data;
@@ -46,6 +71,9 @@ export function HomePage() {
 
     if (overview.isError) {
         return <ErrorState error={overview.error} onRetry={() => void overview.refetch()} />;
+    }
+    if (!settled) {
+        return <HomeSkeleton />;
     }
 
     const mode = kpis?.period.compare?.mode ?? null;
@@ -88,7 +116,7 @@ export function HomePage() {
                                       help={catalog.data?.metrics[tile.key]?.definition}
                                   />
                               ))
-                            : Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="igr:h-[132px] igr:rounded-xl" />)}
+                            : Array.from({ length: 4 }, (_, i) => <StatCardSkeleton key={i} />)}
                     </TileGrid>
                 </>
             )}

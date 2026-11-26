@@ -71,7 +71,7 @@ export function ProfilePage() {
         return (
             <>
                 {back}
-                <Skeleton className="igr:mb-4 igr:h-44" />
+                <Skeleton className="igr:mb-4 igr:h-[402px] igr:rounded-xl igr:lg:h-[227px]" />
                 <div className="igr:grid igr:grid-cols-1 igr:gap-4 igr:lg:grid-cols-[minmax(0,1fr)_340px]">
                     <Skeleton className="igr:h-96" />
                     <Skeleton className="igr:h-96" />
