@@ -79,10 +79,11 @@ final class InboxQuery
 
         $contacts = Contact::query()->whereIn('id', $rows->pluck('contact_id'))->get()->keyBy('id');
         $users = $this->userNames(array_values(array_map('strval', $rows->pluck('assignee_id')->filter()->unique()->all())));
-        $data = $rows->map(function (Conversation $c) use ($contacts, $users): array {
-            $last = Message::query()->where('conversation_id', $c->id)->latest('created_at')->first();
+        $last = $this->lastMessages(array_values(array_map('strval', $rows->modelKeys())));
+        $data = $rows->map(function (Conversation $c) use ($contacts, $users, $last): array {
+            $message = $last[$c->id] ?? null;
 
-            return $this->summary($c, $contacts->get($c->contact_id), $users) + ['preview' => $last !== null ? self::preview($last) : null];
+            return $this->summary($c, $contacts->get($c->contact_id), $users) + ['preview' => $message !== null ? self::preview($message) : null];
         })->values()->all();
 
         $counts = [
@@ -271,6 +272,38 @@ final class InboxQuery
     private function userNames(array $ids): array
     {
         return $ids === [] ? [] : User::query()->whereIn('id', $ids)->get(['id', 'name'])->mapWithKeys(fn (User $u) => [$u->id => (string) $u->name])->all();
+    }
+
+    /**
+     * El último mensaje de cada conversación con dos consultas para toda la página (antes, una por conversación):
+     * la fecha más reciente por conversación sale del índice (workspace_id, conversation_id, created_at) y, si dos
+     * mensajes comparten esa fecha, gana el de id mayor (los ULID crecen con el tiempo).
+     *
+     * @param  list<string>  $conversationIds
+     * @return array<string, Message>
+     */
+    private function lastMessages(array $conversationIds): array
+    {
+        if ($conversationIds === []) {
+            return [];
+        }
+        $latest = Message::query()->whereIn('conversation_id', $conversationIds)->groupBy('conversation_id')
+            ->selectRaw('conversation_id, MAX(created_at) AS last_at')->toBase()->get()
+            ->filter(fn (object $r) => $r->last_at !== null);
+        if ($latest->isEmpty()) {
+            return [];
+        }
+        $messages = Message::query()->where(function (Builder $q) use ($latest): void {
+            foreach ($latest as $r) {
+                $q->orWhere(fn (Builder $w) => $w->where('conversation_id', $r->conversation_id)->where('created_at', $r->last_at));
+            }
+        })->orderBy('id')->get();
+        $out = [];
+        foreach ($messages as $m) {
+            $out[(string) $m->conversation_id] = $m; // ordenados por id: el último que queda es el de id mayor
+        }
+
+        return $out;
     }
 
     /**
