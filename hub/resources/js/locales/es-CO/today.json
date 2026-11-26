@@ -1,7 +1,7 @@
 {
     "today": {
         "title": "Hoy",
-        "description": "A quién escribirle hoy y qué decirle, con el mensaje sugerido listo para revisar y enviar.",
+        "description": "A quién escribirle hoy y qué decirle, en orden de urgencia: revisa el mensaje sugerido y envíalo con un toque.",
         "forbidden": "Tu rol no atiende leads.",
         "owner": "De",
         "owners": {
@@ -9,8 +9,8 @@
             "me": "Mis leads",
             "none": "Sin asignar"
         },
-        "summary_one": "{{count}} cosa pendiente para hoy",
-        "summary_other": "{{count}} cosas pendientes para hoy",
+        "summary_one": "{{formatted}} pendiente para hoy",
+        "summary_other": "{{formatted}} pendientes para hoy",
         "emptyTitle": "Todo al día",
         "emptyHelp": "Aquí aparecen los clientes que esperan respuesta, los leads calientes sin contactar, tus tareas y llamadas de hoy y los leads que llevan {{days}} días quietos en una etapa.",
         "noName": "Sin nombre",
@@ -26,10 +26,10 @@
             "replyNow": "Te acaba de escribir y espera respuesta.",
             "replyHours_one": "Te escribió hace {{count}} hora y espera respuesta.",
             "replyHours_other": "Te escribió hace {{count}} horas y espera respuesta.",
-            "firstContact": "Está muy interesado y nadie le ha escrito. Llegó el {{since}}.",
+            "firstContact": "Está muy interesado y nadie le ha escrito (llegó el {{since}}).",
             "due": "para el {{at}}",
             "overdue": "venció el {{at}}",
-            "fromFlow": "la creó un flujo",
+            "fromFlow": "la creó una automatización",
             "nextStep": "Próximo paso: {{step}}",
             "noStep": "sin descripción",
             "stale_one": "Lleva {{count}} día en «{{stage}}» sin moverse.",
@@ -69,6 +69,12 @@
         "snoozeDays_one": "Hasta mañana",
         "snoozeDays_other": "{{count}} días",
         "snoozed": "Vuelve a aparecer el {{date}}",
-        "openLead": "Abrir el lead"
+        "openLead": "Abrir el lead",
+        "filter": "Filtrar por motivo",
+        "all": "Todo",
+        "seeLeads": "Ver tus leads",
+        "showMore_one": "Ver {{count}} más",
+        "showMore_other": "Ver {{count}} más (quedan {{rest}})",
+        "sendBy": "Enviar por {{channel}}"
     }
 }

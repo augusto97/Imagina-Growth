@@ -1,7 +1,7 @@
 {
     "leads": {
         "title": "Leads",
-        "description": "Cada persona que pidió algo: de dónde vino, qué tan interesada está y quién la atiende.",
+        "description": "Cada persona que pidió algo, en la etapa en que va: qué tan interesada está, de dónde llegó, cuánto lleva esperando y qué sigue.",
         "tabs": {
             "tablero": "Tablero",
             "lista": "Lista",
@@ -81,7 +81,16 @@
             "emptyTitle": "Todavía no hay leads",
             "emptyDescription": "Llegan solos cuando alguien envía un formulario del sitio o escribe por WhatsApp con intención de compra. También puedes crearlos desde el perfil de un contacto.",
             "more_one": "y {{count}} más",
-            "more_other": "y {{count}} más"
+            "more_other": "y {{count}} más",
+            "stages": "Etapas del embudo",
+            "emptyStage": "Nadie en esta etapa por ahora.",
+            "showMore_one": "Ver {{count}} más",
+            "showMore_other": "Ver {{count}} más",
+            "seeAll_one": "Ver el lead en la lista",
+            "seeAll_other": "Ver los {{count}} en la lista",
+            "emptyStep1": "Llegan solos de tus formularios, WhatsApp, la agenda y los anuncios de Facebook y Google.",
+            "emptyStep2": "Cada uno trae qué tan interesado está y de dónde vino.",
+            "emptyStep3": "Muévelos de etapa hasta ganarlos; «Hoy» te dice a quién escribir."
         },
         "move": {
             "done": "Lead movido a «{{stage}}»",
@@ -123,7 +132,9 @@
             },
             "prev": "Anterior",
             "next": "Siguiente",
-            "page": "Página {{page}} de {{last}}"
+            "page": "Página {{page}} de {{last}}",
+            "stage": "Etapa",
+            "anyStage": "Todas las etapas"
         },
         "drawer": {
             "loading": "Cargando lead…",
@@ -155,7 +166,15 @@
             "service": "Servicio",
             "nextStep": "Próximo paso",
             "nextStepPlaceholder": "Enviar propuesta",
-            "nextStepAt": "Fecha del próximo paso"
+            "nextStepAt": "Fecha del próximo paso",
+            "temperature": "{{temperature}} · {{score}} de 100",
+            "markWon": "Marcar ganado",
+            "markLost": "No continuó",
+            "book": "Agendar cita",
+            "profileShort": "Ver perfil",
+            "appointments": "Citas y cotizaciones",
+            "noAppointments": "Todavía no tiene citas ni cotizaciones.",
+            "quote": "Cotización"
         },
         "reasons": {
             "pricing_page": "Visitó precios o servicios",
@@ -338,10 +357,12 @@
             "aiBriefHelp": "Mientras el cliente escribe por la bandeja, la IA anota qué necesita, cuánto, dónde, para cuándo, su presupuesto y qué tan interesado está. Solo guarda lo que el cliente dijo, con la frase de origen."
         },
         "profile": {
-            "title": "Lead",
-            "open": "Abrir en Leads",
-            "none": "No tiene un lead.",
-            "create": "Crear lead"
+            "title": "Su proceso",
+            "open": "Abrir la ficha",
+            "none": "Todavía no tiene un proceso abierto.",
+            "create": "Crear lead",
+            "created": "Lead creado: ya aparece en Leads.",
+            "createAnother": "Abrir otro"
         },
         "funnelWeek": {
             "title": "Embudo de la semana",
@@ -411,6 +432,22 @@
                 "budget": "Presupuesto",
                 "temperature": "Interés según el chat"
             }
+        },
+        "originsShort": {
+            "form": "Formulario de tu web",
+            "manual": "Creado a mano",
+            "api": "Integración",
+            "meta_lead_ads": "Facebook o Instagram",
+            "google_lead_form": "Google Ads"
+        },
+        "card": {
+            "score": "Puntaje {{score}} de 100",
+            "origin": "De dónde llegó",
+            "waiting": "Sin respuesta · llegó {{since}}",
+            "next": "Sigue: {{step}}",
+            "nextOn": "Sigue: {{step}} · {{date}}",
+            "moveTo": "Mover a",
+            "moveLabel": "Mover a {{name}} de etapa"
         }
     }
 }

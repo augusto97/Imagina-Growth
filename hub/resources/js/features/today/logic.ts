@@ -5,6 +5,9 @@ import { TODAY_KINDS, type ReachMode, type TodayItem, type TodayKind } from './t
 /** Cuántos ítems se piden sugeridos al abrir la pantalla; el resto, con el botón. */
 export const AUTO_SUGGEST = 8;
 
+/** Ítems que se ven por grupo antes de «Ver más» (con un motivo elegido, el doble). */
+export const GROUP_PAGE = 5;
+
 /** Agrupa en el orden de urgencia (respuestas, calientes, tareas, próximos pasos, quietos). */
 export function groupByKind(items: TodayItem[]): { kind: TodayKind; items: TodayItem[] }[] {
     return TODAY_KINDS.map((kind) => ({ kind, items: items.filter((i) => i.kind === kind) })).filter((g) => g.items.length > 0);

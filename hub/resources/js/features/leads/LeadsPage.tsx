@@ -1,4 +1,4 @@
-import { ListTodo, Target } from 'lucide-react';
+import { ListTodo } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
@@ -50,7 +50,7 @@ export function LeadsPage() {
                 title={t('leads.title')}
                 description={t('leads.description')}
                 actions={
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild>
                         <Link to={`/w/${workspace.id}/hoy`}>
                             <ListTodo aria-hidden />
                             {t('leads.today')}
@@ -68,11 +68,27 @@ export function LeadsPage() {
                 </TabsList>
                 {tab === 'tablero' || tab === 'lista' || tab === 'indicadores' ? <FilterBar filters={filters} onChange={set} compact={tab === 'indicadores'} /> : null}
                 <TabsContent value="tablero" className="igr:mt-3">
-                    <Board filters={filters} onOpen={(id) => set('lead', id)} />
+                    <Board
+                        filters={filters}
+                        onOpen={(id) => set('lead', id)}
+                        onSeeAll={(stage) => {
+                            const p = new URLSearchParams(params);
+                            p.set('tab', 'lista');
+                            p.set('stage', stage);
+                            p.delete('page');
+                            setParams(p, { replace: true });
+                        }}
+                    />
                 </TabsContent>
                 <TabsContent value="lista" className="igr:mt-3">
                     <LeadList
-                        filters={{ ...filters, status: (params.get('status') ?? '') as LeadFilters['status'], sort: (params.get('sort') ?? 'recent') as LeadFilters['sort'], page: Number(params.get('page') ?? 1) }}
+                        filters={{
+                            ...filters,
+                            stage: params.get('stage') ?? '',
+                            status: (params.get('status') ?? '') as LeadFilters['status'],
+                            sort: (params.get('sort') ?? 'recent') as LeadFilters['sort'],
+                            page: Number(params.get('page') ?? 1),
+                        }}
                         onOpen={(id) => set('lead', id)}
                         onChange={set}
                     />
@@ -107,12 +123,11 @@ function FilterBar({ filters, onChange, compact }: { filters: LeadFilters; onCha
     if (compact && pipelines.length <= 1) return null;
 
     return (
-        <div className="igr:mt-4 igr:flex igr:flex-wrap igr:items-center igr:gap-2" role="search" aria-label={t('leads.filters.label')}>
-            <Target className="igr:size-4 igr:text-muted-foreground" aria-hidden />
+        <div className="igr:mt-4 igr:grid igr:grid-cols-2 igr:gap-2 igr:sm:flex igr:sm:flex-wrap igr:sm:items-center" role="search" aria-label={t('leads.filters.label')}>
             {pipelines.length > 1 ? (
                 <label>
                     <span className={label}>{t('leads.filters.pipeline')}</span>
-                    <Select className="igr:h-8 igr:w-44" value={filters.pipeline ?? ''} onChange={(e) => onChange('pipeline', e.target.value)}>
+                    <Select className="igr:h-8 igr:w-full igr:sm:w-52" value={filters.pipeline ?? ''} onChange={(e) => onChange('pipeline', e.target.value)}>
                         {pipelines.map((p) => (
                             <option key={p.id} value={p.is_default ? '' : p.id}>
                                 {p.name}
@@ -126,7 +141,7 @@ function FilterBar({ filters, onChange, compact }: { filters: LeadFilters; onCha
                     {seeAll ? (
                         <label>
                             <span className={label}>{t('leads.filters.owner')}</span>
-                            <Select className="igr:h-8 igr:w-44" value={filters.owner ?? ''} onChange={(e) => onChange('owner', e.target.value)}>
+                            <Select className="igr:h-8 igr:w-full igr:sm:w-52" value={filters.owner ?? ''} onChange={(e) => onChange('owner', e.target.value)}>
                                 <option value="">{t('leads.filters.anyOwner')}</option>
                                 <option value="me">{t('leads.filters.mine')}</option>
                                 <option value="none">{t('leads.filters.unassigned')}</option>
@@ -140,7 +155,7 @@ function FilterBar({ filters, onChange, compact }: { filters: LeadFilters; onCha
                     ) : null}
                     <label>
                         <span className={label}>{t('leads.filters.temperature')}</span>
-                        <Select className="igr:h-8 igr:w-48" value={filters.temperature ?? ''} onChange={(e) => onChange('temperature', e.target.value)}>
+                        <Select className="igr:h-8 igr:w-full igr:sm:w-52" value={filters.temperature ?? ''} onChange={(e) => onChange('temperature', e.target.value)}>
                             <option value="">{t('leads.filters.anyTemperature')}</option>
                             {(['hot', 'warm', 'cold'] as const).map((k) => (
                                 <option key={k} value={k}>
@@ -151,7 +166,7 @@ function FilterBar({ filters, onChange, compact }: { filters: LeadFilters; onCha
                     </label>
                     <label>
                         <span className={label}>{t('leads.filters.source')}</span>
-                        <Select className="igr:h-8 igr:w-44" value={filters.source ?? ''} onChange={(e) => onChange('source', e.target.value)}>
+                        <Select className="igr:h-8 igr:w-full igr:sm:w-52" value={filters.source ?? ''} onChange={(e) => onChange('source', e.target.value)}>
                             <option value="">{t('leads.filters.anySource')}</option>
                             {CHANNELS.map((c) => (
                                 <option key={c} value={c}>
@@ -163,7 +178,7 @@ function FilterBar({ filters, onChange, compact }: { filters: LeadFilters; onCha
                     <label>
                         <span className={label}>{t('leads.filters.service')}</span>
                         <Input
-                            className="igr:h-8 igr:w-48"
+                            className="igr:h-8 igr:w-full igr:sm:w-52"
                             placeholder={t('leads.filters.servicePlaceholder')}
                             defaultValue={filters.service ?? ''}
                             onKeyDown={(e) => {

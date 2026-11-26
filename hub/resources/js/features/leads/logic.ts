@@ -35,6 +35,25 @@ export function temperatureTone(t: Temperature): 'destructive' | 'warning' | 'se
     return t === 'hot' ? 'destructive' : t === 'warm' ? 'warning' : 'secondary';
 }
 
+/**
+ * Cuánto lleva un lead abierto sin que nadie le responda (desde que llegó): null si ya le respondieron o está cerrado.
+ * Urgente pasada una hora (la meta de primera respuesta de los indicadores es 15 minutos).
+ */
+export function waitingFor(lead: Pick<LeadRow, 'first_response_at' | 'won_at' | 'lost_at' | 'created_at'>, now: number): { since: string; urgent: boolean } | null {
+    if (lead.first_response_at !== null || lead.won_at !== null || lead.lost_at !== null || lead.created_at === null) return null;
+    const since = Date.parse(lead.created_at);
+    if (Number.isNaN(since)) return null;
+    return { since: lead.created_at, urgent: now - since > 3_600_000 };
+}
+
+/** Cuántas tarjetas se ven por columna antes de «Ver más» (el tablero trae hasta 50 por etapa). */
+export const BOARD_PAGE = 12;
+
+/** La etapa que abre la lista del celular: la primera abierta con leads, si no la primera. */
+export function firstBusyStage(columns: Pick<BoardColumn, 'key' | 'kind' | 'count'>[]): string | null {
+    return (columns.find((c) => c.kind === 'open' && c.count > 0) ?? columns[0])?.key ?? null;
+}
+
 /** Duración legible de la primera respuesta: «4 min», «2 h 5 min», «3 d». */
 export function duration(seconds: number | null): { unit: 'none' | 'sec' | 'min' | 'hm' | 'day'; a: number; b: number } {
     if (seconds === null) return { unit: 'none', a: 0, b: 0 };
