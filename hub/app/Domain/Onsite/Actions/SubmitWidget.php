@@ -18,13 +18,18 @@ use App\Domain\Onsite\Models\WidgetCapture;
 use App\Domain\Onsite\Support\WidgetSchema;
 use App\Domain\Privacy\Actions\ExportContactData;
 use App\Domain\Referrals\Contracts\ReferralRewards;
+use App\Domain\Services\Contracts\LeadIntake;
+use App\Domain\Services\Data\LeadIntakeInput;
+use App\Domain\Services\Leads\Support\LeadSource;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Models\Workspace;
+use App\Domain\Workspaces\Queries\WorkspaceFeatures;
 use App\Support\Phone\Phone;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Throwable;
 
@@ -33,7 +38,10 @@ use Throwable;
  * (CaptureContact) con cada casilla marcada y su evidencia, da el cupón único del
  * widget (uno por persona: 409 si lo pide otra vez), sortea el premio de la ruleta en
  * el hub, guarda las respuestas del quiz como atributos y devuelve sus productos, da
- * el regalo del referido (M14) y envía el doble opt-in si el widget lo pide. Debe
+ * el regalo del referido (M14) y envía el doble opt-in si el widget lo pide. En un
+ * negocio de servicios, lo que deja la persona abre (o actualiza) su lead de origen
+ * `form` (M18); en uno con tienda y servicios, solo si dejó su WhatsApp en un widget
+ * que no regala nada (un formulario de contacto, no un cupón ni el boletín). Debe
  * correr dentro del contexto del espacio de trabajo.
  *
  * @phpstan-type Meta array{ip: string|null, user_agent: string|null, country: string|null}
@@ -47,6 +55,8 @@ final class SubmitWidget
         private readonly ResolveQuizOutcome $quiz,
         private readonly SendDoubleOptIn $optIn,
         private readonly ConsentTexts $texts,
+        private readonly LeadIntake $leads,
+        private readonly WorkspaceFeatures $features,
     ) {}
 
     /**
@@ -209,6 +219,7 @@ final class SubmitWidget
         }
 
         $this->record($widget, $variant, $contact, $anonymousId, $existing, $coupon, $prize, $answers, $result->wasKnown, $now);
+        $this->lead($workspace, $site, $widget, $contact, $body, $coupon !== null || $prize !== null || $referralCoupon !== null);
 
         $doubleOptIn = in_array('email', $result->pendingDoubleOptIn, true);
         if ($doubleOptIn) {
@@ -329,6 +340,52 @@ final class SubmitWidget
         }
 
         return $prizes[count($prizes) - 1];
+    }
+
+    /**
+     * El lead del contacto (M18) cuando el negocio vende servicios: el mismo de siempre si ya tiene uno abierto. Sin
+     * tienda, cualquier widget; con tienda y servicios, solo uno que no regala nada y donde la persona dejó su
+     * WhatsApp. La fuente sale de la URL de la página (UTM e identificadores de clic). Si falla, la captura queda.
+     *
+     * @param  array<string, mixed>  $body
+     */
+    private function lead(Workspace $workspace, Site $site, OnsiteWidget $widget, Contact $contact, array $body, bool $rewarded): void
+    {
+        $type = $this->features->for($workspace)['business_type'];
+        $gives = $rewarded || in_array($widget->kind, ['spin_wheel', 'referral_welcome'], true) || (bool) ($widget->coupon_config['enabled'] ?? false);
+        $phone = is_array($body['fields'] ?? null) && is_string($body['fields']['phone'] ?? null) && trim($body['fields']['phone']) !== '';
+        if ($type !== 'services' && ($type !== 'both' || $gives || ! $phone)) {
+            return;
+        }
+        $pageUrl = is_string($body['page_url'] ?? null) ? mb_substr($body['page_url'], 0, 500) : null;
+        $query = [];
+        parse_str((string) parse_url((string) $pageUrl, PHP_URL_QUERY), $query);
+        $utm = [];
+        $clicks = [];
+        foreach ($query as $key => $value) {
+            if (is_string($value) && $value !== '' && str_starts_with((string) $key, 'utm_')) {
+                $utm[substr((string) $key, 4)] = $value;
+            } elseif (is_string($value) && $value !== '' && in_array($key, ['gclid', 'gbraid', 'wbraid', 'fbclid', 'ttclid', 'msclkid'], true)) {
+                $clicks[(string) $key] = $value;
+            }
+        }
+        $source = LeadSource::fromEnvelope([
+            'context' => ['utm' => $utm, 'click_ids' => $clicks, 'page' => ['path' => parse_url((string) $pageUrl, PHP_URL_PATH) ?: null,
+                'referrer' => is_string($body['referrer'] ?? null) ? $body['referrer'] : null]],
+            'properties' => ['form_id' => $widget->publicId(), 'form_plugin' => 'widget', 'form_name' => $widget->name],
+        ], parse_url((string) $site->url, PHP_URL_HOST) ?: null);
+        try {
+            $this->leads->capture(new LeadIntakeInput(
+                workspaceId: $workspace->id,
+                contactId: $contact->id,
+                origin: 'form',
+                originRef: 'widget:'.Str::ulid(),
+                source: $source,
+                siteId: $site->id,
+            ));
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     /**

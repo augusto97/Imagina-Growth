@@ -8,9 +8,11 @@ use App\Domain\Contacts\Models\Contact;
 use App\Domain\Messaging\Data\OutboundMessage;
 use App\Domain\Messaging\Enums\MessageKind;
 use App\Domain\Messaging\Testing\FakeMessageDispatcher;
+use App\Domain\Onboarding\Models\WorkspaceOnboarding;
 use App\Domain\Onsite\Models\WidgetCapture;
 use App\Domain\Referrals\Contracts\ReferralRewards;
 use App\Domain\Segments\Models\Segment;
+use App\Domain\Services\Leads\Models\Lead;
 use App\Domain\Sites\Models\Site;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Support\Facades\DB;
@@ -215,6 +217,38 @@ it('una persona que ya era contacto queda como conocida y el widget sin cupón n
     $captures = onsiteInWs($this, fn () => WidgetCapture::query()->orderBy('id')->get());
     expect($captures)->toHaveCount(2)->and($captures[0]->was_known)->toBeFalse()->and($captures[1]->was_known)->toBeTrue();
     expect(onsiteInWs($this, fn () => Contact::query()->count()))->toBe(1);
+});
+
+it('en un negocio de servicios, lo que deja la persona abre su lead con la fuente de la página (M18)', function () {
+    $this->ws->forceFill(['vertical' => 'health'])->save();
+    $w = onsiteWidget($this, 'popup', ['coupon_config' => ['enabled' => false], 'variants' => [['content' => ['title' => 'Te llamamos', 'cta' => 'Llámame', 'success' => '¡Listo!', 'fields' => [['key' => 'first_name'], ['key' => 'phone', 'required' => true]]]]]]);
+    onsiteSubmit($this, $w, ['anonymous_id' => 'l1', 'page_url' => 'https://tienda.co/ortodoncia?utm_source=facebook&utm_medium=cpc&utm_campaign=sonrisa&fbclid=fb-123&otro=x',
+        'fields' => ['first_name' => 'Laura', 'phone' => '300 555 0101']])->assertOk();
+
+    $lead = onsiteInWs($this, fn () => Lead::query()->sole());
+    expect($lead->origin)->toBe('form')->and($lead->origin_ref)->toStartWith('widget:')
+        ->and($lead->source)->toMatchArray(['utm_source' => 'facebook', 'utm_campaign' => 'sonrisa', 'fbclid' => 'fb-123', 'page' => '/ortodoncia', 'form_name' => 'Widget popup'])
+        ->and($lead->source)->not->toHaveKey('otro');
+
+    // La misma persona otra vez: su lead abierto se actualiza, no se duplica.
+    onsiteSubmit($this, $w, ['anonymous_id' => 'l2', 'fields' => ['phone' => '+57 300 5550101']])->assertOk();
+    expect(onsiteInWs($this, fn () => Lead::query()->count()))->toBe(1);
+});
+
+it('en una tienda, un popup no crea leads; con tienda y servicios, solo un widget sin regalo donde dejan el WhatsApp', function () {
+    $coupon = onsiteWidget($this, 'popup', ['consent_config' => ['channels' => ['whatsapp']]]);
+    onsiteSubmit($this, $coupon, ['anonymous_id' => 's1', 'fields' => ['phone' => '300 111 2222']])->assertOk();
+    expect(onsiteInWs($this, fn () => Lead::query()->count()))->toBe(0);
+
+    WorkspaceOnboarding::query()->create(['workspace_id' => $this->ws->id, 'business_type' => 'both']);
+    onsiteSubmit($this, $coupon, ['anonymous_id' => 's2', 'fields' => ['phone' => '300 333 4444']])->assertOk();
+    $newsletter = onsiteWidget($this, 'embedded_form');
+    onsiteSubmit($this, $newsletter, ['anonymous_id' => 's3', 'fields' => ['email' => 'boletin@ejemplo.com']])->assertOk();
+    expect(onsiteInWs($this, fn () => Lead::query()->count()))->toBe(0);
+
+    $contact = onsiteWidget($this, 'popup', ['coupon_config' => ['enabled' => false], 'variants' => [['content' => ['title' => 'Cotiza', 'cta' => 'Enviar', 'success' => '¡Listo!', 'fields' => [['key' => 'phone', 'required' => true]]]]]]);
+    onsiteSubmit($this, $contact, ['anonymous_id' => 's4', 'fields' => ['phone' => '300 777 8888']])->assertOk();
+    expect(onsiteInWs($this, fn () => Lead::query()->count()))->toBe(1);
 });
 
 it('valida en español, no acepta widgets inactivos o de otro sitio y limita los intentos', function () {
