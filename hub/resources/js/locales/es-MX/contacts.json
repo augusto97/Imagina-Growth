@@ -22,6 +22,9 @@
             "consent": {
                 "description": "Es obligatorio declararlo (Ley Federal de Protección de Datos Personales en Posesión de los Particulares). Sin consentimiento solo podrán recibir mensajes transaccionales."
             }
+        },
+        "filtersPanel": {
+            "cityPlaceholder": "Ej.: Puebla"
         }
     }
 }

@@ -216,7 +216,7 @@ function MobileRow({ row, business, selected, onToggle }: { row: ContactListRow;
                         </span>
                     ) : null}
                 </span>
-                <ConsentIcons granted={row.consents ?? []} className="igr:shrink-0" />
+                <ConsentIcons granted={row.consents ?? []} onlyGranted className="igr:shrink-0" />
                 <ChevronRight className="igr:size-4 igr:shrink-0 igr:text-muted-foreground" aria-hidden />
             </Link>
         </li>

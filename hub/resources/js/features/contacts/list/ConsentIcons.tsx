@@ -10,11 +10,16 @@ const ICONS: Record<ConsentChannel, LucideIcon> = { whatsapp: MessageCircle, ema
  * Por dónde se le puede escribir a la persona: un ícono por canal, prendido si aceptó mensajes de marketing. El color
  * nunca va solo: el nombre de cada canal y si acepta van en el texto para el lector de pantalla y en el `title`.
  */
-export function ConsentIcons({ granted, className }: { granted: readonly string[]; className?: string }) {
+export function ConsentIcons({ granted, onlyGranted = false, className }: { granted: readonly string[]; onlyGranted?: boolean; className?: string }) {
     const { t } = useTranslation();
+    // En el celular solo los canales con permiso: el espacio es para el nombre y el resumen.
+    const channels = onlyGranted ? CONSENT_CHANNELS.filter((c) => granted.includes(c)) : CONSENT_CHANNELS;
+    if (channels.length === 0) {
+        return null;
+    }
     return (
         <span className={cn('igr:inline-flex igr:items-center igr:gap-1.5', className)}>
-            {CONSENT_CHANNELS.map((channel) => {
+            {channels.map((channel) => {
                 const on = granted.includes(channel);
                 const Icon = ICONS[channel];
                 const label = t(on ? 'contacts.list.consentOn' : 'contacts.list.consentOff', { channel: t(`contacts.consentChannels.${channel}`) });
