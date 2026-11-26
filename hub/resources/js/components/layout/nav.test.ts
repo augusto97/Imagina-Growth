@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { Ability } from '@/api/types';
 import esCO from '@/locales/es-CO.json';
 import sections from '@/locales/es-CO/sections.json';
-import { activeChild, flattenNav, itemLock, locate, SECTIONS, sectionLock, visibleSections, type NavContext, type NavItem } from './nav';
+import i18n from '@/lib/i18n';
+import { activeChild, flattenNav, itemLock, locate, SECTIONS, sectionLock, sectionName, visibleSections, type NavContext, type NavItem } from './nav';
 
 const ALL: Ability[] = [
     'viewWorkspace',
@@ -169,5 +170,28 @@ describe('secciones del menú (rediseño v2 §3)', () => {
         expect(activeChild(connections, `${base}/sitios/st_1`, base)).toBe('sites');
         expect(activeChild(connections, `${base}/canales`, base)).toBe('channels');
         expect(activeChild(connections, `${base}/equipo`, base)).toBeNull();
+    });
+
+    it('el tipo de negocio decide por encima de los sitios: un negocio sin tienda no ve carritos, pedidos ni catálogo', () => {
+        // Un consultorio que vende bonos con WooCommerce: los sitios dicen tienda, el negocio dice servicios.
+        const services = keys({ abilities: ALL, businessType: 'services', capabilities: { store: true, services: false } });
+        for (const hidden of ['loyalty', 'referrals', 'recommendations', 'watches', 'banners']) {
+            expect(services).not.toContain(hidden);
+        }
+        expect(services).toContain('leads');
+        const store = keys({ abilities: ALL, businessType: 'store', capabilities: { store: null, services: null } });
+        expect(store).toContain('loyalty');
+        expect(store).not.toContain('agenda');
+        const both = keys({ abilities: ALL, businessType: 'both' });
+        expect(both).toContain('loyalty');
+        expect(both).toContain('agenda');
+    });
+
+    it('la sección de clientes usa la palabra de la vertical', () => {
+        expect(sectionName(i18n.t, 'customers', 'health')).toBe('Pacientes');
+        expect(sectionName(i18n.t, 'customers', 'education')).toBe('Estudiantes');
+        expect(sectionName(i18n.t, 'customers', 'store')).toBe('Clientes');
+        expect(sectionName(i18n.t, 'customers', null)).toBe('Clientes');
+        expect(sectionName(i18n.t, 'messages', 'health')).toBe('Mensajes');
     });
 });

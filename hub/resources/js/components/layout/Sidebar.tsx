@@ -13,7 +13,7 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useUi, type ThemePreference } from '@/stores/ui';
 import { Logo } from './Logo';
-import { locate, navContext, sectionLock, sectionPath, visibleSections, type NavLock, type NavSection } from './nav';
+import { locate, navContext, sectionLock, sectionName, sectionPath, visibleSections, type NavLock, type NavSection } from './nav';
 import { lockLabelKey, SectionNavTree } from './SectionNav';
 
 export function workspaceInitials(name: string): string {
@@ -90,10 +90,24 @@ function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
     );
 }
 
-function NavEntry({ section, base, state, collapsed, lock }: { section: NavSection; base: string; state: 'page' | 'inside' | null; collapsed: boolean; lock: NavLock | null }) {
+function NavEntry({
+    section,
+    base,
+    state,
+    collapsed,
+    lock,
+    vertical,
+}: {
+    section: NavSection;
+    base: string;
+    state: 'page' | 'inside' | null;
+    collapsed: boolean;
+    lock: NavLock | null;
+    vertical: string | null;
+}) {
     const { t } = useTranslation();
     const Icon = section.icon;
-    const label = t(`nav.sections.${section.key}`);
+    const label = sectionName(t, section.key, vertical);
     const lockText = lock ? t(lockLabelKey(lock)) : null;
     // Contraída no se ve la subnavegación: la sección se marca entera aunque la persona esté en una de sus pantallas.
     const current = state === 'page' || (collapsed && state === 'inside');
@@ -145,7 +159,7 @@ function NavSections({ base, iconsOnly }: { base: string; iconsOnly: boolean }) 
 
     const render = (section: NavSection, lock: NavLock | null) => (
         <li key={section.key}>
-            <NavEntry section={section} base={base} state={stateOf(section)} collapsed={iconsOnly} lock={lock} />
+            <NavEntry section={section} base={base} state={stateOf(section)} collapsed={iconsOnly} lock={lock} vertical={ctx.vertical ?? null} />
             {!iconsOnly && location && location.section.key === section.key && section.items.length > 0 ? (
                 <SectionNavTree section={section} location={location} base={base} ctx={ctx} />
             ) : null}

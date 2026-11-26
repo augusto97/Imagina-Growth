@@ -114,3 +114,20 @@ it('nombra el plan más barato que incluye cada módulo que falta', function () 
     $raw = (string) $this->actingAs($this->owner->fresh())->getJson('/api/me')->assertOk()->getContent();
     expect($raw)->toContain('"upgrade_plans":{}');
 });
+
+it('dice el tipo de negocio: lo elegido en el asistente, la vertical o lo que dicen los sitios', function () {
+    // Sin ninguna señal: null (el menú muestra todo).
+    expect(meWorkspace($this, $this->ws->publicId())['business_type'])->toBeNull();
+
+    // Una tienda WooCommerce conectada.
+    $this->connectedSite($this->ws, 'tienda.co');
+    expect(meWorkspace($this, $this->ws->publicId())['business_type'])->toBe('store');
+
+    // La vertical guardada manda sobre los sitios (un consultorio que vende bonos con WooCommerce es de servicios).
+    $this->ws->forceFill(['vertical' => 'health'])->save();
+    expect(meWorkspace($this, $this->ws->publicId())['business_type'])->toBe('services');
+
+    // Y lo elegido en el asistente manda sobre todo.
+    DB::table('workspace_onboarding')->insert(['workspace_id' => $this->ws->id, 'business_type' => 'both', 'created_at' => now(), 'updated_at' => now()]);
+    expect(meWorkspace($this, $this->ws->publicId())['business_type'])->toBe('both');
+});

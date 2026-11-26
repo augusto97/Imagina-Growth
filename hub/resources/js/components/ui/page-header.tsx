@@ -2,7 +2,7 @@ import { ChevronRight, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router';
-import { activeChild, itemPath, sectionPath } from '@/components/layout/nav';
+import { activeChild, itemPath, sectionName, sectionPath } from '@/components/layout/nav';
 import { usePageContext } from '@/components/layout/pageContext';
 import { cn } from '@/lib/cn';
 import { IconTile, type IconTone } from './icon-tile';
@@ -24,7 +24,7 @@ export function useAutoCrumbs(): Crumb[] {
         return [];
     }
     const item = ctx.item;
-    const crumbs: Crumb[] = [{ label: t(`nav.sections.${ctx.section.key}`), to: sectionPath(ctx.base, ctx.section) }];
+    const crumbs: Crumb[] = [{ label: sectionName(t, ctx.section.key, ctx.vertical), to: sectionPath(ctx.base, ctx.section) }];
     // Una pantalla hermana de la entrada (Conexiones → Tu web): la entrada y, en un detalle, la pantalla hermana.
     const childKey = activeChild(item, pathname, ctx.base);
     const child = item.children?.find((c) => c.key === childKey);

@@ -60,6 +60,11 @@ export interface Workspace {
     connections?: WorkspaceConnections;
     /** Para cada módulo fuera del plan, el nombre del plan más barato que lo incluye. */
     upgrade_plans?: Partial<Record<PlanModule, string>>;
+    /**
+     * Tienda, servicios o ambos (rediseño v2 §11.1): lo elegido en el asistente, la vertical o lo que dicen los sitios.
+     * null: todavía no se sabe (el menú muestra todo).
+     */
+    business_type?: 'store' | 'services' | 'both' | null;
 }
 
 /**

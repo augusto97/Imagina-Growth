@@ -8,6 +8,8 @@ import type { NavLocation } from './nav';
 export interface PageContextValue extends NavLocation {
     /** /w/:workspaceId */
     base: string;
+    /** A qué se dedica el negocio (cambia algunas palabras de la navegación). */
+    vertical?: string | null;
 }
 
 export const PageContext = createContext<PageContextValue | null>(null);

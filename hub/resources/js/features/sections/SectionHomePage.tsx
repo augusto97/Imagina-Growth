@@ -11,7 +11,7 @@ import { IconTile } from '@/components/ui/icon-tile';
 import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { lockResolution } from '@/components/layout/LockedPage';
-import { itemLock, itemPath, navContext, sectionLock, type NavItem, type NavLock } from '@/components/layout/nav';
+import { itemLock, itemPath, navContext, sectionLock, sectionName, sectionPurpose, type NavItem, type NavLock } from '@/components/layout/nav';
 import { usePageContext } from '@/components/layout/pageContext';
 import { lockLabelKey } from '@/components/layout/SectionNav';
 import { NotFoundPage } from '@/components/layout/guards';
@@ -233,13 +233,13 @@ export function SectionHomePage() {
     const { section, base } = page;
     const nav = navContext(workspace);
     const lock = sectionLock(section, nav);
-    const name = t(`nav.sections.${section.key}`);
+    const name = sectionName(t, section.key, nav.vertical);
 
     return (
         <>
             <PageHeader
                 title={name}
-                description={t(`sections.${section.key}.purpose`)}
+                description={sectionPurpose(t, section.key, nav.vertical)}
                 icon={section.icon}
                 tone={section.tone}
                 actions={

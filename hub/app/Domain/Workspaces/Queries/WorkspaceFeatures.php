@@ -9,7 +9,10 @@ use App\Domain\Billing\Models\Plan;
 use App\Domain\Billing\Plans\PlanCatalog;
 use App\Domain\Billing\Plans\PlanEntitlements;
 use App\Domain\Billing\Plans\PlanResolver;
+use App\Domain\Onboarding\Models\WorkspaceOnboarding;
+use App\Domain\Onboarding\Support\Verticals;
 use App\Domain\Workspaces\Models\Workspace;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Laravel\Pennant\Drivers\DatabaseDriver;
@@ -32,10 +35,13 @@ use Throwable;
  * - `connections.channels`: los canales con una cuenta en uso (activa, en pausa o con error), sin repetir.
  * - `upgrade_plans`: para cada módulo fuera del plan, el nombre del plan público más barato que lo incluye (del
  *   mismo tipo, tienda o servicios, cuando lo hay), para decir «disponible en el plan X».
+ * - `business_type`: `store`, `services` o `both` para que el menú oculte lo que no aplica (rediseño v2 §11.1): lo
+ *   elegido en el asistente; si no, lo que implica la vertical guardada; si no, lo que dicen los sitios y el uso
+ *   (`capabilities`); null si todavía no hay ninguna señal (el menú muestra todo).
  *
  * Calcula todo en pocas consultas para cualquier cantidad de espacios de trabajo (una agencia ve decenas en /api/me).
  *
- * @phpstan-type Features array{modules: list<string>, capabilities: array{store: bool|null, services: bool|null}, connections: array{site: string, channels: list<string>}, upgrade_plans: array<string, string>}
+ * @phpstan-type Features array{modules: list<string>, capabilities: array{store: bool|null, services: bool|null}, connections: array{site: string, channels: list<string>}, upgrade_plans: array<string, string>, business_type: string|null}
  */
 final class WorkspaceFeatures
 {
@@ -83,6 +89,7 @@ final class WorkspaceFeatures
             $channels[(string) $row->workspace_id][] = (string) $row->channel;
         }
         $catalog = null;
+        $declared = $this->declaredBusinessTypes($ids);
 
         $out = [];
         foreach ($workspaces as $ws) {
@@ -101,18 +108,52 @@ final class WorkspaceFeatures
             if ($missing !== [] && $catalog === null) {
                 $catalog = $this->publicPlans();
             }
+            $services = $servicesSignal ? true : ($store === true ? false : null);
+            $vertical = $ws->getAttribute('vertical');
             $out[$ws->id] = [
                 'modules' => $allowed,
                 'capabilities' => [
                     'store' => $store,
-                    'services' => $servicesSignal ? true : ($store === true ? false : null),
+                    'services' => $services,
                 ],
+                'business_type' => $declared[$ws->id]
+                    ?? (is_string($vertical) && Verticals::valid($vertical) ? Verticals::businessType($vertical) : null)
+                    ?? match (true) {
+                        $store === true && $services === true => 'both',
+                        $services === true => 'services',
+                        $store === true => 'store',
+                        default => null,
+                    },
                 'connections' => [
                     'site' => $siteState[$ws->id] ?? 'none',
                     'channels' => $channels[$ws->id] ?? [],
                 ],
                 'upgrade_plans' => $missing === [] ? [] : $this->upgradePlans($missing, $catalog ?? [], $planMetric[(string) $ws->account_id] ?? null),
             ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * El tipo de negocio elegido en el asistente (`workspace_onboarding.business_type`), en una sola consulta.
+     *
+     * @param  array<int, string>  $ids
+     * @return array<string, string>
+     */
+    private function declaredBusinessTypes(array $ids): array
+    {
+        try {
+            $rows = DB::table('workspace_onboarding')->whereIn('workspace_id', $ids)->whereNotNull('business_type')->pluck('business_type', 'workspace_id');
+        } catch (QueryException) {
+            // Una base sin la migración del asistente (2026_11_28) todavía: nadie lo ha elegido.
+            return [];
+        }
+        $out = [];
+        foreach ($rows as $workspaceId => $type) {
+            if (in_array($type, WorkspaceOnboarding::BUSINESS_TYPES, true)) {
+                $out[(string) $workspaceId] = (string) $type;
+            }
         }
 
         return $out;

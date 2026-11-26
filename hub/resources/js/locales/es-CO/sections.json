@@ -7,7 +7,9 @@
             "purpose": "Prende lo que te hace vender más"
         },
         "customers": {
-            "purpose": "Quién te compra, quién se fue y quién está por volver"
+            "purpose": "Quién te compra, quién se fue y quién está por volver",
+            "purpose_health": "Quién te visita, quién no ha vuelto y a quién toca llamar",
+            "purpose_education": "Quién estudia contigo, quién se fue y quién está por volver"
         },
         "conversations": {
             "purpose": "Atiende WhatsApp, Messenger e Instagram en un solo lugar"

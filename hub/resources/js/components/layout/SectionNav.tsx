@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router';
 import { cn } from '@/lib/cn';
-import { activeChild, itemLock, itemPath, sectionPath, type NavContext, type NavItem, type NavLocation, type NavLock, type NavSection } from './nav';
+import { activeChild, itemLock, itemPath, sectionName, sectionPath, type NavContext, type NavItem, type NavLocation, type NavLock, type NavSection } from './nav';
 
 /** Texto corto del candado de una entrada (para el lector de pantalla y el tooltip nativo). */
 export function lockLabelKey(lock: NavLock): string {
@@ -63,7 +63,7 @@ export function SectionNavTree({ section, location, base, ctx }: { section: NavS
     const entries = useEntries(section, location, base, ctx, false);
     return (
         <ul
-            aria-label={t('ui.sectionNav.label', { section: t(`nav.sections.${section.key}`) })}
+            aria-label={t('ui.sectionNav.label', { section: sectionName(t, section.key, ctx.vertical) })}
             className="igr:mt-0.5 igr:mb-2 igr:ml-[19px] igr:space-y-0.5 igr:border-l igr:pl-2.5"
         >
             {entries.map((entry) => (
@@ -136,7 +136,7 @@ export function SectionNav({ section, location, base, ctx, className }: { sectio
         );
 
     return (
-        <nav aria-label={t('ui.sectionNav.label', { section: t(`nav.sections.${section.key}`) })} className={cn('igr:mb-5', className)}>
+        <nav aria-label={t('ui.sectionNav.label', { section: sectionName(t, section.key, ctx.vertical) })} className={cn('igr:mb-5', className)}>
             <div ref={scroller} className="igr:scrollbar-none igr:relative igr:-mx-4 igr:overflow-x-auto igr:px-4 igr:md:mx-0 igr:md:px-0">
                 <ul className="igr:inline-flex igr:min-w-max igr:items-center igr:gap-1 igr:rounded-xl igr:border igr:bg-muted/60 igr:p-1">
                     {entries.flatMap((entry) => {

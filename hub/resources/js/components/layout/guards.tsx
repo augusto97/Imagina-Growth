@@ -135,7 +135,8 @@ export function WorkspaceLayout() {
     const base = `/w/${workspaceId}`;
     // Dónde está la persona: la sección (para la miga y la subnavegación) y si a la entrada le falta algo para servir.
     const located = useMemo(() => locate(sections, location.pathname, base), [sections, location.pathname, base]);
-    const page = useMemo<PageContextValue | null>(() => (located ? { ...located, base } : null), [located, base]);
+    const vertical = workspace?.vertical ?? null;
+    const page = useMemo<PageContextValue | null>(() => (located ? { ...located, base, vertical } : null), [located, base, vertical]);
     const lock = page?.item && nav ? itemLock(page.item, nav) : null;
     // Una pantalla bloqueada se ve como una página normal aunque la ruta sea un lienzo o llene el alto.
     const frame = lock ? 'default' : layout;
@@ -218,7 +219,8 @@ function SectionFrame({
     abilities: Workspace['abilities'];
     sidebarCollapsed: boolean;
 }) {
-    const content = page?.item && lock ? <LockedPage section={page.section} item={page.item} lock={lock} base={page.base} abilities={abilities} /> : <Outlet />;
+    const content =
+        page?.item && lock ? <LockedPage section={page.section} item={page.item} lock={lock} base={page.base} abilities={abilities} vertical={page.vertical} /> : <Outlet />;
     if (layout !== 'default' || !page || !nav || page.section.items.length === 0) {
         return content;
     }

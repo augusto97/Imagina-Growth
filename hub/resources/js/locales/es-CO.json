@@ -265,7 +265,9 @@
             "settings": "Configuración",
             "agency": "Agencia",
             "platform": "Plataforma",
-            "styleguide": "Guía de estilo"
+            "styleguide": "Guía de estilo",
+            "customers_health": "Pacientes",
+            "customers_education": "Estudiantes"
         },
         "keywords": {
             "contacts": "contactos clientes compradores",

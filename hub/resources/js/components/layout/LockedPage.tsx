@@ -7,7 +7,7 @@ import type { ChecklistStep } from '@/components/ui/checklist';
 import type { IllustrationName } from '@/components/ui/illustrations';
 import { LockedState } from '@/components/ui/locked-state';
 import { PageHeader } from '@/components/ui/page-header';
-import { sectionPath, type NavItem, type NavLock, type NavSection } from './nav';
+import { sectionName, sectionPath, type NavItem, type NavLock, type NavSection } from './nav';
 
 /** Dónde se resuelve cada bloqueo y quién puede hacerlo (las rutas son las de hoy; Conexiones las unificará). */
 export function lockResolution(lock: NavLock): { to: string; ability: Ability; labelKey: string } {
@@ -32,7 +32,21 @@ const ILLUSTRATION: Record<NavLock['kind'], IllustrationName> = { plan: 'plan', 
  * siempre y `LockedState` con qué hace, qué le falta y el botón para resolverlo (o a quién pedírselo, si el rol no
  * puede). La pone `WorkspaceLayout` en lugar de la página; la pantalla de verdad no se carga ni pide datos.
  */
-export function LockedPage({ section, item, lock, base, abilities }: { section: NavSection; item: NavItem; lock: NavLock; base: string; abilities: readonly Ability[] }) {
+export function LockedPage({
+    section,
+    item,
+    lock,
+    base,
+    abilities,
+    vertical = null,
+}: {
+    section: NavSection;
+    item: NavItem;
+    lock: NavLock;
+    base: string;
+    abilities: readonly Ability[];
+    vertical?: string | null;
+}) {
     const { t } = useTranslation();
     const name = t(`nav.${item.key}`);
     const fix = lockResolution(lock);
@@ -88,7 +102,7 @@ export function LockedPage({ section, item, lock, base, abilities }: { section: 
                 }
                 secondary={
                     <Button asChild variant="ghost" size="lg">
-                        <Link to={sectionPath(base, section)}>{t('ui.locked.seeSection', { section: t(`nav.sections.${section.key}`) })}</Link>
+                        <Link to={sectionPath(base, section)}>{t('ui.locked.seeSection', { section: sectionName(t, section.key, vertical) })}</Link>
                     </Button>
                 }
                 note={canFix ? undefined : t(`ui.locked.askAdmin.${lock.kind}`)}

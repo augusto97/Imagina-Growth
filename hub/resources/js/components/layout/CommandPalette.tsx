@@ -12,7 +12,7 @@ import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { api } from '@/lib/api';
 import { useUi } from '@/stores/ui';
 import { isMacPlatform, workspaceInitials } from './Sidebar';
-import { itemLock, itemPath, navContext, sectionPath, visibleSections } from './nav';
+import { itemLock, itemPath, navContext, sectionName, sectionPath, sectionPurpose, visibleSections } from './nav';
 
 interface ContactHit {
     id: string;
@@ -134,16 +134,16 @@ export function CommandPalette() {
                                 {sections
                                     .filter((section) => section.items.length === 0)
                                     .map((section) => {
-                                        const sectionName = t(`nav.sections.${section.key}`);
+                                        const name = sectionName(t, section.key, nav.vertical);
                                         const SectionIcon = section.icon;
                                         return (
                                             <Item
                                                 key={section.key}
-                                                value={`ir ${sectionName} ${t(`sections.${section.key}.purpose`, { defaultValue: '' })}`}
+                                                value={`ir ${name} ${sectionPurpose(t, section.key, nav.vertical)}`}
                                                 onSelect={() => go(sectionPath(base, section))}
                                             >
                                                 <SectionIcon />
-                                                {sectionName}
+                                                {name}
                                                 {section.shortcut ? (
                                                     <span className="igr:ml-auto igr:text-[11px] igr:text-muted-foreground">G {section.shortcut.toUpperCase()}</span>
                                                 ) : null}
@@ -154,16 +154,13 @@ export function CommandPalette() {
                             {sections
                                 .filter((section) => section.items.length > 0)
                                 .map((section) => {
-                                    const sectionName = t(`nav.sections.${section.key}`);
+                                    const name = sectionName(t, section.key, nav.vertical);
                                     const SectionIcon = section.icon;
                                     return (
-                                        <Command.Group key={section.key} heading={sectionName} className={groupClass}>
-                                            <Item
-                                                value={`ir ${sectionName} ${t(`sections.${section.key}.purpose`, { defaultValue: '' })}`}
-                                                onSelect={() => go(sectionPath(base, section))}
-                                            >
+                                        <Command.Group key={section.key} heading={name} className={groupClass}>
+                                            <Item value={`ir ${name} ${sectionPurpose(t, section.key, nav.vertical)}`} onSelect={() => go(sectionPath(base, section))}>
                                                 <SectionIcon />
-                                                {t('command.sectionOverview', { section: sectionName })}
+                                                {t('command.sectionOverview', { section: name })}
                                             </Item>
                                             {section.items.map((item) => {
                                                 const Icon = item.icon;
@@ -171,7 +168,7 @@ export function CommandPalette() {
                                                 return (
                                                     <Item
                                                         key={item.key}
-                                                        value={`ir ${t(`nav.${item.key}`)} ${sectionName} ${t(`nav.keywords.${item.key}`, { defaultValue: '' })}`}
+                                                        value={`ir ${t(`nav.${item.key}`)} ${name} ${t(`nav.keywords.${item.key}`, { defaultValue: '' })}`}
                                                         onSelect={() => go(itemPath(base, item))}
                                                     >
                                                         <Icon />

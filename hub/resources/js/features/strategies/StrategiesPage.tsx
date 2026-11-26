@@ -6,7 +6,7 @@ import { Callout } from '@/components/ui/callout';
 import { HeroCard } from '@/components/ui/hero-card';
 import { IconTile, type IconTone } from '@/components/ui/icon-tile';
 import { PageHeader } from '@/components/ui/page-header';
-import { itemLock, itemPath, navContext, visibleSections } from '@/components/layout/nav';
+import { itemLock, itemPath, itemVisible, navContext, visibleSections, type NavAudience } from '@/components/layout/nav';
 import { lockLabelKey } from '@/components/layout/SectionNav';
 import { useWorkspace } from '@/hooks/useWorkspace';
 
@@ -21,17 +21,19 @@ interface Goal {
     tone: IconTone;
     /** La entrada del menú donde se configura hoy (nav.ts). */
     item: string;
+    /** Solo para tiendas (carritos, pedidos, catálogo) o solo para servicios; se oculta si no aplica al negocio. */
+    audience?: NavAudience;
 }
 
 const GOALS: Goal[] = [
-    { key: 'recover', icon: ShoppingCart, tone: 'orange', item: 'flows' },
-    { key: 'repeat', icon: Repeat, tone: 'indigo', item: 'flows' },
-    { key: 'loyalty', icon: Gift, tone: 'rose', item: 'loyalty' },
+    { key: 'recover', icon: ShoppingCart, tone: 'orange', item: 'flows', audience: 'store' },
+    { key: 'repeat', icon: Repeat, tone: 'indigo', item: 'flows', audience: 'store' },
+    { key: 'loyalty', icon: Gift, tone: 'rose', item: 'loyalty', audience: 'store' },
     { key: 'capture', icon: MousePointerClick, tone: 'teal', item: 'onsite' },
     { key: 'reputation', icon: Star, tone: 'amber', item: 'reviews' },
     { key: 'service', icon: Bot, tone: 'violet', item: 'agent' },
     { key: 'ads', icon: RadioTower, tone: 'sky', item: 'measurement' },
-    { key: 'services', icon: CalendarDays, tone: 'emerald', item: 'leads' },
+    { key: 'services', icon: CalendarDays, tone: 'emerald', item: 'leads', audience: 'services' },
 ];
 
 export function StrategiesPage() {
@@ -58,7 +60,7 @@ export function StrategiesPage() {
             <div className="igr:grid igr:gap-4 igr:sm:grid-cols-2 igr:xl:grid-cols-3 igr:2xl:grid-cols-4">
                 {GOALS.map((goal) => {
                     const item = items.find((i) => i.key === goal.item);
-                    if (!item) {
+                    if (!item || !itemVisible({ audience: goal.audience }, ctx)) {
                         return null;
                     }
                     const lock = itemLock(item, ctx);

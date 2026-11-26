@@ -44,6 +44,7 @@ import {
     Globe,
     LineChart,
 } from 'lucide-react';
+import type { TFunction } from 'i18next';
 import type { Ability, PlanModule, Workspace, WorkspaceCapabilities, WorkspaceConnections } from '@/api/types';
 import type { IconTone } from '@/components/ui/icon-tile';
 
@@ -247,16 +248,32 @@ export interface NavContext {
     /** undefined o null: no se sabe, nada lleva candado por conexión. */
     connections?: WorkspaceConnections | null;
     upgradePlans?: Partial<Record<PlanModule, string>> | null;
+    /** Tienda, servicios o ambos; null o undefined: se decide con `capabilities`. */
+    businessType?: Workspace['business_type'];
+    /** A qué se dedica (`store`, `health`…): cambia algunas palabras («Pacientes» en salud). */
+    vertical?: string | null;
 }
 
-export function navContext(workspace: Pick<Workspace, 'abilities' | 'modules' | 'capabilities' | 'connections' | 'upgrade_plans'>): NavContext {
+export function navContext(workspace: Pick<Workspace, 'abilities' | 'modules' | 'capabilities' | 'connections' | 'upgrade_plans' | 'business_type' | 'vertical'>): NavContext {
     return {
         abilities: workspace.abilities,
         modules: workspace.modules ?? null,
         capabilities: workspace.capabilities ?? null,
         connections: workspace.connections ?? null,
         upgradePlans: workspace.upgrade_plans ?? null,
+        businessType: workspace.business_type ?? null,
+        vertical: workspace.vertical ?? null,
     };
+}
+
+/** El nombre de una sección con la palabra de la vertical cuando la tiene («Pacientes» en salud: nav.sections.customers_health). */
+export function sectionName(t: TFunction, key: string, vertical?: string | null): string {
+    return t(`nav.sections.${key}`, { context: vertical ?? undefined });
+}
+
+/** El «para qué sirve» de una sección, también con la palabra de la vertical. */
+export function sectionPurpose(t: TFunction, key: string, vertical?: string | null): string {
+    return t(`sections.${key}.purpose`, { context: vertical ?? undefined, defaultValue: '' });
 }
 
 /** ¿Aplica al rol y al tipo de negocio? (lo que no aplica se oculta; lo que falta lleva candado). */
@@ -264,11 +281,13 @@ export function itemVisible(item: Pick<NavItem, 'ability' | 'audience'>, ctx: Na
     if (item.ability && !ctx.abilities.includes(item.ability)) {
         return false;
     }
-    // Solo se oculta cuando el dato existe y dice que no aplica (false); con null se muestra.
-    if (item.audience === 'store' && ctx.capabilities?.store === false) {
+    // El tipo de negocio (asistente, vertical o sitios) decide; sin él, las capacidades. Solo se oculta cuando el dato
+    // existe y dice que no aplica: un negocio sin tienda no ve carritos, pedidos ni catálogo; con null se muestra todo.
+    const type = ctx.businessType ?? null;
+    if (item.audience === 'store' && (type === 'services' || (type === null && ctx.capabilities?.store === false))) {
         return false;
     }
-    if (item.audience === 'services' && ctx.capabilities?.services === false) {
+    if (item.audience === 'services' && (type === 'store' || (type === null && ctx.capabilities?.services === false))) {
         return false;
     }
     return true;
