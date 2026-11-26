@@ -1,4 +1,21 @@
+import type { TFunction } from 'i18next';
 import type { AgentSettings, ChatMessage, SandboxResult, TurnStatus } from './types';
+
+/**
+ * Un horario en palabras: «lunes a viernes, de 08:00 a 18:00», «lunes, miércoles, viernes, …» o «todos los días, …».
+ * Usa los nombres de los días de `agent.daysLong` (1 = lunes … 7 = domingo).
+ */
+export function hoursSummary(t: TFunction, hours: { days: readonly number[]; start: string; end: string }): string {
+    const days = [...new Set(hours.days)].filter((d) => d >= 1 && d <= 7).sort((a, b) => a - b);
+    const name = (d: number) => t(`agent.daysLong.${String(d)}`);
+    const consecutive = days.length > 2 && days.every((d, i) => i === 0 || d === (days[i - 1] ?? 0) + 1);
+    let label: string;
+    if (days.length === 7) label = t('agent.hoursSummary.everyDay');
+    else if (days.length === 0) label = t('agent.hoursSummary.noDays');
+    else if (consecutive) label = t('agent.hoursSummary.range', { from: name(days[0] ?? 1), to: name(days[days.length - 1] ?? 7) });
+    else label = t('agent.hoursSummary.list', { list: days.map(name).join(', ') });
+    return t('agent.hoursSummary.full', { days: label, start: hours.start, end: hours.end });
+}
 
 /** Palabras de traspaso escritas separadas por comas → lista limpia, sin repetir y sin vacías. */
 export function parseKeywords(text: string): string[] {

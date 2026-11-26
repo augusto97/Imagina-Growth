@@ -4,11 +4,17 @@ declare(strict_types=1);
 
 namespace App\Domain\Intelligence\Ai\Agent\Http;
 
+use App\Domain\Billing\Contracts\Entitlements;
+use App\Domain\Bookings\Models\BookingService;
 use App\Domain\Intelligence\Ai\Agent\Models\AgentSettings;
 use App\Domain\Intelligence\Ai\Agent\SalesAgent;
 use App\Domain\Intelligence\Ai\Contracts\AiGateway;
+use App\Domain\Messaging\Enums\Channel;
+use App\Domain\Messaging\Models\ChannelAccount;
+use App\Domain\Services\Leads\Models\LeadQualificationSet;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
+use App\Domain\Workspaces\Support\BusinessHours;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +26,7 @@ final class AgentSettingsController
 {
     public function __construct(private readonly CurrentWorkspace $current) {}
 
-    public function show(AiGateway $ai): JsonResponse
+    public function show(AiGateway $ai, Entitlements $entitlements): JsonResponse
     {
         Gate::authorize('ws.useInbox');
         $ws = $this->current->get();
@@ -30,6 +36,22 @@ final class AgentSettingsController
             'ai_available' => $ai->available($ws->id),
             'store_connected' => Site::query()->whereIn('status', [Site::STATUS_CONNECTED, Site::STATUS_DEGRADED])->exists(),
             'can_manage' => Gate::allows('ws.manageInbox'),
+            // Dónde responde (las cuentas activas que conversan) y con qué horario pasa a las personas.
+            'channels' => array_values(array_map('strval', ChannelAccount::query()->where('status', 'active')
+                ->whereIn('channel', [Channel::WhatsApp->value, Channel::Messenger->value, Channel::Instagram->value])
+                ->distinct()->orderBy('channel')->pluck('channel')->map(fn ($c) => $c instanceof Channel ? $c->value : (string) $c)->all())),
+            'business_hours' => BusinessHours::of($ws),
+            // Servicios: el agente califica con las preguntas de Leads → Calificación y agenda con los servicios de la agenda.
+            'services' => [
+                'qualification' => [
+                    'sets' => LeadQualificationSet::query()->count(),
+                    'active' => LeadQualificationSet::query()->where('active', true)->count(),
+                ],
+                'booking' => [
+                    'module' => $entitlements->allows($ws, 'bookings'),
+                    'services' => BookingService::query()->where('active', true)->count(),
+                ],
+            ],
         ]);
     }
 

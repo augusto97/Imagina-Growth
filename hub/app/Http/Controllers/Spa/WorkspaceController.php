@@ -11,6 +11,7 @@ use App\Domain\Workspaces\Data\WorkspaceData;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Models\Account;
 use App\Domain\Workspaces\Models\User;
+use App\Domain\Workspaces\Support\BusinessHours;
 use App\Http\Controllers\Spa\Concerns\Presenters;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
@@ -56,8 +57,24 @@ final class WorkspaceController
             'vertical' => ['sometimes', 'nullable', Rule::in(Verticals::keys())],
             'legal_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'privacy_policy_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
+            // Horario de atención (Tu negocio): el del equipo para el agente con IA fuera de horario.
+            'business_hours' => ['sometimes', 'nullable', 'array'],
+            'business_hours.days' => ['required_with:business_hours', 'array', 'min:1', 'max:7'],
+            'business_hours.days.*' => ['integer', 'between:1,7'],
+            'business_hours.start' => ['required_with:business_hours', 'date_format:H:i'],
+            'business_hours.end' => ['required_with:business_hours', 'date_format:H:i', 'after:business_hours.start'],
+        ], [
+            'business_hours.days.min' => __('Elige al menos un día de atención.'),
+            'business_hours.end.after' => __('La hora de cierre debe ser después de la de apertura.'),
         ]);
-        $workspace = $update->handle($current->get(), $data);
+        $workspace = $current->get();
+        if (array_key_exists('business_hours', $data)) {
+            $settings = (array) ($workspace->settings ?? []);
+            $settings['business_hours'] = is_array($data['business_hours']) ? BusinessHours::normalize($data['business_hours']) : null;
+            $data['settings'] = array_filter($settings, fn ($v) => $v !== null);
+            unset($data['business_hours']);
+        }
+        $workspace = $update->handle($workspace, $data);
 
         return response()->json(Presenters::workspace($workspace, $current->role()));
     }

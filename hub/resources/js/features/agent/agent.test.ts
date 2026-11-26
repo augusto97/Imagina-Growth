@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { appendSandboxReply, parseKeywords, reasonKey, settingsPayload, statusTone } from './logic';
+import i18n from '@/lib/i18n';
+import { appendSandboxReply, hoursSummary, parseKeywords, reasonKey, settingsPayload, statusTone } from './logic';
 import type { AgentSettings } from './types';
 
 const base: AgentSettings = {
@@ -42,5 +43,14 @@ describe('agente de ventas', () => {
         expect(reasonKey('intent:complaint')).toBe('intent');
         expect(reasonKey('queja por pedido')).toBeNull();
         expect(reasonKey('window_closed')).toBe('window_closed');
+    });
+});
+
+describe('horario en palabras', () => {
+    const t = i18n.getFixedT('es-CO');
+    it('nombra rangos seguidos, días sueltos y toda la semana', () => {
+        expect(hoursSummary(t, { days: [1, 2, 3, 4, 5], start: '08:00', end: '18:00' })).toBe('lunes a viernes, de 08:00 a 18:00');
+        expect(hoursSummary(t, { days: [5, 1, 3, 3], start: '09:00', end: '13:00' })).toBe('lunes, miércoles, viernes, de 09:00 a 13:00');
+        expect(hoursSummary(t, { days: [1, 2, 3, 4, 5, 6, 7], start: '00:00', end: '23:59' })).toBe('todos los días, de 00:00 a 23:59');
     });
 });
