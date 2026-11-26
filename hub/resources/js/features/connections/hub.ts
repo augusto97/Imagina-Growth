@@ -1,5 +1,5 @@
 import type { Site } from '@/api/types';
-import type { ChannelAccount, ChannelKind } from '@/features/channels/api';
+import { type ChannelAccount, type ChannelKind, UNOFFICIAL_PROVIDERS } from '@/features/channels/api';
 import type { Destination, Platform } from '@/features/measurement/api';
 import type { ProviderInfo } from './api';
 
@@ -85,7 +85,7 @@ export function channelStatus(accounts: readonly ChannelAccount[] | undefined, k
     const active = list.filter((a) => a.status === 'active');
     if (active.length > 0) {
         const first = active.find((a) => a.is_default) ?? active[0];
-        const unofficial = active.some((a) => a.provider === 'zender');
+        const unofficial = active.some((a) => UNOFFICIAL_PROVIDERS.includes(a.provider));
         return { tone: unofficial ? 'attention' : 'on', label: unofficial ? 'unofficial' : 'connected', params: { count: active.length }, detail: first?.identity ?? first?.display_name ?? null };
     }
     const problem = list.find((a) => a.status === 'error') ?? list.find((a) => a.status === 'paused') ?? list.find((a) => a.status === 'pending');

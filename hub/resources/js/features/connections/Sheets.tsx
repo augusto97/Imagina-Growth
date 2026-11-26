@@ -1,4 +1,4 @@
-import { ArrowRight, Check, Copy, Download, ExternalLink, FileText, Globe, LogIn, Plug, Plus, QrCode, ShoppingCart } from 'lucide-react';
+import { ArrowRight, Check, Copy, Download, ExternalLink, FileText, Globe, LogIn, Plug, Plus, QrCode, ShieldAlert, ShoppingCart } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -15,6 +15,7 @@ import { qrDownloadUrl, useLandingMutations, useLandingPages } from '@/features/
 import { AccountCard } from '@/features/channels/AccountCard';
 import { type ChannelAccount, type ChannelsResponse } from '@/features/channels/api';
 import { EmailDialog, platformEmailAllowed } from '@/features/channels/dialogs/EmailDialog';
+import { ImaginaWhatsDialog } from '@/features/channels/dialogs/ImaginaWhatsDialog';
 import { SocialDialog } from '@/features/channels/dialogs/SocialDialog';
 import { TestSendDialog } from '@/features/channels/dialogs/TestSendDialog';
 import { TwilioDialog } from '@/features/channels/dialogs/TwilioDialog';
@@ -272,9 +273,10 @@ export function WhatsAppSheet({ accounts, meta, signup }: { accounts: ChannelAcc
     const { workspace } = useWorkspace();
     const canManage = useCan('manageWorkspace');
     const canMarketing = useCan('manageMarketing');
-    const [dialog, setDialog] = useState<'manual' | 'zender' | null>(null);
+    const [dialog, setDialog] = useState<'manual' | 'zender' | 'imagina_whats' | null>(null);
     const [testFor, setTestFor] = useState<ChannelAccount | null>(null);
     const mine = accounts.filter((a) => a.channel === 'whatsapp');
+    const isOwner = workspace.role === 'owner';
     const configured = signup?.configured ?? meta?.embedded_signup.configured ?? false;
     return (
         <>
@@ -316,6 +318,18 @@ export function WhatsAppSheet({ accounts, meta, signup }: { accounts: ChannelAcc
                             </Button>
                         </div>
                         <p className="igr:text-xs igr:text-muted-foreground">{t('connections.hub.sheet.whatsapp.cost')}</p>
+                        <div className="igr:flex igr:items-start igr:gap-3 igr:rounded-lg igr:border igr:border-dashed igr:p-3">
+                            <ShieldAlert className="igr:mt-0.5 igr:size-4 igr:shrink-0 igr:text-warning" aria-hidden="true" />
+                            <div className="igr:min-w-0 igr:flex-1 igr:space-y-1">
+                                <h4 className="igr:text-[13px] igr:font-semibold">{t('connections.hub.sheet.whatsapp.imaginaWhatsTitle')}</h4>
+                                <p className="igr:text-xs igr:text-muted-foreground">
+                                    {isOwner ? t('connections.hub.sheet.whatsapp.imaginaWhats') : t('channels.wa.ownerOnly')}
+                                </p>
+                                <Button variant="outline" size="sm" disabled={!isOwner} onClick={() => setDialog('imagina_whats')}>
+                                    {t('connections.hub.sheet.whatsapp.imaginaWhatsAction')}
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 ) : (
                     <p className="igr:text-support igr:text-muted-foreground">{t('ui.locked.askAdmin.channel')}</p>
@@ -323,6 +337,7 @@ export function WhatsAppSheet({ accounts, meta, signup }: { accounts: ChannelAcc
             </SheetSection>
             <WhatsAppDialog open={dialog === 'manual'} meta={meta} onClose={() => setDialog(null)} onZender={() => setDialog('zender')} />
             <ZenderDialog open={dialog === 'zender'} caps={meta?.zender_caps ?? { hourly: 30, daily: 200 }} onClose={() => setDialog(null)} />
+            <ImaginaWhatsDialog open={dialog === 'imagina_whats'} meta={meta} onClose={() => setDialog(null)} />
             <TestSendDialog account={testFor} onClose={() => setTestFor(null)} />
         </>
     );

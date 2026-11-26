@@ -389,7 +389,10 @@
                     "coexistenceTitle": "¿Ya usas la app de WhatsApp Business?",
                     "coexistence": "Puedes seguir usándola en tu celular: elige tu número en la ventana de Meta y lo que respondas desde el celular también aparece en la bandeja.",
                     "manual": "Conectar a mano u otras opciones",
-                    "cost": "Meta le cobra los mensajes a tu cuenta según su tarifa. Los que respondes dentro de las 24 horas de un mensaje del cliente son gratis."
+                    "cost": "Meta le cobra los mensajes a tu cuenta según su tarifa. Los que respondes dentro de las 24 horas de un mensaje del cliente son gratis.",
+                    "imaginaWhatsTitle": "¿Usas Imagina Whats?",
+                    "imaginaWhats": "Conecta el número que ya tienes vinculado en Imagina Whats con tu clave de API. Es WhatsApp Web, no oficial: sirve para responder y para confirmaciones y recordatorios, sin marketing.",
+                    "imaginaWhatsAction": "Conectar con Imagina Whats"
                 },
                 "messenger": {
                     "accounts": "Tus páginas",

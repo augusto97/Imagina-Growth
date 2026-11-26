@@ -57,6 +57,7 @@ describe('Conexiones: el estado de cada tarjeta en palabras', () => {
         expect(channelStatus([], 'whatsapp')).toMatchObject({ tone: 'off', label: 'notConnected' });
         expect(channelStatus([account({})], 'whatsapp')).toMatchObject({ tone: 'on', label: 'connected', detail: '+57 300 000 0000' });
         expect(channelStatus([account({ provider: 'zender' })], 'whatsapp').label).toBe('unofficial');
+        expect(channelStatus([account({ provider: 'imagina_whats' })], 'whatsapp')).toMatchObject({ tone: 'attention', label: 'unofficial' });
         expect(channelStatus([account({ status: 'error' })], 'whatsapp').label).toBe('error');
         expect(channelStatus([account({ status: 'disconnected' })], 'whatsapp').tone).toBe('off');
         // Desconectado con conversaciones (sigue en connections.channels): se pide reconectar, no «sin conectar».
@@ -116,7 +117,7 @@ describe('Conexiones: el estado de cada tarjeta en palabras', () => {
             expect(hub.cards[key]?.allows, key).toBeTruthy();
         }
         for (const g of GROUPS) expect(hub.groups[g.key]?.title, g.key).toBeTruthy();
-        const labels = ['webNone', 'webPending', 'webDisconnected', 'webNoData', 'webLagging', 'notConnected', 'connected_one', 'unofficial', 'error', 'paused', 'pending', 'emailDomain', 'emailSmtp', 'emailDns', 'reconnect', 'pickAccounts', 'deliveryError', 'sending', 'sendingManual', 'calendarOn_one', 'webOk_one'];
+        const labels = ['webNone', 'webPending', 'webDisconnected', 'webNoData', 'webLagging', 'notConnected', 'disconnected', 'connected_one', 'unofficial', 'error', 'paused', 'pending', 'emailDomain', 'emailSmtp', 'emailDns', 'reconnect', 'pickAccounts', 'deliveryError', 'sending', 'sendingManual', 'calendarOn_one', 'webOk_one'];
         for (const label of labels) expect(hub.status[label], label).toBeTruthy();
     });
 });

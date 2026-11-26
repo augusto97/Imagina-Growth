@@ -11,7 +11,7 @@ import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
 import { formatNumber } from '@/lib/format';
 import { toast } from '@/stores/toast';
-import { type ChannelAccount, useDisconnectChannel, useSyncChannel, useUpdateChannel } from './api';
+import { type ChannelAccount, UNOFFICIAL_PROVIDERS, useDisconnectChannel, useSyncChannel, useUpdateChannel } from './api';
 import { QualityBadge, StatusBadge } from './shared';
 
 const ICONS = { email: Mail, whatsapp: MessageCircle, sms: Phone, messenger: MessagesSquare, instagram: Camera } as const;
@@ -51,7 +51,7 @@ export function AccountCard({ account, onTest, onDns }: { account: ChannelAccoun
                                 {t('channels.default')}
                             </Badge>
                         )}
-                        {account.provider === 'zender' && (
+                        {UNOFFICIAL_PROVIDERS.includes(account.provider) && (
                             <Badge variant="warning">
                                 <ShieldAlert className="igr:size-3" aria-hidden="true" />
                                 {t('channels.unofficial')}
@@ -74,7 +74,7 @@ export function AccountCard({ account, onTest, onDns }: { account: ChannelAccoun
                         <DropdownMenuContent align="end">
                             {account.status === 'active' && canMarketing && !account.webhook_subscription && <DropdownMenuItem onSelect={onTest}>{t('channels.actions.test')}</DropdownMenuItem>}
                             {account.channel === 'email' && account.provider === 'ses' && <DropdownMenuItem onSelect={onDns}>{t('channels.actions.verifyDns')}</DropdownMenuItem>}
-                            {account.webhook_subscription && canMarketing && (
+                            {(account.webhook_subscription || account.provider === 'imagina_whats') && canMarketing && (
                                 <DropdownMenuItem
                                     onSelect={() =>
                                         sync.mutate(account.id, {
@@ -98,7 +98,7 @@ export function AccountCard({ account, onTest, onDns }: { account: ChannelAccoun
                                     {t('channels.actions.sync')}
                                 </DropdownMenuItem>
                             )}
-                            {canManage && account.status === 'active' && !account.is_default && account.provider !== 'zender' && (
+                            {canManage && account.status === 'active' && !account.is_default && !UNOFFICIAL_PROVIDERS.includes(account.provider) && (
                                 <DropdownMenuItem onSelect={() => update.mutate({ id: account.id, is_default: true }, { onSuccess: () => toast.success(t('channels.toast.updated')), onError: fail })}>
                                     {t('channels.actions.makeDefault')}
                                 </DropdownMenuItem>

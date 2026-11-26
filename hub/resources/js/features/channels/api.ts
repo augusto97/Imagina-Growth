@@ -6,7 +6,10 @@ import { postMultipart } from '@/features/contacts/api';
 /* Canales de mensajería (M07). Rutas en hub/routes/api/messaging.php. */
 
 export type ChannelKind = 'email' | 'whatsapp' | 'sms' | 'messenger' | 'instagram';
-export type Provider = 'ses' | 'smtp' | 'meta_cloud' | 'zender' | 'twilio' | 'meta_messenger' | 'meta_instagram';
+export type Provider = 'ses' | 'smtp' | 'meta_cloud' | 'zender' | 'imagina_whats' | 'twilio' | 'meta_messenger' | 'meta_instagram';
+
+/** WhatsApp por WhatsApp Web (Zender, Imagina Whats): sin marketing y con topes fijos (cumplimiento.md §5.2). */
+export const UNOFFICIAL_PROVIDERS: readonly Provider[] = ['zender', 'imagina_whats'];
 export type AccountStatus = 'pending' | 'active' | 'paused' | 'error' | 'disconnected';
 
 export interface ChannelAccount {
@@ -42,7 +45,17 @@ export interface ChannelsResponse {
         embedded_signup: { configured: boolean; missing: string[] };
         meta_login?: { configured: boolean; missing: string[] };
         zender_caps: { hourly: number; daily: number };
+        /** Imagina Whats: la URL de la plataforma, los topes fijos y los permisos que pide la clave. */
+        imagina_whats?: { url: string; caps: { hourly: number; daily: number }; abilities: string[] };
     };
+}
+
+/** Lo que dice Imagina Whats de una clave de API antes de conectarla. */
+export interface ImaginaWhatsCheck {
+    workspace: string | null;
+    credits: number | null;
+    missing: string[];
+    numbers: { id: number; phone: string | null; name: string | null; status: string; enabled: boolean }[];
 }
 
 export interface DnsRecord {
@@ -166,6 +179,14 @@ export const useConnectWhatsApp = (ws: string) =>
 export const useConnectZender = (ws: string) =>
     useChannelMutation(ws, (body: { base_url: string; api_secret: string; account_id: string; phone: string; display_name?: string; accept_risk: boolean }) =>
         api.post<{ data: ChannelAccount; webhook_secret: string }>(`${wsPath(ws)}/channels/whatsapp/zender`, body),
+    );
+
+export const useCheckImaginaWhats = (ws: string) =>
+    useMutation({ mutationFn: (body: { api_key: string }) => api.post<{ data: ImaginaWhatsCheck }>(`${wsPath(ws)}/channels/whatsapp/imagina-whats/check`, body) });
+
+export const useConnectImaginaWhats = (ws: string) =>
+    useChannelMutation(ws, (body: { api_key: string; wa_account_id: number; display_name?: string; accept_risk: boolean }) =>
+        api.post<{ data: ChannelAccount; webhook_problem: string | null }>(`${wsPath(ws)}/channels/whatsapp/imagina-whats`, body),
     );
 
 export const useConnectTwilio = (ws: string) =>

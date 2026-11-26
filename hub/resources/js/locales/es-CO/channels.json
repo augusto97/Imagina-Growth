@@ -17,7 +17,8 @@
             "zender": "WhatsApp no oficial (Zender)",
             "twilio": "Twilio",
             "meta_messenger": "Messenger (página de Facebook)",
-            "meta_instagram": "Instagram Direct"
+            "meta_instagram": "Instagram Direct",
+            "imagina_whats": "WhatsApp no oficial (Imagina Whats)"
         },
         "status": {
             "pending": "Pendiente",
@@ -176,6 +177,36 @@
             "accept": "Entiendo el riesgo de bloqueo y que esta conexión no sirve para marketing.",
             "webhookTitle": "Configura este webhook en Zender",
             "webhookHelp": "Pega la URL y la clave en Zender para recibir los mensajes. La clave solo se muestra ahora."
+        },
+        "imaginaWhats": {
+            "title": "Conectar Imagina Whats",
+            "risk": "Imagina Whats conecta tu número por WhatsApp Web, que los términos de WhatsApp no autorizan para automatizar: el número puede ser bloqueado. Sirve para responder a quien te escribe y para avisos como confirmaciones y recordatorios.",
+            "step1": "En Imagina Whats, vincula tu número de WhatsApp (QR o código) si todavía no lo hiciste.",
+            "step2": "Ve a Claves de API y crea una clave con estos permisos:",
+            "step3": "Copia la clave (se ve una sola vez) y pégala aquí.",
+            "open": "Abrir Imagina Whats",
+            "apiKey": "Clave de API de Imagina Whats",
+            "apiKeyHelp": "Se guarda cifrada y nunca se vuelve a mostrar.",
+            "verify": "Verificar la clave",
+            "missingTitle": "A la clave le faltan permisos",
+            "missing": "Edítala en Imagina Whats y agrégale: {{list}}. Luego vuelve a verificar.",
+            "account": "Cuenta de Imagina Whats: {{name}}.",
+            "pick": "Elige el número que va a enviar y recibir los mensajes.",
+            "numberLegend": "Número de WhatsApp",
+            "noName": "Número sin nombre",
+            "noNumbersTitle": "No hay números en esa cuenta",
+            "noNumbers": "Vincula un número de WhatsApp en Imagina Whats y vuelve a verificar la clave.",
+            "status": {
+                "connected": "Conectado",
+                "disconnected": "Desconectado: vincúlalo otra vez en Imagina Whats",
+                "logged_out": "Sesión cerrada: vincúlalo otra vez en Imagina Whats",
+                "banned": "Bloqueado por WhatsApp",
+                "pairing": "Sin terminar de vincular",
+                "other": "Estado en Imagina Whats: {{status}}"
+            },
+            "doneTitle": "Imagina Whats quedó conectado",
+            "done": "Los mensajes que te escriban a ese número llegan a la bandeja, y las confirmaciones y recordatorios salen por ahí.",
+            "webhookProblemTitle": "Ya puedes enviar, pero falta recibir"
         },
         "sms": {
             "title": "Conectar Twilio",
