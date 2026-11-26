@@ -162,3 +162,74 @@ export function StatCardSkeleton({ className }: { className?: string }) {
 export function StatGrid({ children, className }: { children: ReactNode; className?: string }) {
     return <div className={cn('igr:grid igr:gap-3 igr:sm:grid-cols-2 igr:lg:grid-cols-4', className)}>{children}</div>;
 }
+
+/**
+ * Lista compacta de métricas (StatList / StatRow): una tarjeta con una fila por cifra, para el celular, donde ocho
+ * `StatCard` en una sola columna obligan a desplazarse mucho. Cada fila mide siempre 56 px (sin saltos al cargar) y
+ * lleva el nombre con su ayuda «?», la cifra con `tabular-nums` y la variación con flecha y texto.
+ */
+export function StatList({ children, className, label }: { children: ReactNode; className?: string; label?: string }) {
+    return (
+        <Card className={cn('igr:overflow-hidden', className)}>
+            <ul className="igr:divide-y" aria-label={label}>
+                {children}
+            </ul>
+        </Card>
+    );
+}
+
+/** Una fila de `StatList` (las mismas props de la variación que `StatCard`). */
+export function StatRow({
+    label,
+    value,
+    help,
+    helpLabel,
+    change,
+    changeLabel,
+    better = 'up',
+    flat,
+    hint,
+    loading = false,
+}: {
+    label: ReactNode;
+    value: ReactNode;
+    help?: ReactNode;
+    helpLabel?: string;
+    change?: number | null;
+    changeLabel?: ReactNode;
+    better?: Better;
+    flat?: number;
+    hint?: ReactNode;
+    loading?: boolean;
+}) {
+    const toneOf = changeTone(change, better, flat);
+    const Arrow = toneOf === 'flat' ? Minus : (change ?? 0) > 0 ? ArrowUpRight : ArrowDownRight;
+    const showChange = changeLabel !== undefined && changeLabel !== null && !loading;
+    return (
+        <li className="igr:flex igr:h-14 igr:items-center igr:gap-3 igr:px-4">
+            <div className="igr:min-w-0 igr:flex-1">
+                <div className="igr:flex igr:items-center igr:gap-1.5">
+                    <span className="igr:min-w-0 igr:truncate igr:text-support igr:text-muted-foreground">{label}</span>
+                    {help ? <HelpTip content={help} label={helpLabel ?? (typeof label === 'string' ? label : undefined)} /> : null}
+                </div>
+                {hint ? <p className="igr:truncate igr:text-caption igr:text-muted-foreground">{hint}</p> : null}
+            </div>
+            <div className="igr:flex igr:shrink-0 igr:flex-col igr:items-end">
+                {loading ? <Skeleton className="igr:h-5 igr:w-20" /> : <span className="igr:text-[15px] igr:font-semibold igr:text-foreground igr:tabular-nums">{value}</span>}
+                {showChange ? (
+                    <span
+                        className={cn(
+                            'igr:inline-flex igr:items-center igr:gap-0.5 igr:text-caption igr:font-medium igr:tabular-nums',
+                            toneOf === 'good' && 'igr:text-success',
+                            toneOf === 'bad' && 'igr:text-destructive',
+                            (toneOf === 'flat' || toneOf === null) && 'igr:text-muted-foreground',
+                        )}
+                    >
+                        {toneOf !== null ? <Arrow className="igr:size-3" aria-hidden /> : null}
+                        {changeLabel}
+                    </span>
+                ) : null}
+            </div>
+        </li>
+    );
+}
