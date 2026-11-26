@@ -66,8 +66,8 @@ it('guarda el tipo de negocio, el paso, saltar, retomar y terminar; la bienvenid
     $admin = $this->addMember($this->ws, WorkspaceRole::Admin, true);
     $res = strategyPutOnboarding($this, ['business_type' => 'services', 'current_step' => 'connect']);
     expect($res)->toMatchArray(['status' => 'in_progress', 'business_type' => 'services', 'current_step' => 'connect'])
-        // Servicios sin vertical elegida: las de «Otro».
-        ->and(array_column($res['recommended'], 'key'))->toBe(['service_lead', 'chat_qualification', 'appointment_reminders']);
+        // Servicios sin vertical elegida: las de «Otro» (con la biblioteca 21–35 ya disponible).
+        ->and(array_column($res['recommended'], 'key'))->toBe(['service_lead', 'lead_nurture', 'chat_qualification']);
     // Con el negocio de servicios, los textos y el Inicio hablan de servicios.
     expect($this->actingAs($this->owner)->getJson($this->strategies('/welcome_popup'))->json('promise'))->toContain('para recibir información');
 
@@ -104,9 +104,10 @@ it('servicios sin agenda: prende lo que puede y explica lo que falta', function 
     $res = $this->actingAs($this->owner)->postJson("/api/w/{$this->ws->publicId()}/onboarding/strategies")->assertOk()->json();
     $results = collect($res['results'])->keyBy('key');
     expect($results['service_lead']['result'])->toBe('activated')
-        ->and($results['appointment_reminders']['result'])->toBe('needs_setup')
-        ->and($results['appointment_reminders']['requirements'][0]['key'])->toBe('booking_service')
+        ->and($results['lead_nurture']['result'])->toBe('activated')
         ->and($results['chat_qualification']['result'])->toBe('needs_setup');
+    // La agenda sigue explicando lo que le falta cuando se pide.
+    expect($this->actingAs($this->owner)->postJson("/api/w/{$this->ws->publicId()}/strategies/appointment_reminders/activate")->assertStatus(422)->json('requirements.0.key'))->toBe('booking_service');
 });
 
 it('permisos y aislamiento: cada quien lo suyo', function () {
@@ -135,11 +136,11 @@ it('la vertical se guarda en el espacio de trabajo, define el tipo de negocio y 
     expect($res)->toMatchArray(['vertical' => 'health', 'business_type' => 'services', 'suggested_vertical' => 'health'])
         ->and($this->ws->refresh()->vertical)->toBe('health')
         ->and(collect($res['steps'])->firstWhere('key', 'business')['done'])->toBeTrue()
-        // Salud: confirmación de citas, inasistencias y controles llegan con su flujo; mientras tanto, lo que ya existe.
-        ->and(array_column($res['recommended'], 'key'))->toBe(['appointment_reminders', 'service_lead', 'ai_sales_agent'])
+        // Salud: confirmación de citas, inasistencias y controles (flujos 23, 24 y 26).
+        ->and(array_column($res['recommended'], 'key'))->toBe(['appointment_confirmation', 'no_show_recovery', 'periodic_service'])
         ->and(DB::table('audit_logs')->where('workspace_id', $this->ws->id)->where('action', 'workspace.updated')->exists())->toBeTrue();
 
-    expect(array_column(strategyPutOnboarding($this, ['vertical' => 'professional'])['recommended'], 'key'))->toBe(['service_lead', 'chat_qualification', 'ai_sales_agent']);
+    expect(array_column(strategyPutOnboarding($this, ['vertical' => 'professional'])['recommended'], 'key'))->toBe(['service_lead', 'quote_followup', 'lead_nurture']);
     strategyPutOnboarding($this, ['vertical' => 'dentista'], null, 422);
 
     // Configuración: la vertical se cambia con el PATCH del espacio de trabajo.
