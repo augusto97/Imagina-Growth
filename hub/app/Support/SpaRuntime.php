@@ -29,4 +29,28 @@ final class SpaRuntime
 
         return ['version' => AppVersion::current(), 'reverb' => $reverb, 'registration' => Registration::isOpen()];
     }
+
+    /**
+     * Las fuentes del texto que se piden junto con el CSS (el subconjunto latino de cada fuente variable del build): sin
+     * esto el navegador las descubre cuando React pinta el primer texto y el texto cambia de forma al llegar
+     * (docs/rendimiento.md §4). Sin build (pruebas) o con `npm run dev` no hay nada que precargar.
+     *
+     * @return list<string> URL de cada archivo
+     */
+    public static function fontPreloads(?string $manifest = null): array
+    {
+        $manifest ??= public_path('build/manifest.json');
+        if (is_file(public_path('hot')) || ! is_file($manifest)) {
+            return [];
+        }
+        $entries = json_decode((string) file_get_contents($manifest), true);
+        $urls = [];
+        foreach (is_array($entries) ? $entries : [] as $source => $entry) {
+            if (is_string($source) && preg_match('#/files/[a-z0-9-]+-latin-wght-normal\.woff2$#', $source) === 1 && is_string($entry['file'] ?? null)) {
+                $urls[] = asset('build/'.$entry['file']);
+            }
+        }
+
+        return $urls;
+    }
 }
