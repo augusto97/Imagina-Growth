@@ -148,19 +148,22 @@ export function ConnectionsPage() {
                     }}
                 />
             ) : null}
-            <Card className="igr:mb-8 igr:flex igr:flex-col igr:gap-4 igr:p-5 igr:sm:flex-row igr:sm:items-center">
-                <IconTile icon={summary.on === summary.total ? CircleCheck : Bell} tone={summary.on === summary.total ? 'emerald' : 'brand'} size="lg" />
-                <div className="igr:min-w-0 igr:flex-1">
-                    {loading ? (
-                        <Skeleton className="igr:h-5 igr:w-64" />
-                    ) : (
-                        <p className="igr:text-body igr:font-semibold">{summary.on === summary.total ? t('connections.hub.summary.allSet') : t('connections.hub.summary.progress', { on: summary.on, total: summary.total })}</p>
-                    )}
-                    <p className="igr:mt-0.5 igr:text-support igr:text-muted-foreground">{t('connections.hub.summary.help')}</p>
+            <Card className="igr:mb-8 igr:p-4 igr:sm:p-5">
+                <div className="igr:flex igr:items-center igr:gap-4">
+                    <IconTile icon={summary.on === summary.total ? CircleCheck : Bell} tone={summary.on === summary.total ? 'emerald' : 'brand'} size="lg" />
+                    <div className="igr:min-w-0 igr:flex-1">
+                        {loading ? (
+                            <Skeleton className="igr:h-5 igr:w-full igr:max-w-64" />
+                        ) : (
+                            <p className="igr:text-body igr:font-semibold">{summary.on === summary.total ? t('connections.hub.summary.allSet') : t('connections.hub.summary.progress', { on: summary.on, total: summary.total })}</p>
+                        )}
+                        <p className="igr:mt-0.5 igr:text-support igr:text-muted-foreground igr:max-sm:hidden">{t('connections.hub.summary.help')}</p>
+                    </div>
+                    <div className="igr:hidden igr:w-48 igr:shrink-0 igr:sm:block">
+                        <Progress value={loading ? 0 : summary.on / Math.max(1, summary.total)} tone={summary.on === summary.total ? 'success' : 'brand'} label={t('connections.hub.summary.label')} />
+                    </div>
                 </div>
-                <div className="igr:w-full igr:sm:w-48">
-                    <Progress value={loading ? 0 : summary.on / Math.max(1, summary.total)} tone={summary.on === summary.total ? 'success' : 'brand'} label={t('connections.hub.summary.label')} />
-                </div>
+                <Progress className="igr:mt-3 igr:sm:hidden" value={loading ? 0 : summary.on / Math.max(1, summary.total)} tone={summary.on === summary.total ? 'success' : 'brand'} label={t('connections.hub.summary.label')} />
             </Card>
             <div className="igr:space-y-10">
                 {groups.map((group) => (

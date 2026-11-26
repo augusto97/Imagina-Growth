@@ -506,7 +506,14 @@ export function AdsSheet({
                 <Allows card={provider} />
             </SheetSection>
             <SheetSection title={t('connections.hub.sheet.ads.account')}>
-                {info && !info.configured && connection === null ? (
+                {info && !info.configured && connection === null && destination ? (
+                    <div className="igr:flex igr:flex-wrap igr:items-center igr:justify-between igr:gap-2">
+                        <p className="igr:text-support igr:text-muted-foreground">{t('connections.hub.sheet.ads.manualConnected', { id: destination.pixel_id ?? '—' })}</p>
+                        <Button asChild size="sm" variant="outline">
+                            <Link to={`/w/${workspace.id}/medicion`}>{t('connections.hub.sheet.ads.editManual')}</Link>
+                        </Button>
+                    </div>
+                ) : info && !info.configured && connection === null ? (
                     <ProviderUnavailable info={info} manual={{ to: 'medicion', label: t('connections.hub.sheet.ads.manual') }} />
                 ) : info ? (
                     <ProviderConnection info={{ ...info, key: provider }} onPick={onPick} connectLabel={t(`connections.hub.sheet.ads.connect_${provider}`)} />

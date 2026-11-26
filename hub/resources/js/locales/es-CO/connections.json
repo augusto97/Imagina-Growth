@@ -439,7 +439,9 @@
                     "pickContact": "Elegir la acción de conversión",
                     "more": "Más detalle",
                     "deliveries": "Ver entregas y calidad",
-                    "audiences": "Audiencias"
+                    "audiences": "Audiencias",
+                    "manualConnected": "Conectada con los datos pegados a mano (píxel {{id}}).",
+                    "editManual": "Cambiar los datos"
                 },
                 "calendar": {
                     "who": "Tu equipo",

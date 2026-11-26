@@ -100,7 +100,7 @@ function ChatHeader({
                 <Button size="icon" variant="ghost" className="igr:-ml-1 igr:md:hidden" onClick={onBack} aria-label={t('inbox.back')}>
                     <ArrowLeft aria-hidden />
                 </Button>
-                <span aria-hidden className="igr:flex igr:size-9 igr:shrink-0 igr:items-center igr:justify-center igr:rounded-full igr:bg-muted igr:text-xs igr:font-semibold igr:text-muted-foreground igr:max-sm:hidden">
+                <span aria-hidden className="igr:flex igr:size-9 igr:shrink-0 igr:items-center igr:justify-center igr:rounded-full igr:bg-muted igr:text-xs igr:font-semibold igr:text-muted-foreground igr:max-lg:hidden">
                     {initials(c.contact?.name)}
                 </span>
                 <div className="igr:min-w-0 igr:flex-1">

@@ -81,7 +81,7 @@ export function AgentPage() {
                 title={t('agent.page.title')}
                 description={t('agent.page.description')}
                 actions={
-                    <Button asChild variant="outline">
+                    <Button asChild variant="outline" className="igr:max-md:hidden">
                         <Link to={`/w/${workspace.id}/bandeja`}>
                             <ArrowLeft aria-hidden />
                             {t('agent.backToInbox')}
