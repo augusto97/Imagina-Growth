@@ -71,29 +71,30 @@ export function HomeStrategies({ home, base }: { home: Pick<Home, 'strategies' |
             {suggested.length > 0 ? (
                 <>
                     <p className="igr:mt-5 igr:mb-2.5 igr:text-caption igr:font-semibold igr:tracking-wide igr:text-muted-foreground igr:uppercase">{t('home.strategies.suggested')}</p>
-                    <div className="igr:grid igr:gap-3 igr:md:grid-cols-3">
+                    <ul className="igr:divide-y igr:rounded-xl igr:border">
                         {suggested.map((s) => {
                             const style = strategyStyle(s);
                             const fix = nextFix(s);
                             return (
-                                <Link
-                                    key={s.key}
-                                    to={`${base}/estrategias/${s.key}`}
-                                    className="igr:group igr:flex igr:min-w-0 igr:flex-col igr:rounded-xl igr:border igr:bg-card igr:p-4 igr:transition-[border-color,box-shadow] igr:hover:border-primary/30 igr:hover:shadow-sm igr:focus-visible:outline-none igr:focus-visible:ring-2 igr:focus-visible:ring-ring"
-                                >
-                                    <div className="igr:flex igr:items-center igr:gap-2.5">
+                                <li key={s.key}>
+                                    <Link
+                                        to={`${base}/estrategias/${s.key}`}
+                                        className="igr:group igr:flex igr:items-start igr:gap-3 igr:px-3.5 igr:py-3 igr:transition-colors igr:hover:bg-accent/60 igr:focus-visible:outline-none igr:focus-visible:ring-2 igr:focus-visible:ring-ring igr:first:rounded-t-xl igr:last:rounded-b-xl"
+                                    >
                                         <IconTile icon={style.icon} tone={style.tone} size="sm" />
-                                        <span className="igr:min-w-0 igr:text-support igr:leading-5 igr:font-semibold igr:text-foreground">{s.name}</span>
-                                    </div>
-                                    <p className="igr:mt-2 igr:line-clamp-3 igr:flex-1 igr:text-caption igr:text-muted-foreground">{s.potential?.summary ?? s.promise}</p>
-                                    <span className="igr:mt-3 igr:inline-flex igr:items-center igr:gap-1 igr:text-caption igr:font-medium igr:text-primary">
-                                        {fix ? t('home.strategies.fix') : t('home.strategies.activate')}
-                                        <ArrowRight className="igr:size-3.5 igr:transition-transform igr:group-hover:translate-x-0.5" aria-hidden />
-                                    </span>
-                                </Link>
+                                        <span className="igr:min-w-0 igr:flex-1">
+                                            <span className="igr:block igr:text-support igr:font-medium igr:text-foreground">{s.name}</span>
+                                            <span className="igr:line-clamp-2 igr:block igr:text-caption igr:text-muted-foreground">{s.potential?.headline ?? s.potential?.summary ?? s.promise}</span>
+                                        </span>
+                                        <span className="igr:inline-flex igr:shrink-0 igr:items-center igr:gap-1 igr:self-center igr:text-caption igr:font-medium igr:text-primary">
+                                            <span className="igr:max-sm:sr-only">{fix ? t('home.strategies.fix') : t('home.strategies.activate')}</span>
+                                            <ArrowRight className="igr:size-3.5 igr:transition-transform igr:group-hover:translate-x-0.5" aria-hidden />
+                                        </span>
+                                    </Link>
+                                </li>
                             );
                         })}
-                    </div>
+                    </ul>
                 </>
             ) : null}
         </Card>

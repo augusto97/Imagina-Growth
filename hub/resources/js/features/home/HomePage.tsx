@@ -32,9 +32,9 @@ function HomeSkeleton() {
             <Skeleton className="igr:mt-2 igr:mb-6 igr:h-5 igr:w-80 igr:max-w-full" />
             <div className="igr:grid igr:gap-4 igr:lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
                 <Skeleton className="igr:h-72 igr:rounded-2xl" />
-                <Skeleton className="igr:h-72 igr:rounded-xl" />
+                <Skeleton className="igr:h-72 igr:rounded-xl igr:lg:row-span-2" />
+                <Skeleton className="igr:h-56 igr:rounded-xl" />
             </div>
-            <Skeleton className="igr:mt-6 igr:h-56 igr:rounded-xl" />
             <Skeleton className="igr:mt-8 igr:h-6 igr:w-40" />
             <div className="igr:mt-3 igr:grid igr:gap-3 igr:sm:grid-cols-2 igr:lg:grid-cols-4">
                 {Array.from({ length: 4 }, (_, i) => (
@@ -86,13 +86,20 @@ export function HomePage() {
 
             <SetupCard setup={data.setup} base={base} />
 
-            <div className="igr:grid igr:items-stretch igr:gap-4 igr:lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-                <MoneyHero home={data} base={base} />
-                <ForToday home={data} base={base} />
-            </div>
-
-            <div className="igr:mt-6">
-                <HomeStrategies home={data} base={base} />
+            {/*
+             * Escritorio: a la izquierda el dinero y tus estrategias, a la derecha «Para hoy» a lo alto de las dos (no
+             * deja huecos aunque la lista sea larga). En el celular, en el orden del plan: dinero, para hoy, estrategias.
+             */}
+            <div className="igr:grid igr:items-start igr:gap-4 igr:lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+                <div className="igr:lg:col-start-1 igr:lg:row-start-1">
+                    <MoneyHero home={data} base={base} />
+                </div>
+                <div className="igr:lg:col-start-2 igr:lg:row-span-2 igr:lg:row-start-1">
+                    <ForToday home={data} base={base} />
+                </div>
+                <div className="igr:lg:col-start-1 igr:lg:row-start-2">
+                    <HomeStrategies home={data} base={base} />
+                </div>
             </div>
 
             <div className="igr:mt-8">
