@@ -18,7 +18,9 @@ use App\Support\Tenancy\CurrentWorkspace;
  * quitan sus pasos) e instala las plantillas de correo que falten desde la
  * biblioteca de M08. Con `activate`, si el borrador es válido, se publica y se
  * activa; si no (p. ej. falta elegir la plantilla aprobada de WhatsApp), queda
- * en borrador con los pendientes.
+ * en borrador con los pendientes. Con `whatsapp = false` se crea sin los pasos de
+ * WhatsApp aunque haya un número conectado (las estrategias lo piden así cuando
+ * Meta todavía no aprobó las plantillas y el correo puede hacer el trabajo).
  */
 final class CreateFlowFromLibrary
 {
@@ -46,14 +48,14 @@ final class CreateFlowFromLibrary
      *
      * @throws InvalidFlow
      */
-    public function handle(string $key, bool $activate, ?string $userId = null): array
+    public function handle(string $key, bool $activate, ?string $userId = null, ?bool $whatsapp = null): array
     {
         $definition = FlowLibrary::find($key);
         if ($definition === null || $definition['graph'] === null) {
             throw new InvalidFlow(['key' => __('Ese flujo de la biblioteca no está disponible todavía.')]);
         }
         $workspace = $this->current->get();
-        $definition = LibraryAdapter::forWorkspace($definition, $workspace->id);
+        $definition = LibraryAdapter::forWorkspace($definition, $workspace->id, $whatsapp === false ? false : null);
         foreach ((array) $definition['graph']['nodes'] as $node) {
             $key = $node['config']['template_key'] ?? null;
             $channel = $node['type'] === 'send_email' ? 'email' : ($node['type'] === 'send_sms' ? 'sms' : ($node['type'] === 'notify_team' ? (string) ($node['config']['channel'] ?? 'email') : null));

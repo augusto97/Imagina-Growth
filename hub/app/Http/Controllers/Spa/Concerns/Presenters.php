@@ -36,6 +36,7 @@ final class Presenters
             'currency' => $ws->currency,
             'locale' => $ws->locale,
             'industry' => $ws->getAttribute('industry'),
+            'vertical' => $ws->getAttribute('vertical'),
             'legal_name' => $ws->getAttribute('legal_name'),
             'privacy_policy_url' => $ws->getAttribute('privacy_policy_url'),
             'settings' => $ws->settings ?? [],
