@@ -15,7 +15,7 @@ import { ILLUSTRATION_NAMES } from './illustrations';
 import { Checkbox } from './input';
 import { PageHeader } from './page-header';
 import { nextSegment, SegmentedControl } from './segmented';
-import { changeTone, sparklinePoints } from './stat-card';
+import { changeTone, sparklinePoints, StatList, StatRow } from './stat-card';
 
 afterEach(cleanup);
 
@@ -54,6 +54,23 @@ describe('StatCard', () => {
         expect(sparklinePoints([4, 4]).every(([, y]) => y === 14)).toBe(true);
         expect(sparklinePoints([null, undefined, 2])).toHaveLength(3);
         expect(sparklinePoints([])).toEqual([]);
+    });
+});
+
+describe('StatList', () => {
+    it('una fila por cifra con su nombre, la cifra y la variación en texto', () => {
+        render(
+            <StatList label="Cifras del periodo">
+                <StatRow label="Ventas" value="$ 143 M" change={-0.198} changeLabel="-19,8 %" />
+                <StatRow label="Pedidos" value="273" />
+            </StatList>,
+        );
+        const list = screen.getByRole('list', { name: 'Cifras del periodo' });
+        const rows = within(list).getAllByRole('listitem');
+        expect(rows).toHaveLength(2);
+        expect(within(rows[0] as HTMLElement).getByText('$ 143 M')).toBeInTheDocument();
+        expect(within(rows[0] as HTMLElement).getByText('-19,8 %')).toHaveClass('igr:text-destructive');
+        expect(within(rows[1] as HTMLElement).queryByText('-19,8 %')).not.toBeInTheDocument();
     });
 });
 

@@ -23,7 +23,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { SegmentedControl } from '@/components/ui/segmented';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Skeleton, SkeletonCard, SkeletonText } from '@/components/ui/skeleton';
-import { StatCard, StatGrid } from '@/components/ui/stat-card';
+import { StatCard, StatGrid, StatList, StatRow } from '@/components/ui/stat-card';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotFoundPage } from '@/components/layout/guards';
@@ -363,6 +363,12 @@ export function StyleGuidePage() {
                 <StatGrid className="igr:mt-3">
                     <StatCard label={t('styleguide.stats.sales')} value="" loading />
                 </StatGrid>
+                <p className="igr:mt-4 igr:mb-2 igr:text-support igr:text-muted-foreground">{t('styleguide.stats.listHelp')}</p>
+                <StatList className="igr:max-w-sm" label={t('styleguide.stats.listLabel')}>
+                    <StatRow label={t('styleguide.stats.sales')} value={t('styleguide.stats.salesCompact')} help={t('styleguide.stats.salesHelp')} change={0.142} changeLabel="+14,2 %" />
+                    <StatRow label={t('styleguide.stats.orders')} value={t('styleguide.stats.ordersValue')} change={-0.172} changeLabel="-17,2 %" />
+                    <StatRow label={t('styleguide.stats.customers')} value={t('styleguide.stats.customersValue')} hint={t('styleguide.stats.hint')} />
+                </StatList>
             </GuideSection>
 
             <GuideSection id="tiles">

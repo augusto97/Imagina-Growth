@@ -1,21 +1,24 @@
-import { ArrowRight, FileText, Mail, Sparkles } from 'lucide-react';
+import { ArrowRight, Mail, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
+import { Select } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState, ErrorState, PageHeader } from '@/components/ui/misc';
+import { EmptyState, ErrorState } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
 import { formatDate } from '@/lib/format';
-import { cn } from '@/lib/cn';
 import { toast } from '@/stores/toast';
 import { useAiReport, useAiReports, useGenerateReport, useSendReport } from './api';
 import { Markdown, SourceBadge } from './components';
 
-/* Informes del analista semanal (inteligencia.md §6.2): qué pasó, por qué y 3 acciones con su botón. */
-export function ReportsPage() {
+/*
+ * Informes del analista semanal (inteligencia.md §6.2): qué pasó, por qué y 3 acciones con su botón. Va dentro de
+ * Resultados → Informes (pestaña «Semanal», InformesPage), con la lista de semanas y el detalle de la elegida.
+ */
+export function WeeklyReports() {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const reports = useAiReports(workspace.id);
@@ -23,62 +26,57 @@ export function ReportsPage() {
     const [search, setSearch] = useSearchParams();
     const selectedId = search.get('informe') ?? reports.data?.[0]?.id ?? null;
     const canGenerate = workspace.abilities.includes('useAi');
+    const select = (id: string) => {
+        const next = new URLSearchParams(search);
+        next.set('informe', id);
+        setSearch(next, { replace: true });
+    };
+    const generateButton = canGenerate ? (
+        <Button
+            size="sm"
+            variant="outline"
+            loading={generate.isPending}
+            onClick={() =>
+                generate.mutate(undefined, {
+                    onSuccess: (r) => {
+                        select(r.id);
+                        toast.success(t('intelligence.reports.generated'));
+                    },
+                    onError: (err) => toast.error(isApiError(err) ? err.message : t('intelligence.reports.failed')),
+                })
+            }
+        >
+            <Sparkles className="igr:size-3.5" aria-hidden />
+            {t('intelligence.reports.generate')}
+        </Button>
+    ) : null;
 
+    if (reports.isError) {
+        return <ErrorState error={reports.error} onRetry={() => void reports.refetch()} />;
+    }
+    if (reports.isPending) {
+        return <Skeleton className="igr:h-60" />;
+    }
+    if (reports.data.length === 0) {
+        return <EmptyState illustration="results" title={t('intelligence.reports.empty')} description={t('intelligence.reports.emptyHelp')} action={generateButton ?? undefined} />;
+    }
     return (
-        <>
-            <PageHeader
-                title={t('intelligence.reports.title')}
-                description={t('intelligence.reports.description')}
-                actions={
-                    canGenerate ? (
-                        <Button
-                            size="sm"
-                            loading={generate.isPending}
-                            onClick={() =>
-                                generate.mutate(undefined, {
-                                    onSuccess: (r) => {
-                                        setSearch({ informe: r.id }, { replace: true });
-                                        toast.success(t('intelligence.reports.generated'));
-                                    },
-                                    onError: (err) => toast.error(isApiError(err) ? err.message : t('intelligence.reports.failed')),
-                                })
-                            }
-                        >
-                            <Sparkles className="igr:size-3.5" aria-hidden />
-                            {t('intelligence.reports.generate')}
-                        </Button>
-                    ) : null
-                }
-            />
-            {reports.isError ? (
-                <ErrorState error={reports.error} onRetry={() => void reports.refetch()} />
-            ) : reports.isPending ? (
-                <Skeleton className="igr:h-60" />
-            ) : reports.data.length === 0 ? (
-                <EmptyState icon={FileText} title={t('intelligence.reports.empty')} description={t('intelligence.reports.emptyHelp')} />
-            ) : (
-                <div className="igr:grid igr:gap-4 igr:lg:grid-cols-[240px_1fr]">
-                    <Card className="igr:h-fit">
-                        <ul className="igr:divide-y" aria-label={t('intelligence.reports.weeks')}>
-                            {reports.data.map((r) => (
-                                <li key={r.id}>
-                                    <button
-                                        type="button"
-                                        onClick={() => setSearch({ informe: r.id }, { replace: true })}
-                                        aria-current={r.id === selectedId ? 'true' : undefined}
-                                        className={cn('igr:flex igr:w-full igr:items-center igr:justify-between igr:gap-2 igr:px-3 igr:py-2.5 igr:text-left igr:text-[13px] igr:hover:bg-muted/40', r.id === selectedId && 'igr:bg-muted/60 igr:font-medium')}
-                                    >
-                                        <span>{t('intelligence.reports.week', { from: formatDate(r.period_start, workspace.locale, 'UTC'), to: formatDate(r.period_end, workspace.locale, 'UTC') })}</span>
-                                        {r.source === 'ai' ? <Sparkles className="igr:size-3.5 igr:text-muted-foreground" aria-label={t('intelligence.source.ai')} /> : null}
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    </Card>
-                    {selectedId ? <ReportDetail id={selectedId} /> : null}
-                </div>
-            )}
-        </>
+        <div className="igr:space-y-3">
+            <div className="igr:flex igr:flex-wrap igr:items-center igr:justify-between igr:gap-2">
+                <label className="igr:flex igr:min-w-0 igr:items-center igr:gap-2 igr:text-support igr:text-muted-foreground">
+                    <span className="igr:shrink-0">{t('intelligence.reports.weeks')}</span>
+                    <Select value={selectedId ?? ''} onChange={(e) => select(e.target.value)} className="igr:w-auto igr:min-w-0">
+                        {reports.data.map((r) => (
+                            <option key={r.id} value={r.id}>
+                                {t('intelligence.reports.week', { from: formatDate(r.period_start, workspace.locale, 'UTC'), to: formatDate(r.period_end, workspace.locale, 'UTC') })}
+                            </option>
+                        ))}
+                    </Select>
+                </label>
+                {generateButton}
+            </div>
+            {selectedId ? <ReportDetail id={selectedId} /> : null}
+        </div>
     );
 }
 
@@ -94,7 +92,7 @@ function ReportDetail({ id }: { id: string }) {
 
     return (
         <Card>
-            <CardHeader className="igr:flex igr:flex-row igr:items-start igr:justify-between igr:gap-2">
+            <CardHeader className="igr:flex igr:flex-row igr:flex-wrap igr:items-start igr:justify-between igr:gap-2">
                 <div>
                     <CardTitle>{t('intelligence.reports.week', { from: formatDate(r.period_start, workspace.locale, 'UTC'), to: formatDate(r.period_end, workspace.locale, 'UTC') })}</CardTitle>
                     <p className="igr:mt-1 igr:text-xs igr:text-muted-foreground">
@@ -127,8 +125,8 @@ function ReportDetail({ id }: { id: string }) {
                     <h3 className="igr:mb-2 igr:text-[13px] igr:font-semibold">{t('intelligence.reports.actions')}</h3>
                     <ol className="igr:space-y-2">
                         {r.actions.map((a, i) => (
-                            <li key={i} className="igr:flex igr:items-start igr:justify-between igr:gap-3 igr:rounded-md igr:border igr:p-3">
-                                <div className="igr:min-w-0">
+                            <li key={i} className="igr:flex igr:flex-wrap igr:items-start igr:justify-between igr:gap-3 igr:rounded-md igr:border igr:p-3">
+                                <div className="igr:min-w-0 igr:flex-1 igr:basis-56">
                                     <p className="igr:text-[13px] igr:font-medium">
                                         {i + 1}. {a.titulo}
                                     </p>

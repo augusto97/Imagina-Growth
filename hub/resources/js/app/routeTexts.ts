@@ -23,7 +23,7 @@ export const ROUTE_TEXTS: Record<string, readonly string[]> = {
     inbox: ['contacts', 'inbox', 'leads', 'qualification'],
     insights: ['analytics', 'insights'],
     integrations: ['contacts', 'integrations'],
-    intelligence: ['analytics', 'intelligence'],
+    intelligence: ['analytics', 'insights', 'intelligence'],
     leads: ['analytics', 'contacts', 'leads', 'qualification', 'today'],
     loyalty: ['analytics', 'campaigns', 'contacts', 'loyalty'],
     measurement: ['audiences', 'connections', 'measurement'],
@@ -39,7 +39,7 @@ export const ROUTE_TEXTS: Record<string, readonly string[]> = {
     segments: ['contacts', 'segments'],
     sites: ['contacts'],
     'style-guide': ['styleguide'],
-    survey: ['contacts', 'survey'],
+    survey: ['analytics', 'contacts', 'survey'],
     templates: ['contacts', 'copilot', 'templates'],
     today: ['contacts', 'leads', 'qualification', 'today'],
 };

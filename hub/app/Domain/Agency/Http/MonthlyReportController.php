@@ -6,15 +6,18 @@ namespace App\Domain\Agency\Http;
 
 use App\Domain\Agency\Http\Concerns\ResolvesAgency;
 use App\Domain\Agency\Models\MonthlyReport;
+use App\Domain\Agency\Reports\MonthlyReportFacts;
 use App\Domain\Agency\Reports\MonthlyReports;
 use App\Domain\Agency\Support\AgencyAccess;
 use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Ids\PrefixedId;
+use App\Support\Pii\Pii;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -42,7 +45,35 @@ final class MonthlyReportController
             'reports' => $list->map(fn (MonthlyReport $r) => self::present($r, $ws))->values(),
             'can_manage' => $this->canManage($request->user(), $ws),
             'last_month' => MonthlyReports::lastMonth($ws)->format('Y-m'),
+            // A quién le llegan los informes (los dueños que no los apagaron en sus avisos), enmascarados.
+            'recipients' => [
+                'monthly' => self::maskedRecipients(MonthlyReports::recipients($ws)),
+                'weekly' => self::maskedRecipients(MonthlyReports::recipients($ws, 'weekly_report')),
+            ],
         ]);
+    }
+
+    /**
+     * GET reports/preview?month=AAAA-MM — los hechos del informe de un mes (por defecto el anterior) sin guardarlo ni
+     * escribir el resumen: la vista previa de lo que va a llegar.
+     */
+    public function preview(Request $request, MonthlyReportFacts $facts): JsonResponse
+    {
+        Gate::authorize('ws.viewDashboards');
+        $ws = $this->current->get();
+        $month = $request->validate(['month' => ['nullable', 'date_format:Y-m']])['month'] ?? null;
+        $period = $month !== null ? $this->month($ws, $month) : MonthlyReports::lastMonth($ws);
+
+        return response()->json(['period' => $period->format('Y-m'), 'facts' => $facts->build($ws, $period)]);
+    }
+
+    /**
+     * @param  Collection<int, User>  $users
+     * @return array{count: int, masked: list<string>}
+     */
+    private static function maskedRecipients(Collection $users): array
+    {
+        return ['count' => $users->count(), 'masked' => array_values($users->map(fn (User $u) => Pii::maskEmail((string) $u->email))->all())];
     }
 
     /** GET reports/{report} */

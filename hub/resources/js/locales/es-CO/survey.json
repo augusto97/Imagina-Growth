@@ -1,7 +1,7 @@
 {
     "survey": {
         "title": "¿Cómo nos conociste?",
-        "description": "Una pregunta en la página de gracias que muestra lo que los anuncios no ven, como el boca a boca o la radio.",
+        "description": "Una sola pregunta en la página de gracias de tu tienda: descubre lo que los anuncios no ven, como el voz a voz o la radio.",
         "saved": "Encuesta guardada",
         "discard": "Descartar cambios",
         "readOnly": "Solo marketing o un administrador puede editar la encuesta.",
@@ -12,11 +12,11 @@
         },
         "editor": {
             "title": "Pregunta y opciones",
-            "description": "Aparece después de comprar, una sola vez por pedido.",
+            "description": "Aparece después de comprar, una sola vez por pedido. Cambiar el texto de una opción conserva sus respuestas.",
             "surveyTitle": "Título",
             "question": "Pregunta",
             "options": "Opciones",
-            "optionsHelp": "De 2 a {{max}} opciones. Cambiar el texto de una opción conserva sus respuestas.",
+            "optionsHelp": "De 2 a {{max}} opciones.",
             "optionLabel": "Opción {{n}}",
             "keyHelp": "Clave interna: se conserva para no perder las respuestas anteriores.",
             "new": "Nueva",
@@ -50,7 +50,15 @@
             "total_one": "{{formatted}} respuesta en total",
             "total_other": "{{formatted}} respuestas en total",
             "empty": "Todavía no hay respuestas",
-            "emptyHelp": "Llegan cuando tus clientes compran y responden en la página de gracias."
+            "emptyHelp": "Llegan cuando tus clientes compran y responden en la página de gracias. Revisa abajo que la encuesta esté activa.",
+            "top": "«{{answer}}» es la respuesta más común ({{share}})",
+            "help": "Lo que dicen tus clientes después de comprar. Compáralo con lo que mide tu web para ver lo que la atribución digital no ve.",
+            "compare": "Comparar con lo que mide tu web"
+        },
+        "save": "Guardar la encuesta",
+        "services": {
+            "title": "Esta encuesta es para tiendas en línea",
+            "description": "Se muestra en la página de gracias después de una compra en WooCommerce. Para saber cómo te conocen tus contactos, mira de dónde llegan en Resultados → Resumen."
         }
     }
 }

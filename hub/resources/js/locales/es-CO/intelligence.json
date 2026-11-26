@@ -1,12 +1,24 @@
 {
     "intelligence": {
         "title": "Analista con IA",
-        "description": "Pregúntale a tus datos en español, lee el informe de cada semana y mira qué tan confiables son las predicciones.",
+        "description": "Pregúntale a tus datos en español y fija las respuestas que quieras seguir. Toda cifra sale de tus datos, nunca de la IA.",
         "sections": {
-            "ask": { "title": "Pregúntale a tus datos", "description": "Haz una pregunta en español y recibe la tabla, el gráfico y la explicación." },
-            "reports": { "title": "Informes del analista", "description": "Cada lunes: qué pasó, por qué y 3 acciones para la semana." },
-            "predictions": { "title": "Predicciones", "description": "Próxima compra, riesgo de abandono y valor futuro, con su precisión." },
-            "insights": { "title": "Hallazgos", "description": "Problemas y oportunidades detectados con su impacto estimado." }
+            "ask": {
+                "title": "Pregúntale a tus datos",
+                "description": "Escribe tu pregunta como se la harías a una persona: la IA arma la consulta, la plataforma la calcula con tus datos y te responde con la cifra, la tabla y el gráfico."
+            },
+            "reports": {
+                "title": "Informes de cada semana",
+                "description": "Cada lunes: qué pasó, por qué y 3 acciones para la semana."
+            },
+            "predictions": {
+                "title": "Predicciones",
+                "description": "Quién vuelve, quién se va y cuánto te dejará cada cliente, con qué tan confiable es."
+            },
+            "insights": {
+                "title": "Recomendaciones",
+                "description": "Lo que encontramos en tus datos, con el dinero en juego y qué hacer."
+            }
         },
         "source": {
             "ai": "Escrito con IA",
@@ -51,8 +63,8 @@
         },
         "saved": {
             "title": "Consultas fijadas",
-            "description": "Las respuestas que fijaste desde «Pregúntale», con las cifras al día.",
-            "empty": "Fija una respuesta desde «Pregúntale a tus datos» para verla aquí.",
+            "description": "Las respuestas que fijaste, con las cifras al día cada vez que entras.",
+            "empty": "Haz una pregunta y fija la respuesta para seguirla aquí.",
             "unpin": "Quitar"
         },
         "ask": {
@@ -61,18 +73,37 @@
             "label": "Tu pregunta",
             "placeholder": "Por ejemplo: ¿cuánto vendí la semana pasada por canal?",
             "submit": "Preguntar",
-            "examples": "Ejemplos de preguntas",
+            "examples": "Prueba con una de estas",
             "privacy": "La IA solo ve las cifras agregadas de la consulta, nunca datos personales.",
             "noPermission": "Tu rol puede ver las consultas fijadas, pero no hacer preguntas nuevas.",
             "empty": "Haz tu primera pregunta",
-            "emptyHelp": "Ventas, pedidos, ticket, clientes nuevos, tráfico y conversión, por fecha, canal, ciudad, dispositivo o método de pago.",
+            "emptyHelp": "Ventas, pedidos, ticket, clientes nuevos, visitas y conversión, por fecha, canal, ciudad, dispositivo o medio de pago.",
             "failed": "No pudimos responder. Intenta de nuevo.",
             "showTable": "Ver tabla",
             "showChart": "Ver gráfico",
-            "pin": "Fijar en Inteligencia",
-            "pinned": "Quedó fijada en Inteligencia",
-            "saveSegment": "Guardar como segmento",
-            "savedSegment": "Segmento creado"
+            "pin": "Fijar en el Analista",
+            "pinned": "Quedó fijada en el Analista con IA",
+            "saveSegment": "Guardar como grupo de clientes",
+            "savedSegment": "Grupo de clientes creado",
+            "placeholder_store": "Por ejemplo: ¿cuánto vendí la semana pasada por canal?",
+            "placeholder_services": "Por ejemplo: ¿cuántas visitas tuvo mi web este mes por canal?",
+            "history": "Ver tus preguntas y respuestas",
+            "thinking": "Calculando con tus datos…",
+            "examplesBy": {
+                "store": {
+                    "q1": "¿Cuánto vendí la semana pasada frente a la anterior?",
+                    "q2": "Ventas por canal en los últimos 30 días",
+                    "q3": "¿Cuál es mi conversión por dispositivo este mes?",
+                    "q4": "Pedidos por ciudad en los últimos 90 días",
+                    "q5": "Ticket promedio por semana en los últimos 3 meses"
+                },
+                "services": {
+                    "q1": "¿Cuántas visitas tuvo mi web este mes frente al anterior?",
+                    "q2": "Visitantes por canal en los últimos 30 días",
+                    "q3": "¿Desde qué ciudades me visitan más?",
+                    "q4": "Visitas por dispositivo en los últimos 90 días"
+                }
+            }
         },
         "reports": {
             "title": "Informes del analista",
@@ -104,6 +135,72 @@
             "open": "Resumen IA",
             "positives": "Lo que gusta",
             "negatives": "Lo que se critica"
-        }
+        },
+        "hub": {
+            "title": "Informes",
+            "description": "Lo que te llega por correo sin entrar al panel: cada mes, cuánto generó la plataforma; cada semana, qué pasó y qué hacer.",
+            "monthly": "Mensual",
+            "weekly": "Semanal",
+            "includesTitle": "Qué incluye",
+            "when": "Cuándo llega:",
+            "who": "A quién le llega",
+            "nobody": "Nadie: este espacio de trabajo no tiene dueños con el aviso prendido.",
+            "whoHelp": "Llega a los dueños. Cada persona lo apaga o lo prende en sus avisos de",
+            "team": "Equipo",
+            "monthlyAbout": {
+                "includes": {
+                    "i1": "El dinero que generó la plataforma y de dónde salió (automatizaciones, campañas, tu web, referidos…).",
+                    "i2": "Tus cifras del mes frente al mes anterior.",
+                    "i3": "Las 3 recomendaciones con más dinero en juego.",
+                    "i4": "Un resumen en palabras: cada cifra se verifica contra tus datos.",
+                    "i5": "Un PDF con tu marca, listo para compartir."
+                },
+                "when": "el día 1 de cada mes, con el mes anterior."
+            },
+            "weeklyAbout": {
+                "includes": {
+                    "i1": "Tus 5 cifras de la semana frente a la anterior.",
+                    "i2": "Qué cambió y por qué, escrito por el analista con IA.",
+                    "i3": "3 acciones concretas, cada una con su botón."
+                },
+                "when": "cada lunes a las 7:00, con la semana que terminó."
+            },
+            "previewTitle": "Así se verá tu primer informe",
+            "previewHelp": "Es una vista previa con tus cifras del mes pasado. El informe de verdad, con su resumen y su PDF, llega el día 1; también puedes generarlo ahora.",
+            "draft": "Vista previa",
+            "notSent": "Sin enviar",
+            "sentAt": "Enviado {{when}}",
+            "generate": "Generar el de {{month}}",
+            "generatedOk": "Informe listo",
+            "download": "Descargar PDF",
+            "downloadMonth": "Descargar el PDF de {{month}}",
+            "send": "Enviar a los dueños",
+            "resend": "Reenviar a los dueños",
+            "sentOk_one": "Se envió a {{count}} persona",
+            "sentOk_other": "Se envió a {{count}} personas",
+            "history": "Informes anteriores",
+            "month": "Mes",
+            "generatedCol": "Generó la plataforma",
+            "changeCol": "Frente al mes anterior",
+            "statusCol": "Estado",
+            "docTitle": "Informe de {{month}}",
+            "generatedLabel": "Lo que generó la plataforma",
+            "generatedStore_one": "{{formatted}} venta con ayuda de la plataforma: el {{share}} de tus ventas ({{sales}}).",
+            "generatedStore_other": "{{formatted}} ventas con ayuda de la plataforma: el {{share}} de tus ventas ({{sales}}).",
+            "generatedServices_one": "{{formatted}} negocio ganado con ayuda de la plataforma, de {{sales}} en total.",
+            "generatedServices_other": "{{formatted}} negocios ganados con ayuda de la plataforma, de {{sales}} en total.",
+            "up": "{{change}} más que el mes anterior.",
+            "down": "{{change}} menos que el mes anterior.",
+            "byModule": "De dónde salió",
+            "noModules": "Este mes la plataforma todavía no ayudó a cerrar ventas. El informe lo dirá igual, con lo que puedes prender para empezar.",
+            "summary": "Resumen",
+            "aiNote": "Redactado con IA a partir de tus cifras; cada número se verificó contra los datos.",
+            "kpis": "Tus cifras del mes",
+            "vsPrevious": "vs. mes anterior",
+            "todo": "Qué hacer",
+            "atStake": "{{amount}} en juego",
+            "pdfHelp": "El PDF lleva tu marca y llega por correo a los dueños."
+        },
+        "more": "Más del analista"
     }
 }

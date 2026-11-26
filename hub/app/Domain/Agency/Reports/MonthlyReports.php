@@ -93,11 +93,15 @@ final class MonthlyReports
         return ['status' => $owners->isEmpty() ? 'no_recipients' : 'sent', 'count' => $owners->count()];
     }
 
-    /** @return Collection<int, User> */
-    public static function recipients(Workspace $workspace): Collection
+    /**
+     * Los dueños que reciben un informe (`monthly_report` o `weekly_report`): los que no lo apagaron en sus avisos.
+     *
+     * @return Collection<int, User>
+     */
+    public static function recipients(Workspace $workspace, string $notification = 'monthly_report'): Collection
     {
         return $workspace->users()->withPivot('notifications')->wherePivot('role', WorkspaceRole::Owner->value)->get()
-            ->filter(fn (User $u) => (json_decode((string) $u->pivot?->getAttribute('notifications'), true)['monthly_report'] ?? true) !== false)
+            ->filter(fn (User $u) => (json_decode((string) $u->pivot?->getAttribute('notifications'), true)[$notification] ?? true) !== false)
             ->values();
     }
 }

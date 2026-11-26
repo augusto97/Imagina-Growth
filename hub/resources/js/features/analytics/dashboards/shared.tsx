@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { CompareMode, DashboardDataMap, DashboardResponse, DashboardSlug, MetricDefinition } from '../api';
+import type { Conclusion } from '../conclusions';
 import { csvFilename, downloadCsv } from '../csv';
 import type { Formatters } from '../format';
 import { csvColumns } from '../components/DataTable';
@@ -34,4 +35,10 @@ export function useExporter(response: DashboardResponse<unknown>) {
     const { t } = useTranslation();
     return <T,>(name: string, columns: Column<T>[], rows: T[]) => () =>
         downloadCsv(csvFilename([t(`analytics.dashboards.${response.dashboard}`), name, response.period.from, response.period.to]), csvColumns(columns), rows);
+}
+
+/** El título de una gráfica: su conclusión (conclusions.ts) o, si no hay de qué concluir, el nombre del dato. */
+export function useConclusion() {
+    const { t } = useTranslation();
+    return (conclusion: Conclusion | null, fallback: string): string => (conclusion ? t(`analytics.conclusion.${conclusion.key}`, conclusion.values) : fallback);
 }

@@ -31,13 +31,16 @@ function inline(text: string): { text: string; bold: boolean }[] {
 }
 
 /** Ejemplos de preguntas en español para empezar. */
-export const EXAMPLES = [
-    '¿Cuánto vendí la semana pasada frente a la anterior?',
-    'Ventas por canal en los últimos 30 días',
-    '¿Cuál es mi conversión por dispositivo este mes?',
-    'Pedidos por ciudad en los últimos 90 días',
-    'Ticket promedio por semana en los últimos 3 meses',
-] as const;
+/**
+ * Ejemplos de «Pregúntale a tus datos» por tipo de negocio (textos en intelligence.ask.examples.<tipo>.<n>): una
+ * tienda pregunta por ventas y pedidos; un negocio sin tienda, por las visitas de su web (lo que mide el catálogo).
+ */
+export const EXAMPLE_KEYS = { store: ['q1', 'q2', 'q3', 'q4', 'q5'], services: ['q1', 'q2', 'q3', 'q4'] } as const;
+
+export function examplesFor(audience: { store: boolean }): { kind: 'store' | 'services'; keys: readonly string[] } {
+    const kind = audience.store ? 'store' : 'services';
+    return { kind, keys: EXAMPLE_KEYS[kind] };
+}
 
 /** Parte del presupuesto usada, de 0 a 1. */
 export function budgetShare(spent: number, budget: number): number {

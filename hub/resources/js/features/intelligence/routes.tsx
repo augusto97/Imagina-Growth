@@ -4,5 +4,7 @@ import type { RouteObject } from 'react-router';
 export const workspaceRoutes: RouteObject[] = [
     { path: 'inteligencia', lazy: async () => ({ Component: (await import('./IntelligencePage')).IntelligencePage }) },
     { path: 'inteligencia/preguntale', lazy: async () => ({ Component: (await import('./AskPage')).AskPage }) },
-    { path: 'inteligencia/informes', lazy: async () => ({ Component: (await import('./ReportsPage')).ReportsPage }) },
+    // Resultados → Informes: el mensual (antes en features/agency) y el semanal del analista, en una sola pantalla.
+    { path: 'reportes', lazy: async () => ({ Component: (await import('./InformesPage')).InformesPage }) },
+    { path: 'inteligencia/informes', lazy: async () => ({ Component: (await import('./InformesPage')).WeeklyInformesPage }) },
 ];

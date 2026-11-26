@@ -7,7 +7,8 @@ import { BarList } from '../components/charts';
 import { DataTable } from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import { Notice, Section } from '../components/Section';
-import { useExporter, useLabels } from './shared';
+import { channelsTop } from '../conclusions';
+import { useConclusion, useExporter, useLabels } from './shared';
 import type { DashboardProps } from './shared';
 
 type ChannelRow = ChannelsData['channels'][number];
@@ -18,6 +19,7 @@ export function ChannelsDashboard({ response, data, fmt, base }: DashboardProps<
     const { t } = useTranslation();
     const labels = useLabels();
     const exporter = useExporter(response);
+    const conclude = useConclusion();
 
     const channelColumns: Column<ChannelRow>[] = [
         { key: 'channel', label: t('analytics.col.channel'), render: (r) => labels.channel(r.channel), value: (r) => labels.channel(r.channel) },
@@ -63,7 +65,8 @@ export function ChannelsDashboard({ response, data, fmt, base }: DashboardProps<
                 </Notice>
             ) : null}
             <Section
-                title={t('analytics.channels.title')}
+                kicker={t('analytics.channels.title')}
+                title={conclude(channelsTop(data.channels, labels.channel, fmt), t('analytics.channels.title'))}
                 description={t('analytics.channels.description', { days: data.attribution_window_days })}
                 onExport={exporter(t('analytics.channels.title'), channelColumns, data.channels)}
                 chart={

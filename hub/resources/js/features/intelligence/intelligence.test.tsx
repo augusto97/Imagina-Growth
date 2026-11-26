@@ -4,7 +4,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import i18n from '@/lib/i18n';
 import texts from '@/locales/es-CO/intelligence.json';
 import { Markdown, SourceBadge } from './components';
-import { EXAMPLES, budgetShare, chartUnit, parseMarkdown } from './logic';
+import { EXAMPLE_KEYS, budgetShare, chartUnit, examplesFor, parseMarkdown } from './logic';
 
 type Tree = { [key: string]: string | Tree };
 
@@ -58,7 +58,18 @@ describe('Inteligencia: lógica', () => {
         expect(chartUnit('percent')).toBe('ratio');
         expect(chartUnit('money')).toBe('money');
         expect(chartUnit(undefined)).toBe('count');
-        expect(EXAMPLES.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('los ejemplos de «Pregúntale» cambian con el tipo de negocio y cada uno tiene su texto', () => {
+        expect(examplesFor({ store: true }).kind).toBe('store');
+        expect(examplesFor({ store: false }).kind).toBe('services');
+        const examples = (texts as unknown as { intelligence: { ask: { examplesBy: Record<string, Record<string, string>> } } }).intelligence.ask.examplesBy;
+        for (const kind of ['store', 'services'] as const) {
+            expect(EXAMPLE_KEYS[kind].length).toBeGreaterThanOrEqual(3);
+            for (const key of EXAMPLE_KEYS[kind]) {
+                expect(examples[kind]?.[key]).toBeTypeOf('string');
+            }
+        }
     });
 });
 

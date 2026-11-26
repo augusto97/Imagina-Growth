@@ -66,6 +66,8 @@ final class OverviewDashboard extends Dashboard
      */
     public static function topInsights(): array
     {
+        Insight::wakeSnoozed();
+
         return array_values(Insight::query()->whereIn('status', ['new', 'seen'])->get()
             ->sortByDesc(fn (Insight $i) => [Insight::SEVERITY_ORDER[$i->severity] ?? 0, (float) $i->estimated_impact_ws])
             ->take(3)

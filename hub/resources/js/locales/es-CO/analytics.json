@@ -6,7 +6,7 @@
         "notFound": "Ese tablero no existe",
         "none": "(sin dato)",
         "dashboards": {
-            "overview": "Inicio",
+            "overview": "Ventas",
             "funnel": "Embudo",
             "channels": "Canales",
             "customers": "Clientes",
@@ -16,7 +16,7 @@
             "coupons": "Cupones",
             "messaging": "Mensajería",
             "profitability": "Rentabilidad",
-            "services": "Servicios",
+            "services": "Contactos y formularios",
             "hdyhau": "¿Cómo nos conociste?"
         },
         "descriptions": {
@@ -30,12 +30,13 @@
             "coupons": "Cuánto se usan los cupones, cuánto cuestan y si tus clientes ya solo compran con descuento.",
             "messaging": "Lo que lograron tus mensajes de WhatsApp, correo y SMS: entregas, lecturas, clics, respuestas, bajas y ventas.",
             "profitability": "Margen por producto y retorno de la inversión en anuncios.",
-            "services": "Formularios, clics a WhatsApp y llamadas: los leads de tu sitio.",
+            "services": "De dónde llegan tus contactos, qué tan rápido les respondes y qué formularios y páginas los traen.",
             "hdyhau": "Lo que tus clientes dicen sobre cómo te conocieron, frente a lo que mide el sitio."
         },
         "empty": {
             "title": "No hay datos en este periodo",
-            "description": "Prueba un rango de fechas más amplio o quita los filtros. Si acabas de conectar tu sitio, los datos aparecen cuando termina la importación."
+            "description": "Prueba un periodo más largo. Si acabas de conectar tu web, las cifras aparecen cuando termina de traer tu historial.",
+            "widen": "Ver los últimos 12 meses"
         },
         "table": {
             "empty": "Sin datos en este periodo",
@@ -55,7 +56,8 @@
                 "previous": "vs. periodo anterior",
                 "year": "vs. año anterior",
                 "none": ""
-            }
+            },
+            "listLabel": "Cifras del periodo"
         },
         "filters": {
             "label": "Rango de fechas y filtros",
@@ -73,7 +75,13 @@
             "cityPlaceholder": "Ciudad",
             "clear_one": "Quitar filtro",
             "clear_other": "Quitar {{count}} filtros",
-            "vs": "vs."
+            "vs": "vs.",
+            "open": "Filtros",
+            "openCount_one": "Filtros ({{count}})",
+            "openCount_other": "Filtros ({{count}})",
+            "sheetTitle": "Filtrar el tablero",
+            "sheetDescription": "Mira solo un sitio, un canal de llegada, un dispositivo o una ciudad.",
+            "done": "Ver resultados"
         },
         "range": {
             "7d": "Últimos 7 días",
@@ -87,7 +95,10 @@
         "compare": {
             "previous": "Periodo anterior",
             "year": "Mismo periodo del año pasado",
-            "none": "Sin comparar"
+            "none": "Sin comparar",
+            "previousShort": "vs. anterior",
+            "yearShort": "vs. año pasado",
+            "noneShort": "Sin comparar"
         },
         "channel": {
             "organic_search": "Búsqueda orgánica",
@@ -155,10 +166,10 @@
             "trendTitle": "Evolución",
             "trendDescription": "Por día, semana o mes según el rango elegido.",
             "metricPicker": "Métrica del gráfico",
-            "insightsTitle": "Hallazgos principales",
-            "insightsDescription": "Problemas y oportunidades que detectamos en tus datos.",
-            "allInsights": "Ver todos",
-            "noInsights": "No hay hallazgos abiertos. Los revisamos cada noche."
+            "insightsTitle": "Recomendaciones principales",
+            "insightsDescription": "Problemas y oportunidades que encontramos en tus datos, con el dinero en juego.",
+            "allInsights": "Ver todas",
+            "noInsights": "No hay recomendaciones abiertas. Revisamos tus datos cada noche."
         },
         "funnel": {
             "title": "Embudo de compra",
@@ -472,22 +483,30 @@
             "productsTitle": "Margen por producto"
         },
         "services": {
-            "empty": "Aún no hay leads en este periodo",
-            "emptyHelp": "Aquí verás los formularios enviados y los clics en WhatsApp, teléfono y correo de tu sitio.",
+            "empty": "Todavía no llegan los formularios ni los clics de tu web",
+            "emptyHelp": "Cuando alguien envíe un formulario o toque WhatsApp, llamar o escribir en tu web, lo verás aquí con la página y el canal de donde vino.",
             "submissions": "Formularios enviados",
             "whatsapp": "Clics a WhatsApp",
             "phone": "Clics para llamar",
             "email": "Clics al correo",
-            "responseSoon": "El tiempo de respuesta a cada lead aparece cuando tu equipo responde desde la bandeja de conversaciones.",
+            "responseSoon": "La primera respuesta a cada contacto se cuenta cuando tu equipo le escribe desde la bandeja o lo mueve de la primera etapa.",
             "formsTitle": "Formularios",
             "form": "Formulario",
             "plugin": "Plugin",
             "page": "Página",
-            "channelsTitle": "Leads por canal",
+            "channelsTitle": "Contactos por canal",
             "pagesTitle": "Páginas que generan leads",
             "pagesDescription": "Vistas de la página y contactos que salen de ella.",
             "views": "Vistas",
-            "formRate": "Tasa de formulario"
+            "formRate": "Tasa de formulario",
+            "leadsTitle": "Contactos por fuente",
+            "leadsDescription": "Cuántos llegaron de cada fuente y cuántos se ganaron.",
+            "firstResponse": "Primera respuesta",
+            "firstResponseHelp": "La mediana de lo que tardó tu equipo en responder a los contactos del periodo.",
+            "leads": "Contactos nuevos",
+            "webTitle": "Lo que pasa en tu web",
+            "callsHint_one": "{{count}} clic para llamar o escribir",
+            "callsHint_other": "{{count}} clics para llamar o escribir"
         },
         "hdyhau": {
             "empty": "Aún no hay respuestas",
@@ -519,6 +538,264 @@
             "noRate": "Todavía no hay tasa de cambio para {{currency}}: el costo estimado se muestra en dólares y el retorno no se calcula.",
             "stale": "La tasa no se ha actualizado en los últimos días.",
             "attribution": "Tasas de Exchange Rate API"
+        },
+        "picker": "Tablero",
+        "backToSummary": "Volver al resumen",
+        "groups": {
+            "sales": "Ventas",
+            "customers": "Clientes",
+            "traffic": "Tráfico",
+            "leads": "Contactos",
+            "messages": "Mensajes"
+        },
+        "trackerMissing": {
+            "title": "Este tablero necesita las visitas de tu web",
+            "description": "Todavía no llegan visitas desde el navegador en {{host}}: sin ellas no sabemos qué miran ni dónde se quedan tus visitantes. Tus ventas sí se cuentan.",
+            "yourSite": "tu web",
+            "action": "Ver qué hacer",
+            "step1": "Revisa que el plugin Imagina Growth esté activo en tu web.",
+            "step2": "Si usas un plugin de caché, vacíala para que cargue el seguimiento.",
+            "step3": "Las visitas aparecen aquí unos minutos después."
+        },
+        "conclusion": {
+            "trendUp": "{{metric}}: {{amount}}, {{change}} más que antes",
+            "trendDown": "{{metric}}: {{amount}}, {{change}} menos que antes",
+            "trendFlat": "{{metric}}: {{amount}}, igual que antes",
+            "trendBest_day": "{{metric}}: el mejor día fue el {{date}} ({{amount}})",
+            "trendBest_week": "{{metric}}: la mejor semana fue la del {{date}} ({{amount}})",
+            "trendBest_month": "{{metric}}: el mejor mes fue {{date}} ({{amount}})",
+            "funnelDrop": "Donde más se pierden: de «{{from}}» a «{{to}}» solo sigue el {{rate}}",
+            "channelsTop": "{{channel}} trae el {{share}} de tus ventas ({{amount}})",
+            "rfmTop": "{{segment}}: {{customers}} clientes que dejan el {{share}} de tus ventas",
+            "cohortsReturn": "En promedio, el {{rate}} vuelve a comprar al mes siguiente de su primera compra",
+            "returningShare": "El {{share}} de tus ventas viene de clientes que vuelven",
+            "productsTop": "{{name}} es lo que más vendes ({{amount}})",
+            "viewedNotSold_one": "{{formatted}} producto se mira mucho y se vende poco",
+            "viewedNotSold_other": "{{formatted}} productos se miran mucho y se venden poco",
+            "entryTop": "Quienes empiezan con {{name}} te dejan {{ltv}} en promedio",
+            "pairsTop": "{{a}} y {{b}} se compran juntos en {{orders}} pedidos",
+            "searchesZero": "El {{share}} de las búsquedas no encuentra nada",
+            "searchesTop": "Lo que más buscan: «{{term}}»",
+            "zeroTop": "Lo que más buscan sin encontrar: «{{term}}»",
+            "regionTop": "{{region}} deja el {{share}} de tus ventas",
+            "cityTop": "{{city}} es la ciudad que más compra ({{amount}})",
+            "couponsShare": "El {{share}} de tus pedidos usa cupón ({{discount}} en descuentos)",
+            "couponsNone": "Nadie usó cupones en este periodo",
+            "couponsTop": "El cupón más usado es {{code}} ({{orders}} pedidos)",
+            "messagingRoi": "Tus mensajes vendieron {{amount}}: {{roi}} veces lo que costaron",
+            "messagingRevenue": "Tus mensajes vendieron {{amount}} con {{sent}} envíos",
+            "messagingNoSales": "Enviaste {{sent}} mensajes; todavía no hay ventas atribuidas a ellos",
+            "hdyhauTop": "«{{answer}}» es la respuesta más común ({{share}})",
+            "servicesTopForm": "«{{form}}» es el formulario que más contactos trae ({{count}})",
+            "servicesTopPage": "{{page}} es la página que mejor convierte visitas en contactos ({{rate}})"
+        },
+        "summary": {
+            "reports": "Informes",
+            "dashboards": "Ver tableros",
+            "heroEyebrow": "Lo que generó la plataforma",
+            "startStrategy": "Prender una estrategia",
+            "seeStrategies": "Ver tus estrategias",
+            "share": "De tus ventas",
+            "salesHelped": "Ventas con ayuda",
+            "before": {
+                "previous": "Periodo anterior",
+                "year": "Hace un año",
+                "none": ""
+            },
+            "help": {
+                "revenue": "Lo que suman los pedidos pagados del periodo (sin cancelados ni reembolsos), igual que en WooCommerce.",
+                "aov": "Ventas ÷ pedidos pagados.",
+                "newCustomers": "Personas cuya primera compra pagada fue en el periodo."
+            },
+            "byStrategy": "Por estrategia",
+            "byStrategyTop": "{{name}} generó el {{share}}",
+            "byStrategyEmpty": "Todavía ninguna estrategia vendió",
+            "byStrategyHelp": "Cuando tus estrategias ayuden a cerrar una venta, aquí verás cuánto generó cada una.",
+            "sales_one": "{{formatted}} venta",
+            "sales_other": "{{formatted}} ventas",
+            "messages_one": "{{formatted}} mensaje",
+            "messages_other": "{{formatted}} mensajes",
+            "conversions": {
+                "goals_one": "{{formatted}} meta cumplida",
+                "goals_other": "{{formatted}} metas cumplidas",
+                "captures_one": "{{formatted}} contacto captado",
+                "captures_other": "{{formatted}} contactos captados",
+                "reviews_one": "{{formatted}} reseña",
+                "reviews_other": "{{formatted}} reseñas",
+                "responses_one": "{{formatted}} respuesta",
+                "responses_other": "{{formatted}} respuestas",
+                "referrals_one": "{{formatted}} referido",
+                "referrals_other": "{{formatted}} referidos",
+                "redemptions_one": "{{formatted}} canje",
+                "redemptions_other": "{{formatted}} canjes",
+                "appointments_one": "{{formatted}} cita",
+                "appointments_other": "{{formatted}} citas",
+                "quotes_one": "{{formatted}} cotización",
+                "quotes_other": "{{formatted}} cotizaciones",
+                "leads_one": "{{formatted}} contacto",
+                "leads_other": "{{formatted}} contactos"
+            },
+            "byChannel": "Por canal",
+            "byChannelTop": "{{channel}} trajo el {{share}}",
+            "byChannelEmpty": "Todavía no hay ventas por ningún canal",
+            "byChannelHelp": "Aquí verás si lo generado llegó por WhatsApp, correo, tu web o tus referidos.",
+            "channels": {
+                "whatsapp": "WhatsApp",
+                "email": "Correo",
+                "sms": "SMS",
+                "social": "Messenger e Instagram",
+                "chats": "Chats con el agente de IA",
+                "web": "Tu web",
+                "referrals": "Referidos y afiliados",
+                "ads": "Formularios de anuncios",
+                "other": "Sin canal registrado"
+            },
+            "channelHelp": {
+                "whatsapp": "Ventas después de un WhatsApp de una automatización, una campaña o la bandeja.",
+                "email": "Ventas después de un correo con clic.",
+                "sms": "Ventas después de un SMS con clic.",
+                "social": "Ventas que llegaron por Messenger o Instagram.",
+                "chats": "Carritos que armó el agente de ventas con IA en el chat.",
+                "web": "Popups, formularios y carritos restaurados en tu web.",
+                "referrals": "Compras con el cupón o el enlace de un referido o afiliado.",
+                "ads": "Contactos de los formularios de Facebook, Instagram o Google que se ganaron.",
+                "other": "Ventas que una automatización o campaña ayudó a cerrar sin un mensaje con clic registrado (por ejemplo, al cumplir su meta)."
+            },
+            "trend": "Ventas del periodo",
+            "trendHelp": "Todas tus ventas pagadas, por día, semana o mes según el periodo.",
+            "new": "Nuevo",
+            "same": "Igual",
+            "say": {
+                "sales": "Vendiste {{amount}} en este periodo.",
+                "salesUp": "Vendiste {{amount}}, {{change}} más que en el periodo anterior.",
+                "salesDown": "Vendiste {{amount}}, {{change}} menos que en el periodo anterior.",
+                "salesFlat": "Vendiste {{amount}}, casi lo mismo que en el periodo anterior.",
+                "generatedNone": "La plataforma todavía no ayudó a cerrar ventas en este periodo: prende una estrategia para que empiece a vender por ti.",
+                "generated": "La plataforma ayudó a vender {{amount}} ({{share}} de tus ventas).",
+                "topVia": "Lo que más aportó fue «{{name}}» ({{amount}}), sobre todo por {{channel}}.",
+                "top": "Lo que más aportó fue «{{name}}» ({{amount}}).",
+                "generatedUp": "Es {{change}} más que en el periodo anterior.",
+                "generatedDown": "Es {{change}} menos que en el periodo anterior.",
+                "generatedFlat": "Es casi lo mismo que en el periodo anterior.",
+                "leads_one": "Llegó {{formatted}} contacto nuevo.",
+                "leads_other": "Llegaron {{formatted}} contactos nuevos.",
+                "leadsUp_one": "Llegó {{formatted}} contacto nuevo, {{change}} más que antes.",
+                "leadsUp_other": "Llegaron {{formatted}} contactos nuevos, {{change}} más que antes.",
+                "leadsDown_one": "Llegó {{formatted}} contacto nuevo, {{change}} menos que antes.",
+                "leadsDown_other": "Llegaron {{formatted}} contactos nuevos, {{change}} menos que antes.",
+                "leadsFlat_one": "Llegó {{formatted}} contacto nuevo, igual que antes.",
+                "leadsFlat_other": "Llegaron {{formatted}} contactos nuevos, igual que antes.",
+                "won_one": "Ganaste {{formatted}} cliente por {{amount}}.",
+                "won_other": "Ganaste {{formatted}} clientes por {{amount}}.",
+                "won_health_one": "Ganaste {{formatted}} paciente por {{amount}}.",
+                "won_health_other": "Ganaste {{formatted}} pacientes por {{amount}}.",
+                "won_education_one": "Inscribiste {{formatted}} estudiante por {{amount}}.",
+                "won_education_other": "Inscribiste {{formatted}} estudiantes por {{amount}}.",
+                "wonNone": "Todavía no cerraste ningún negocio en este periodo.",
+                "platform": "La plataforma trajo {{amount}} de eso.",
+                "platformVia": "La plataforma trajo {{amount}} de eso, sobre todo por {{source}}.",
+                "servicesDrop": "Donde más se quedan: de «{{from}}» a «{{to}}» solo sigue el {{rate}}."
+            },
+            "services": {
+                "heroEyebrow": "Lo que ganaste gracias a la plataforma",
+                "wonTotal": "Valor ganado",
+                "wonCount": "Clientes ganados",
+                "wonCount_health": "Pacientes ganados",
+                "wonCount_education": "Estudiantes inscritos",
+                "openLeads": "Ver tus contactos",
+                "sectionTitle": "Tus contactos y citas",
+                "kpi": {
+                    "leads": "Contactos nuevos",
+                    "first_response_minutes": "Primera respuesta",
+                    "appointments_booked": "Citas agendadas",
+                    "appointments_attended": "Citas cumplidas",
+                    "close_rate": "Tasa de cierre",
+                    "won_value": "Valor ganado"
+                },
+                "kpiHelp": {
+                    "leads": "Personas que dejaron sus datos o te escribieron por primera vez en el periodo.",
+                    "first_response_minutes": "Lo que tardó tu equipo en responder a los contactos del periodo (la mediana). Menos es mejor.",
+                    "appointments_booked": "Citas que se agendaron en el periodo.",
+                    "appointments_attended": "Citas del periodo a las que la persona llegó.",
+                    "close_rate": "De los contactos que se cerraron en el periodo, cuántos se ganaron.",
+                    "won_value": "Lo que suman los contactos ganados en el periodo."
+                },
+                "minutes_one": "{{formatted}} min",
+                "minutes_other": "{{formatted}} min",
+                "funnel": "Embudo «{{name}}»",
+                "funnelEmpty": "Todavía no hay contactos en el embudo",
+                "lost_one": "{{count}} contacto pasó a «{{label}}».",
+                "lost_other": "{{count}} contactos pasaron a «{{label}}».",
+                "attribution": "De dónde salió lo ganado",
+                "attributionTop": "{{source}} trajo {{amount}}",
+                "attributionEmpty": "Todavía no hay negocios ganados",
+                "attributionHelp": "Cada negocio ganado cuenta una vez: un mensaje con clic o respuesta en los {{days}} días antes, o si no, por dónde llegó.",
+                "attributionNone": "Cuando ganes un negocio, aquí verás si lo trajo una automatización, una campaña, un formulario o un chat.",
+                "wonN_one": "{{formatted}} ganado",
+                "wonN_other": "{{formatted}} ganados",
+                "appointments": "Citas",
+                "attendance_one": "Llegó el {{rate}} de las citas; {{noShow}} persona no asistió",
+                "attendance_other": "Llegó el {{rate}} de las citas; {{noShow}} personas no asistieron",
+                "appointmentsEmpty": "Todavía no hay citas en este periodo",
+                "appt": {
+                    "booked": "Agendadas",
+                    "completed": "Cumplidas",
+                    "no_show": "No asistieron",
+                    "cancelled": "Canceladas"
+                },
+                "upcoming_one": "{{count}} cita viene en camino.",
+                "upcoming_other": "{{count}} citas vienen en camino.",
+                "quotes": "Cotizaciones",
+                "quotesTitle_one": "Se aceptaron {{accepted}} de {{sent}} cotización ({{amount}})",
+                "quotesTitle_other": "Se aceptaron {{accepted}} de {{sent}} cotizaciones ({{amount}})",
+                "quotesEmpty": "Todavía no enviaste cotizaciones en este periodo",
+                "quote": {
+                    "sent": "Enviadas",
+                    "from_calculator": "Del cotizador",
+                    "accepted": "Aceptadas",
+                    "acceptance_rate": "Aceptación"
+                },
+                "setupQuotes": "Configurar el cotizador",
+                "sources": "Contactos por fuente",
+                "sourcesTop_one": "{{source}} trajo más contactos ({{count}})",
+                "sourcesTop_other": "{{source}} trajo más contactos ({{count}})",
+                "sourcesHelp": "Cuántos llegaron de cada fuente, cuántos se ganaron y con qué tasa.",
+                "sourceCol": "Fuente",
+                "leadsCol": "Contactos",
+                "wonCol": "Ganados",
+                "valueCol": "Valor ganado",
+                "rateCol": "Tasa de cierre",
+                "source": {
+                    "paid_social": "Anuncios en redes",
+                    "paid_search": "Anuncios en buscadores",
+                    "unknown": "Sin dato"
+                },
+                "sourceDetail": "{{won}} ganados · {{value}} · cierre {{rate}}"
+            },
+            "recommendations": "Qué hacer ahora",
+            "recommendationsHelp": "Las recomendaciones con más dinero en juego, para pasar de ver a hacer.",
+            "allRecommendations": "Ver todas",
+            "noRecommendations": "No hay recomendaciones abiertas. Revisamos tus datos cada noche.",
+            "atStake": "{{amount}} en juego",
+            "explore": "Mira el detalle en tus tableros",
+            "locked": {
+                "site": {
+                    "title": "Conecta tu web para ver tus resultados",
+                    "description": "Aquí verás cuánto vendiste, cuánto generó la plataforma y qué estrategia lo logró. Empieza a contar en cuanto tu web esté conectada."
+                },
+                "plan": {
+                    "title": "Tus resultados están en un plan superior",
+                    "description": "Con el plan que los incluye verás cuánto vendiste y cuánto generó la plataforma, por estrategia y por canal."
+                },
+                "channel": {
+                    "title": "Conecta un canal para ver tus resultados",
+                    "description": "Cuando conectes WhatsApp o tu correo, aquí verás lo que generó cada mensaje."
+                },
+                "step1": "Conecta tu web con el plugin Imagina Growth.",
+                "step2": "Traemos tu historial de ventas y clientes.",
+                "step3": "Prende una estrategia y mira cuánto genera cada mes."
+            },
+            "servicesPurpose": "Cuántos contactos llegaron, cuántos se volvieron clientes y cuánto trajo la plataforma"
         }
     }
 }

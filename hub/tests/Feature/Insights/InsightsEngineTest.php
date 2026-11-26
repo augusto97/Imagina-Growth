@@ -221,6 +221,32 @@ it('expone los hallazgos por API con filtros, resumen, ajustes y permisos', func
         ->and($this->actingAs($this->owner)->getJson($url)->json('meta.actioned_month'))->toBe(1);
 });
 
+it('pospone una recomendación los días elegidos: no sale en las abiertas, sigue al día y vuelve sola', function () {
+    insightsAtRisk($this, 6);
+    insightsRun($this, ['valuable_at_risk']);
+    $url = "/api/w/{$this->ws->publicId()}/insights";
+    $id = $this->actingAs($this->owner)->getJson($url)->json('data.0.id');
+
+    $this->actingAs($this->owner)->patchJson("{$url}/{$id}", ['status' => 'snoozed'])->assertUnprocessable();
+    $this->actingAs($this->owner)->patchJson("{$url}/{$id}", ['status' => 'snoozed', 'days' => 5])->assertUnprocessable();
+    $this->actingAs($this->owner)->patchJson("{$url}/{$id}", ['status' => 'snoozed', 'days' => 7])->assertOk()
+        ->assertJsonPath('status', 'snoozed')->assertJsonPath('snoozed_until', fn ($v) => is_string($v));
+    $open = $this->actingAs($this->owner)->getJson($url)->assertOk();
+    expect($open->json('data'))->toHaveCount(0)->and($open->json('meta.open'))->toBe(0)->and($open->json('meta.snoozed'))->toBe(1)
+        ->and($this->actingAs($this->owner)->getJson("{$url}?status=snoozed")->json('data.0.id'))->toBe($id)
+        ->and(DB::table('audit_logs')->where('action', 'insight.snoozed')->exists())->toBeTrue();
+
+    // El detector la vuelve a encontrar: se actualizan sus cifras, pero sigue pospuesta (no nace otra).
+    insightsRun($this, ['valuable_at_risk']);
+    expect(insightsOf($this)->where('detector_key', 'valuable_at_risk'))->toHaveCount(1)
+        ->and(insightsOf($this)->firstWhere('detector_key', 'valuable_at_risk')->status)->toBe('snoozed');
+
+    // Pasada la fecha, vuelve a abierta al leer la lista.
+    $this->travel(8)->days();
+    $back = $this->actingAs($this->owner)->getJson($url)->assertOk();
+    expect($back->json('data.0.id'))->toBe($id)->and($back->json('data.0.status'))->toBe('seen')->and($back->json('data.0.snoozed_until'))->toBeNull();
+});
+
 it('TopInsights da los hechos para el analista: por impacto, sin datos personales', function () {
     insightsAtRisk($this, 10);
     insightsRun($this, ['valuable_at_risk']);

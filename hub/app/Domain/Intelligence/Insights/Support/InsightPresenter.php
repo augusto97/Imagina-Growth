@@ -32,6 +32,7 @@ final class InsightPresenter
             'period_start' => $i->getAttribute('period_start')?->toDateString(),
             'period_end' => $i->getAttribute('period_end')?->toDateString(),
             'valid_until' => $i->getAttribute('valid_until')?->toIso8601String(),
+            'snoozed_until' => $i->snoozed_until?->toIso8601String(),
             'created_at' => $i->created_at?->toIso8601String(),
             'updated_at' => $i->updated_at?->toIso8601String(),
         ];

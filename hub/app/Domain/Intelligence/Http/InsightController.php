@@ -23,17 +23,18 @@ final class InsightController
 {
     public function __construct(private readonly CurrentWorkspace $current) {}
 
-    /** GET /api/w/{ws}/insights?status=open|actioned|dismissed|expired&category=&severity= */
+    /** GET /api/w/{ws}/insights?status=open|snoozed|actioned|dismissed|expired&category=&severity= */
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('ws.viewDashboards');
+        Insight::wakeSnoozed();
         $status = (string) $request->query('status', 'open');
         $category = (string) $request->query('category', '');
         $severity = (string) $request->query('severity', '');
         $keys = $category !== '' ? array_column(array_filter(DetectorCatalog::all(), fn ($e) => $e['category'] === $category), 'key') : null;
         $insights = Insight::query()
             ->when($status === 'open', fn ($q) => $q->whereIn('status', ['new', 'seen']))
-            ->when(in_array($status, ['dismissed', 'actioned', 'expired'], true), fn ($q) => $q->where('status', $status))
+            ->when(in_array($status, ['snoozed', 'dismissed', 'actioned', 'expired'], true), fn ($q) => $q->where('status', $status))
             ->when($keys !== null, fn ($q) => $q->whereIn('detector_key', $keys))
             ->when($severity !== '', fn ($q) => $q->where('severity', $severity))
             ->orderByDesc('updated_at')->limit(200)->get()
@@ -56,14 +57,25 @@ final class InsightController
         return response()->json(InsightPresenter::make($model, $this->currency()));
     }
 
-    /** PATCH /api/w/{ws}/insights/{insight} {status: dismissed|actioned|seen} */
+    /**
+     * PATCH /api/w/{ws}/insights/{insight} {status: dismissed|actioned|seen|snoozed, days?: 1|3|7|30}
+     * «snoozed» la pospone esos días (vuelve sola a abierta); «seen» la reabre.
+     */
     public function update(Request $request, string $insight, RecordAuditLog $audit): JsonResponse
     {
         Gate::authorize('ws.manageMarketing');
-        $data = $request->validate(['status' => ['required', 'in:dismissed,actioned,seen']]);
+        $data = $request->validate([
+            'status' => ['required', 'in:dismissed,actioned,seen,snoozed'],
+            'days' => ['required_if:status,snoozed', 'nullable', 'integer', 'in:'.implode(',', Insight::SNOOZE_DAYS)],
+        ]);
         $model = Insight::findByPublicId($insight) ?? abort(404);
-        $model->forceFill(['status' => $data['status'], 'dismissed_at' => $data['status'] === 'seen' ? null : now()])->save();
-        $audit->handle('insight.'.$data['status'], $model, ['detector' => $model->detector_key], $model->workspace_id);
+        $snooze = $data['status'] === 'snoozed';
+        $model->forceFill([
+            'status' => $data['status'],
+            'dismissed_at' => in_array($data['status'], ['dismissed', 'actioned'], true) ? now() : null,
+            'snoozed_until' => $snooze ? now()->addDays((int) $data['days']) : null,
+        ])->save();
+        $audit->handle('insight.'.$data['status'], $model, ['detector' => $model->detector_key] + ($snooze ? ['days' => (int) $data['days']] : []), $model->workspace_id);
 
         return response()->json(InsightPresenter::make($model, $this->currency()));
     }
@@ -110,10 +122,11 @@ final class InsightController
         return response()->json(['assumptions' => $assumptions->describe(), 'updated' => $updated]);
     }
 
-    /** @return array{open: int, impact_open: float, actioned_month: int, impact_actioned_month: float, by_category: array<string, int>} */
+    /** @return array{open: int, impact_open: float, actioned_month: int, impact_actioned_month: float, snoozed: int, by_category: array<string, int>} */
     private function summary(): array
     {
         $open = Insight::query()->whereIn('status', ['new', 'seen'])->get(['detector_key', 'estimated_impact_ws']);
+        $snoozed = Insight::query()->where('status', 'snoozed')->count();
         $actioned = Insight::query()->where('status', 'actioned')->where('dismissed_at', '>=', now()->startOfMonth())->get(['estimated_impact_ws']);
         $byCategory = array_fill_keys(DetectorCatalog::CATEGORIES, 0);
         foreach ($open as $i) {
@@ -125,6 +138,7 @@ final class InsightController
             'impact_open' => round($open->sum(fn (Insight $i) => (float) $i->estimated_impact_ws), 2),
             'actioned_month' => $actioned->count(),
             'impact_actioned_month' => round($actioned->sum(fn (Insight $i) => (float) $i->estimated_impact_ws), 2),
+            'snoozed' => $snoozed,
             'by_category' => $byCategory,
         ];
     }

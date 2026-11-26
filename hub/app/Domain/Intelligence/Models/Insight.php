@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $status
  * @property string|null $fingerprint
  * @property CarbonInterface|null $dismissed_at
+ * @property CarbonInterface|null $snoozed_until
  * @property CarbonInterface|null $created_at
  * @property CarbonInterface|null $updated_at
  */
@@ -37,6 +38,19 @@ class Insight extends Model
 
     protected $guarded = [];
 
+    /** Cuántos días se puede posponer una recomendación desde el panel. */
+    public const SNOOZE_DAYS = [1, 3, 7, 30];
+
+    /**
+     * Las pospuestas cuya fecha ya pasó vuelven a abiertas («vista»). Se llama al leer la lista, el resumen de
+     * Resultados y al correr los detectores; con el índice (workspace_id, status, …) es una sola actualización barata.
+     */
+    public static function wakeSnoozed(): int
+    {
+        return static::query()->where('status', 'snoozed')->where(fn ($q) => $q->whereNull('snoozed_until')->orWhere('snoozed_until', '<=', now()))
+            ->update(['status' => 'seen', 'snoozed_until' => null, 'updated_at' => now()]);
+    }
+
     protected function casts(): array
     {
         return [
@@ -46,6 +60,7 @@ class Insight extends Model
             'period_start' => 'date',
             'period_end' => 'date',
             'dismissed_at' => 'datetime',
+            'snoozed_until' => 'datetime',
             'valid_until' => 'datetime',
         ];
     }

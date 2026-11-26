@@ -42,6 +42,20 @@ final class StrategyResults
     }
 
     /**
+     * Lo mismo para un periodo cualquiera (`from` incluido, `to` excluido, en la zona del espacio de trabajo): lo usa el
+     * Resumen de Resultados con el periodo y la comparación de los tableros. `month` lleva el periodo pedido.
+     *
+     * @return array{month: array{from: string, to: string}, strategies: array<string, array{revenue: string, orders: int, conversions: array{kind: string, count: int}|null, messages: int|null}>,
+     *     breakdown: list<array{strategy: string|null, bucket: string, revenue: string, orders: int}>}
+     */
+    public function forPeriod(Workspace $workspace, CarbonImmutable $from, CarbonImmutable $to, bool $afterHoursOwnsAgent = false): array
+    {
+        $key = 'strategies:results:'.$from->toDateString().':'.$to->toDateString().':'.($afterHoursOwnsAgent ? 'ah' : 'ag').':'.StrategyCache::version($workspace->id);
+
+        return MetricQueryRunner::remember($workspace, $key, fn () => $this->compute($workspace, $from, $to, $afterHoursOwnsAgent));
+    }
+
+    /**
      * @return array{month: array{from: string, to: string}, strategies: array<string, array{revenue: string, orders: int, conversions: array{kind: string, count: int}|null, messages: int|null}>,
      *     breakdown: list<array{strategy: string|null, bucket: string, revenue: string, orders: int}>}
      */

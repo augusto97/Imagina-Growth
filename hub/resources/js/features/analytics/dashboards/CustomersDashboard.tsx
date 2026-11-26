@@ -11,7 +11,8 @@ import type { Column } from '../components/DataTable';
 import { Section } from '../components/Section';
 import { StatTile, TileGrid } from '../components/StatTile';
 import { useChartTheme } from '../theme';
-import { useExporter } from './shared';
+import { cohortsReturn, returningShare, rfmTop } from '../conclusions';
+import { useConclusion, useExporter } from './shared';
 import type { DashboardProps } from './shared';
 
 type SegmentRow = CustomersData['rfm']['segments'][number];
@@ -26,6 +27,7 @@ export function CustomersDashboard({ response, data, fmt, base }: DashboardProps
     const navigate = useNavigate();
     const theme = useChartTheme();
     const exporter = useExporter(response);
+    const conclude = useConclusion();
     const openSegment = (system: string) => void navigate(`${base}/segmentos?system=${encodeURIComponent(system)}`);
 
     const segments = MAP_ORDER.map((key) => data.rfm.segments.find((s) => s.segment === key)).filter((s): s is SegmentRow => s !== undefined);
@@ -77,7 +79,11 @@ export function CustomersDashboard({ response, data, fmt, base }: DashboardProps
             </TileGrid>
 
             <Section
-                title={t('analytics.customers.rfmTitle')}
+                kicker={t('analytics.customers.rfmTitle')}
+                title={conclude(
+                    rfmTop(segments, (s) => t(`analytics.rfm.${s}.name`), fmt),
+                    t('analytics.customers.rfmTitle'),
+                )}
                 description={data.rfm.computed_at ? t('analytics.customers.rfmComputed', { date: fmt.date(data.rfm.computed_at) }) : t('analytics.customers.rfmDescription')}
                 help={t('analytics.customers.rfmHelp')}
                 onExport={exporter(t('analytics.customers.rfmTitle'), segmentColumns, segments)}
@@ -127,7 +133,8 @@ export function CustomersDashboard({ response, data, fmt, base }: DashboardProps
                     />
                 </Section>
                 <Section
-                    title={t('analytics.customers.cohortsTitle')}
+                    kicker={t('analytics.customers.cohortsTitle')}
+                    title={conclude(cohortsReturn(data.cohorts, fmt), t('analytics.customers.cohortsTitle'))}
                     description={t('analytics.customers.cohortsDescription')}
                     onExport={exporter(t('analytics.customers.cohortsTitle'), cohortColumns, data.cohorts)}
                     chart={
@@ -156,7 +163,8 @@ export function CustomersDashboard({ response, data, fmt, base }: DashboardProps
             </div>
 
             <Section
-                title={t('analytics.customers.nvrTitle')}
+                kicker={t('analytics.customers.nvrTitle')}
+                title={conclude(returningShare(data.new_vs_returning, fmt), t('analytics.customers.nvrTitle'))}
                 description={t('analytics.customers.nvrDescription')}
                 onExport={exporter(t('analytics.customers.nvrTitle'), nvrColumns, data.new_vs_returning)}
                 chart={

@@ -6,7 +6,8 @@ import { Section } from '../components/Section';
 import { StatTile, TileGrid } from '../components/StatTile';
 import { useChartTheme } from '../theme';
 import type { Formatters } from '../format';
-import { compareModeOf, useExporter, useLabels } from './shared';
+import { funnelDrop } from '../conclusions';
+import { compareModeOf, useConclusion, useExporter, useLabels } from './shared';
 import type { DashboardProps } from './shared';
 
 /** Embudo como barras horizontales de un solo tono, con la tasa de paso entre etapas. */
@@ -49,6 +50,7 @@ export function FunnelDashboard({ response, data, fmt }: DashboardProps<'funnel'
     const labels = useLabels();
     const exporter = useExporter(response);
     const mode = compareModeOf(response);
+    const conclude = useConclusion();
     const step = (list: FunnelData['steps'] | null, key: string) => list?.find((s) => s.step === key);
     const purchases = step(data.steps, 'purchases');
     const checkouts = step(data.steps, 'checkouts');
@@ -89,7 +91,14 @@ export function FunnelDashboard({ response, data, fmt }: DashboardProps<'funnel'
                 <StatTile label={t('analytics.funnel.checkoutToPurchase')} unit="ratio" value={purchases?.rate_from_previous} previous={step(data.compare, 'purchases')?.rate_from_previous} compareMode={mode} fmt={fmt} />
                 <StatTile label={t('analytics.funnel.step.add_to_carts')} unit="count" value={carts?.value} previous={step(data.compare, 'add_to_carts')?.value} compareMode={mode} fmt={fmt} />
             </TileGrid>
-            <Section title={t('analytics.funnel.title')} description={t('analytics.funnel.description')}>
+            <Section
+                kicker={t('analytics.funnel.title')}
+                title={conclude(
+                    funnelDrop(data.steps, (s) => t(`analytics.funnel.step.${s}`), fmt),
+                    t('analytics.funnel.title'),
+                )}
+                description={t('analytics.funnel.description')}
+            >
                 <FunnelBars steps={data.steps} compare={data.compare} fmt={fmt} />
             </Section>
             <Section title={t('analytics.funnel.byChannel')} onExport={exporter(t('analytics.funnel.byChannel'), channelColumns, data.by_channel)} flush>

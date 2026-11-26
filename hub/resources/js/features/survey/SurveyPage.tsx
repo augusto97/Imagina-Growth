@@ -1,12 +1,13 @@
-import { ArrowDown, ArrowUp, BarChart3, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ErrorState, FieldError, PageHeader } from '@/components/ui/misc';
+import { EmptyState, ErrorState, FieldError, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
@@ -14,6 +15,7 @@ import { formatNumber, formatPercent } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
+import { resultsAudience } from '@/features/analytics/results';
 import { type HdyhauSurvey, answerLabel, useHdyhauSurvey, useUpdateHdyhauSurvey } from './api';
 import { LABEL_MAX, MAX_OPTIONS, MIN_OPTIONS, type SurveyDraft, addOption, breakdown, draftProblems, moveOption, removeOption, toDraft, toPayload } from './options';
 
@@ -21,12 +23,16 @@ import { LABEL_MAX, MAX_OPTIONS, MIN_OPTIONS, type SurveyDraft, addOption, break
 export function SurveyPage() {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
-    const survey = useHdyhauSurvey(workspace.id);
+    // Vive en la página de gracias de WooCommerce: un negocio sin tienda no tiene dónde mostrarla.
+    const store = resultsAudience(workspace).store;
+    const survey = useHdyhauSurvey(workspace.id, store);
 
     return (
         <>
             <PageHeader title={t('survey.title')} description={t('survey.description')} />
-            {survey.isError ? (
+            {!store ? (
+                <EmptyState illustration="reviews" title={t('survey.services.title')} description={t('survey.services.description')} />
+            ) : survey.isError ? (
                 <ErrorState error={survey.error} onRetry={() => void survey.refetch()} />
             ) : survey.isPending ? (
                 <div className="igr:grid igr:gap-4 igr:lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -34,7 +40,10 @@ export function SurveyPage() {
                     <Skeleton className="igr:h-72" />
                 </div>
             ) : (
-                <Editor key={survey.data.id} survey={survey.data} />
+                <div className="igr:space-y-4">
+                    <Breakdown survey={survey.data} />
+                    <Editor key={survey.data.id} survey={survey.data} />
+                </div>
             )}
         </>
     );
@@ -118,15 +127,9 @@ function Editor({ survey }: { survey: HdyhauSurvey }) {
                                                 }
                                             }}
                                         />
-                                        {o.key ? (
-                                            <span className="igr:hidden igr:w-28 igr:shrink-0 igr:sm:block" title={t('survey.editor.keyHelp')}>
-                                                <Badge variant="outline" className="igr:max-w-full igr:font-mono">
-                                                    <span className="igr:truncate">{o.key}</span>
-                                                </Badge>
-                                            </span>
-                                        ) : (
-                                            <span className="igr:hidden igr:w-28 igr:shrink-0 igr:sm:block">
-                                                <Badge variant="default">{t('survey.editor.new')}</Badge>
+                                        {o.key ? null : (
+                                            <span className="igr:hidden igr:shrink-0 igr:sm:block">
+                                                <Badge variant="brand">{t('survey.editor.new')}</Badge>
                                             </span>
                                         )}
                                         {canEdit && (
@@ -219,7 +222,7 @@ function Editor({ survey }: { survey: HdyhauSurvey }) {
                                 {t('survey.discard')}
                             </Button>
                             <Button loading={update.isPending} onClick={save}>
-                                {t('common.save')}
+                                {t('survey.save')}
                             </Button>
                         </CardFooter>
                     ) : (
@@ -231,7 +234,6 @@ function Editor({ survey }: { survey: HdyhauSurvey }) {
             </div>
             <aside className="igr:space-y-4 igr:lg:sticky igr:lg:top-4">
                 <Preview draft={draft} />
-                <Breakdown survey={survey} />
             </aside>
         </div>
     );
@@ -349,28 +351,41 @@ function Preview({ draft }: { draft: SurveyDraft }) {
     );
 }
 
-/** Reparto de respuestas: una sola magnitud por fila, barras de un solo tono. */
+/**
+ * Lo que responden tus clientes, arriba de todo: la conclusión (la respuesta más común), el reparto en barras de un solo
+ * tono y el enlace al tablero que lo cruza con lo que mide la web.
+ */
 function Breakdown({ survey }: { survey: HdyhauSurvey }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const rows = breakdown(survey.responses.by_answer, survey.responses.total);
     const max = Math.max(1, ...rows.map((r) => r.count));
+    const top = rows[0];
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle>{t('survey.breakdown.title')}</CardTitle>
-                <CardDescription>{t('survey.breakdown.total', { count: survey.responses.total, formatted: formatNumber(survey.responses.total, workspace.locale) })}</CardDescription>
+            <CardHeader className="igr:flex igr:flex-row igr:flex-wrap igr:items-start igr:justify-between igr:gap-2 igr:space-y-0">
+                <div className="igr:min-w-0 igr:flex-1 igr:basis-64">
+                    <p className="igr:text-caption igr:font-medium igr:text-muted-foreground">
+                        {t('survey.breakdown.title')} · {t('survey.breakdown.total', { count: survey.responses.total, formatted: formatNumber(survey.responses.total, workspace.locale) })}
+                    </p>
+                    <CardTitle className="igr:mt-0.5">
+                        {top ? t('survey.breakdown.top', { answer: answerLabel(survey, top.answer), share: formatPercent(top.share, workspace.locale) }) : t('survey.breakdown.empty')}
+                    </CardTitle>
+                    <CardDescription className="igr:mt-0.5">{top ? t('survey.breakdown.help') : t('survey.breakdown.emptyHelp')}</CardDescription>
+                </div>
+                {top ? (
+                    <Button asChild variant="outline" size="sm">
+                        <Link to={`/w/${workspace.id}/analitica/como-nos-conociste`}>
+                            {t('survey.breakdown.compare')}
+                            <ArrowRight aria-hidden />
+                        </Link>
+                    </Button>
+                ) : null}
             </CardHeader>
-            <CardContent>
-                {rows.length === 0 ? (
-                    <div className="igr:flex igr:flex-col igr:items-center igr:gap-1.5 igr:py-6 igr:text-center">
-                        <BarChart3 className="igr:size-5 igr:text-muted-foreground" />
-                        <p className="igr:text-[13px] igr:font-medium">{t('survey.breakdown.empty')}</p>
-                        <p className="igr:max-w-xs igr:text-xs igr:text-muted-foreground">{t('survey.breakdown.emptyHelp')}</p>
-                    </div>
-                ) : (
-                    <ul className="igr:space-y-2.5">
+            {rows.length > 0 ? (
+                <CardContent>
+                    <ul className="igr:grid igr:gap-x-8 igr:gap-y-2.5 igr:md:grid-cols-2">
                         {rows.map((r) => (
                             <li key={r.answer}>
                                 <div className="igr:flex igr:items-baseline igr:justify-between igr:gap-3 igr:text-[13px]">
@@ -385,8 +400,8 @@ function Breakdown({ survey }: { survey: HdyhauSurvey }) {
                             </li>
                         ))}
                     </ul>
-                )}
-            </CardContent>
+                </CardContent>
+            ) : null}
         </Card>
     );
 }

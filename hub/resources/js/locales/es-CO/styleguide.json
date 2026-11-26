@@ -120,7 +120,10 @@
             "customers": "Clientes nuevos",
             "customersValue": "126",
             "vs": "vs. mes anterior",
-            "hint": "3.777 con al menos una compra"
+            "hint": "3.777 con al menos una compra",
+            "salesCompact": "$ 149,9 M",
+            "listLabel": "Cifras del mes",
+            "listHelp": "En el celular, las mismas cifras en una lista compacta (StatList): una fila por cifra."
         },
         "empty": {
             "title": "Activa tu primera automatización",

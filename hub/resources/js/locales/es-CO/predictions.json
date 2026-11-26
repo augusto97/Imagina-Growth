@@ -1,89 +1,164 @@
 {
     "predictions": {
         "title": "Predicciones",
-        "description": "Quién va a volver a comprar, quién está por irse y cuánto valdrá cada cliente, con qué tan confiable es cada cálculo.",
-        "recalculate": "Recalcular",
-        "retrain": "Reentrenar modelos",
+        "description": "Quién va a volver a comprar, quién está por irse y cuánto te dejará cada cliente. Cada predicción dice qué tan confiable es.",
+        "recalculate": "Recalcular ahora",
+        "retrain": "Volver a entrenar",
         "queued": "Recalculando. Tarda unos minutos.",
         "queuedTrain": "Reentrenando los modelos. Tarda unos minutos.",
-        "mlMissing": "El servicio de predicciones no está disponible en esta instalación: el abandono usa la heurística de días sin comprar y el CLV previsto no se calcula. Quien administra la plataforma lo ve en Plataforma → Instalación.",
+        "mlMissing": "Por ahora el riesgo de irse se calcula con los días que lleva cada cliente sin comprar, y el valor futuro no se calcula. Quien administra la plataforma puede prender el servicio completo en Plataforma → Instalación.",
         "coverage": {
             "clv": "Clientes con CLV previsto",
             "churn": "Clientes con riesgo de abandono",
             "nextOrder": "Clientes con próxima compra",
-            "clvTotal": "CLV previsto a 12 meses"
+            "clvTotal": "Valor futuro de tus clientes",
+            "clvTotalHelp": "Lo que esperamos que te compren tus clientes en los próximos 12 meses, sumado.",
+            "atRisk": "Clientes en riesgo de irse",
+            "atRiskHelp": "Clientes con riesgo alto de no volver a comprar: escríbeles antes de que se vayan.",
+            "soon": "Comprarían en 30 días",
+            "soonHelp": "Clientes cuya próxima compra esperada cae en los próximos 30 días.",
+            "covered": "Clientes con predicción",
+            "coveredHint": "{{with}} de {{total}} clientes"
         },
         "models": {
-            "edno": { "title": "Próxima compra", "help": "Fecha esperada según su ritmo y el de su categoría.", "done": "Calculada." },
-            "churn": { "title": "Riesgo de abandono", "help": "Probabilidad de que el cliente siga activo (BG/NBD).", "done": "Calculado." },
-            "clv": { "title": "Valor futuro (CLV)", "help": "Compras esperadas × valor por compra en 12 meses (BG/NBD × Gamma-Gamma).", "done": "Calculado." },
-            "propensity": { "title": "Propensión a 30 días", "help": "", "done": "Calculada." },
-            "affinity": { "title": "Afinidad por categoría y marca", "help": "", "done": "{{contacts}} contactos con sus categorías y marcas favoritas." },
-            "next_product": { "title": "Siguiente producto", "help": "", "done": "{{transitions}} transiciones del pedido N al siguiente." },
-            "price_band": { "title": "Rango de precio", "help": "", "done": "{{contacts}} clientes clasificados en bajo, medio o alto." },
-            "best_hour": { "title": "Mejor hora y canal", "help": "", "done": "{{contacts}} contactos con hora propia; mejor hora del negocio: WhatsApp {{whatsapp}} h, correo {{email}} h." },
-            "engagement": { "title": "Puntaje de interacción", "help": "", "done": "{{contacts}} contactos con puntaje." }
+            "edno": {
+                "title": "Próxima compra",
+                "help": "Úsalo para recordarle a tiempo, sin descuento.",
+                "done": "Calculada.",
+                "meaning": "Cuándo es probable que cada cliente vuelva a comprar, según su ritmo y el de quienes compran lo mismo."
+            },
+            "churn": {
+                "title": "Riesgo de abandono",
+                "help": "Úsalo para escribirles a los valiosos antes de que se vayan.",
+                "done": "Calculado.",
+                "meaning": "Qué tan probable es que un cliente ya no vuelva. Alto = escríbele pronto; bajo = sigue comprando."
+            },
+            "clv": {
+                "title": "Valor futuro",
+                "help": "Úsalo para cuidar más a quien más te va a comprar.",
+                "done": "Calculado.",
+                "meaning": "Cuánto esperamos que te compre cada cliente en los próximos 12 meses."
+            },
+            "propensity": {
+                "title": "Propensión a 30 días",
+                "help": "",
+                "done": "Calculada.",
+                "meaning": "Qué tan probable es que compre en los próximos 30 días."
+            },
+            "affinity": {
+                "title": "Afinidad por categoría y marca",
+                "help": "",
+                "done": "{{contacts}} contactos con sus categorías y marcas favoritas.",
+                "meaning": "Las categorías y marcas que más le gustan a cada cliente."
+            },
+            "next_product": {
+                "title": "Siguiente producto",
+                "help": "",
+                "done": "{{transitions}} transiciones del pedido N al siguiente.",
+                "meaning": "Qué suele comprar la gente después de su último pedido."
+            },
+            "price_band": {
+                "title": "Rango de precio",
+                "help": "",
+                "done": "{{contacts}} clientes clasificados en bajo, medio o alto.",
+                "meaning": "Si cada cliente compra barato, medio o caro."
+            },
+            "best_hour": {
+                "title": "Mejor hora y canal",
+                "help": "",
+                "done": "{{contacts}} contactos con hora propia; mejor hora del negocio: WhatsApp {{whatsapp}} h, correo {{email}} h.",
+                "meaning": "A qué hora y por qué canal responde mejor cada contacto."
+            },
+            "engagement": {
+                "title": "Puntaje de interacción",
+                "help": "",
+                "done": "{{contacts}} contactos con puntaje.",
+                "meaning": "Qué tanto abre, lee y responde tus mensajes cada contacto."
+            }
         },
         "status": {
             "completed": "Calculado",
-            "heuristic": "Heurística",
+            "heuristic": "Estimado",
             "insufficient_data": "Datos insuficientes",
             "failed": "Falló",
-            "never": "Sin calcular"
+            "never": "Sin calcular",
+            "needsService": "Sin servicio"
         },
-        "reliability": { "label": "Qué tan confiable es", "high": "Alta", "medium": "Media", "low": "Baja" },
+        "reliability": {
+            "label": "Qué tan confiable es",
+            "high": "Alta",
+            "medium": "Media",
+            "low": "Baja"
+        },
         "facts": {
-            "clv": "En los últimos {{days}} días predijo {{predicted}} compras y hubo {{actual}}: error de {{error}} %.",
-            "churn": "Distingue a quien volvió a comprar en los últimos {{days}} días de quien no en el {{auc}} % de los pares (AUC).",
-            "edno": "En los últimos {{days}} días, el {{within}} % de los que compraron lo hizo a 15 días o menos de la fecha esperada (error mediano: {{median}} días)."
+            "clv": "En los últimos {{days}} días esperaba {{predicted}} compras y hubo {{actual}}: se equivocó en un {{error}} %.",
+            "churn": "Al comparar a un cliente que volvió con uno que no (últimos {{days}} días), le dio más riesgo al que no volvió en {{auc}} de cada 100 parejas.",
+            "edno": "En los últimos {{days}} días, {{within}} de cada 100 compras llegaron a 15 días o menos de la fecha esperada."
         },
-        "heuristicHelp": "Sin modelo todavía: el riesgo sale de los días sin comprar frente a su intervalo esperado.",
+        "heuristicHelp": "Todavía sin modelo: el riesgo sale de los días sin comprar frente a lo que suele tardar ese cliente.",
         "trainedAt": "Última corrida: {{date}}",
         "neverTrained": "Todavía no se ha calculado.",
-        "others": "Otros puntajes",
+        "others": "Otras predicciones",
         "asChart": "Ver gráfico",
         "asTable": "Ver tabla",
         "calibration": {
-            "title": "Compras predichas y reales por decil",
-            "help": "Ajustado con la historia hasta hace {{days}} días; cada barra es el promedio por cliente de su decil en esos {{days}} días.",
-            "predicted": "Predichas",
-            "actual": "Reales",
-            "decile": "Decil",
+            "title": "¿Acierta el valor futuro?",
+            "help": "Calculamos con tu historia hasta hace {{days}} días y comparamos con lo que pasó después: si las barras se parecen, la predicción es confiable.",
+            "predicted": "Esperadas",
+            "actual": "Lo que pasó",
+            "decile": "Grupo (de menor a mayor valor)",
             "customers": "Clientes",
-            "decileN": "Decil {{n}}",
-            "decileShort": "D{{n}}",
+            "decileN": "Grupo {{n}}",
+            "decileShort": "G{{n}}",
             "customersN_one": "{{count}} cliente",
             "customersN_other": "{{count}} clientes",
-            "empty": "Aparece cuando el modelo de CLV se entrena con datos suficientes."
+            "empty": "Aparece cuando hay suficientes compras para entrenar el valor futuro."
         },
         "alive": {
-            "title": "Probabilidad de seguir activo",
-            "help": "Cuántos clientes hay en cada rango de P(activo): a la izquierda, los que probablemente ya se fueron.",
-            "empty": "Aparece cuando el modelo de abandono se entrena con datos suficientes.",
-            "bin": "P(activo) {{range}}",
+            "title": "¿Cuántos siguen activos?",
+            "help": "Clientes según la probabilidad de que sigan comprando: a la izquierda, los que probablemente ya se fueron.",
+            "empty": "Aparece cuando hay suficientes compras para entrenar el riesgo de irse.",
+            "bin": "Probabilidad de seguir activo: {{range}}",
             "customers_one": "{{formatted}} cliente",
-            "customers_other": "{{formatted}} clientes"
+            "customers_other": "{{formatted}} clientes",
+            "customersLabel": "Clientes"
         },
         "nextOrder": {
-            "title": "Próximas compras esperadas",
-            "overdue": "Vencidas (180 días)",
+            "title": "¿Cuándo vuelven a comprar?",
+            "overdue": "Ya se pasaron (hasta 180 días)",
             "next_7": "Próximos 7 días",
             "next_30": "De 8 a 30 días",
             "later": "Después"
         },
         "presets": {
-            "title": "Segmentos con un clic",
-            "create": "Crear segmento",
-            "see": "Ver segmentos",
+            "title": "Úsalas con un clic",
+            "create": "Crear el grupo de clientes",
+            "see": "Ver grupos de clientes",
             "created": "Se creó «{{name}}»",
-            "high_value_at_risk": { "title": "Alto valor y en riesgo", "help": "CLV previsto en el 25 % más alto con riesgo de abandono medio o alto: para un mensaje personal o un incentivo." },
-            "buying_soon": { "title": "Compran pronto", "help": "Su próxima compra esperada cae en los próximos 14 días: recuérdales sin descuento." },
-            "disengaged": { "title": "Sin interacción", "help": "Puntaje de interacción menor que 10: suprímelos de los envíos masivos para cuidar la entrega." }
+            "high_value_at_risk": {
+                "title": "Alto valor y en riesgo",
+                "help": "Los que más te van a comprar y están por irse: escríbeles en persona o dales un incentivo."
+            },
+            "buying_soon": {
+                "title": "Compran pronto",
+                "help": "Su próxima compra esperada cae en los próximos 14 días: recuérdales sin descuento."
+            },
+            "disengaged": {
+                "title": "Sin interacción",
+                "help": "No abren ni responden: sácalos de los envíos masivos para cuidar que tus mensajes lleguen."
+            }
         },
         "profile": {
             "reliability": "Confiabilidad del modelo: {{level}}",
             "heuristic": "Estimado por días sin comprar (sin modelo todavía)",
             "pAlive": "P(activo): {{value}}"
-        }
+        },
+        "mlMissingTitle": "Predicciones básicas",
+        "services": {
+            "title": "Las predicciones salen de las compras",
+            "description": "Como tu negocio no vende por una tienda en línea, aquí no hay compras que predecir. Para saber a quién atender primero, usa el puntaje de cada contacto en Leads.",
+            "action": "Ver tus contactos"
+        },
+        "needsServiceHelp": "Necesita el servicio de predicciones completo (Plataforma → Instalación)."
     }
 }

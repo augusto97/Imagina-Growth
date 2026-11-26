@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import i18n from '@/lib/i18n';
 import texts from '@/locales/es-CO/analytics.json';
 import { ATTRIBUTION_MODELS, DASHBOARDS, RFM_SEGMENTS } from './api';
-import { slugFromPath, DASHBOARD_PATHS } from './AnalyticsPage';
+import { slugFromPath, DASHBOARD_PATHS } from './paths';
 import { StatTile } from './components/StatTile';
 import { csvFilename, toCsv } from './csv';
 import { delta, makeFormatters } from './format';

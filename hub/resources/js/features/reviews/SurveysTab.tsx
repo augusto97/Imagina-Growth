@@ -2,8 +2,6 @@ import { MessageSquareText } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from 'recharts';
-import type { TooltipContentProps } from 'recharts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +15,7 @@ import { cn } from '@/lib/cn';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
-import { Legend } from '@/features/analytics/components/charts';
+import { CategoryBars, Legend, LineTrend } from '@/features/analytics/components/charts';
 import { TileGrid } from '@/features/analytics/components/StatTile';
 import { useFormatters } from '@/features/analytics/format';
 import { useChartTheme, type ChartTheme } from '@/features/analytics/theme';
@@ -150,23 +148,6 @@ function Report({ kind, days }: { kind: SurveyKind; days: number }) {
     );
 }
 
-function ChartTooltip({ title, rows }: { title: string; rows: { label: string; value: string; color?: string }[] }) {
-    return (
-        <div className="igr:min-w-36 igr:rounded-md igr:border igr:bg-popover igr:px-2.5 igr:py-2 igr:text-xs igr:text-popover-foreground igr:shadow-md">
-            <p className="igr:mb-1 igr:font-medium">{title}</p>
-            {rows.map((r) => (
-                <div key={r.label} className="igr:flex igr:items-center igr:justify-between igr:gap-4">
-                    <span className="igr:flex igr:items-center igr:gap-1.5 igr:text-muted-foreground">
-                        {r.color ? <span className="igr:size-2 igr:rounded-full" style={{ background: r.color }} /> : null}
-                        {r.label}
-                    </span>
-                    <span className="igr:font-medium igr:tabular-nums">{r.value}</span>
-                </div>
-            ))}
-        </div>
-    );
-}
-
 /** Respuestas por nota, coloreadas por categoría, con leyenda y vista de tabla. */
 function Distribution({ report }: { report: SurveyReport }) {
     const { t } = useTranslation();
@@ -214,31 +195,19 @@ function Distribution({ report }: { report: SurveyReport }) {
                     </TBody>
                 </Table>
             ) : (
-                <div style={{ height: 220 }} role="img" aria-label={t('reviews.surveys.distribution')}>
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} barCategoryGap={2}>
-                            <CartesianGrid vertical={false} stroke={theme.grid} />
-                            <XAxis dataKey="score" tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={{ stroke: theme.axis }} />
-                            <YAxis allowDecimals={false} tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={false} width={40} />
-                            <RTooltip
-                                cursor={{ fill: theme.grid, opacity: 0.4 }}
-                                content={(props: TooltipContentProps) => {
-                                    const row = props.payload[0]?.payload as (typeof data)[number] | undefined;
-                                    if (!props.active || row === undefined) return null;
-                                    return (
-                                        <ChartTooltip
-                                            title={t('reviews.surveys.scoreTitle', { score: row.score })}
-                                            rows={[{ label: t(`reviews.surveys.categories.${row.category}`), value: `${fmt.number(row.count)} · ${fmt.percent(row.count / total, 0)}`, color: categoryColor(theme, row.category) }]}
-                                        />
-                                    );
-                                }}
-                            />
-                            {CATEGORY_ORDER[report.kind].map((c) => (
-                                <Bar key={c} dataKey={c} stackId="score" fill={categoryColor(theme, c)} radius={[4, 4, 0, 0]} maxBarSize={36} isAnimationActive={false} />
-                            ))}
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
+                <CategoryBars
+                    data={data}
+                    x="score"
+                    stacked
+                    legend={false}
+                    height={220}
+                    series={CATEGORY_ORDER[report.kind].map((c) => ({ key: c, label: t(`reviews.surveys.categories.${c}`), color: categoryColor(theme, c) }))}
+                    ariaLabel={t('reviews.surveys.distribution')}
+                    tooltip={(row) => ({
+                        title: t('reviews.surveys.scoreTitle', { score: row.score }),
+                        rows: [{ label: t(`reviews.surveys.categories.${row.category}`), value: `${fmt.number(row.count)} · ${fmt.percent(row.count / total, 0)}`, color: categoryColor(theme, row.category) }],
+                    })}
+                />
             )}
         </div>
     );
@@ -254,33 +223,25 @@ function Trend({ report }: { report: SurveyReport }) {
     const domain: [number, number] = report.kind === 'nps' ? [-100, 100] : [0, 100];
     const label = (v: number) => (report.kind === 'nps' ? `${v > 0 ? '+' : ''}${fmt.decimal(v, 0)}` : `${fmt.decimal(v, 0)} %`);
     return (
-        <div style={{ height: 220 }} role="img" aria-label={t(`reviews.surveys.trend.${report.kind}`)}>
-            <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={report.trend} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
-                    <CartesianGrid vertical={false} stroke={theme.grid} />
-                    <XAxis dataKey="week" tickFormatter={(v: string) => formatDate(v, workspace.locale, 'UTC')} tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={{ stroke: theme.axis }} minTickGap={24} />
-                    <YAxis domain={domain} tickFormatter={label} tick={{ fill: theme.muted, fontSize: 11 }} tickLine={false} axisLine={false} width={48} />
-                    {report.kind === 'nps' ? <ReferenceLine y={0} stroke={theme.axis} /> : null}
-                    <RTooltip
-                        cursor={{ stroke: theme.axis, strokeWidth: 1 }}
-                        content={(props: TooltipContentProps) => {
-                            const row = props.payload[0]?.payload as SurveyReport['trend'][number] | undefined;
-                            if (!props.active || row === undefined) return null;
-                            return (
-                                <ChartTooltip
-                                    title={t('reviews.surveys.weekOf', { date: formatDate(row.week, workspace.locale, 'UTC') })}
-                                    rows={[
-                                        { label: t(`reviews.surveys.score.${report.kind}`), value: label(row.score), color },
-                                        { label: t('reviews.surveys.responses'), value: fmt.number(row.responses) },
-                                    ]}
-                                />
-                            );
-                        }}
-                    />
-                    <Line type="monotone" dataKey="score" stroke={color} strokeWidth={2} dot={{ r: 4, strokeWidth: 2, stroke: theme.surface, fill: color }} activeDot={{ r: 5, strokeWidth: 2, stroke: theme.surface }} isAnimationActive={false} />
-                </LineChart>
-            </ResponsiveContainer>
-        </div>
+        <LineTrend
+            data={report.trend}
+            x="week"
+            y="score"
+            color={color}
+            height={220}
+            domain={domain}
+            referenceY={report.kind === 'nps' ? 0 : undefined}
+            xTick={(v) => formatDate(v, workspace.locale, 'UTC')}
+            yTick={label}
+            ariaLabel={t(`reviews.surveys.trend.${report.kind}`)}
+            tooltip={(row) => ({
+                title: t('reviews.surveys.weekOf', { date: formatDate(row.week, workspace.locale, 'UTC') }),
+                rows: [
+                    { label: t(`reviews.surveys.score.${report.kind}`), value: label(row.score), color },
+                    { label: t('reviews.surveys.responses'), value: fmt.number(row.responses) },
+                ],
+            })}
+        />
     );
 }
 
