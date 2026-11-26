@@ -1,10 +1,13 @@
-import { Copy, ExternalLink } from 'lucide-react';
+import { Copy, ExternalLink, Monitor, Smartphone } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DeviceFrame, type PreviewDevice } from '@/components/ui/device-frame';
 import { Input, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PagePreviewFrame } from '@/components/ui/page-preview';
+import { SegmentedControl } from '@/components/ui/segmented';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
@@ -12,6 +15,7 @@ import { useAgendaMutations } from './api';
 import type { BookingOverview, BookingSettings } from './types';
 
 const CHANNELS = ['whatsapp', 'email', 'sms'] as const;
+const HEX = /^#[0-9a-fA-F]{6}$/;
 const TEMPLATES = ['confirmation', 'reminder', 'rescheduled', 'cancelled'] as const;
 
 /** La página pública de reservas: enlace, QR, botón para el sitio y ajustes de captura y recordatorios. */
@@ -31,6 +35,7 @@ export function PageTab({ data }: { data: BookingOverview }) {
                 ...form,
                 page_title: form.page_title?.trim() || null,
                 intro: form.intro?.trim() || null,
+                color: form.color && HEX.test(form.color) ? form.color : null,
             },
             {
                 onSuccess: () => toast.success(t('agenda.page.saved')),
@@ -65,6 +70,35 @@ export function PageTab({ data }: { data: BookingOverview }) {
                     <div>
                         <Label htmlFor="page-intro">{t('agenda.page.intro')}</Label>
                         <Textarea id="page-intro" className="igr:mt-1" rows={2} value={form.intro ?? ''} maxLength={600} disabled={disabled} onChange={(e) => set('intro', e.target.value)} />
+                    </div>
+                    <div>
+                        <Label htmlFor="page-color">{t('agenda.page.color')}</Label>
+                        <div className="igr:mt-1 igr:flex igr:flex-wrap igr:items-center igr:gap-2">
+                            <input
+                                id="page-color"
+                                type="color"
+                                value={form.color && HEX.test(form.color) ? form.color : '#2563eb'}
+                                disabled={disabled}
+                                onChange={(e) => set('color', e.target.value)}
+                                className="igr:h-9 igr:w-12 igr:cursor-pointer igr:rounded-md igr:border igr:border-input igr:bg-card igr:p-1"
+                            />
+                            <Input
+                                aria-label={t('agenda.page.colorHex')}
+                                className="igr:w-28 igr:font-mono"
+                                maxLength={7}
+                                value={form.color ?? ''}
+                                placeholder="#2563eb"
+                                disabled={disabled}
+                                aria-invalid={(form.color !== null && form.color !== '' && !HEX.test(form.color)) || undefined}
+                                onChange={(e) => set('color', e.target.value || null)}
+                            />
+                            {form.color ? (
+                                <Button type="button" size="sm" variant="ghost" disabled={disabled} onClick={() => set('color', null)}>
+                                    {t('agenda.page.colorReset')}
+                                </Button>
+                            ) : null}
+                        </div>
+                        <p className="igr:mt-1 igr:text-xs igr:text-muted-foreground">{t('agenda.page.colorHelp')}</p>
                     </div>
                     <div className="igr:flex igr:flex-wrap igr:gap-4">
                         <label className="igr:flex igr:items-center igr:gap-2">
@@ -203,6 +237,40 @@ export function PageTab({ data }: { data: BookingOverview }) {
                     <p className="igr:text-xs igr:text-muted-foreground">{t('agenda.page.domainHelp')}</p>
                 </CardContent>
             </Card>
+            <PagePreview url={data.preview_url} version={JSON.stringify(data.settings)} />
         </div>
+    );
+}
+
+/** La página de reservas tal como la ve el cliente (se actualiza al guardar). */
+function PagePreview({ url, version }: { url: string; version: string }) {
+    const { t } = useTranslation();
+    const [device, setDevice] = useState<PreviewDevice>('mobile');
+    const height = device === 'mobile' ? 620 : 560;
+    return (
+        <Card className="igr:lg:col-span-2">
+            <CardHeader className="igr:flex igr:flex-row igr:flex-wrap igr:items-start igr:justify-between igr:gap-3">
+                <div className="igr:min-w-0">
+                    <CardTitle>{t('agenda.page.preview')}</CardTitle>
+                    <CardDescription>{t('agenda.page.previewHelp')}</CardDescription>
+                </div>
+                <SegmentedControl
+                    size="sm"
+                    label={t('agenda.page.previewDevice')}
+                    value={device}
+                    onChange={setDevice}
+                    options={[
+                        { value: 'mobile', label: t('agenda.page.mobile'), icon: Smartphone },
+                        { value: 'desktop', label: t('agenda.page.desktop'), icon: Monitor },
+                    ]}
+                />
+            </CardHeader>
+            <CardContent>
+                <DeviceFrame device={device} label={t('agenda.page.preview')} url={url.replace(/^https?:\/\//, '')} height={height}>
+                    {/* La clave cambia con los ajustes guardados: la vista previa se vuelve a cargar con el color y los textos nuevos. */}
+                    <PagePreviewFrame key={version} device={device} title={t('agenda.page.preview')} src={url} height={height} sandbox="allow-same-origin" />
+                </DeviceFrame>
+            </CardContent>
+        </Card>
     );
 }

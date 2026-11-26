@@ -6,6 +6,8 @@ export interface BookingSettings {
     enabled: boolean;
     page_title: string | null;
     intro: string | null;
+    /** Color de la página de reservas (#RRGGBB); null = el de la marca. */
+    color: string | null;
     ask_email: boolean;
     require_email: boolean;
     consent_channels: string[];
@@ -59,6 +61,8 @@ export interface BookingOverview {
     settings: BookingSettings;
     page_url: string;
     page_qr: string;
+    /** La página servida por el hub, para la vista previa (sin dominio propio). */
+    preview_url: string;
     google_configured: boolean;
     can_manage: boolean;
     timezone: string;

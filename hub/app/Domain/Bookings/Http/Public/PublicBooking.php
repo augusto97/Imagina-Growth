@@ -6,6 +6,7 @@ namespace App\Domain\Bookings\Http\Public;
 
 use App\Domain\Billing\Contracts\Entitlements;
 use App\Domain\Bookings\Support\BookingSettings;
+use App\Domain\Capture\Http\Public\PublicCapture;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Templates\Support\BusinessProfile;
 use App\Domain\Workspaces\Contracts\Branding;
@@ -71,11 +72,15 @@ final class PublicBooking
     {
         $profile = $workspace !== null ? BusinessProfile::for($workspace) : null;
         $brand = $workspace !== null ? $this->branding->for($workspace) : null;
+        $business = $profile !== null ? ($profile['name'] !== '' ? $profile['name'] : (string) $workspace?->name) : 'Imagina Growth';
+        $accent = self::accent($workspace, $brand?->primaryColor);
 
         return response()->view($view, $data + [
-            'business' => $profile !== null ? ($profile['name'] !== '' ? $profile['name'] : (string) $workspace?->name) : 'Imagina Growth',
-            'logo' => $profile !== null && $profile['logo_url'] !== '' ? $profile['logo_url'] : null,
-            'accent' => $brand !== null && preg_match('/^#[0-9a-fA-F]{6}$/', $brand->primaryColor) ? $brand->primaryColor : '#2563eb',
+            'business' => $business,
+            'initial' => mb_strtoupper(mb_substr(trim($business), 0, 1)) ?: 'A',
+            'logo' => $profile !== null && str_starts_with($profile['logo_url'], 'https://') ? $profile['logo_url'] : null,
+            'accent' => $accent,
+            'accentFg' => PublicCapture::readableOn($accent),
             'poweredBy' => $brand !== null ? $brand->name : 'Imagina Growth',
             'zone' => self::zone($workspace?->timezone ?: 'America/Bogota'),
         ], $status)->withHeaders([
@@ -84,6 +89,22 @@ final class PublicBooking
             'Referrer-Policy' => 'no-referrer',
             'X-Frame-Options' => 'SAMEORIGIN',
         ]);
+    }
+
+    /**
+     * El color de la página: el que eligió el negocio en la agenda, si no el de la marca (la agencia con marca blanca)
+     * y si no el azul de siempre.
+     */
+    public static function accent(?Workspace $workspace, ?string $brandColor): string
+    {
+        $own = $workspace !== null ? BookingSettings::for($workspace)['color'] : null;
+        foreach ([$own, $brandColor] as $color) {
+            if (is_string($color) && preg_match('/^#[0-9a-fA-F]{6}$/', $color) === 1) {
+                return $color;
+            }
+        }
+
+        return '#2563eb';
     }
 
     public function missing(?Workspace $workspace = null, int $status = 404): Response

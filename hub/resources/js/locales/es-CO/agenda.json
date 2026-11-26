@@ -220,7 +220,16 @@
             "downloadQr": "Descargar QR",
             "onSite": "Botón en tu sitio",
             "onSiteHelp": "Con el plugin conectado, pega este shortcode en cualquier página.",
-            "domainHelp": "¿Quieres la página con tu propio dominio? Configúralo en Agencia → Dominios propios."
+            "domainHelp": "¿Quieres la página con tu propio dominio? Configúralo en Agencia → Dominios propios.",
+            "color": "Color de la página",
+            "colorHex": "Color en hexadecimal",
+            "colorReset": "Usar el de la marca",
+            "colorHelp": "El de los botones, el día elegido y los horarios. Sin color propio se usa el de la marca.",
+            "preview": "Así la ve tu cliente",
+            "previewHelp": "La página real de reservas. Se actualiza al guardar; desde aquí no se agenda nada.",
+            "previewDevice": "Ver en",
+            "mobile": "Celular",
+            "desktop": "Computador"
         },
         "kpiHelp": {
             "upcoming": "Citas agendadas o confirmadas desde ahora.",

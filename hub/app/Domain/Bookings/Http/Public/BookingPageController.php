@@ -13,6 +13,7 @@ use App\Domain\Bookings\Models\BookingStaff;
 use App\Domain\Bookings\Support\BookingSettings;
 use App\Domain\Bookings\Support\SlotFinder;
 use App\Domain\Bookings\Support\SlotTaken;
+use App\Domain\Capture\Support\WhatsAppNumber;
 use App\Domain\Contacts\Actions\CaptureContact;
 use App\Domain\Contacts\Data\CaptureInput;
 use App\Domain\Onsite\Support\PublicWidgetConfig;
@@ -23,6 +24,7 @@ use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -70,7 +72,7 @@ final class BookingPageController
                 'services' => $services->map(fn (BookingService $s) => [
                     'name' => $s->name, 'description' => $s->description, 'duration' => $s->duration_min,
                     'price' => $s->price !== null ? self::money((string) $s->price, (string) $workspace->currency) : null,
-                    'location' => __('booking.location.'.$s->location),
+                    'location' => Str::ucfirst((string) __('booking.location.'.$s->location)), 'location_kind' => $s->location,
                     'url' => self::base($key).'/reservar/'.$s->slug.self::carry($request),
                 ])->all(),
             ]);
@@ -269,7 +271,7 @@ final class BookingPageController
             'service' => [
                 'name' => $service->name, 'description' => $service->description, 'duration' => $service->duration_min,
                 'price' => $service->price !== null ? self::money((string) $service->price, (string) $workspace->currency) : null,
-                'location' => __('booking.location.'.$service->location),
+                'location' => Str::ucfirst((string) __('booking.location.'.$service->location)), 'location_kind' => $service->location,
             ],
             'action' => self::base($key).'/reservar/'.$service->slug,
             'selfUrl' => self::base($key).'/reservar/'.$service->slug,
@@ -293,14 +295,28 @@ final class BookingPageController
         $picker = $rescheduling ? $this->picker($request, $workspace, $service, [], $appointment) : [];
         $ok = is_string($request->query('ok')) ? $request->query('ok') : null;
         $base = self::base($key).'/cita/'.$appointment->manage_token;
+        $end = CarbonImmutable::instance($appointment->ends_at);
+        $local = PublicBooking::es($start->setTimezone($tz));
+        $business = (string) (BusinessProfile::for($workspace)['name'] ?: $workspace->name);
+        $serviceName = $service->name ?? __('Cita');
 
         return $this->public->view('bookings.manage', $workspace, $picker + [
             'ok' => in_array($ok, ['nueva', 'confirmada', 'cancelada', 'reprogramada'], true) ? $ok : null,
             'status' => $appointment->status,
-            'service' => $service->name ?? __('Cita'),
-            'location' => __('booking.location.'.($service->location ?? 'onsite')),
+            'service' => $serviceName,
+            'location' => Str::ucfirst((string) __('booking.location.'.($service->location ?? 'onsite'))),
+            'locationKind' => $service->location ?? 'onsite',
             'day' => PublicBooking::day($start, $tz),
             'time' => PublicBooking::time($start, $tz),
+            'endTime' => PublicBooking::time($end, $tz),
+            'weekday' => rtrim($local->isoFormat('ddd'), '.'),
+            'dayNumber' => $local->format('j'),
+            'month' => $local->isoFormat('MMMM'),
+            'googleUrl' => self::googleCalendarUrl($serviceName.' · '.$business, $start, $end, __('Para reprogramar o cancelar: :url', ['url' => $base]), $business),
+            'whatsappUrl' => self::whatsappUrl($workspace, __('Hola, tengo una cita de :service el :day a las :time.', [
+                'service' => $serviceName, 'day' => PublicBooking::day($start, $tz), 'time' => PublicBooking::time($start, $tz),
+            ])),
+            'bookUrl' => $service !== null && $service->active ? self::base($key).'/reservar/'.$service->slug : null,
             'duration' => $service?->duration_min,
             'staff' => $appointment->staff_id !== null ? BookingStaff::query()->find($appointment->staff_id)?->name : null,
             'changeable' => $changeable,
@@ -342,8 +358,11 @@ final class BookingPageController
             $local = $slot['start']->setTimezone($tz);
             $date = $local->format('Y-m-d');
             $value = $slot['start']->toIso8601ZuluString();
-            $days[$date] ??= ['date' => $date, 'weekday' => PublicBooking::es($local)->isoFormat('ddd'), 'label' => PublicBooking::es($local)->isoFormat('D MMM'), 'slots' => []];
-            $days[$date]['slots'][$value] ??= ['value' => $value, 'label' => $local->format('g:i a')];
+            $es = PublicBooking::es($local);
+            $days[$date] ??= ['date' => $date, 'weekday' => rtrim($es->isoFormat('ddd'), '.'), 'label' => $es->isoFormat('D MMM'), 'number' => $es->format('j'),
+                'month' => rtrim($es->isoFormat('MMM'), '.'), 'full' => Str::ucfirst(PublicBooking::day($slot['start'], $tz)), 'slots' => []];
+            $days[$date]['slots'][$value] ??= ['value' => $value, 'label' => $local->format('g:i a'), 'period' => self::period((int) $local->format('G')),
+                'full' => $days[$date]['full'].' · '.$local->format('g:i a')];
         }
         $chosen = self::date($request->query('dia'), $tz)?->format('Y-m-d');
         $oldStart = is_string($old['start'] ?? null) ? (self::date(substr((string) $old['start'], 0, 10), 'UTC') !== null ? CarbonImmutable::parse((string) $old['start'])->setTimezone($tz)->format('Y-m-d') : null) : null;
@@ -351,8 +370,12 @@ final class BookingPageController
         $latest = CarbonImmutable::now($tz)->addDays($service->max_days_ahead)->startOfDay();
         $next = $from->addDays(self::WINDOW_DAYS);
 
+        $shown = $selected !== null ? CarbonImmutable::parse($selected, $tz) : (array_key_first($days) !== null ? CarbonImmutable::parse((string) array_key_first($days), $tz) : $from);
+
         return [
-            'days' => array_values(array_map(fn (array $d) => ['date' => $d['date'], 'weekday' => $d['weekday'], 'label' => $d['label'], 'count' => count($d['slots'])], $days)),
+            'days' => array_values(array_map(fn (array $d) => ['date' => $d['date'], 'weekday' => $d['weekday'], 'label' => $d['label'], 'number' => $d['number'],
+                'month' => $d['month'], 'full' => $d['full'], 'count' => count($d['slots'])], $days)),
+            'rangeLabel' => Str::ucfirst(PublicBooking::es($shown)->isoFormat('MMMM [de] YYYY')),
             'selectedDay' => $selected,
             'selectedDayLabel' => $selected !== null ? PublicBooking::day(CarbonImmutable::parse($selected, $tz), $tz) : null,
             'slots' => $selected !== null ? array_values($days[$selected]['slots']) : [],
@@ -412,6 +435,33 @@ final class BookingPageController
         $origin = $host !== '' && CustomDomains::servable($host) ? 'https://'.$host : rtrim((string) config('app.url'), '/');
 
         return $origin.'/p/'.$key;
+    }
+
+    /** Mañana (antes de las 12), tarde (hasta las 6) o noche, para agrupar los horarios. */
+    public static function period(int $hour): string
+    {
+        return $hour < 12 ? 'morning' : ($hour < 18 ? 'afternoon' : 'evening');
+    }
+
+    /** «Agregar a Google Calendar» sin conectar nada: el enlace de plantilla de evento de Google. */
+    public static function googleCalendarUrl(string $title, CarbonImmutable $start, CarbonImmutable $end, string $details, string $location): string
+    {
+        $fmt = fn (CarbonImmutable $at) => $at->utc()->format('Ymd\THis\Z');
+
+        return 'https://calendar.google.com/calendar/render?'.http_build_query([
+            'action' => 'TEMPLATE', 'text' => $title, 'dates' => $fmt($start).'/'.$fmt($end), 'details' => $details, 'location' => $location,
+        ], '', '&', PHP_QUERY_RFC3986);
+    }
+
+    /**
+     * El WhatsApp del negocio con un mensaje listo (el número conectado o el de Tu negocio), o null si no tiene.
+     * Corre dentro del contexto del espacio de trabajo.
+     */
+    public static function whatsappUrl(Workspace $workspace, string $text): ?string
+    {
+        $digits = WhatsAppNumber::digits($workspace, WhatsAppNumber::account(null));
+
+        return $digits !== null ? 'https://wa.me/'.$digits.'?text='.rawurlencode($text) : null;
     }
 
     /** @throws InvalidArgumentException */

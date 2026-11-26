@@ -52,6 +52,8 @@ final class BookingController
             'settings' => BookingSettings::for($ws),
             'page_url' => BookingSettings::pageUrl($ws),
             'page_qr' => self::qr(BookingSettings::pageUrl($ws)),
+            // La misma página servida por el hub, para la vista previa del panel (un dominio propio no se deja enmarcar aquí).
+            'preview_url' => rtrim((string) config('app.url'), '/').'/p/'.BookingSettings::publicKey($ws).'/reservar',
             'google_configured' => GoogleCalendar::configured(),
             'can_manage' => Gate::allows('ws.manageServices'),
             'timezone' => $ws->timezone,
@@ -72,6 +74,7 @@ final class BookingController
         $data = $request->validate([
             'enabled' => ['sometimes', 'boolean'], 'page_title' => ['sometimes', 'nullable', 'string', 'max:120'],
             'intro' => ['sometimes', 'nullable', 'string', 'max:600'], 'ask_email' => ['sometimes', 'boolean'], 'require_email' => ['sometimes', 'boolean'],
+            'color' => ['sometimes', 'nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'consent_channels' => ['sometimes', 'array'], 'consent_channels.*' => ['in:email,whatsapp,sms'],
             'whatsapp_templates' => ['sometimes', 'array'], 'whatsapp_templates.*' => ['nullable', 'string', 'max:40'],
             'auto_no_show' => ['sometimes', 'boolean'], 'reminder_hours' => ['sometimes', 'array', 'max:3'], 'reminder_hours.*' => ['integer', 'min:1', 'max:72'],
