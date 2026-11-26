@@ -1,22 +1,24 @@
-import { Check, Inbox, Search, X } from 'lucide-react';
+import { Camera, Check, Inbox, Search, Send, Star, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
+import { Callout } from '@/components/ui/callout';
 import { Card } from '@/components/ui/card';
 import { Input, Select } from '@/components/ui/input';
 import { EmptyState, ErrorState, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatCard, StatCardSkeleton, StatGrid } from '@/components/ui/stat-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
 import { BarList } from '@/features/analytics/components/charts';
-import { TileGrid } from '@/features/analytics/components/StatTile';
 import { useFormatters } from '@/features/analytics/format';
 import { useModeration, useReviewSummary, useReviews } from './api';
 import { ImportTab } from './ImportTab';
-import { Kpi } from './Kpi';
+import { useAudience } from '@/features/onsite/audience';
+import { GoogleReviews } from './GoogleReviews';
 import { RequestsTab } from './RequestsTab';
 import { ReviewCard } from './ReviewCard';
 import { SettingsTab } from './SettingsTab';
@@ -26,8 +28,26 @@ import { REJECT_REASONS, type RejectReason, type ReviewFilters, type ReviewSourc
 const TABS = ['moderacion', 'todas', 'solicitudes', 'nps', 'ajustes', 'importar'] as const;
 type Tab = (typeof TABS)[number];
 
-/** Reseñas (modulos.md M15): moderación, todas las reseñas, solicitudes, NPS/CSAT, ajustes e importación. */
+/**
+ * Reseñas (modulos.md M15): moderación, todas las reseñas, solicitudes, NPS/CSAT, ajustes e importación. Un negocio sin
+ * tienda no tiene pedidos que disparen la solicitud: ve las reseñas de Google (su enlace y cómo pedirlas).
+ */
 export function ReviewsPage() {
+    const audience = useAudience();
+    return audience.store ? <StoreReviews /> : <ServicesReviews />;
+}
+
+function ServicesReviews() {
+    const { t } = useTranslation();
+    return (
+        <>
+            <PageHeader title={t('reviews.title')} description={t('reviews.descriptionServices')} />
+            <GoogleReviews />
+        </>
+    );
+}
+
+function StoreReviews() {
     const { t } = useTranslation();
     const canManage = useCan('manageMarketing');
     const [params, setParams] = useSearchParams();
@@ -44,7 +64,7 @@ export function ReviewsPage() {
     return (
         <>
             <PageHeader title={t('reviews.title')} description={t('reviews.description')} />
-            <Summary />
+            <Summary onSettings={canManage ? () => setTab('ajustes') : undefined} />
             <Tabs value={tab} onValueChange={setTab} className="igr:mt-6">
                 <TabsList>
                     {tabs.map((k) => (
@@ -80,7 +100,7 @@ export function ReviewsPage() {
     );
 }
 
-function Summary() {
+function Summary({ onSettings }: { onSettings?: () => void }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const fmt = useFormatters();
@@ -90,33 +110,69 @@ function Summary() {
     }
     if (summary.isPending) {
         return (
-            <TileGrid>
-                {[0, 1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="igr:h-24" />
-                ))}
-            </TileGrid>
+            <div className="igr:grid igr:items-start igr:gap-3 igr:lg:grid-cols-[minmax(0,1fr)_340px]">
+                <StatGrid className="igr:lg:grid-cols-2">
+                    {[0, 1, 2, 3].map((i) => (
+                        <StatCardSkeleton key={i} />
+                    ))}
+                </StatGrid>
+                <Skeleton className="igr:h-[276px] igr:rounded-xl" />
+            </div>
         );
     }
     const { reviews, requests } = summary.data;
     const dist = (['5', '4', '3', '2', '1'] as const).map((stars) => ({ stars, count: reviews.distribution[stars] }));
+    const nothingYet = reviews.published === 0 && reviews.pending === 0 && requests.sent === 0;
     return (
-        <div className="igr:grid igr:items-start igr:gap-3 igr:lg:grid-cols-[minmax(0,1fr)_340px]">
-            <TileGrid className="igr:lg:grid-cols-2 igr:xl:grid-cols-2">
-                <Kpi label={t('reviews.summary.avg')} value={reviews.avg_rating === null ? '—' : fmt.decimal(reviews.avg_rating, 2)} hint={t('reviews.summary.published', { count: reviews.published })} />
-                <Kpi label={t('reviews.summary.pending')} value={fmt.number(reviews.pending)} hint={reviews.flagged_pending > 0 ? t('reviews.summary.flagged', { count: reviews.flagged_pending }) : undefined} />
-                <Kpi label={t('reviews.summary.withMedia')} value={fmt.number(reviews.with_media)} help={t('reviews.summary.withMediaHelp')} />
-                <Kpi
-                    label={t('reviews.summary.completion')}
-                    value={fmt.percent(requests.completion_rate, 0)}
-                    hint={t('reviews.summary.requests', { count: requests.sent, days: requests.days })}
-                    help={t('reviews.summary.completionHelp')}
-                />
-            </TileGrid>
-            <Card className="igr:p-4">
-                <p className="igr:mb-2 igr:text-[13px] igr:text-muted-foreground">{t('reviews.summary.distribution')}</p>
-                <BarList rows={dist} label={(r) => t('reviews.stars', { count: Number(r.stars) })} value={(r) => r.count} format={(v) => fmt.number(v)} />
-            </Card>
-        </div>
+        <>
+            {nothingYet ? (
+                <Callout
+                    tone="brand"
+                    className="igr:mb-4"
+                    title={t('reviews.start.title')}
+                    action={
+                        onSettings ? (
+                            <Button size="sm" onClick={onSettings}>
+                                {t('reviews.start.action')}
+                            </Button>
+                        ) : undefined
+                    }
+                >
+                    {t('reviews.start.body')}
+                </Callout>
+            ) : null}
+            <div className="igr:grid igr:items-start igr:gap-3 igr:lg:grid-cols-[minmax(0,1fr)_340px]">
+                <StatGrid className="igr:lg:grid-cols-2">
+                    <StatCard
+                        label={t('reviews.summary.avg')}
+                        value={reviews.avg_rating === null ? '—' : fmt.decimal(reviews.avg_rating, 2)}
+                        hint={t('reviews.summary.published', { count: reviews.published })}
+                        icon={Star}
+                        tone="amber"
+                    />
+                    <StatCard
+                        label={t('reviews.summary.pending')}
+                        value={fmt.number(reviews.pending)}
+                        hint={reviews.flagged_pending > 0 ? t('reviews.summary.flagged', { count: reviews.flagged_pending }) : undefined}
+                        icon={Inbox}
+                        tone="sky"
+                    />
+                    <StatCard label={t('reviews.summary.withMedia')} value={fmt.number(reviews.with_media)} help={t('reviews.summary.withMediaHelp')} icon={Camera} tone="violet" />
+                    <StatCard
+                        label={t('reviews.summary.completion')}
+                        value={fmt.percent(requests.completion_rate, 0)}
+                        hint={t('reviews.summary.requests', { count: requests.sent, days: requests.days })}
+                        help={t('reviews.summary.completionHelp')}
+                        icon={Send}
+                        tone="emerald"
+                    />
+                </StatGrid>
+                <Card className="igr:p-5">
+                    <p className="igr:mb-3 igr:text-support igr:font-medium igr:text-muted-foreground">{t('reviews.summary.distribution')}</p>
+                    <BarList rows={dist} label={(r) => t('reviews.stars', { count: Number(r.stars) })} value={(r) => r.count} format={(v) => fmt.number(v)} />
+                </Card>
+            </div>
+        </>
     );
 }
 
@@ -134,7 +190,7 @@ function ModerationQueue() {
     if (list.isPending) return <ListSkeleton />;
     const rows = list.data.data;
     if (rows.length === 0) {
-        return <EmptyState icon={Inbox} title={t('reviews.queue.emptyTitle')} description={t('reviews.queue.emptyDescription')} />;
+        return <EmptyState illustration="reviews" size="compact" title={t('reviews.queue.emptyTitle')} description={t('reviews.queue.emptyDescription')} />;
     }
     const run = (action: 'approve' | 'reject') =>
         bulk.mutate(
@@ -165,7 +221,12 @@ function ModerationQueue() {
                         <Check aria-hidden />
                         {t('reviews.queue.approveSelected', { count: selected.length })}
                     </Button>
-                    <Select aria-label={t('reviews.reject.reason')} className="igr:h-7 igr:w-auto igr:text-xs" value={reason} onChange={(e) => setReason(e.target.value as RejectReason)}>
+                    <Select
+                        aria-label={t('reviews.reject.reason')}
+                        className="igr:h-7 igr:w-auto igr:text-xs"
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value as RejectReason)}
+                    >
                         {REJECT_REASONS.map((r) => (
                             <option key={r} value={r}>
                                 {t(`reviews.reasons.${r}`)}
@@ -211,9 +272,20 @@ function AllReviews() {
             >
                 <div className="igr:relative">
                     <Search className="igr:pointer-events-none igr:absolute igr:left-2 igr:top-2 igr:size-4 igr:text-muted-foreground" aria-hidden />
-                    <Input className="igr:w-56 igr:pl-8" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('reviews.filters.search')} aria-label={t('reviews.filters.search')} />
+                    <Input
+                        className="igr:w-56 igr:pl-8"
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                        placeholder={t('reviews.filters.search')}
+                        aria-label={t('reviews.filters.search')}
+                    />
                 </div>
-                <Select className="igr:w-auto" aria-label={t('reviews.filters.status')} value={filters.status ?? ''} onChange={(e) => set({ status: e.target.value as ReviewStatus | '' })}>
+                <Select
+                    className="igr:w-auto"
+                    aria-label={t('reviews.filters.status')}
+                    value={filters.status ?? ''}
+                    onChange={(e) => set({ status: e.target.value as ReviewStatus | '' })}
+                >
                     <option value="">{t('reviews.filters.anyStatus')}</option>
                     {(['pending', 'published', 'rejected'] as const).map((s) => (
                         <option key={s} value={s}>
@@ -221,7 +293,12 @@ function AllReviews() {
                         </option>
                     ))}
                 </Select>
-                <Select className="igr:w-auto" aria-label={t('reviews.filters.rating')} value={String(filters.rating ?? '')} onChange={(e) => set({ rating: e.target.value === '' ? '' : Number(e.target.value) })}>
+                <Select
+                    className="igr:w-auto"
+                    aria-label={t('reviews.filters.rating')}
+                    value={String(filters.rating ?? '')}
+                    onChange={(e) => set({ rating: e.target.value === '' ? '' : Number(e.target.value) })}
+                >
                     <option value="">{t('reviews.filters.anyRating')}</option>
                     {[5, 4, 3, 2, 1].map((r) => (
                         <option key={r} value={r}>
@@ -229,7 +306,12 @@ function AllReviews() {
                         </option>
                     ))}
                 </Select>
-                <Select className="igr:w-auto" aria-label={t('reviews.filters.source')} value={filters.source ?? ''} onChange={(e) => set({ source: e.target.value as ReviewSource | '' })}>
+                <Select
+                    className="igr:w-auto"
+                    aria-label={t('reviews.filters.source')}
+                    value={filters.source ?? ''}
+                    onChange={(e) => set({ source: e.target.value as ReviewSource | '' })}
+                >
                     <option value="">{t('reviews.filters.anySource')}</option>
                     {(['request', 'woocommerce', 'import'] as const).map((s) => (
                         <option key={s} value={s}>

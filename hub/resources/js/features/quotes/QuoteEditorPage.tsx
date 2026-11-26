@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -68,6 +69,7 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
     const [answers, setAnswers] = useState<Record<string, unknown>>(() => sampleAnswers(calc.definition));
     const [estimate, setEstimate] = useState<Estimate | null>(null);
     const [previewError, setPreviewError] = useState<string | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState(false);
     const cur = def.currency ?? currency;
     const disabled = !canManage;
     const setD = <K extends keyof QuoteDefinition>(k: K, v: QuoteDefinition[K]) => setDef((d) => ({ ...d, [k]: v }));
@@ -544,19 +546,23 @@ function Editor({ calc, canManage, sites, currency, back }: { calc: Calculator; 
                     </Card>
                     {canManage ? (
                         <div className="igr:flex igr:justify-between">
-                            <Button
-                                variant="ghost"
-                                className="igr:text-destructive"
-                                onClick={() => {
-                                    if (window.confirm(t('quotes.editor.deleteConfirm'))) remove.mutate(calc.id, { onSuccess: () => void navigate(back) });
-                                }}
-                            >
-                                <Trash2 />
+                            <Button variant="ghost" className="igr:text-destructive" onClick={() => setConfirmDelete(true)}>
+                                <Trash2 aria-hidden />
                                 {t('quotes.editor.delete')}
                             </Button>
                             <Button onClick={() => persist()} loading={save.isPending}>
-                                {t('common.save')}
+                                {t('quotes.editor.saveChanges')}
                             </Button>
+                            <ConfirmDialog
+                                open={confirmDelete}
+                                onOpenChange={setConfirmDelete}
+                                title={t('quotes.editor.deleteConfirm')}
+                                description={t('quotes.editor.deleteBody')}
+                                confirmLabel={t('quotes.editor.delete')}
+                                tone="danger"
+                                loading={remove.isPending}
+                                onConfirm={() => remove.mutate(calc.id, { onSuccess: () => void navigate(back) })}
+                            />
                         </div>
                     ) : null}
                 </div>

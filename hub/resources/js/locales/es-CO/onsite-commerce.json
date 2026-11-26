@@ -157,7 +157,10 @@
             "lastDays_other": "Últimos {{count}} días",
             "empty": {
                 "title": "Todavía nadie ha pedido un aviso",
-                "description": "El botón «Avísame cuando vuelva» aparece solo en los productos agotados, y «Avísame si baja» donde lo pongas con el bloque o el shortcode [igr_bis]."
+                "description": "Cuando un producto agotado vuelva o baje de precio, le avisamos a quien lo pidió: compra apenas puede.",
+                "step1": "En un producto agotado aparece «Avísame cuando vuelva»; con el bloque, también «Avísame si baja».",
+                "step2": "La persona deja su WhatsApp o correo y su permiso.",
+                "step3": "Cuando vuelve o baja, le avisamos al instante y ves lo que compró."
             },
             "kpi": {
                 "active": "Esperando aviso",
@@ -180,7 +183,8 @@
                 "week": "Semana",
                 "weekOf": "Semana del {{date}}",
                 "asTable": "Ver tabla",
-                "asChart": "Ver gráfico"
+                "asChart": "Ver gráfico",
+                "metric": "Qué ver en la gráfica"
             },
             "top": {
                 "title": "Lo que más esperan",
@@ -212,7 +216,9 @@
                 "library": "La de la biblioteca",
                 "none": "Elige una plantilla",
                 "whatsappNote": "Para WhatsApp elige una plantilla aprobada por Meta. Si un canal no tiene plantilla, se usa el siguiente que la persona haya autorizado."
-            }
+            },
+            "days_one": "{{count}} día",
+            "days_other": "{{count}} días"
         },
         "banners": {
             "title": "Banners personalizados",
@@ -233,7 +239,10 @@
             "formHelp": "Gana el primer banner activo, por prioridad, cuya audiencia incluye a la persona. El nombre y los puntos solo se muestran con sesión iniciada.",
             "empty": {
                 "title": "Todavía no tienes banners",
-                "description": "Saluda a tus clientes VIP con sus puntos, recuerda el carrito pendiente o invita a volver a quien está en riesgo."
+                "description": "Saluda a tus clientes VIP con sus puntos, recuerda el carrito pendiente o invita a volver a quien está en riesgo.",
+                "step1": "Elige a quién: clientes con puntos, con un carrito pendiente, en riesgo o un grupo.",
+                "step2": "Escribe el mensaje; con sesión iniciada puede llevar su nombre y sus puntos.",
+                "step3": "Aparece arriba de tu tienda o en Mi cuenta, sin frenar la página."
             },
             "placement": {
                 "top": "Arriba de la página",
@@ -272,7 +281,10 @@
                 "style": "Estilo",
                 "priority": "Prioridad (menor gana)",
                 "status": "Estado"
-            }
+            },
+            "editNamed": "Editar «{{name}}»",
+            "deleteNamed": "Eliminar «{{name}}»",
+            "deleteBody": "Deja de mostrarse en tu tienda al instante. Puedes crear otro cuando quieras."
         }
     }
 }

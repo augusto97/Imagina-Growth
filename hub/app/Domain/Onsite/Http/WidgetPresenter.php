@@ -34,11 +34,17 @@ final class WidgetPresenter
             return $out;
         }
         $defaults = WidgetSchema::defaults($widget->kind);
+        // Lo que falte (un widget creado a mano o con una forma anterior) se completa con los valores de su tipo, para
+        // que el constructor siempre reciba la configuración entera.
+        $variants = array_map(fn (array $v): array => [
+            'design' => array_replace($defaults['design'], $v['design']),
+            'content' => array_replace($defaults['content'], $v['content']),
+        ] + $v, WidgetSchema::variants($widget));
 
         return $out + [
-            'targeting' => $widget->targeting ?? $defaults['targeting'],
-            'variants' => WidgetSchema::variants($widget),
-            'consent_config' => $widget->consent_config ?? $defaults['consent_config'],
+            'targeting' => array_replace($defaults['targeting'], (array) ($widget->targeting ?? [])),
+            'variants' => $variants,
+            'consent_config' => array_replace($defaults['consent_config'], (array) ($widget->consent_config ?? [])),
             'coupon_config' => $widget->coupon_config ?? $defaults['coupon_config'],
             'quiz' => $widget->kind === 'quiz' ? [
                 'questions' => $widget->quiz->questions ?? [],

@@ -218,7 +218,9 @@ Inicio en frío ≈ 264 kB más sus textos (≈ 15 kB), la gráfica llega despu�
 no se pudo reproducir aquí: Canales ya pide `/channels` una sola vez y en esta base ningún espacio tiene un canal de
 conversación, así que la Bandeja muestra su bloqueo y no pide conversaciones; queda por medir con un canal conectado.
 Las gráficas de Predicciones, Avisos de stock, Encuestas y Fidelización importan Recharts directo (su pantalla espera la
-librería): pendiente pasarlas al mismo patrón que `charts.tsx`.
+librería): pendiente pasarlas al mismo patrón que `charts.tsx`. *Fase B (En tu web):* Avisos de stock y Fidelización ya
+usan las perezosas (`TrendChart` y `StackedBars`); NPS y CSAT de Reseñas siguen directas porque necesitan barras por
+categoría (notas de 0 a 10, no fechas) y un eje con dominio fijo (−100 a 100), que `charts.tsx` todavía no ofrece.
 
 1. **Textos por módulo con su pantalla** (−100 kB gzip del arranque, ~−0,5 s en 4G lento). Hoy `lib/i18n.ts` mete
    los 39 archivos de `locales/es-CO/` en el arranque. El arranque necesita solo `es-CO.json` (menú, comunes: ~10 kB

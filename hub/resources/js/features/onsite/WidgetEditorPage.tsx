@@ -1,18 +1,20 @@
-import { Archive, Copy, Monitor, MoreHorizontal, Pause, Play, Save, Smartphone, Trash2 } from 'lucide-react';
+import { Archive, CalendarClock, Copy, Monitor, MoreHorizontal, Pause, Play, Save, Smartphone, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import { Button } from '@/components/ui/button';
+import { Callout } from '@/components/ui/callout';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input, Select } from '@/components/ui/input';
 import { ErrorState, FieldError } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SegmentedControl } from '@/components/ui/segmented';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { isoToWall, wallToIso } from '@/features/campaigns/time';
 import { errorMessage } from '@/features/contacts/errors';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
-import { cn } from '@/lib/cn';
 import { toast } from '@/stores/toast';
 import { useOnsiteOptions, useWidget, useWidgetActions } from './api';
 import { ContentEditor } from './editors/ContentEditor';
@@ -21,7 +23,9 @@ import { ConsentEditor, CouponEditor } from './editors/OfferEditors';
 import { QuizEditor } from './editors/QuizEditor';
 import { TargetingEditor } from './editors/TargetingEditor';
 import { KindLabel, StatusBadge } from './labels';
-import { draftFrom, payload } from './model';
+import { draftFrom, isGift, payload } from './model';
+import { useAudience } from './audience';
+import { describeTargeting, rulesSentence } from './rules';
 import { Preview, type PreviewDevice, type PreviewState } from './Preview';
 import { StatsPanel } from './StatsPanel';
 import type { WidgetDetail, WidgetDraft } from './types';
@@ -63,6 +67,11 @@ function Editor({ widget }: { widget: WidgetDetail }) {
     const [variant, setVariant] = useState(0);
     const [device, setDevice] = useState<PreviewDevice>('desktop');
     const [state, setState] = useState<PreviewState>(widget.kind === 'quiz' ? 'quiz' : 'form');
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const audience = useAudience();
+    // Sin tienda no hay cupones (los crea WooCommerce): la pestaña solo se ve si el widget ya traía uno.
+    const showCoupon = widget.kind !== 'wa_widget' && (audience.store || widget.kind === 'spin_wheel' || (isGift(draft.coupon_config) && draft.coupon_config.enabled));
+    const rules = describeTargeting(widget.kind, draft.targeting, t, options.data);
     const dirty = JSON.stringify(payload(draft)) !== JSON.stringify(payload(initial));
     const error = actions.save.error ?? actions.activate.error;
     const base = `/w/${workspace.id}/en-el-sitio`;
@@ -149,17 +158,7 @@ function Editor({ widget }: { widget: WidgetDetail }) {
                                     <Archive />
                                     {t('onsite.actions.archive')}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    className="igr:text-destructive"
-                                    onSelect={() => {
-                                        if (window.confirm(t('onsite.actions.confirmDelete'))) {
-                                            actions.remove.mutate(undefined, {
-                                                onSuccess: () => void navigate(base),
-                                                onError: (e) => toast.error(errorMessage(e, t)),
-                                            });
-                                        }
-                                    }}
-                                >
+                                <DropdownMenuItem className="igr:text-destructive" onSelect={() => setConfirmDelete(true)}>
                                     <Trash2 />
                                     {t('onsite.actions.delete')}
                                 </DropdownMenuItem>
@@ -173,14 +172,47 @@ function Editor({ widget }: { widget: WidgetDetail }) {
                     <FieldError message={errorMessage(error, t)} />
                 </div>
             ) : null}
+            <Callout
+                tone="neutral"
+                icon={CalendarClock}
+                className="igr:mb-4"
+                title={t('onsite.rules.title')}
+                action={
+                    tab !== 'targeting' ? (
+                        <Button size="sm" variant="ghost" onClick={() => setTab('targeting')}>
+                            {t('onsite.rules.change')}
+                        </Button>
+                    ) : undefined
+                }
+            >
+                {rulesSentence(rules)}
+            </Callout>
+            <ConfirmDialog
+                open={confirmDelete}
+                onOpenChange={setConfirmDelete}
+                title={t('onsite.actions.deleteTitle', { name: widget.name })}
+                description={t('onsite.actions.confirmDelete')}
+                confirmLabel={t('onsite.actions.delete')}
+                tone="danger"
+                loading={actions.remove.isPending}
+                onConfirm={() =>
+                    actions.remove.mutate(undefined, {
+                        onSuccess: () => void navigate(base),
+                        onError: (e) => {
+                            setConfirmDelete(false);
+                            toast.error(errorMessage(e, t));
+                        },
+                    })
+                }
+            />
 
             <div className="igr:grid igr:gap-4 igr:xl:grid-cols-[minmax(0,1fr)_420px]">
                 <Tabs value={tab} onValueChange={setTab} className="igr:min-w-0">
-                    <TabsList className="igr:mb-3 igr:flex-wrap">
+                    <TabsList className="igr:mb-3">
                         <TabsTrigger value="content">{t('onsite.editor.tabs.content')}</TabsTrigger>
                         <TabsTrigger value="targeting">{t('onsite.editor.tabs.targeting')}</TabsTrigger>
                         {widget.kind !== 'wa_widget' ? <TabsTrigger value="consent">{t('onsite.editor.tabs.consent')}</TabsTrigger> : null}
-                        {widget.kind !== 'wa_widget' ? (
+                        {showCoupon ? (
                             <TabsTrigger value="coupon">{widget.kind === 'spin_wheel' ? t('onsite.editor.tabs.prizes') : t('onsite.editor.tabs.coupon')}</TabsTrigger>
                         ) : null}
                         {widget.kind === 'quiz' ? <TabsTrigger value="quiz">{t('onsite.editor.tabs.quiz')}</TabsTrigger> : null}
@@ -196,6 +228,8 @@ function Editor({ widget }: { widget: WidgetDetail }) {
                                 <TabsContent value="targeting" className="igr:pt-0">
                                     <TargetingEditor
                                         kind={widget.kind}
+                                        store={audience.store}
+                                        summary={rules}
                                         targeting={draft.targeting}
                                         options={options.data}
                                         onChange={(targeting) => setDraft({ ...draft, targeting })}
@@ -304,27 +338,16 @@ function Editor({ widget }: { widget: WidgetDetail }) {
                                         ))}
                                     </Select>
                                 ) : null}
-                                <div className="igr:flex igr:rounded-md igr:border" role="group" aria-label={t('onsite.preview.device')}>
-                                    {(['desktop', 'mobile'] as const).map((d) => {
-                                        const Icon = d === 'desktop' ? Monitor : Smartphone;
-                                        return (
-                                            <button
-                                                key={d}
-                                                type="button"
-                                                aria-pressed={device === d}
-                                                aria-label={t(`onsite.devices.${d}`)}
-                                                title={t(`onsite.devices.${d}`)}
-                                                onClick={() => setDevice(d)}
-                                                className={cn(
-                                                    'igr:flex igr:size-8 igr:items-center igr:justify-center',
-                                                    device === d ? 'igr:bg-muted igr:text-foreground' : 'igr:text-muted-foreground',
-                                                )}
-                                            >
-                                                <Icon className="igr:size-4" />
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                <SegmentedControl
+                                    iconOnly
+                                    label={t('onsite.preview.device')}
+                                    value={device}
+                                    onChange={setDevice}
+                                    options={[
+                                        { value: 'desktop', label: t('onsite.devices.desktop'), icon: Monitor },
+                                        { value: 'mobile', label: t('onsite.devices.mobile'), icon: Smartphone },
+                                    ]}
+                                />
                             </div>
                         </div>
                         <Preview
@@ -338,7 +361,7 @@ function Editor({ widget }: { widget: WidgetDetail }) {
                             device={device}
                             state={states.includes(state) ? state : 'form'}
                         />
-                        <p className="igr:text-xs igr:text-muted-foreground">{t('onsite.preview.note')}</p>
+                        <p className="igr:text-xs igr:text-muted-foreground">{audience.store ? t('onsite.preview.note') : t('onsite.preview.noteServices')}</p>
                     </aside>
                 ) : null}
             </div>

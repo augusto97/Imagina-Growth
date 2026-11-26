@@ -48,7 +48,9 @@ export function useWidgetCaptures(ws: string, id: string) {
 export function useCreateWidget(ws: string) {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (data: { name: string; kind: WidgetKind; site_id: string | null }) => api.post<WidgetDetail>(`${base(ws)}/widgets`, data),
+        /** Con `template` (galería) el hub decide el tipo y los textos; sin él, `kind` con sus valores por defecto. */
+        mutationFn: (data: { name: string; site_id: string | null } & ({ kind: WidgetKind; template?: undefined } | { template: string; kind?: undefined })) =>
+            api.post<WidgetDetail>(`${base(ws)}/widgets`, data),
         onSuccess: (w) => {
             void qc.invalidateQueries({ queryKey: onsiteKeys.all(ws) });
             qc.setQueryData(onsiteKeys.one(ws, w.id), w);

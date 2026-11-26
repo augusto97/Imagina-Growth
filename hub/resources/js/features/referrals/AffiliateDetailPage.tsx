@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { formatRelative } from '@/lib/format';
 import { toast } from '@/stores/toast';
-import { StatTile, TileGrid } from '@/features/analytics/components/StatTile';
+import { StatCard, StatGrid } from '@/components/ui/stat-card';
 import { useFormatters } from '@/features/analytics/format';
 import { AffiliateDialog } from './AffiliateDialog';
 import { useAffiliate } from './api';
@@ -73,12 +73,12 @@ export function AffiliateDetailPage() {
                 }
             />
             <div className="igr:space-y-4">
-                <TileGrid>
-                    <StatTile label={t('referrals.affiliates.orders')} value={a.stats.orders} unit="count" fmt={fmt} />
-                    <StatTile label={t('referrals.affiliates.revenue')} value={Number(a.stats.revenue)} unit="money" fmt={fmt} />
-                    <StatTile label={t('referrals.affiliates.toApprove')} value={Number(a.stats.pending)} unit="money" fmt={fmt} />
-                    <StatTile label={t('referrals.affiliates.toPay')} value={Number(a.stats.approved)} unit="money" fmt={fmt} />
-                </TileGrid>
+                <StatGrid>
+                    <StatCard label={t('referrals.affiliates.orders')} value={fmt.number(a.stats.orders)} />
+                    <StatCard label={t('referrals.affiliates.revenue')} value={fmt.money(Number(a.stats.revenue))} />
+                    <StatCard label={t('referrals.affiliates.toApprove')} value={fmt.money(Number(a.stats.pending))} />
+                    <StatCard label={t('referrals.affiliates.toPay')} value={fmt.money(Number(a.stats.approved))} />
+                </StatGrid>
                 <div className="igr:grid igr:gap-4 igr:lg:grid-cols-2">
                     <Card>
                         <CardHeader>

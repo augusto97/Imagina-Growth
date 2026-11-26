@@ -1,9 +1,10 @@
-import { Megaphone, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,7 +44,9 @@ export function BannersPage() {
     const canManage = useCan('manageMarketing');
     const banners = useBanners(workspace.id);
     const [editing, setEditing] = useState<Banner | 'new' | null>(null);
+    const [deleting, setDeleting] = useState<Banner | null>(null);
     const remove = useDeleteBanner(workspace.id);
+    const empty = banners.data?.data.length === 0;
 
     return (
         <>
@@ -51,7 +54,7 @@ export function BannersPage() {
                 title={t('onsiteCommerce.banners.title')}
                 description={t('onsiteCommerce.banners.description')}
                 actions={
-                    canManage ? (
+                    canManage && !empty ? (
                         <Button onClick={() => setEditing('new')}>
                             <Plus />
                             {t('onsiteCommerce.banners.new')}
@@ -60,15 +63,27 @@ export function BannersPage() {
                 }
             />
             {banners.isPending ? (
-                <Skeleton className="igr:h-40" />
+                <div className="igr:grid igr:gap-3">
+                    {[0, 1].map((i) => (
+                        <Skeleton key={i} className="igr:h-28 igr:rounded-xl" />
+                    ))}
+                </div>
             ) : banners.isError ? (
                 <ErrorState error={banners.error} onRetry={() => void banners.refetch()} />
             ) : banners.data.data.length === 0 ? (
                 <EmptyState
-                    icon={Megaphone}
+                    illustration="points"
                     title={t('onsiteCommerce.banners.empty.title')}
                     description={t('onsiteCommerce.banners.empty.description')}
-                    action={canManage ? <Button onClick={() => setEditing('new')}>{t('onsiteCommerce.banners.new')}</Button> : undefined}
+                    action={
+                        canManage ? (
+                            <Button size="lg" onClick={() => setEditing('new')}>
+                                <Plus aria-hidden />
+                                {t('onsiteCommerce.banners.new')}
+                            </Button>
+                        ) : undefined
+                    }
+                    steps={[t('onsiteCommerce.banners.empty.step1'), t('onsiteCommerce.banners.empty.step2'), t('onsiteCommerce.banners.empty.step3')]}
                 />
             ) : (
                 <div className="igr:grid igr:gap-3">
@@ -90,20 +105,23 @@ export function BannersPage() {
                                 </div>
                                 {canManage ? (
                                     <div className="igr:flex igr:gap-1">
-                                        <Button variant="ghost" size="icon" aria-label={t('onsiteCommerce.banners.edit')} onClick={() => setEditing(b)}>
-                                            <Pencil />
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label={t('onsiteCommerce.banners.editNamed', { name: b.name })}
+                                            title={t('onsiteCommerce.banners.edit')}
+                                            onClick={() => setEditing(b)}
+                                        >
+                                            <Pencil aria-hidden />
                                         </Button>
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            aria-label={t('onsiteCommerce.banners.delete')}
-                                            onClick={() => {
-                                                if (window.confirm(t('onsiteCommerce.banners.deleteConfirm', { name: b.name }))) {
-                                                    remove.mutate(b.id, { onSuccess: () => toast.success(t('onsiteCommerce.banners.deleted')) });
-                                                }
-                                            }}
+                                            aria-label={t('onsiteCommerce.banners.deleteNamed', { name: b.name })}
+                                            title={t('onsiteCommerce.banners.delete')}
+                                            onClick={() => setDeleting(b)}
                                         >
-                                            <Trash2 />
+                                            <Trash2 aria-hidden />
                                         </Button>
                                     </div>
                                 ) : null}
@@ -113,6 +131,24 @@ export function BannersPage() {
                 </div>
             )}
             {editing !== null && banners.data ? <BannerDialog banner={editing === 'new' ? null : editing} options={banners.data} onClose={() => setEditing(null)} /> : null}
+            <ConfirmDialog
+                open={deleting !== null}
+                onOpenChange={(open) => !open && setDeleting(null)}
+                title={t('onsiteCommerce.banners.deleteConfirm', { name: deleting?.name ?? '' })}
+                description={t('onsiteCommerce.banners.deleteBody')}
+                confirmLabel={t('onsiteCommerce.banners.delete')}
+                tone="danger"
+                loading={remove.isPending}
+                onConfirm={() =>
+                    deleting &&
+                    remove.mutate(deleting.id, {
+                        onSuccess: () => {
+                            setDeleting(null);
+                            toast.success(t('onsiteCommerce.banners.deleted'));
+                        },
+                    })
+                }
+            />
         </>
     );
 }

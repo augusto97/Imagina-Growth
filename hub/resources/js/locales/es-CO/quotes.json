@@ -3,8 +3,8 @@
         "title": "Cotizador",
         "description": "Calculadoras de precio para tu sitio: la persona responde, deja su contacto y ve un precio estimado.",
         "new": "Nueva calculadora",
-        "empty": "Todavía no tienes calculadoras",
-        "emptyHelp": "Crea una por servicio, por área (m², metros, horas) o por paquetes y ponla en tu sitio con un shortcode.",
+        "empty": "Da un precio estimado a cambio del contacto",
+        "emptyHelp": "Quien pide precio está cerca de comprar. Una calculadora en tu web le responde al instante y te deja su contacto como lead, con lo que pidió.",
         "kind": {
             "service": "Por servicio",
             "area": "Por área o cantidad",
@@ -159,7 +159,20 @@
             "published": "Calculadora publicada.",
             "paused": "Calculadora en pausa.",
             "delete": "Eliminar calculadora",
-            "deleteConfirm": "¿Eliminar esta calculadora? Si ya tiene cotizaciones, queda en pausa."
+            "deleteConfirm": "¿Eliminar esta calculadora?",
+            "deleteBody": "Deja de mostrarse en tu web. Si ya tiene cotizaciones, queda en pausa para conservarlas.",
+            "saveChanges": "Guardar cambios"
+        },
+        "emptyAction": "Crear mi calculadora",
+        "emptyStep1": "Elige tus servicios o el precio por metro, hora o paquete.",
+        "emptyStep2": "Ponla en tu web con el bloque o el shortcode.",
+        "emptyStep3": "Cada cotización llega como lead con el rango de precio.",
+        "totals": {
+            "quotes": "Cotizaciones",
+            "leads": "Leads",
+            "leadsHelp": "Personas que dejaron su contacto para ver el precio y entraron a tus leads.",
+            "avg": "Valor medio cotizado",
+            "avgHelp": "El punto medio de los rangos que vieron, en los últimos 30 días."
         }
     }
 }

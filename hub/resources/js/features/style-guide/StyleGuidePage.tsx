@@ -1,11 +1,14 @@
-import { ArrowRight, Gift, Inbox, Palette, Plus, ShoppingCart, Sparkles, TrendingUp, Users } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { ArrowRight, Gift, Inbox, Monitor, Palette, Plus, ShoppingCart, Smartphone, Sparkles, TrendingUp, Users } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Callout, type CalloutTone } from '@/components/ui/callout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checklist, Stepper, type ChecklistStep } from '@/components/ui/checklist';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { CopyButton, CopyField } from '@/components/ui/copy-field';
+import { DeviceFrame, type PreviewDevice } from '@/components/ui/device-frame';
 import { EmptyState } from '@/components/ui/empty-state';
 import { HeroCard } from '@/components/ui/hero-card';
 import { ICON_TONES, IconTile } from '@/components/ui/icon-tile';
@@ -15,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { LockedState } from '@/components/ui/locked-state';
 import { FieldError } from '@/components/ui/misc';
 import { PageHeader } from '@/components/ui/page-header';
+import { SegmentedControl } from '@/components/ui/segmented';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Skeleton, SkeletonCard, SkeletonText } from '@/components/ui/skeleton';
 import { StatCard, StatGrid } from '@/components/ui/stat-card';
@@ -57,6 +61,7 @@ const SECTION_KEYS = [
     'shape',
     'buttons',
     'fields',
+    'share',
     'header',
     'sectionNav',
     'hero',
@@ -259,6 +264,10 @@ export function StyleGuidePage() {
                         <FieldError message={t('styleguide.fields.error')} />
                     </div>
                 </div>
+            </GuideSection>
+
+            <GuideSection id="share" note>
+                <SharePieces />
             </GuideSection>
 
             <GuideSection id="header" note>
@@ -516,5 +525,52 @@ export function StyleGuidePage() {
                 </Tabs>
             </GuideSection>
         </>
+    );
+}
+
+/** Copiar un valor, elegir entre pocas opciones y la vista previa en vivo (escritorio o celular). */
+function SharePieces() {
+    const { t } = useTranslation();
+    const [device, setDevice] = useState<PreviewDevice>('desktop');
+    const [confirm, setConfirm] = useState(false);
+    return (
+        <div className="igr:grid igr:gap-6 igr:lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="igr:min-w-0 igr:space-y-4">
+                <CopyField label={t('styleguide.share.link')} value="https://growth.imagina.cloud/p/clinica-sonrisa" hint={t('styleguide.share.linkHint')} />
+                <div className="igr:flex igr:flex-wrap igr:gap-2">
+                    <CopyButton value="SONRISA10">{t('styleguide.share.copyCode')}</CopyButton>
+                    <CopyButton value="SONRISA10" label={t('styleguide.share.copyCode')} />
+                    <Button variant="outline" onClick={() => setConfirm(true)}>
+                        {t('styleguide.share.archive')}
+                    </Button>
+                </div>
+                <ConfirmDialog
+                    open={confirm}
+                    onOpenChange={setConfirm}
+                    title={t('styleguide.share.confirmTitle')}
+                    description={t('styleguide.share.confirmBody')}
+                    confirmLabel={t('styleguide.share.archive')}
+                    tone="danger"
+                    onConfirm={() => setConfirm(false)}
+                />
+                <SegmentedControl
+                    label={t('styleguide.share.device')}
+                    value={device}
+                    onChange={setDevice}
+                    options={[
+                        { value: 'desktop', label: t('styleguide.share.desktop'), icon: Monitor },
+                        { value: 'mobile', label: t('styleguide.share.mobile'), icon: Smartphone },
+                    ]}
+                />
+            </div>
+            <DeviceFrame device={device} label={t('styleguide.share.preview')} url="growth.imagina.cloud/p/clinica-sonrisa" height={220}>
+                <div className="igr:space-y-2 igr:p-5">
+                    <p className="igr:text-section igr:font-semibold">{t('styleguide.share.previewTitle')}</p>
+                    <p className="igr:text-support igr:text-muted-foreground">{t('styleguide.share.previewBody')}</p>
+                    <Skeleton className="igr:h-9" />
+                    <Skeleton className="igr:h-9" />
+                </div>
+            </DeviceFrame>
+        </div>
     );
 }

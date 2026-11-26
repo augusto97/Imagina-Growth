@@ -288,9 +288,15 @@
             "consent": "consentimiento habeas data privacidad",
             "agent": "agente ventas whatsapp",
             "templates": "plantillas whatsapp correo",
-            "inbox": "bandeja chat whatsapp"
+            "inbox": "bandeja chat whatsapp",
+            "capturePages": "landing página de captura formulario qr enlace",
+            "whatsappLinks": "qr whatsapp local mostrador enlace chat",
+            "leadAds": "facebook instagram google lead ads formularios anuncios clientes potenciales"
         },
-        "connectionsAccounts": "WhatsApp y anuncios"
+        "connectionsAccounts": "WhatsApp y anuncios",
+        "capturePages": "Páginas de captura",
+        "whatsappLinks": "WhatsApp con QR",
+        "leadAds": "Leads de anuncios"
     },
     "command": {
         "title": "Paleta de comandos",
