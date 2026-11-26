@@ -22,8 +22,17 @@ use App\Support\Tenancy\CurrentWorkspace;
  */
 final class CreateFlowFromLibrary
 {
-    /** @var array<string, list<string>> flujos de la biblioteca que se excluyen entre sí */
-    private const EXCLUSIVE = ['abandoned_cart' => ['abandoned_checkout'], 'abandoned_checkout' => ['abandoned_cart']];
+    /**
+     * Flujos de la biblioteca que se excluyen entre sí: carrito y checkout abandonados, y la respuesta a un lead de
+     * servicios (18) con las de su vertical que ya traen su propia respuesta (28 cursos y 29 propiedades).
+     *
+     * @var array<string, list<string>>
+     */
+    private const EXCLUSIVE = [
+        'abandoned_cart' => ['abandoned_checkout'], 'abandoned_checkout' => ['abandoned_cart'],
+        'service_lead' => ['enrollment_followup', 'property_interest'],
+        'enrollment_followup' => ['service_lead'], 'property_interest' => ['service_lead'],
+    ];
 
     public function __construct(
         private readonly SaveFlow $save,
@@ -82,7 +91,8 @@ final class CreateFlowFromLibrary
     /**
      * Carrito y checkout abandonados se excluyen entre sí por defecto: quien deja el
      * checkout también deja el carrito, y no se le escribe dos veces por lo mismo.
-     * La comerciante lo puede cambiar en la configuración del flujo.
+     * Igual el lead de servicios con los de cursos y propiedades. Se cambia en la
+     * configuración del flujo.
      */
     private function excludeSiblings(Flow $flow): void
     {

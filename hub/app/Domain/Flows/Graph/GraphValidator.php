@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Flows\Graph;
 
+use App\Domain\Flows\Support\FlowDates;
 use App\Domain\Flows\Support\TemplateRef;
 use App\Domain\Segments\Definition\DefinitionValidator;
 use App\Domain\Segments\Definition\InvalidDefinition;
@@ -325,6 +326,16 @@ final class GraphValidator
     /** @param array<string, mixed> $c */
     private function waitConfig(string $id, array $c): void
     {
+        if (($c['mode'] ?? 'duration') === 'until_date') {
+            $problem = FlowDates::invalid($c);
+            if ($problem !== null) {
+                $this->add($id, $problem);
+            } elseif (! in_array($c['if_past'] ?? 'continue', ['continue', 'exit'], true)) {
+                $this->add($id, __('Elige qué pasa si la fecha ya pasó: seguir o salir.'));
+            }
+
+            return;
+        }
         if (($c['mode'] ?? 'duration') === 'until_time') {
             $hour = $c['hour'] ?? null;
             $days = (array) ($c['weekdays'] ?? [1, 2, 3, 4, 5, 6, 7]);
@@ -358,6 +369,16 @@ final class GraphValidator
     /** @param array<string, mixed> $c */
     private function conditionConfig(string $id, array $c): void
     {
+        if (($c['mode'] ?? 'segment') === 'date') {
+            $problem = FlowDates::invalid($c + ['direction' => 'before']);
+            if ($problem !== null) {
+                $this->add($id, $problem);
+            } elseif (Durations::seconds($c['offset'] ?? null) === null) {
+                $this->add($id, __('Indica cuánto debe faltar (entre 1 minuto y 365 días).'));
+            }
+
+            return;
+        }
         if (($c['mode'] ?? 'segment') === 'context') {
             if (! Filters::valid([['prop' => $c['path'] ?? '', 'operator' => $c['operator'] ?? '', 'value' => $c['value'] ?? null]])) {
                 $this->add($id, __('La condición sobre los datos del disparador no es válida.'));

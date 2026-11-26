@@ -61,7 +61,8 @@ it('el paso de webhook solo acepta HTTPS públicas (S5)', function () {
 it('todos los flujos listos de la biblioteca son válidos con las plantillas de M08', function () {
     $available = array_filter(FlowLibrary::all(), fn ($f) => $f['graph'] !== null);
     $modules = array_column(array_filter(FlowLibrary::all(), fn ($f) => $f['module'] !== null), 'module', 'key');
-    expect($available)->toHaveCount(16)->and(FlowLibrary::all())->toHaveCount(20)
+    expect($available)->toHaveCount(31)->and(FlowLibrary::all())->toHaveCount(35)
+        ->and(array_column(FlowLibrary::all(), 'number'))->toBe(range(1, 35))
         ->and($modules)->toBe(['review_request' => 'resenas?tab=ajustes', 'back_in_stock' => 'en-el-sitio/avisos', 'nps' => 'resenas?tab=nps', 'appointment_reminder' => 'agenda?tab=pagina']);
     foreach ($available as $flow) {
         expect(flowGraphErrors($this, $flow['graph']))->toBe([], $flow['key']);
@@ -106,10 +107,10 @@ it('la API crea, edita, publica, activa, pausa y archiva; los errores llegan por
     $this->actingAs($viewer)->postJson($this->api(), ['name' => 'x'])->assertForbidden();
 });
 
-it('la biblioteca muestra los 20 flujos, avisa las plantillas que faltan y activa en un clic', function () {
+it('la biblioteca muestra los 35 flujos, avisa las plantillas que faltan y activa en un clic', function () {
     $library = $this->actingAs($this->owner)->getJson($this->api('/library'))->assertOk();
     $cart = collect($library->json('data'))->firstWhere('key', 'abandoned_cart');
-    expect($library->json('data'))->toHaveCount(20)->and($cart['available'])->toBeTrue()->and($cart['missing_templates'])->toBe([])
+    expect($library->json('data'))->toHaveCount(35)->and($cart['available'])->toBeTrue()->and($cart['missing_templates'])->toBe([])
         ->and(collect($library->json('data'))->firstWhere('key', 'nps')['phase'])->toBe(3);
 
     $res = $this->actingAs($this->owner)->postJson($this->api('/library/abandoned_cart'), ['activate' => true])->assertCreated();

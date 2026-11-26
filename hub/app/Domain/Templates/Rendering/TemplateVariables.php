@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Domain\Templates\Rendering;
 
+use App\Domain\Bookings\Support\BookingSettings;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Loyalty\Models\LoyaltyTier;
 use App\Domain\Referrals\Models\ReferralProgram;
 use App\Domain\Referrals\Support\ReferralCodes;
+use App\Domain\Reviews\Support\ReviewSettings;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Templates\Data\RenderContext;
 use App\Domain\Templates\Support\BusinessProfile;
 use App\Domain\Workspaces\Models\Workspace;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Arma los datos que ve una plantilla Liquid (RenderContext::VARIABLES):
@@ -43,12 +46,34 @@ final class TemplateVariables
                 $data['enlaces'] = (array) $data['enlaces'] + ['referido' => $link];
             }
         }
+        $data['enlaces'] = (array) $data['enlaces'] + self::serviceLinks($context->workspace);
         if ($escapeHtml) {
             $data = self::escape($data);
         }
         $data['recomendaciones'] = new RecommendationsDrop($context->workspace->id, $context->contact?->id, $escapeHtml);
 
         return $data;
+    }
+
+    /**
+     * Enlaces de servicios: `agendar` (la página de reservas, si el negocio tiene servicios activos en la agenda) y
+     * `resena_google` (el enlace para dejar una reseña en Google de Reseñas → Ajustes).
+     *
+     * @return array<string, string>
+     */
+    public static function serviceLinks(Workspace $workspace): array
+    {
+        $links = [];
+        $google = ReviewSettings::for($workspace)['google_review_url'];
+        if (is_string($google) && $google !== '') {
+            $links['resena_google'] = $google;
+        }
+        if ((bool) (BookingSettings::for($workspace)['enabled'] ?? false)
+            && DB::table('booking_services')->where('workspace_id', $workspace->id)->where('active', true)->exists()) {
+            $links['agendar'] = BookingSettings::pageUrl($workspace);
+        }
+
+        return $links;
     }
 
     /** @return array<string, mixed> moneda, configuración regional y zona horaria para los filtros */

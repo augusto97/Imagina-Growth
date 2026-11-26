@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Flows\Support;
 
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -28,12 +29,43 @@ final class TemplateRef
             }
         }
         if (is_string($templateKey) && $templateKey !== '') {
-            $found = (clone $base)->where('library_key', $templateKey)->orderByDesc('updated_at')->value('id');
+            $query = (clone $base)->where('library_key', $templateKey);
+            if ($channel === 'whatsapp') {
+                self::usableWhatsapp($query);
+            }
+            $found = $query->orderByDesc('updated_at')->value('id');
 
             return is_string($found) ? $found : null;
         }
 
         return null;
+    }
+
+    /**
+     * Una plantilla de WhatsApp de la biblioteca en borrador (instalada desde la galería, todavía sin la aprobada de
+     * Meta) no la usan los flujos por su clave: lista, o enlazada con una aprobada.
+     *
+     * @param  Builder  $query  sobre `templates`
+     */
+    public static function usableWhatsapp(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $q) => $q->where('templates.status', 'ready')->orWhereExists(
+            fn (Builder $w) => $w->from('wa_templates')->whereColumn('wa_templates.id', 'templates.wa_template_id')->where('wa_templates.status', 'APPROVED')
+        ));
+    }
+
+    /**
+     * Claves de la biblioteca que el espacio de trabajo ya tiene listas para los flujos.
+     *
+     * @return array<string, true>
+     */
+    public static function usableKeys(string $workspaceId): array
+    {
+        $rows = DB::table('templates')->where('workspace_id', $workspaceId)->whereNotNull('library_key')->where('status', '!=', 'archived')
+            ->where(fn (Builder $q) => $q->where('channel', '!=', 'whatsapp')->orWhere(fn (Builder $w) => self::usableWhatsapp($w->where('channel', 'whatsapp'))))
+            ->distinct()->pluck('library_key');
+
+        return array_fill_keys(array_map('strval', $rows->all()), true);
     }
 
     /** Acepta el ID público (`tpl_…`) o el ULID. */

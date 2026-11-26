@@ -121,6 +121,12 @@ export const BLOCKS = {
         <mj-text font-size="15px" line-height="22px" color="${INK}"><strong>{{ cita.fecha | fecha }}</strong> a las <strong>{{ cita.hora }}</strong>{% if cita.lugar != "" %}<br>{{ cita.lugar }}{% endif %}</mj-text>
       </mj-column>
     </mj-section>`,
+    event: () => `
+    <mj-section padding="8px 24px">
+      <mj-column background-color="${SOFT}" border-radius="8px" padding="8px 0">
+        <mj-text font-size="15px" line-height="22px" color="${INK}"><strong>{{ evento.nombre | default: "Nuestro evento" }}</strong>{% if evento.fecha and evento.fecha != "" %}<br>{{ evento.fecha }}{% if evento.hora and evento.hora != "" %} · {{ evento.hora }}{% endif %}{% endif %}</mj-text>
+      </mj-column>
+    </mj-section>`,
     footer: () => `
     <mj-section padding="24px 24px 32px">
       <mj-column>

@@ -247,8 +247,8 @@ final class FlowController
     {
         Gate::authorize('ws.viewDashboards');
         $workspaceId = $this->current->id();
-        $existing = DB::table('templates')->where('workspace_id', $workspaceId)->whereNotNull('library_key')->where('status', '!=', 'archived')
-            ->pluck('library_key')->flip();
+        // Las de WhatsApp cuentan cuando están listas o enlazadas con una aprobada (no las de la galería en borrador).
+        $existing = collect(TemplateRef::usableKeys($workspaceId));
         $created = Flow::query()->whereNotNull('template_key')->where('status', '!=', Flow::ARCHIVED)->pluck('id', 'template_key');
 
         $hasWhatsapp = LibraryAdapter::hasWhatsapp($workspaceId);
