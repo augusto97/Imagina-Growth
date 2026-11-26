@@ -126,7 +126,11 @@ printf 'x' >> "$ZIP"
 expect_code 4 "zip alterado" "$REL/verify.sh" "$ZIP" "$SHA" "$SHA.sig" "$T/pub.pem"
 cp "$T/orig.zip" "$ZIP"
 cp "$SHA.sig" "$T/orig.sig"
-printf '\x01' | dd of="$SHA.sig" bs=1 seek=10 conv=notrunc 2>/dev/null
+# Se invierte el byte (no se escribe uno fijo): la firma es de una llave de usar y tirar y, si ese byte ya valía
+# lo que se escribía, la firma quedaba igual y la prueba fallaba 1 de cada 256 veces.
+sig_byte=$(od -An -tu1 -j10 -N1 "$SHA.sig" | tr -d ' ')
+printf '%b' "\\$(printf '%03o' $(( sig_byte ^ 0xff )))" | dd of="$SHA.sig" bs=1 seek=10 conv=notrunc 2>/dev/null
+cmp -s "$SHA.sig" "$T/orig.sig" && { echo "  ✗ la firma no cambió al alterarla"; exit 1; }
 expect_code 3 "firma alterada" "$REL/verify.sh" "$ZIP" "$SHA" "$SHA.sig" "$T/pub.pem"
 cp "$T/orig.sig" "$SHA.sig"
 expect_code 0 "el original sigue verificando" "$REL/verify.sh" "$ZIP" "$SHA" "$SHA.sig" "$T/pub.pem"
