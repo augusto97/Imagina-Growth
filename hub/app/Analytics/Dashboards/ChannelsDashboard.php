@@ -6,6 +6,7 @@ namespace App\Analytics\Dashboards;
 
 use App\Analytics\Ch;
 use App\Analytics\Semantic\Filters;
+use App\Analytics\Semantic\MetricQueryRunner;
 use App\Analytics\Semantic\Period;
 use App\Domain\Workspaces\Models\Workspace;
 use Carbon\CarbonImmutable;
@@ -89,7 +90,8 @@ final class ChannelsDashboard extends Dashboard
         return [
             'channels' => $rows,
             'models' => array_map(fn ($c, $v) => ['channel' => (string) $c] + array_merge(array_fill_keys(Attribution::MODELS, 0), $v), array_keys($modelTable), $modelTable),
-            'ltv' => $this->ltv($workspace),
+            // Valor a 90 y 365 días por canal de adquisición (25 meses, no depende del periodo): una vez por hora.
+            'ltv' => MetricQueryRunner::rememberHourly($workspace, 'channels:ltv', fn () => $this->ltv($workspace)),
             'spend_available' => $spend->isNotEmpty(),
             'attribution_window_days' => Attribution::WINDOW_DAYS,
         ];

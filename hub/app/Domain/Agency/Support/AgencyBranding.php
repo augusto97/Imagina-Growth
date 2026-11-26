@@ -23,6 +23,14 @@ final class AgencyBranding implements Branding
     /** @var array<string, BrandingData> */
     private array $memo = [];
 
+    /**
+     * La marca y el dominio del panel son de la cuenta: los espacios de una agencia los comparten (`/api/me` pedía las
+     * dos consultas por cada cliente). El servicio vive lo que dura la petición o el trabajo (`scoped`).
+     *
+     * @var array<string, array{0: BrandingModel|null, 1: mixed}>
+     */
+    private array $accounts = [];
+
     public function for(Workspace $workspace): BrandingData
     {
         return $this->memo[$workspace->id] ??= $this->build($workspace);
@@ -36,9 +44,11 @@ final class AgencyBranding implements Branding
     private function build(Workspace $workspace): BrandingData
     {
         $default = (new DefaultBranding)->for($workspace);
-        $b = self::forAccount((string) $workspace->account_id);
-        $panel = CustomDomain::query()->where('account_id', $workspace->account_id)->where('purpose', 'panel')
-            ->where('status', 'verified')->orderBy('created_at')->value('host');
+        $accountId = (string) $workspace->account_id;
+        [$b, $panel] = $this->accounts[$accountId] ??= [
+            self::forAccount($accountId),
+            CustomDomain::query()->where('account_id', $accountId)->where('purpose', 'panel')->where('status', 'verified')->orderBy('created_at')->value('host'),
+        ];
         if ($b === null && ! is_string($panel)) {
             return $default;
         }

@@ -229,6 +229,7 @@ it('métricas: primera respuesta, resolución, mensajes por agente y ventas atri
         'contact_id' => $this->contact->id, 'status' => 'processing', 'is_paid' => true, 'currency' => 'COP', 'subtotal' => '250000.00', 'total' => '250000.00', 'total_ws' => '250000.00',
         'attributed_message_id' => substr((string) $id, 4), 'created_at' => now(), 'updated_at' => now()]);
 
+    $this->actingAs($this->owner)->getJson("{$this->api}/metrics")->assertOk()->assertJsonPath('opened', 1);
     $m = $this->actingAs($this->owner)->getJson("{$this->api}/metrics?days=7")->assertOk();
     $agent = collect($m->json('agents'))->firstWhere('id', $this->agent->publicId());
     expect($m->json('opened'))->toBe(1)->and($m->json('first_response.avg'))->toBe(120)->and($m->json('resolution.median'))->toBe(360)

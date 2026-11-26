@@ -40,3 +40,25 @@ it('el host público por defecto es el del panel', function () {
         'broadcasting.connections.reverb.public' => ['host' => 'panel.test', 'port' => 8443, 'scheme' => 'http']]);
     expect(SpaRuntime::config()['reverb'])->toBe(['key' => 'k', 'host' => 'panel.test', 'port' => 8443, 'scheme' => 'http']);
 });
+
+it('precarga el subconjunto latino de cada fuente variable del build y nada sin build', function () {
+    $manifest = (string) tempnam(sys_get_temp_dir(), 'igr-manifest');
+    file_put_contents($manifest, (string) json_encode([
+        'resources/js/main.tsx' => ['file' => 'assets/main-abc.js', 'isEntry' => true],
+        'node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2' => ['file' => 'assets/inter-latin-wght-normal-X1.woff2'],
+        'node_modules/@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2' => ['file' => 'assets/inter-latin-ext-wght-normal-X2.woff2'],
+        'node_modules/@fontsource-variable/inter/files/inter-cyrillic-wght-normal.woff2' => ['file' => 'assets/inter-cyrillic-wght-normal-X3.woff2'],
+    ]));
+
+    expect(SpaRuntime::fontPreloads($manifest))->toBe([asset('build/assets/inter-latin-wght-normal-X1.woff2')])
+        ->and(SpaRuntime::fontPreloads($manifest.'-no-existe'))->toBe([]);
+    unlink($manifest);
+});
+
+it('con sesión el HTML pide /api/me en paralelo con el código; sin sesión, no', function () {
+    $this->withoutVite();
+    expect($this->get('/login')->assertOk()->getContent())->not->toContain('href="/api/me"');
+
+    $html = $this->actingAs($this->userWith2fa())->get('/onboarding')->assertOk()->getContent();
+    expect($html)->toContain('<link rel="preload" as="fetch" href="/api/me" crossorigin>');
+});

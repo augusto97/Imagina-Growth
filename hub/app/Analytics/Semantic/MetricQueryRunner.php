@@ -21,6 +21,9 @@ final class MetricQueryRunner
 {
     public const CACHE_SECONDS = 300;
 
+    /** Lo calculado a meses (rememberHourly): una hora y un poco más, para que la versión de la hora siguiente lo releve. */
+    public const HOURLY_CACHE_SECONDS = 3900;
+
     /**
      * @return array{rows: list<array<string, mixed>>, totals: array<string, float|int>, compare_totals: array<string, float|int>|null}
      */
@@ -59,6 +62,28 @@ final class MetricQueryRunner
         $version = $last === null ? '0' : (string) intdiv((int) strtotime((string) $last), 60);
 
         return Cache::remember('ws:'.$workspace->id.':analytics:'.$key.':'.$version, self::CACHE_SECONDS, fn () => $compute());
+    }
+
+    /**
+     * Lo que no depende del periodo ni de los filtros del tablero y mira meses hacia atrás (cohortes de 12 meses, valor a
+     * 90 y 365 días, productos de entrada, comprados juntos): se calcula a lo más una vez por hora y no con cada cambio
+     * de periodo, filtro o minuto de tráfico (docs/rendimiento.md §2). Con tráfico la versión es la hora del último
+     * evento; sin eventos nuevos sigue la misma.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $compute
+     * @return T
+     */
+    public static function rememberHourly(Workspace $workspace, string $key, callable $compute): mixed
+    {
+        if (! config('igr.analytics.cache', true)) {
+            return $compute();
+        }
+        $last = Site::withoutWorkspaceScope()->where('workspace_id', $workspace->id)->max('last_event_at');
+        $version = $last === null ? '0' : (string) intdiv((int) strtotime((string) $last), 3600);
+
+        return Cache::remember('ws:'.$workspace->id.':analytics:hourly:'.$key.':'.$version, self::HOURLY_CACHE_SECONDS, fn () => $compute());
     }
 
     /** @return list<array<string, mixed>> */

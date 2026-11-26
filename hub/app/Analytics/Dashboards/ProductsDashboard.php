@@ -6,6 +6,7 @@ namespace App\Analytics\Dashboards;
 
 use App\Analytics\Ch;
 use App\Analytics\Semantic\Filters;
+use App\Analytics\Semantic\MetricQueryRunner;
 use App\Analytics\Semantic\Period;
 use App\Domain\Workspaces\Models\Workspace;
 use Carbon\CarbonImmutable;
@@ -76,8 +77,9 @@ final class ProductsDashboard extends Dashboard
                 })(),
                 fn ($r) => $r['views'] >= 50 && $r['view_to_purchase'] < 0.005,
             )), 0, 10),
-            'entry_products' => $this->entryProducts($workspace),
-            'bought_together' => $this->boughtTogether($workspace),
+            // No dependen del periodo elegido (toda la historia y 12 meses): una vez por hora.
+            'entry_products' => MetricQueryRunner::rememberHourly($workspace, 'products:entry', fn () => $this->entryProducts($workspace)),
+            'bought_together' => MetricQueryRunner::rememberHourly($workspace, 'products:together', fn () => $this->boughtTogether($workspace)),
         ];
     }
 

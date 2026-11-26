@@ -19,9 +19,10 @@ final class Presenters
 {
     /**
      * @param  array{modules: list<string>, capabilities: array{store: bool|null, services: bool|null}, connections: array{site: string, channels: list<string>}, upgrade_plans: array<string, string>}|null  $features  ya calculados en lote (WorkspaceFeatures::forMany)
+     * @param  array{status: string, grace_ends_at: string|null, trial_ends_at: string|null}|null  $billing  ya leído en lote (billingFor)
      * @return array<string, mixed>
      */
-    public static function workspace(Workspace $ws, ?WorkspaceRole $role = null, ?array $features = null): array
+    public static function workspace(Workspace $ws, ?WorkspaceRole $role = null, ?array $features = null, ?array $billing = null): array
     {
         $features ??= app(WorkspaceFeatures::class)->for($ws);
 
@@ -47,7 +48,7 @@ final class Presenters
                 ...((bool) (self::user()?->getAttributes()['is_platform_admin'] ?? false) ? ['platformAdmin'] : []),
             ])),
             // M21: estado de facturación de la cuenta, para el aviso de gracia o suspensión en todo el panel.
-            'billing' => self::billing($ws),
+            'billing' => $billing ?? self::billing($ws),
             'branding' => self::branding($ws),
             'requires_two_factor' => $role?->requiresTwoFactor() ?? false,
             // U2: el menú oculta los módulos fuera del plan y lo que no aplica al tipo de negocio.
@@ -62,14 +63,30 @@ final class Presenters
     /** @return array{status: string, grace_ends_at: string|null, trial_ends_at: string|null} */
     private static function billing(Workspace $ws): array
     {
-        $account = DB::table('accounts')->where('id', $ws->account_id)->first(['billing_status', 'grace_ends_at', 'trial_ends_at']);
-        $iso = fn (mixed $v) => $v !== null ? CarbonImmutable::parse((string) $v)->toIso8601String() : null;
+        return self::billingFor([(string) $ws->account_id])[(string) $ws->account_id];
+    }
 
-        return [
-            'status' => (string) ($account->billing_status ?? 'active'),
-            'grace_ends_at' => $iso($account->grace_ends_at ?? null),
-            'trial_ends_at' => $iso($account->trial_ends_at ?? null),
-        ];
+    /**
+     * El estado de facturación de varias cuentas en una consulta (`/api/me` con todos los espacios de una agencia).
+     *
+     * @param  list<string>  $accountIds
+     * @return array<string, array{status: string, grace_ends_at: string|null, trial_ends_at: string|null}>
+     */
+    public static function billingFor(array $accountIds): array
+    {
+        $rows = $accountIds === [] ? collect() : DB::table('accounts')->whereIn('id', $accountIds)->get(['id', 'billing_status', 'grace_ends_at', 'trial_ends_at'])->keyBy('id');
+        $iso = fn (mixed $v) => $v !== null ? CarbonImmutable::parse((string) $v)->toIso8601String() : null;
+        $out = [];
+        foreach ($accountIds as $id) {
+            $account = $rows->get($id);
+            $out[$id] = [
+                'status' => (string) ($account->billing_status ?? 'active'),
+                'grace_ends_at' => $iso($account->grace_ends_at ?? null),
+                'trial_ends_at' => $iso($account->trial_ends_at ?? null),
+            ];
+        }
+
+        return $out;
     }
 
     private static function user(): ?User

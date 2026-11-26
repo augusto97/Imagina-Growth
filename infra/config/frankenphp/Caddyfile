@@ -20,5 +20,12 @@
 http://:{$GROWTH_PORT} {
 	bind 127.0.0.1
 	root * /opt/growth/current/hub/public
+	# Los archivos del build llevan el hash en el nombre: un año en caché y sin revalidar (docs/rendimiento.md §4).
+	# Solo si el archivo existe: el 404 de un hash viejo (pestaña abierta durante una actualización) no se guarda.
+	@build_assets {
+		path /build/assets/*
+		file
+	}
+	header @build_assets Cache-Control "public, max-age=31536000, immutable"
 	php_server
 }

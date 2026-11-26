@@ -48,8 +48,10 @@ final class PlatformController
         $invoices = DB::table('billing_invoices')->whereIn('account_id', $accounts->pluck('id'))->whereIn('status', ['sent', 'overdue'])
             ->selectRaw("account_id, SUM(status = 'overdue') AS overdue, COUNT(*) AS open_count")->groupBy('account_id')->get()->keyBy('account_id');
         $overrides = DB::table('workspace_feature_overrides')->get()->groupBy('workspace_id');
+        // El uso de todos los espacios en dos consultas (antes, dos por espacio).
+        $summaries = $usage->forMany($workspaces->flatten(1)->values());
 
-        $rows = $accounts->map(function (Account $account) use ($workspaces, $billing, $invoices, $overrides, $usage) {
+        $rows = $accounts->map(function (Account $account) use ($workspaces, $billing, $invoices, $overrides, $summaries) {
             $b = $billing->get($account->id);
             $inv = $invoices->get($account->id);
 
@@ -60,8 +62,8 @@ final class PlatformController
                 'billing_status' => (string) ($b->billing_status ?? BillingStatus::ACTIVE),
                 'grace_ends_at' => isset($b->grace_ends_at) ? CarbonImmutable::parse((string) $b->grace_ends_at)->toIso8601String() : null,
                 'open_invoices' => (int) ($inv->open_count ?? 0), 'overdue_invoices' => (int) ($inv->overdue ?? 0),
-                'workspaces' => $workspaces->get($account->id, collect())->map(function (Workspace $ws) use ($usage, $overrides) {
-                    $summary = $usage->for($ws);
+                'workspaces' => $workspaces->get($account->id, collect())->map(function (Workspace $ws) use ($summaries, $overrides) {
+                    $summary = $summaries[$ws->id];
 
                     return [
                         'id' => $ws->publicId(), 'name' => $ws->name,
