@@ -1,0 +1,20 @@
+{
+    "connect": {
+        "panel": {
+            "download": "Descarga el plugin de Imagina Growth para tu tienda",
+            "downloadWeb": "Descarga el plugin de Imagina Growth para tu web",
+            "downloadButton": "Descargar el plugin",
+            "install": "Instálalo en tu WordPress",
+            "installHint": "En WordPress ve a Plugins → Añadir nuevo → Subir plugin, elige el archivo y actívalo. No pone lento tu sitio ni cambia cómo se ve.",
+            "paste": "Pega este código en el plugin",
+            "codeLabel": "Código de conexión",
+            "expires": "Vence en {{time}}. Sirve una sola vez.",
+            "expired": "Este código venció. Genera otro y pégalo en el plugin.",
+            "regenerate": "Generar otro código",
+            "error": "No pudimos generar el código.",
+            "retry": "Intentar de nuevo",
+            "waiting": "Esperando a tu tienda… Esta pantalla avanza sola cuando se conecte.",
+            "waitingWeb": "Esperando a tu web… Esta pantalla avanza sola cuando se conecte."
+        }
+    }
+}

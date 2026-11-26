@@ -31,6 +31,9 @@ export const router = createBrowserRouter([
                     ...withFeatureTexts('security', [{ path: '/seguridad', lazy: async () => ({ Component: (await import('@/features/security/SecurityPage')).SecurityPage }) }]),
                     ...withFeatureTexts('onboarding', [
                         { path: '/onboarding', lazy: async () => ({ Component: (await import('@/features/onboarding/CreateWorkspacePage')).CreateWorkspacePage }) },
+                        // Primera vez (rediseño v2 §4): la bienvenida y el asistente, a pantalla completa (fuera del menú).
+                        { path: '/w/:workspaceId/bienvenida', lazy: async () => ({ Component: (await import('@/features/onboarding/WelcomePage')).WelcomePage }) },
+                        { path: '/w/:workspaceId/configurar', lazy: async () => ({ Component: (await import('@/features/onboarding/SetupWizardPage')).SetupWizardPage }) },
                     ]),
                     {
                         path: '/w/:workspaceId',

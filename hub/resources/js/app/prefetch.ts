@@ -1,6 +1,5 @@
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { matchRoutes } from 'react-router';
-import { overviewQuery } from '@/api/queries';
 
 /*
  * Precarga al pasar el puntero o enfocar un enlace del menú (docs/rendimiento.md §7.1, 5): el chunk de la pantalla con
@@ -11,12 +10,20 @@ import { overviewQuery } from '@/api/queries';
 type Prefetcher = (qc: QueryClient, ws: string) => Promise<unknown>;
 
 /** Primera consulta de cada pantalla principal, por su ruta relativa a /w/:workspaceId. */
+const section = (key: 'customers' | 'conversations' | 'messages' | 'onsite' | 'results' | 'settings'): Prefetcher => async (qc, ws) =>
+    qc.query((await import('@/features/sections/api')).sectionSummaryQuery(ws, key));
+
 const DATA: Record<string, Prefetcher> = {
-    '': (qc, ws) => qc.query(overviewQuery(ws)),
-    clientes: (qc, ws) => qc.query(overviewQuery(ws)),
+    '': async (qc, ws) => qc.query((await import('@/features/home/api')).homeQuery(ws)),
+    estrategias: async (qc, ws) => qc.query((await import('@/features/strategies/api')).strategiesQuery(ws)),
+    clientes: section('customers'),
+    conversaciones: section('conversations'),
+    mensajes: section('messages'),
+    'en-tu-web': section('onsite'),
+    resultados: section('results'),
+    configuracion: section('settings'),
     segmentos: async (qc, ws) => qc.query((await import('@/features/segments/api')).segmentsQuery(ws)),
     flujos: async (qc, ws) => qc.query((await import('@/features/flows/api')).flowsQuery(ws)),
-    mensajes: async (qc, ws) => qc.query((await import('@/features/flows/api')).flowsQuery(ws)),
     campanas: async (qc, ws) => qc.query((await import('@/features/campaigns/api')).campaignsQuery(ws)),
 };
 

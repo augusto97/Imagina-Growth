@@ -27,6 +27,15 @@ final class FlowBlock implements StrategyBlock
 {
     private const BAD_TEMPLATE = ['REJECTED', 'PAUSED', 'DISABLED'];
 
+    /**
+     * Lo que se sabe de cada flujo de la biblioteca (si existe y qué canales usa), una vez por proceso:
+     * `FlowLibrary::find` arma los 36 grafos en cada llamada (~0,5 ms) y el catálogo lo preguntaba 2 o 3 veces por
+     * estrategia en cada petición (unos 50 ms del Inicio y del catálogo).
+     *
+     * @var array<string, array{available: bool, name: string, uses: array{email: bool, whatsapp: bool, wa_keys: list<string>}}>
+     */
+    private static array $library = [];
+
     /** @param bool $optional un flujo de apoyo de la estrategia (no la bloquea si no se puede prender) */
     public function __construct(public readonly string $libraryKey, public readonly bool $optional = false) {}
 
@@ -120,7 +129,7 @@ final class FlowBlock implements StrategyBlock
      */
     public function available(): bool
     {
-        return is_array(FlowLibrary::find($this->libraryKey)['graph'] ?? null);
+        return $this->library()['available'];
     }
 
     /** ¿Se puede prender ya (canal y plantillas)? Lo preguntan los flujos de apoyo, que no bloquean la estrategia. */
@@ -150,9 +159,27 @@ final class FlowBlock implements StrategyBlock
     /** @return array{email: bool, whatsapp: bool, wa_keys: list<string>} canales que usa el flujo de la biblioteca */
     public function uses(): array
     {
-        $graph = FlowLibrary::find($this->libraryKey)['graph'] ?? null;
+        return $this->library()['uses'];
+    }
 
-        return self::channelsOf(is_array($graph) ? $graph : []);
+    /** El nombre del flujo en la biblioteca (lo que la estrategia crea), o la clave si no existe. */
+    public function libraryName(): string
+    {
+        return $this->library()['name'];
+    }
+
+    /** @return array{available: bool, name: string, uses: array{email: bool, whatsapp: bool, wa_keys: list<string>}} */
+    private function library(): array
+    {
+        if (self::$library === []) {
+            // Toda la biblioteca de una vez: armarla cuesta lo mismo que buscar una sola clave.
+            foreach ([...FlowLibrary::all(), ...FlowLibrary::extras()] as $flow) {
+                $graph = $flow['graph'] ?? null;
+                self::$library[(string) $flow['key']] = ['available' => is_array($graph), 'name' => (string) ($flow['name'] ?? $flow['key']), 'uses' => self::channelsOf(is_array($graph) ? $graph : [])];
+            }
+        }
+
+        return self::$library[$this->libraryKey] ?? ['available' => false, 'name' => $this->libraryKey, 'uses' => self::channelsOf([])];
     }
 
     /**

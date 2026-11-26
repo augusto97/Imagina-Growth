@@ -167,6 +167,12 @@ vertical (`GET verticals`):
 - **¿Cómo nos conociste?:** las respuestas arriba con su conclusión y el enlace al tablero que las cruza; la
   configuración abajo, sin claves internas. Predicciones y la encuesta se ocultan en un negocio sin tienda.
 
+**Cómo quedaron las páginas de entrada** (fase B, frente B1): cada sección explica qué es en una línea, muestra lo que
+importa con cifras (`GET sections/{section}`, `Home\Queries\SectionSummary`: solo números y claves; los textos de cada
+sección van en `locales/es-CO/section-entry.json`, que cada frente ajusta para la suya), «Empieza por aquí» con lo
+primero que conviene hacer y su botón, y debajo lo que hay dentro. Las tarjetas ya no piden un conteo cada una (eran 5
+consultas por sección): todo llega en una sola llamada, que el menú precarga al pasar el puntero.
+
 ## 4. Primera vez (onboarding)
 
 1. **Bienvenida** (una sola pantalla, no un carrusel largo): la promesa, los tres pilares con un ejemplo concreto cada
@@ -190,6 +196,20 @@ vertical (`GET verticals`):
    6. **Listo:** «qué va a pasar ahora» en una línea de tiempo (hoy, esta semana, este mes) y al Inicio.
 3. Mientras la configuración no termine, el Inicio muestra la tarjeta de progreso arriba; nada bloquea explorar.
 
+**Cómo quedó** (fase B, frente B1): la bienvenida (`/w/:ws/bienvenida`) y el asistente (`/w/:ws/configurar`) van a
+pantalla completa, fuera del menú (`features/onboarding/OnboardingShell.tsx` da el mismo contexto del espacio de
+trabajo). El Inicio lleva a la bienvenida la primera vez de cada persona (`home.setup.welcome_seen`); se vuelve a ver
+desde el menú de la persona («Ver la bienvenida», junto a «Asistente de configuración»). La bienvenida habla a una
+tienda, a servicios o neutra si todavía no se sabe, con un ejemplo por pilar en la moneda del negocio. El asistente
+guarda el paso en cada cambio («Seguir después» solo sale) y `?paso=` abre uno directo (lo usa «Para hoy»). Paso 1:
+tipo de negocio y, si no es solo tienda, la vertical (con la sugerida); país, moneda y zona horaria se cambian ahí
+mismo. Paso 2: descarga del plugin, el código con «Copiar» y su vencimiento, y la espera en vivo que celebra al
+conectarse (`features/connect/ConnectCodePanel.tsx`); «No tengo WordPress» publica la página de contacto alojada con su
+enlace y su QR. Paso 3: el avance y lo aprendido (para servicios: personas, contactos, citas y de dónde llegan). Paso 4:
+WhatsApp con el mismo «Conectar con un clic» de Conexiones y el correo con su diálogo de Canales. Paso 5: las 3
+recomendadas con su vista previa e interruptor; las que esperan algo (un canal, la web) lo dicen antes de intentar y su
+botón lleva al paso del asistente que lo resuelve. Paso 6: lo que quedó y la línea de tiempo.
+
 ## 5. Inicio (el tablero del dueño)
 
 De arriba abajo, en una sola columna amplia en el celular y en rejilla en escritorio:
@@ -203,6 +223,13 @@ De arriba abajo, en una sola columna amplia en el celular y en rejilla en escrit
 4. **Tus estrategias**: las activas con su resultado del mes y las 2 o 3 sugeridas siguientes.
 5. **Tu negocio**: ventas, pedidos, clientes nuevos y recurrentes con una minigráfica; enlace a Resultados.
 6. Avisos de salud del sitio compactos (solo si hay algo).
+
+**Cómo quedó** (fase B, frente B1): una sola llamada (`GET home`) y la de avisos de conexiones; `GettingStarted` y
+`GET overview` ya no se usan en la SPA (los endpoints siguen). En el escritorio el dinero generado y «Para hoy» van
+lado a lado; en cero, la tarjeta héroe muestra la cifra que se puede recuperar (`potential.headline` y `estimated`) y el
+botón abre el detalle de la estrategia; sin web, invita a conectarla. Mientras el asistente no termine, conectar la web
+o un canal en «Para hoy» abre su paso del asistente. «Tu negocio» pinta los KPI de `kpis.applicable` con su ayuda, su
+variación (la primera respuesta, mejor cuanto menor) y la minigráfica, y para servicios de dónde llegan los contactos.
 
 ## 6. Estrategias (la pieza nueva)
 
@@ -246,6 +273,14 @@ con el motivo:
 - Con WhatsApp conectado pero sin las plantillas aprobadas por Meta, las estrategias de mensajes se activan solo por
   correo (si hay correo) en lugar de quedar en borrador; nunca sale un WhatsApp con una plantilla sin aprobar.
 - El potencial del Inicio se muestra con el dinero generado en cero o por debajo del 2 % de las ventas del mes.
+
+**Cómo quedó la pantalla** (fase B, frente B1): arriba lo que ya generan (prendidas, dinero del mes y listas para
+prender) y «Recomendadas para ti» según la vertical; después todo el catálogo por objetivo con pestañas de objetivo y
+filtro de estado en la URL (`?objetivo=&estado=&todas=1`); las que no aplican al tipo de negocio se ocultan con «Ver
+también…». El detalle se abre en una hoja en `/estrategias/:clave` (a pantalla completa en el celular) con lo que logró o
+lo que hay en juego, cómo funciona, la vista previa real, lo que necesita (cada cosa con su botón), lo que va a crear y
+prender o pausar con confirmación; si falta algo, el botón principal lleva a resolverlo. Después de prender: qué pasa
+ahora y dónde verlo.
 
 ## 7. Sistema visual
 

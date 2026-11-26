@@ -46,7 +46,7 @@ final class OnboardingState
             'current_step' => $this->current($row, $steps),
             'steps' => $steps,
             'progress' => self::progress($steps),
-            'welcome_seen' => $user !== null && DB::table('onboarding_user_states')->where('workspace_id', $workspace->id)->where('user_id', $user->id)->whereNotNull('welcome_seen_at')->exists(),
+            'welcome_seen' => self::welcomeSeen($workspace, $user),
             'skipped_at' => $row?->skipped_at?->toIso8601String(),
             'completed_at' => $row?->completed_at?->toIso8601String(),
             'workspace' => ['name' => $workspace->name, 'country' => $workspace->country, 'currency' => $workspace->currency, 'timezone' => $workspace->timezone],
@@ -57,11 +57,12 @@ final class OnboardingState
 
     /**
      * La tarjeta de progreso del Inicio: se ve mientras el asistente no termine (también si lo saltó: nada bloquea
-     * explorar, pero el progreso sigue a la vista).
+     * explorar, pero el progreso sigue a la vista). Con `user`, si esa persona ya vio la bienvenida (el Inicio la
+     * lleva a verla la primera vez).
      *
-     * @return array{status: string, visible: bool, current_step: string, completed: int, total: int}
+     * @return array{status: string, visible: bool, current_step: string, completed: int, total: int, welcome_seen: bool}
      */
-    public function summary(Workspace $workspace, ?StrategyContext $ctx = null): array
+    public function summary(Workspace $workspace, ?StrategyContext $ctx = null, ?User $user = null): array
     {
         $ctx ??= StrategyContext::for($workspace);
         $row = $this->row($ctx);
@@ -72,7 +73,13 @@ final class OnboardingState
             'status' => self::status($row),
             'visible' => $row?->completed_at === null,
             'current_step' => $this->current($row, $steps),
-        ] + $progress;
+        ] + $progress + ['welcome_seen' => self::welcomeSeen($workspace, $user)];
+    }
+
+    /** ¿La persona ya vio la bienvenida en este espacio de trabajo? (sin persona, se da por vista) */
+    public static function welcomeSeen(Workspace $workspace, ?User $user): bool
+    {
+        return $user === null || DB::table('onboarding_user_states')->where('workspace_id', $workspace->id)->where('user_id', $user->id)->whereNotNull('welcome_seen_at')->exists();
     }
 
     /**
@@ -189,10 +196,11 @@ final class OnboardingState
     }
 
     /**
-     * Lo que ya se aprendió del historial mientras se importa: clientes, pedidos pagados, ventas y los productos que
-     * más se venden (sin datos personales).
+     * Lo que ya se aprendió del historial mientras se importa (sin datos personales). Tienda: clientes, pedidos
+     * pagados, ventas y los productos que más se venden. Para todos (y lo que muestra un negocio sin tienda):
+     * personas, contactos recibidos (leads), citas y de dónde llegan los contactos.
      *
-     * @return array{customers: int, orders: int, revenue: string, top_products: list<string>}|null
+     * @return array{customers: int, orders: int, revenue: string, top_products: list<string>, contacts: int, leads: int, appointments: int, sources: list<array{origin: string, label: string, count: int}>}|null
      */
     private function learned(StrategyContext $ctx): ?array
     {
@@ -200,16 +208,31 @@ final class OnboardingState
             return null;
         }
         $ws = $ctx->id();
-        $orders = DB::table('orders')->where('workspace_id', $ws)->where('is_paid', true)->selectRaw('COUNT(*) AS n, COALESCE(SUM(total_ws), 0) AS v')->first();
-        $top = array_values(DB::table('order_items as i')->join('orders as o', 'o.id', '=', 'i.order_id')
+        $store = $ctx->businessType() !== 'services';
+        $orders = $store ? DB::table('orders')->where('workspace_id', $ws)->where('is_paid', true)->selectRaw('COUNT(*) AS n, COALESCE(SUM(total_ws), 0) AS v')->first() : null;
+        $top = $store ? array_values(DB::table('order_items as i')->join('orders as o', 'o.id', '=', 'i.order_id')
             ->where('o.workspace_id', $ws)->where('o.is_paid', true)->whereNotNull('i.name')
-            ->groupBy('i.name')->orderByRaw('SUM(i.qty) DESC')->limit(3)->pluck('i.name')->map(fn ($n) => (string) $n)->all());
+            ->groupBy('i.name')->orderByRaw('SUM(i.qty) DESC')->limit(3)->pluck('i.name')->map(fn ($n) => (string) $n)->all()) : [];
+        $contacts = fn () => DB::table('contacts')->where('workspace_id', $ws)->whereNull('merged_into_id')->whereNull('deleted_at');
+        $sources = [];
+        if (! $store || $ctx->businessType() === 'both') {
+            $rows = DB::table('leads')->where('workspace_id', $ws)->groupBy('origin')->selectRaw('origin, COUNT(*) AS n')->orderByDesc('n')->limit(3)->get();
+            foreach ($rows as $row) {
+                $origin = (string) ($row->origin ?? 'other');
+                $label = __('home.lead_origins.'.$origin);
+                $sources[] = ['origin' => $origin, 'label' => $label === 'home.lead_origins.'.$origin ? (string) __('home.lead_origins.other') : (string) $label, 'count' => (int) $row->n];
+            }
+        }
 
         return [
-            'customers' => DB::table('contacts')->where('workspace_id', $ws)->whereNull('merged_into_id')->where('orders_count', '>', 0)->count(),
+            'customers' => $store ? $contacts()->where('orders_count', '>', 0)->count() : 0,
             'orders' => (int) ($orders->n ?? 0),
             'revenue' => number_format((float) ($orders->v ?? 0), 2, '.', ''),
             'top_products' => $top,
+            'contacts' => $contacts()->count(),
+            'leads' => $sources !== [] ? (int) DB::table('leads')->where('workspace_id', $ws)->count() : 0,
+            'appointments' => $store ? 0 : DB::table('appointments')->where('workspace_id', $ws)->count(),
+            'sources' => $sources,
         ];
     }
 
@@ -221,8 +244,13 @@ final class OnboardingState
      */
     private function timeline(StrategyContext $ctx, array $active): array
     {
+        $today = match (true) {
+            ! $ctx->hasSite() => $active !== [] ? 'onboarding.timeline.today_no_site' : 'onboarding.timeline.today_no_site_off',
+            default => $active !== [] ? 'onboarding.timeline.today' : 'onboarding.timeline.today_off',
+        };
+
         return [
-            ['when' => 'today', 'text' => __($active !== [] ? 'onboarding.timeline.today' : 'onboarding.timeline.today_off')],
+            ['when' => 'today', 'text' => __($today)],
             ['when' => 'week', 'text' => __($ctx->businessType() === 'services' ? 'onboarding.timeline.week_services' : 'onboarding.timeline.week')],
             ['when' => 'month', 'text' => __('onboarding.timeline.month')],
         ];

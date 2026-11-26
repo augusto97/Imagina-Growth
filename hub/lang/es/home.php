@@ -27,7 +27,7 @@ return [
         'revenue' => ['label' => 'Ventas', 'help' => 'Lo que suman los pedidos pagados del mes.'],
         'orders' => ['label' => 'Pedidos', 'help' => 'Pedidos pagados del mes.'],
         'new_customers' => ['label' => 'Clientes nuevos', 'help' => 'Personas cuya primera compra pagada fue este mes.'],
-        'returning_customers' => ['label' => 'Clientes que volvieron', 'help' => 'Personas que ya te habían comprado y volvieron este mes.'],
+        'returning_customers' => ['label' => 'Volvieron a comprar', 'help' => 'Personas que ya te habían comprado y volvieron este mes.'],
         'leads' => ['label' => 'Contactos nuevos', 'help' => 'Personas que dejaron sus datos o te escribieron por primera vez este mes.'],
         'first_response_minutes' => ['label' => 'Primera respuesta', 'help' => 'Minutos que tardó la primera respuesta a los contactos de este mes (la mediana).'],
         'appointments_booked' => ['label' => 'Citas agendadas', 'help' => 'Citas que se agendaron este mes.'],

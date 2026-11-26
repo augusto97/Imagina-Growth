@@ -572,6 +572,25 @@ return [
         'quote_lead' => 'Para ver el precio deja su contacto, y te llega como un contacto nuevo.',
     ],
 
+    // «Lo que va a crear» en el detalle de una estrategia (una línea por parte).
+    'parts' => [
+        'flow' => 'Automatización «:name»',
+        'widget' => 'Un formulario en tu web',
+        'loyalty_program' => 'Tu programa de puntos y niveles',
+        'referral_program' => 'Tu programa de referidos',
+        'review_request' => 'Pedidos de reseña después de cada entrega',
+        'nps_survey' => 'La encuesta de satisfacción (NPS)',
+        'google_reviews' => 'El botón de reseñas en Google en tu página de gracias',
+        'product_watches' => 'Los avisos de stock y de precio en tus productos',
+        'sales_agent' => 'El agente de ventas con IA en WhatsApp',
+        'inbox_assignment' => 'El reparto automático de conversaciones a tu equipo',
+        'ad_destinations' => 'El envío de tus ventas a las plataformas de anuncios',
+        'audiences' => 'Audiencias de tus clientes en tus anuncios',
+        'qualification' => 'Las preguntas de calificación en el chat',
+        'booking_reminders' => 'Los recordatorios de tus citas',
+        'quote_calculators' => 'Tu cotizador en la web',
+    ],
+
     'widgets' => [
         'popup' => 'Bienvenida con regalo',
         'wa_widget' => 'Botón de WhatsApp',

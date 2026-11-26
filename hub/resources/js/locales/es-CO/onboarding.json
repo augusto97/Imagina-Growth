@@ -1,0 +1,242 @@
+{
+    "onboarding": {
+        "shell": {
+            "exit": "Ir al Inicio",
+            "pause": "Seguir después",
+            "saved": "Tu avance se guarda solo"
+        },
+        "intro": {
+            "eyebrow": "Bienvenido a Imagina Growth · {{name}}",
+            "promise": {
+                "store": "Imagina Growth vende más por ti",
+                "services": "Convierte más contactos en clientes",
+                "neutral": "Más clientes y más ventas, en automático"
+            },
+            "promiseBody": {
+                "store": "Conecta tu tienda y la plataforma recupera carritos, trae de vuelta a tus clientes, responde por WhatsApp y te muestra cada mes cuánto dinero generó.",
+                "services": "Responde al instante, haz seguimiento sin olvidar a nadie y agenda citas solo. Cada mes ves cuántos clientes y cuánto dinero te trajo la plataforma.",
+                "neutral": "Conecta tu web y la plataforma conoce a tus clientes, les escribe en el momento justo y te muestra cada mes cuánto dinero generó."
+            },
+            "pillars": {
+                "know": {
+                    "title": "Conoce a tus clientes",
+                    "feel": "Quién te compra, quién se fue y quién está por volver, sin adivinar.",
+                    "store": "Laura te compró 3 veces y lleva {{days}} días sin volver: está por irse y es buen momento para escribirle.",
+                    "services": "Andrés pidió una cotización por WhatsApp hace 2 días y nadie le ha respondido: es el primero de tu lista de hoy.",
+                    "neutral": "Ves a cada persona con todo lo que hizo en tu web y en tus mensajes, y quién está lista para comprar."
+                },
+                "sell": {
+                    "title": "Vende en automático",
+                    "feel": "Prendes estrategias y trabajan solas, respetando horarios y consentimiento.",
+                    "store": "Alguien deja {{cart}} en el carrito: a la hora le llega un WhatsApp con su carrito listo y termina la compra.",
+                    "services": "Alguien escribe a las 11 de la noche: la IA le responde al instante, le hace las preguntas y le agenda una cita.",
+                    "neutral": "Quien deja sus datos recibe la respuesta al instante y un seguimiento hasta que compra o agenda."
+                },
+                "results": {
+                    "title": "Mira lo que ganaste",
+                    "feel": "Cada peso que generó la plataforma, explicado.",
+                    "store": "Este mes la plataforma generó {{month}}; la mayor parte, con carritos recuperados.",
+                    "services": "Este mes: 18 citas agendadas y {{won}} en servicios ganados gracias a las respuestas automáticas.",
+                    "neutral": "Cada mes ves cuánto dinero generó la plataforma, estrategia por estrategia."
+                }
+            },
+            "example": "Por ejemplo",
+            "cta": "Configurar en 10 minutos",
+            "resume": "Seguir configurando",
+            "explore": "Explorar por mi cuenta",
+            "goHome": "Ir a mi Inicio",
+            "reassure": "Puedes pausar y seguir cuando quieras. Nada se envía hasta que tú lo prendas.",
+            "reassureMember": "Lo que configura tu equipo ya está trabajando. Aquí ves los resultados.",
+            "skip": "Saltar"
+        },
+        "wizard": {
+            "stepOf": "Paso {{current}} de {{total}}",
+            "back": "Atrás",
+            "later": "Después",
+            "next": "Continuar",
+            "skipStep": "Lo hago después",
+            "askTitle": "La configuración la hace quien administra la cuenta",
+            "askBody": "Pídele a la persona dueña o administradora que la termine. Mientras tanto puedes explorar todo desde el Inicio.",
+            "steps": {
+                "business": "Tu negocio",
+                "connect": "Tu web",
+                "history": "Tu historial",
+                "channels": "Tus canales",
+                "strategies": "Estrategias",
+                "done": "Listo"
+            },
+            "business": {
+                "title": "Cuéntanos de tu negocio",
+                "description": "Así te recomendamos lo que más te sirve y hablamos como tu negocio. Lo puedes cambiar después en Configuración.",
+                "typeLegend": "¿Qué vendes?",
+                "types": {
+                    "store": {
+                        "title": "Productos en mi tienda online",
+                        "description": "Tienes WooCommerce: carritos, pedidos y clientes que vuelven a comprar."
+                    },
+                    "services": {
+                        "title": "Servicios",
+                        "description": "Recibes contactos que piden información, cotizan o agendan una cita."
+                    },
+                    "both": {
+                        "title": "Las dos cosas",
+                        "description": "Vendes productos en línea y además ofreces servicios."
+                    }
+                },
+                "verticalLegend": "¿A qué se dedica tu negocio?",
+                "verticalHint": "Cambia las estrategias recomendadas, las etapas de tus contactos y cómo llamamos a tus clientes.",
+                "suggested": "Sugerida",
+                "region": "País, moneda y zona horaria",
+                "changeRegion": "Cambiar"
+            },
+            "connect": {
+                "title": "Conecta tu tienda",
+                "titleWeb": "Conecta tu web",
+                "description": "Con el plugin sabemos quién visita, quién compra y quién deja el carrito, sin poner lento tu sitio.",
+                "descriptionWeb": "Con el plugin recibimos cada formulario, cada clic a WhatsApp y cada visita, sin poner lento tu sitio.",
+                "footer": "Puedes conectarla después desde el Inicio.",
+                "pathLegend": "¿Cómo está hecha tu web?",
+                "woocommerce": "Tengo WordPress con WooCommerce",
+                "woocommerceHint": "Instalas el plugin y queda conectada en un par de minutos.",
+                "wordpress": "Mi web es WordPress",
+                "wordpressHint": "Instalas el plugin y queda conectada en un par de minutos.",
+                "noWordpress": "No tengo WordPress",
+                "noWordpressHint": "Te damos una página de contacto lista, con su QR, para recibir clientes.",
+                "pending": "Tu web ya pidió conectarse: termina en el plugin y esta pantalla avanza sola.",
+                "ask": "Conectar la web la hace quien administra la cuenta.",
+                "doneTitle": "¡Tu tienda está conectada!",
+                "doneTitleWeb": "¡Tu web está conectada!",
+                "doneBody": "Desde este momento empezamos a conocer a tus clientes.",
+                "starts": [
+                    "Traemos tu historial de pedidos y clientes, sin enviar ningún mensaje.",
+                    "Vemos los carritos que se abandonan y los pagos que quedan pendientes.",
+                    "En unos minutos verás quién te compra y quién está por irse."
+                ],
+                "startsServices": [
+                    "Cada formulario y cada clic a WhatsApp de tu web llega como un contacto.",
+                    "Sabemos de qué página y de qué anuncio viene cada persona.",
+                    "En unos minutos verás a quién responder primero."
+                ],
+                "page": {
+                    "name": "Página de contacto",
+                    "title": "Tu página de contacto, lista en un clic",
+                    "body": "Una página con tu nombre y un formulario con las casillas de consentimiento. Compártela en tus redes o imprime su QR para tu local: cada persona que la llene llega como un contacto nuevo.",
+                    "create": "Crear mi página de contacto",
+                    "ask": "La página la crea quien maneja el marketing.",
+                    "plans": "Ver planes",
+                    "readyTitle": "Tu página de contacto ya está publicada",
+                    "open": "Abrir la página",
+                    "qr": "Descargar el QR",
+                    "later": "Cambia los textos, el logo y la foto cuando quieras desde En tu web."
+                }
+            },
+            "history": {
+                "title": "Traemos tu historial",
+                "titleServices": "Lo que ya sabemos de tus contactos",
+                "description": "Importamos tus clientes y tus pedidos de siempre, sin enviar ningún mensaje. Mientras tanto, mira lo que ya aprendimos.",
+                "descriptionServices": "Juntamos lo que llega de tu web y de tus mensajes. Mira lo que ya aprendimos de tus contactos.",
+                "keepGoing": "Puedes seguir: la importación termina sola.",
+                "noSiteTitle": "Todavía no hay historial que traer",
+                "noSite": "Cuando conectes tu tienda traemos tus pedidos y clientes de siempre. Mientras tanto, sigue configurando lo demás.",
+                "noSiteServices": "En cuanto alguien llene tu página de contacto o te escriba, lo verás aquí con de dónde vino. Sigue con lo demás.",
+                "running": "Trayendo tu historial… {{pct}}",
+                "starting": "Tu tienda está por empezar a enviarnos su historial…",
+                "startingServices": "Tu web está por empezar a enviarnos lo que ya tiene…",
+                "stopped": "La importación se detuvo",
+                "stoppedBody": "Revisa qué pasó y retómala desde la página de tu web. Lo que ya llegó se conserva.",
+                "done": "Tu historial ya está aquí",
+                "noMessages": "No se envía ningún mensaje",
+                "progressLabel": "Avance de la importación",
+                "review": "Revisar",
+                "learning": "Lo que ya aprendimos",
+                "learned": "Esto aprendimos de tu negocio",
+                "customers": "Clientes",
+                "orders": "Pedidos pagados",
+                "revenue": "Ventas",
+                "top": "Lo que más vendes",
+                "contacts": "Personas",
+                "leads": "Contactos recibidos",
+                "appointments": "Citas",
+                "sources": "De dónde llegan"
+            },
+            "channels": {
+                "title": "Conecta tus canales",
+                "description": "Es por donde le escribimos a quien dejó su carrito, a quien no ha vuelto y a quien te pregunta. Con WhatsApp se recupera mucho más.",
+                "descriptionServices": "Es por donde respondemos al instante, hacemos seguimiento y recordamos las citas. Con WhatsApp te responden mucho más.",
+                "later": "Lo conecto después",
+                "footer": "Las estrategias que necesitan un canal te lo recuerdan.",
+                "whatsapp": "WhatsApp",
+                "recommended": "Recomendado",
+                "whatsappBenefits": [
+                    "Recupera carritos y cobra pagos pendientes con un mensaje que sí se lee.",
+                    "Atiende a tus clientes desde la bandeja, con tu equipo o con el agente con IA.",
+                    "Sirve también si ya usas la app de WhatsApp Business."
+                ],
+                "whatsappBenefitsServices": [
+                    "Responde al instante a cada contacto nuevo, también de noche.",
+                    "Confirma y recuerda las citas con botones.",
+                    "Sirve también si ya usas la app de WhatsApp Business."
+                ],
+                "whatsappManual": "Conectar WhatsApp",
+                "toastWhatsapp": "WhatsApp quedó conectado",
+                "email": "Correo",
+                "emailBenefits": [
+                    "Correos de carrito, segunda compra y cumpleaños con tu marca.",
+                    "Sale desde tu dominio para que no llegue a spam."
+                ],
+                "emailBenefitsServices": [
+                    "Seguimiento y nutrición por correo a quien todavía no decide.",
+                    "Sale desde tu dominio para que no llegue a spam."
+                ],
+                "emailConnect": "Conectar mi correo",
+                "connected": "Conectado",
+                "down": "Se desconectó: vuelve a conectarlo.",
+                "ask": "Lo conecta quien administra la cuenta."
+            },
+            "strategies": {
+                "title": "Prende tus primeras estrategias",
+                "description": "Son las que más le sirven a un negocio como el tuyo. Quedan funcionando con los valores recomendados y las ajustas cuando quieras.",
+                "on": "Prendida",
+                "showPreview": "Ver cómo funciona y el mensaje",
+                "hidePreview": "Ocultar",
+                "activate_one": "Prender {{count}} estrategia",
+                "activate_other": "Prender {{count}} estrategias",
+                "later": "Lo hago después",
+                "resultTitle_one": "{{count}} estrategia quedó prendida",
+                "resultTitle_other": "{{count}} estrategias quedaron prendidas",
+                "resultPending_one": "A {{count}} le falta algo: abajo ves qué y dónde resolverlo.",
+                "resultPending_other": "A {{count}} les falta algo: abajo ves qué y dónde resolverlo.",
+                "resultAll": "Ya están trabajando por ti.",
+                "ask": "Prender estrategias lo hace quien maneja el marketing.",
+                "note": "Todas respetan el consentimiento, los horarios permitidos de tu país y el límite de mensajes por persona.",
+                "needs": "Para prenderla falta:",
+                "resultNone": "Todavía no se pudo prender ninguna",
+                "waitingTitle_one": "Tu estrategia está lista para prenderse",
+                "waitingTitle_other": "Tus {{count}} estrategias están listas para prenderse",
+                "waitingBody": "Solo les falta lo que ves abajo. Resuélvelo aquí mismo o sigue: te lo recordamos en tu Inicio."
+            },
+            "done": {
+                "title": "¡Listo! Tu cuenta quedó configurada",
+                "description": "Esto es lo que va a pasar ahora. Todo lo ves en tu Inicio.",
+                "finish": "Ir a mi Inicio",
+                "checks": {
+                    "business": "Tu negocio",
+                    "connect": "Tu web conectada",
+                    "history": "Tu historial",
+                    "channels": "WhatsApp o tu correo",
+                    "strategies": "Tus primeras estrategias"
+                },
+                "ready": "listo",
+                "pending": "pendiente",
+                "on": "Prendidas: {{names}}.",
+                "later": "Lo pendiente te lo recordamos en tu Inicio, en «Para hoy».",
+                "next": "Qué va a pasar ahora",
+                "when": {
+                    "today": "Hoy",
+                    "week": "Esta semana",
+                    "month": "Este mes"
+                }
+            }
+        }
+    }
+}
