@@ -19,9 +19,17 @@ use InvalidArgumentException;
  * esquema, los escribe en ClickHouse con HubEventWriter (en una petición web, por
  * la cola; si ClickHouse falla, también: R4) y publica EventIngested para los
  * listeners (flujos, segmentos en tiempo real).
+ *
+ * Además de los eventos exclusivos del hub, puede emitir los de `FROM_HUB_TOO`: los formularios del hub (las páginas
+ * de captura, `form.submitted` con `form_plugin = igr_landing`, eventos.md §4.4). Salen con `source.type = hub`, así
+ * que no crean el lead de origen `form` ni van a los anuncios (eso lo hace quien los emite), y llevan el `context`
+ * de la visita (UTM, identificadores de clic, página) para la analítica.
  */
 final class HubEvents
 {
+    /** Eventos que también llegan de los sitios y que el hub puede originar (formularios propios). */
+    public const FROM_HUB_TOO = ['form.submitted'];
+
     public function __construct(
         private readonly HubEventWriter $writer,
         private readonly SchemaRegistry $schemas,
@@ -30,13 +38,14 @@ final class HubEvents
 
     /**
      * @param  array<string, mixed>  $properties
+     * @param  array<string, mixed>  $context  contexto de la visita (utm, click_ids, page, referral_code), solo para los de FROM_HUB_TOO
      * @return string event_id
      */
-    public function emit(Workspace $workspace, string $event, array $properties, ?string $contactId, ?Site $site = null, ?CarbonInterface $at = null, ?string $eventId = null, ?string $anonymousId = null): string
+    public function emit(Workspace $workspace, string $event, array $properties, ?string $contactId, ?Site $site = null, ?CarbonInterface $at = null, ?string $eventId = null, ?string $anonymousId = null, array $context = []): string
     {
         $ids = $this->emitMany($workspace, [[
             'event' => $event, 'properties' => $properties, 'contact_id' => $contactId,
-            'site' => $site, 'at' => $at, 'event_id' => $eventId, 'anonymous_id' => $anonymousId,
+            'site' => $site, 'at' => $at, 'event_id' => $eventId, 'anonymous_id' => $anonymousId, 'context' => $context,
         ]]);
 
         return $ids[0];
@@ -45,7 +54,7 @@ final class HubEvents
     /**
      * Inserta varios eventos en una sola escritura (p. ej. las altas y bajas de un segmento).
      *
-     * @param  list<array{event: string, properties: array<string, mixed>, contact_id: string|null, site?: Site|null, at?: CarbonInterface|null, event_id?: string|null, anonymous_id?: string|null}>  $items
+     * @param  list<array{event: string, properties: array<string, mixed>, contact_id: string|null, site?: Site|null, at?: CarbonInterface|null, event_id?: string|null, anonymous_id?: string|null, context?: array<string, mixed>}>  $items
      * @return list<string>
      */
     public function emitMany(Workspace $workspace, array $items, bool $publish = true): array
@@ -56,7 +65,8 @@ final class HubEvents
         $now = (int) floor(microtime(true) * 1000);
         foreach ($items as $item) {
             $event = $item['event'];
-            if (! SchemaRegistry::isHubOnly($event)) {
+            $fromHub = in_array($event, self::FROM_HUB_TOO, true);
+            if (! SchemaRegistry::isHubOnly($event) && ! $fromHub) {
                 throw new InvalidArgumentException("{$event} no es un evento del hub.");
             }
             $error = $this->schemas->validateProperties($event, json_decode((string) json_encode((object) $item['properties'])));
@@ -73,7 +83,7 @@ final class HubEvents
                 'source' => ['type' => 'hub', 'platform' => 'hub', 'site_id' => $site?->publicId() ?? '', 'sdk' => 'hub/'.config('app.version', '1')],
                 // El anonymous_id liga el evento a la navegación previa aunque aún no haya contacto.
                 'identity' => isset($item['anonymous_id']) && $item['anonymous_id'] !== '' ? ['anonymous_id' => $item['anonymous_id']] : [],
-                'context' => [],
+                'context' => $fromHub ? (array) ($item['context'] ?? []) : [],
                 'properties' => $item['properties'],
             ];
             $rows[] = $this->mapper->map($envelope, [

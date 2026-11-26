@@ -34,6 +34,7 @@ final class RequirePlanModule
             'services' => __('Tu plan no incluye los leads de servicios. Cámbialo en Plan y facturación para crear leads.'),
             'bookings' => __('Tu plan no incluye la agenda de citas. Cámbialo en Plan y facturación para recibir reservas.'),
             'quotes' => __('Tu plan no incluye el cotizador. Cámbialo en Plan y facturación para crear cotizadores.'),
+            'onsite' => __('Tu plan no incluye la captación. Cámbialo en Plan y facturación para crear páginas de captura y QR.'),
             default => __('Tu plan no incluye esta función. Cámbialo en Plan y facturación.'),
         };
     }

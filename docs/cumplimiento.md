@@ -38,7 +38,20 @@ Requisitos que se convierten en funciones:
   - Hay dos casillas sin marcar: «Quiero recibir ofertas por WhatsApp» y «Quiero recibir ofertas por correo».
   - El texto es editable y queda versionado.
 - **Registro de cuenta, formularios de terceros** (mapeo de la casilla de consentimiento) y **widgets del hub**.
+- **Páginas de captura del hub** (`/p/{slug}`, modulos.md M12): las mismas casillas por canal, sin marcar y con el texto
+  legal vigente, junto al campo de su canal. La prueba guarda además la copia del formulario (campos y texto de cada
+  casilla mostrada). Debajo del formulario se informa para qué se usan los datos, los derechos del titular (en México,
+  los ARCO) y el enlace a la política de tratamiento de datos o al aviso de privacidad del cliente; **en México la página
+  no se publica sin el aviso de privacidad** (§6). Quien deja sus datos sin marcar ninguna casilla solo recibe la
+  respuesta a su solicitud (información pedida por el consumidor, §4).
 - **WhatsApp:** cuando la persona inicia la conversación y acepta por un botón («¿Quieres recibir novedades por aquí?»), con evidencia del mensaje.
+  - **Implementación (chats con atribución, rediseño v2 §11.3):** el QR del local y el botón de WhatsApp de una página
+    abren el chat con un mensaje de alta prellenado que lleva un código (`ref: Q…`). Ese mensaje **no es
+    consentimiento** (lo escribió el negocio). Cuando llega, el hub responde con un mensaje de servicio (la persona
+    abrió la ventana de 24 h) con el texto legal vigente de WhatsApp y dos botones, «Sí, quiero» y «No, gracias»; solo el
+    «Sí» registra el consentimiento de marketing (fuente `whatsapp_button`) con su prueba: el mensaje, el botón, el
+    enlace, el texto y su versión. No se vuelve a preguntar a quien ya aceptó ni a quien se dio de baja en los últimos
+    90 días.
 - **Importación CSV:** es obligatorio declarar el origen y la fecha del consentimiento. Sin esos datos, los contactos solo pueden recibir mensajes transaccionales.
   - **Implementación (auditoría F7):** la declaración lleva canales, de dónde salió, **cómo se obtuvo la autorización**
     (`legal_basis`: formulario en línea con casilla sin marcar, casilla en la compra, formato escrito o firmado, llamada

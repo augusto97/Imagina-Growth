@@ -31,7 +31,9 @@ use InvalidArgumentException;
  * normalizados con índice ciego, y el `anonymous_id` del navegador queda vinculado.
  * Con `doubleOptInEmail`, el consentimiento de correo queda pendiente hasta que la
  * persona confirme (`pending_double_optin`); quien llama envía el correo de
- * confirmación.
+ * confirmación. Sin sitio (páginas de captura del hub, leads de anuncios) el
+ * contacto se resuelve solo por correo, teléfono y navegador. `evidence` suma a
+ * la prueba lo que quien llama mostró (formulario, texto de la casilla, anuncio).
  */
 final class CaptureContact
 {
@@ -41,7 +43,7 @@ final class CaptureContact
         private readonly ConsentTexts $texts,
     ) {}
 
-    public function handle(Workspace $workspace, Site $site, CaptureInput $input): CaptureResult
+    public function handle(Workspace $workspace, ?Site $site, CaptureInput $input): CaptureResult
     {
         $email = $input->email !== null && filter_var(trim($input->email), FILTER_VALIDATE_EMAIL) ? trim($input->email) : null;
         $phone = $input->phone !== null ? Phone::toE164($input->phone, $input->country ?? $workspace->setting('default_phone_country', $workspace->country)) : null;
@@ -68,7 +70,7 @@ final class CaptureContact
                 'page_url' => $input->pageUrl !== null ? mb_substr($input->pageUrl, 0, 500) : null,
                 'ip_hash' => RecordConsent::evidenceHash($input->ip),
                 'ua_hash' => RecordConsent::evidenceHash($input->userAgent),
-            ]);
+            ]) + $input->evidence;
             foreach ($input->consents as $channel => $checked) {
                 if ($checked !== true || ! in_array($channel, ['email', 'whatsapp', 'sms'], true)) {
                     continue;

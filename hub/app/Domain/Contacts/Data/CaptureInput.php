@@ -14,6 +14,7 @@ final class CaptureInput
 {
     /**
      * @param  array<string, bool>  $consents
+     * @param  array<string, mixed>  $evidence  se suma a la prueba de cada consentimiento (copia del formulario, texto mostrado, anuncio)
      */
     public function __construct(
         public readonly string $source,
@@ -28,5 +29,6 @@ final class CaptureInput
         public readonly ?string $userAgent = null,
         public readonly bool $doubleOptInEmail = false,
         public readonly ?string $country = null,
+        public readonly array $evidence = [],
     ) {}
 }

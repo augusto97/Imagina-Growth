@@ -615,6 +615,13 @@ Sin tracker ni CORS: páginas Blade del hub, enlazadas desde el sitio con `[igr_
 - `/r/{token}`: formulario de reseña de 1 toque, con fotos y video y sin iniciar sesión. El token va firmado por pedido y contacto.
 - `/p/{public_key}/confirmar/{token}`: doble opt-in por correo (bajo `/p/` porque la SPA atiende las demás rutas del hub; el token va firmado con la clave de la app, por contacto y widget, y vence a los 7 días).
 - `/creadores/{token}`: panel del creador (afiliados), con enlace mágico.
+- `/p/{slug}` (páginas de captura, modulos.md M12, captación sin tienda): `GET` la página (UTM, `ref`, identificadores
+  de clic y `aid` en la URL; `utm_source=qr` la marca como del QR) y `POST` el formulario (`f[campo]`, `consent[canal]`,
+  el token firmado `t`, el campo trampa `website` y los mismos campos de atribución): `303` a `/p/{slug}/gracias` o a la
+  redirección https de la página, `422` con los errores junto a cada campo, `429` por el límite. `/p/{slug}/i/{nombre}`
+  sirve su logo o su imagen. El slug es único en la plataforma y no lleva la clave del sitio.
+- `/p/w/{código}` (chats de WhatsApp con atribución): cuenta el escaneo o el clic y redirige (`302`) a
+  `wa.me/{número}?text={mensaje} (ref: CÓDIGO)`.
 
 #### Referidos y afiliados en el sitio
 El enlace es `https://tienda.co/?ref=CODIGO` (3 a 32 caracteres `[A-Za-z0-9_-]`). El tracker guarda el código en `_igr_src` (`referral_code` en el primer y el último contacto, v4) y lo manda en `context.referral_code` del evento de aterrizaje, también sin consentimiento de analítica: identifica a quien invita, no al visitante. El parámetro `?ref=` se queda en la URL (no es un dato personal y otros plugins de afiliados también lo leen). El plugin lo pasa en `last_touch` del pedido. Si la persona no está identificada, un widget `referral_welcome` le ofrece el regalo del amigo a cambio de su correo o WhatsApp.

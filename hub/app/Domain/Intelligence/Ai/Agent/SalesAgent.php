@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Intelligence\Ai\Agent;
 
 use App\Domain\Bookings\Chat\ChatBookingIds;
+use App\Domain\Capture\Listeners\WhatsAppLinkInbound;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Inbox\Contracts\ConversationAgent;
 use App\Domain\Inbox\Contracts\InboundClassifier;
@@ -73,8 +74,10 @@ final class SalesAgent implements ConversationAgent
         if (! $settings->enabled || ! in_array($mode, ['assist', 'auto'], true) || $inbound->direction !== 'in' || $inbound->conversation_id !== $conversation->id) {
             return;
         }
-        // El toque a un horario de la agenda lo atiende ChatBookingReply: el agente no le contesta encima.
-        if (ChatBookingIds::is(((array) $inbound->payload)['button_payload'] ?? null)) {
+        // El toque a un horario de la agenda lo atiende ChatBookingReply, y el «Sí, quiero» de recibir novedades de un
+        // chat con atribución lo atiende WhatsAppLinkInbound: el agente no les contesta encima.
+        $button = ((array) $inbound->payload)['button_payload'] ?? null;
+        if (ChatBookingIds::is($button) || WhatsAppLinkInbound::isOptInButton($button)) {
             return;
         }
         $this->turn($conversation, $inbound, $mode, $settings);
