@@ -1,4 +1,4 @@
-import { History, Sparkles } from 'lucide-react';
+import { History, Megaphone, Sparkles, Workflow } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -10,7 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { formatRelative } from '@/lib/format';
 import { useCopilotStatus, useDraft, useDrafts, useLearnTone } from './api';
-import { CopilotDialog, CreateWithAiButton, copilotError } from './CopilotDialog';
+import { Callout } from '@/components/ui/callout';
+import { HeroCard } from '@/components/ui/hero-card';
+import { IconTile } from '@/components/ui/icon-tile';
+import { CopilotDialog, CreateWithAiButton, copilotError, useExamples } from './CopilotDialog';
 import type { DraftKind } from './types';
 
 const STATUS_VARIANT = { draft: 'secondary', applied: 'success', discarded: 'outline' } as const;
@@ -23,6 +26,9 @@ export function CopilotPage() {
     const drafts = useDrafts(workspace.id, kind);
     const [openId, setOpenId] = useState<string | null>(null);
     const open = useDraft(workspace.id, openId);
+    const status = useCopilotStatus(workspace.id);
+    const canUse = useCan('useAi');
+    const [asking, setAsking] = useState<{ kind: 'campaign' | 'flow'; prompt: string } | null>(null);
 
     return (
         <>
@@ -36,16 +42,43 @@ export function CopilotPage() {
                     </div>
                 }
             />
-            <div className="igr:grid igr:gap-4 igr:lg:grid-cols-[1fr_320px]">
+            <HeroCard icon={Sparkles} eyebrow={t('copilot.page.howEyebrow')} title={t('copilot.page.howTitle')} description={t('copilot.page.howDescription')} illustration="strategies" className="igr:mb-6">
+                <ol className="igr:grid igr:gap-2 igr:sm:grid-cols-3">
+                    {(['step1', 'step2', 'step3'] as const).map((step, i) => (
+                        <li key={step} className="igr:flex igr:gap-2.5 igr:rounded-lg igr:border igr:bg-card/80 igr:p-3 igr:text-support">
+                            <span className="igr:flex igr:size-5 igr:shrink-0 igr:items-center igr:justify-center igr:rounded-full igr:bg-brand-soft igr:text-[11px] igr:font-semibold igr:text-brand-soft-foreground igr:tabular-nums">{i + 1}</span>
+                            <span className="igr:text-muted-foreground">{t(`copilot.page.${step}`)}</span>
+                        </li>
+                    ))}
+                </ol>
+            </HeroCard>
+            {status.data && !status.data.available ? (
+                <Callout tone="warning" className="igr:mb-6">
+                    {t('copilot.unavailable')}
+                </Callout>
+            ) : null}
+            <section aria-labelledby="copilot-examples" className="igr:mb-6 igr:space-y-3">
+                <div>
+                    <h2 id="copilot-examples" className="igr:text-section igr:font-semibold">
+                        {t('copilot.page.examplesTitle')}
+                    </h2>
+                    <p className="igr:text-support igr:text-muted-foreground">{t('copilot.page.examplesHelp')}</p>
+                </div>
+                <div className="igr:grid igr:gap-3 igr:md:grid-cols-2">
+                    <ExampleList kind="campaign" disabled={!canUse} onPick={(prompt) => setAsking({ kind: 'campaign', prompt })} />
+                    <ExampleList kind="flow" disabled={!canUse} onPick={(prompt) => setAsking({ kind: 'flow', prompt })} />
+                </div>
+            </section>
+            <div className="igr:grid igr:gap-4 igr:lg:grid-cols-[minmax(0,1fr)_320px]">
                 <Card>
-                    <CardHeader className="igr:flex igr:flex-row igr:items-center igr:justify-between igr:gap-2">
+                    <CardHeader className="igr:flex igr:flex-row igr:flex-wrap igr:items-center igr:justify-between igr:gap-2">
                         <CardTitle className="igr:flex igr:items-center igr:gap-1.5">
                             <History className="igr:size-4" aria-hidden="true" />
                             {t('copilot.page.history')}
                         </CardTitle>
-                        <div role="group" aria-label={t('copilot.page.filter')} className="igr:flex igr:gap-1">
+                        <div role="group" aria-label={t('copilot.page.filter')} className="igr:flex igr:max-w-full igr:gap-1 igr:overflow-x-auto igr:scrollbar-none">
                             {([undefined, 'campaign', 'flow', 'content'] as const).map((k) => (
-                                <Button key={k ?? 'all'} size="sm" variant={kind === k ? 'secondary' : 'ghost'} aria-pressed={kind === k} onClick={() => setKind(k)}>
+                                <Button key={k ?? 'all'} size="sm" className="igr:shrink-0" variant={kind === k ? 'secondary' : 'ghost'} aria-pressed={kind === k} onClick={() => setKind(k)}>
                                     {t(`copilot.kind.${k ?? 'all'}`)}
                                 </Button>
                             ))}
@@ -93,7 +126,36 @@ export function CopilotPage() {
                 <ToneCard />
             </div>
             {openId !== null && open.data ? <CopilotDialog kind={open.data.kind} initial={open.data} onClose={() => setOpenId(null)} /> : null}
+            {asking !== null ? <CopilotDialog kind={asking.kind} initialPrompt={asking.prompt} onClose={() => setAsking(null)} /> : null}
         </>
+    );
+}
+
+/** Ejemplos de pedidos para este tipo de negocio; al tocar uno se abre el copiloto con el pedido escrito. */
+function ExampleList({ kind, disabled, onPick }: { kind: 'campaign' | 'flow'; disabled: boolean; onPick: (prompt: string) => void }) {
+    const { t } = useTranslation();
+    const examples = useExamples(kind);
+    return (
+        <Card className="igr:p-4">
+            <div className="igr:flex igr:items-center igr:gap-2.5">
+                <IconTile icon={kind === 'campaign' ? Megaphone : Workflow} tone={kind === 'campaign' ? 'orange' : 'indigo'} size="sm" />
+                <h3 className="igr:font-semibold">{t(`copilot.page.examples.${kind}`)}</h3>
+            </div>
+            <ul className="igr:mt-3 igr:space-y-1.5">
+                {examples.map((ex) => (
+                    <li key={ex}>
+                        <button
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => onPick(ex)}
+                            className="igr:w-full igr:rounded-lg igr:border igr:bg-card igr:px-3 igr:py-2 igr:text-left igr:text-support igr:text-foreground igr:transition-colors igr:hover:border-primary/40 igr:hover:bg-brand-soft/40 igr:focus-visible:outline-none igr:focus-visible:ring-2 igr:focus-visible:ring-ring igr:disabled:cursor-not-allowed igr:disabled:opacity-60"
+                        >
+                            «{ex}»
+                        </button>
+                    </li>
+                ))}
+            </ul>
+        </Card>
     );
 }
 

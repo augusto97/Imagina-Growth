@@ -16,35 +16,85 @@
                 "Anuncia la nueva colección a quienes compraron en los últimos 90 días"
             ],
             "flow": [
-                "Un flujo para recuperar clientes que no compran hace 60 días con WhatsApp y correo",
+                "Recupera a los clientes que no compran hace 60 días con WhatsApp y correo",
                 "Agradece la segunda compra y regala 200 puntos",
                 "Avisa al equipo cuando un cliente VIP abandona el carrito"
+            ],
+            "campaign_services": [
+                "Invita a los contactos de los últimos 90 días a agendar una primera cita sin costo",
+                "Recuerda a quienes pidieron cotización el mes pasado que el precio vale hasta el 31",
+                "Anuncia por correo el horario de fin de año a todos tus clientes"
+            ],
+            "flow_services": [
+                "Cuando alguien llene el formulario, respóndele al instante y avísale al vendedor",
+                "Si una cotización lleva 5 días sin respuesta, recuérdasela por WhatsApp",
+                "Dale la bienvenida a cada cliente nuevo con los próximos pasos"
+            ],
+            "campaign_health": [
+                "Recuerda a los pacientes que no vienen hace 6 meses agendar su control",
+                "Promociona la limpieza dental de diciembre con un 15% por WhatsApp",
+                "Pide a los pacientes de este mes que dejen su reseña en Google"
+            ],
+            "flow_health": [
+                "Pide confirmar la cita 2 días antes y avisa al equipo si no confirma",
+                "Si un paciente no asistió, escríbele ese mismo día para reagendar",
+                "Seis meses después de la última cita, recuérdale agendar su control"
+            ],
+            "campaign_education": [
+                "Anuncia las inscripciones de enero a quienes preguntaron por cursos",
+                "Invita a la clase de prueba gratis del sábado por WhatsApp",
+                "Recuerda la fecha límite de inscripción a los interesados"
+            ],
+            "flow_education": [
+                "A quien pregunte por un curso, envíale la información, testimonios y la fecha límite",
+                "Confirma la inscripción a la charla y recuérdala un día y una hora antes",
+                "Si un interesado no se inscribe en 10 días, avísale al asesor"
+            ],
+            "campaign_real_estate": [
+                "Envía las propiedades nuevas en arriendo a quienes buscaron en los últimos 60 días",
+                "Invita a la feria de vivienda del fin de semana a los interesados en compra",
+                "Escribe a los prospectos de hace 3 meses con las novedades del mes"
+            ],
+            "flow_real_estate": [
+                "Cuando alguien pregunte por una propiedad, envíale similares y ofrécele agendar la visita",
+                "Si un interesado no agenda visita en una semana, crea una llamada para el asesor",
+                "A los 90 días de un negocio perdido, vuelve a escribirle con una novedad"
+            ],
+            "campaign_professional": [
+                "Invita a tus clientes a la charla sobre la declaración de renta",
+                "Anuncia el nuevo servicio a los prospectos del último trimestre",
+                "Felicita a tus clientes por fin de año por correo"
+            ],
+            "flow_professional": [
+                "Responde al instante a cada solicitud y haz seguimiento a los 2, 10 y 20 días",
+                "Si una propuesta lleva 5 días sin respuesta, recuérdala por correo",
+                "Seis meses después de un servicio, ofrece una revisión con un mensaje personal"
             ]
         },
         "dialog": {
             "title": {
                 "campaign": "Crear una campaña con IA",
-                "flow": "Crear un flujo con IA"
+                "flow": "Crear una automatización con IA"
             },
             "description": {
-                "campaign": "Describe la campaña. El copiloto propone segmento, canales, textos, horario y cupón, con el costo y la revisión de cumplimiento. Nada se envía sin tu aprobación.",
-                "flow": "Describe la automatización. El copiloto arma el flujo con sus pasos; queda en borrador para que lo revises y lo actives."
+                "campaign": "Describe la campaña. El copiloto propone el grupo de clientes, los canales, los textos, el horario y el cupón, con el costo y la revisión de la ley. Nada se envía sin tu aprobación.",
+                "flow": "Describe la automatización. El copiloto arma los pasos; queda en borrador para que la revises y la actives."
             },
             "prompt": "¿Qué quieres lograr?",
             "propose": "Proponer",
             "thinking": {
-                "campaign": "Revisando tus segmentos, plantillas, costo y horarios permitidos…",
-                "flow": "Armando los pasos del flujo…"
+                "campaign": "Revisando tus grupos de clientes, plantillas, costo y horarios permitidos…",
+                "flow": "Armando los pasos de la automatización…"
             },
             "discard": "Descartar",
             "again": "Pedir otra",
             "apply": {
                 "campaign": "Crear como borrador",
-                "flow": "Crear el flujo en borrador"
+                "flow": "Crear la automatización en borrador"
             },
             "applyHelp": {
                 "campaign": "Se crean las campañas en borrador (una por canal). Para enviarlas, apruébalas en el asistente después de revisar.",
-                "flow": "El flujo queda en borrador: revísalo en el constructor, publícalo y actívalo cuando esté listo."
+                "flow": "La automatización queda en borrador: revísala en el constructor, publícala y actívala cuando esté lista."
             }
         },
         "review": {
@@ -97,7 +147,7 @@
         },
         "trigger": {
             "event": "Cuando ocurre «{{event}}»",
-            "segment": "Cuando el contacto {{on}} el segmento {{segment}}",
+            "segment": "Cuando el contacto {{on}} el grupo de clientes {{segment}}",
             "on": {
                 "entered": "entra a",
                 "exited": "sale de"
@@ -107,20 +157,32 @@
         },
         "page": {
             "title": "Copiloto con IA",
-            "description": "Propuestas de campañas y automatizaciones hechas con IA en el tono de tu marca. Todo queda en borrador hasta que lo apruebes.",
+            "description": "Pídele en tus palabras una campaña o una automatización: la IA la arma con tus grupos de clientes, tus plantillas, el horario legal y el costo. Todo queda en borrador hasta que lo apruebes.",
             "history": "Historial",
             "filter": "Filtrar por tipo",
             "empty": "Todavía no hay propuestas",
-            "emptyHelp": "Usa «Crear con IA» en Campañas o Flujos, o aquí arriba.",
+            "emptyHelp": "Usa «Crear con IA» aquí, en Campañas o en Automatizaciones, o toca una de las ideas de arriba.",
             "review": "Revisar",
             "openApplied": "Abrir",
-            "newFlow": "Flujo con IA",
-            "newCampaign": "Campaña con IA"
+            "newFlow": "Automatización con IA",
+            "newCampaign": "Campaña con IA",
+            "howEyebrow": "Cómo funciona",
+            "howTitle": "Tú dices qué quieres lograr; la IA lo arma y tú decides",
+            "howDescription": "Nunca envía ni activa nada sola, y no inventa cifras: usa solo tus datos.",
+            "step1": "Escribe lo que quieres, como se lo dirías a alguien de tu equipo: a quién, para qué y, si quieres, con qué oferta.",
+            "step2": "La IA elige el grupo de clientes, escribe los mensajes en el tono de tu marca, mueve la hora a la ventana legal y calcula el costo.",
+            "step3": "Revisas la propuesta, cambias lo que quieras y la creas en borrador. Para enviarla la apruebas como cualquier campaña.",
+            "examplesTitle": "Ideas para empezar",
+            "examplesHelp": "Toca una para abrir el copiloto con el pedido ya escrito. Puedes cambiarlo antes de pedir la propuesta.",
+            "examples": {
+                "campaign": "Campañas",
+                "flow": "Automatizaciones"
+            }
         },
         "kind": {
             "all": "Todo",
             "campaign": "Campañas",
-            "flow": "Flujos",
+            "flow": "Automatizaciones",
             "content": "Textos"
         },
         "status": {
