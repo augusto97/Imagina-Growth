@@ -3,13 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
-import { useInstallFromGallery } from '@/features/gallery/api';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useInstallFromGallery, useWaGalleryPreview } from '@/features/gallery/api';
 import type { WaSubmission } from '@/features/gallery/types';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { toast } from '@/stores/toast';
 import type { TemplateSummary } from './api';
+import { PhoneMock, WaBubble } from './editor/MessageMock';
 
 /*
  * En qué va la aprobación de Meta de una plantilla de WhatsApp, dicho en palabras, y qué falta para poder enviarla:
@@ -119,6 +121,28 @@ export function WaStatusAction({ template, connected, size = 'sm' }: { template:
         );
     }
     return null;
+}
+
+/** El texto que se envía a revisión de Meta (una de la galería todavía sin enlazar), con los datos de ejemplo. */
+export function WaProposalPreview({ libraryKey }: { libraryKey: string }) {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const preview = useWaGalleryPreview(workspace.id, libraryKey);
+    if (preview.isPending) {
+        return <Skeleton className="igr:h-60 igr:w-full igr:max-w-[320px] igr:rounded-[30px]" />;
+    }
+    if (!preview.data?.ok) {
+        return null;
+    }
+    return (
+        <div className="igr:space-y-2">
+            <p className="igr:text-support igr:font-medium">{t('templates.meta.proposalTitle')}</p>
+            <PhoneMock business={workspace.name} compact className="igr:mx-0">
+                <WaBubble body={preview.data.text ?? ''} footer={preview.data.whatsapp?.footer ?? null} buttons={(preview.data.whatsapp?.buttons ?? []).map((b) => ({ text: b.text, url: b.type === 'URL' }))} />
+            </PhoneMock>
+            <p className="igr:text-caption igr:text-muted-foreground">{t('templates.meta.proposalHelp')}</p>
+        </div>
+    );
 }
 
 /** En el editor: el estado con su explicación y la acción. */

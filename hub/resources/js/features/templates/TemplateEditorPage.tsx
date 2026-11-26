@@ -28,7 +28,7 @@ import {
     useWaSources,
 } from './api';
 import { insertAt, liveChecks, missingWaSlots, smsSegments, waBodyOf } from './content';
-import { WaStatusCallout } from './WaStatus';
+import { WaProposalPreview, WaStatusCallout } from './WaStatus';
 import { ChecksList } from './editor/ChecksList';
 import type { EmailCanvasHandle, EmailOutput } from './editor/EmailCanvas';
 import { PreviewContactPicker, PreviewView } from './editor/PreviewPanel';
@@ -269,6 +269,7 @@ function Editor({ template }: { template: TemplateDetail }) {
             {template.channel === 'email' && <EmailEditor draft={draft} set={set} canEdit={canEdit} canvas={canvas} errors={fieldErrors} />}
             {template.channel === 'sms' && <SmsEditor draft={draft} set={set} canEdit={canEdit} error={fieldErrors.body_text} />}
             {template.channel === 'whatsapp' ? <WaStatusCallout template={template} /> : null}
+            {template.channel === 'whatsapp' && template.wa_template_id === null && template.library_key?.startsWith('wa_') ? <WaProposalPreview libraryKey={template.library_key} /> : null}
             {template.channel === 'whatsapp' && <WhatsAppEditor draft={draft} set={set} canEdit={canEdit} />}
 
             <Card>

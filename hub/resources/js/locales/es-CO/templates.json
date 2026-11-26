@@ -314,7 +314,9 @@
                 "not_connected": "Quedó en borrador: conecta tu número de WhatsApp para enviarla a Meta",
                 "ready_to_submit": "Quedó en borrador, lista para enviar a Meta",
                 "failed": "Meta no aceptó la plantilla"
-            }
+            },
+            "proposalTitle": "El texto que se envía a revisión de Meta",
+            "proposalHelp": "Con datos de ejemplo. Cuando Meta la apruebe, aquí eliges qué dato va en cada parámetro (ya viene llenado)."
         },
         "mock": {
             "businessAccount": "Cuenta de empresa",
