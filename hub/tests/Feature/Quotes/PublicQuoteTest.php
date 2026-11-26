@@ -86,6 +86,14 @@ it('calcula a cambio del contacto: cotización, lead, consentimiento y quote.req
     $props = json_decode($rows[0]['p']);
     expect(app(SchemaRegistry::class)->validateProperties('quote.requested', $props))->toBeNull()
         ->and($props->estimate_max)->toBe('839000.00')->and($props->lead_id)->toStartWith('ld_');
+
+    // v8: el cotizador ya le mostró el precio, así que la cotización quedó enviada (flujo 22).
+    $sent = $this->chRows($this->ws, "SELECT toJSONString(properties) AS p FROM events WHERE workspace_id = {workspace_id:UInt32} AND event = 'quote.sent'");
+    expect($sent)->toHaveCount(1);
+    $sentProps = json_decode($sent[0]['p']);
+    expect(app(SchemaRegistry::class)->validateProperties('quote.sent', $sentProps))->toBeNull()
+        ->and($sentProps->source)->toBe('calculator')->and($sentProps->quote_id)->toBe($quote->publicId())
+        ->and($sentProps->value)->toBe('763000.00')->and($sentProps->lead_id)->toBe($props->lead_id);
 });
 
 it('sin datos de contacto no da el precio cuando lo pide', function () {

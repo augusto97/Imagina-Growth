@@ -1,7 +1,7 @@
 # Contrato de eventos y datos que se recogen
 
 > Fuente de verdad del dato. El hub valida cada evento contra su JSON Schema en `hub/resources/schemas/events/<evento>.json`. El connector y el tracker tienen pruebas de contrato contra esos mismos esquemas.
-> `schema_version` actual: **7** (el hub acepta de la 1 a la 7; ver §8)
+> `schema_version` actual: **8** (el hub acepta de la 1 a la 8; ver §8)
 
 ---
 
@@ -171,8 +171,9 @@ Convenciones: `objeto.acción` en inglés y en pasado. Montos en la moneda del p
 |---|---|---|
 | `form.submitted` | CF7, WPForms, Gravity, Fluent Forms, Elementor Forms, JetFormBuilder, Formidable, formularios del hub | `form_plugin`, `form_id`, `form_name`, `fields` (mapeados: `email`, `phone`, `first_name`, `last_name`, `company`, `city`, `message`, `service`, `budget`), `page_path`, `consents{}` |
 | `lead.created` | hub, a partir de `form.submitted` o de un chat entrante (WhatsApp, Messenger o Instagram) con intención de compra | `lead_source`, `score` |
-| `appointment.booked` / `.rescheduled` / `.cancelled` / `.completed` / `.no_show` | agenda del hub | `appointment_id`, `service_id`, `starts_at` |
+| `appointment.booked` / `.rescheduled` / `.confirmed` (v8) / `.cancelled` / `.completed` / `.no_show` | agenda del hub | `appointment_id`, `service_id`, `starts_at` |
 | `quote.requested` | cotizador del hub | `quote_id`, `items`, `estimated_total` |
+| `quote.sent` (v8) | hub: el cotizador mostró el precio o el lead entró a una etapa de cotización | `source`, `lead_id`, `quote_id?`, `stage?`, `value?` |
 
 ### 4.5 Sitio (connector)
 
@@ -209,10 +210,14 @@ Los de la Fase 5 (v5), solo del hub (ningún sitio los puede enviar):
 - `appointment.rescheduled`: `from_starts_at` y `starts_at`. `appointment.cancelled`: `by` y `reason`. `appointment.completed` y `appointment.no_show`.
 - `quote.requested`: `quote_id`, `calculator_id`, `calculator_name`, `estimate_min`, `estimate_max`, `currency` y `lead_id`.
 
+Negocios sin tienda (v8, rediseño v2 §11.4), solo del hub:
+- `appointment.confirmed`: `appointment_id`, `service_id`, `starts_at` (la hora de la cita al confirmarla) y `by` (contact, staff o system). Sale al confirmar la cita por el botón o el texto «Confirmo» de WhatsApp, por el enlace de la cita o desde el panel; una vez por hora de la cita (si se reprograma y se vuelve a confirmar, sale otra). Es la meta del flujo 23 «Confirmación de cita».
+- `quote.sent`: `source` (`calculator`: el cotizador le mostró el precio estimado a la persona, justo después de `quote.requested`; `stage`: su lead entró a una etapa de cotización, `proposal`, `quoted` u `offer`, desde una que no lo era), `lead_id`, `quote_id?`, `stage?`, `service?`, `value?` y `currency?`. Dispara el flujo 22 «Cotización sin respuesta» y alimenta las cotizaciones enviadas de los resultados de servicios.
+
 También en la v5, del lado del servidor pero **no** exclusivo del hub:
 - `page.vitals`: `page` (URL), `lcp_ms`, `inp_ms`, `cls` y opcionales `ttfb_ms`, `device` (mobile, tablet o desktop) y `samples`. Métricas web reales (p75) que envía Imagina Turbo por la API pública (`POST /api/v1/vitals`, M19), para cruzar la lentitud con la conversión.
 
-Lista completa: `cart.abandoned` (lo marca el job de carritos), `message.queued`, `message.sent`, `message.delivered`, `message.read` (WhatsApp), `message.opened` (correo, con `is_mpp` para las aperturas automáticas de Apple), `message.clicked`, `message.replied`, `message.failed`, `message.bounced`, `message.complained`, `message.unsubscribed`, `whatsapp.inbound` (con `referral` y `ctwa_clid` si viene de un anuncio de clic a WhatsApp, y `wa_ref` si trae token), `consent.granted`, `consent.revoked`, `segment.entered`, `segment.exited`, `points.earned`, `points.redeemed`, `points.expired`, `tier.changed`, `wallet.credited`, `wallet.debited`, `referral.shared`, `referral.converted`, `review.requested`, `review.collected`, `nps.answered`, `survey.answered`, `product_watch.created`, `product_watch.notified`, `flow.entered`, `flow.exited`, `lead.created`, `lead.stage_changed`, `lead.won`, `lead.lost`, `appointment.booked`, `appointment.rescheduled`, `appointment.cancelled`, `appointment.completed`, `appointment.no_show`, `quote.requested`, `page.vitals` (de Imagina Turbo por la API pública), `conversion.delivered` (a una plataforma de anuncios).
+Lista completa: `cart.abandoned` (lo marca el job de carritos), `message.queued`, `message.sent`, `message.delivered`, `message.read` (WhatsApp), `message.opened` (correo, con `is_mpp` para las aperturas automáticas de Apple), `message.clicked`, `message.replied`, `message.failed`, `message.bounced`, `message.complained`, `message.unsubscribed`, `whatsapp.inbound` (con `referral` y `ctwa_clid` si viene de un anuncio de clic a WhatsApp, y `wa_ref` si trae token), `consent.granted`, `consent.revoked`, `segment.entered`, `segment.exited`, `points.earned`, `points.redeemed`, `points.expired`, `tier.changed`, `wallet.credited`, `wallet.debited`, `referral.shared`, `referral.converted`, `review.requested`, `review.collected`, `nps.answered`, `survey.answered`, `product_watch.created`, `product_watch.notified`, `flow.entered`, `flow.exited`, `lead.created`, `lead.stage_changed`, `lead.won`, `lead.lost`, `appointment.booked`, `appointment.rescheduled`, `appointment.confirmed`, `appointment.cancelled`, `appointment.completed`, `appointment.no_show`, `quote.requested`, `quote.sent`, `page.vitals` (de Imagina Turbo por la API pública), `conversion.delivered` (a una plataforma de anuncios).
 
 ---
 
@@ -320,6 +325,7 @@ Según la especificación de Meta y Google, se aplica SHA-256 en minúsculas y s
 | 5 | 2026-11-23 | Fase 5. Esquemas de los eventos del hub de servicios: `lead.created`, `lead.stage_changed`, `lead.won`, `lead.lost`, `appointment.booked`, `appointment.rescheduled`, `appointment.cancelled`, `appointment.completed`, `appointment.no_show` y `quote.requested`, más `page.vitals` (métricas web de Imagina Turbo por la API pública, M19; se agregó durante la Fase 5, antes de cerrarla, por eso no abre una versión 6). Los sitios no envían nada nuevo: el connector y el tracker siguen en la 4, que sigue siendo válida. |
 | 6 | 2026-11-25 | Captura temprana del checkout (auditoría F4): `checkout.contact_captured` pasa a ser un evento del plugin, firmado por `/v1/s`, con el correo o el teléfono en `identity` y los opcionales `cart_token` y `checkout`. Ya no viaja cifrado desde el navegador (`encrypted` queda obsoleto). El connector envía la 6 en todos sus eventos; el tracker sigue en la 4. Un evento v5 o anterior sigue siendo válido. |
 | 7 | 2026-11-26 | Leads desde Messenger e Instagram (lote 4): `lead.created.origin` acepta `messenger` e `instagram` (el canal del chat que creó el lead; `channel` lleva el mismo valor). Solo cambia un evento del hub: ningún sitio envía nada nuevo, el connector sigue en la 6 y el tracker en la 4, y un evento v6 o anterior sigue siendo válido. |
+| 8 | 2026-11-28 | Negocios sin tienda (rediseño v2 §11.4, «v8»): dos eventos nuevos que solo genera el hub, `appointment.confirmed` (la cita quedó confirmada) y `quote.sent` (el negocio envió una cotización, una propuesta o una oferta: el cotizador o la etapa del lead). Ningún sitio envía nada nuevo: el connector sigue en la 6 y el tracker en la 4, y un evento v7 o anterior sigue siendo válido. |
 
 **Regla de identidad para el navegador (v2):** en eventos con `source.type = browser`, el hub **ignora** `identity.customer_ref` salvo en un `identify` con `token` válido. Así nadie puede atribuirse la identidad de otro cliente desde el navegador.
 

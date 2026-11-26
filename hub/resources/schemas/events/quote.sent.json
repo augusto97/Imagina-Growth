@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growth.imagina.cloud/schemas/events/quote.sent.json",
+  "title": "quote.sent",
+  "description": "Generado en el hub (v8): el negocio le envió una cotización, una propuesta o una oferta a la persona. `source = calculator`: el cotizador le mostró el precio estimado; `source = stage`: su lead entró a una etapa de cotización (proposal, quoted u offer).",
+  "type": "object",
+  "required": [
+    "source",
+    "lead_id"
+  ],
+  "properties": {
+    "source": {
+      "enum": [
+        "calculator",
+        "stage"
+      ]
+    },
+    "lead_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 40
+    },
+    "quote_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 40
+    },
+    "stage": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 32
+    },
+    "service": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 160
+    },
+    "value": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^-?\\d{1,15}(\\.\\d{1,2})?$"
+    },
+    "currency": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 3
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "source": "calculator",
+      "lead_id": "ld_01JE",
+      "quote_id": "qt_01JE",
+      "service": "Diseño de sonrisa",
+      "value": "2100000.00",
+      "currency": "COP"
+    },
+    {
+      "source": "stage",
+      "lead_id": "ld_01JE",
+      "stage": "proposal",
+      "value": "4500000.00",
+      "currency": "COP"
+    }
+  ],
+  "x-invalid-examples": [
+    {
+      "lead_id": "ld_01JE"
+    },
+    {
+      "source": "email",
+      "lead_id": "ld_01JE"
+    }
+  ]
+}

@@ -18,8 +18,9 @@ use Ramsey\Uuid\Uuid;
 /**
  * Guarda una cotización (M18): la fila de `quotes`, el lead (`LeadIntake`, origen
  * quote, valor = el punto medio del rango) y el evento `quote.requested` cuando
- * hay contacto. Sin contacto (cotizador sin captura) queda solo la fila con el
- * `anonymous_id`.
+ * hay contacto, seguido de `quote.sent` (v8, `source = calculator`): el
+ * cotizador ya le mostró el precio, así que la cotización quedó enviada (flujo 22).
+ * Sin contacto (cotizador sin captura) queda solo la fila con el `anonymous_id`.
  */
 final class RequestQuote
 {
@@ -53,6 +54,11 @@ final class RequestQuote
             'estimate_min' => $estimate['min'], 'estimate_max' => $estimate['max'], 'currency' => $currency,
             'lead_id' => $quote->lead_id !== null ? PrefixedId::encode('ld', $quote->lead_id) : null,
         ], $contact->id, $site, eventId: Uuid::uuid5('6f1b3c2a-4d5e-5f60-8a9b-0c1d2e3f4a5b', 'quote.requested:'.$quote->id)->toString(), anonymousId: $anonymousId);
+        $this->events->emit($workspace, 'quote.sent', [
+            'source' => 'calculator', 'quote_id' => $quote->publicId(),
+            'lead_id' => $quote->lead_id !== null ? PrefixedId::encode('ld', $quote->lead_id) : null,
+            'service' => mb_substr($calculator->name, 0, 160), 'value' => $estimate['mid'], 'currency' => $currency,
+        ], $contact->id, $site, eventId: Uuid::uuid5('6f1b3c2a-4d5e-5f60-8a9b-0c1d2e3f4a5b', 'quote.sent:'.$quote->id)->toString(), anonymousId: $anonymousId);
 
         return $quote;
     }

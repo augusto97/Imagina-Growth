@@ -7,6 +7,7 @@ namespace App\Domain\Services\Leads\Actions;
 use App\Domain\Services\Leads\Jobs\SendLeadConversion;
 use App\Domain\Services\Leads\Models\Lead;
 use App\Domain\Services\Leads\Models\LeadActivity;
+use App\Domain\Services\Leads\Support\LeadDefaults;
 use App\Domain\Services\Leads\Support\LeadEvents;
 use App\Domain\Services\Leads\Support\LeadScorer;
 use App\Domain\Services\Leads\Support\Pipelines;
@@ -18,7 +19,8 @@ use Illuminate\Validation\ValidationException;
  * emite `lead.won` y encola la conversión offline a Meta y Google; perdido
  * guarda `lost_at` y el motivo y emite `lead.lost`; volver a una etapa abierta
  * limpia ambos. Salir de la primera etapa a mano marca la primera respuesta.
- * Corre con el espacio de trabajo activo.
+ * Entrar a una etapa de cotización (propuesta, cotizado u oferta) emite
+ * `quote.sent` (v8). Corre con el espacio de trabajo activo.
  */
 final class ChangeLeadStage
 {
@@ -69,6 +71,9 @@ final class ChangeLeadStage
         LeadActivity::log($lead, 'stage', $actor ?? $by, array_filter(['from' => $from, 'to' => $to, 'reason' => $lead->lost_reason, 'value' => $stage['kind'] === 'won' ? $lead->value_ws : null], fn ($v) => $v !== null));
 
         $this->events->stageChanged($workspace, $lead, $from, $to, $by, $seq);
+        if (in_array($to, LeadDefaults::QUOTE_STAGES, true) && ! in_array($from, LeadDefaults::QUOTE_STAGES, true)) {
+            $this->events->quoteSent($workspace, $lead, $to, $seq);
+        }
         if ($stage['kind'] === 'won') {
             $this->events->won($workspace, $lead);
             SendLeadConversion::dispatch($workspace->id, $lead->id)->afterCommit();

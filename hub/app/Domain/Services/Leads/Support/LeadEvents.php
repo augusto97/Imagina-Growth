@@ -57,6 +57,22 @@ final class LeadEvents
         $this->crm($lead, 'won');
     }
 
+    /**
+     * v8: el lead entró a una etapa de cotización (LeadDefaults::QUOTE_STAGES: propuesta, cotizado u oferta).
+     * Dispara el flujo 22 «Cotización sin respuesta». Una vez por cada entrada a la etapa.
+     */
+    public function quoteSent(Workspace $workspace, Lead $lead, string $stage, int $seq): void
+    {
+        $this->emit($workspace, $lead, 'quote.sent', [
+            'source' => 'stage',
+            'lead_id' => $lead->publicId(),
+            'stage' => $stage,
+            'service' => $lead->service !== null ? mb_substr($lead->service, 0, 160) : null,
+            'value' => $lead->value_ws,
+            'currency' => $lead->value_ws !== null ? $workspace->currency : null,
+        ], "quote:{$lead->id}:{$seq}");
+    }
+
     public function lost(Workspace $workspace, Lead $lead): void
     {
         $this->emit($workspace, $lead, 'lead.lost', ['lead_id' => $lead->publicId(), 'reason' => $lead->lost_reason], 'lost:'.$lead->id.':'.$lead->lost_at?->getTimestamp());

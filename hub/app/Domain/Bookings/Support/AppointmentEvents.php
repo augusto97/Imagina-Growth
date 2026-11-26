@@ -40,6 +40,21 @@ final class AppointmentEvents
             $a->contact_id, BookingSettings::site($workspace), eventId: self::id($a, 'cancelled'));
     }
 
+    /**
+     * v8: la cita quedó confirmada (botón o «Confirmo» por WhatsApp, enlace de la cita o el panel). Una vez por hora de
+     * la cita: si se reprograma y se vuelve a confirmar, sale otra.
+     *
+     * @param  'contact'|'staff'|'system'  $by
+     */
+    public static function confirmed(Workspace $workspace, Appointment $a, string $by): void
+    {
+        $starts = CarbonImmutable::instance($a->starts_at)->utc();
+        app(HubEvents::class)->emit($workspace, 'appointment.confirmed', [
+            'appointment_id' => $a->publicId(), 'service_id' => PrefixedId::encode('bs', $a->service_id),
+            'starts_at' => $starts->toIso8601ZuluString(), 'by' => $by,
+        ], $a->contact_id, BookingSettings::site($workspace), eventId: self::id($a, 'confirmed:'.$starts->getTimestamp()));
+    }
+
     public static function status(Workspace $workspace, Appointment $a, string $status): void
     {
         $event = $status === 'no_show' ? 'appointment.no_show' : 'appointment.completed';

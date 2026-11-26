@@ -75,8 +75,11 @@ final class ChangeAppointment
         return $appointment;
     }
 
-    /** @param 'confirmed'|'completed'|'no_show' $status */
-    public function mark(Workspace $workspace, Appointment $appointment, string $status): Appointment
+    /**
+     * @param  'confirmed'|'completed'|'no_show'  $status
+     * @param  'contact'|'staff'|'system'  $by  quién confirmó (`appointment.confirmed`, v8)
+     */
+    public function mark(Workspace $workspace, Appointment $appointment, string $status, string $by = 'staff'): Appointment
     {
         if ($appointment->status === $status) {
             return $appointment;
@@ -88,7 +91,9 @@ final class ChangeAppointment
             throw new InvalidArgumentException(__('Una cita cancelada no se puede marcar como cumplida ni como no asistida.'));
         }
         $appointment->forceFill(['status' => $status])->save();
-        if ($status !== 'confirmed') {
+        if ($status === 'confirmed') {
+            AppointmentEvents::confirmed($workspace, $appointment, $by);
+        } else {
             AppointmentEvents::status($workspace, $appointment, $status);
         }
 

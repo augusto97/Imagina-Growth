@@ -119,6 +119,19 @@ final class EnvelopeContractTest extends TestCase {
 		$this->assertSame( array(), Schema::errors( $factory->make( 'custom.igr_test', array() ) ) );
 	}
 
+	public function test_el_contrato_v8_del_hub_sigue_aceptando_la_version_del_plugin(): void {
+		// v8 (negocios sin tienda): dos eventos nuevos que solo genera el hub (`appointment.confirmed` y `quote.sent`).
+		// El plugin no envía nada nuevo: sigue en la 6 y su sobre sigue siendo válido.
+		$schema   = json_decode( (string) file_get_contents( dirname( __DIR__, 3 ) . '/hub/resources/schemas/events/_envelope.json' ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- archivo local del contrato.
+		$versions = $schema['properties']['schema_version']['enum'];
+		$this->assertContains( 8, $versions );
+		$this->assertContains( EventFactory::SCHEMA_VERSION, $versions );
+		$this->assertFileExists( dirname( __DIR__, 3 ) . '/hub/resources/schemas/events/appointment.confirmed.json' );
+		$this->assertFileExists( dirname( __DIR__, 3 ) . '/hub/resources/schemas/events/quote.sent.json' );
+		$factory = new EventFactory( self::SITE, 'woocommerce', '0.1.0' );
+		$this->assertSame( array(), Schema::errors( $factory->make( 'custom.igr_test', array() ) ) );
+	}
+
 	public function test_el_validador_detecta_un_objeto_vacio_mal_codificado(): void {
 		$factory              = new EventFactory( self::SITE, 'woocommerce', '0.1.0' );
 		$envelope             = $factory->make( 'custom.x', array( 'a' => 1 ) );
