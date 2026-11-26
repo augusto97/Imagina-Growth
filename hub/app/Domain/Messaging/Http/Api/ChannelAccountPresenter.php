@@ -8,6 +8,7 @@ use App\Domain\Messaging\Channels\DriverRegistry;
 use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Support\ContactLinkToken;
 use App\Domain\Messaging\Support\SendCaps;
+use App\Domain\Platform\Settings\SetupGuideValues;
 use libphonenumber\NumberParseException;
 use libphonenumber\PhoneNumberFormat;
 use libphonenumber\PhoneNumberUtil;
@@ -49,8 +50,8 @@ final class ChannelAccountPresenter
             'webhook_url' => $webhook,
             // Messenger e Instagram (Fase 5): qué suscribir en la app de Meta [verificar] los campos vigentes.
             'webhook_subscription' => match ($account->provider) {
-                'meta_messenger' => ['object' => 'page', 'fields' => ['messages', 'messaging_postbacks', 'message_deliveries', 'message_reads', 'messaging_referrals']],
-                'meta_instagram' => ['object' => 'instagram', 'fields' => ['messages', 'messaging_postbacks', 'messaging_seen', 'messaging_referral']],
+                'meta_messenger' => ['object' => 'page', 'fields' => array_values(array_diff(SetupGuideValues::META_PAGE_FIELDS, ['leadgen']))],
+                'meta_instagram' => ['object' => 'instagram', 'fields' => SetupGuideValues::META_INSTAGRAM_FIELDS],
                 default => null,
             },
             'page_id' => $account->channel->isSocial() ? $account->credential('page_id') : null,

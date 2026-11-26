@@ -13,6 +13,7 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { toast } from '@/stores/toast';
+import { SettingsGuide } from '@/features/guides/SettingsGuide';
 import { type MailTestResult, useMailTest } from './api';
 import { type SettingField, type SettingsSection, useGenerateVapid, useSaveSettings, useSesSetup } from './settings-api';
 import { type Draft, buildPayload, displayValue, effectiveBool, fieldErrors, initialText, pruneDraft, randomToken } from './settings-model';
@@ -64,6 +65,7 @@ export function SettingsSectionCard({ section }: { section: SettingsSection }) {
                     <CardDescription>{t(`platformSettings.sections.${section.key}.description`)}</CardDescription>
                 </CardHeader>
                 <CardContent className="igr:space-y-5">
+                    <SettingsGuide section={section} />
                     <SectionExtras section={section} />
                     {section.fields.map((field) => (
                         <FieldRow key={field.key} section={section} field={field} draft={draft} error={errors[field.key]} onChange={set} />

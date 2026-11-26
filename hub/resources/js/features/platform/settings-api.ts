@@ -52,6 +52,8 @@ export interface SettingsSection {
         signature_v1_sites?: string[];
         signature_v2_min_plugin?: string;
         health_url?: string;
+        /** Lo que la guía paso a paso muestra para copiar (direcciones, alcances, campos del webhook, políticas). */
+        guide?: Partial<Record<string, string | string[] | boolean>>;
     };
 }
 

@@ -9,6 +9,10 @@ siguen funcionando.
 administra la plataforma, con la verificación en dos pasos). Lo que guardes se usa enseguida, sin tocar el servidor
 ni reiniciar nada. Cada sección muestra también las direcciones que hay que registrar en la app, listas para copiar.
 
+Cada sección trae además su **«Guía paso a paso»** con este mismo recorrido resumido, los enlaces a cada consola y lo
+que hay que copiar ya calculado (las URI, los alcances, los campos de los webhooks y los permisos):
+[`guias-conexiones.md`](guias-conexiones.md).
+
 Revisado contra la documentación oficial el 20 de noviembre de 2026 (enlaces al final de cada sección). Las
 pantallas de Meta, Google y TikTok cambian seguido: si un nombre no coincide, busca la opción más parecida.
 

@@ -16,6 +16,7 @@ import { useChannels } from '@/features/channels/api';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { cn } from '@/lib/cn';
 import { toast } from '@/stores/toast';
+import { ConnectionGuide } from '@/features/guides/ConnectionGuide';
 import { ConnectionAlertsNotice } from './AlertsNotice';
 import { type Connection, type RedirectProvider, useAdDestinations, useConnections } from './api';
 import { ProviderMark } from './bits';
@@ -198,6 +199,7 @@ export function ConnectionsPage() {
                                 <SheetDescription className="igr:mt-2">{t(`connections.hub.cards.${card}.allows`)}</SheetDescription>
                             </SheetHeader>
                             <SheetBody>
+                                <ConnectionGuide card={card} />
                                 {card === 'web' ? (
                                     <WebSheet
                                         sites={sites.data}

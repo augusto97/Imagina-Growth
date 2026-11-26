@@ -29,6 +29,7 @@ final class PlatformSettingsPresenter
         private readonly SesClientFactory $ses,
         private readonly InstallationDoctor $doctor,
         private readonly ProviderRegistry $providers,
+        private readonly SetupGuideValues $guide,
     ) {}
 
     /** @return array{sections: list<array<string, mixed>>} */
@@ -41,7 +42,13 @@ final class PlatformSettingsPresenter
             foreach (PlatformSettingsRegistry::section($section) as $definition) {
                 $fields[] = $this->field($definition, $values[$definition->key] ?? null);
             }
-            $sections[] = ['key' => $section, 'fields' => $fields, 'info' => $this->info($section)];
+            $info = $this->info($section);
+            // Lo que la guía paso a paso muestra para copiar en la consola de cada proveedor.
+            $guide = $this->guide->for($section);
+            if ($guide !== []) {
+                $info['guide'] = $guide;
+            }
+            $sections[] = ['key' => $section, 'fields' => $fields, 'info' => $info];
         }
 
         return ['sections' => $sections];

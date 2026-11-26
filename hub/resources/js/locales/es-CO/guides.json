@@ -1,0 +1,791 @@
+{
+    "guides": {
+        "ui": {
+            "title": "Guía paso a paso",
+            "show": "Ver la guía",
+            "hide": "Ocultar la guía",
+            "progress": "{{done}} de {{total}} listos",
+            "progressHelp": "Cuentan los pasos que se comprueban con lo guardado en esta sección; los demás se hacen en la consola del proveedor.",
+            "minutes": "Unos {{minutes}} minutos, sin contar las revisiones del proveedor.",
+            "before": "Antes de empezar",
+            "stepsTitle": "Pasos",
+            "status": {
+                "done": "Listo",
+                "todo": "Pendiente",
+                "unknown": "Se hace en la consola del proveedor"
+            },
+            "problems": "Si algo falla",
+            "check": "Cómo saber que funcionó",
+            "copyAll": "Copiar todo",
+            "copyValue": "Copiar {{thing}}",
+            "opensNewTab": "(se abre en otra pestaña)",
+            "connection": {
+                "title": "Antes de conectar",
+                "summary": "Qué necesitas y lo que suele fallar",
+                "need": "Lo que necesitas",
+                "steps": "Paso a paso",
+                "notes": "Bueno saber",
+                "problems": "Lo que suele fallar"
+            }
+        },
+        "links": {
+            "metaBusiness": "Configuración del negocio en Meta",
+            "metaSecurity": "Centro de seguridad de Meta",
+            "metaApps": "Mis apps de Meta",
+            "metaTechProvider": "Guía de proveedor de tecnología",
+            "metaLoginBusiness": "Facebook Login for Business",
+            "metaDataDeletion": "Qué pide Meta para el borrado de datos",
+            "metaLeadTest": "Prueba de anuncios para clientes potenciales",
+            "googleConsole": "Crear el proyecto en Google Cloud",
+            "googleLibrary": "Biblioteca de API",
+            "googleBranding": "Marca (Google Auth Platform)",
+            "googleAudience": "Público (Google Auth Platform)",
+            "googleDataAccess": "Acceso a los datos (Google Auth Platform)",
+            "googleClients": "Clientes (Google Auth Platform)",
+            "googleSearchConsole": "Search Console",
+            "googleAdsAccess": "Niveles de acceso de la Google Ads API",
+            "googleVerification": "Verificación de alcances sensibles",
+            "tiktokPortal": "Portal de TikTok API for Business",
+            "awsSes": "Amazon SES",
+            "awsSns": "Amazon SNS",
+            "awsIam": "Usuarios de IAM",
+            "awsSandbox": "Salir del sandbox de SES",
+            "emailitSmtp": "SMTP de Emailit",
+            "brevoSmtp": "Claves SMTP de Brevo",
+            "googleAppPasswords": "Contraseñas de aplicación de Google",
+            "anthropicKeys": "Claves de API de Claude",
+            "anthropicWorkspaces": "Espacios de trabajo y límites de gasto",
+            "anthropicBilling": "Facturación de la consola de Claude",
+            "betterStack": "Better Stack Uptime",
+            "betterStackDocs": "Cómo funcionan los heartbeats"
+        },
+        "values": {
+            "site_url": "URL del sitio (página principal)",
+            "domain": "Dominio de la app",
+            "callback_url": "URI de redireccionamiento (OAuth)",
+            "webhook_url": "URL del webhook",
+            "whatsapp_fields": "Campos del webhook de WhatsApp",
+            "page_fields": "Campos del objeto Page (Messenger y Lead Ads)",
+            "instagram_fields": "Campos del objeto Instagram",
+            "whatsapp_permissions": "Permisos de «WhatsApp con un clic»",
+            "login_permissions": "Permisos de «Anuncios y mensajes»",
+            "authorized_domain": "Dominio autorizado",
+            "scopes": "Alcances",
+            "legacy_callback_url": "URI del cliente anterior de la agenda",
+            "configuration_set": "Configuration set",
+            "iam_policy": "Política de IAM del usuario",
+            "sns_policy_statement": "Declaración para la política del tema de SNS"
+        },
+        "valuesHelp": {
+            "legacy_callback_url": "Déjala registrada en el cliente viejo de la agenda: quienes ya conectaron su calendario siguen con él.",
+            "iam_policy": "Pégala como política en línea del usuario (pestaña JSON).",
+            "sns_policy_statement": "Agrégala dentro de «Statement» en la política de acceso del tema.",
+            "incomplete": "Todavía faltan la región o el tema de SNS: guárdalos y la política aparece con tu cuenta y tu región en lugar de <región> y <cuenta>."
+        },
+        "platform": {
+            "mail": {
+                "intro": "Con este correo salen las invitaciones, la recuperación de contraseña, los informes y los avisos. Sirve cualquier proveedor que dé un servidor SMTP (Emailit, Brevo, Google Workspace…) o Amazon SES.",
+                "before": [
+                    "Un dominio propio para el remitente (por ejemplo, no-responder@tuempresa.com) y acceso a su DNS.",
+                    "Una cuenta en un proveedor de correo. Para pocos correos sirve Google Workspace; para más volumen, Emailit, Brevo o Amazon SES."
+                ],
+                "steps": {
+                    "provider": {
+                        "title": "Elige el proveedor y busca sus datos SMTP",
+                        "body": [
+                            "Cada proveedor da un servidor, un puerto, un usuario y una contraseña o clave SMTP. Los más comunes:",
+                            "Emailit: servidor smtp.emailit.com, puerto 587 con «STARTTLS» (o 2525 con «STARTTLS» si tu red bloquea el 587, o 465 con «SSL/TLS»). Usuario: emailit. Contraseña: una clave de API de Emailit, que empieza por secret_.",
+                            "Brevo: servidor smtp-relay.brevo.com, puerto 587 con «STARTTLS». Usuario: el «Login» que aparece en la página SMTP de Brevo (no siempre es tu correo). Contraseña: una clave SMTP de esa página, no una clave de API.",
+                            "Gmail o Google Workspace: servidor smtp.gmail.com, puerto 587 con «STARTTLS» (o 465 con «SSL/TLS»). Usuario: la dirección completa. Contraseña: una contraseña de aplicación de 16 caracteres, que necesita la verificación en dos pasos (en Workspace, que el administrador la permita). Tiene un tope diario bajo: úsalo para empezar."
+                        ]
+                    },
+                    "domain": {
+                        "title": "Verifica tu dominio en el proveedor",
+                        "body": [
+                            "En el panel del proveedor agrega tu dominio y copia en tu DNS los registros que te da (SPF, DKIM y el de verificación si lo pide). Sin esto el correo cae en spam o el proveedor no deja usar ese remitente.",
+                            "Si no tienes un registro DMARC, agrégalo (por ejemplo, v=DMARC1; p=none). Gmail y Yahoo lo piden a quien envía muchos correos."
+                        ]
+                    },
+                    "server": {
+                        "title": "Escribe el servidor, el puerto y el cifrado",
+                        "body": [
+                            "Abajo, en «Cómo se envía», elige «Servidor de correo (SMTP)» y llena «Servidor de correo», «Puerto» y «Cifrado».",
+                            "El cifrado tiene que ir con el puerto: el 465 usa «SSL/TLS»; el 587 y el 2525 usan «STARTTLS». Si los mezclas, el panel no te deja guardar."
+                        ]
+                    },
+                    "login": {
+                        "title": "Pon el usuario y la contraseña",
+                        "body": [
+                            "Llena «Usuario» y «Contraseña» con los datos SMTP del proveedor. La contraseña se guarda cifrada y no se vuelve a mostrar: si la cambias en el proveedor, escribe la nueva aquí."
+                        ]
+                    },
+                    "sender": {
+                        "title": "Elige el remitente y guarda",
+                        "body": [
+                            "En «Correo del remitente» usa una dirección del dominio que verificaste (no la de ejemplo hello@example.com). En «Nombre del remitente», cómo quieres que aparezca: por ejemplo, el nombre de tu agencia.",
+                            "Pulsa «Guardar»."
+                        ]
+                    },
+                    "test": {
+                        "title": "Envía un correo de prueba",
+                        "body": [
+                            "Con lo guardado, escribe en «Enviar la prueba a» (debajo de esta guía) a qué dirección enviarla y pulsa «Enviar prueba». Si el servidor lo acepta verás su respuesta y el ID del mensaje; si no, el motivo en palabras."
+                        ]
+                    }
+                },
+                "problems": [
+                    {
+                        "problem": "«wrong version number» o «Falló el cifrado»",
+                        "fix": "El cifrado no va con el puerto: 465 con «SSL/TLS»; 587 o 2525 con «STARTTLS»."
+                    },
+                    {
+                        "problem": "Error 535 o «usuario o contraseña»",
+                        "fix": "Copia otra vez el usuario y la clave SMTP. En Brevo el usuario es el «Login» de la página SMTP; en Gmail, una contraseña de aplicación, no la de tu cuenta."
+                    },
+                    {
+                        "problem": "«No se pudo conectar» o tiempo agotado",
+                        "fix": "Revisa el servidor y el puerto. Muchos servidores bloquean la salida por el 25 y algunos por el 465: prueba el 587 o el 2525."
+                    },
+                    {
+                        "problem": "El servidor lo aceptó pero no llega",
+                        "fix": "Revisa la carpeta de spam, que el dominio del remitente esté verificado en el proveedor (SPF y DKIM) y el registro de envíos del proveedor con el ID del mensaje."
+                    },
+                    {
+                        "problem": "«Falta el correo del remitente»",
+                        "fix": "Escribe en «Correo del remitente» una dirección de tu dominio y guarda."
+                    }
+                ],
+                "check": "La prueba dice «El servidor de correo lo aceptó» y el correo llega a la bandeja de entrada, no a spam. Después invita a alguien desde Plataforma → Clientes: la invitación debe llegar."
+            },
+            "ses": {
+                "intro": "Con la cuenta de Amazon SES de la plataforma envían correo los clientes que no tienen su propio servidor, y también puede salir el correo de la plataforma. Las entregas, los rebotes y las quejas llegan por un tema de SNS.",
+                "before": [
+                    "Una cuenta de AWS con un método de pago.",
+                    "Elegir una región (por ejemplo, us-east-1) y usar la misma para SES, el tema de SNS y estos ajustes.",
+                    "Acceso al DNS del dominio de la plataforma."
+                ],
+                "steps": {
+                    "region": {
+                        "title": "Elige la región",
+                        "body": [
+                            "En la consola de AWS, arriba a la derecha, elige la región donde vas a usar SES y escríbela abajo en «Región» (por ejemplo, us-east-1). Lo demás va en esa misma región."
+                        ]
+                    },
+                    "identity": {
+                        "title": "Verifica tu dominio en SES",
+                        "body": [
+                            "En SES → Identidades → Crear identidad, elige «Dominio», escribe tu dominio y deja Easy DKIM.",
+                            "Copia en tu DNS los registros CNAME de DKIM que te da AWS. La identidad pasa a «Verificada» cuando AWS los ve (desde minutos hasta 72 horas).",
+                            "Los dominios de los clientes no se verifican a mano: el hub los crea en esta cuenta cuando el cliente conecta su correo y le muestra sus registros."
+                        ]
+                    },
+                    "sandbox": {
+                        "title": "Sal del modo de prueba (sandbox)",
+                        "body": [
+                            "Una cuenta nueva de SES está en sandbox: solo envía a direcciones verificadas y pocos correos al día.",
+                            "En el panel de la cuenta de SES pide el acceso a producción y explica qué correos envías (transaccionales y de marketing con consentimiento y enlace de baja). AWS suele responder en un día. La aprobación es por región."
+                        ]
+                    },
+                    "topic": {
+                        "title": "Crea el tema de SNS de los avisos",
+                        "body": [
+                            "En SNS → Temas → Crear tema, elige «Estándar» (SES no acepta FIFO) y ponle un nombre, por ejemplo igr-ses.",
+                            "En la política de acceso del tema agrega la declaración de abajo: deja que SES publique en el tema solo desde el configuration set de la plataforma.",
+                            "Crea una suscripción al tema con el protocolo HTTPS y la URL del webhook de abajo. El hub la confirma solo.",
+                            "Copia el ARN del tema y pégalo abajo en «Tema de SNS de los avisos»."
+                        ]
+                    },
+                    "user": {
+                        "title": "Crea el usuario de IAM y su clave",
+                        "body": [
+                            "En IAM → Usuarios → Crear usuario (sin acceso a la consola), agrega una política en línea con el JSON de abajo: deja enviar, crear las identidades de los dominios y preparar el configuration set.",
+                            "En el usuario: Credenciales de seguridad → Crear clave de acceso. Pega el ID en «ID de la clave de acceso de AWS» y la clave secreta en «Clave de acceso secreta de AWS» (AWS la muestra una sola vez). Pulsa «Guardar»."
+                        ]
+                    },
+                    "prepare": {
+                        "title": "Prepara los avisos de entrega",
+                        "body": [
+                            "Pulsa «Preparar ahora» (debajo de esta guía): crea el configuration set y su destino de avisos hacia tu tema. Si a la clave le falta un permiso, el resultado dice cuál.",
+                            "Después se repite solo cada noche y cuando un cliente conecta un dominio."
+                        ]
+                    }
+                },
+                "problems": [
+                    {
+                        "problem": "«Email address is not verified»",
+                        "fix": "La cuenta sigue en sandbox o el dominio del remitente no está verificado en esa región."
+                    },
+                    {
+                        "problem": "«Falta el permiso ses:…»",
+                        "fix": "Agrega ese permiso a la política del usuario de IAM (la de arriba ya los trae) y pulsa «Preparar ahora»."
+                    },
+                    {
+                        "problem": "No llegan entregas ni rebotes",
+                        "fix": "La política del tema no deja publicar a SES, la suscripción HTTPS no está confirmada o el ARN guardado es de otro tema o de otra región."
+                    },
+                    {
+                        "problem": "AWS pone la cuenta en revisión",
+                        "fix": "Pasa cuando los rebotes o las quejas suben (AWS revisa desde el 5 % de rebotes y el 0,1 % de quejas). Revisa la reputación en el panel de la cuenta de SES y limpia las listas."
+                    }
+                ],
+                "check": "«Preparar ahora» dice «Listo». Con un cliente que envía por SES, el tablero de mensajes muestra entregas y aperturas al rato de enviar."
+            },
+            "meta": {
+                "intro": "Con una sola app de Meta los clientes conectan WhatsApp, sus anuncios (conversiones y audiencias), Messenger, Instagram y los clientes potenciales de sus anuncios con un clic. La plataforma es proveedor de tecnología: cada cliente usa su propio número y paga sus mensajes a Meta.",
+                "before": [
+                    "Un portafolio comercial de Meta (Business Manager) de la empresa, con permisos de administrador.",
+                    "Páginas públicas con la política de privacidad, los términos del servicio y cómo pedir que se borren los datos. Meta las pide y las revisa; la plataforma no las trae, así que publícalas en el sitio de tu empresa.",
+                    "Un logo cuadrado de 1024 × 1024 px, un correo de soporte y los datos legales de la empresa.",
+                    "Tiempo para las revisiones de Meta: la del negocio y la de los permisos pueden tardar de días a semanas."
+                ],
+                "steps": {
+                    "legal": {
+                        "title": "Publica las páginas legales",
+                        "body": [
+                            "Publica en el sitio de tu empresa la política de privacidad, los términos y una página que explique cómo pedir que se borren los datos (por ejemplo, escribiendo a tu correo de soporte). Deben decir qué datos de Meta usa la plataforma y para qué.",
+                            "Para el borrado, Meta acepta una página con instrucciones o una dirección de devolución de llamada; con la página de instrucciones basta."
+                        ]
+                    },
+                    "business": {
+                        "title": "Verifica el negocio en Meta",
+                        "body": [
+                            "En la configuración del negocio de Meta, en el Centro de seguridad, inicia la verificación con el nombre legal, la dirección, el teléfono y el sitio web. Es obligatoria antes de la revisión de la app."
+                        ]
+                    },
+                    "app": {
+                        "title": "Crea la app",
+                        "body": [
+                            "En Mis apps → Crear app, conéctala a tu portafolio y elige los casos de uso de WhatsApp, anuncios (Marketing API), Messenger e Instagram. Tiene que ser de tipo Business.",
+                            "En Configuración de la app → Básica llena el ícono, la categoría, el correo de contacto, las URL de privacidad, términos y borrado de datos, la URL del sitio y el dominio de abajo.",
+                            "Copia el «Identificador de la app» y la «Clave secreta de la app» y pégalos abajo en los campos del mismo nombre."
+                        ]
+                    },
+                    "login": {
+                        "title": "Configura Facebook Login for Business",
+                        "body": [
+                            "En Facebook Login for Business → Configuración, activa el inicio de sesión de OAuth web y del cliente, «Forzar HTTPS», el modo estricto para los URI y el inicio de sesión con el SDK de JavaScript.",
+                            "Pon el dominio de abajo en «Dominios permitidos para el SDK de JavaScript» y la URI de redireccionamiento en «URI de redireccionamiento de OAuth válidos». La ventana de WhatsApp solo funciona si el dominio está en los dos."
+                        ]
+                    },
+                    "whatsapp": {
+                        "title": "Crea la configuración de WhatsApp con un clic",
+                        "body": [
+                            "En Facebook Login for Business → Configuraciones → Crear configuración, elige la variación «WhatsApp Embedded Signup» y el token de usuario del sistema; si te deja elegir el vencimiento, elige que no venza.",
+                            "Elige el producto WhatsApp Cloud API (y Marketing Messages si lo vas a usar) y los permisos de abajo. Copia el ID de la configuración en «Configuración de WhatsApp con un clic».",
+                            "Para que cualquier negocio pueda conectar su número, en Casos de uso → WhatsApp completa el registro como proveedor de tecnología (Tech Provider)."
+                        ]
+                    },
+                    "ads": {
+                        "title": "Crea la configuración de anuncios y mensajes",
+                        "body": [
+                            "Crea otra configuración, variación «General», con token de usuario del sistema que no vence. Activos: cuentas publicitarias, píxeles o conjuntos de datos, páginas y cuentas de Instagram. Permisos: los de abajo.",
+                            "Copia su ID en «Configuración de anuncios y mensajes»."
+                        ]
+                    },
+                    "webhooks": {
+                        "title": "Conecta los webhooks",
+                        "body": [
+                            "Abajo, en «Token de verificación del webhook», pulsa «Generar», cópialo y guarda.",
+                            "En la app, WhatsApp → Configuración → Webhook: pon la URL de abajo y ese token, y suscribe los campos de WhatsApp. Se hace una sola vez para todos los clientes.",
+                            "En Webhooks, en los objetos «Page» (Messenger y Lead Ads) e «Instagram», la misma URL y el mismo token con sus campos."
+                        ]
+                    },
+                    "review": {
+                        "title": "Pide la revisión de los permisos",
+                        "body": [
+                            "En Revisión de la app pide acceso avanzado a cada permiso de las dos configuraciones (y a public_profile). Por cada uno: una explicación, un video que muestre su uso en la plataforma y al menos una llamada exitosa en los últimos 30 días. Por eso conecta primero tu propio negocio desde Configuración → Conexiones.",
+                            "Para Lead Ads, la herramienta de prueba de anuncios para clientes potenciales envía un lead de prueba que se ve llegar."
+                        ]
+                    },
+                    "live": {
+                        "title": "Publica la app y prueba",
+                        "body": [
+                            "Pasa la app a modo «Activo». Mientras esté en desarrollo, solo pueden conectarse las personas que tienen un rol en la app.",
+                            "Conecta WhatsApp y los anuncios de tu propio negocio desde Configuración → Conexiones. Este paso queda listo cuando hay al menos un número o una cuenta de Meta conectados."
+                        ]
+                    }
+                },
+                "problems": [
+                    {
+                        "problem": "La tarjeta del cliente dice «No disponible»",
+                        "fix": "Falta un dato de esta sección: la tarjeta dice cuál."
+                    },
+                    {
+                        "problem": "«URL bloqueada» o «redirect_uri no coincide»",
+                        "fix": "La URI de redireccionamiento debe ser exactamente la de esta guía: con https y sin barra al final."
+                    },
+                    {
+                        "problem": "La ventana de WhatsApp se cierra sin conectar",
+                        "fix": "El dominio no está en «Dominios permitidos» y en la URI de redireccionamiento, o el navegador bloquea las ventanas emergentes."
+                    },
+                    {
+                        "problem": "WhatsApp conectado pero no llegan mensajes a la bandeja",
+                        "fix": "Falta suscribir el webhook de WhatsApp, o la «Clave secreta de la app» no es la de esta app (el hub rechaza los avisos con firma inválida)."
+                    },
+                    {
+                        "problem": "No aparece lo que el negocio escribe desde el celular",
+                        "fix": "Faltan los campos smb_message_echoes, history o smb_app_state_sync en el webhook de WhatsApp."
+                    },
+                    {
+                        "problem": "Meta rechaza la revisión",
+                        "fix": "Casi siempre es el video: debe mostrar el permiso en uso dentro de la plataforma, de principio a fin, y haber una llamada exitosa en los últimos 30 días."
+                    }
+                ],
+                "check": "En Configuración → Conexiones, las tarjetas de WhatsApp y Meta dicen «Sin conectar» (listas para usar) en lugar de «No disponible». Conecta tu número: un mensaje que te escriban debe aparecer en la bandeja."
+            },
+            "google": {
+                "intro": "Un solo cliente OAuth de Google sirve para que los clientes conecten Google Ads (conversiones y audiencias), Analytics y su Google Calendar con un clic.",
+                "before": [
+                    "Una cuenta de Google con permiso para crear proyectos en Google Cloud.",
+                    "El dominio principal verificado en Search Console, con la página de inicio, la de privacidad y la de términos en ese dominio.",
+                    "Un logo y un correo de soporte.",
+                    "Tiempo para la verificación de Google: de unos días a dos semanas hábiles."
+                ],
+                "steps": {
+                    "project": {
+                        "title": "Crea el proyecto y habilita las API",
+                        "body": [
+                            "En Google Cloud crea un proyecto, por ejemplo «Imagina Growth».",
+                            "En la Biblioteca de API habilita Google Ads API, Data Manager API, Google Analytics Admin API y Google Calendar API."
+                        ]
+                    },
+                    "branding": {
+                        "title": "Llena la marca de la app",
+                        "body": [
+                            "En Google Auth Platform → Marca: el nombre de la app, el correo de soporte, el logo, la página principal, la política de privacidad y los términos.",
+                            "En «Dominios autorizados» agrega el dominio principal de abajo (ahí Google no acepta subdominios) y verifícalo en Search Console con una cuenta que sea propietaria o editora del proyecto."
+                        ]
+                    },
+                    "audience": {
+                        "title": "Pon la app en producción",
+                        "body": [
+                            "En Público elige «Externo» y publica la app para pasarla a «En producción». En «Prueba» solo entran los usuarios de prueba y sus conexiones se caen cada 7 días."
+                        ]
+                    },
+                    "scopes": {
+                        "title": "Agrega los alcances",
+                        "body": [
+                            "En Acceso a los datos agrega exactamente los alcances de abajo: son los que pide la plataforma. Los de Ads, Analytics y Calendar son sensibles y necesitan verificación."
+                        ]
+                    },
+                    "client": {
+                        "title": "Crea el cliente OAuth",
+                        "body": [
+                            "En Clientes → Crear cliente, elige «Aplicación web» y agrega la URI de redireccionamiento autorizada de abajo.",
+                            "Copia el «ID de cliente» y el «Secreto del cliente» y pégalos abajo en los campos del mismo nombre. Pulsa «Guardar»."
+                        ]
+                    },
+                    "ads": {
+                        "title": "Pide el acceso a la Google Ads API",
+                        "body": [
+                            "El token de desarrollador ya no hace falta: el nivel de acceso es del proyecto. En la consola, en la página de la Google Ads API, pide el nivel «Explorer» (Google puede aprobarlo solo) o «Basic». Con «Test» solo funcionan las cuentas de prueba.",
+                            "Deja vacío «Token de desarrollador de Google Ads» salvo que Google te lo pida."
+                        ]
+                    },
+                    "verification": {
+                        "title": "Envía la app a verificación",
+                        "body": [
+                            "En Google Auth Platform envía la marca y los alcances sensibles a verificación: un video del flujo completo (el botón «Conectar con un clic», la pantalla de permisos y qué hace la plataforma con cada uno) y por qué necesitas cada alcance.",
+                            "Google publica de 2 a 3 días hábiles para la marca y de 3 a 10 para los alcances sensibles. Planea con el más largo."
+                        ]
+                    }
+                },
+                "problems": [
+                    {
+                        "problem": "«Esta app no está verificada»",
+                        "fix": "La verificación sigue en curso: mientras tanto hay un tope de usuarios y la pantalla muestra una advertencia."
+                    },
+                    {
+                        "problem": "Las conexiones de Google se caen cada semana",
+                        "fix": "La app sigue en «Prueba»: pásala a «En producción»."
+                    },
+                    {
+                        "problem": "«redirect_uri_mismatch»",
+                        "fix": "La URI del cliente debe ser exactamente la de esta guía."
+                    },
+                    {
+                        "problem": "«AUTHORIZATION_ERROR» al usar Google Ads",
+                        "fix": "El proyecto no tiene el nivel Explorer o Basic, o acaba de subir de nivel: revísalo en la página de la Google Ads API."
+                    },
+                    {
+                        "problem": "No deja agregar el dominio autorizado",
+                        "fix": "Usa el dominio principal (sin subdominio) y verifícalo antes en Search Console."
+                    }
+                ],
+                "check": "En Configuración → Conexiones, la tarjeta de Google dice «Sin conectar» en lugar de «No disponible». Conecta tu propia cuenta: debe dejarte elegir la cuenta de Google Ads y la propiedad de Analytics."
+            },
+            "tiktok": {
+                "intro": "Con la app de TikTok for Business los clientes envían sus ventas a TikTok (Events API), sincronizan audiencias y traen el gasto de sus campañas.",
+                "before": [
+                    "Una cuenta de TikTok for Business de la empresa.",
+                    "Los datos de la empresa para registrarte como desarrollador."
+                ],
+                "steps": {
+                    "developer": {
+                        "title": "Regístrate como desarrollador",
+                        "body": [
+                            "Entra al portal de TikTok API for Business con tu cuenta de TikTok for Business y completa el registro de desarrollador con los datos de la empresa."
+                        ]
+                    },
+                    "app": {
+                        "title": "Crea la app",
+                        "body": [
+                            "En «My Apps» → «Create New App» escribe el nombre y la descripción, y en «Advertiser redirect URL» la dirección de abajo.",
+                            "Pide los permisos de la cuenta de anuncios (administración e información), reportes (gasto), administración de audiencias y medición o píxeles (Events API)."
+                        ]
+                    },
+                    "review": {
+                        "title": "Espera la revisión",
+                        "body": [
+                            "TikTok revisa la app; quienes ya pasaron por ahí reportan de 2 a 7 días hábiles. Mientras tanto puedes probar con una cuenta de anuncios de prueba."
+                        ]
+                    },
+                    "keys": {
+                        "title": "Pega el App ID y el Secret",
+                        "body": [
+                            "Copia el «App ID» y el «Secret» de la app y pégalos abajo. Pulsa «Guardar»."
+                        ]
+                    }
+                },
+                "problems": [
+                    {
+                        "problem": "La tarjeta de TikTok dice «No disponible»",
+                        "fix": "Falta el App ID o el Secret."
+                    },
+                    {
+                        "problem": "TikTok dice que la dirección de retorno no coincide",
+                        "fix": "La «Advertiser redirect URL» debe ser exactamente la de esta guía."
+                    },
+                    {
+                        "problem": "No aparecen los píxeles o las cuentas",
+                        "fix": "La app no tiene aprobados los permisos de medición o de la cuenta de anuncios, o quien conectó no administra esa cuenta."
+                    }
+                ],
+                "check": "La tarjeta de TikTok en Configuración → Conexiones dice «Sin conectar». Conecta tu cuenta y elige el anunciante y el píxel."
+            },
+            "ai": {
+                "intro": "La IA escribe el informe semanal, responde «Pregúntale a tus datos», ayuda con las campañas y atiende como agente de ventas. Funciona con la API de Anthropic (Claude); sin clave, todo sigue con plantillas sin IA.",
+                "before": [
+                    "Una cuenta en la consola de Claude con un método de pago o créditos."
+                ],
+                "steps": {
+                    "account": {
+                        "title": "Crea la cuenta y agrega saldo",
+                        "body": [
+                            "Entra a la consola de Claude, crea tu organización y, en Facturación, agrega un método de pago o compra créditos."
+                        ]
+                    },
+                    "key": {
+                        "title": "Crea una clave de API",
+                        "body": [
+                            "En la página de claves de API pulsa «Crear clave», ponle un nombre (por ejemplo, «Imagina Growth») y elige el espacio de trabajo. Copia la clave, que empieza por sk-ant-, y pégala abajo en «Clave de Anthropic». Se muestra una sola vez.",
+                            "Conviene un espacio de trabajo solo para la plataforma: así ves su gasto aparte y le pones un límite."
+                        ]
+                    },
+                    "limit": {
+                        "title": "Pon límites de gasto",
+                        "body": [
+                            "En la consola, en el espacio de trabajo de la plataforma, abre los límites de gasto y pon un tope mensual y avisos al llegar a un porcentaje.",
+                            "Abajo, «Tope mensual por cliente (USD)» es el tope de cada espacio de trabajo dentro de la plataforma: cuando un cliente lo alcanza, sus funciones siguen con plantillas sin IA hasta el mes siguiente."
+                        ]
+                    },
+                    "enable": {
+                        "title": "Enciende la IA",
+                        "body": [
+                            "Marca «IA encendida» y guarda. Este paso queda listo cuando la IA está encendida y tiene clave."
+                        ]
+                    }
+                },
+                "problems": [
+                    {
+                        "problem": "Todo sale con plantillas sin IA",
+                        "fix": "Revisa que «IA encendida» esté marcada, que la clave sea válida y que la cuenta tenga saldo."
+                    },
+                    {
+                        "problem": "Error de autenticación (401)",
+                        "fix": "La clave se borró o es de otra organización: crea otra y pégala."
+                    },
+                    {
+                        "problem": "Error de límite (429) o sin saldo",
+                        "fix": "La cuenta llegó a su límite de uso o de gasto: súbelo en la consola o agrega créditos."
+                    },
+                    {
+                        "problem": "Un cliente dice que la IA dejó de funcionar a mitad de mes",
+                        "fix": "Llegó a su «Tope mensual por cliente»: súbelo aquí."
+                    }
+                ],
+                "check": "Abre «Pregúntale a tus datos» en un espacio de trabajo y haz una pregunta: debe responder con cifras de ese negocio."
+            },
+            "monitor": {
+                "intro": "Cada minuto la plataforma se revisa a sí misma y avisa a Better Stack solo de lo que está bien. Si un aviso deja de llegar (algo falla o el servidor se cae), Better Stack te alerta.",
+                "before": [
+                    "Una cuenta de Better Stack Uptime."
+                ],
+                "steps": {
+                    "account": {
+                        "title": "Entra a Better Stack",
+                        "body": [
+                            "Crea la cuenta en Better Stack Uptime y define a quién avisar (correo, SMS, llamada o Slack) en la política de escalamiento."
+                        ]
+                    },
+                    "heartbeats": {
+                        "title": "Crea tres heartbeats",
+                        "body": [
+                            "En Heartbeats crea uno por cada aviso: salud (bases de datos y Redis), ingesta (eventos atrasados) y colas (Horizon y trabajos en espera).",
+                            "Frecuencia: 1 minuto, porque la plataforma avisa cada minuto. Margen: de 3 a 5 minutos, para no alertar por un minuto suelto.",
+                            "Copia la dirección de cada uno y pégala abajo en «Aviso de salud», «Aviso de la ingesta» y «Aviso de las colas». Pulsa «Guardar»."
+                        ]
+                    },
+                    "alerts": {
+                        "title": "Revisa los umbrales y prueba",
+                        "body": [
+                            "Los umbrales de abajo dicen cuándo la ingesta o las colas dejan de estar bien. Los valores por defecto sirven para empezar.",
+                            "Unos minutos después de guardar, cada heartbeat pasa de «Pending» a «Up» en Better Stack."
+                        ]
+                    }
+                },
+                "problems": [
+                    {
+                        "problem": "El heartbeat se queda en «Pending»",
+                        "fix": "La dirección está mal copiada o el servidor no puede salir a internet hacia Better Stack."
+                    },
+                    {
+                        "problem": "Alerta de ingesta o de colas aunque todo parece bien",
+                        "fix": "Los umbrales están bajos para tu volumen o hay un proceso de ingesta o de Horizon detenido: mira Plataforma → Instalación."
+                    },
+                    {
+                        "problem": "Alertan los tres a la vez",
+                        "fix": "El servidor entero no responde o perdió la red."
+                    }
+                ],
+                "check": "Los tres heartbeats aparecen «Up» en Better Stack. Plataforma → Instalación también muestra el estado de los servicios."
+            }
+        },
+        "connections": {
+            "web": {
+                "need": [
+                    "Ser administrador de tu WordPress, para instalar un plugin.",
+                    "Si tienes tienda, WooCommerce 8.5 o más nuevo.",
+                    "Si usas caché (LiteSpeed, WP Rocket, Cloudflare) no hay que cambiar nada: el seguimiento funciona con la página en caché."
+                ],
+                "problems": [
+                    {
+                        "problem": "Dice «Sin datos» horas después",
+                        "fix": "Revisa que WP-Cron corra (algunos hostings lo apagan) y que tu sitio pueda salir a internet. La hoja del sitio dice la causa."
+                    },
+                    {
+                        "problem": "El código de conexión no funciona",
+                        "fix": "Los códigos vencen: pide uno nuevo y pégalo enseguida."
+                    },
+                    {
+                        "problem": "Un firewall o plugin de seguridad bloquea la conexión",
+                        "fix": "Permite en Wordfence, Cloudflare o tu hosting las peticiones del plugin hacia la plataforma."
+                    }
+                ]
+            },
+            "whatsapp": {
+                "need": [
+                    "Un número de celular que pueda recibir un SMS o una llamada para verificarlo.",
+                    "Ser administrador del portafolio comercial de Meta (Business Manager) de tu negocio, o crearlo al conectar.",
+                    "Un método de pago en tu cuenta de WhatsApp de Meta: Meta cobra los mensajes de plantilla (marketing y utilidad)."
+                ],
+                "steps": [
+                    "Pulsa «Conectar WhatsApp con un clic» y entra con tu Facebook.",
+                    "Elige o crea tu portafolio y tu cuenta de WhatsApp Business, y elige el número.",
+                    "Si el número ya está en la app de WhatsApp Business del celular, elige esa opción: lo sigues usando ahí y lo que respondas desde el celular también aparece en la bandeja."
+                ],
+                "notes": [
+                    "WhatsApp no oficial (Zender o Imagina Whats) funciona con WhatsApp Web: sin campañas ni automatizaciones de marketing, con topes de 30 mensajes por hora y 200 al día y con el riesgo de que WhatsApp bloquee el número. Solo el dueño del espacio de trabajo lo puede conectar."
+                ],
+                "problems": [
+                    {
+                        "problem": "«El número ya está registrado en WhatsApp»",
+                        "fix": "Si está en la app normal de WhatsApp (no Business), bórralo de esa app primero, o pásalo a WhatsApp Business y conéctalo en coexistencia."
+                    },
+                    {
+                        "problem": "Pide un PIN de verificación en dos pasos",
+                        "fix": "Usa el PIN del número o quítalo antes en el Administrador de WhatsApp de Meta y usa «Reintentar»."
+                    },
+                    {
+                        "problem": "La ventana se cierra sin conectar",
+                        "fix": "Permite las ventanas emergentes en el navegador y vuelve a intentar."
+                    },
+                    {
+                        "problem": "«No tienes permiso» en el portafolio",
+                        "fix": "Pide a quien administra tu Business Manager que te haga administrador o que conecte él."
+                    },
+                    {
+                        "problem": "Los mensajes de marketing no salen",
+                        "fix": "Revisa en Meta que la cuenta de WhatsApp tenga un método de pago y que la plantilla esté aprobada."
+                    }
+                ]
+            },
+            "messenger": {
+                "need": [
+                    "Ser administrador de la página de Facebook de tu negocio.",
+                    "Que la página esté en tu portafolio comercial de Meta."
+                ],
+                "steps": [
+                    "Pulsa «Conectar con Meta», entra con tu Facebook y da acceso a la página.",
+                    "Pulsa «Elegir la página» y elige la de tu negocio."
+                ],
+                "problems": [
+                    {
+                        "problem": "No aparece mi página",
+                        "fix": "Tu usuario no es administrador de la página o no la marcaste al dar permisos: vuelve a conectar y márcala."
+                    },
+                    {
+                        "problem": "No puedo responder un mensaje viejo",
+                        "fix": "Messenger deja responder libremente dentro de las 24 horas del último mensaje del cliente; una persona del equipo tiene hasta 7 días."
+                    }
+                ]
+            },
+            "instagram": {
+                "need": [
+                    "Una cuenta profesional de Instagram (de empresa o de creador) vinculada a la página de Facebook de tu negocio.",
+                    "Ser administrador de esa página.",
+                    "En la app de Instagram, permitir el acceso a los mensajes desde herramientas conectadas (en la configuración de mensajes)."
+                ],
+                "steps": [
+                    "Pulsa «Conectar con Meta» y da acceso a la página y a la cuenta de Instagram.",
+                    "Pulsa «Elegir la página» y elige la vinculada a tu Instagram."
+                ],
+                "problems": [
+                    {
+                        "problem": "No aparece la cuenta de Instagram",
+                        "fix": "No es profesional o no está vinculada a la página: vincúlala desde la configuración de la página de Facebook."
+                    },
+                    {
+                        "problem": "No llegan los mensajes",
+                        "fix": "Falta permitir el acceso a los mensajes en la app de Instagram."
+                    },
+                    {
+                        "problem": "No puedo responder",
+                        "fix": "Instagram solo deja responder dentro de las 24 horas del último mensaje del cliente."
+                    }
+                ]
+            },
+            "email": {
+                "need": [
+                    "Un dominio propio para el remitente (por ejemplo, hola@tutienda.com).",
+                    "Acceso al DNS de ese dominio: donde lo compraste, Cloudflare o tu hosting."
+                ],
+                "steps": [
+                    "Elige cómo enviar: con tu dominio por la plataforma (si tu plan lo incluye) o con tu propio servidor SMTP.",
+                    "Con la plataforma, copia en tu DNS los registros que te da la hoja y espera a que el dominio quede verificado (desde minutos hasta 72 horas).",
+                    "Envía una prueba."
+                ],
+                "problems": [
+                    {
+                        "problem": "El dominio no se verifica",
+                        "fix": "Revisa que copiaste los registros exactos y sin repetir el dominio al final (algunos DNS lo agregan solos)."
+                    },
+                    {
+                        "problem": "Los correos llegan a spam",
+                        "fix": "Falta SPF, DKIM o DMARC, o el remitente es de un dominio distinto al verificado."
+                    },
+                    {
+                        "problem": "Con mi servidor SMTP falla la prueba",
+                        "fix": "Revisa el servidor, el puerto y el cifrado: 465 con SSL/TLS; 587 con STARTTLS."
+                    }
+                ]
+            },
+            "sms": {
+                "need": [
+                    "Una cuenta de Twilio con saldo y un número que pueda enviar SMS a tu país."
+                ],
+                "steps": [
+                    "En la consola de Twilio copia el Account SID, el Auth Token y el número de envío.",
+                    "Pégalos aquí y envía una prueba."
+                ],
+                "problems": [
+                    {
+                        "problem": "El SMS no llega",
+                        "fix": "El número de Twilio no tiene permiso para enviar a ese país o falta registrar el remitente según las reglas del país."
+                    }
+                ]
+            },
+            "meta": {
+                "need": [
+                    "Ser administrador de la cuenta publicitaria y del píxel (conjunto de datos) en tu portafolio comercial de Meta.",
+                    "Una cuenta publicitaria activa y con método de pago."
+                ],
+                "steps": [
+                    "Pulsa «Conectar con Meta» y entra con tu Facebook.",
+                    "Da acceso a la cuenta publicitaria, al píxel y, si los usas, a la página y a la cuenta de Instagram.",
+                    "Pulsa «Elegir cuentas» y elige la cuenta publicitaria y el píxel al que se envían las ventas."
+                ],
+                "problems": [
+                    {
+                        "problem": "No aparece mi cuenta o mi píxel",
+                        "fix": "Tu usuario no es administrador de ese activo en el Business Manager o no lo marcaste al dar permisos: vuelve a conectar."
+                    },
+                    {
+                        "problem": "Meta no muestra las conversiones del servidor",
+                        "fix": "Revisa en el Administrador de eventos que el píxel sea el mismo que elegiste aquí. La deduplicación con el píxel del navegador tarda unas horas en verse."
+                    },
+                    {
+                        "problem": "La cuenta publicitaria está deshabilitada o sin pago",
+                        "fix": "Resuélvelo en Meta: sin una cuenta activa no se crean audiencias."
+                    }
+                ]
+            },
+            "google": {
+                "need": [
+                    "Acceso a tu cuenta de Google Ads (administrador o estándar).",
+                    "Si usas Analytics, ser editor de la propiedad de GA4."
+                ],
+                "steps": [
+                    "Pulsa «Conectar con Google» y entra con la cuenta que administra tus anuncios.",
+                    "Acepta los permisos.",
+                    "Pulsa «Elegir cuentas» y elige la cuenta de Google Ads, la acción de conversión y la propiedad de Analytics."
+                ],
+                "problems": [
+                    {
+                        "problem": "No aparece mi cuenta de Google Ads",
+                        "fix": "La cuenta con la que entraste no tiene acceso a ella, o está bajo una cuenta de administrador (MCC): entra con un usuario que tenga acceso directo."
+                    },
+                    {
+                        "problem": "Google dice que la app no está verificada",
+                        "fix": "La plataforma está en verificación con Google: avísale a tu agencia."
+                    },
+                    {
+                        "problem": "Las audiencias no se llenan",
+                        "fix": "Acepta en Google Ads los términos de Customer Match y revisa que tu cuenta cumpla sus requisitos."
+                    }
+                ]
+            },
+            "tiktok": {
+                "need": [
+                    "Ser administrador de tu cuenta de anuncios de TikTok y de su píxel."
+                ],
+                "steps": [
+                    "Pulsa «Conectar con TikTok» y entra con tu cuenta de TikTok for Business.",
+                    "Autoriza al anunciante.",
+                    "Pulsa «Elegir cuentas» y elige el anunciante y el píxel."
+                ],
+                "problems": [
+                    {
+                        "problem": "No aparece el píxel",
+                        "fix": "Créalo primero en el Administrador de eventos de TikTok o pide acceso a quien lo administra."
+                    }
+                ]
+            },
+            "calendar": {
+                "need": [
+                    "La cuenta de Google donde cada persona del equipo tiene el calendario de sus citas."
+                ],
+                "steps": [
+                    "En Agenda → Personas, pulsa «Conectar Google Calendar» en la persona.",
+                    "Entra con su cuenta de Google y acepta los permisos."
+                ],
+                "problems": [
+                    {
+                        "problem": "Las citas no aparecen en el calendario",
+                        "fix": "Revisa que la persona conectó el calendario correcto. Lo ocupado en Google también bloquea esos horarios en la agenda."
+                    }
+                ]
+            }
+        }
+    }
+}
