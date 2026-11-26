@@ -12,9 +12,13 @@ import { BriefCard } from '@/features/leads/BriefCard';
 import { QualificationCard } from '@/features/leads/QualificationCard';
 import { temperatureTone } from '@/features/leads/logic';
 import { useContactPanel } from './api';
+import { initials, sellsOnline } from './lib';
 import type { PanelLead } from './types';
 
-/** El perfil del contacto (columna al lado del chat desde xl; hoja aparte por debajo, InboxPage): pedidos, carrito actual, puntos, segmentos, último producto visto y origen. */
+/**
+ * El perfil del contacto (columna al lado del chat desde xl; hoja aparte por debajo, InboxPage): el lead con su ficha,
+ * grupos y origen y, si vende en línea, pedidos, carrito actual, puntos y último producto visto.
+ */
 export function ContactPanel({ id }: { id: string }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
@@ -39,12 +43,18 @@ export function ContactPanel({ id }: { id: string }) {
     const d = panel.data;
     if (!('contact' in d)) return null;
     const c = d.contact;
+    const store = sellsOnline(workspace);
 
     return (
-        <div className="igr:space-y-4 igr:p-3 igr:text-xs">
-            <div className="igr:min-w-0">
-                <p className="igr:truncate igr:text-sm igr:font-semibold">{c.name}</p>
-                <p className="igr:text-muted-foreground">{[c.phone, c.city].filter(Boolean).join(' · ')}</p>
+        <div className="igr:space-y-4 igr:p-4 igr:text-xs">
+            <div className="igr:flex igr:min-w-0 igr:items-center igr:gap-3">
+                <span aria-hidden className="igr:flex igr:size-10 igr:shrink-0 igr:items-center igr:justify-center igr:rounded-full igr:bg-brand-soft igr:text-sm igr:font-semibold igr:text-brand-soft-foreground">
+                    {initials(c.name)}
+                </span>
+                <div className="igr:min-w-0">
+                    <p className="igr:truncate igr:text-sm igr:font-semibold">{c.name}</p>
+                    <p className="igr:truncate igr:text-muted-foreground">{[c.phone, c.city].filter(Boolean).join(' · ')}</p>
+                </div>
             </div>
             <div className="igr:flex igr:flex-wrap igr:gap-1">
                 {c.lifecycle_stage ? (
@@ -70,64 +80,68 @@ export function ContactPanel({ id }: { id: string }) {
                 ) : null}
             </div>
             {d.lead ? <LeadSection lead={d.lead} /> : null}
-            <dl className="igr:grid igr:grid-cols-2 igr:gap-2">
-                <Fact label={t('inbox.panel.orders')} value={formatNumber(c.orders_count, workspace.locale)} />
-                <Fact label={t('inbox.panel.revenue')} value={money(c.revenue_total)} />
-                <Fact label={t('inbox.panel.points')} value={formatNumber(c.points, workspace.locale)} />
-                <Fact label={t('inbox.panel.wallet')} value={money(c.wallet)} />
-            </dl>
-            <Section title={t('inbox.panel.cart')}>
-                {d.cart ? (
-                    <div className="igr:space-y-1">
-                        <p>
-                            {t('inbox.panel.cartSummary', {
-                                count: d.cart.items_count,
-                                total: money(d.cart.subtotal, d.cart.currency),
-                            })}{' '}
-                            <Badge variant={d.cart.status === 'abandoned' ? 'warning' : 'secondary'}>
-                                {t(`inbox.panel.cartStatus.${d.cart.status}`, {
-                                    defaultValue: d.cart.status,
-                                })}
-                            </Badge>
-                        </p>
-                        <ul className="igr:text-muted-foreground">
-                            {d.cart.items.map((i, k) => (
-                                <li key={k}>
-                                    {i.qty} × {i.name ?? '—'}
+            {store ? (
+                <>
+                <dl className="igr:grid igr:grid-cols-2 igr:gap-2">
+                    <Fact label={t('inbox.panel.orders')} value={formatNumber(c.orders_count, workspace.locale)} />
+                    <Fact label={t('inbox.panel.revenue')} value={money(c.revenue_total)} />
+                    <Fact label={t('inbox.panel.points')} value={formatNumber(c.points, workspace.locale)} />
+                    <Fact label={t('inbox.panel.wallet')} value={money(c.wallet)} />
+                </dl>
+                <Section title={t('inbox.panel.cart')}>
+                    {d.cart ? (
+                        <div className="igr:space-y-1">
+                            <p>
+                                {t('inbox.panel.cartSummary', {
+                                    count: d.cart.items_count,
+                                    total: money(d.cart.subtotal, d.cart.currency),
+                                })}{' '}
+                                <Badge variant={d.cart.status === 'abandoned' ? 'warning' : 'secondary'}>
+                                    {t(`inbox.panel.cartStatus.${d.cart.status}`, {
+                                        defaultValue: d.cart.status,
+                                    })}
+                                </Badge>
+                            </p>
+                            <ul className="igr:text-muted-foreground">
+                                {d.cart.items.map((i, k) => (
+                                    <li key={k}>
+                                        {i.qty} × {i.name ?? '—'}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ) : (
+                        <p className="igr:text-muted-foreground">{t('inbox.panel.noCart')}</p>
+                    )}
+                </Section>
+                <Section title={t('inbox.panel.lastOrders')}>
+                    {d.orders.length === 0 ? (
+                        <p className="igr:text-muted-foreground">{t('inbox.panel.noOrders')}</p>
+                    ) : (
+                        <ul className="igr:space-y-1">
+                            {d.orders.map((o) => (
+                                <li key={o.id} className="igr:flex igr:justify-between igr:gap-2">
+                                    <span>
+                                        #{o.number ?? '—'} ·{' '}
+                                        {t(`orderStatus.${o.status}`, {
+                                            defaultValue: o.status,
+                                        })}
+                                    </span>
+                                    <span className="igr:tabular-nums">{money(o.total, o.currency)}</span>
                                 </li>
                             ))}
                         </ul>
-                    </div>
-                ) : (
-                    <p className="igr:text-muted-foreground">{t('inbox.panel.noCart')}</p>
-                )}
-            </Section>
-            <Section title={t('inbox.panel.lastOrders')}>
-                {d.orders.length === 0 ? (
-                    <p className="igr:text-muted-foreground">{t('inbox.panel.noOrders')}</p>
-                ) : (
-                    <ul className="igr:space-y-1">
-                        {d.orders.map((o) => (
-                            <li key={o.id} className="igr:flex igr:justify-between igr:gap-2">
-                                <span>
-                                    #{o.number ?? '—'} ·{' '}
-                                    {t(`orderStatus.${o.status}`, {
-                                        defaultValue: o.status,
-                                    })}
-                                </span>
-                                <span className="igr:tabular-nums">{money(o.total, o.currency)}</span>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </Section>
-            <Section title={t('inbox.panel.lastViewed')}>
-                <p className={d.last_product_viewed ? '' : 'igr:text-muted-foreground'}>
-                    {d.last_product_viewed
-                        ? `${d.last_product_viewed.name} · ${formatDate(d.last_product_viewed.at, workspace.locale, workspace.timezone)}`
-                        : t('inbox.panel.nothingViewed')}
-                </p>
-            </Section>
+                    )}
+                </Section>
+                <Section title={t('inbox.panel.lastViewed')}>
+                    <p className={d.last_product_viewed ? '' : 'igr:text-muted-foreground'}>
+                        {d.last_product_viewed
+                            ? `${d.last_product_viewed.name} · ${formatDate(d.last_product_viewed.at, workspace.locale, workspace.timezone)}`
+                            : t('inbox.panel.nothingViewed')}
+                    </p>
+                </Section>
+                </>
+            ) : null}
             <Section title={t('inbox.panel.segments')}>
                 {d.segments.length === 0 ? (
                     <p className="igr:text-muted-foreground">—</p>

@@ -1,4 +1,6 @@
-import type { ConversationSummary, QuickReply } from './types';
+import { itemVisible, navContext } from '@/components/layout/nav';
+import type { Workspace } from '@/api/types';
+import type { ConversationSummary, InboxAccount, QuickReply } from './types';
 
 /* Lógica pura de la bandeja (probada con Vitest). */
 
@@ -94,4 +96,31 @@ export function base64UrlToBytes(value: string): Uint8Array {
     const padded = (value + '='.repeat((4 - (value.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/');
     const raw = atob(padded);
     return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+}
+
+/** ¿Vende en línea? (tienda o tienda y servicios): solo entonces el chat ofrece productos, carritos y cupones. */
+export function sellsOnline(workspace: Pick<Workspace, 'abilities' | 'modules' | 'capabilities' | 'connections' | 'upgrade_plans' | 'business_type' | 'vertical'>): boolean {
+    return itemVisible({ audience: 'store' }, navContext({ ...workspace, abilities: [] }));
+}
+
+/** Las cuentas que hay que revisar (desconectadas o con error), para el aviso de arriba de la bandeja. */
+export function accountsNeedingAttention(accounts: readonly InboxAccount[] | undefined): InboxAccount[] {
+    return (accounts ?? []).filter((a) => a.status === 'disconnected' || a.status === 'error');
+}
+
+/** Iniciales para el avatar («Luisa Ortiz» → «LO»; sin nombre, «?»). */
+export function initials(name: string | null | undefined): string {
+    const words = (name ?? '').trim().split(/\s+/).filter((w) => w !== '');
+    if (words.length === 0) return '?';
+    const first = words[0]?.[0] ?? '';
+    const last = words.length > 1 ? (words[words.length - 1]?.[0] ?? '') : '';
+    return (first + last).toUpperCase();
+}
+
+/** Día de un mensaje en la zona del negocio (AAAA-MM-DD), para separar el chat por días. */
+export function dayKey(iso: string | null, timeZone?: string): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 }

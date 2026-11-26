@@ -41,7 +41,7 @@ final class InboxQuery
 {
     /**
      * @param  array{view?: string|null, status?: string|null, label?: string|null, intent?: string|null, q?: string|null, before?: string|null, channel?: string|null}  $f
-     * @return array{data: list<array<string, mixed>>, next_before: string|null, counts: array<string, int>}
+     * @return array{data: list<array<string, mixed>>, next_before: string|null, counts: array<string, int>, accounts: list<array{id: string, channel: string, name: string, identity: string|null, status: string}>}
      */
     public function list(Workspace $workspace, string $userId, bool $seesAll, array $f, int $limit = 30): array
     {
@@ -93,7 +93,24 @@ final class InboxQuery
         ];
 
         /** @var list<array<string, mixed>> $data */
-        return ['data' => $data, 'next_before' => $more && $rows->last()?->last_message_at !== null ? $rows->last()->last_message_at->toIso8601String() : null, 'counts' => $counts];
+        return ['data' => $data, 'next_before' => $more && $rows->last()?->last_message_at !== null ? $rows->last()->last_message_at->toIso8601String() : null, 'counts' => $counts,
+            'accounts' => $this->accounts()];
+    }
+
+    /**
+     * Las cuentas que conversan en la bandeja (WhatsApp, Messenger, Instagram) con su estado, para que la bandeja diga
+     * en palabras si alguna está desconectada o con error y hay que reconectarla para responder.
+     *
+     * @return list<array{id: string, channel: string, name: string, identity: string|null, status: string}>
+     */
+    private function accounts(): array
+    {
+        return array_values(ChannelAccount::query()->whereIn('channel', [Channel::WhatsApp->value, Channel::Messenger->value, Channel::Instagram->value])
+            ->whereIn('status', ['active', 'paused', 'error', 'disconnected'])->orderBy('created_at')->limit(20)->get()
+            ->map(fn (ChannelAccount $a): array => [
+                'id' => $a->publicId(), 'channel' => $a->channel->value, 'name' => (string) $a->display_name,
+                'identity' => $a->identity !== null ? (string) $a->identity : null, 'status' => (string) $a->status,
+            ])->all());
     }
 
     /** @return array<string, mixed> la conversación con sus mensajes (los 50 más recientes antes de `before`) y sus notas */

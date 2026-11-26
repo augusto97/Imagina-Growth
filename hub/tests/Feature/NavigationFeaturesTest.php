@@ -99,6 +99,22 @@ it('dice si la web y los canales están conectados', function () {
         ->and(meWorkspace($this, $this->ws->publicId())['connections']['channels'])->toBe(['whatsapp']);
 });
 
+it('un WhatsApp desconectado con conversaciones deja abrir la bandeja; sin ellas, no', function () {
+    $account = (string) Str::ulid();
+    DB::table('channel_accounts')->insert([
+        'id' => $account, 'workspace_id' => $this->ws->id, 'channel' => 'whatsapp', 'provider' => 'meta_cloud', 'display_name' => 'Ventas',
+        'status' => 'disconnected', 'is_default' => true, 'created_at' => now(), 'updated_at' => now(),
+    ]);
+    expect(meWorkspace($this, $this->ws->publicId())['connections']['channels'])->toBe([]);
+
+    // Su historial sigue: cuenta como canal (la bandeja avisa que hay que reconectarlo para responder).
+    DB::table('conversations')->insert([
+        'id' => (string) Str::ulid(), 'workspace_id' => $this->ws->id, 'contact_id' => (string) Str::ulid(), 'channel_account_id' => $account,
+        'status' => 'closed', 'created_at' => now(), 'updated_at' => now(),
+    ]);
+    expect(meWorkspace($this, $this->ws->publicId())['connections']['channels'])->toBe(['whatsapp']);
+});
+
 it('nombra el plan más barato que incluye cada módulo que falta', function () {
     DB::table('accounts')->where('id', $this->ws->account_id)->update(['plan_id' => 'tienda_inicio']);
     app(PlanResolver::class)->refresh($this->ws);

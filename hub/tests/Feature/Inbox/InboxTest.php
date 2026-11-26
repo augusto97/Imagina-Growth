@@ -122,7 +122,17 @@ it('el agente ve solo lo suyo; dueña y marketing ven todo; nadie ve lo de otro 
     $otherOwner = $this->userWith2fa();
     $other = $this->workspaceFor($otherOwner, 'Otra');
     $this->actingAs($otherOwner)->getJson("/api/w/{$other->publicId()}/inbox/conversations/{$c->publicId()}")->assertNotFound();
-    $this->actingAs($otherOwner)->getJson("/api/w/{$other->publicId()}/inbox/conversations?status=all")->assertOk()->assertJsonCount(0, 'data');
+    $this->actingAs($otherOwner)->getJson("/api/w/{$other->publicId()}/inbox/conversations?status=all")->assertOk()->assertJsonCount(0, 'data')
+        ->assertJsonCount(0, 'accounts');
+});
+
+it('la lista dice el estado de cada cuenta que conversa, para avisar si hay que reconectarla', function () {
+    $list = $this->actingAs($this->owner)->getJson("{$this->api}/conversations")->assertOk();
+    // Solo WhatsApp, Messenger e Instagram: el correo no conversa en la bandeja.
+    expect($list->json('accounts'))->toBe([['id' => $this->wa->publicId(), 'channel' => 'whatsapp', 'name' => 'WhatsApp', 'identity' => '+57 300 0000000', 'status' => 'active']]);
+
+    app(CurrentWorkspace::class)->run($this->ws, fn () => $this->wa->forceFill(['status' => 'disconnected'])->save());
+    $this->actingAs($this->owner)->getJson("{$this->api}/conversations")->assertOk()->assertJsonPath('accounts.0.status', 'disconnected');
 });
 
 it('responde dentro de la ventana de 24 h una sola vez por clic; afuera solo con plantilla aprobada', function () {

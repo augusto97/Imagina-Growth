@@ -2,11 +2,12 @@ import { BellRing, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ErrorState } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
@@ -52,19 +53,18 @@ function AssignmentForm({ initial }: { initial: Omit<InboxSettings, 'push_public
     const firstAgent = agents.data?.data[0]?.id ?? '';
 
     return (
-        <Card className="igr:space-y-3 igr:p-4">
-            <h2 className="igr:text-sm igr:font-semibold">{t('inbox.settings.assignment')}</h2>
-            <label className="igr:flex igr:items-start igr:gap-2 igr:text-[13px]">
-                <input type="checkbox" className="igr:mt-0.5" checked={draft.auto_assign} onChange={(e) => setDraft({ ...draft, auto_assign: e.target.checked })} />
-                <span>
-                    {t('inbox.settings.autoAssign')}
-                    <span className="igr:block igr:text-xs igr:text-muted-foreground">{t('inbox.settings.autoAssignHelp')}</span>
-                </span>
-            </label>
+        <Card className="igr:flex igr:flex-col">
+            <CardHeader>
+                <CardTitle>{t('inbox.settings.assignment')}</CardTitle>
+                <CardDescription>{t('inbox.settings.assignmentHelp')}</CardDescription>
+            </CardHeader>
+            <CardContent className="igr:flex-1 igr:space-y-4">
+            <Switch checked={draft.auto_assign} onCheckedChange={(v) => setDraft({ ...draft, auto_assign: v })} label={t('inbox.settings.autoAssign')} description={t('inbox.settings.autoAssignHelp')} />
             <div className="igr:space-y-2">
-                <p className="igr:text-xs igr:font-medium">{t('inbox.settings.rules')}</p>
+                <p className="igr:text-support igr:font-medium">{t('inbox.settings.rules')}</p>
+                <p className="igr:text-xs igr:text-muted-foreground">{t('inbox.settings.rulesHelp')}</p>
                 {draft.rules.map((rule, i) => (
-                    <div key={i} className="igr:flex igr:items-center igr:gap-1.5">
+                    <div key={i} className="igr:grid igr:grid-cols-[minmax(0,1fr)_auto] igr:gap-1.5 igr:rounded-lg igr:border igr:p-2 igr:sm:flex igr:sm:items-center igr:sm:border-0 igr:sm:p-0">
                         <Select
                             aria-label={t('inbox.settings.ruleIntent')}
                             value={rule.intent ?? ''}
@@ -153,6 +153,8 @@ function AssignmentForm({ initial }: { initial: Omit<InboxSettings, 'push_public
                     {t('inbox.settings.addRule')}
                 </Button>
             </div>
+            </CardContent>
+            <CardFooter className="igr:justify-end">
             <Button
                 size="sm"
                 loading={save.isPending}
@@ -165,6 +167,7 @@ function AssignmentForm({ initial }: { initial: Omit<InboxSettings, 'push_public
             >
                 {t('inbox.settings.save')}
             </Button>
+            </CardFooter>
         </Card>
     );
 }
@@ -178,14 +181,18 @@ function QuickRepliesCard() {
     const fail = (e: unknown) => toast.error(errorMessage(e, t));
 
     return (
-        <Card className="igr:space-y-3 igr:p-4">
-            <div>
-                <h2 className="igr:text-sm igr:font-semibold">{t('inbox.settings.quickReplies')}</h2>
-                <p className="igr:text-xs igr:text-muted-foreground">{t('inbox.settings.quickRepliesHelp')}</p>
-            </div>
+        <Card>
+            <CardHeader>
+                <CardTitle>{t('inbox.settings.quickReplies')}</CardTitle>
+                <CardDescription>{t('inbox.settings.quickRepliesHelp')}</CardDescription>
+            </CardHeader>
+            <CardContent className="igr:space-y-3">
+            {(replies.data?.data ?? []).length === 0 && !replies.isPending ? (
+                <p className="igr:rounded-lg igr:bg-muted/60 igr:px-3 igr:py-2 igr:text-xs igr:text-muted-foreground">{t('inbox.settings.quickRepliesIdeas')}</p>
+            ) : null}
             <ul className="igr:space-y-1.5">
                 {(replies.data?.data ?? []).map((r) => (
-                    <li key={r.id} className="igr:flex igr:items-start igr:gap-2 igr:rounded-md igr:border igr:p-2 igr:text-xs">
+                    <li key={r.id} className="igr:flex igr:items-start igr:gap-2 igr:rounded-lg igr:border igr:bg-card igr:p-2.5 igr:text-xs">
                         <div className="igr:min-w-0 igr:flex-1">
                             <p className="igr:font-medium">
                                 /{r.shortcut} · {r.title}
@@ -220,7 +227,7 @@ function QuickRepliesCard() {
                         <Label htmlFor="qr-shortcut">{t('inbox.settings.shortcut')}</Label>
                         <Input
                             id="qr-shortcut"
-                            placeholder="envio"
+                            placeholder={t('inbox.settings.shortcutPlaceholder')}
                             value={form.shortcut}
                             onChange={(e) =>
                                 setForm({
@@ -239,10 +246,12 @@ function QuickRepliesCard() {
                     <Label htmlFor="qr-body">{t('inbox.settings.replyBody')}</Label>
                     <Textarea id="qr-body" rows={3} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} />
                 </div>
-                <Button type="submit" size="sm" loading={actions.create.isPending}>
+                <Button type="submit" size="sm" loading={actions.create.isPending} disabled={form.shortcut.trim() === '' || form.body.trim() === ''}>
+                    <Plus aria-hidden />
                     {t('inbox.settings.addReply')}
                 </Button>
             </form>
+            </CardContent>
         </Card>
     );
 }
@@ -273,13 +282,17 @@ function PushCard() {
         }
     };
     return (
-        <Card className="igr:space-y-2 igr:p-4">
-            <h2 className="igr:text-sm igr:font-semibold">{t('inbox.settings.push')}</h2>
-            <p className="igr:text-xs igr:text-muted-foreground">{key ? t('inbox.settings.pushHelp') : t('inbox.settings.pushUnavailable')}</p>
-            <Button size="sm" variant="outline" disabled={!key} onClick={() => void enable()}>
-                <BellRing aria-hidden />
-                {t('inbox.settings.pushEnable')}
-            </Button>
+        <Card>
+            <CardHeader>
+                <CardTitle>{t('inbox.settings.push')}</CardTitle>
+                <CardDescription>{key ? t('inbox.settings.pushHelp') : t('inbox.settings.pushUnavailable')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button size="sm" variant="outline" disabled={!key} onClick={() => void enable()}>
+                    <BellRing aria-hidden />
+                    {t('inbox.settings.pushEnable')}
+                </Button>
+            </CardContent>
         </Card>
     );
 }

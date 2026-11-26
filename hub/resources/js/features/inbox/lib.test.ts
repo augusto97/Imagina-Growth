@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyQuickReply, composerMode, draftFor, formatDuration, formatLeft, keepDraft, matchQuickReplies, parseLabels, quickReplyQuery, windowLeft } from './lib';
+import { accountsNeedingAttention, applyQuickReply, composerMode, dayKey, draftFor, formatDuration, formatLeft, initials, keepDraft, matchQuickReplies, parseLabels, quickReplyQuery, sellsOnline, windowLeft } from './lib';
 
 const envio = {
     id: 'qr_1',
@@ -82,5 +82,25 @@ describe('borradores del editor (celular: volver a la lista no pierde lo escrito
         keepDraft('cnv_1', '   ');
         expect(draftFor('cnv_1')).toBe('');
         expect(draftFor('cnv_2')).toBe('Otro');
+    });
+
+    it('dice qué cuentas hay que reconectar, las iniciales del avatar y el día de cada mensaje', () => {
+        const wa = { id: 'cha_1', channel: 'whatsapp' as const, name: 'WhatsApp', identity: '+57 300', status: 'active' as const };
+        expect(accountsNeedingAttention([wa, { ...wa, id: 'cha_2', status: 'disconnected' }, { ...wa, id: 'cha_3', status: 'error' }]).map((a) => a.id)).toEqual(['cha_2', 'cha_3']);
+        expect(accountsNeedingAttention(undefined)).toEqual([]);
+        expect(initials('Luisa  Ortiz')).toBe('LO');
+        expect(initials('ana')).toBe('A');
+        expect(initials(null)).toBe('?');
+        // 23:30 en Bogotá ya es el día siguiente en UTC: el chat separa por el día del negocio.
+        expect(dayKey('2026-11-18T04:30:00Z', 'America/Bogota')).toBe('2026-11-17');
+        expect(dayKey(null)).toBe('');
+    });
+
+    it('solo ofrece vender desde el chat a quien vende en línea', () => {
+        const base = { abilities: [], modules: [], vertical: null };
+        expect(sellsOnline({ ...base, business_type: 'store' })).toBe(true);
+        expect(sellsOnline({ ...base, business_type: 'both' })).toBe(true);
+        expect(sellsOnline({ ...base, business_type: 'services' })).toBe(false);
+        expect(sellsOnline({ ...base, business_type: null })).toBe(true);
     });
 });

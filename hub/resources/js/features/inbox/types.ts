@@ -37,10 +37,21 @@ export interface ConversationSummary {
     } | null;
 }
 
+/** Una cuenta que conversa en la bandeja (WhatsApp, Messenger, Instagram) y su estado. */
+export interface InboxAccount {
+    id: string;
+    channel: InboxChannel;
+    name: string;
+    identity: string | null;
+    status: 'active' | 'paused' | 'error' | 'disconnected';
+}
+
 export interface ConversationList {
     data: ConversationSummary[];
     next_before: string | null;
     counts: { mine: number; unassigned: number; unread: number };
+    /** Las cuentas que conversan, para avisar si alguna hay que reconectarla. */
+    accounts?: InboxAccount[];
 }
 
 export interface ChatMessage {
