@@ -5,6 +5,14 @@
                 "area": "La pregunta de número con precio por unidad es la principal (por ejemplo, m² × $8)."
             },
             "whatsappPlaceholder": "584121234567"
+        },
+        "wizard": {
+            "ai": {
+                "placeholder": "Ej.: Pinto casas y apartamentos en Caracas. Cobro 4 dólares el metro cuadrado; exteriores un 30 % más. Mínimo $60."
+            }
+        },
+        "preview": {
+            "desktop": "Computadora"
         }
     }
 }

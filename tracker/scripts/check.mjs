@@ -17,7 +17,7 @@ const limits = {
     'igr-w-reviews.js': 5120,
     'igr-w-loyalty.js': 4096,
     'igr-w-survey.js': 3072,
-    'igr-w-quote.js': 4096,
+    'igr-w-quote.js': 5120, // un paso por pregunta, tarjetas y el precio animado; solo carga donde está el cotizador
     'igr-wallet.js': 2048,
 };
 let failed = false;

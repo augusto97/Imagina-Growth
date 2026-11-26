@@ -36,7 +36,7 @@ export const ROUTE_TEXTS: Record<string, readonly string[]> = {
     platform: ['analytics', 'backups', 'channels', 'guides', 'platform', 'platform-settings', 'updates'],
     predictions: ['analytics', 'predictions'],
     privacy: ['contacts', 'privacy'],
-    quotes: ['contacts', 'quotes'],
+    quotes: ['capture', 'contacts', 'quotes'],
     recommendations: ['analytics', 'onsite-commerce'],
     referrals: ['analytics', 'referrals'],
     reviews: ['analytics', 'contacts', 'intelligence', 'reviews'],

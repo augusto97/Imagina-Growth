@@ -2,10 +2,17 @@
     "quotes": {
         "editor": {
             "questionsHelp": {
-                "service": "Cada opción puede sumar un valor o multiplicar el total (1.2 = +20 %).",
                 "area": "La pregunta de número con precio por unidad es la principal (por ejemplo, m² × $250)."
             },
             "whatsappPlaceholder": "525512345678"
+        },
+        "wizard": {
+            "ai": {
+                "placeholder": "Ej.: Pinto casas y departamentos en Monterrey. Cobro 65 pesos el metro cuadrado; exteriores un 30 % más. Mínimo $2,500."
+            }
+        },
+        "preview": {
+            "desktop": "Computadora"
         }
     }
 }

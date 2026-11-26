@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace App\Domain\Quotes\Http\Public;
 
 use App\Domain\Billing\Contracts\Entitlements;
-use App\Domain\Contacts\Actions\CaptureContact;
-use App\Domain\Contacts\Data\CaptureInput;
 use App\Domain\Loyalty\Http\Public\PublicSite;
 use App\Domain\Onsite\Support\PublicWidgetConfig;
-use App\Domain\Quotes\Actions\RequestQuote;
+use App\Domain\Quotes\Actions\SubmitQuote;
 use App\Domain\Quotes\Models\QuoteCalculator;
 use App\Domain\Quotes\Support\QuoteCapture;
 use App\Domain\Quotes\Support\QuoteEngine;
@@ -19,7 +17,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
-use InvalidArgumentException;
 
 /**
  * El cotizador en la tienda (M18, api-connector.md §8.3): la definición pública
@@ -72,7 +69,7 @@ final class PublicQuoteController
     }
 
     /** POST /p/{key}/quotes/{id}/estimate (text/plain con JSON) */
-    public function estimate(Request $request, string $publicKey, string $calculator, CaptureContact $capture, RequestQuote $requestQuote, PublicWidgetConfig $widgets): JsonResponse
+    public function estimate(Request $request, string $publicKey, string $calculator, SubmitQuote $submit): JsonResponse
     {
         $ctx = $this->public->resolve($publicKey);
         if ($ctx === null) {
@@ -88,56 +85,22 @@ final class PublicQuoteController
             return $this->public->error($request, $site, 404, 'unknown_calculator', __('Este cotizador no está disponible.'));
         }
 
-        return $this->current->run($workspace, function () use ($request, $site, $workspace, $calculator, $body, $aid, $capture, $requestQuote, $widgets): JsonResponse {
+        return $this->current->run($workspace, function () use ($request, $site, $workspace, $calculator, $body, $aid, $submit): JsonResponse {
             $model = $this->calculator($calculator, $site);
             if ($model === null) {
                 return $this->public->error($request, $site, 404, 'unknown_calculator', __('Este cotizador no está disponible.'));
             }
             $settings = QuoteCapture::for($model->capture);
             try {
-                $estimate = QuoteEngine::estimate($model, is_array($body['answers'] ?? null) ? $body['answers'] : []);
+                $result = $submit->handle(
+                    $workspace, $site, $model, is_array($body['answers'] ?? null) ? $body['answers'] : [],
+                    is_array($body['fields'] ?? null) ? $body['fields'] : [], is_array($body['consents'] ?? null) ? $body['consents'] : [],
+                    $aid, SubmitQuote::str($body['page_url'] ?? null, 500), $request->ip(), (string) $request->userAgent(), self::source($body),
+                );
             } catch (ValidationException $e) {
                 return $this->invalid($request, $site, $e->errors());
             }
-            $fields = is_array($body['fields'] ?? null) ? $body['fields'] : [];
-            $email = self::str($fields['email'] ?? null, 255);
-            $phone = self::str($fields['phone'] ?? null, 30);
-            $contact = null;
-            if ($settings['required'] || $email !== null || $phone !== null) {
-                $errors = [];
-                $needsPhone = $settings['require'] === 'phone' && in_array('phone', $settings['fields'], true);
-                $needsEmail = $settings['require'] === 'email' && in_array('email', $settings['fields'], true);
-                if ($needsPhone && $phone === null) {
-                    $errors['fields.phone'] = [__('Escribe tu WhatsApp.')];
-                }
-                if ($needsEmail && $email === null) {
-                    $errors['fields.email'] = [__('Escribe tu correo.')];
-                }
-                if (! $needsPhone && ! $needsEmail && $email === null && $phone === null) {
-                    $errors['fields.phone'] = [__('Escribe tu WhatsApp o tu correo.')];
-                }
-                if ($errors !== []) {
-                    return $this->invalid($request, $site, $errors);
-                }
-                $offered = array_column($widgets->legalConsents($workspace), 'channel');
-                $consents = [];
-                foreach ((array) ($body['consents'] ?? []) as $channel => $checked) {
-                    if (in_array($channel, $settings['consent_channels'], true) && in_array($channel, $offered, true)) {
-                        $consents[(string) $channel] = $checked === true;
-                    }
-                }
-                try {
-                    $contact = $capture->handle($workspace, $site, new CaptureInput(
-                        source: 'quote:'.$model->publicId(), email: $email, phone: $phone,
-                        firstName: self::str($fields['first_name'] ?? null, 80), lastName: self::str($fields['last_name'] ?? null, 80),
-                        anonymousId: $aid, consents: $consents, pageUrl: self::str($body['page_url'] ?? null, 500),
-                        ip: $request->ip(), userAgent: (string) $request->userAgent(),
-                    ))->contact;
-                } catch (InvalidArgumentException $e) {
-                    return $this->invalid($request, $site, [($email !== null && $phone === null ? 'fields.email' : 'fields.phone') => [$e->getMessage()]]);
-                }
-            }
-            $quote = $requestQuote->handle($workspace, $model, $estimate, $contact, $site, $aid, self::source($body));
+            ['quote' => $quote, 'estimate' => $estimate] = $result;
             $currency = $quote->currency;
 
             return response()->json([
@@ -148,11 +111,17 @@ final class PublicQuoteController
                 'lines' => $estimate['lines'],
                 'note' => $model->definition['note'] ?? null,
                 'message' => $settings['success'] ?? __('Es un valor estimado. Te contactaremos para confirmar el precio final.'),
-                'whatsapp' => $settings['whatsapp_number'] !== null ? 'https://wa.me/'.$settings['whatsapp_number'].'?text='.rawurlencode(
-                    __('Hola, pedí una cotización de :name (:range). Ref: :ref', ['name' => $model->name, 'range' => self::range($estimate['min'], $estimate['max'], $currency), 'ref' => $quote->publicId()])
-                ) : null,
+                'whatsapp' => self::whatsapp($settings['whatsapp_number'], $model->name, $estimate['min'], $estimate['max'], $currency, $quote->publicId()),
             ])->withHeaders($this->public->cors($request, $site) + ['Cache-Control' => 'private, no-store']);
         });
+    }
+
+    /** wa.me del negocio con la cotización y su referencia, o null si el cotizador no tiene número. */
+    public static function whatsapp(?string $number, string $name, string $min, string $max, string $currency, string $ref): ?string
+    {
+        return $number !== null ? 'https://wa.me/'.$number.'?text='.rawurlencode(
+            __('Hola, pedí una cotización de :name (:range). Ref: :ref', ['name' => $name, 'range' => self::range($min, $max, $currency), 'ref' => $ref])
+        ) : null;
     }
 
     private function calculator(string $id, Site $site): ?QuoteCalculator
@@ -191,23 +160,13 @@ final class PublicQuoteController
         return $min === $max ? $fmt($min).' '.$currency : $fmt($min).' – '.$fmt($max).' '.$currency;
     }
 
-    private static function str(mixed $value, int $max): ?string
-    {
-        if (! is_string($value)) {
-            return null;
-        }
-        $value = trim(preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $value) ?? '');
-
-        return $value === '' ? null : mb_substr($value, 0, $max);
-    }
-
     /**
      * @param  array<string, mixed>  $body
      * @return array<string, string>
      */
-    private static function source(array $body): array
+    public static function source(array $body, string $channel = 'quote_widget'): array
     {
-        $out = ['channel' => 'quote_widget'];
+        $out = ['channel' => $channel];
         foreach (['utm_source', 'utm_medium', 'utm_campaign', 'gclid', 'fbclid', 'ttclid'] as $field) {
             if (is_string($body['utm'][$field] ?? null) && $body['utm'][$field] !== '') {
                 $out[$field] = mb_substr((string) $body['utm'][$field], 0, 200);

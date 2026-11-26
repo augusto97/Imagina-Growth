@@ -2,7 +2,7 @@
     "quotes": {
         "title": "Cotizador",
         "description": "Calculadoras de precio para tu sitio: la persona responde, deja su contacto y ve un precio estimado.",
-        "new": "Nueva calculadora",
+        "new": "Crear cotizador",
         "empty": "Da un precio estimado a cambio del contacto",
         "emptyHelp": "Quien pide precio está cerca de comprar. Una calculadora en tu web le responde al instante y te deja su contacto como lead, con lo que pidió.",
         "kind": {
@@ -109,7 +109,7 @@
             "addPackage": "Agregar paquete",
             "questions": "Preguntas",
             "questionsHelp": {
-                "service": "Cada opción puede sumar un valor o multiplicar el total (1,2 = +20 %).",
+                "service": "Cada opción puede sumar un valor o ajustar el total en un porcentaje (+20 %, −10 %).",
                 "area": "La pregunta de número con precio por unidad es la principal (por ejemplo, m² × $12.000).",
                 "package": "Adicionales sobre el paquete elegido."
             },
@@ -123,10 +123,9 @@
             "max": "Máximo",
             "option": "Opción",
             "adds": "Suma ({{currency}})",
-            "multiplier": "Multiplica",
             "addOption": "Agregar opción",
             "pricing": "Precio",
-            "pricingHelp": "Total = (base + paquete + números × precio + opciones) × multiplicadores. Nunca menos que el mínimo; se muestra como rango.",
+            "pricingHelp": "Total = (base + paquete + números × precio + opciones) con los ajustes en porcentaje de las opciones. Nunca menos que el mínimo; se muestra como rango.",
             "base": "Valor base ({{currency}})",
             "minimum": "Mínimo ({{currency}})",
             "range": "Rango ± %",
@@ -161,9 +160,11 @@
             "delete": "Eliminar calculadora",
             "deleteConfirm": "¿Eliminar esta calculadora?",
             "deleteBody": "Deja de mostrarse en tu web. Si ya tiene cotizaciones, queda en pausa para conservarlas.",
-            "saveChanges": "Guardar cambios"
+            "saveChanges": "Guardar cambios",
+            "intro": "Frase de bienvenida (opcional)",
+            "introPlaceholder": "Responde tres preguntas y mira tu precio al instante."
         },
-        "emptyAction": "Crear mi calculadora",
+        "emptyAction": "Crear mi cotizador",
         "emptyStep1": "Elige tus servicios o el precio por metro, hora o paquete.",
         "emptyStep2": "Ponla en tu web con el bloque o el shortcode.",
         "emptyStep3": "Cada cotización llega como lead con el rango de precio.",
@@ -173,6 +174,115 @@
             "leadsHelp": "Personas que dejaron su contacto para ver el precio y entraron a tus leads.",
             "avg": "Valor medio cotizado",
             "avgHelp": "El punto medio de los rangos que vieron, en los últimos 30 días."
+        },
+        "share": {
+            "title": "Compártelo con un enlace o un QR",
+            "description": "Tu cotizador también tiene su propia página, sin WordPress: mándala por WhatsApp, ponla en tu Instagram o imprime el QR.",
+            "link": "Enlace de tu cotizador",
+            "whatsappText": "Cotiza {{name}} en un minuto:",
+            "notActive": "Publícalo para compartirlo",
+            "notActiveHelp": "El enlace y el QR funcionan cuando el cotizador está publicado.",
+            "wordpress": "Ponlo en tu web",
+            "wordpressHelp": "En WordPress, usa el bloque «Cotizador» o el widget de Elementor y elige este cotizador, o pega este código en una página."
+        },
+        "preview": {
+            "title": "Así lo ve tu cliente",
+            "help": "Es la página real, con lo que tienes en pantalla. Recórrela y mira el precio: no se guarda nada.",
+            "label": "Vista previa del cotizador",
+            "device": "Ver en",
+            "mobile": "Celular",
+            "desktop": "Computador",
+            "tabPage": "Así lo ve tu cliente",
+            "tabPrices": "Probar precios"
+        },
+        "wizard": {
+            "title": "Crear cotizador",
+            "description": "En cinco pasos: elige tu oficio, ajusta tus precios y compártelo. Nada se publica hasta que lo decidas.",
+            "untitled": "Mi cotizador",
+            "noPermission": "Solo quien administra los servicios puede crear cotizadores.",
+            "backToList": "Ver mis cotizadores",
+            "steps": {
+                "what": "Qué vendes",
+                "how": "Cómo cobras",
+                "prices": "Preguntas y precios",
+                "show": "Cómo se muestra",
+                "done": "Listo"
+            },
+            "what": {
+                "title": "Empieza con tu oficio",
+                "description": "Cada plantilla trae preguntas y precios de ejemplo en tu moneda. Los cambias en el siguiente paso.",
+                "blank": "Empezar de cero",
+                "blankHelp": "Arma las preguntas a tu medida."
+            },
+            "ai": {
+                "title": "Descríbelo y la IA lo arma",
+                "description": "Cuéntale qué vendes y cómo cobras. Arma las preguntas, las opciones y sus emojis; tú revisas todo antes de guardar.",
+                "label": "Describe tu negocio y cómo cobras",
+                "placeholder": "Ej.: Pinto casas y apartamentos en Medellín. Cobro 15 mil el metro cuadrado; exteriores un 30 % más. Mínimo $200.000.",
+                "submit": "Armarlo con IA",
+                "working": "Armando tu cotizador…",
+                "note": "Usa solo los precios que escribas: los que falten los pones tú."
+            },
+            "how": {
+                "title": "¿Cómo cobras?",
+                "description": "Elige la forma que más se parece a tu manera de cotizar. Todas muestran un rango de precio.",
+                "kind": "Forma de cobrar",
+                "example": {
+                    "area": "Ej.: pintura, pisos, limpieza o jardinería por m².",
+                    "service": "Ej.: reparaciones, mudanzas o eventos con opciones.",
+                    "package": "Ej.: diseño web o clases por paquete."
+                },
+                "changeNote": "Si cambias la forma de cobrar, empiezas con preguntas de ejemplo de esa forma."
+            },
+            "namePlaceholder": "Pintura de interiores",
+            "nameHelp": "Es el título que ve tu cliente arriba del cotizador.",
+            "nameRequired": "Ponle un nombre para seguir.",
+            "prices": {
+                "title": "Tus preguntas y tus precios",
+                "aiTitle": "La IA armó esta propuesta",
+                "aiBody": "Revisa cada pregunta. Solo dejó los precios que escribiste; los que están en rojo los pones tú.",
+                "missing_one": "Falta {{count}} precio",
+                "missing_other": "Faltan {{count}} precios",
+                "missingHelp": "Están marcados en rojo. Escribe cuánto cobras para que el cotizador calcule bien.",
+                "fillFirst": "Completa los precios en rojo para seguir."
+            },
+            "question": "Pregunta {{n}}",
+            "help": "Ayuda de la pregunta",
+            "helpPlaceholder": "Ayuda para responder (opcional): «Suma paredes y techos».",
+            "default": "Valor inicial",
+            "emoji": "Emoji",
+            "adjust": "Ajusta el total (%)",
+            "baseHelp": "Se cobra siempre: visita, transporte o alistamiento.",
+            "minimumHelp": "El precio nunca baja de aquí.",
+            "rangeHelp": "Margen del rango que ve tu cliente (±).",
+            "examples": "Así queda el precio",
+            "examplesHelp": "Calculado con tus precios y el mismo motor del cotizador publicado.",
+            "ifSomeone": "Si alguien pide {{what}}, ve",
+            "basic": "lo básico",
+            "extras_one": "{{count}} extra",
+            "extras_other": "{{count}} extras",
+            "show": {
+                "title": "¿Cómo se muestra?",
+                "description": "Decide cuándo ve el precio tu cliente y qué te deja a cambio."
+            },
+            "when": "¿Cuándo ve el precio?",
+            "whenContact": "A cambio de su contacto",
+            "whenContactHelp": "Deja su WhatsApp o su correo y ve el precio. Cada cotización llega a tus leads.",
+            "whenOpen": "Al instante",
+            "whenOpenHelp": "Ve el precio sin dejar datos. Útil si ya tienes muchos contactos o vendes por volumen.",
+            "recommended": "Recomendado",
+            "askFor": "Qué datos pide",
+            "consentsHelp": "Van sin marcar, con tu texto legal. Solo con la casilla marcada puedes enviarle publicidad.",
+            "whatsappHelp": "Con tu número, el resultado ofrece «Hablar por WhatsApp» con la cotización y su referencia.",
+            "saveDraft": "Guardar como borrador",
+            "publish": "Publicar cotizador",
+            "done": {
+                "published": "¡Listo! «{{name}}» ya está publicado",
+                "publishedHelp": "Compártelo con el enlace o el QR, o ponlo en tu web. Cada cotización llega a tus leads con el rango de precio.",
+                "draft": "«{{name}}» quedó en borrador",
+                "draftHelp": "Nadie lo ve todavía. Publícalo desde su página cuando quieras.",
+                "edit": "Ajustar detalles"
+            }
         }
     }
 }

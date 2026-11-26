@@ -12,12 +12,15 @@ use Illuminate\Validation\ValidationException;
  * El cálculo del cotizador (M18), siempre en el servidor.
  *
  * Definición (`quote_calculators.definition`):
- *   base_price · minimum · range_pct (±%) · round_to · currency · note (pública) · internal_notes
- *   fields: [{key, label, type: number|select|checkbox, required, help,
+ *   base_price · minimum · range_pct (±%) · round_to · currency · intro y note (públicas) · internal_notes
+ *   fields: [{key, label, type: number|select|checkbox, required, help, icon?,
  *             number:   unit, min, max, step, default, unit_price
- *             select:   options [{value, label, price, multiplier}]
- *             checkbox: options [{value, label, price, multiplier}] (varias a la vez)}]
- *   packages (kind package): [{key, label, description, price}]
+ *             select:   options [{value, label, price, multiplier, icon?, description?}]
+ *             checkbox: options [{value, label, price, multiplier, icon?, description?}] (varias a la vez)}]
+ *   packages (kind package): [{key, label, description, price, icon?}]
+ *
+ * `icon` es un emoji (hasta 8 caracteres) que el cotizador público muestra en la tarjeta de la opción; las claves
+ * opcionales solo se guardan si traen algo.
  *
  * Total = (base + paquete + Σ número × precio por unidad + Σ precios de las opciones)
  *         × Π multiplicadores de las opciones elegidas; nunca menos que el mínimo.
@@ -32,14 +35,16 @@ final class QuoteEngine
     public const TYPES = ['number', 'select', 'checkbox'];
 
     /**
-     * Valida y deja limpia una definición del constructor.
+     * Valida y deja limpia una definición del constructor. Con `$draft` (la propuesta del asistente con IA, que la
+     * persona revisa antes de guardar) no exige todavía el precio por unidad del cotizador por área: ese precio lo
+     * pone la persona.
      *
      * @param  array<string, mixed>  $definition
      * @return array<string, mixed>
      *
      * @throws ValidationException
      */
-    public static function normalize(array $definition, string $kind): array
+    public static function normalize(array $definition, string $kind, bool $draft = false): array
     {
         $errors = [];
         $fields = [];
@@ -62,7 +67,7 @@ final class QuoteEngine
                 $errors["definition.fields.{$i}.label"] = __('Escribe la pregunta.');
             }
             $field = ['key' => $key, 'label' => mb_substr($label, 0, 120), 'type' => $type, 'required' => (bool) ($f['required'] ?? $type !== 'checkbox'),
-                'help' => self::text($f['help'] ?? null, 200)];
+                'help' => self::text($f['help'] ?? null, 200)] + self::extras($f, false);
             if ($type === 'number') {
                 $min = self::num($f['min'] ?? 0) ?? 0.0;
                 $max = self::num($f['max'] ?? null);
@@ -84,7 +89,7 @@ final class QuoteEngine
                         $errors["definition.fields.{$i}.options.{$j}.multiplier"] = __('El multiplicador va entre 0,01 y 100.');
                     }
                     $options[] = ['value' => self::key($o['value'] ?? null) ?? 'op_'.($j + 1), 'label' => mb_substr($olabel, 0, 120),
-                        'price' => self::num($o['price'] ?? 0) ?? 0.0, 'multiplier' => $multiplier];
+                        'price' => self::num($o['price'] ?? 0) ?? 0.0, 'multiplier' => $multiplier] + self::extras($o, true);
                 }
                 if ($options === []) {
                     $errors["definition.fields.{$i}.options"] = __('Agrega al menos una opción.');
@@ -101,7 +106,7 @@ final class QuoteEngine
                 continue;
             }
             $packages[] = ['key' => self::key($p['key'] ?? null) ?? 'paquete_'.($i + 1), 'label' => mb_substr($label, 0, 120),
-                'description' => self::text($p['description'] ?? null, 300), 'price' => max(0.0, self::num($p['price'] ?? 0) ?? 0.0)];
+                'description' => self::text($p['description'] ?? null, 300), 'price' => max(0.0, self::num($p['price'] ?? 0) ?? 0.0)] + self::extras($p, false);
         }
         if ($kind === 'package' && $packages === []) {
             $errors['definition.packages'] = __('Agrega al menos un paquete.');
@@ -109,7 +114,7 @@ final class QuoteEngine
         if ($kind !== 'package' && $fields === []) {
             $errors['definition.fields'] = __('Agrega al menos una pregunta.');
         }
-        if ($kind === 'area' && ! collect($fields)->contains(fn (array $f) => $f['type'] === 'number' && ($f['unit_price'] ?? 0) > 0)) {
+        if ($kind === 'area' && ! collect($fields)->contains(fn (array $f) => $f['type'] === 'number' && ($draft || ($f['unit_price'] ?? 0) > 0))) {
             $errors['definition.fields'] = __('El cotizador por área necesita una pregunta de número con precio por unidad (por ejemplo, metros cuadrados).');
         }
         $range = self::num($definition['range_pct'] ?? 10) ?? 10.0;
@@ -126,6 +131,7 @@ final class QuoteEngine
             'minimum' => max(0.0, self::num($definition['minimum'] ?? 0) ?? 0.0),
             'range_pct' => $range,
             'round_to' => max(0.0, self::num($definition['round_to'] ?? 0) ?? 0.0),
+            'intro' => self::text($definition['intro'] ?? null, 200),
             'note' => self::text($definition['note'] ?? null, 400),
             'internal_notes' => self::text($definition['internal_notes'] ?? null, 2000),
             'fields' => $fields,
@@ -244,6 +250,7 @@ final class QuoteEngine
                 return $f;
             }, (array) ($def['fields'] ?? [])),
             'packages' => array_map($strip, (array) ($def['packages'] ?? [])),
+            'intro' => $def['intro'] ?? null,
             'note' => $def['note'] ?? null,
         ] + ($withPrices ? ['base_price' => $def['base_price'] ?? 0, 'minimum' => $def['minimum'] ?? 0, 'range_pct' => $def['range_pct'] ?? 0, 'round_to' => $def['round_to'] ?? 0] : []);
     }
@@ -291,6 +298,27 @@ final class QuoteEngine
         $key = trim((string) preg_replace('/[^a-z0-9_]+/', '_', strtolower(Str::ascii($value))), '_');
 
         return $key !== '' ? mb_substr($key, 0, 40) : null;
+    }
+
+    /**
+     * El emoji de la tarjeta y, en las opciones, una línea que la explica. Solo se guardan si traen algo.
+     *
+     * @param  array<string, mixed>  $item
+     * @return array<string, string>
+     */
+    private static function extras(array $item, bool $withDescription): array
+    {
+        $out = [];
+        $icon = is_string($item['icon'] ?? null) ? trim((string) preg_replace('/[\x00-\x1F\x7F<>]/u', '', $item['icon'])) : '';
+        if ($icon !== '') {
+            $out['icon'] = mb_substr($icon, 0, 8);
+        }
+        $description = $withDescription ? self::text($item['description'] ?? null, 120) : null;
+        if ($description !== null) {
+            $out['description'] = $description;
+        }
+
+        return $out;
     }
 
     private static function text(mixed $value, int $max): ?string

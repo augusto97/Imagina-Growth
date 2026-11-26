@@ -1,24 +1,19 @@
-import { ChevronDown, FileText, Plus, Target, Wallet } from 'lucide-react';
+import { FileText, Plus, Target, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { EmptyState, ErrorState, PageHeader } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard, StatCardSkeleton, StatGrid } from '@/components/ui/stat-card';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { formatNumber } from '@/lib/format';
-import { toast } from '@/stores/toast';
-import { errorMessage } from '@/features/contacts/errors';
-import { useCalculators, useQuoteMutations, useQuoteRequests } from './api';
-import { formatRange, preset } from './model';
-import type { Calculator, CalculatorKind, CalculatorStatus } from './types';
-
-const KINDS: CalculatorKind[] = ['service', 'area', 'package'];
+import { useCalculators, useQuoteRequests } from './api';
+import { formatRange } from './model';
+import type { Calculator, CalculatorStatus } from './types';
 
 export const statusVariant = (s: CalculatorStatus) => (s === 'active' ? 'success' : s === 'paused' ? 'warning' : 'outline');
 
@@ -26,19 +21,10 @@ export const statusVariant = (s: CalculatorStatus) => (s === 'active' ? 'success
 export function QuotesPage() {
     const { t, i18n } = useTranslation();
     const { workspace } = useWorkspace();
-    const navigate = useNavigate();
     const list = useCalculators(workspace.id);
-    const { save } = useQuoteMutations(workspace.id);
     const [page, setPage] = useState(1);
     const requests = useQuoteRequests(workspace.id, '', page);
-
-    const create = (kind: CalculatorKind) => {
-        const p = preset(kind, (k, o) => t(k, o ?? {}));
-        save.mutate(
-            { id: null, data: { name: p.name, kind, definition: p.definition } },
-            { onSuccess: (c) => void navigate(`/w/${workspace.id}/en-el-sitio/cotizador/${c.id}`), onError: (e) => toast.error(errorMessage(e, t)) },
-        );
-    };
+    const wizard = `/w/${workspace.id}/en-el-sitio/cotizador/nuevo`;
 
     return (
         <>
@@ -47,25 +33,12 @@ export function QuotesPage() {
                 description={t('quotes.description')}
                 actions={
                     list.data?.can_manage ? (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button loading={save.isPending}>
-                                    <Plus />
-                                    {t('quotes.new')}
-                                    <ChevronDown />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                {KINDS.map((k) => (
-                                    <DropdownMenuItem key={k} onSelect={() => create(k)}>
-                                        <div>
-                                            <p className="igr:font-medium">{t(`quotes.kind.${k}`)}</p>
-                                            <p className="igr:text-xs igr:text-muted-foreground">{t(`quotes.kindHelp.${k}`)}</p>
-                                        </div>
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Button asChild>
+                            <Link to={wizard}>
+                                <Plus aria-hidden />
+                                {t('quotes.new')}
+                            </Link>
+                        </Button>
                     ) : null
                 }
             />
@@ -87,9 +60,11 @@ export function QuotesPage() {
                     description={t('quotes.emptyHelp')}
                     action={
                         list.data.can_manage ? (
-                            <Button size="lg" loading={save.isPending} onClick={() => create('service')}>
-                                <Plus aria-hidden />
-                                {t('quotes.emptyAction')}
+                            <Button size="lg" asChild>
+                                <Link to={wizard}>
+                                    <Plus aria-hidden />
+                                    {t('quotes.emptyAction')}
+                                </Link>
                             </Button>
                         ) : undefined
                     }

@@ -38,22 +38,30 @@ test.afterAll(async () => {
     await hubConfig({ quote: null, widgets: null });
 });
 
-test('cotiza en la página: errores accesibles, contacto con casilla sin marcar y precio del hub', async ({ page, context }) => {
+test('cotiza en la página paso a paso: número revisado, opciones en tarjetas, contacto con casilla sin marcar y precio del hub', async ({ page, context }) => {
     await page.goto('/?page_id=' + page_id + '&utm_source=google&utm_medium=cpc');
     const slot = page.locator('[data-igr-slot="quote"]');
     await expect(slot).toHaveAttribute('style', /min-height:420px/);
     await expect(slot.getByRole('heading', { name: 'Pintura de interiores' })).toBeVisible();
+    await expect(slot.getByText('Paso 1 de 3')).toBeVisible();
+
+    // El número se revisa antes de seguir y el error queda junto al campo.
+    await slot.getByRole('button', { name: 'Siguiente' }).click();
+    await expect(slot.getByText('Escribe un número entre 5 y 2000.')).toBeVisible();
+    await slot.getByLabel('Área a pintar').fill('40');
+    await slot.getByRole('button', { name: 'Siguiente' }).click();
+
+    // Una opción por tarjeta: al elegirla, avanza sola.
+    await slot.getByText('Esmalte').click();
+    await expect(slot.getByText('Paso 3 de 3')).toBeVisible();
     const consent = slot.getByRole('checkbox', { name: CONSENT_WA });
     await expect(consent).not.toBeChecked();
 
-    // Sin datos: el hub responde 422 y los errores quedan junto a cada campo.
+    // Sin el contacto, el hub responde 422 y el error queda junto al campo.
     await slot.getByRole('button', { name: 'Ver mi cotización' }).click();
     await expect(slot.getByRole('alert')).toHaveText('Revisa los campos marcados.');
-    await expect(slot.getByText('Escribe un número entre 5 y 2.000.')).toBeVisible();
-    await expect(slot.getByLabel('Área a pintar')).toBeFocused();
+    await expect(slot.getByText('Escribe tu WhatsApp o tu correo.')).toBeVisible();
 
-    await slot.getByLabel('Área a pintar').fill('40');
-    await slot.getByLabel('Tipo de pintura').selectOption('esmalte');
     await slot.getByLabel('Nombre').fill('Ana');
     await slot.getByRole('textbox', { name: 'WhatsApp', exact: true }).fill('300 123 4567');
     await consent.check();
