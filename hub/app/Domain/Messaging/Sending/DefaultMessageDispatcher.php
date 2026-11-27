@@ -23,6 +23,7 @@ use App\Domain\Messaging\Support\ContactLinkToken;
 use App\Domain\Messaging\Support\ConversationWindow;
 use App\Domain\Messaging\Support\LinkRewriter;
 use App\Domain\Messaging\Support\MessageEvents;
+use App\Domain\Messaging\Support\NumberedOptions;
 use App\Domain\Messaging\Support\SocialIdentity;
 use App\Domain\Messaging\Support\WaTemplateText;
 use App\Domain\Messaging\Support\WhatsAppInteractive;
@@ -106,7 +107,7 @@ final class DefaultMessageDispatcher implements MessageDispatcher
         $id = strtoupper((string) Str::ulid());
         $publicId = Message::ID_PREFIX.'_'.$id;
         try {
-            $rendered = $this->render($workspace, $message, $contact, $account, $publicId);
+            [$rendered, $composed] = $this->render($workspace, $message, $contact, $account, $publicId);
         } catch (Throwable $e) {
             // La plantilla no se pudo renderizar: el cupo de frecuencia vuelve al contacto.
             $this->policy->release($request, $now);
@@ -115,7 +116,7 @@ final class DefaultMessageDispatcher implements MessageDispatcher
             return DispatchResult::denied('template_error');
         }
         try {
-            $model = DB::transaction(function () use ($workspace, $message, $contact, $account, $rendered, $to, $id, $publicId, $now): Message {
+            $model = DB::transaction(function () use ($workspace, $message, $contact, $account, $rendered, $composed, $to, $id, $publicId, $now): Message {
                 $links = new LinkRewriter($workspace->id, $id, $contact?->id);
                 $marketing = $message->kind->isCommercial() && ! $message->isTest;
                 $payload = [
@@ -136,9 +137,34 @@ final class DefaultMessageDispatcher implements MessageDispatcher
                     'test' => $message->isTest,
                     'attempts' => 0,
                 ];
-                // Botones o lista de WhatsApp (mensaje de servicio, dentro de la ventana): `text` ya trae las opciones.
-                if ($message->channel === Channel::WhatsApp && $message->templateId === null && WhatsAppInteractive::valid($message->context['interactive'] ?? null)) {
-                    $payload['interactive'] = $message->context['interactive'];
+                $caps = $this->drivers->capabilitiesOf($account);
+                // Botones o lista (mensaje de servicio, dentro de la ventana): de verdad si el proveedor los muestra
+                // (WhatsApp oficial); si no (no oficial, Messenger, Instagram), numerados en el texto, y la respuesta
+                // escrita vuelve como si los hubiera tocado (NumberedOptions, InboundHandler).
+                $interactive = $message->templateId === null && WhatsAppInteractive::valid($message->context['interactive'] ?? null) ? (array) $message->context['interactive'] : null;
+                if ($interactive !== null) {
+                    if ($message->channel === Channel::WhatsApp && $caps->buttons && (($interactive['type'] ?? '') !== 'list' || $caps->lists)) {
+                        $payload['interactive'] = $interactive;
+                    } elseif (($options = NumberedOptions::fromInteractive($interactive)) !== []) {
+                        $payload['text'] = $links->text(NumberedOptions::text((string) ($interactive['body']['text'] ?? ''), $options));
+                        $payload['options'] = $options;
+                    }
+                }
+                // Plantilla de WhatsApp compuesta como texto (no oficial): sus respuestas rápidas numeradas y el
+                // archivo del encabezado aparte si el proveedor lo manda; si no, se anota qué no salió.
+                if ($composed !== null) {
+                    if ($composed['options'] !== []) {
+                        $payload['options'] = $composed['options'];
+                    }
+                    $media = $composed['media'];
+                    if ($media !== null && $caps->sends($media['type']) && self::sendableMedia($media)) {
+                        $payload['media'] = $media;
+                    } elseif ($media !== null) {
+                        $composed['dropped'][] = 'header_media';
+                    }
+                    if ($composed['dropped'] !== []) {
+                        $payload['degraded'] = array_values(array_unique($composed['dropped']));
+                    }
                 }
                 // Messenger fuera de las 24 h: SendPolicy ya comprobó que lo escribe una persona y que no pasaron 7 días.
                 if ($message->channel === Channel::Messenger && $message->humanAgent && $contact !== null
@@ -210,7 +236,10 @@ final class DefaultMessageDispatcher implements MessageDispatcher
         return Phone::toE164($raw, strtoupper((string) ($contact?->getAttribute('country') ?: $workspace->country ?: 'CO')));
     }
 
-    private function render(Workspace $workspace, OutboundMessage $message, ?Contact $contact, ChannelAccount $account, string $publicId): RenderedMessage
+    /**
+     * @return array{0: RenderedMessage, 1: array{options: list<array{n: int, id: string, title: string}>, media: array{type: string, url: string}|null, dropped: list<string>}|null}
+     */
+    private function render(Workspace $workspace, OutboundMessage $message, ?Contact $contact, ChannelAccount $account, string $publicId): array
     {
         $links = $contact !== null ? [
             'baja' => ContactLinkToken::unsubscribeUrl($workspace->id, $contact->id, $message->channel->value, $publicId),
@@ -221,21 +250,37 @@ final class DefaultMessageDispatcher implements MessageDispatcher
             $text = isset($message->context['text']) ? (string) $message->context['text'] : null;
             $html = isset($message->context['html']) ? (string) $message->context['html'] : ($text !== null && $message->channel === Channel::Email ? nl2br(e($text)) : null);
 
-            return new RenderedMessage(subject: isset($message->context['subject']) ? (string) $message->context['subject'] : null, html: $html, text: $text);
+            return [new RenderedMessage(subject: isset($message->context['subject']) ? (string) $message->context['subject'] : null, html: $html, text: $text), null];
         }
         $vars = $message->context;
         $vars['enlaces'] = array_merge((array) ($vars['enlaces'] ?? []), $links);
         $rendered = app(TemplateRenderer::class)->render($message->templateId, new RenderContext($workspace, $contact, $vars));
 
-        // WhatsApp no oficial (Zender, Imagina Whats) solo manda texto: la plantilla de WhatsApp se compone con sus parámetros.
-        if ($account->isUnofficial() && $rendered->text === null && $rendered->waTemplateName !== null) {
-            $tpl = WaTemplate::query()->where('name', $rendered->waTemplateName)->where('language', $rendered->waLanguage ?? 'es')->first();
-            $text = $tpl !== null ? WaTemplateText::compose($tpl, $rendered->waComponents) : null;
+        // Un proveedor sin plantillas de Meta (Zender, Imagina Whats): la plantilla se compone como texto con sus
+        // parámetros, los botones de enlace escritos y las respuestas rápidas numeradas (WaTemplateText).
+        if (! $this->drivers->capabilitiesOf($account)->templates && $rendered->text === null && $rendered->waTemplateName !== null) {
+            $tpl = WaTemplate::query()->where('name', $rendered->waTemplateName)->where('language', $rendered->waLanguage ?? 'es')->first()
+                ?? throw new InvalidArgumentException('La plantilla de WhatsApp no está en este espacio de trabajo.');
+            $composed = WaTemplateText::degrade($tpl, $rendered->waComponents);
 
-            return new RenderedMessage(text: $text ?? throw new InvalidArgumentException('La plantilla de WhatsApp no está en este espacio de trabajo.'));
+            return [new RenderedMessage(text: $composed['text']), ['options' => $composed['options'], 'media' => $composed['media'], 'dropped' => $composed['dropped']]];
         }
 
-        return $rendered;
+        return [$rendered, null];
+    }
+
+    /**
+     * Un archivo que el proveedor puede bajar: HTTPS público y, si es documento, un PDF (Imagina Whats solo manda PDF).
+     *
+     * @param  array{type: string, url: string}  $media
+     */
+    private static function sendableMedia(array $media): bool
+    {
+        if (! str_starts_with(strtolower($media['url']), 'https://')) {
+            return false;
+        }
+
+        return $media['type'] !== 'document' || str_ends_with(strtolower((string) parse_url($media['url'], PHP_URL_PATH)), '.pdf');
     }
 
     /**

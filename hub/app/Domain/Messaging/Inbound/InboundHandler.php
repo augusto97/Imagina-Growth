@@ -19,6 +19,7 @@ use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Messaging\Models\Message;
 use App\Domain\Messaging\Sending\UnsubscribeService;
 use App\Domain\Messaging\Support\MessageEvents;
+use App\Domain\Messaging\Support\NumberedOptions;
 use App\Domain\Messaging\Support\SocialIdentity;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Ingest\HubEvents;
@@ -38,7 +39,9 @@ use Throwable;
  *   por su PSID/IGSID en la página (SocialIdentity), o lo crea.
  * - Abre la ventana de 24 h de la conversación (WhatsApp, Messenger, Instagram).
  * - Marca como respondido el mensaje al que contesta, con el botón tocado
- *   («Confirmo», «Cancelar»), para que los flujos lo puedan esperar.
+ *   («Confirmo», «Cancelar»), para que los flujos lo puedan esperar. En un canal
+ *   sin botones, la respuesta escrita a opciones numeradas («2», el texto de la
+ *   opción o la hora) cuenta como el botón (`NumberedOptions`, `option_reply`).
  * - Si trae el token del sitio (`ref: K7Q2`, eventos.md §6.3), vincula el número
  *   con el visitante anónimo del clic.
  * - Palabras de baja: revoca el marketing del canal y responde con una confirmación.
@@ -73,6 +76,11 @@ final class InboundHandler
             if ($contact === null) {
                 return null;
             }
+            // Respuesta escrita a opciones numeradas (canales sin botones): vuelve como si hubiera tocado la opción.
+            $chosen = $this->numberedChoice($account, $contact, $in);
+            if ($chosen !== null) {
+                $in = $in->withButtonPayload($chosen);
+            }
             $message = Message::query()->create([
                 'workspace_id' => $workspace->id,
                 'contact_id' => $contact->id,
@@ -84,7 +92,8 @@ final class InboundHandler
                 'kind' => MessageKind::Service,
                 'source_type' => 'inbox',
                 'status' => 'received',
-                'payload' => array_filter(['type' => $in->type, 'text' => $in->text ?? $in->caption, 'button_payload' => $in->buttonPayload, 'context_id' => $in->contextMessageId,
+                'payload' => array_filter(['type' => $in->type, 'text' => $in->text ?? $in->caption, 'button_payload' => $in->buttonPayload,
+                    'option_reply' => $chosen !== null ? true : null, 'context_id' => $in->contextMessageId,
                     'media' => $in->mediaId !== null || $in->mediaUrl !== null ? array_filter(['id' => $in->mediaId, 'url' => $in->mediaUrl, 'mime' => $in->mediaMime]) : null,
                     'ctwa_clid' => $in->ctwaClid, 'referral_source' => $in->referralSourceType,
                     'referral_id' => $account->channel->isSocial() ? $in->referralSourceId : null], fn ($v) => $v !== null),
@@ -182,6 +191,23 @@ final class InboundHandler
         FetchSocialProfile::dispatch($workspace->id, $account->id, $contact->id, $senderId)->afterCommit();
 
         return $contact;
+    }
+
+    /**
+     * La opción que eligió escribiendo («2», «sí, cancelar», «10:30») entre las numeradas del último saliente de esta
+     * conversación (hasta NumberedOptions::TTL_HOURS). Solo el último: si después se le escribió otra cosa, un número
+     * suelto ya no elige nada.
+     */
+    private function numberedChoice(ChannelAccount $account, Contact $contact, InboundMessage $in): ?string
+    {
+        if ($in->buttonPayload !== null || $in->text === null || trim($in->text) === '') {
+            return null;
+        }
+        $last = Message::query()->where('contact_id', $contact->id)->where('channel_account_id', $account->id)->where('direction', 'out')
+            ->where('created_at', '>=', now()->subHours(NumberedOptions::TTL_HOURS))
+            ->orderByDesc('created_at')->orderByDesc('id')->first(['id', 'payload']);
+
+        return $last !== null ? NumberedOptions::match($in->text, NumberedOptions::fromPayload($last->payload)) : null;
     }
 
     private function markReplied(Workspace $workspace, Contact $contact, InboundMessage $in, ?string $keyword): void

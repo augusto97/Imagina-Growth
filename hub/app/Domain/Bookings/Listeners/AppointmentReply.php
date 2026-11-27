@@ -30,6 +30,9 @@ final class AppointmentReply
 
     private const RESCHEDULE = ['reprogramar', 'reagendar', 'cambiar hora', 'cambiar la hora', 'cambiar cita'];
 
+    /** Los botones de respuesta rápida de los recordatorios (y la respuesta numerada que los reemplaza sin botones). */
+    public const BUTTONS = ['appt_confirm', 'appt_reschedule'];
+
     public function __construct(
         private readonly CurrentWorkspace $current,
         private readonly ChangeAppointment $change,

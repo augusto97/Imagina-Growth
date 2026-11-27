@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Messaging\Channels\Drivers;
 
+use App\Domain\Messaging\Channels\ChannelCapabilities;
 use App\Domain\Messaging\Channels\ChannelDriver;
 use App\Domain\Messaging\Channels\Data\InboundMessage;
 use App\Domain\Messaging\Channels\Data\OutgoingMessage;
@@ -21,8 +22,10 @@ use Throwable;
 /**
  * Imagina Whats (https://whats.imagina.cloud, API REST v1 y webhooks firmados): WhatsApp por WhatsApp Web, no
  * oficial (cumplimiento.md §5.2). Como Zender: conversaciones 1:1 y transaccionales de bajo volumen, topes fijos de la
- * plataforma y nunca marketing (SendPolicy lo niega antes; el driver también). Solo texto: las plantillas de WhatsApp
- * llegan ya compuestas. Imagina Whats aplica además su calentamiento y su ritmo humanizado, que no se apagan por API.
+ * plataforma y nunca marketing (SendPolicy lo niega antes; el driver también). Texto y archivos por URL (el encabezado
+ * de una plantilla compuesta, `OutgoingMessage::$media`); sin plantillas de Meta, botones ni listas: llegan compuestas
+ * como texto, con las opciones numeradas (ChannelCapabilities). Imagina Whats aplica además su calentamiento y su
+ * ritmo humanizado, que no se apagan por API.
  *
  * - Envío: `POST /messages/whatsapp` con el número elegido (`wa_account_id`), `reference` = el ID del mensaje del hub
  *   e `Idempotency-Key` estable (un reintento no lo duplica). 202 no es «entregado»: los estados llegan por webhook.
@@ -42,11 +45,15 @@ final class ImaginaWhatsDriver implements ChannelDriver
             return SendResult::failed(__('Faltan los datos de Imagina Whats en la cuenta.'), 'not_configured');
         }
         $body = trim((string) $message->text);
-        if ($body === '') {
+        if ($body === '' && $message->media === null) {
             return SendResult::failed(__('El mensaje no tiene texto.'), 'empty');
         }
         try {
-            $data = $client->sendText((int) $number, $message->to, mb_substr($body, 0, 4096), $message->messageId, 'igr-'.$message->messageId);
+            // Con archivo (el encabezado de una plantilla compuesta): un solo mensaje con el texto como pie (Imagina Whats no
+            // acepta pie en un audio; las plantillas de Meta tampoco llevan audio en el encabezado).
+            $data = $message->media !== null
+                ? $client->sendMedia((int) $number, $message->to, $message->media['url'], $message->media['type'] === 'audio' ? null : mb_substr($body, 0, 4096), $message->messageId, 'igr-'.$message->messageId)
+                : $client->sendText((int) $number, $message->to, mb_substr($body, 0, 4096), $message->messageId, 'igr-'.$message->messageId);
         } catch (ImaginaWhatsError $e) {
             $until = self::blockedUntil($e);
             if ($until !== null) {
@@ -119,9 +126,19 @@ final class ImaginaWhatsDriver implements ChannelDriver
         return 0.0; // Imagina Whats cobra con sus créditos, no por mensaje de Meta.
     }
 
-    public function capabilities(): array
+    /**
+     * WhatsApp Web (API v1 de Imagina Whats, `POST /messages/whatsapp`): texto de hasta 4.096 caracteres y archivos
+     * sueltos (imagen, video, audio o PDF por URL pública, con pie salvo el audio). No hay plantillas de Meta, botones ni
+     * listas: las opciones salen numeradas en el texto. Ubicación, tarjeta de contacto y reacciones existen en su API,
+     * pero el hub no las usa.
+     */
+    public function capabilities(): ChannelCapabilities
     {
-        return ['marketing' => false, 'templates' => false, 'free_text' => true, 'media' => false, 'buttons' => false, 'rate_per_second' => 1];
+        return new ChannelCapabilities(
+            official: false, marketing: false, templates: false, freeText: true, buttons: false, lists: false,
+            templateButtons: false, templateMediaHeader: false, media: ['image', 'video', 'document', 'audio'], location: false,
+            contactCard: false, reactions: false, window24h: false, maxText: 4096, ratePerSecond: 1,
+        );
     }
 
     /** Hasta cuándo Imagina Whats no recibe (tope diario de calentamiento o de la clave): se aplaza, no falla. */

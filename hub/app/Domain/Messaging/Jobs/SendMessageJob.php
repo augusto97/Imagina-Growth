@@ -108,7 +108,7 @@ final class SendMessageJob implements ShouldQueue, WorkspaceAware
 
         // 3. Velocidad por cuenta.
         $driver = $drivers->for($account->provider);
-        $rate = max(1, $driver->capabilities()['rate_per_second']);
+        $rate = max(1, $driver->capabilities()->ratePerSecond);
         $allowed = Redis::connection()->throttle('ws:'.$workspace->id.':send:'.$account->id)->allow($rate)->every(1)->block(0)
             ->then(fn () => true, fn () => false);
         if ($allowed !== true) {
@@ -140,6 +140,7 @@ final class SendMessageJob implements ShouldQueue, WorkspaceAware
                 array_values((array) ($payload['wa']['components'] ?? [])),
                 isset($payload['messaging_tag']) ? (string) $payload['messaging_tag'] : null,
                 WhatsAppInteractive::valid($payload['interactive'] ?? null) ? (array) $payload['interactive'] : null,
+                self::media($payload['media'] ?? null),
             ));
         } catch (Throwable $e) {
             // Una excepción del driver dejaba el mensaje en `sending` para siempre (F9): queda fallido con el motivo.
@@ -181,5 +182,19 @@ final class SendMessageJob implements ShouldQueue, WorkspaceAware
         $policy->release($request, CarbonImmutable::instance($message->queued_at ?? now()));
         $workspace = Workspace::query()->findOrFail($message->workspace_id);
         $events->emit($workspace, $message, 'message.failed', ['reason' => mb_substr($reason, 0, 500), 'error_code' => $code]);
+    }
+
+    /**
+     * El archivo suelto del mensaje (encabezado de una plantilla compuesta como texto), o null.
+     *
+     * @return array{type: string, url: string}|null
+     */
+    private static function media(mixed $media): ?array
+    {
+        if (! is_array($media) || ! is_string($media['type'] ?? null) || ! is_string($media['url'] ?? null) || $media['url'] === '') {
+            return null;
+        }
+
+        return ['type' => $media['type'], 'url' => $media['url']];
     }
 }

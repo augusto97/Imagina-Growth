@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Intelligence\Ai\Agent;
 
 use App\Domain\Bookings\Chat\ChatBookingIds;
+use App\Domain\Bookings\Listeners\AppointmentReply;
 use App\Domain\Capture\Listeners\WhatsAppLinkInbound;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Inbox\Contracts\ConversationAgent;
@@ -75,10 +76,11 @@ final class SalesAgent implements ConversationAgent
         if (! $settings->enabled || ! in_array($mode, ['assist', 'auto'], true) || $inbound->direction !== 'in' || $inbound->conversation_id !== $conversation->id) {
             return;
         }
-        // El toque a un horario de la agenda lo atiende ChatBookingReply, y el «Sí, quiero» de recibir novedades de un
-        // chat con atribución lo atiende WhatsAppLinkInbound: el agente no les contesta encima.
+        // El toque a un horario de la agenda lo atiende ChatBookingReply, el «Sí, quiero» de recibir novedades de un chat
+        // con atribución WhatsAppLinkInbound y el «Confirmo»/«Reprogramar» de un recordatorio AppointmentReply (también
+        // escritos como número en un canal sin botones): el agente no les contesta encima.
         $button = ((array) $inbound->payload)['button_payload'] ?? null;
-        if (ChatBookingIds::is($button) || WhatsAppLinkInbound::isOptInButton($button)) {
+        if (ChatBookingIds::is($button) || WhatsAppLinkInbound::isOptInButton($button) || in_array($button, AppointmentReply::BUTTONS, true)) {
             return;
         }
         $this->turn($conversation, $inbound, $mode, $settings);
@@ -301,8 +303,9 @@ final class SalesAgent implements ConversationAgent
         $account = ChannelAccount::query()->find($conversation->channel_account_id);
         $channel = $account !== null ? $account->channel : Channel::WhatsApp;
         $context = ['text' => $text];
-        // Horarios para tocar (agenda): botones o lista de WhatsApp con la respuesta como cuerpo; el texto lleva las opciones.
-        if ($keySuffix === '' && $run->interactive !== null && $channel === Channel::WhatsApp) {
+        // Horarios para elegir (agenda): botones o lista con la respuesta como cuerpo; el texto lleva las opciones. En un
+        // canal sin botones (no oficial, Messenger, Instagram) el despachador las numera (ChannelCapabilities).
+        if ($keySuffix === '' && $run->interactive !== null) {
             $interactive = WhatsAppInteractive::withBody($run->interactive, $text);
             $context = ['text' => WhatsAppInteractive::asText($interactive), 'interactive' => $interactive];
         }

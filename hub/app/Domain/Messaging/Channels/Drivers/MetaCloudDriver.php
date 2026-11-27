@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Messaging\Channels\Drivers;
 
+use App\Domain\Messaging\Channels\ChannelCapabilities;
 use App\Domain\Messaging\Channels\ChannelDriver;
 use App\Domain\Messaging\Channels\Data\BusinessAppMessage;
 use App\Domain\Messaging\Channels\Data\InboundMessage;
@@ -440,9 +441,18 @@ final class MetaCloudDriver implements ChannelDriver
         return WaRates::estimate($account, $country, $kind);
     }
 
-    public function capabilities(): array
+    /**
+     * WhatsApp oficial (Cloud API): plantillas aprobadas con encabezado de imagen, video o documento y botones de
+     * enlace, llamada, código o respuesta rápida; botones de respuesta y listas dentro de la ventana de 24 h. La API
+     * también manda archivos sueltos, ubicación y reacciones, pero el hub todavía no los usa.
+     */
+    public function capabilities(): ChannelCapabilities
     {
-        return ['marketing' => true, 'templates' => true, 'free_text' => true, 'media' => true, 'buttons' => true, 'rate_per_second' => (int) config('igr-messaging.meta.rate_per_second', 50)];
+        return new ChannelCapabilities(
+            official: true, marketing: true, templates: true, freeText: true, buttons: true, lists: true,
+            templateButtons: true, templateMediaHeader: true, media: [], location: false, contactCard: false, reactions: false,
+            window24h: true, maxText: 4096, ratePerSecond: (int) config('igr-messaging.meta.rate_per_second', 50),
+        );
     }
 
     private function url(string $path): string

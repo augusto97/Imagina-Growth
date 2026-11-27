@@ -14,7 +14,6 @@ use App\Domain\Bookings\Support\SlotTaken;
 use App\Domain\Inbox\Events\InboundMessageReceived;
 use App\Domain\Messaging\Contracts\MessageDispatcher;
 use App\Domain\Messaging\Data\OutboundMessage;
-use App\Domain\Messaging\Enums\Channel;
 use App\Domain\Messaging\Enums\MessageKind;
 use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Messaging\Models\Message;
@@ -209,8 +208,10 @@ final class ChatBookingReply implements ShouldQueue
     /** @param array{text: string, interactive?: array<string, mixed>} $reply */
     private function reply(Workspace $workspace, string $contactId, Message $inbound, ?Conversation $conversation, array $reply): void
     {
+        // Por el mismo canal de la conversación (WhatsApp, Messenger o Instagram): sin botones, el despachador numera las opciones.
         $result = $this->dispatcher->dispatch(new OutboundMessage(
-            workspaceId: $workspace->id, contactId: $contactId, channel: Channel::WhatsApp, kind: MessageKind::Service, sourceType: 'inbox',
+            workspaceId: $workspace->id, contactId: $contactId, channel: $inbound->channel,
+            kind: MessageKind::Service, sourceType: 'inbox',
             sourceId: $conversation?->id, context: array_filter(['text' => $reply['text'], 'interactive' => $reply['interactive'] ?? null]),
             idempotencyKey: 'bk:'.$inbound->id, channelAccountId: $conversation->channel_account_id ?? $inbound->channel_account_id,
         ));

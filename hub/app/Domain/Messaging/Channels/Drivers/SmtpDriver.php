@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Messaging\Channels\Drivers;
 
+use App\Domain\Messaging\Channels\ChannelCapabilities;
 use App\Domain\Messaging\Channels\ChannelDriver;
 use App\Domain\Messaging\Channels\Data\OutgoingMessage;
 use App\Domain\Messaging\Channels\Data\SendResult;
@@ -78,8 +79,8 @@ class SmtpDriver implements ChannelDriver
         return null;
     }
 
-    public function capabilities(): array
+    public function capabilities(): ChannelCapabilities
     {
-        return ['marketing' => true, 'templates' => false, 'free_text' => true, 'media' => true, 'buttons' => true, 'rate_per_second' => (int) config('igr-messaging.smtp.rate_per_second', 5)];
+        return ChannelCapabilities::basic(true, (int) config('igr-messaging.smtp.rate_per_second', 5), 100000, media: true);
     }
 }

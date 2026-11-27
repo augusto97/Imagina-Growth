@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Messaging\Channels\Drivers;
 
+use App\Domain\Messaging\Channels\ChannelCapabilities;
 use App\Domain\Messaging\Channels\ChannelDriver;
 use App\Domain\Messaging\Channels\Data\InboundMessage;
 use App\Domain\Messaging\Channels\Data\OutgoingMessage;
@@ -101,8 +102,8 @@ final class TwilioSmsDriver implements ChannelDriver
         return (float) ($rates[strtoupper($country)] ?? $rates['default'] ?? 0.0);
     }
 
-    public function capabilities(): array
+    public function capabilities(): ChannelCapabilities
     {
-        return ['marketing' => true, 'templates' => false, 'free_text' => true, 'media' => false, 'buttons' => false, 'rate_per_second' => (int) config('igr-messaging.twilio.rate_per_second', 10)];
+        return ChannelCapabilities::basic(true, (int) config('igr-messaging.twilio.rate_per_second', 10), 1600);
     }
 }

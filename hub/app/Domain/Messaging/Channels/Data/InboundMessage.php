@@ -30,4 +30,12 @@ final class InboundMessage
         public readonly ?string $caption = null,       // texto que acompaña al adjunto
         public readonly ?string $mediaUrl = null,      // Fase 5: Messenger e Instagram mandan la URL del adjunto (caduca), no un id
     ) {}
+
+    /** El mismo mensaje con la opción elegida (una respuesta escrita a opciones numeradas, NumberedOptions). */
+    public function withButtonPayload(string $payload): self
+    {
+        return new self($this->from, $this->providerMessageId, $this->type, $this->at, $this->text, $payload, $this->contextMessageId,
+            $this->ctwaClid, $this->referralSourceType, $this->referralSourceId, $this->profileName, $this->recipientId,
+            $this->mediaId, $this->mediaMime, $this->caption, $this->mediaUrl);
+    }
 }

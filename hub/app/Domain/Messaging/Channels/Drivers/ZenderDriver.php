@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Messaging\Channels\Drivers;
 
+use App\Domain\Messaging\Channels\ChannelCapabilities;
 use App\Domain\Messaging\Channels\ChannelDriver;
 use App\Domain\Messaging\Channels\Data\InboundMessage;
 use App\Domain\Messaging\Channels\Data\OutgoingMessage;
@@ -91,8 +92,13 @@ final class ZenderDriver implements ChannelDriver
         return 0.0;
     }
 
-    public function capabilities(): array
+    /** WhatsApp Web por Zender: solo texto (sin plantillas, botones, listas ni archivos): las opciones salen numeradas. */
+    public function capabilities(): ChannelCapabilities
     {
-        return ['marketing' => false, 'templates' => false, 'free_text' => true, 'media' => false, 'buttons' => false, 'rate_per_second' => 1];
+        return new ChannelCapabilities(
+            official: false, marketing: false, templates: false, freeText: true, buttons: false, lists: false,
+            templateButtons: false, templateMediaHeader: false, media: [], location: false, contactCard: false, reactions: false,
+            window24h: false, maxText: 4096, ratePerSecond: 1,
+        );
     }
 }

@@ -149,7 +149,8 @@ final class WhatsAppComponents
         return $param;
     }
 
-    private static function slug(string $text, int $index): string
+    /** El payload de una respuesta rápida sin uno propio (también lo usa `WaTemplateText`). */
+    public static function slug(string $text, int $index): string
     {
         $slug = trim(preg_replace('/[^a-z0-9]+/', '_', strtolower(iconv('UTF-8', 'ASCII//TRANSLIT', $text) ?: $text)) ?? '', '_');
 
