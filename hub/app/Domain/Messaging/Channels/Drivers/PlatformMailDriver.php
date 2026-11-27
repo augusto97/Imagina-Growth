@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Messaging\Channels\Drivers;
 
+use App\Domain\Messaging\Channels\ChannelCapabilities;
 use App\Domain\Messaging\Channels\ChannelDriver;
 use App\Domain\Messaging\Channels\Data\OutgoingMessage;
 use App\Domain\Messaging\Channels\Data\SendResult;
@@ -64,8 +65,9 @@ final class PlatformMailDriver implements ChannelDriver
         return null;
     }
 
-    public function capabilities(): array
+    /** Solo transaccional y de utilidad (nunca marketing), sin adjuntos. */
+    public function capabilities(): ChannelCapabilities
     {
-        return ['marketing' => false, 'templates' => false, 'free_text' => true, 'media' => false, 'buttons' => false, 'rate_per_second' => 5];
+        return ChannelCapabilities::basic(false, 5, 100000);
     }
 }
