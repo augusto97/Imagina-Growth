@@ -11,6 +11,7 @@ use App\Domain\Intelligence\Ai\Features\AskData\AskYourData;
 use App\Domain\Intelligence\Ai\Features\AskData\SegmentFromQuery;
 use App\Domain\Intelligence\Ai\Features\Assistant\AiAssistant;
 use App\Domain\Intelligence\Ai\Features\Assistant\AssistantContext;
+use App\Domain\Intelligence\Ai\Features\Assistant\AssistantPages;
 use App\Domain\Intelligence\Ai\Features\Models\AiReport;
 use App\Domain\Intelligence\Ai\Features\Models\AskDataQuery;
 use App\Domain\Intelligence\Ai\Features\Summaries\ProfileSummary;
@@ -261,8 +262,11 @@ final class AiController
             'source' => $q->result_meta['source'] ?? (isset($q->validation['fallback_reason']) ? 'fallback' : 'ai'),
             'saved_as' => $q->saved_as,
             'context' => $q->context['kind'] ?? null,
-            'actions' => $q->actions ?? [],
+            'actions' => array_map(fn (array $a) => $a + ['path' => ($a['kind'] ?? null) === 'page' && is_string($a['page'] ?? null) ? AssistantPages::path($a['page']) : null], $q->actions ?? []),
+            'steps' => $q->steps ?? [],
             'fallback_reason' => $q->validation['fallback_reason'] ?? null,
+            // La IA no respondió esta vez (proveedor caído u ocupado): el panel ofrece reintentar.
+            'retryable' => $q->status === 'failed' && in_array($q->validation['fallback_reason'] ?? null, ['provider', 'invalid'], true),
             'created_at' => $q->created_at?->toIso8601String(),
         ];
     }

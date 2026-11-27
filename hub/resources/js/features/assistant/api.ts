@@ -10,13 +10,26 @@ export interface AssistantAction {
     kind: 'campaign' | 'flow' | 'page';
     prompt: string | null;
     page: string | null;
+    /** Ruta dentro de `/w/{espacio}/` de un paso `page` (respuestas de antes). */
+    path?: string | null;
+}
+
+/** Un paso concreto de la respuesta, con la pantalla donde se hace (`path` null: sin enlace). */
+export interface AssistantStep {
+    text: string;
+    page: string | null;
+    ref: string | null;
+    path: string | null;
 }
 
 export interface AssistantAnswer extends AskAnswer {
     context: AssistantKind | null;
     actions: AssistantAction[];
-    /** disabled: la IA está apagada; budget: se acabó el cupo del mes; numbers, provider…: respondió sin IA. */
+    steps?: AssistantStep[];
+    /** disabled: la IA está apagada; budget: se acabó el cupo del mes; provider, refusal: falló; numbers, empty, invalid: respondió sin IA. */
     fallback_reason: string | null;
+    /** La IA no respondió esta vez: se puede volver a preguntar. */
+    retryable?: boolean;
 }
 
 export function useAssistantAsk(ws: string) {

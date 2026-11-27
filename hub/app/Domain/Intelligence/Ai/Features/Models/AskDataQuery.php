@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property array<string, mixed>|null $validation
  * @property array{kind?: string}|null $context de qué pantalla vino (asistente «Pregúntale a la IA»)
  * @property list<array{kind: string, prompt: string|null, page: string|null}>|null $actions siguiente paso que propuso
+ * @property list<array{text: string, page: string|null, ref: string|null, path: string|null}>|null $steps pasos con su pantalla
  * @property string|null $saved_as
  * @property string|null $saved_id
  * @property CarbonInterface|null $created_at
@@ -49,6 +50,7 @@ class AskDataQuery extends Model
             'validation' => 'array',
             'context' => 'array',
             'actions' => 'array',
+            'steps' => 'array',
             'question' => 'encrypted',
         ];
     }

@@ -12,24 +12,6 @@ export interface AssistantPage {
     id: string | null;
 }
 
-/** Pantallas a las que puede llevar un paso (las mismas de `AiAssistant::PAGES` en el hub). */
-export const ASSISTANT_PAGES: Record<string, string> = {
-    segments: 'segmentos',
-    campaigns: 'campanas',
-    flows: 'flujos',
-    templates: 'plantillas',
-    insights: 'hallazgos',
-    leads: 'leads',
-    inbox: 'bandeja',
-    results: 'resultados',
-    contacts: 'contactos',
-    strategies: 'estrategias',
-    connections: 'conexiones',
-    onsite: 'en-tu-web',
-    reviews: 'resenas',
-    loyalty: 'fidelizacion',
-};
-
 const DETAIL: { prefix: string; kind: AssistantKind }[] = [
     { prefix: 'contactos', kind: 'contact' },
     { prefix: 'segmentos', kind: 'segment' },
@@ -67,12 +49,20 @@ export const SUGGESTION_KEYS: Record<AssistantKind, readonly string[]> = {
     other: ['week', 'best', 'how'],
 };
 
-/** Lo último de la conversación del panel que viaja con la pregunta (el hub toma 3). */
-export function historyFor(turns: { question: string; answer: string | null; status: string }[]): { question: string; answer: string }[] {
+/**
+ * Lo último de la conversación del panel que viaja con la pregunta (el hub toma 3). Los pasos que se propusieron van
+ * con la respuesta: así el seguimiento («ok, ¿y el segundo?») se entiende.
+ */
+export function historyFor(
+    turns: { question: string; answer: string | null; status: string; steps?: readonly { text: string }[] }[],
+): { question: string; answer: string }[] {
     return turns
         .filter((t) => t.status !== 'failed' && t.answer !== null && t.answer !== '')
         .slice(-3)
-        .map((t) => ({ question: t.question.slice(0, 500), answer: (t.answer ?? '').slice(0, 1500) }));
+        .map((t) => ({
+            question: t.question.slice(0, 500),
+            answer: [t.answer ?? '', ...(t.steps ?? []).map((s) => `- ${s.text}`)].join('\n').slice(0, 1500),
+        }));
 }
 
 interface AssistantState {
