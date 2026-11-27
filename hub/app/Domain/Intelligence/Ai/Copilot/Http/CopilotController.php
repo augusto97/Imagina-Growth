@@ -188,13 +188,13 @@ final class CopilotController
         });
     }
 
-    /** POST copilot/content/variants {text, kind?, count?} */
+    /** POST copilot/content/variants {text, kind?, count?} — `kind = sms`: cada variante cabe en un SMS (SmsEstimate). */
     public function variants(Request $request, ContentWriter $writer): JsonResponse
     {
         Gate::authorize('ws.useAi');
         $data = $request->validate([
             'text' => ['required', 'string', 'min:2', 'max:1024'],
-            'kind' => ['sometimes', Rule::in(['subject', 'body', 'whatsapp'])],
+            'kind' => ['sometimes', Rule::in(['subject', 'body', 'whatsapp', 'sms'])],
             'count' => ['sometimes', 'integer', 'min:1', 'max:5'],
         ]);
 

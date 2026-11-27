@@ -149,7 +149,8 @@
                 "preheader_long": "El preheader tiene más de 120 caracteres.",
                 "unsubscribe_missing": "Falta el enlace para darse de baja ({{ enlaces.baja }}). Es obligatorio en los correos de marketing.",
                 "body_missing": "La plantilla está vacía.",
-                "sms_long": "El SMS ocupa más de 3 partes y cada una se cobra.",
+                "sms_too_long": "No cabe en un SMS con las variables a su largo máximo: acórtalo (o pide al dueño permitir 2 partes).",
+                "sms_unicode": "Hay letras que bajan el límite del SMS a 70 caracteres.",
                 "sms_optout_missing": "Los SMS de marketing deben decir cómo darse de baja (por ejemplo: «Responde BAJA para no recibir más»).",
                 "wa_template_missing": "Elige una plantilla aprobada de WhatsApp.",
                 "wa_variables_missing": "Falta asignar una variable a uno o más parámetros."
@@ -172,11 +173,24 @@
         },
         "sms": {
             "title": "Texto del SMS",
-            "help": "Usa variables con {{ }}. Sin tildes ni eñes cabe más texto por parte.",
+            "help": "Hasta 160 caracteres es un solo mensaje. Las variables {{ }} se cuentan con su largo máximo, así nunca se parte al enviarlo.",
             "text": "Mensaje",
-            "counter": "{{length}} caracteres · {{segments}} parte(s) · {{encoding}}",
-            "unicode": "las tildes, eñes y emojis bajan el límite a 70 caracteres por parte",
-            "liquidNote": "El conteo es del texto escrito; con las variables reemplazadas puede variar."
+            "counter_one": "{{length}} de {{limit}} caracteres · {{count}} mensaje",
+            "counter_other": "{{length}} de {{limit}} caracteres · {{count}} mensajes",
+            "counterWorst_one": "Hasta {{length}} de {{limit}} caracteres con las variables a su largo máximo · {{count}} mensaje",
+            "counterWorst_other": "Hasta {{length}} de {{limit}} caracteres con las variables a su largo máximo · {{count}} mensajes",
+            "previewCounter_one": "{{length}} caracteres · {{count}} mensaje · {{encoding}}",
+            "previewCounter_other": "{{length}} caracteres · {{count}} mensajes · {{encoding}}",
+            "variablesNote": "Cada variable cuenta con su largo máximo: un nombre, 20; un enlace, {{link}} (el enlace corto que sale); el nombre del negocio, {{store}}.",
+            "tooLongTitle": "No cabe en un SMS",
+            "tooLong": "Sobran {{over}} caracteres para el límite de {{limit}}. Acórtalo: así no se guarda ni se envía partido.",
+            "unicodeTitle": "{{chars}} baja el límite a 70 caracteres",
+            "unicodeBody": "Esas letras no están en el alfabeto de los SMS. La ñ, la é y la ü sí están.",
+            "unicodeLeft": "{{chars}} no tiene reemplazo: quítalo para volver a 160.",
+            "transliterate": "Cambiar por letras sin tilde",
+            "allowMultipart": "Permitir mensajes de 2 partes (cuestan el doble)",
+            "allowMultipartHelp": "Si el texto no cabe en un SMS, sale en 2 partes que el operador cobra como 2 mensajes. Nunca en más.",
+            "allowMultipartOwner": "Solo el dueño del negocio puede activarlo, porque cada parte se cobra."
         },
         "wa": {
             "title": "Plantilla de WhatsApp",

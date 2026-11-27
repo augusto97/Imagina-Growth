@@ -13,6 +13,8 @@ use App\Domain\Intelligence\Ai\Data\AiResult;
 use App\Domain\Intelligence\Ai\Exceptions\AiUnavailable;
 use App\Domain\Intelligence\Ai\Support\AiModels;
 use App\Domain\Intelligence\Ai\Support\NarrativeWriter;
+use App\Domain\Messaging\Support\SmsText;
+use App\Domain\Templates\Support\SmsEstimate;
 use App\Domain\Workspaces\Models\Workspace;
 
 /**
@@ -133,14 +135,45 @@ final class ContentWriter
         ]];
         $what = match ($kind) {
             'whatsapp' => 'del cuerpo de WhatsApp (conserva las variables {{n}} y las reglas de Meta)',
+            'sms' => 'del SMS. Cada variante debe caber en UN solo SMS: máximo '.SmsText::GSM_SINGLE.' caracteres contando cada variable {{ … }} con su largo máximo '
+                .'(un nombre ocupa 20 y un enlace '.SmsEstimate::limits($workspace)['link_length'].'), solo con letras del alfabeto de los SMS: sin á, í, ó, ú (escribe a, i, o, u; la é y la ñ sí van), '
+                .'sin emojis ni comillas tipográficas. Conserva las variables {{ … }} tal cual y la frase para darse de baja si el texto la tiene',
             'body' => 'del texto del correo',
             default => 'del asunto (máximo 60 caracteres)',
         };
-        $json = $this->generate($workspace, "Escribe {$count} variantes {$what} para una prueba A/B. Cambia el enfoque, no solo palabras.", ['goal' => $text],
-            $schema, $kind === 'whatsapp' ? fn (array $j) => array_merge(...array_map(fn ($v) => WhatsAppTemplateRules::check((string) $v), (array) ($j['variants'] ?? [])) ?: [[]]) : null);
+        $rules = match ($kind) {
+            'whatsapp' => fn (array $j) => array_merge(...array_map(fn ($v) => WhatsAppTemplateRules::check((string) $v), (array) ($j['variants'] ?? [])) ?: [[]]),
+            'sms' => fn (array $j) => self::smsProblems($workspace, (array) ($j['variants'] ?? [])),
+            default => null,
+        };
+        $json = $this->generate($workspace, "Escribe {$count} variantes {$what} para una prueba A/B. Cambia el enfoque, no solo palabras.", ['goal' => $text], $schema, $rules);
         $variants = array_values(array_filter(array_map(fn ($v) => trim(mb_substr((string) $v, 0, $kind === 'subject' ? 120 : 1024)), array_slice((array) ($json['variants'] ?? []), 0, $count))));
+        if ($kind === 'sms') {
+            // Lo que aun corregido no cabe en un mensaje no se entrega.
+            $variants = array_values(array_filter($variants, fn (string $v): bool => self::smsProblems($workspace, [$v]) === []));
+        }
 
         return ['draft' => $this->store($workspace, $userId, 'variants', ['text' => $text, 'kind' => $kind], ['variants' => $variants]), 'variants' => $variants];
+    }
+
+    /**
+     * Las variantes de SMS que en el peor caso (SmsEstimate) no caben en un mensaje, en palabras para el modelo.
+     *
+     * @param  array<int|string, mixed>  $variants
+     * @return list<string>
+     */
+    public static function smsProblems(Workspace $workspace, array $variants): array
+    {
+        $problems = [];
+        foreach (array_values($variants) as $i => $variant) {
+            $info = SmsEstimate::forWorkspace(trim((string) $variant), $workspace);
+            if ($info['segments'] > 1) {
+                $problems[] = 'La variante '.($i + 1).' ocupa '.$info['length'].' de '.$info['single_limit'].' caracteres'
+                    .($info['offenders'] !== [] ? ' porque usa «'.implode('», «', $info['offenders']).'», que no van en un SMS' : '').'.';
+            }
+        }
+
+        return $problems;
     }
 
     /**
@@ -168,9 +201,9 @@ final class ContentWriter
             throw new CopilotFailed(__('La IA propuso cifras que no están en tu pedido dos veces. Revisa el pedido o escribe el texto a mano.'));
         }
         if ($rules !== null && ($problems = $rules($result->json)) !== []) {
-            // Una corrección por las reglas de Meta, validando otra vez las cifras.
+            // Una corrección por las reglas del canal (las de Meta, el largo del SMS), validando otra vez las cifras.
             $retry = $this->writer->write($request->followUp((string) json_encode($result->json, JSON_UNESCAPED_UNICODE),
-                'No cumple las reglas de Meta: '.implode(' ', $problems).' Corrígelo.'), $facts, fn () => '', self::validatedText(...));
+                'No cumple las reglas del canal: '.implode(' ', $problems).' Corrígelo.'), $facts, fn () => '', self::validatedText(...));
             if ($retry->fromAi() && $retry->json !== null) {
                 return $retry->json;
             }

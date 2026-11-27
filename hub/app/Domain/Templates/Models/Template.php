@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $body_mjml
  * @property string|null $body_html
  * @property string|null $body_text
+ * @property bool $sms_allow_multipart SMS de hasta 2 partes (cuestan el doble); por defecto, uno solo
  * @property string|null $editor_state
  * @property string|null $wa_template_id
  * @property array<string, mixed>|null $variables
@@ -44,13 +45,13 @@ class Template extends Model
 
     public const STATUSES = ['draft', 'ready', 'archived'];
 
-    protected $fillable = ['workspace_id', 'channel', 'name', 'category', 'subject', 'preheader', 'body_mjml', 'body_html', 'body_text', 'editor_state', 'wa_template_id', 'variables', 'library_key', 'status', 'created_by'];
+    protected $fillable = ['workspace_id', 'channel', 'name', 'category', 'subject', 'preheader', 'body_mjml', 'body_html', 'body_text', 'sms_allow_multipart', 'editor_state', 'wa_template_id', 'variables', 'library_key', 'status', 'created_by'];
 
-    protected $attributes = ['category' => 'marketing', 'status' => 'draft'];
+    protected $attributes = ['category' => 'marketing', 'status' => 'draft', 'sms_allow_multipart' => false];
 
     protected function casts(): array
     {
-        return ['variables' => 'array'];
+        return ['variables' => 'array', 'sms_allow_multipart' => 'boolean'];
     }
 
     public function isMarketing(): bool

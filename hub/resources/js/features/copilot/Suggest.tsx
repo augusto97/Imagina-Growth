@@ -100,7 +100,7 @@ export function SuggestSubjectButton({ onPick }: { onPick: (subject: string, pre
     );
 }
 
-export function SuggestVariantsButton({ text, kind, onPick }: { text: string; kind: 'subject' | 'body' | 'whatsapp'; onPick: (value: string) => void }) {
+export function SuggestVariantsButton({ text, kind, onPick }: { text: string; kind: 'subject' | 'body' | 'whatsapp' | 'sms'; onPick: (value: string) => void }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const suggest = useSuggestVariants(workspace.id);

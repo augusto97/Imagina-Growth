@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Templates\Http;
 
 use App\Domain\Templates\Models\Template;
+use App\Domain\Templates\Support\SmsEstimate;
+use App\Domain\Workspaces\Models\Workspace;
 use Illuminate\Support\Facades\DB;
 
 /** JSON de una plantilla para la SPA. */
@@ -49,11 +51,17 @@ final class TemplatePresenter
      */
     public static function full(Template $t, array $checks): array
     {
+        $workspace = $t->channel === 'sms' ? Workspace::query()->find($t->workspace_id) : null;
+
         return self::summary($t) + [
             'preheader' => $t->preheader,
             'body_mjml' => $t->body_mjml,
             'body_html' => $t->body_html,
             'body_text' => $t->body_text,
+            'sms_allow_multipart' => $t->sms_allow_multipart,
+            // Lo que el editor necesita para contar el peor caso igual que el hub (largo del enlace rastreado, de la
+            // baja y del nombre del negocio).
+            'sms_limits' => $workspace instanceof Workspace ? SmsEstimate::limits($workspace) : null,
             'editor_state' => $t->editor_state,
             'wa_template_id' => $t->wa_template_id,
             'variables' => $t->variables ?? (object) [],
