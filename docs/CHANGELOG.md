@@ -1,5 +1,17 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-27 — Versión 0.4.1: «Pregúntale a la IA» funciona en producción
+
+Se instala con el botón de actualizar.
+
+- En la 0.4.0 el asistente respondía «Server Error» en producción: su base de conocimiento y su lista de pantallas
+  (`resources/assistant/`) no viajaban en el paquete de la versión, que solo copiaba `resources/views` y
+  `resources/schemas`. El paquete ahora lleva todo `resources/` menos el código fuente de la interfaz, y la prueba del
+  empaquetado exige esos archivos.
+- Si algo inesperado falla al responder, el panel ya no muestra «Server Error»: dice que algo falló de nuestro lado,
+  ofrece «Volver a preguntar» y el error queda en el registro del servidor (al administrador de la plataforma le dice
+  qué tipo de error fue).
+
 ## 2026-11-27 — Versión 0.4.0: avisos que sí llegan, lo que puede cada WhatsApp, SMS en un mensaje, editor de correo y una IA que ayuda
 
 Se instala con el botón de actualizar; las migraciones nuevas corren solas. Sin cambios en el contrato de eventos.

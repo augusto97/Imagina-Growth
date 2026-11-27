@@ -86,7 +86,12 @@ mkdir -p "$HUB/resources" "$HUB/bootstrap/cache" "$HUB/ml"
 for item in app config database lang public routes vendor artisan composer.json composer.lock; do
     cp -a "$SRC/$item" "$HUB/"
 done
-cp -a "$SRC/resources/views" "$SRC/resources/schemas" "$HUB/resources/"
+# Todo resources/ menos el código fuente de la SPA (js, css: ya va compilado en public/build). Antes se copiaban solo
+# views y schemas, y lo que la app lee en ejecución desde otra carpeta (resources/assistant, 0.4.0) no viajaba.
+for dir in "$SRC"/resources/*/; do
+    case "$(basename "$dir")" in js|css) continue ;; esac
+    cp -a "${dir%/}" "$HUB/resources/"
+done
 cp -a "$SRC/bootstrap/app.php" "$SRC/bootstrap/providers.php" "$HUB/bootstrap/"
 # El manifiesto de paquetes sin las dependencias de desarrollo; sin caché de configuración ni de rutas
 # (las arma el actualizador con el .env del servidor).

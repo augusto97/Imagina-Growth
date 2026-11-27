@@ -30,7 +30,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Throwable;
 
 /**
  * IA del panel (M17, Fase 4): uso del mes, informes del analista semanal,
@@ -157,7 +159,23 @@ final class AiController
         $page = is_array($data['page'] ?? null) ? $data['page'] : [];
         $history = array_values(array_map(fn (array $h) => ['question' => (string) $h['question'], 'answer' => (string) $h['answer']], (array) ($data['history'] ?? [])));
 
-        return response()->json(self::presentAsk($assistant->handle($ws, $user, (string) $data['question'], $page, $history)), 201);
+        try {
+            return response()->json(self::presentAsk($assistant->handle($ws, $user, (string) $data['question'], $page, $history)), 201);
+        } catch (Throwable $e) {
+            // Un error nuestro nunca deja el panel en «Server Error»: queda en el registro y la persona puede reintentar.
+            report($e);
+            $admin = (bool) ($user->getAttributes()['is_platform_admin'] ?? false);
+
+            return response()->json([
+                'id' => 'adq_'.strtoupper((string) Str::ulid()), 'question' => mb_substr((string) $data['question'], 0, 500),
+                'answer' => $admin
+                    ? __('Algo falló de nuestro lado (:error). Ya quedó en el registro del servidor; vuelve a intentarlo.', ['error' => class_basename($e)])
+                    : __('Algo falló de nuestro lado. Ya quedó registrado; vuelve a intentarlo en un momento.'),
+                'status' => 'failed', 'query' => null, 'result' => null, 'source' => 'fallback', 'saved_as' => null,
+                'context' => is_string($page['kind'] ?? null) ? $page['kind'] : null, 'actions' => [], 'steps' => [],
+                'fallback_reason' => 'error', 'retryable' => true, 'created_at' => now()->toIso8601String(),
+            ], 201);
+        }
     }
 
     /** GET ai/ask/{query}/run — las cifras al día de una consulta guardada, sin IA. */

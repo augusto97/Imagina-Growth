@@ -116,9 +116,10 @@ Contenido del zip (sin carpeta raíz):
 VERSION                     X.Y.Z
 release.json                versión, commit, fecha, php, bytes y archivos descomprimidos, variables de entorno nuevas
 hub/                        Laravel listo para correr: app, bootstrap (cache vacío), config, database (migraciones de
-                            MariaDB y clickhouse/), lang, public (con build/ de la SPA), resources/views y
-                            resources/schemas, routes, artisan, composer.json/lock y vendor (composer install --no-dev,
-                            autoloader optimizado). Sin tests, node_modules, resources/js ni storage
+                            MariaDB y clickhouse/), lang, public (con build/ de la SPA), todo resources/ menos js y css
+                            (views, schemas, assistant…: lo que la app lee en ejecución), routes, artisan,
+                            composer.json/lock y vendor (composer install --no-dev, autoloader optimizado). Sin tests,
+                            node_modules, resources/js, resources/css ni storage
 hub/ml/                     app/, pyproject.toml y uv.lock (el entorno se crea en el servidor con uv sync --frozen)
 bin/                        scripts del servidor (infra/bin)
 backup/                     copias y su verificación (infra/backup), se instalan en /usr/local/lib/growth/backup

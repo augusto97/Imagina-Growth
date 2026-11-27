@@ -61,6 +61,8 @@ has hub/ml/uv.lock
 has hub/ml/pyproject.toml
 has hub/ml/app/main.py
 has hub/resources/views/app.blade.php
+has hub/resources/assistant/knowledge.md
+has hub/resources/assistant/pages.json
 has hub/database/clickhouse/0001_events.sql
 has hub/bootstrap/app.php
 has release-signing.pub.pem

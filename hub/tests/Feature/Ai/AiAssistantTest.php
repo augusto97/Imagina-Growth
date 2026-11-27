@@ -1,6 +1,9 @@
 <?php
 
 use App\Domain\Contacts\Models\Contact;
+use App\Domain\Intelligence\Ai\Contracts\AiGateway;
+use App\Domain\Intelligence\Ai\Data\AiRequest;
+use App\Domain\Intelligence\Ai\Data\AiResult;
 use App\Domain\Intelligence\Ai\Features\Assistant\AssistantContext;
 use App\Domain\Intelligence\Ai\Features\Assistant\AssistantKnowledge;
 use App\Domain\Intelligence\Ai\Features\Assistant\AssistantPages;
@@ -249,4 +252,37 @@ it('la base de conocimiento solo nombra pantallas del catálogo y el catálogo e
 it('aplana los hechos: solo lo escalar y corto, con claves de ruta', function () {
     $flat = AssistantContext::flatten(['a' => ['b' => 1, 'c' => ['d' => 'x']], 'largo' => str_repeat('y', 200), 'lista' => [1, 2]]);
     expect($flat)->toBe(['a.b' => 1, 'a.c.d' => 'x', 'lista.0' => 1, 'lista.1' => 2]);
+});
+
+it('un error nuestro no deja el panel en «Server Error»: responde que se puede reintentar y queda en el registro', function () {
+    // Una falla que no es de la IA (en producción: un archivo que no venía en el paquete de la versión).
+    app()->instance(AiGateway::class, new class implements AiGateway
+    {
+        public function available(string $workspaceId): bool
+        {
+            return true;
+        }
+
+        public function generate(AiRequest $request): AiResult
+        {
+            throw new ErrorException('file_get_contents(knowledge.md): Failed to open stream');
+        }
+
+        public function withTools(AiRequest $request, array $tools, int $maxSteps = 6): AiResult
+        {
+            throw new ErrorException('file_get_contents(knowledge.md): Failed to open stream');
+        }
+    });
+
+    $res = $this->actingAs($this->owner)->postJson("{$this->api}/ai/assistant", ['question' => 'Hola'])->assertCreated();
+    expect($res->json('status'))->toBe('failed')
+        ->and($res->json('retryable'))->toBeTrue()
+        ->and($res->json('fallback_reason'))->toBe('error')
+        ->and($res->json('answer'))->toContain('vuelve a intentarlo')->not->toContain('knowledge.md');
+});
+
+it('la base de conocimiento y las pantallas del asistente se leen de resources/assistant (el paquete de la versión las lleva)', function () {
+    expect(is_file(resource_path('assistant/knowledge.md')))->toBeTrue()
+        ->and(is_file(resource_path('assistant/pages.json')))->toBeTrue()
+        ->and((string) file_get_contents(base_path('../infra/release/build.sh')))->not->toContain('cp -a "$SRC/resources/views" "$SRC/resources/schemas"');
 });
