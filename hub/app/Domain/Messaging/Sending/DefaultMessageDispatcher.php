@@ -26,6 +26,7 @@ use App\Domain\Messaging\Support\MessageEvents;
 use App\Domain\Messaging\Support\SocialIdentity;
 use App\Domain\Messaging\Support\WaTemplateText;
 use App\Domain\Messaging\Support\WhatsAppInteractive;
+use App\Domain\Notices\Support\PlatformMail;
 use App\Domain\Templates\Contracts\TemplateRenderer;
 use App\Domain\Templates\Data\RenderContext;
 use App\Domain\Templates\Data\RenderedMessage;
@@ -82,6 +83,11 @@ final class DefaultMessageDispatcher implements MessageDispatcher
         $account = $message->channelAccountId !== null
             ? ChannelAccount::query()->find($message->channelAccountId)
             : ChannelAccount::defaultFor($message->channel);
+        // Correo transaccional o de utilidad sin un correo del negocio conectado: sale por el correo de la plataforma con
+        // el nombre del negocio (lote 0.4.0, docs/avisos.md §3). Nunca marketing.
+        if ($account === null && $message->channelAccountId === null && PlatformMail::covers($workspace, $message->channel, $message->kind)) {
+            $account = PlatformMail::account($workspace);
+        }
         if ($account === null || $account->channel !== $message->channel) {
             return DispatchResult::denied(PolicyDecision::CHANNEL_UNAVAILABLE);
         }

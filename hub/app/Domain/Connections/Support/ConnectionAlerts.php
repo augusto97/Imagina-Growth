@@ -8,6 +8,8 @@ use App\Domain\Connections\Enums\ConnectionProvider;
 use App\Domain\Connections\Mail\ConnectionAlertMail;
 use App\Domain\Connections\Models\OAuthConnection;
 use App\Domain\Messaging\Models\ChannelAccount;
+use App\Domain\Notices\Data\TeamNotice;
+use App\Domain\Notices\Jobs\DeliverTeamNotice;
 use App\Domain\Workspaces\Contracts\Branding;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Models\Workspace;
@@ -181,7 +183,23 @@ class ConnectionAlerts
         $brand = $this->branding->for($workspace);
         $timezone = (string) ($workspace->timezone ?: 'America/Bogota');
         $date = $expiresAt?->setTimezone($timezone)->settings(['locale' => 'es'])->isoFormat('D [de] MMMM');
-        $url = rtrim((string) config('app.url'), '/').'/w/'.$workspace->publicId().'/'.ltrim((string) (config('igr-connections.return_paths.'.$path) ?? $path), '/');
+        $route = ltrim((string) (config('igr-connections.return_paths.'.$path) ?? $path), '/');
+        $url = rtrim((string) config('app.url'), '/').'/w/'.$workspace->publicId().'/'.$route;
+        // También en el centro de avisos de la app de dueños y administradores (lote 0.4.0).
+        $vars = ['provider' => $provider, 'account' => (string) $account, 'date' => (string) $date];
+        DeliverTeamNotice::for($workspace, new TeamNotice(
+            kind: 'connection.alert',
+            group: 'connections',
+            title: match ($state) {
+                self::EXPIRES_7D => __('La conexión con :provider vence el :date', $vars),
+                self::EXPIRES_1D => __('La conexión con :provider vence mañana', $vars),
+                self::DISCONNECTED => __('Tu :provider :account se desconectó', $vars),
+                default => __('Vuelve a conectar :provider', $vars),
+            },
+            body: $detail !== null ? mb_substr($detail, 0, 300) : null,
+            path: $route,
+            dedupe: 'connection:'.$ref.':'.$state,
+        ));
         $recipients = $workspace->users()->wherePivotIn('role', [WorkspaceRole::Owner->value, WorkspaceRole::Admin->value])->pluck('email')
             ->map(fn ($e) => (string) $e)->filter(fn (string $e) => filter_var($e, FILTER_VALIDATE_EMAIL) !== false)->unique()->take(10);
         foreach ($recipients as $to) {

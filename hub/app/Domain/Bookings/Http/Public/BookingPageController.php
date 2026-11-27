@@ -10,6 +10,7 @@ use App\Domain\Bookings\Actions\ChangeAppointment;
 use App\Domain\Bookings\Models\Appointment;
 use App\Domain\Bookings\Models\BookingService;
 use App\Domain\Bookings\Models\BookingStaff;
+use App\Domain\Bookings\Support\AppointmentNoticeLog;
 use App\Domain\Bookings\Support\BookingSettings;
 use App\Domain\Bookings\Support\SlotFinder;
 use App\Domain\Bookings\Support\SlotTaken;
@@ -302,6 +303,12 @@ final class BookingPageController
 
         return $this->public->view('bookings.manage', $workspace, $picker + [
             'ok' => in_array($ok, ['nueva', 'confirmada', 'cancelada', 'reprogramada'], true) ? $ok : null,
+            // Por dónde salió de verdad la confirmación o el cambio (lote 0.4.0): sin canal, no se dice «te enviamos».
+            'sentVia' => match ($ok) {
+                'nueva' => AppointmentNoticeLog::deliveredVia($appointment, ['confirmation']),
+                'reprogramada' => AppointmentNoticeLog::deliveredVia($appointment, ['rescheduled']),
+                default => null,
+            },
             'status' => $appointment->status,
             'service' => $serviceName,
             'location' => Str::ucfirst((string) __('booking.location.'.($service->location ?? 'onsite'))),
