@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Redis;
  * 2. Contacto: tiene la dirección del canal; no está suprimido (rebote, queja,
  *    bloqueo: nada sale; baja o registro de exclusión: no sale marketing).
  * 3. Marketing: consentimiento `granted` del canal.
- * 4. WhatsApp de servicio: solo dentro de la ventana de 24 h de la conversación.
+ * 4. WhatsApp de servicio: solo dentro de la ventana de 24 h de la conversación (la API oficial; el no oficial no la tiene).
  *    Messenger e Instagram (Fase 5): nunca marketing; todo mensaje dentro de la
  *    ventana de 24 h, y en Messenger una persona hasta 7 días con HUMAN_AGENT.
  * 5. Marketing: ventana legal del país del contacto (LegalWindow) → se aplaza.
@@ -172,8 +172,10 @@ final class SendPolicy
             return PolicyDecision::deny(PolicyDecision::NO_CONSENT);
         }
 
-        // 4. Mensaje libre de WhatsApp: solo con la ventana de 24 h abierta.
-        if ($request->channel === Channel::WhatsApp && $request->kind->value === 'service') {
+        // 4. Mensaje libre de WhatsApp: solo con la ventana de 24 h abierta. Es una regla de la API oficial de Meta:
+        // un WhatsApp no oficial (WhatsApp Web: Imagina Whats, Zender) no la tiene (ChannelCapabilities), y sus
+        // límites son los topes fijos y el bloqueo de marketing de arriba.
+        if ($request->channel === Channel::WhatsApp && $request->kind->value === 'service' && ! $account->isUnofficial()) {
             $open = DB::table('conversations')->where('workspace_id', $request->workspace->id)
                 ->where('contact_id', $contact->id)->where('channel_account_id', $account->id)
                 ->where('window_expires_at', '>', $request->at())->exists();

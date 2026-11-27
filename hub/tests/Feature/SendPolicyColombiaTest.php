@@ -161,7 +161,10 @@ it('cuenta del canal: Zender nunca envía marketing; la calidad baja frena el ma
     expect(policyAt($this, '2026-11-17 10:00:00')->reason)->toBe(PolicyDecision::QUALITY_LOW);
     $zender = app(CurrentWorkspace::class)->run($this->ws, fn () => ChannelAccount::query()->create(['workspace_id' => $this->ws->id, 'channel' => 'whatsapp', 'provider' => 'zender', 'display_name' => 'Zender', 'status' => 'active']));
     expect(policyAt($this, '2026-11-17 10:00:00', extra: ['account' => $zender])->reason)->toBe(PolicyDecision::UNOFFICIAL_MARKETING)
-        ->and(policyAt($this, '2026-11-17 10:00:00', MessageKind::Transactional, extra: ['account' => $zender])->allowed())->toBeTrue();
+        ->and(policyAt($this, '2026-11-17 10:00:00', MessageKind::Transactional, extra: ['account' => $zender])->allowed())->toBeTrue()
+        // La ventana de 24 h es de la API oficial: por un WhatsApp no oficial la respuesta de servicio sale sin ella.
+        ->and(policyAt($this, '2026-11-17 10:00:00', MessageKind::Service)->reason)->toBe(PolicyDecision::OUTSIDE_24H_WINDOW)
+        ->and(policyAt($this, '2026-11-17 10:00:00', MessageKind::Service, extra: ['account' => $zender])->allowed())->toBeTrue();
     $this->email->forceFill(['status' => 'paused'])->save();
     expect(policyAt($this, '2026-11-17 10:00:00', channel: Channel::Email)->reason)->toBe(PolicyDecision::CHANNEL_UNAVAILABLE);
 });
