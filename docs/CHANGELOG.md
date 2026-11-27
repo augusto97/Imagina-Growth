@@ -1,5 +1,48 @@
 # Historial de la especificación y de las fases
 
+## 2026-11-27 — Versión 0.4.0: avisos que sí llegan, lo que puede cada WhatsApp, SMS en un mensaje, editor de correo y una IA que ayuda
+
+Se instala con el botón de actualizar; las migraciones nuevas corren solas. Sin cambios en el contrato de eventos.
+
+**Avisos** (docs/avisos.md):
+- Antes, una cita agendada sin canal de correo ni plantilla de WhatsApp no avisaba a nadie y no quedaba rastro. Ahora:
+  - **Al cliente:** si el negocio no tiene su propio correo conectado, la confirmación, los recordatorios, el cambio y la
+    cancelación salen por el correo de la plataforma con el nombre del negocio (nunca marketing). Por un WhatsApp no
+    oficial (Imagina Whats, Zender) salen como texto, sin plantilla, y el cliente responde «Confirmo» o «Reprogramar».
+  - **Al equipo:** cada cita nueva, movida, cancelada o confirmada avisa a quien la atiende y a dueños y administradores.
+  - **Campana de avisos** en la barra (citas, leads, conversaciones asignadas, conexiones caídas), en tiempo real, y
+    **«Mis avisos»** para elegir qué y por dónde.
+  - Cada cita y cada lead muestran sus **avisos** con el estado y, si no salió, el motivo y «Arreglarlo». En Agenda →
+    Página de reservas, el recuadro **«Así avisamos»**. La página de confirmación solo dice «te enviamos…» si salió.
+- La revisión de la instalación ya no marca «Falta el secreto de la app de Meta» si no se usa nada de Meta.
+
+**Lo que puede cada WhatsApp** (M07):
+- Un solo lugar dice qué puede cada proveedor (oficial de Meta, Imagina Whats, Zender, Messenger, Instagram). Donde el
+  oficial usa botones o listas, los demás mandan opciones numeradas y entienden «2», «2.», el texto o la hora: los
+  horarios del agente, confirmar o cancelar una cita, los recordatorios y el «sí, acepto». Las plantillas salen como
+  texto con los enlaces escritos (y la imagen como archivo aparte por Imagina Whats). La tarjeta del número, el editor
+  de plantillas, los flujos y la bandeja dicen qué sale distinto.
+- La ventana de 24 h para responder es de la API oficial: por un WhatsApp no oficial ya no se exige.
+
+**SMS en un solo mensaje** (M08):
+- Contador en vivo con el peor caso de las variables; el aviso nombra la letra que baja el límite de 160 a 70 y el botón
+  «Cambiar por letras sin tilde» la arregla (la ñ, la é y los signos ¿ ¡ se quedan). No se guarda ni se envía un SMS
+  que se partiría, salvo que el dueño permita mensajes de 2 partes. Al enviar se vuelve a medir el texto final.
+
+**Editor de correo** (M08):
+- 36 bloques con ícono y nombre, en Estructura, Contenido, Tu tienda, Tus servicios y Secciones listas (los de tienda
+  o servicios solo si aplican); tema claro con el color de la marca; el Liquid se ve como fichas legibles («Nombre»,
+  «Si hay logo»); «Enviar prueba» manda lo que está en pantalla; se corrigió la fila vacía de arriba y el logo que se
+  cambiaba por el ícono de imagen rota.
+
+**«Pregúntale a la IA»** (docs/inteligencia.md §6):
+- Ya no deja respuestas vacías (el texto llegaba como pensamiento entre herramientas). Conoce la app y el estado de la
+  cuenta: a «¿cómo empiezo?» o «quiero conectar mi sitio» responde con pasos numerados que llevan a la pantalla exacta;
+  entiende el «ok pero…»; si algo falla lo dice y deja reintentar.
+
+**Servidor MCP:** `get_setup_status` (cómo está configurado el negocio y qué falta) y `list_delivery_issues` (lo que no
+salió y por qué), de solo lectura y sin datos de contactos, para revisar una cuenta desde Claude.
+
 ## 2026-11-27 — Versión 0.3.0: más ancho, la IA a la mano, páginas públicas cuidadas, cotizador con asistente y guías
 
 Se instala con el botón de actualizar; las migraciones nuevas corren solas. Sin cambios en el contrato de eventos.
