@@ -23,5 +23,8 @@ $allows = function (User $user, string $workspaceId, string $ability): bool {
 // Bandeja (M11): cambios en conversaciones.
 Broadcast::channel('workspace.{workspaceId}.inbox', fn (User $user, string $workspaceId) => $allows($user, $workspaceId, 'useInbox'));
 
+// Centro de avisos (lote 0.4.0): los avisos de una persona, solo para ella y mientras siga en el espacio de trabajo.
+Broadcast::channel('workspace.{workspaceId}.notices.{userId}', fn (User $user, string $workspaceId, string $userId) => $user->publicId() === $userId && $allows($user, $workspaceId, 'viewWorkspace'));
+
 // Tablero «En este momento» (M05): actividad en vivo.
 Broadcast::channel('workspace.{workspaceId}.live', fn (User $user, string $workspaceId) => $allows($user, $workspaceId, 'viewDashboards'));

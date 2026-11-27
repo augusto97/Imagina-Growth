@@ -1,13 +1,13 @@
-import { Check, ChevronLeft, ChevronRight, MoreHorizontal, Plus, RefreshCw, UserX } from 'lucide-react';
+import { Bell, Check, ChevronLeft, ChevronRight, MoreHorizontal, Plus, RefreshCw, UserX } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip, ChipGroup } from '@/components/ui/chip';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EmptyState, ErrorState } from '@/components/ui/misc';
@@ -21,6 +21,8 @@ import { api } from '@/lib/api';
 import { formatNumber } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
+import { useAppointmentNotices } from '@/features/notices/api';
+import { NoticeLogList } from '@/features/notices/NoticeLogList';
 import { useAgendaMutations, useAppointments } from './api';
 import { actionsFor, addDays, groupByDay, localDate, localTime, statusTone, viewRange } from './model';
 import { SlotPicker } from './SlotPicker';
@@ -54,7 +56,11 @@ export function CalendarTab({ data, bookFor, onBookClosed }: { data: BookingOver
     const tz = data.timezone || 'America/Bogota';
     const today = localDate(new Date().toISOString(), tz);
     const [view, setView] = useState<'day' | 'week'>(phone ? 'day' : 'week');
-    const [date, setDate] = useState(today);
+    // Un aviso del equipo lleva a la cita: `?fecha=AAAA-MM-DD&cita=ap_…` abre ese día y sus avisos (lote 0.4.0).
+    const [params] = useSearchParams();
+    const asked = params.get('fecha') ?? '';
+    const [date, setDate] = useState(/^\d{4}-\d{2}-\d{2}$/.test(asked) ? asked : today);
+    const [noticesFor, setNoticesFor] = useState<string | null>(params.get('cita'));
     const [staff, setStaff] = useState('');
     const [status, setStatus] = useState<StatusFilter | 'all'>('all');
     const [booking, setBooking] = useState(false);
@@ -190,7 +196,7 @@ export function CalendarTab({ data, bookFor, onBookClosed }: { data: BookingOver
                     <ul className="igr:space-y-2">
                         {(grouped[date] ?? []).map((a) => (
                             <li key={a.id}>
-                                <AppointmentCard appointment={a} tz={tz} staff={staffName(a.staff_id)} onAction={(action) => act(a, action)} wide />
+                                <AppointmentCard appointment={a} tz={tz} staff={staffName(a.staff_id)} onAction={(action) => act(a, action)} onNotices={() => setNoticesFor(a.id)} wide />
                             </li>
                         ))}
                     </ul>
@@ -217,7 +223,7 @@ export function CalendarTab({ data, bookFor, onBookClosed }: { data: BookingOver
                                 <ul className="igr:space-y-2">
                                     {(grouped[d] ?? []).map((a) => (
                                         <li key={a.id}>
-                                            <AppointmentCard appointment={a} tz={tz} staff={staffName(a.staff_id)} onAction={(action) => act(a, action)} />
+                                            <AppointmentCard appointment={a} tz={tz} staff={staffName(a.staff_id)} onAction={(action) => act(a, action)} onNotices={() => setNoticesFor(a.id)} />
                                         </li>
                                     ))}
                                 </ul>
@@ -239,6 +245,7 @@ export function CalendarTab({ data, bookFor, onBookClosed }: { data: BookingOver
                 />
             ) : null}
             {moving ? <RescheduleDialog data={data} tz={tz} today={today} appointment={moving} onClose={() => setMoving(null)} /> : null}
+            {noticesFor !== null ? <NoticesDialog appointmentId={noticesFor} onClose={() => setNoticesFor(null)} /> : null}
         </div>
     );
 }
@@ -252,7 +259,21 @@ const DOT: Record<StatusFilter, string> = {
 };
 
 /** Una cita: hora, servicio, persona y quién atiende, su estado en palabras y las acciones que aplican a la mano. */
-function AppointmentCard({ appointment: a, tz, staff, onAction, wide = false }: { appointment: Appointment; tz: string; staff: string | null; onAction: (action: AppointmentAction) => void; wide?: boolean }) {
+function AppointmentCard({
+    appointment: a,
+    tz,
+    staff,
+    onAction,
+    onNotices,
+    wide = false,
+}: {
+    appointment: Appointment;
+    tz: string;
+    staff: string | null;
+    onAction: (action: AppointmentAction) => void;
+    onNotices: () => void;
+    wide?: boolean;
+}) {
     const { t, i18n } = useTranslation();
     const { workspace } = useWorkspace();
     const actions = actionsFor(a);
@@ -279,22 +300,26 @@ function AppointmentCard({ appointment: a, tz, staff, onAction, wide = false }: 
                         {staff ? <p className="igr:truncate igr:text-caption igr:text-muted-foreground">{t('agenda.calendar.with', { name: staff })}</p> : null}
                     </div>
                 </div>
-                {rest.length > 0 ? (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="igr:-mt-1 igr:-mr-1 igr:size-7 igr:shrink-0" aria-label={t('agenda.calendar.actions')}>
-                                <MoreHorizontal />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            {rest.map((action) => (
-                                <DropdownMenuItem key={action} onSelect={() => onAction(action)}>
-                                    {t(`agenda.calendar.action.${action}`)}
-                                </DropdownMenuItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                ) : null}
+                {/* Siempre hay menú: «Ver avisos» dice qué se le envió al cliente y al equipo (lote 0.4.0). */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="igr:-mt-1 igr:-mr-1 igr:size-7 igr:shrink-0" aria-label={t('agenda.calendar.actions')}>
+                            <MoreHorizontal />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        {rest.map((action) => (
+                            <DropdownMenuItem key={action} onSelect={() => onAction(action)}>
+                                {t(`agenda.calendar.action.${action}`)}
+                            </DropdownMenuItem>
+                        ))}
+                        {rest.length > 0 ? <DropdownMenuSeparator /> : null}
+                        <DropdownMenuItem onSelect={onNotices}>
+                            <Bell />
+                            {t('notices.appointment.action')}
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
             <div className="igr:mt-2 igr:flex igr:flex-wrap igr:items-center igr:gap-1.5">
                 <Badge variant={statusTone(a.status)}>{t(`agenda.status.${a.status}`)}</Badge>
@@ -536,6 +561,24 @@ function RescheduleDialog({ data, tz, today, appointment, onClose }: { data: Boo
                         {t('agenda.reschedule.submit')}
                     </Button>
                 </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+/** «Avisos de esta cita» (lote 0.4.0): qué se le envió al cliente y al equipo y, si algo no salió, por qué. */
+function NoticesDialog({ appointmentId, onClose }: { appointmentId: string; onClose: () => void }) {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const notices = useAppointmentNotices(workspace.id, appointmentId);
+    return (
+        <Dialog open onOpenChange={(o) => !o && onClose()}>
+            <DialogContent className="igr:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>{t('notices.appointment.title')}</DialogTitle>
+                    <DialogDescription>{t('notices.appointment.description')}</DialogDescription>
+                </DialogHeader>
+                <NoticeLogList rows={notices.data?.data} loading={notices.isPending} error={notices.isError} />
             </DialogContent>
         </Dialog>
     );

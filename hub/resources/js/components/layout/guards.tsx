@@ -22,6 +22,7 @@ import { MobileNav } from './MobileNav';
 import { SectionNav } from './SectionNav';
 import { Sidebar } from './Sidebar';
 import { AssistantHost } from '@/features/assistant/AssistantHost';
+import { NoticeHost } from '@/features/notices/NoticeBell';
 
 export function FullPageSkeleton() {
     return (
@@ -193,6 +194,7 @@ export function WorkspaceLayout() {
                 </Suspense>
             ) : null}
             {workspace.abilities.includes('useAi') ? <AssistantHost /> : null}
+            <NoticeHost />
         </WorkspaceContext.Provider>
     );
 }

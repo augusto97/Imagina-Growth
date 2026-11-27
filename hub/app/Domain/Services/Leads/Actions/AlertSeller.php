@@ -10,6 +10,8 @@ use App\Domain\Messaging\Contracts\MessageDispatcher;
 use App\Domain\Messaging\Data\OutboundMessage;
 use App\Domain\Messaging\Enums\Channel;
 use App\Domain\Messaging\Enums\MessageKind;
+use App\Domain\Notices\Support\LeadTeamNotices;
+use App\Domain\Notices\Support\NoticeLogger;
 use App\Domain\Services\Leads\Models\Lead;
 use App\Domain\Services\Leads\Models\LeadActivity;
 use App\Domain\Services\Leads\Models\LeadSeller;
@@ -38,6 +40,9 @@ final class AlertSeller
     /** @param 'hot'|'new'|'qualified' $reason */
     public function handle(Workspace $workspace, Lead $lead, LeadSettings $settings, string $reason): ?string
     {
+        // Centro de avisos de la app (lote 0.4.0): sale aunque el aviso por WhatsApp o correo esté apagado; cada persona
+        // lo apaga en «Mis avisos».
+        LeadTeamNotices::queue($workspace, $lead, $reason);
         $rules = $settings->alertRules();
         if ($reason !== 'qualified' && ! (bool) ($reason === 'hot' ? $rules['on_hot'] : $rules['on_new'])) {
             return null;
@@ -69,6 +74,8 @@ final class AlertSeller
             $channel = $this->email($workspace, $lead, $context, $reason) ? 'email' : null;
         }
         LeadActivity::log($lead, 'alert', 'system', ['reason' => $reason, 'channel' => $channel ?? 'none', 'score' => $lead->score]);
+        NoticeLogger::record($workspace->id, 'lead', $lead->id, 'team', 'lead_'.$reason, $channel, $channel !== null ? 'queued' : 'skipped',
+            $channel === null ? 'no_channel' : null, recipient: $seller !== null ? __('Vendedor asignado') : __('Dueños'));
 
         return $channel;
     }

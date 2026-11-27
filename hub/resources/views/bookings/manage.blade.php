@@ -14,7 +14,14 @@
                     @else {{ __('Tu cita quedó en el nuevo horario.') }}
                     @endif
                 </h1>
-                <p>{{ __('Te enviamos los detalles por WhatsApp o correo. Guarda este enlace para cambiarla si lo necesitas.') }}</p>
+                {{-- Solo se dice «te enviamos» por el canal que de verdad salió (lote 0.4.0). --}}
+                @if (($sentVia ?? null) === 'whatsapp')
+                    <p>{{ __('Te enviamos los detalles por WhatsApp. Guarda este enlace para cambiarla si lo necesitas.') }}</p>
+                @elseif (($sentVia ?? null) === 'email')
+                    <p>{{ __('Te enviamos los detalles por correo. Guarda este enlace para cambiarla si lo necesitas.') }}</p>
+                @else
+                    <p>{{ __('Guarda este enlace: con él ves, cambias o cancelas tu cita cuando quieras.') }}</p>
+                @endif
             </div>
         @elseif ($ok === 'cancelada')
             <div class="hero" role="status">

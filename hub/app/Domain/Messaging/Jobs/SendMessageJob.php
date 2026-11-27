@@ -15,6 +15,7 @@ use App\Domain\Messaging\Models\Message;
 use App\Domain\Messaging\Support\MessageEvents;
 use App\Domain\Messaging\Support\SendCaps;
 use App\Domain\Messaging\Support\WhatsAppInteractive;
+use App\Domain\Notices\Support\PlatformMail;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Tenancy\SetWorkspaceContext;
 use App\Support\Tenancy\WorkspaceAware;
@@ -80,7 +81,9 @@ final class SendMessageJob implements ShouldQueue, WorkspaceAware
             return;
         }
         $workspace = Workspace::query()->findOrFail($message->workspace_id);
-        $account = $message->channel_account_id !== null ? ChannelAccount::query()->find($message->channel_account_id) : null;
+        $account = $message->channel_account_id !== null ? ChannelAccount::query()->find($message->channel_account_id)
+            // El respaldo por el correo de la plataforma no tiene cuenta guardada (lote 0.4.0, PlatformMail).
+            : ($message->provider === PlatformMail::PROVIDER ? PlatformMail::account($workspace) : null);
         $contact = $message->contact_id !== null ? Contact::query()->find($message->contact_id) : null;
         $payload = $message->payload ?? [];
         $request = new PolicyRequest($workspace, $contact, $message->channel, $message->kind, $message->source_type, $account, null, (bool) ($payload['test'] ?? false), $contact === null);

@@ -8,6 +8,7 @@ use App\Domain\Messaging\Channels\Drivers\ImaginaWhatsDriver;
 use App\Domain\Messaging\Channels\Drivers\MetaCloudDriver;
 use App\Domain\Messaging\Channels\Drivers\MetaInstagramDriver;
 use App\Domain\Messaging\Channels\Drivers\MetaMessengerDriver;
+use App\Domain\Messaging\Channels\Drivers\PlatformMailDriver;
 use App\Domain\Messaging\Channels\Drivers\SesDriver;
 use App\Domain\Messaging\Channels\Drivers\SmtpDriver;
 use App\Domain\Messaging\Channels\Drivers\TwilioSmsDriver;
@@ -27,10 +28,12 @@ final class DriverRegistry
         'twilio' => TwilioSmsDriver::class,
         'meta_messenger' => MetaMessengerDriver::class,
         'meta_instagram' => MetaInstagramDriver::class,
+        // Respaldo de los correos transaccionales por el correo de la plataforma (lote 0.4.0): sin cuenta guardada.
+        'platform_mail' => PlatformMailDriver::class,
     ];
 
     /** @var array<string, string> proveedor → canal */
-    public const CHANNEL = ['ses' => 'email', 'smtp' => 'email', 'meta_cloud' => 'whatsapp', 'zender' => 'whatsapp', 'imagina_whats' => 'whatsapp', 'twilio' => 'sms', 'meta_messenger' => 'messenger', 'meta_instagram' => 'instagram'];
+    public const CHANNEL = ['ses' => 'email', 'smtp' => 'email', 'meta_cloud' => 'whatsapp', 'zender' => 'whatsapp', 'imagina_whats' => 'whatsapp', 'twilio' => 'sms', 'meta_messenger' => 'messenger', 'meta_instagram' => 'instagram', 'platform_mail' => 'email'];
 
     /** Qué puede enviar el hub por la cuenta (según su proveedor). */
     public function capabilitiesOf(ChannelAccount $account): ChannelCapabilities

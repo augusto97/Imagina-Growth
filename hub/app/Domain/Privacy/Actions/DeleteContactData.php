@@ -112,6 +112,13 @@ final class DeleteContactData
                 $ws('lead_tasks')->whereIn('lead_id', $chunk)->delete();
             }
             $counts['lead_tasks'] = $ws('lead_tasks')->whereIn('contact_id', $ids)->delete();
+            // Avisos (lote 0.4.0): los del centro de avisos y el registro de lo que se avisó por sus leads y citas
+            // (llevan su nombre o su correo enmascarado).
+            $appointments = $ws('appointments')->whereIn('contact_id', $ids)->pluck('id')->all();
+            foreach (array_chunk(array_merge($leads, $appointments), 500) as $chunk) {
+                $ws('notices')->whereIn('subject_id', $chunk)->delete();
+                $ws('notice_log')->whereIn('subject_id', $chunk)->delete();
+            }
             $counts['leads'] = $ws('leads')->whereIn('contact_id', $ids)->delete();
             $counts['appointments'] = $ws('appointments')->whereIn('contact_id', $ids)->delete();
             $counts['quotes'] = $ws('quotes')->where(function ($q) use ($ids, $anonymous): void {

@@ -8,6 +8,8 @@ use App\Domain\Inbox\Models\ConversationEvent;
 use App\Domain\Inbox\Push\PushNotifier;
 use App\Domain\Inbox\Realtime\InboxUpdated;
 use App\Domain\Messaging\Models\Conversation;
+use App\Domain\Notices\Data\TeamNotice;
+use App\Domain\Notices\Jobs\DeliverTeamNotice;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Support\Ids\PrefixedId;
@@ -41,6 +43,15 @@ final class AssignConversation
         event(new InboxUpdated($conversation->workspace_id, $conversation->publicId(), 'assigned', $userId));
         if ($userId !== null && $userId !== $actor) {
             $this->push->notify($conversation->workspace_id, $userId, __('Te asignaron una conversación'), '/w/'.$this->workspacePublicId($conversation).'/bandeja/'.$conversation->publicId());
+            // Y en el centro de avisos de la app (lote 0.4.0), por si no tiene activado el aviso del navegador.
+            $workspace = Workspace::query()->find($conversation->workspace_id);
+            if ($workspace !== null) {
+                DeliverTeamNotice::for($workspace, new TeamNotice(
+                    kind: 'conversation.assigned', group: 'conversations', title: __('Te asignaron una conversación'), body: null,
+                    path: 'bandeja/'.$conversation->publicId(), dedupe: 'conversation:'.$conversation->id.':assigned:'.$userId.':'.now()->timestamp,
+                    userIds: [$userId],
+                ));
+            }
         }
 
         return $conversation;

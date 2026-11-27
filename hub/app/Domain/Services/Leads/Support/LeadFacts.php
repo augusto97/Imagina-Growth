@@ -34,6 +34,8 @@ final class LeadFacts
             'referral' => 'otro sitio',
             'direct' => 'visita directa',
             'manual' => 'alta manual',
+            // Lo que trae la página de reservas cuando no hay UTM (lote 0.4.0: antes el aviso decía «Vino de booking_page»).
+            'booking_page' => 'la página de reservas',
             null, '' => null,
             default => $channel,
         };

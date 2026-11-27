@@ -9,6 +9,7 @@ import { DESKTOP_QUERY, useMedia } from '@/hooks/useMedia';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { useUi } from '@/stores/ui';
 import { preloadCommandPalette } from './commandPaletteLoader';
+import { NoticeBell } from '@/features/notices/NoticeBell';
 import { Logo } from './Logo';
 import { Sidebar } from './Sidebar';
 
@@ -49,6 +50,7 @@ export function MobileNav() {
                         <Sparkles className="igr:size-5" aria-hidden />
                     </button>
                 ) : null}
+                <NoticeBell variant="mobile" />
                 <button
                     type="button"
                     onClick={() => setCommandOpen(true)}

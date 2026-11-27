@@ -1,0 +1,163 @@
+{
+    "notices": {
+        "title": "Avisos",
+        "description": "Lo que pasó en tu negocio y te toca saber: citas, leads, conversaciones y conexiones.",
+        "tabs": {
+            "inbox": "Avisos",
+            "preferences": "Mis avisos"
+        },
+        "markAll": "Marcar todo como leído",
+        "unread": "Sin leer",
+        "error": "No pudimos cargar tus avisos. Vuelve a intentarlo en un momento.",
+        "empty": {
+            "title": "No tienes avisos",
+            "body": "Aquí llegan las citas nuevas, los leads y las conversaciones que te asignan."
+        },
+        "prefs": {
+            "intro": "Elige qué avisos te llegan y por dónde. Solo cambia lo tuyo: cada persona del equipo elige los suyos.",
+            "groups": {
+                "appointments": {
+                    "title": "Citas",
+                    "help": "Nuevas, movidas, canceladas o confirmadas por el cliente."
+                },
+                "leads": {
+                    "title": "Leads",
+                    "help": "Nuevos, calientes o calificados en el chat."
+                },
+                "conversations": {
+                    "title": "Conversaciones",
+                    "help": "Cuando te asignan una conversación de la bandeja."
+                },
+                "connections": {
+                    "title": "Conexiones",
+                    "help": "Cuando una conexión vence o se desconecta (WhatsApp, Meta, Google…)."
+                }
+            },
+            "channels": {
+                "in_app": "En la app",
+                "email": "Correo",
+                "push": "Navegador",
+                "whatsapp": "WhatsApp"
+            },
+            "scope": {
+                "label": "¿Cuáles?",
+                "all": "De todo el negocio",
+                "mine": "Solo las mías"
+            },
+            "phone": {
+                "label": "Tu WhatsApp para los avisos",
+                "help": "Con el código de país. Para que salgan hace falta un WhatsApp oficial conectado y la plantilla «Aviso al equipo» aprobada.",
+                "placeholder": "+57 300 123 4567",
+                "fromSeller": "Si lo dejas vacío usamos el de tu ficha de vendedor ({{phone}})."
+            },
+            "pushHelp": "Los avisos del navegador llegan si los activaste en este navegador desde la bandeja.",
+            "save": "Guardar mis avisos",
+            "saved": "Guardamos tus avisos."
+        },
+        "log": {
+            "customer": "A tu cliente",
+            "team": "A tu equipo",
+            "empty": "Todavía no hay avisos.",
+            "error": "No pudimos cargar los avisos.",
+            "nothingReached": "Tu cliente no recibió ningún aviso de esta cita.",
+            "channel": {
+                "whatsapp": "WhatsApp",
+                "email": "Correo",
+                "in_app": "En la app",
+                "push": "Navegador",
+                "none": "Sin canal"
+            },
+            "status": {
+                "sent": "Enviado",
+                "queued": "En camino",
+                "deferred": "Aplazado",
+                "denied": "No salió",
+                "skipped": "No salió",
+                "failed": "Falló"
+            },
+            "event": {
+                "confirmation": "Confirmación",
+                "reminder_24": "Recordatorio (24 h antes)",
+                "reminder_2": "Recordatorio (2 h antes)",
+                "rescheduled": "Cambio de hora",
+                "cancelled": "Cancelación",
+                "booked": "Nueva cita",
+                "confirmed": "El cliente confirmó",
+                "lead_new": "Lead nuevo",
+                "lead_hot": "Lead caliente",
+                "lead_qualified": "Lead calificado en el chat"
+            },
+            "reason": {
+                "in_chat": "Se confirmó en el chat de WhatsApp.",
+                "no_phone": "El cliente no dejó su WhatsApp.",
+                "no_whatsapp_channel": "No hay un WhatsApp conectado.",
+                "no_whatsapp_template": "Falta elegir la plantilla de WhatsApp para este aviso.",
+                "whatsapp_not_sent": "WhatsApp no recibió el mensaje.",
+                "no_email": "El cliente no dejó su correo.",
+                "not_sent": "No se pudo enviar el correo.",
+                "channel_unavailable": "No hay un canal conectado para enviarlo.",
+                "plan_no_platform_email": "Tu plan no incluye correo por la plataforma: conecta tu correo.",
+                "platform_mail_off": "El correo de la plataforma no está configurado.",
+                "platform_mail": "El servidor de correo no aceptó el mensaje.",
+                "no_channel": "No había por dónde enviarlo.",
+                "suppressed": "Ese contacto está en la lista de supresión.",
+                "unsubscribed": "El cliente se dio de baja de este canal.",
+                "no_address": "No hay a dónde enviarlo.",
+                "template_error": "La plantilla tiene un error.",
+                "outside_24h_window": "Fuera de la ventana de 24 h de WhatsApp: hace falta una plantilla aprobada.",
+                "driver_error": "Error inesperado al enviar.",
+                "billing_suspended": "La cuenta está suspendida por facturación.",
+                "default": "No salió."
+            },
+            "fix": "Arreglarlo"
+        },
+        "setup": {
+            "title": "Así avisamos",
+            "description": "Cómo le llega la confirmación a tu cliente y a quién de tu equipo le avisamos de cada cita.",
+            "customer": "A tu cliente",
+            "team": "A tu equipo",
+            "whatsapp": {
+                "none": "WhatsApp: no hay un número conectado.",
+                "no_template": "WhatsApp: conectado, pero falta elegir la plantilla de confirmación aprobada.",
+                "ready": "WhatsApp: la confirmación y los recordatorios salen por {{number}}.",
+                "unofficial": "WhatsApp: salen como texto por {{number}} (conexión no oficial)."
+            },
+            "email": {
+                "own": "Correo: sale desde tu correo {{from}}.",
+                "platform": "Correo: sale desde {{from}} con el nombre de tu negocio; si el cliente responde, llega a {{replyTo}}.",
+                "platformNoReply": "Correo: sale desde {{from}} con el nombre de tu negocio.",
+                "platform_off": "Correo: no conectaste tu correo y el correo de la plataforma no está configurado.",
+                "plan": "Correo: tu plan no incluye correo por la plataforma. Conecta tu propio correo."
+            },
+            "askEmail": {
+                "required": "En la página de reservas el correo es obligatorio.",
+                "optional": "En la página de reservas el correo es opcional.",
+                "hidden": "La página de reservas no pide el correo."
+            },
+            "reminders": "Recordatorios: {{hours}} horas antes.",
+            "nothing": "Hoy tus clientes no reciben ninguna confirmación de su cita. Conecta WhatsApp o tu correo.",
+            "requireEmailHint": "Sin WhatsApp, el correo es la única forma de avisarle al cliente: conviene pedirlo siempre.",
+            "fixes": {
+                "connect_whatsapp": "Conectar WhatsApp",
+                "choose_template": "Elegir la plantilla",
+                "platform_mail": "Configurar el correo de la plataforma",
+                "connect_email": "Conectar tu correo",
+                "require_email": "Pedir el correo siempre"
+            },
+            "requireEmailSaved": "Ahora la página de reservas pide el correo siempre.",
+            "teamIntro": "Le avisamos de cada cita a quien la atiende y a quienes eligieron recibir las de todo el negocio:",
+            "teamNone": "Nadie del equipo recibe avisos de las citas. Actívalos en «Mis avisos».",
+            "scope": {
+                "all": "todas",
+                "mine": "las suyas"
+            },
+            "platformMailOff": "El correo de la plataforma no está configurado: los avisos por correo a tu equipo no salen.",
+            "myNotices": "Mis avisos"
+        },
+        "appointment": {
+            "action": "Ver avisos",
+            "title": "Avisos de esta cita",
+            "description": "Qué le enviamos a tu cliente y a tu equipo y, si algo no salió, por qué."
+        }
+    }
+}

@@ -15,6 +15,7 @@ import { useUi, type ThemePreference } from '@/stores/ui';
 import { useIntentPrefetch } from '@/app/prefetch';
 import { preloadAssistant } from '@/features/assistant/AssistantHost';
 import { useAssistant } from '@/features/assistant/model';
+import { NoticeBell } from '@/features/notices/NoticeBell';
 import { preloadCommandPalette } from './commandPaletteLoader';
 import { Logo } from './Logo';
 import { locate, navContext, sectionLock, sectionName, sectionPath, visibleSections, type NavLock, type NavSection } from './nav';
@@ -294,6 +295,8 @@ export function Sidebar({ mode = 'fixed' }: { mode?: 'fixed' | 'drawer' }) {
         >
             <div className={cn('igr:flex igr:h-14 igr:shrink-0 igr:items-center', collapsed ? 'igr:justify-center igr:px-2' : 'igr:gap-2 igr:pr-2 igr:pl-4')}>
                 {collapsed ? null : <Logo className="igr:min-w-0 igr:flex-1" brand={workspace.branding ?? null} />}
+                {/* La campana de avisos (lote 0.4.0); contraída, va debajo de la búsqueda. En el celular está en su barra. */}
+                {mode === 'fixed' && !collapsed ? <NoticeBell variant="sidebar" /> : null}
                 {mode === 'fixed' ? (
                     <Tooltip content={`${toggleLabel} · ${mod}B`} side="right">
                         <button
@@ -340,6 +343,7 @@ export function Sidebar({ mode = 'fixed' }: { mode?: 'fixed' | 'drawer' }) {
                         )}
                     </button>
                 </WithTooltip>
+                {collapsed ? <NoticeBell variant="collapsed" /> : null}
                 {canAsk ? (
                     <WithTooltip collapsed={collapsed} label={`${askLabel} · ${mod}J`}>
                         <button

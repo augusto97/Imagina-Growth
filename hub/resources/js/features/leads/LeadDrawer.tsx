@@ -17,6 +17,8 @@ import { useContactServices } from '@/features/contacts/api';
 import { errorMessage } from '@/features/contacts/errors';
 import { APPOINTMENT_TONE } from '@/features/contacts/profile/ServicesTab';
 import { useAddNote, useLead, useMoveLead, useTeam, useUpdateLead } from './api';
+import { useLeadNotices } from '@/features/notices/api';
+import { NoticeLogList } from '@/features/notices/NoticeLogList';
 import { BriefCard } from './BriefCard';
 import { QualificationCard } from './QualificationCard';
 import { TasksCard } from './TasksCard';
@@ -243,6 +245,7 @@ function Detail({ lead }: { lead: LeadDetail }) {
                     </ul>
                 </section>
 
+                <NoticesBlock leadId={lead.id} />
                 <Timeline activities={lead.activities} stages={stages} currency={lead.currency} />
                 <NoteForm id={lead.id} />
             </SheetBody>
@@ -259,6 +262,18 @@ function Detail({ lead }: { lead: LeadDetail }) {
                 />
             ) : null}
         </>
+    );
+}
+
+/** Qué se le avisó al equipo por este lead y al cliente por sus citas (lote 0.4.0, docs/avisos.md §4). */
+function NoticesBlock({ leadId }: { leadId: string }) {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const notices = useLeadNotices(workspace.id, leadId);
+    return (
+        <Section title={t('notices.title')}>
+            <NoticeLogList rows={notices.data?.data} loading={notices.isPending} error={notices.isError} withCustomerCheck={false} />
+        </Section>
     );
 }
 

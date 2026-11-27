@@ -24,6 +24,7 @@ use Throwable;
  * | `password_reset_tokens` (vencen a los 60 minutos) | 1 |
  * | `flow_run_steps` de recorridos terminados (cumplimiento.md §10: pasos de flujos, 6 meses) | 180 |
  * | `ai_agent_turns` (registro del agente de ventas, con textos) | 180 |
+ * | `notices` (centro de avisos de la app, lote 0.4.0) y `notice_log` (qué se avisó por cada cita o lead) | 180 |
  *
  * | `messages` (cumplimiento.md §10: 24 meses), con sus `tracked_links` y `message_attachments`, después de sumarlos al
  *   archivo agregado `message_archive_daily` (ArchiveOldMessages; nunca menos de lo que protege la atribución) | 730 |
@@ -55,6 +56,8 @@ final class RetentionPurgeCommand extends Command
             'flow_run_steps' => $this->purge(DB::table('flow_run_steps')->where('executed_at', '<', $now->copy()->subDays($days('flow_run_steps', 180)))
                 ->whereIn('run_id', DB::table('flow_runs')->select('id')->whereIn('status', ['completed', 'exited', 'failed']))),
             'ai_agent_turns' => $this->purge(DB::table('ai_agent_turns')->where('created_at', '<', $now->copy()->subDays($days('ai_agent_turns', 180)))),
+            'notices' => $this->purge(DB::table('notices')->where('created_at', '<', $now->copy()->subDays($days('notices', 180)))),
+            'notice_log' => $this->purge(DB::table('notice_log')->where('created_at', '<', $now->copy()->subDays($days('notices', 180)))),
         ];
         try {
             $results += $messages->handle((bool) $this->option('dry-run'));

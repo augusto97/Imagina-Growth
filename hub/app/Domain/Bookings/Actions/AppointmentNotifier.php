@@ -7,6 +7,7 @@ namespace App\Domain\Bookings\Actions;
 use App\Domain\Bookings\Http\Public\PublicBooking;
 use App\Domain\Bookings\Models\Appointment;
 use App\Domain\Bookings\Models\BookingService;
+use App\Domain\Bookings\Support\AppointmentNoticeLog;
 use App\Domain\Bookings\Support\BookingSettings;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Messaging\Contracts\MessageDispatcher;
@@ -41,16 +42,27 @@ final class AppointmentNotifier
 
     public function __construct(private readonly MessageDispatcher $dispatcher, private readonly Branding $branding) {}
 
-    /** Un aviso que falla no deshace la cita: se reporta y sigue. */
+    /**
+     * Un aviso que falla no deshace la cita: se reporta y sigue. Lo que salió (o por qué no) queda en `notice_log`
+     * para la sección «Avisos» de la cita y la página de confirmación (lote 0.4.0, docs/avisos.md §4).
+     */
     public function send(Workspace $workspace, Appointment $appointment, string $kind, bool $whatsapp = true): ?DispatchResult
     {
         try {
-            return $this->deliver($workspace, $appointment, $kind, $whatsapp);
+            $result = $this->deliver($workspace, $appointment, $kind, $whatsapp);
         } catch (Throwable $e) {
             report($e);
-
-            return null;
+            $result = null;
         }
+        app(AppointmentNoticeLog::class)->record($workspace, $appointment, $kind, self::key($appointment, $kind), $whatsapp, $result);
+
+        return $result;
+    }
+
+    /** Clave de idempotencia del aviso (`appt:{cita}:{tipo}:{inicio}`): un cambio de hora vuelve a avisar. */
+    public static function key(Appointment $appointment, string $kind): string
+    {
+        return 'appt:'.$appointment->id.':'.$kind.':'.CarbonImmutable::instance($appointment->starts_at)->getTimestamp();
     }
 
     private function deliver(Workspace $workspace, Appointment $appointment, string $kind, bool $whatsapp): ?DispatchResult
@@ -63,7 +75,7 @@ final class AppointmentNotifier
         $settings = BookingSettings::for($workspace);
         $messageKind = str_starts_with($kind, 'reminder') ? MessageKind::Utility : MessageKind::Transactional;
         $vars = self::vars($workspace, $appointment, $service);
-        $key = 'appt:'.$appointment->id.':'.$kind.':'.CarbonImmutable::instance($appointment->starts_at)->getTimestamp();
+        $key = self::key($appointment, $kind);
         $templateKey = str_starts_with($kind, 'reminder') ? 'reminder' : $kind;
         $waTemplate = ($settings['whatsapp_templates'][$templateKey] ?? null);
         $template = is_string($waTemplate) ? Template::findByPublicId($waTemplate) : null;
