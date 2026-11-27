@@ -55,6 +55,10 @@ final class TemplateChecks
 
             return $out;
         }
+        // Las imágenes de muestra de los bloques del editor (public/images/email) son para diseñar, no para enviar.
+        if (preg_match('#/images/email/placeholder-[a-z]+\.png#', $body) === 1) {
+            $out[] = self::item('warning', 'placeholder_image', __('Todavía hay imágenes de muestra: cámbialas por las tuyas antes de enviar.'));
+        }
         if (! $template->isMarketing()) {
             return $out;
         }

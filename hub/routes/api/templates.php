@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('templates', [TemplateController::class, 'index']);
 Route::post('templates', [TemplateController::class, 'store']);
 Route::post('templates/preview', [TemplateController::class, 'previewDraft']);
+Route::post('templates/test-send', [TemplateController::class, 'testSend'])->middleware('throttle:10,1');
 Route::get('templates/variables', [TemplateController::class, 'variables']);
 Route::get('templates/library', [TemplateController::class, 'library']);
 // Galería por objetivo y vertical (rediseño v2 §11.5); se instala con POST templates/library/{key}.
