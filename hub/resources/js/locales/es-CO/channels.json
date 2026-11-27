@@ -40,6 +40,17 @@
         "tierUnlimited": "Límite de Meta: sin límite",
         "default": "Predeterminada",
         "unofficial": "No oficial",
+        "capabilities": {
+            "title": "Qué hace distinto este número",
+            "noMarketing": "No manda campañas ni automatizaciones de marketing: solo respuestas, confirmaciones y recordatorios.",
+            "numbered": "No muestra botones ni listas: las opciones salen numeradas en el texto y la persona responde con el número.",
+            "templatesAsText": "No usa plantillas aprobadas de Meta: la plantilla sale como texto, con los enlaces de sus botones escritos.",
+            "mediaApart": "La imagen o el documento del encabezado de una plantilla va aparte, con el texto como pie.",
+            "noMedia": "No manda archivos: la imagen o el documento del encabezado de una plantilla no sale.",
+            "templateNote": "Por {{name}} esta plantilla sale como texto: los botones de enlace van escritos y las respuestas rápidas como opciones numeradas.",
+            "templateNoteMedia": "La imagen del encabezado va aparte, con el texto como pie.",
+            "templateNoteNoMedia": "La imagen del encabezado no sale: este número no manda archivos."
+        },
         "warmup": "Calentamiento: día {{day}} · {{sent}} de {{limit}} correos hoy",
         "warmupDone": "Dominio calentado",
         "caps": "Topes fijos: {{hourly}} por hora y {{daily}} por día",

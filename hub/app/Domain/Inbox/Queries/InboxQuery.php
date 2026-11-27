@@ -13,6 +13,7 @@ use App\Domain\Contacts\Models\ContactIdentity;
 use App\Domain\Inbox\Models\ConversationEvent;
 use App\Domain\Inbox\Models\ConversationNote;
 use App\Domain\Inbox\Models\MessageAttachment;
+use App\Domain\Messaging\Channels\DriverRegistry;
 use App\Domain\Messaging\Coexistence\BusinessAppMessages;
 use App\Domain\Messaging\Enums\Channel;
 use App\Domain\Messaging\Models\ChannelAccount;
@@ -127,7 +128,16 @@ final class InboxQuery
         $names = $this->userNames(array_values(array_filter(array_unique(array_values($authors)), fn ($a) => ! in_array($a, ['ai', 'system', BusinessAppMessages::ACTOR], true))));
         $attachments = MessageAttachment::query()->whereIn('message_id', $messages->pluck('id'))->get()->groupBy('message_id');
 
+        $account = ChannelAccount::query()->find($c->channel_account_id);
+        $caps = $account !== null ? app(DriverRegistry::class)->capabilitiesOf($account) : null;
+
         return $this->summary($c, $contact, $this->userNames(array_filter([$c->assignee_id]))) + [
+            // Qué puede mandar el número de esta conversación: sin botones las opciones salen numeradas; sin plantillas de
+            // Meta, la plantilla sale como texto (ChannelCapabilities).
+            'account' => $account === null || $caps === null ? null : [
+                'name' => (string) $account->display_name, 'provider' => (string) $account->provider, 'official' => $caps->official,
+                'templates' => $caps->templates, 'buttons' => $caps->buttons, 'media' => $caps->media !== [], 'options_as' => $caps->optionsAs(),
+            ],
             'messages' => $messages->map(function (Message $m) use ($authors, $names, $attachments): array {
                 $payload = (array) $m->payload;
                 $author = $authors[$m->publicId()] ?? null;
@@ -153,6 +163,8 @@ final class InboxQuery
                     'media_url' => is_string($payload['media']['url'] ?? null) ? (string) $payload['media']['url'] : null,
                     'attachments' => ($attachments->get($m->id) ?? collect())->map(fn (MessageAttachment $a) => ['kind' => $a->kind, 'mime' => $a->mime, 'caption' => $a->caption])->values()->all(),
                     'failed_reason' => $m->getAttribute('failed_reason'),
+                    // Lo que el proveedor no pudo mandar de una plantilla compuesta como texto (p. ej. la imagen del encabezado).
+                    'degraded' => array_values(array_filter((array) ($payload['degraded'] ?? []), 'is_string')),
                     'at' => ($m->getAttribute('sent_at') ?? $m->queued_at ?? $m->created_at)?->toIso8601String(),
                     'delivered_at' => $m->getAttribute('delivered_at')?->toIso8601String(),
                     'read_at' => $m->getAttribute('read_at')?->toIso8601String(),

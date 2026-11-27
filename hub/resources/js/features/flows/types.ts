@@ -147,6 +147,8 @@ export interface FlowOptions {
     /** Para asignar, crear tareas y mover la etapa del lead. */
     team?: { id: string; name: string }[];
     lead_stages?: { key: string; label: string; kind: 'open' | 'won' | 'lost'; pipeline: string }[];
+    /** El WhatsApp por el que salen los pasos de WhatsApp y lo que puede (ChannelCapabilities); null sin WhatsApp. */
+    whatsapp?: { name: string; provider: string; official: boolean; marketing: boolean; templates: boolean; buttons: boolean; media: boolean } | null;
 }
 
 export interface LibraryFlow {

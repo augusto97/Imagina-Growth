@@ -602,6 +602,7 @@
             "kindHelp": "Por ley, lo ambiguo es marketing: respeta el consentimiento, el horario legal y la frecuencia.",
             "reason": "Por qué no es de marketing",
             "reasonHelp": "Queda en la auditoría (cumplimiento, Ley 2300, art. 8).",
+            "unofficialMarketing": "Por {{name}} (WhatsApp no oficial) no salen mensajes de marketing: este paso no enviará nada. Conecta el WhatsApp oficial o, si es un aviso que la persona pidió, cámbialo a «Utilidad».",
             "couponKind": "Tipo",
             "couponPercent": "Porcentaje",
             "couponFixed": "Monto fijo",

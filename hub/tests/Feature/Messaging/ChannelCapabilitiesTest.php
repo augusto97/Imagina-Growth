@@ -282,3 +282,22 @@ it('el chat con atribución pregunta por novedades con opciones numeradas y el �
     expect($evidence)->toMatchArray(['reply' => 'numbered_option', 'prompt' => 'whatsapp_link'])
         ->and(collect(capIwSent())->last()['body'])->toContain('responde «baja»');
 });
+
+it('la bandeja dice qué puede el número de la conversación, y campañas y flujos avisan que el WhatsApp no oficial no manda marketing', function () {
+    capIwSays($this, 'Hola');
+    $conversation = ($this->in)(fn () => Conversation::query()->where('channel_account_id', $this->iwa->id)->sole());
+    $api = "/api/w/{$this->ws->publicId()}";
+    $detail = $this->actingAs($this->owner)->getJson("{$api}/inbox/conversations/{$conversation->publicId()}")->assertOk();
+    expect($detail->json('account'))->toMatchArray(['name' => 'Ventas', 'provider' => 'imagina_whats', 'official' => false, 'templates' => false,
+        'buttons' => false, 'media' => true, 'options_as' => 'numbered']);
+
+    // Con el oficial conectado, WhatsApp sirve para campañas; si solo queda el no oficial, no, y se dice por qué.
+    $options = $this->actingAs($this->owner)->getJson("{$api}/campaigns/options")->assertOk();
+    expect($options->json('active_channels'))->toContain('whatsapp')->and($options->json('marketing_blocked'))->toBe([]);
+    ($this->in)(fn () => $this->wa->forceFill(['status' => 'disconnected'])->save());
+    $options = $this->actingAs($this->owner)->getJson("{$api}/campaigns/options")->assertOk();
+    expect($options->json('active_channels'))->not->toContain('whatsapp')->and($options->json('marketing_blocked'))->toBe(['whatsapp']);
+
+    $flows = $this->actingAs($this->owner)->getJson("{$api}/flows/options")->assertOk();
+    expect($flows->json('whatsapp'))->toMatchArray(['name' => 'Ventas', 'provider' => 'imagina_whats', 'official' => false, 'marketing' => false, 'templates' => false, 'media' => true]);
+});

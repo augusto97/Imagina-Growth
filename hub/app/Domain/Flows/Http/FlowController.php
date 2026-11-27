@@ -25,6 +25,9 @@ use App\Domain\Flows\Queries\FlowListResults;
 use App\Domain\Flows\Support\FlowRules;
 use App\Domain\Flows\Support\InvalidFlow;
 use App\Domain\Flows\Support\TemplateRef;
+use App\Domain\Messaging\Channels\DriverRegistry;
+use App\Domain\Messaging\Enums\Channel;
+use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Segments\Models\Segment;
 use App\Domain\Services\Leads\Models\LeadPipeline;
 use App\Domain\Services\Leads\Support\LeadDefaults;
@@ -362,7 +365,23 @@ final class FlowController
             // Para «Asignar a una persona», «Crear tarea» y «Mover etapa del lead».
             'team' => $this->current->get()->users()->orderBy('name')->get(['users.id', 'users.name'])->map(fn (User $u) => ['id' => $u->publicId(), 'name' => $u->name])->values(),
             'lead_stages' => self::leadStages(),
+            // El WhatsApp por el que salen los pasos de WhatsApp y lo que puede (ChannelCapabilities): el constructor avisa
+            // si un paso usa algo que ese número no manda (marketing, botones, plantillas, imagen del encabezado).
+            'whatsapp' => self::whatsapp(),
         ]);
+    }
+
+    /** @return array{name: string, provider: string, official: bool, marketing: bool, templates: bool, buttons: bool, media: bool}|null */
+    private static function whatsapp(): ?array
+    {
+        $account = ChannelAccount::defaultFor(Channel::WhatsApp);
+        if ($account === null) {
+            return null;
+        }
+        $caps = app(DriverRegistry::class)->capabilitiesOf($account);
+
+        return ['name' => (string) $account->display_name, 'provider' => (string) $account->provider, 'official' => $caps->official, 'marketing' => $caps->marketing,
+            'templates' => $caps->templates, 'buttons' => $caps->buttons, 'media' => $caps->media !== []];
     }
 
     /**

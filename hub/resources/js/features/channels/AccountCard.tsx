@@ -12,6 +12,7 @@ import { isApiError } from '@/lib/api';
 import { formatNumber } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { type ChannelAccount, UNOFFICIAL_PROVIDERS, useDisconnectChannel, useSyncChannel, useUpdateChannel } from './api';
+import { CapabilityNotes } from './CapabilityNotes';
 import { QualityBadge, StatusBadge } from './shared';
 
 const ICONS = { email: Mail, whatsapp: MessageCircle, sms: Phone, messenger: MessagesSquare, instagram: Camera } as const;
@@ -135,6 +136,7 @@ export function AccountCard({ account, onTest, onDns }: { account: ChannelAccoun
                     </Badge>
                 )}
             </div>
+            {account.channel === 'whatsapp' ? <CapabilityNotes caps={account.capabilities} /> : null}
             {warmup && (
                 <div className="igr:space-y-1">
                     <p className="igr:text-xs igr:text-muted-foreground">

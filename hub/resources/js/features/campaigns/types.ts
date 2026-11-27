@@ -102,6 +102,8 @@ export interface CampaignOptions {
     segments: { id: string; name: string; member_count: number; is_system: boolean; folder: string | null }[];
     templates: { id: string; name: string; channel: CampaignChannel; category: string; subject: string | null; status: string }[];
     active_channels: CampaignChannel[];
+    /** Canales conectados que no mandan marketing (un WhatsApp no oficial): la campaña dice por qué. */
+    marketing_blocked?: CampaignChannel[];
     rules: RuleType[];
     workspace: { timezone: string; country: string; currency: string };
     wa_rates: { effective_from: string | null; stale: boolean; source_url: string };
