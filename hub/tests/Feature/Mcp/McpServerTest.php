@@ -10,9 +10,12 @@ use App\Domain\Mcp\Tools\DraftCampaignTool;
 use App\Domain\Mcp\Tools\DraftSegmentTool;
 use App\Domain\Mcp\Tools\GetContactSummaryTool;
 use App\Domain\Mcp\Tools\GetKpisTool;
+use App\Domain\Mcp\Tools\GetSetupStatusTool;
+use App\Domain\Mcp\Tools\ListDeliveryIssuesTool;
 use App\Domain\Mcp\Tools\ListInsightsTool;
 use App\Domain\Mcp\Tools\ListSegmentsTool;
 use App\Domain\Mcp\Tools\RunMetricQueryTool;
+use App\Domain\Messaging\Models\Message;
 use App\Domain\Segments\Models\Segment;
 use App\Support\Tenancy\CurrentWorkspace;
 
@@ -95,4 +98,23 @@ it('el endpoint HTTP exige un token con alcance mcp y el plan con MCP', function
     expect(collect($list->json('result.tools'))->pluck('name')->all())->toContain('get_kpis', 'run_metric_query', 'draft_segment');
     apiEntitlements(deny: ['mcp']);
     $this->postJson('/api/mcp', $init, apiHeaders($token))->assertStatus(402);
+});
+
+it('dice cómo está configurado el negocio y qué mensajes no salieron, sin datos de contactos', function () {
+    ($this->as)(['mcp']);
+    GrowthServer::tool(GetSetupStatusTool::class, [])->assertOk()->assertSee(['"site"', '"channels"', '"missing"', '"operations"', '"panel_url"']);
+
+    $contact = ($this->in)(fn () => Contact::query()->create(['workspace_id' => $this->ws->id, 'email' => 'luz@ejemplo.com', 'first_name' => 'Luz']));
+    $make = fn (string $status, ?string $policy, ?string $error, ?string $detail) => ($this->in)(fn () => Message::query()->create([
+        'workspace_id' => $this->ws->id, 'contact_id' => $contact->id, 'channel' => 'email', 'direction' => 'out', 'kind' => 'transactional',
+        'source_type' => 'system', 'status' => $status, 'policy_reason' => $policy, 'error_code' => $error, 'failed_reason' => $detail,
+    ]));
+    $make('denied', 'no_account', null, null);
+    $make('denied', 'no_account', null, null);
+    $make('failed', null, 'smtp_auth', 'Expected response code 235 for luz@ejemplo.com but got 535');
+    $make('sent', null, null, null);
+
+    GrowthServer::tool(ListDeliveryIssuesTool::class, ['days' => 3])->assertOk()
+        ->assertSee(['"reason":"no_account"', '"count":2', '"reason":"smtp_auth"', '"sent":1'])
+        ->assertDontSee('luz@ejemplo.com');
 });
