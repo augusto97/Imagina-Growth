@@ -12,11 +12,13 @@ use App\Domain\Consent\Actions\RecordConsent;
 use App\Domain\Consent\Models\ContactConsent;
 use App\Domain\Contacts\Models\Contact;
 use App\Domain\Inbox\Events\InboundMessageReceived;
+use App\Domain\Messaging\Channels\DriverRegistry;
 use App\Domain\Messaging\Contracts\MessageDispatcher;
 use App\Domain\Messaging\Data\OutboundMessage;
 use App\Domain\Messaging\Enums\Channel;
 use App\Domain\Messaging\Enums\MessageKind;
 use App\Domain\Messaging\Inbound\InboundHandler;
+use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Messaging\Models\Message;
 use App\Domain\Messaging\Support\WhatsAppInteractive;
@@ -62,6 +64,7 @@ final class WhatsAppLinkInbound implements ShouldQueue
         private readonly MessageDispatcher $dispatcher,
         private readonly RecordConsent $consents,
         private readonly ConsentTexts $texts,
+        private readonly DriverRegistry $drivers,
     ) {}
 
     public static function isOptInButton(mixed $payload): bool
@@ -166,7 +169,12 @@ final class WhatsAppLinkInbound implements ShouldQueue
         $this->texts->current($workspace); // crea la v1 del texto si el espacio de trabajo no tenía
         $label = (string) $this->texts->latest($workspace, 'whatsapp')?->body;
         $business = BusinessProfile::for($workspace)['name'] ?: $workspace->name;
-        $body = __('¿Quieres recibir ofertas y novedades de :business por aquí? Al tocar «Sí, quiero» aceptas: «:text»', ['business' => $business, 'text' => $label]);
+        // Sin botones (WhatsApp no oficial) las opciones salen numeradas: aceptar es responder «1» o «Sí, quiero».
+        $account = ChannelAccount::query()->find($inbound->channel_account_id);
+        $buttons = $account !== null && $this->drivers->capabilitiesOf($account)->buttons;
+        $body = $buttons
+            ? __('¿Quieres recibir ofertas y novedades de :business por aquí? Al tocar «Sí, quiero» aceptas: «:text»', ['business' => $business, 'text' => $label])
+            : __('¿Quieres recibir ofertas y novedades de :business por aquí? Al responder «1» o «Sí, quiero» aceptas: «:text»', ['business' => $business, 'text' => $label]);
         $interactive = WhatsAppInteractive::buttons($body, [
             ['id' => self::OPT_IN.'y:'.$hit->id, 'title' => __('Sí, quiero')],
             ['id' => self::OPT_IN.'n:'.$hit->id, 'title' => __('No, gracias')],
@@ -196,9 +204,12 @@ final class WhatsAppLinkInbound implements ShouldQueue
         $legal = $this->texts->latest($workspace, 'whatsapp');
         $at = CarbonImmutable::instance($message->created_at ?? now());
         $link = WhatsAppLink::query()->find($hit->link_id);
-        $this->consents->handle($workspace, $event->contactId, 'whatsapp', 'marketing', 'granted', 'whatsapp_button', $legal?->version, $at, array_filter([
+        // Con botones, el toque; sin botones, la respuesta escrita («1», «Sí, quiero»), que queda como tal en la evidencia.
+        $written = (bool) (((array) $message->payload)['option_reply'] ?? false);
+        $this->consents->handle($workspace, $event->contactId, 'whatsapp', 'marketing', 'granted', $written ? 'whatsapp_reply' : 'whatsapp_button', $legal?->version, $at, array_filter([
             'message_id' => $message->publicId(),
             'button_payload' => mb_substr($payload, 0, 64),
+            'reply' => $written ? 'numbered_option' : null,
             'prompt' => 'whatsapp_link',
             'wa_link' => $link?->publicId(),
             'legal_text' => $legal?->body,

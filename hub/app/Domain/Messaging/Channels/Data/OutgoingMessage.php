@@ -10,6 +10,8 @@ namespace App\Domain\Messaging\Channels\Data;
  * correo (List-Unsubscribe y List-Unsubscribe-Post en el marketing).
  * `interactive` es el objeto de botones o lista de WhatsApp (WhatsAppInteractive);
  * los drivers que no lo muestran mandan `text`, que ya trae las opciones.
+ * `media` es un archivo suelto ({type: image|video|document|audio, url}) que va con
+ * `text` como pie: el despachador solo lo pone si el proveedor lo manda (ChannelCapabilities).
  */
 final class OutgoingMessage
 {
@@ -17,6 +19,7 @@ final class OutgoingMessage
      * @param  array<string, string>  $headers
      * @param  list<array<string, mixed>>  $waComponents
      * @param  array<string, mixed>|null  $interactive
+     * @param  array{type: string, url: string}|null  $media
      */
     public function __construct(
         public readonly string $messageId,
@@ -31,5 +34,6 @@ final class OutgoingMessage
         public readonly array $waComponents = [],
         public readonly ?string $messagingTag = null, // Fase 5: Messenger fuera de la ventana de 24 h (`HUMAN_AGENT`, solo personas)
         public readonly ?array $interactive = null,
+        public readonly ?array $media = null,
     ) {}
 }

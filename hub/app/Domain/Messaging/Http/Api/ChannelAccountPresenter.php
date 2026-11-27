@@ -46,7 +46,7 @@ final class ChannelAccountPresenter
             'domain' => $account->credential('domain'),
             'warmup' => SendCaps::warmup($account),
             'caps' => $account->unofficialCaps(),
-            'capabilities' => app(DriverRegistry::class)->for($account->provider)->capabilities(),
+            'capabilities' => app(DriverRegistry::class)->capabilitiesOf($account)->toArray(),
             'webhook_url' => $webhook,
             // Messenger e Instagram (Fase 5): qué suscribir en la app de Meta [verificar] los campos vigentes.
             'webhook_subscription' => match ($account->provider) {

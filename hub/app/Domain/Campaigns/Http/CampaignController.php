@@ -14,6 +14,7 @@ use App\Domain\Campaigns\Queries\CampaignReport;
 use App\Domain\Campaigns\Support\CommercialCalendar;
 use App\Domain\Campaigns\Support\SendWindowExplainer;
 use App\Domain\Campaigns\Support\WaRateCard;
+use App\Domain\Messaging\Channels\DriverRegistry;
 use App\Domain\Segments\Models\Segment;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
 use App\Domain\Workspaces\Models\User;
@@ -283,12 +284,19 @@ final class CampaignController
         $templates = DB::table('templates')->where('workspace_id', $ws->id)->where('status', '!=', 'archived')
             ->orderBy('name')->get(['id', 'name', 'channel', 'category', 'subject', 'status'])
             ->map(fn ($t) => ['id' => CampaignPresenter::template((string) $t->id), 'name' => (string) $t->name, 'channel' => (string) $t->channel, 'category' => (string) $t->category, 'subject' => $t->subject, 'status' => (string) $t->status])->values();
-        $accounts = DB::table('channel_accounts')->where('workspace_id', $ws->id)->where('status', 'active')->pluck('channel')->unique()->values();
+        // Un canal cuenta para campañas solo si alguna de sus cuentas activas manda marketing: un WhatsApp no oficial
+        // (Imagina Whats, Zender) no sirve para campañas (cumplimiento.md §5.2, ChannelCapabilities).
+        $rows = DB::table('channel_accounts')->where('workspace_id', $ws->id)->where('status', 'active')->get(['channel', 'provider']);
+        $registry = app(DriverRegistry::class);
+        $accounts = $rows->filter(fn ($r) => isset(DriverRegistry::PROVIDERS[(string) $r->provider]) && $registry->for((string) $r->provider)->capabilities()->marketing)
+            ->pluck('channel')->unique()->values();
 
         return response()->json([
             'segments' => $segments,
             'templates' => $templates,
             'active_channels' => $accounts,
+            // Canales conectados que no mandan marketing (hoy, solo un WhatsApp no oficial): la campaña dice por qué.
+            'marketing_blocked' => $rows->pluck('channel')->unique()->diff($accounts)->values(),
             'rules' => AudienceQuery::RULES,
             'workspace' => ['timezone' => $ws->timezone, 'country' => $ws->country, 'currency' => $ws->currency],
             'wa_rates' => ['effective_from' => WaRateCard::latestEffectiveFrom()?->toDateString(), 'stale' => WaRateCard::isStale(), 'source_url' => WaRateCard::SOURCE_URL],

@@ -107,6 +107,7 @@ export function Composer({ c }: { c: ConversationDetail }) {
                 <TemplateDialog
                     key={templateId ?? 'todas'}
                     initialId={templateId}
+                    account={c.account}
                     open={dialog === 'template'}
                     onOpenChange={(v) => setDialog(v ? 'template' : null)}
                     onSend={(b) => send(b, () => setDialog(null))}
@@ -240,6 +241,7 @@ export function Composer({ c }: { c: ConversationDetail }) {
             <TemplateDialog
                 key={templateId ?? 'todas'}
                 initialId={templateId}
+                account={c.account}
                 open={dialog === 'template'}
                 onOpenChange={(v) => setDialog(v ? 'template' : null)}
                 onSend={(b) => send(b, () => setDialog(null))}

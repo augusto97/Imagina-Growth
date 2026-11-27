@@ -442,7 +442,7 @@ function ContentStep({ campaign, options, saving, canManage, onSave, onBack }: S
                                         <span className="igr:text-caption igr:text-muted-foreground">{t(`campaigns.channelHelp.${c}`)}</span>
                                         {!on ? (
                                             <Badge variant="outline" className="igr:mt-1 igr:self-start">
-                                                {t('campaigns.wizard.channelMissing')}
+                                                {options.marketing_blocked?.includes(c) ? t('campaigns.wizard.channelUnofficial') : t('campaigns.wizard.channelMissing')}
                                             </Badge>
                                         ) : null}
                                     </label>
@@ -459,7 +459,7 @@ function ContentStep({ campaign, options, saving, canManage, onSave, onBack }: S
                                 </Button>
                             }
                         >
-                            {t('campaigns.wizard.connectChannel')}
+                            {channel === 'whatsapp' && options.marketing_blocked?.includes('whatsapp') ? t('campaigns.wizard.connectOfficialWhatsapp') : t('campaigns.wizard.connectChannel')}
                         </Callout>
                     ) : null}
                     {templates.length === 0 ? (

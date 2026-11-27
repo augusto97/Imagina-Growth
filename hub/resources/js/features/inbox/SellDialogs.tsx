@@ -10,7 +10,8 @@ import { useDebounced } from '@/hooks/useDebounced';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { formatMoney } from '@/lib/format';
 import { useInboxProducts, useInboxTemplates } from './api';
-import type { InboxProduct, SendBody } from './types';
+import { TemplateAsTextNote } from '@/features/channels/CapabilityNotes';
+import type { ConversationAccount, InboxProduct, SendBody } from './types';
 
 interface DialogProps {
     open: boolean;
@@ -20,7 +21,7 @@ interface DialogProps {
 }
 
 /** Plantilla aprobada de WhatsApp (sirve fuera de la ventana de 24 h), con las variables que llena el agente. */
-export function TemplateDialog({ open, onOpenChange, onSend, busy, initialId }: DialogProps & { initialId?: string | null }) {
+export function TemplateDialog({ open, onOpenChange, onSend, busy, initialId, account }: DialogProps & { initialId?: string | null; account?: ConversationAccount | null }) {
     const { t } = useTranslation();
     const { workspace } = useWorkspace();
     const templates = useInboxTemplates(workspace.id, open);
@@ -45,6 +46,8 @@ export function TemplateDialog({ open, onOpenChange, onSend, busy, initialId }: 
                     <DialogTitle>{t('inbox.template.title')}</DialogTitle>
                     <DialogDescription>{t('inbox.template.description')}</DialogDescription>
                 </DialogHeader>
+                {/* Un número sin plantillas de Meta (no oficial): la plantilla sale como texto, sin botones. */}
+                {account ? <TemplateAsTextNote caps={account} name={account.name} /> : null}
                 {list.length === 0 ? (
                     <p className="igr:text-sm igr:text-muted-foreground">{templates.isPending ? t('inbox.template.loading') : t('inbox.template.empty')}</p>
                 ) : (

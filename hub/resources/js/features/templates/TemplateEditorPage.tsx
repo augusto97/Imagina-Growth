@@ -28,6 +28,7 @@ import {
     useWaSources,
 } from './api';
 import { insertAt, liveChecks, missingWaSlots, waBodyOf } from './content';
+import { UnofficialWaNote } from './UnofficialWaNote';
 import { WaProposalPreview, WaStatusCallout } from './WaStatus';
 import { ChecksList } from './editor/ChecksList';
 import type { EmailCanvasHandle, EmailOutput } from './editor/EmailCanvas';
@@ -286,6 +287,7 @@ function Editor({ template }: { template: TemplateDetail }) {
                 />
             )}
             {template.channel === 'whatsapp' ? <WaStatusCallout template={template} /> : null}
+            {template.channel === 'whatsapp' ? <UnofficialWaNote /> : null}
             {template.channel === 'whatsapp' && template.wa_template_id === null && template.library_key?.startsWith('wa_') ? <WaProposalPreview libraryKey={template.library_key} /> : null}
             {template.channel === 'whatsapp' && <WhatsAppEditor draft={draft} set={set} canEdit={canEdit} />}
 

@@ -14,6 +14,7 @@ use App\Domain\Messaging\Data\DispatchResult;
 use App\Domain\Messaging\Data\OutboundMessage;
 use App\Domain\Messaging\Enums\Channel;
 use App\Domain\Messaging\Enums\MessageKind;
+use App\Domain\Messaging\Models\ChannelAccount;
 use App\Domain\Templates\Models\Template;
 use App\Domain\Workspaces\Contracts\Branding;
 use App\Domain\Workspaces\Models\Workspace;
@@ -25,8 +26,11 @@ use Throwable;
  * cancelación. No son publicidad (cumplimiento.md §4.1): la confirmación, el cambio
  * y la cancelación son transaccionales y los recordatorios de utilidad; no piden
  * consentimiento de marketing ni esperan la ventana legal, pero sí respetan la
- * supresión. Por WhatsApp solo con una plantilla de utilidad aprobada elegida en los
- * ajustes (fuera de la ventana de 24 h no hay texto libre); si no, por correo.
+ * supresión. Por WhatsApp oficial solo con una plantilla de utilidad aprobada elegida en
+ * los ajustes (fuera de la ventana de 24 h no hay texto libre); con un WhatsApp no oficial
+ * (Imagina Whats, Zender), que no usa plantillas, sale como texto (`whatsAppText`) con
+ * «Confirmo» o «Reprogramar» como respuesta escrita (sin botones; la atiende
+ * `AppointmentReply`), con la supresión y los topes de esa conexión. Si no, por correo.
  * Clave de idempotencia: `appt:{cita}:{tipo}:{inicio}`, así un cambio de hora vuelve
  * a avisar. Con `whatsapp: false` (lo que se agenda en el chat, que ya confirma ahí
  * mismo) solo sale el correo.
@@ -64,7 +68,18 @@ final class AppointmentNotifier
         $waTemplate = ($settings['whatsapp_templates'][$templateKey] ?? null);
         $template = is_string($waTemplate) ? Template::findByPublicId($waTemplate) : null;
 
-        if ($whatsapp && $template !== null && $contact->phone !== null) {
+        $waAccount = $whatsapp && $contact->phone !== null ? ChannelAccount::defaultFor(Channel::WhatsApp) : null;
+        if ($waAccount !== null && $waAccount->isUnofficial()) {
+            // WhatsApp no oficial: no hay plantillas de Meta, el aviso va como texto (transaccional o de utilidad, nunca marketing).
+            $result = $this->dispatcher->dispatch(new OutboundMessage(
+                workspaceId: $workspace->id, contactId: $contact->id, channel: Channel::WhatsApp, kind: $messageKind,
+                sourceType: 'system', sourceId: $appointment->publicId(), context: ['cita' => $vars, 'text' => self::whatsAppText($workspace, $kind, $vars, $service)],
+                idempotencyKey: $key.':wa', channelAccountId: $waAccount->id,
+            ));
+            if ($result->sent()) {
+                return $result;
+            }
+        } elseif ($whatsapp && $template !== null && $contact->phone !== null) {
             $result = $this->dispatcher->dispatch(new OutboundMessage(
                 workspaceId: $workspace->id, contactId: $contact->id, channel: Channel::WhatsApp, kind: MessageKind::Utility,
                 sourceType: 'system', sourceId: $appointment->publicId(), templateId: $template->id, context: ['cita' => $vars], idempotencyKey: $key.':wa',
@@ -83,6 +98,29 @@ final class AppointmentNotifier
             sourceId: $appointment->publicId(), context: ['cita' => $vars, 'subject' => $subject, 'text' => $text, 'html' => $html],
             idempotencyKey: $key.':email',
         ));
+    }
+
+    /**
+     * El aviso por un WhatsApp no oficial, en texto: sin botones, los recordatorios piden responder «Confirmo» o
+     * «Reprogramar» (AppointmentReply entiende esas palabras).
+     *
+     * @param  array<string, string>  $v
+     */
+    public static function whatsAppText(Workspace $workspace, string $kind, array $v, BookingService $service): string
+    {
+        $business = (string) ($workspace->getAttribute('legal_name') ?: $workspace->name);
+        $when = __(':fecha a las :hora (:lugar)', ['fecha' => $v['fecha'], 'hora' => $v['hora'], 'lugar' => $v['lugar']]);
+
+        return match ($kind) {
+            'confirmation' => __('¡Hola! Tu cita con :business quedó agendada: :servicio, el :when. Para verla, cambiarla o cancelarla: :url',
+                ['business' => $business, 'servicio' => $v['servicio'], 'when' => $when, 'url' => $v['enlace']]),
+            'reminder_24', 'reminder_2' => __('Te recordamos tu cita con :business: :servicio, el :when. Responde «Confirmo» para confirmarla o «Reprogramar» si necesitas otra hora.',
+                ['business' => $business, 'servicio' => $v['servicio'], 'when' => $when]),
+            'rescheduled' => __('Tu cita con :business cambió de hora: :servicio, el :when. Para verla o cambiarla: :url',
+                ['business' => $business, 'servicio' => $v['servicio'], 'when' => $when, 'url' => $v['enlace']]),
+            default => __('Cancelamos tu cita con :business: :servicio, el :when. Si quieres agendar otra: :url',
+                ['business' => $business, 'servicio' => $v['servicio'], 'when' => $when, 'url' => BookingSettings::pageUrl($workspace, $service->slug)]),
+        };
     }
 
     /** @return array<string, string> variables `cita.*` de las plantillas */

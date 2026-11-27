@@ -114,6 +114,8 @@
             "revoked": "Se eliminó este mensaje desde el celular.",
             "historyMedia": "Archivo de la app de WhatsApp Business (no se copió).",
             "edited": "Editado ·",
+            "degraded_header_media": "Sin la imagen del encabezado: este número no manda archivos.",
+            "degraded_button": "Un botón de la plantilla no tiene equivalente en texto y no salió.",
             "fromAi": "Agente con IA"
         },
         "window": {

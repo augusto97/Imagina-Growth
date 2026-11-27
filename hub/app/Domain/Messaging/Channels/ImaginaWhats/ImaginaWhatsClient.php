@@ -53,6 +53,18 @@ final class ImaginaWhatsClient
         return $this->data('POST', '/messages/whatsapp', ['type' => 'text', 'to' => $to, 'body' => $body, 'wa_account_id' => $waAccountId, 'reference' => $reference], $idempotencyKey);
     }
 
+    /**
+     * Un archivo por URL pública (imagen, video, audio o PDF) con su pie; el audio va sin pie.
+     *
+     * @return array<string, mixed>
+     */
+    public function sendMedia(int $waAccountId, string $to, string $url, ?string $caption, string $reference, string $idempotencyKey): array
+    {
+        return $this->data('POST', '/messages/whatsapp', array_filter([
+            'type' => 'media', 'to' => $to, 'media_url' => $url, 'body' => $caption, 'wa_account_id' => $waAccountId, 'reference' => $reference,
+        ], fn ($v) => $v !== null && $v !== ''), $idempotencyKey);
+    }
+
     /** @return list<array<string, mixed>> */
     public function webhooks(): array
     {

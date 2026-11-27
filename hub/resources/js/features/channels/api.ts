@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { wsPath } from '@/api/queries';
 import { api } from '@/lib/api';
 import { postMultipart } from '@/features/contacts/api';
+import type { ChannelCapabilities } from './capabilities';
 
 /* Canales de mensajería (M07). Rutas en hub/routes/api/messaging.php. */
 
@@ -30,7 +31,8 @@ export interface ChannelAccount {
     domain: string | null;
     warmup: { day: number; limit: number | null; sent_today: number } | null;
     caps: { hourly: number; daily: number } | null;
-    capabilities: { marketing: boolean; templates: boolean; free_text: boolean; media: boolean; buttons: boolean; rate_per_second: number };
+    /** Qué puede mandar este número (ChannelCapabilities del hub): botones, plantillas de Meta, archivos… */
+    capabilities: ChannelCapabilities;
     webhook_url: string | null;
     /** Messenger e Instagram (Fase 5): qué suscribir en la app de Meta. */
     webhook_subscription?: { object: 'page' | 'instagram'; fields: string[] } | null;

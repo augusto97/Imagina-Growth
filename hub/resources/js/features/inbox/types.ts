@@ -73,6 +73,8 @@ export interface ChatMessage {
         caption: string | null;
     }[];
     failed_reason: string | null;
+    /** Lo que el número no pudo mandar de una plantilla compuesta como texto (`header_media`, `button`). */
+    degraded?: string[];
     /** Messenger e Instagram: URL del adjunto en Meta (caduca). */
     media_url: string | null;
     at: string | null;
@@ -87,7 +89,19 @@ export interface ConversationNote {
     at: string | null;
 }
 
+/** El número de la conversación y lo que puede mandar (ChannelCapabilities del hub). */
+export interface ConversationAccount {
+    name: string;
+    provider: string;
+    official: boolean;
+    templates: boolean;
+    buttons: boolean;
+    media: boolean;
+    options_as: 'buttons' | 'numbered';
+}
+
 export interface ConversationDetail extends ConversationSummary {
+    account?: ConversationAccount | null;
     messages: ChatMessage[];
     has_more: boolean;
     notes: ConversationNote[];

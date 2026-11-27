@@ -24,9 +24,12 @@ use InvalidArgumentException;
  * cita se agenda, se mueve o se cancela cuando el cliente toca una (`ChatBookingReply`).
  * Así el modelo no puede inventar un horario ni cancelar por error.
  *
- * Donde no se pueden mostrar opciones (Messenger, Instagram, WhatsApp no oficial) dan el
- * enlace de la página de reservas o de la cita. Sin el módulo `bookings` o sin servicios
- * activos, queda la herramienta de antes que ofrece pasar con una persona.
+ * Donde el canal no muestra botones (WhatsApp no oficial, Messenger, Instagram) las mismas
+ * opciones salen numeradas en el texto (el despachador las numera, ChannelCapabilities) y la
+ * respuesta escrita —el número, el texto o la hora— vuelve como si la hubiera tocado
+ * (NumberedOptions). En la prueba del panel (sin conversación real) dan el enlace de la página
+ * de reservas o de la cita. Sin el módulo `bookings` o sin servicios activos, queda la
+ * herramienta de antes que ofrece pasar con una persona.
  */
 final class BookingAgentTools
 {
@@ -123,17 +126,20 @@ final class BookingAgentTools
                 $appointment = $this->appointment($run, $in['appointment_id'] ?? null);
                 $when = ChatSlots::when($run->workspace, CarbonImmutable::instance($appointment->starts_at));
                 $service = (string) BookingService::query()->whereKey($appointment->service_id)->value('name');
-                if (! $this->canShowOptions($run)) {
+                $mode = $this->optionsMode($run);
+                if ($mode === null) {
                     return ['service' => $service, 'when' => $when, 'manage_url' => BookingSettings::manageUrl($run->workspace, (string) $appointment->manage_token),
-                        'note' => 'Este chat no muestra botones: comparte manage_url para que la cancele ahí.'];
+                        'note' => 'Este chat no muestra opciones: comparte manage_url para que la cancele ahí.'];
                 }
                 $run->interactive = WhatsAppInteractive::buttons(__('¿Confirmas que cancelamos tu cita?'), [
                     ['id' => ChatBookingIds::cancel($appointment->id), 'title' => __('Sí, cancelar')],
                     ['id' => ChatBookingIds::keep($appointment->id), 'title' => __('No, mantenerla')],
                 ]);
 
-                return ['service' => $service, 'when' => $when, 'delivery' => 'buttons',
-                    'note' => 'Los botones «Sí, cancelar» y «No, mantenerla» van con tu respuesta: pregúntale si confirma, sin decir que ya se canceló.'];
+                return ['service' => $service, 'when' => $when, 'delivery' => $mode,
+                    'note' => $mode === 'buttons'
+                        ? 'Los botones «Sí, cancelar» y «No, mantenerla» van con tu respuesta: pregúntale si confirma, sin decir que ya se canceló.'
+                        : 'Las opciones «1. Sí, cancelar» y «2. No, mantenerla» van numeradas con tu respuesta: pregúntale si confirma respondiendo el número, sin decir que ya se canceló ni repetir las opciones.'];
             });
     }
 
@@ -146,26 +152,37 @@ final class BookingAgentTools
     private function present(AgentRun $run, array $starts, callable $ids, BookingService $service, array $extra): array
     {
         $labels = ChatSlots::labels($run->workspace, $starts);
-        if (! $this->canShowOptions($run)) {
+        $mode = $this->optionsMode($run);
+        if ($mode === null) {
             return ['available' => true, 'options' => $labels, 'delivery' => 'link'] + $extra
-                + ['note' => 'Este chat no muestra opciones para tocar: menciona dos o tres horarios y comparte el enlace para reservar.'];
+                + ['note' => 'Este chat no muestra opciones para elegir: menciona dos o tres horarios y comparte el enlace para reservar.'];
         }
         $run->interactive = ChatSlots::interactive($run->workspace, $service, $starts, $ids, __('Elige el horario que prefieras:'));
         unset($extra['booking_url'], $extra['manage_url']);
+        if ($mode === 'numbered') {
+            return ['available' => true, 'options' => $labels, 'delivery' => 'numbered'] + $extra
+                + ['note' => 'Los horarios van numerados con tu respuesta (este chat no muestra botones): escribe una frase corta invitándola a responder con el número de su horario, sin repetir la lista ni inventar otros. La cita queda cuando responda.'];
+        }
 
         return ['available' => true, 'options' => $labels, 'delivery' => count($starts) <= WhatsAppInteractive::BUTTONS_MAX ? 'buttons' : 'list'] + $extra
             + ['note' => 'Las opciones van con tu respuesta para que la persona toque una: escribe una frase corta invitándola a elegir, sin repetir la lista ni inventar otros horarios. La cita queda cuando toque su opción.'];
     }
 
-    /** Opciones para tocar: WhatsApp con un proveedor que muestra botones, en una conversación real. */
-    private function canShowOptions(AgentRun $run): bool
+    /**
+     * Cómo salen las opciones en esta conversación: `buttons` (WhatsApp con un proveedor que muestra botones),
+     * `numbered` (cualquier otro chat: WhatsApp no oficial, Messenger, Instagram) o null (la prueba del panel).
+     */
+    private function optionsMode(AgentRun $run): ?string
     {
         if ($run->conversation === null || $run->isTest) {
-            return false;
+            return null;
         }
         $account = ChannelAccount::query()->find($run->conversation->channel_account_id);
+        if ($account === null || ! $account->channel->isConversational()) {
+            return null;
+        }
 
-        return $account !== null && $account->channel === Channel::WhatsApp && (bool) ($this->drivers->for($account->provider)->capabilities()['buttons'] ?? false);
+        return $account->channel === Channel::WhatsApp && $this->drivers->capabilitiesOf($account)->buttons ? 'buttons' : 'numbered';
     }
 
     private function service(mixed $id): BookingService

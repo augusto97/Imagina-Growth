@@ -357,6 +357,11 @@ function Messages({ messages }: { messages: ChatMessage[] }) {
                                     {m.direction === 'out' ? <DeliveryIcon m={m} /> : null}
                                 </p>
                                 {m.status === 'failed' && m.failed_reason ? <p className="igr:text-[11px] igr:text-destructive">{m.failed_reason}</p> : null}
+                                {(m.degraded ?? []).map((d) => (
+                                    <p key={d} className="igr:text-[11px] igr:text-muted-foreground">
+                                        {t(`inbox.chat.degraded_${d}`, { defaultValue: '' })}
+                                    </p>
+                                ))}
                             </div>
                         </div>
                     </Fragment>

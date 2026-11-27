@@ -2,10 +2,13 @@ import { ArrowDown, ArrowUp, CircleAlert, Plus, Trash2, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { Callout } from '@/components/ui/callout';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useWorkspace } from '@/hooks/useWorkspace';
+import { marketingBlocked } from '@/features/channels/capabilities';
+import { TemplateAsTextNote } from '@/features/channels/CapabilityNotes';
 import { useSegmentOptions } from '@/features/segments/api';
 import { defaultCondition } from '@/features/segments/ast';
 import { BuilderContext } from '@/features/segments/builder/context';
@@ -287,6 +290,11 @@ export function NodePanel({ node, options, issues, readOnly, webhookSecret, onCh
                                 ))}
                             </Select>
                         </Field>
+                        {channel === 'whatsapp' && options.whatsapp && marketingBlocked(options.whatsapp, kind) ? (
+                            <Callout tone="warning">{t('flows.config.unofficialMarketing', { name: options.whatsapp.name })}</Callout>
+                        ) : channel === 'whatsapp' && options.whatsapp ? (
+                            <TemplateAsTextNote caps={options.whatsapp} name={options.whatsapp.name} />
+                        ) : null}
                         {kind !== 'marketing' ? (
                             <Field label={t('flows.config.reason')} htmlFor={id('reason')} help={t('flows.config.reasonHelp')}>
                                 <Textarea id={id('reason')} className="igr:min-h-16" maxLength={300} value={str(c.reclassify_reason)} disabled={readOnly} onChange={(e) => set({ reclassify_reason: e.target.value })} />

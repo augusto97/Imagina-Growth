@@ -28,8 +28,6 @@ interface ChannelDriver
     /** Costo estimado en USD de un mensaje al país del destino, o null si no se sabe. */
     public function estimateCost(ChannelAccount $account, string $country, MessageKind $kind): ?float;
 
-    /**
-     * @return array{marketing: bool, templates: bool, free_text: bool, media: bool, buttons: bool, rate_per_second: int}
-     */
-    public function capabilities(): array;
+    /** Qué puede enviar el hub por este proveedor (botones, listas, plantillas, archivos…): ChannelCapabilities. */
+    public function capabilities(): ChannelCapabilities;
 }

@@ -32,6 +32,12 @@ final class MetaInstagramDriver extends MetaSocialDriver
         return 'instagram_igsid';
     }
 
+    /** Instagram Direct corta el texto a 1.000 caracteres. */
+    protected function maxText(): int
+    {
+        return 1000;
+    }
+
     protected function maxTextLength(): int
     {
         return 1000;

@@ -83,6 +83,8 @@
             "channelHelp": "El canal define qué contenido puedes usar y cómo se cobra.",
             "channelConnected": "Conectado",
             "channelMissing": "Sin conectar",
+            "channelUnofficial": "No oficial: sin campañas",
+            "connectOfficialWhatsapp": "Tu WhatsApp conectado es no oficial (WhatsApp Web) y no manda campañas de marketing. Para enviar campañas por WhatsApp conecta el número oficial de WhatsApp Business.",
             "connectChannel": "Este canal no tiene una cuenta conectada: podrás armar la campaña, pero no aprobarla hasta conectarlo.",
             "goChannels": "Conectar el canal",
             "notEditable": "Esta campaña ya empezó a enviarse",

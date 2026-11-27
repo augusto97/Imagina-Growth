@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Messaging\Channels\Drivers;
 
 use App\Domain\Contacts\Models\ContactIdentity;
+use App\Domain\Messaging\Channels\ChannelCapabilities;
 use App\Domain\Messaging\Channels\ChannelDriver;
 use App\Domain\Messaging\Channels\Data\InboundMessage;
 use App\Domain\Messaging\Channels\Data\OutgoingMessage;
@@ -311,9 +312,24 @@ abstract class MetaSocialDriver implements ChannelDriver
         return 0.0; // Meta no cobra los mensajes de Messenger ni de Instagram
     }
 
-    public function capabilities(): array
+    /**
+     * Messenger e Instagram (Send API): texto dentro de las 24 h (Messenger, con HUMAN_AGENT, una persona hasta 7 días).
+     * El hub no manda botones ni archivos por aquí: las opciones salen numeradas. Messenger corta a 2.000 caracteres e
+     * Instagram a 1.000 (`maxText`).
+     */
+    public function capabilities(): ChannelCapabilities
     {
-        return ['marketing' => false, 'templates' => false, 'free_text' => true, 'media' => false, 'buttons' => false, 'rate_per_second' => 20];
+        return new ChannelCapabilities(
+            official: true, marketing: false, templates: false, freeText: true, buttons: false, lists: false,
+            templateButtons: false, templateMediaHeader: false, media: [], location: false, contactCard: false, reactions: false,
+            window24h: true, maxText: $this->maxText(), ratePerSecond: 20,
+        );
+    }
+
+    /** Largo máximo de un texto en este canal. */
+    protected function maxText(): int
+    {
+        return 2000;
     }
 
     /**
