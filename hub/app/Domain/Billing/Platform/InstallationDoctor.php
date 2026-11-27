@@ -182,7 +182,12 @@ final class InstallationDoctor
         $checks = [];
         $metaAccounts = $this->count(fn () => ChannelAccount::withoutWorkspaceScope()->whereIn('provider', ['meta_cloud', 'meta_messenger', 'meta_instagram'])->where('status', '!=', 'disconnected')->count());
         $webhook = rtrim((string) config('app.url'), '/').'/webhooks/meta';
-        if ((string) config('igr-messaging.meta.app_secret') === '') {
+        $hasMetaApp = (string) config('igr-messaging.meta.app_id') !== '';
+        if ((string) config('igr-messaging.meta.app_secret') === '' && ! $hasMetaApp && $metaAccounts === 0) {
+            // Sin app de Meta y sin cuentas de Meta no hay webhooks que verificar: no es algo «por configurar».
+            $checks[] = new DoctorCheck('whatsapp.app_secret', 'whatsapp', DoctorCheck::INFO, __('Sin el secreto de la app de Meta'),
+                __('Solo hace falta para WhatsApp oficial, Messenger, Instagram o los leads de anuncios de Meta, y hoy no hay ninguno conectado. Cuando crees la app, copia su clave secreta (Configuración → Básica) a Plataforma → Ajustes → Meta.'), [], DoctorCheck::settings('meta'));
+        } elseif ((string) config('igr-messaging.meta.app_secret') === '') {
             $checks[] = new DoctorCheck('whatsapp.app_secret', 'whatsapp', $metaAccounts > 0 ? DoctorCheck::ERROR : DoctorCheck::WARNING, __('Falta el secreto de la app de Meta'),
                 __('Sin el secreto de la app de Meta los webhooks responden 403: no llegan los estados de los mensajes ni los mensajes entrantes de WhatsApp, Messenger e Instagram. Cópialo de la app de Meta (Configuración → Básica → Clave secreta) a Plataforma → Ajustes → Meta.'), [], DoctorCheck::settings('meta'));
         } else {
@@ -192,7 +197,7 @@ final class InstallationDoctor
             ? new DoctorCheck('whatsapp.verify_token', 'whatsapp', DoctorCheck::WARNING, __('Falta el token de verificación del webhook de Meta'),
                 __('Genera el token en Plataforma → Ajustes → Meta y úsalo al registrar :url en la app de Meta.', ['url' => $webhook]), [], DoctorCheck::settings('meta'))
             : new DoctorCheck('whatsapp.verify_token', 'whatsapp', DoctorCheck::OK, __('Webhook de Meta: :url', ['url' => $webhook]));
-        if ((string) config('igr-messaging.meta.app_id') === '') {
+        if (! $hasMetaApp) {
             $checks[] = new DoctorCheck('whatsapp.app_id', 'whatsapp', DoctorCheck::INFO, __('Sin app de Meta para conectar WhatsApp con un clic'),
                 __('Mientras no esté la app de Meta (Plataforma → Ajustes → Meta), los clientes conectan su número a mano (identificador de la cuenta, del número y un token permanente).'), [], DoctorCheck::settings('meta'));
         }

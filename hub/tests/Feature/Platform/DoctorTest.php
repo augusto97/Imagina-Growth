@@ -90,6 +90,16 @@ it('con todo configurado dice que está bien, y nunca muestra los secretos', fun
     expect($json)->not->toContain('meta-secreto-123')->not->toContain('sk-ant-secreta-789')->not->toContain('verifica-456')->not->toContain('token-salud-000');
 });
 
+it('sin app ni cuentas de Meta el secreto de Meta es solo una nota, no algo por configurar', function () {
+    config(['igr-messaging.meta.app_secret' => '', 'igr-messaging.meta.app_id' => '']);
+    $check = doctorCheck(doctorJson(), 'whatsapp.app_secret');
+    expect($check['status'])->toBe('info')->and($check['detail'])->toContain('hoy no hay ninguno conectado');
+
+    // Con la app creada pero sin su secreto, los webhooks fallarían: se pide configurarlo.
+    config(['igr-messaging.meta.app_id' => '1234567890']);
+    expect(doctorCheck(doctorJson(), 'whatsapp.app_secret')['status'])->toBe('warning');
+});
+
 it('la pestaña Instalación es solo del superadmin con verificación en dos pasos', function () {
     $this->actingAs($this->owner)->getJson('/api/platform/doctor')->assertForbidden();
     $this->actingAs(User::factory()->create(['is_platform_admin' => true]))->getJson('/api/platform/doctor')
