@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Templates\Support;
 
+use App\Domain\Messaging\Support\SmsText;
 use App\Domain\Templates\Models\Template;
 use App\Domain\Templates\Rendering\WhatsAppComponents;
 use App\Domain\Workspaces\Models\Workspace;
@@ -15,22 +16,18 @@ use Illuminate\Support\Facades\DB;
  *
  * - Correo de marketing: pie legal con quién envía, dirección o contacto, el
  *   motivo y el enlace de baja (`{{ enlaces.baja }}`); asunto presente y corto.
- * - SMS: segmentos (GSM-7 o UCS-2) y, en marketing, cómo darse de baja.
+ * - SMS: que en el peor caso (variables a su largo máximo, SmsEstimate) quepa en un mensaje, o en dos si la
+ *   plantilla lo permite; qué letra lo pasa a UCS-2 y, en marketing, cómo darse de baja.
  * - WhatsApp: plantilla aprobada y cada parámetro con su variable.
  */
 final class TemplateChecks
 {
-    /** Caracteres de GSM-7 (alfabeto básico más la extensión, que cuenta doble). */
-    private const GSM7 = "@£\$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
-
-    private const GSM7_EXT = '^{}\\[~]|€';
-
     /** @return list<array{level: string, code: string, message: string}> */
     public static function run(Template $template, Workspace $workspace): array
     {
         return match ($template->channel) {
             'email' => self::email($template, $workspace),
-            'sms' => self::sms($template),
+            'sms' => self::sms($template, $workspace),
             'whatsapp' => self::whatsapp($template, $workspace),
             default => [],
         };
@@ -80,25 +77,46 @@ final class TemplateChecks
     }
 
     /** @return list<array{level: string, code: string, message: string}> */
-    private static function sms(Template $template): array
+    private static function sms(Template $template, Workspace $workspace): array
     {
         $text = (string) $template->body_text;
         if (trim($text) === '') {
             return [self::item('error', 'body_missing', __('El SMS está vacío.'))];
         }
         $out = [];
-        $info = self::smsSegments($text);
-        if ($info['segments'] > 3) {
-            $out[] = self::item('warning', 'sms_long', __('El SMS ocupa :n partes y cada una se cobra. Acórtalo.', ['n' => $info['segments']]));
+        $info = SmsEstimate::forWorkspace($text, $workspace);
+        if (($problem = self::smsTooLong($info, $template->sms_allow_multipart)) !== null) {
+            $out[] = self::item('error', 'sms_too_long', $problem);
         }
         if ($info['encoding'] === 'UCS-2') {
-            $out[] = self::item('warning', 'sms_unicode', __('Las tildes, eñes y emojis bajan el límite de 160 a 70 caracteres por parte.'));
+            $out[] = self::item('warning', 'sms_unicode', __('«:chars» no está en el alfabeto de los SMS: el límite baja de 160 a 70 caracteres. Cámbialo (por ejemplo, «á» por «a») para que quepa más.', [
+                'chars' => implode('», «', $info['offenders']),
+            ]));
         }
         if ($template->isMarketing() && ! preg_match('/\b(baja|stop|salir)\b/i', $text)) {
             $out[] = self::item('error', 'sms_optout_missing', __('Los SMS de marketing deben decir cómo darse de baja (por ejemplo: «Responde BAJA para no recibir más»).'));
         }
 
         return $out;
+    }
+
+    /**
+     * El motivo en palabras si el SMS, en el peor caso, pasa del máximo de partes (1, o 2 si la plantilla lo permite).
+     *
+     * @param  array{encoding: string, length: int, segments: int, single_limit: int, has_variables: bool}  $info
+     */
+    public static function smsTooLong(array $info, bool $allowMultipart): ?string
+    {
+        $max = SmsText::maxParts($allowMultipart);
+        if ($info['segments'] <= $max) {
+            return null;
+        }
+        $limit = $max === 1 ? $info['single_limit'] : $max * ($info['encoding'] === 'GSM-7' ? SmsText::GSM_PART : SmsText::UCS_PART);
+        $replace = ['length' => $info['length'], 'limit' => $limit, 'n' => $info['segments'], 'over' => max(1, $info['length'] - $limit)];
+
+        return $info['has_variables']
+            ? __('Con las variables a su largo máximo el SMS llega a :length de :limit caracteres y se partiría en :n mensajes: quita :over caracteres.', $replace)
+            : __('El SMS tiene :length de :limit caracteres y se partiría en :n mensajes: quita :over caracteres.', $replace);
     }
 
     /** @return list<array{level: string, code: string, message: string}> */
@@ -143,27 +161,16 @@ final class TemplateChecks
         return $out;
     }
 
-    /** @return array{encoding: string, length: int, segments: int} */
+    /**
+     * Las partes del texto tal cual (la vista previa ya renderizada). El cálculo vive en SmsText.
+     *
+     * @return array{encoding: string, length: int, segments: int}
+     */
     public static function smsSegments(string $text): array
     {
-        $gsm = true;
-        $length = 0;
-        foreach (mb_str_split($text) as $char) {
-            if (str_contains(self::GSM7_EXT, $char)) {
-                $length += 2;
-            } elseif (str_contains(self::GSM7, $char)) {
-                $length++;
-            } else {
-                $gsm = false;
-            }
-        }
-        if (! $gsm) {
-            $length = mb_strlen($text);
+        $m = SmsText::measure($text);
 
-            return ['encoding' => 'UCS-2', 'length' => $length, 'segments' => $length <= 70 ? 1 : (int) ceil($length / 67)];
-        }
-
-        return ['encoding' => 'GSM-7', 'length' => $length, 'segments' => $length <= 160 ? 1 : (int) ceil($length / 153)];
+        return ['encoding' => $m['encoding'], 'length' => $m['length'], 'segments' => max(1, $m['segments'])];
     }
 
     /** @param list<array{level: string, code: string, message: string}> $checks */

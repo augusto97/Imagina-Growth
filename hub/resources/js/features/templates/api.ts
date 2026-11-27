@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { wsPath } from '@/api/queries';
 import { api } from '@/lib/api';
+import type { SmsLimits } from './sms';
 
 /* Plantillas y contenido (modulos.md M08). Rutas en hub/routes/api/templates.php. */
 
@@ -49,6 +50,10 @@ export interface TemplateDetail extends TemplateSummary {
     body_mjml: string | null;
     body_html: string | null;
     body_text: string | null;
+    /** SMS de hasta 2 partes (cuestan el doble); solo el dueño lo cambia. */
+    sms_allow_multipart: boolean;
+    /** SMS: largos que el hub usa para contar el peor caso (enlace rastreado, baja, nombre del negocio). */
+    sms_limits: SmsLimits | null;
     editor_state: string | null;
     wa_template_id: string | null;
     variables: WaVariables;
@@ -56,7 +61,10 @@ export interface TemplateDetail extends TemplateSummary {
 }
 
 export type TemplateInput = Partial<
-    Pick<TemplateDetail, 'name' | 'category' | 'subject' | 'preheader' | 'body_mjml' | 'body_html' | 'body_text' | 'editor_state' | 'wa_template_id' | 'variables'>
+    Pick<
+        TemplateDetail,
+        'name' | 'category' | 'subject' | 'preheader' | 'body_mjml' | 'body_html' | 'body_text' | 'sms_allow_multipart' | 'editor_state' | 'wa_template_id' | 'variables'
+    >
 > & { status?: 'draft' | 'ready'; channel?: TemplateChannel };
 
 export interface WaComponent {

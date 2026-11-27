@@ -281,6 +281,7 @@
             "channel_unavailable": "Sin cuenta activa del canal",
             "quality_low": "Calidad baja del número de WhatsApp",
             "unofficial_marketing": "La conexión no oficial no permite marketing",
+            "sms_too_long": "El SMS no cabe en un mensaje (ni sin tildes)",
             "holdout": "Grupo de control",
             "cancelled": "Campaña cancelada",
             "dispatch_error": "Error al despachar"

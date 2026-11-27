@@ -1,0 +1,50 @@
+{
+    "about": "Casos compartidos del largo de un SMS (GSM 03.38 / UCS-2) entre el hub (SmsText, SmsEstimate) y la SPA (features/templates/sms.ts). Cada texto se arma uniendo los trozos de `text` repetidos: [[\"a\", 160]] = 160 letras a.",
+    "measure": [
+        { "name": "vacío", "text": [], "encoding": "GSM-7", "length": 0, "segments": 0, "offenders": [] },
+        { "name": "159 letras", "text": [["a", 159]], "encoding": "GSM-7", "length": 159, "segments": 1, "offenders": [] },
+        { "name": "160 letras: un mensaje", "text": [["a", 160]], "encoding": "GSM-7", "length": 160, "segments": 1, "offenders": [] },
+        { "name": "161 letras: dos partes", "text": [["a", 161]], "encoding": "GSM-7", "length": 161, "segments": 2, "offenders": [] },
+        { "name": "306 letras: dos partes justas", "text": [["a", 306]], "encoding": "GSM-7", "length": 306, "segments": 2, "offenders": [] },
+        { "name": "307 letras: tres partes", "text": [["a", 307]], "encoding": "GSM-7", "length": 307, "segments": 3, "offenders": [] },
+        { "name": "el euro cuenta doble", "text": [["€", 1]], "encoding": "GSM-7", "length": 2, "segments": 1, "offenders": [] },
+        { "name": "158 letras y un euro: 160", "text": [["a", 158], ["€", 1]], "encoding": "GSM-7", "length": 160, "segments": 1, "offenders": [] },
+        { "name": "159 letras y un euro: 161", "text": [["a", 159], ["€", 1]], "encoding": "GSM-7", "length": 161, "segments": 2, "offenders": [] },
+        { "name": "llaves y corchetes cuentan doble", "text": [["{}[]~^|\\", 1]], "encoding": "GSM-7", "length": 16, "segments": 1, "offenders": [] },
+        { "name": "el ESC no se parte entre dos partes", "text": [["a", 152], ["€", 1], ["a", 152]], "encoding": "GSM-7", "length": 306, "segments": 3, "offenders": [] },
+        { "name": "é, ñ, ü, ¿ y ¡ están en GSM-7", "text": [["¿Qué tal? ¡Café, niño y pingüino!", 1]], "encoding": "GSM-7", "length": 33, "segments": 1, "offenders": [] },
+        { "name": "la á no está", "text": [["Canción rápida", 1]], "encoding": "UCS-2", "length": 14, "segments": 1, "offenders": ["ó", "á"] },
+        { "name": "70 en UCS-2: un mensaje", "text": [["ó", 70]], "encoding": "UCS-2", "length": 70, "segments": 1, "offenders": ["ó"] },
+        { "name": "71 en UCS-2: dos partes", "text": [["ó", 71]], "encoding": "UCS-2", "length": 71, "segments": 2, "offenders": ["ó"] },
+        { "name": "un emoji ocupa dos", "text": [["😀", 1]], "encoding": "UCS-2", "length": 2, "segments": 1, "offenders": ["😀"] },
+        { "name": "35 emojis: 70", "text": [["😀", 35]], "encoding": "UCS-2", "length": 70, "segments": 1, "offenders": ["😀"] },
+        { "name": "36 emojis: el par no se parte", "text": [["😀", 36]], "encoding": "UCS-2", "length": 72, "segments": 2, "offenders": ["😀"] },
+        { "name": "comillas tipográficas", "text": [["“Hola”", 1]], "encoding": "UCS-2", "length": 6, "segments": 1, "offenders": ["“", "”"] },
+        { "name": "saltos de línea cuentan uno", "text": [["Hola\nchao\r\n", 1]], "encoding": "GSM-7", "length": 11, "segments": 1, "offenders": [] }
+    ],
+    "transliterate": [
+        { "in": "Canción rápida", "out": "Cancion rapida" },
+        { "in": "ÁÉÍÓÚ áéíóú", "out": "AÉIOU aéiou" },
+        { "in": "Pequeño niño, pingüino", "out": "Pequeño niño, pingüino" },
+        { "in": "“Oferta” – hoy… ‘ya’", "out": "\"Oferta\" - hoy... 'ya'" },
+        { "in": "Açaí Ç", "out": "Acai Ç" },
+        { "in": "😀 Hola", "out": "😀 Hola" }
+    ],
+    "estimate": {
+        "limits": { "link_length": 39, "unsubscribe_length": 180, "store_name_length": 18 },
+        "cases": [
+            { "name": "texto sin variables", "body": "Hola, tu pedido va en camino.", "encoding": "GSM-7", "length": 29, "segments": 1 },
+            { "name": "carrito de la biblioteca", "body": "{{ tienda.nombre }}: dejaste productos en tu carrito. Terminalo aqui: {{ carrito.url_restaurar | default: tienda.url }} Responde BAJA para no recibir mas.", "encoding": "GSM-7", "length": 143, "segments": 1 },
+            { "name": "nombre con respaldo", "body": "Hola {{ contacto.nombre | default: 'amiga o amigo de la casa' }}", "encoding": "GSM-7", "length": 29, "segments": 1 },
+            { "name": "moneda y fecha corta", "body": "Total {{ pedido.total | moneda }} el {{ cita.fecha | fecha: 'corta' }}", "encoding": "GSM-7", "length": 36, "segments": 1 },
+            { "name": "la baja no se acorta", "body": "Baja: {{ enlaces.baja }}", "encoding": "GSM-7", "length": 186, "segments": 2 },
+            { "name": "un for sin limit cuenta 3 vueltas", "body": "{% for item in carrito.items %}{{ item.nombre }}, {% endfor %}", "encoding": "GSM-7", "length": 126, "segments": 1 },
+            { "name": "un for con limit", "body": "{% for p in recomendaciones.para_ti limit: 2 %}{{ p.nombre }} {{ p.precio | moneda }}\n{% endfor %}", "encoding": "GSM-7", "length": 112, "segments": 1 },
+            { "name": "el if suma sus ramas", "body": "{% if cupon.codigo %}Usa {{ cupon.codigo }}{% else %}Vuelve pronto{% endif %}", "encoding": "GSM-7", "length": 33, "segments": 1 },
+            { "name": "una tilde en el texto fijo pasa a UCS-2", "body": "{{ contacto.nombre }}, tu cotización está lista", "encoding": "UCS-2", "length": 46, "segments": 1 },
+            { "name": "variable desconocida: 20", "body": "{{ algo.raro }}", "encoding": "GSM-7", "length": 20, "segments": 1 },
+            { "name": "truncate y append", "body": "{{ producto.nombre | truncate: 10 }}{{ 'hola' | append: '!!' }}", "encoding": "GSM-7", "length": 16, "segments": 1 },
+            { "name": "se pasa por las variables", "body": "{{ tienda.nombre }}: {{ producto.nombre }} volvio. Compralo aqui: {{ producto.url }} y usa {{ cupon.codigo }} antes del {{ cupon.vence | fecha }}. Responde BAJA para salir.", "encoding": "GSM-7", "length": 212, "segments": 2 }
+        ]
+    }
+}

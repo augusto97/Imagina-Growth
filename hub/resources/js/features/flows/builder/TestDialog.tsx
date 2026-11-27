@@ -62,7 +62,9 @@ export function TestDialog({ flowId, open, onOpenChange, nodes }: { flowId: stri
                                         <span>
                                             <span className="igr:mr-1.5 igr:tabular-nums igr:text-muted-foreground">{i + 1}.</span>
                                             {t(`flows.nodes.${typeOf(s.node_id)}`, { defaultValue: s.node_id })}
-                                            {typeof s.details.reason === 'string' ? <span className="igr:ml-1.5 igr:text-xs igr:text-muted-foreground">({s.details.reason})</span> : null}
+                                            {typeof s.details.reason === 'string' ? (
+                                                <span className="igr:ml-1.5 igr:text-xs igr:text-muted-foreground">({t(`flows.test.reasons.${s.details.reason}`, { defaultValue: s.details.reason })})</span>
+                                            ) : null}
                                         </span>
                                         <Badge variant={s.outcome === 'sent' ? 'success' : s.outcome === 'failed' || s.outcome === 'denied' ? 'destructive' : 'secondary'}>{t(`flows.test.outcomes.${s.outcome}`, { defaultValue: s.outcome })}</Badge>
                                     </li>

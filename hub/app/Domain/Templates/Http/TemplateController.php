@@ -19,6 +19,7 @@ use App\Domain\Templates\Rendering\SampleData;
 use App\Domain\Templates\Rendering\TemplateVariables;
 use App\Domain\Templates\Rendering\WhatsAppComponents;
 use App\Domain\Templates\Support\BusinessProfile;
+use App\Domain\Templates\Support\SmsEstimate;
 use App\Domain\Templates\Support\TemplateChecks;
 use App\Domain\Templates\Support\VariableCatalog;
 use App\Domain\Workspaces\Actions\RecordAuditLog;
@@ -88,7 +89,9 @@ final class TemplateController
         $data = $this->validated($request, null);
         /** @var User $user */
         $user = $request->user();
-        $model = Template::query()->create($data + ['workspace_id' => $this->current->id(), 'created_by' => $user->id]);
+        $model = new Template($data + ['workspace_id' => $this->current->id(), 'created_by' => $user->id]);
+        $this->guardSms($model, $data);
+        $model->save();
 
         return response()->json(TemplatePresenter::full($model, TemplateChecks::run($model, $this->current->get())), 201);
     }
@@ -98,7 +101,9 @@ final class TemplateController
     {
         Gate::authorize('ws.manageMarketing');
         $model = $this->find($template);
-        $model->fill($this->validated($request, $model));
+        $data = $this->validated($request, $model);
+        $model->fill($data);
+        $this->guardSms($model, $data);
         $checks = TemplateChecks::run($model, $this->current->get());
         if ($model->status === 'ready' && TemplateChecks::hasErrors($checks)) {
             throw ValidationException::withMessages(['status' => __('Corrige los errores antes de marcarla como lista: :list', [
@@ -380,6 +385,7 @@ final class TemplateController
             'body_mjml' => ['sometimes', 'nullable', 'string', 'max:'.self::MAX_HTML],
             'body_html' => ['sometimes', 'nullable', 'string', 'max:'.self::MAX_HTML],
             'body_text' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'sms_allow_multipart' => ['sometimes', 'boolean'],
             'editor_state' => ['sometimes', 'nullable', 'string', 'max:2000000'],
             'wa_template_id' => ['sometimes', 'nullable', 'string', 'max:40'],
             'variables' => ['sometimes', 'nullable', 'array'],
@@ -413,6 +419,35 @@ final class TemplateController
         }
 
         return $data;
+    }
+
+    /**
+     * SMS en un solo mensaje (modulos.md M08): al cambiar el texto o el permiso, el peor caso (variables a su largo
+     * máximo) no puede pasar de un mensaje, o de dos si el dueño lo permitió. Solo el dueño cambia ese permiso,
+     * porque cada parte se cobra.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function guardSms(Template $model, array $data): void
+    {
+        if ($model->channel !== 'sms') {
+            return;
+        }
+        if (array_key_exists('sms_allow_multipart', $data) && (bool) $data['sms_allow_multipart'] !== (bool) $model->getOriginal('sms_allow_multipart', false)
+            && ! Gate::allows('ws.manageBilling')) {
+            throw ValidationException::withMessages(['sms_allow_multipart' => __('Solo el dueño puede permitir SMS de 2 partes: cada parte se cobra.')]);
+        }
+        if (! array_key_exists('body_text', $data) && ! array_key_exists('sms_allow_multipart', $data)) {
+            return;
+        }
+        $text = (string) $model->body_text;
+        if (trim($text) === '') {
+            return;
+        }
+        $problem = TemplateChecks::smsTooLong(SmsEstimate::forWorkspace($text, $this->current->get()), $model->sms_allow_multipart);
+        if ($problem !== null) {
+            throw ValidationException::withMessages(['body_text' => $problem]);
+        }
     }
 
     private function waTemplateId(?string $value): ?string

@@ -84,6 +84,18 @@ it('asuntos y variantes con el tono de marca, sin cifras inventadas', function (
         ->toBe(['Te guardamos el 20%', 'Hoy pintas con 20% menos']);
 });
 
+it('variantes de SMS: cada una cabe en un mensaje; se pide corregir una vez y lo que sigue largo no se entrega', function () {
+    $long = 'Hola {{ contacto.nombre }}, '.str_repeat('vuelve pronto ', 12).'Responde BAJA';
+    $ai = FakeAiGateway::install()
+        ->replyJson(['variants' => ['Hola {{ contacto.nombre }}, vuelve y pinta tu casa. Responde BAJA', 'Te extrañamos: ¿pintamos? Responde BAJA', $long]])
+        ->replyJson(['variants' => ['Hola {{ contacto.nombre }}, vuelve y pinta tu casa. Responde BAJA', 'Te extranamos, ¿pintamos? Responde BAJA', $long]]);
+    $res = $this->actingAs($this->owner)->postJson("/api/w/{$this->ws->publicId()}/copilot/content/variants", ['text' => 'Vuelve, te extrañamos', 'kind' => 'sms', 'count' => 3])->assertOk();
+    expect($res->json('variants'))->toBe(['Hola {{ contacto.nombre }}, vuelve y pinta tu casa. Responde BAJA', 'Te extranamos, ¿pintamos? Responde BAJA'])
+        ->and($ai->requests[0]['request']->system)->toContain('UN solo SMS')
+        // La corrección dice qué variante no cabe y por qué letra.
+        ->and(json_encode($ai->requests[1]['request']->messages, JSON_UNESCAPED_UNICODE))->toContain('La variante 3 ocupa');
+});
+
 it('cuerpo de WhatsApp que cumple las reglas de Meta: se corrige si no las cumple', function () {
     expect(WhatsAppTemplateRules::check('Hola {{1}}, tu pedido está listo'))->toBe([])
         ->and(WhatsAppTemplateRules::check('{{1}} {{2}}'))->not->toBeEmpty()

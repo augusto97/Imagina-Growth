@@ -1,9 +1,7 @@
 import type { TemplateCategory, TemplateChannel, TemplateCheck, WaSlots, WaSource, WaVariables } from './api';
+import { estimateSms, measureSms, smsOverflow, type SmsLimits } from './sms';
 
 /* Reglas que el editor muestra en vivo, iguales a las del servidor (TemplateChecks.php). */
-
-const GSM7 = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
-const GSM7_EXT = '^{}\\[~]|€';
 
 export interface SmsInfo {
     encoding: 'GSM-7' | 'UCS-2';
@@ -11,20 +9,10 @@ export interface SmsInfo {
     segments: number;
 }
 
-/** Partes de un SMS: 160/153 caracteres en GSM-7; 70/67 si hay tildes, eñes o emojis. */
+/** Partes de un SMS tal cual: 160/153 caracteres en GSM-7; 70/67 si una letra no está en GSM-7 (`sms.ts`). */
 export function smsSegments(text: string): SmsInfo {
-    let gsm = true;
-    let length = 0;
-    for (const char of Array.from(text)) {
-        if (GSM7_EXT.includes(char)) length += 2;
-        else if (GSM7.includes(char)) length += 1;
-        else gsm = false;
-    }
-    if (!gsm) {
-        const chars = Array.from(text).length;
-        return { encoding: 'UCS-2', length: chars, segments: chars <= 70 ? 1 : Math.ceil(chars / 67) };
-    }
-    return { encoding: 'GSM-7', length, segments: length <= 160 ? 1 : Math.ceil(length / 153) };
+    const m = measureSms(text);
+    return { encoding: m.encoding, length: m.length, segments: Math.max(1, m.segments) };
 }
 
 function usesVariable(body: string, variable: string): boolean {
@@ -38,6 +26,9 @@ export interface DraftForChecks {
     subject?: string | null;
     preheader?: string | null;
     body?: string | null; // HTML o MJML del correo, o el texto del SMS
+    /** SMS: para contar el peor caso como el hub (sin ellos, el texto tal cual). */
+    smsLimits?: SmsLimits | null;
+    smsAllowMultipart?: boolean;
 }
 
 /** Revisiones rápidas mientras se escribe (el servidor hace la revisión completa al guardar). */
@@ -55,8 +46,9 @@ export function liveChecks(draft: DraftForChecks): TemplateCheck[] {
     }
     if (draft.channel === 'sms') {
         if (body.trim() === '') out.push({ level: 'error', code: 'body_missing', message: 'body_missing' });
-        const info = smsSegments(body);
-        if (info.segments > 3) out.push({ level: 'warning', code: 'sms_long', message: 'sms_long' });
+        const info = estimateSms(body, draft.smsLimits);
+        if (body.trim() !== '' && smsOverflow(info, draft.smsAllowMultipart ?? false)) out.push({ level: 'error', code: 'sms_too_long', message: 'sms_too_long' });
+        if (info.encoding === 'UCS-2') out.push({ level: 'warning', code: 'sms_unicode', message: 'sms_unicode' });
         if (draft.category === 'marketing' && body.trim() !== '' && !/\b(baja|stop|salir)\b/i.test(body)) {
             out.push({ level: 'error', code: 'sms_optout_missing', message: 'sms_optout_missing' });
         }

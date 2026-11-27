@@ -63,7 +63,7 @@ export function PreviewView({ result, channel, waBody }: { result: PreviewResult
                 </PhoneMock>
                 {result.sms && (
                     <p className="igr:mt-2 igr:text-center igr:text-caption igr:text-muted-foreground">
-                        {t('templates.sms.counter', { length: result.sms.length, segments: result.sms.segments, encoding: result.sms.encoding })}
+                        {t('templates.sms.previewCounter', { length: result.sms.length, count: result.sms.segments, encoding: result.sms.encoding })}
                     </p>
                 )}
             </div>

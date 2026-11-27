@@ -724,6 +724,15 @@
                 "wait": "Esperando",
                 "wait_event": "Esperando un evento",
                 "deferred": "Aplazado"
+            },
+            "reasons": {
+                "sms_too_long": "el SMS no cabe en un mensaje, ni sin tildes",
+                "no_template": "sin plantilla",
+                "no_test_recipient": "falta tu teléfono o tu correo de prueba",
+                "template": "la plantilla no se pudo armar",
+                "no_consent": "sin consentimiento",
+                "no_address": "sin teléfono o correo",
+                "channel_unavailable": "sin cuenta activa del canal"
             }
         },
         "analytics": {

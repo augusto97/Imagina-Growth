@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input, Select, Textarea } from '@/components/ui/input';
+import { Input, Select } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EmptyState, ErrorState, FieldError } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,11 +27,12 @@ import {
     useUpdateTemplate,
     useWaSources,
 } from './api';
-import { insertAt, liveChecks, missingWaSlots, smsSegments, waBodyOf } from './content';
+import { insertAt, liveChecks, missingWaSlots, waBodyOf } from './content';
 import { WaProposalPreview, WaStatusCallout } from './WaStatus';
 import { ChecksList } from './editor/ChecksList';
 import type { EmailCanvasHandle, EmailOutput } from './editor/EmailCanvas';
 import { PreviewContactPicker, PreviewView } from './editor/PreviewPanel';
+import { SmsEditor } from './editor/SmsEditor';
 import { VariablePicker } from './editor/VariablePicker';
 import { AutoBreadcrumbs } from '@/components/ui/page-header';
 
@@ -47,6 +48,7 @@ interface Draft {
     body_mjml: string | null;
     body_html: string | null;
     body_text: string;
+    sms_allow_multipart: boolean;
     editor_state: string | null;
     wa_template_id: string | null;
     variables: WaVariables;
@@ -61,6 +63,7 @@ function toDraft(t: TemplateDetail): Draft {
         body_mjml: t.body_mjml,
         body_html: t.body_html,
         body_text: t.body_text ?? '',
+        sms_allow_multipart: t.sms_allow_multipart,
         editor_state: t.editor_state,
         wa_template_id: t.wa_template_id,
         variables: Array.isArray(t.variables) ? {} : t.variables,
@@ -70,7 +73,7 @@ function toDraft(t: TemplateDetail): Draft {
 function toInput(d: Draft, channel: TemplateDetail['channel']): TemplateInput {
     const common = { name: d.name, category: d.category };
     if (channel === 'email') return { ...common, subject: d.subject, preheader: d.preheader, body_mjml: d.body_mjml, body_html: d.body_html, editor_state: d.editor_state };
-    if (channel === 'sms') return { ...common, body_text: d.body_text };
+    if (channel === 'sms') return { ...common, body_text: d.body_text, sms_allow_multipart: d.sms_allow_multipart };
     return { ...common, wa_template_id: d.wa_template_id, variables: d.variables };
 }
 
@@ -147,6 +150,8 @@ function Editor({ template }: { template: TemplateDetail }) {
             subject: draft.subject,
             preheader: draft.preheader,
             body: template.channel === 'sms' ? draft.body_text : (draft.body_html ?? draft.body_mjml),
+            smsLimits: template.sms_limits,
+            smsAllowMultipart: draft.sms_allow_multipart,
         });
     }, [
         template.channel,
@@ -157,6 +162,8 @@ function Editor({ template }: { template: TemplateDetail }) {
         draft.subject,
         draft.preheader,
         draft.body_text,
+        draft.sms_allow_multipart,
+        template.sms_limits,
         draft.body_html,
         draft.body_mjml,
     ]);
@@ -267,7 +274,17 @@ function Editor({ template }: { template: TemplateDetail }) {
             <FieldError message={fieldErrors.status ?? fieldErrors.name} />
 
             {template.channel === 'email' && <EmailEditor draft={draft} set={set} canEdit={canEdit} canvas={canvas} errors={fieldErrors} />}
-            {template.channel === 'sms' && <SmsEditor draft={draft} set={set} canEdit={canEdit} error={fieldErrors.body_text} />}
+            {template.channel === 'sms' && (
+                <SmsEditor
+                    text={draft.body_text}
+                    allowMultipart={draft.sms_allow_multipart}
+                    limits={template.sms_limits}
+                    canEdit={canEdit}
+                    error={fieldErrors.body_text}
+                    allowError={fieldErrors.sms_allow_multipart}
+                    onChange={set}
+                />
+            )}
             {template.channel === 'whatsapp' ? <WaStatusCallout template={template} /> : null}
             {template.channel === 'whatsapp' && template.wa_template_id === null && template.library_key?.startsWith('wa_') ? <WaProposalPreview libraryKey={template.library_key} /> : null}
             {template.channel === 'whatsapp' && <WhatsAppEditor draft={draft} set={set} canEdit={canEdit} />}
@@ -443,54 +460,6 @@ function EmailEditor({ draft, set, canEdit, canvas, errors }: EditorProps & { ca
     );
 }
 
-function SmsEditor({ draft, set, canEdit, error }: EditorProps & { error?: string | undefined }) {
-    const { t } = useTranslation();
-    const info = smsSegments(draft.body_text);
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{t('templates.sms.title')}</CardTitle>
-                <CardDescription>{t('templates.sms.help')}</CardDescription>
-            </CardHeader>
-            <CardContent className="igr:space-y-2">
-                <div className="igr:flex igr:items-center igr:justify-between igr:gap-2">
-                    <Label htmlFor="tpl-sms">{t('templates.sms.text')}</Label>
-                    <VariablePicker
-                        disabled={!canEdit}
-                        onPick={(expr) => {
-                            const el = fieldById('tpl-sms');
-                            const r = insertAt(draft.body_text, el?.selectionStart ?? draft.body_text.length, el?.selectionEnd ?? draft.body_text.length, expr);
-                            set({ body_text: r.value });
-                            requestAnimationFrame(() => {
-                                el?.focus();
-                                el?.setSelectionRange(r.caret, r.caret);
-                            });
-                        }}
-                    />
-                </div>
-                <Textarea
-                    id="tpl-sms"
-                    rows={6}
-                    value={draft.body_text}
-                    onChange={(e) => set({ body_text: e.target.value })}
-                    disabled={!canEdit}
-                    aria-invalid={error ? true : undefined}
-                />
-                {canEdit && draft.body_text.trim() !== '' ? (
-                    <div className="igr:flex igr:justify-end">
-                        <SuggestVariantsButton text={draft.body_text} kind="body" onPick={(body_text) => set({ body_text })} />
-                    </div>
-                ) : null}
-                <p className={info.segments > 3 ? 'igr:text-xs igr:text-warning' : 'igr:text-xs igr:text-muted-foreground'} aria-live="polite">
-                    {t('templates.sms.counter', { length: info.length, segments: info.segments, encoding: info.encoding })}
-                    {info.encoding === 'UCS-2' ? ` · ${t('templates.sms.unicode')}` : ''}
-                </p>
-                <p className="igr:text-xs igr:text-muted-foreground">{t('templates.sms.liquidNote')}</p>
-                <FieldError message={error} />
-            </CardContent>
-        </Card>
-    );
-}
 
 function WhatsAppEditor({ draft, set, canEdit }: EditorProps) {
     const { t } = useTranslation();

@@ -23,13 +23,16 @@ use App\Domain\Messaging\Support\ContactLinkToken;
 use App\Domain\Messaging\Support\ConversationWindow;
 use App\Domain\Messaging\Support\LinkRewriter;
 use App\Domain\Messaging\Support\MessageEvents;
+use App\Domain\Messaging\Support\SmsText;
 use App\Domain\Messaging\Support\SocialIdentity;
 use App\Domain\Messaging\Support\WaTemplateText;
 use App\Domain\Messaging\Support\WhatsAppInteractive;
 use App\Domain\Templates\Contracts\TemplateRenderer;
 use App\Domain\Templates\Data\RenderContext;
 use App\Domain\Templates\Data\RenderedMessage;
+use App\Domain\Templates\Models\Template;
 use App\Domain\Workspaces\Models\Workspace;
+use App\Support\Ids\PrefixedId;
 use App\Support\Phone\Phone;
 use App\Support\Tenancy\CurrentWorkspace;
 use Carbon\CarbonImmutable;
@@ -47,6 +50,9 @@ use Throwable;
  */
 final class DefaultMessageDispatcher implements MessageDispatcher
 {
+    /** El SMS no cabe en las partes que permite su plantilla, ni sin tildes. */
+    public const SMS_TOO_LONG = 'sms_too_long';
+
     public function __construct(
         private readonly CurrentWorkspace $current,
         private readonly SendPolicy $policy,
@@ -145,8 +151,24 @@ final class DefaultMessageDispatcher implements MessageDispatcher
                     && ConversationWindow::forContact($workspace->id, $contact->id, $account, $now) === ConversationWindow::HUMAN_AGENT) {
                     $payload['messaging_tag'] = ConversationWindow::HUMAN_AGENT_TAG;
                 }
+                // SMS: se mide el texto que de verdad sale (con los enlaces ya acortados). Si no cabe, sin tildes; si
+                // tampoco, no sale (ni cortado ni partido en más mensajes de los permitidos).
+                $parts = 1;
+                if ($message->channel === Channel::Sms) {
+                    $sending = SmsText::forSending((string) $payload['text'], $this->smsAllowsMultipart($workspace, $message));
+                    if ($sending === null) {
+                        throw new SmsTooLong;
+                    }
+                    $payload['text'] = $sending['text'];
+                    $payload['sms_parts'] = $parts = $sending['segments'];
+                    if ($sending['transliterated']) {
+                        $payload['sms_transliterated'] = true;
+                    }
+                }
                 $country = strtoupper((string) ($contact?->getAttribute('country') ?: $workspace->country ?: 'CO'));
                 $cost = $this->drivers->for($account->provider)->estimateCost($account, $country, $message->kind);
+                // El precio de Twilio es por parte.
+                $cost = $cost !== null ? $cost * $parts : null;
 
                 $model = new Message;
                 $model->forceFill([
@@ -173,6 +195,10 @@ final class DefaultMessageDispatcher implements MessageDispatcher
 
                 return $model;
             });
+        } catch (SmsTooLong) {
+            $this->policy->release($request, $now);
+
+            return DispatchResult::denied(self::SMS_TOO_LONG);
         } catch (UniqueConstraintViolationException) {
             // Otro proceso envió la misma clave al mismo tiempo: gana el primero.
             $this->policy->release($request, $now);
@@ -189,6 +215,20 @@ final class DefaultMessageDispatcher implements MessageDispatcher
         $this->events->emit($workspace, $model, 'message.queued');
 
         return DispatchResult::queued($model->id);
+    }
+
+    /**
+     * Si el SMS puede salir en 2 partes: lo dice su plantilla (`sms_allow_multipart`, solo el dueño lo cambia); un SMS
+     * sin plantilla (avisos del sistema), solo si quien lo manda lo pide en `context.sms_allow_multipart`.
+     */
+    private function smsAllowsMultipart(Workspace $workspace, OutboundMessage $message): bool
+    {
+        if ($message->templateId === null) {
+            return ($message->context['sms_allow_multipart'] ?? false) === true;
+        }
+        $id = PrefixedId::decode(Template::ID_PREFIX, $message->templateId) ?? $message->templateId;
+
+        return (bool) Template::withoutWorkspaceScope()->where('workspace_id', $workspace->id)->whereKey($id)->value('sms_allow_multipart');
     }
 
     /** Destino: el explícito (avisos y modo prueba), el correo o teléfono del contacto, o su PSID/IGSID en la página. */

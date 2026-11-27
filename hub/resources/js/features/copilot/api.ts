@@ -90,7 +90,7 @@ export function useSuggestWhatsapp(ws: string) {
 
 export function useSuggestVariants(ws: string) {
     return useMutation({
-        mutationFn: (v: { text: string; kind?: 'subject' | 'body' | 'whatsapp'; count?: number }) => api.post<{ id: string; variants: string[] }>(`${base(ws)}/content/variants`, v),
+        mutationFn: (v: { text: string; kind?: 'subject' | 'body' | 'whatsapp' | 'sms'; count?: number }) => api.post<{ id: string; variants: string[] }>(`${base(ws)}/content/variants`, v),
     });
 }
 
