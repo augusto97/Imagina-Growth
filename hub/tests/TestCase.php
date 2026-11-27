@@ -13,6 +13,7 @@ use App\Domain\Workspaces\Models\User;
 use App\Domain\Workspaces\Models\Workspace;
 use App\Ingest\IngestStream;
 use App\Support\Hmac\RequestSignature;
+use App\Support\Holidays\Holidays;
 use App\Support\Pii\BlindIndex;
 use App\Support\Tenancy\CurrentWorkspace;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
@@ -27,6 +28,8 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
         BlindIndex::flush();
+        // Los festivos se guardan en memoria por proceso: un festivo agregado en una prueba no debe pasar a la siguiente.
+        Holidays::flush();
     }
 
     /** Persona con 2FA confirmada (obligatoria para owner y admin). */
