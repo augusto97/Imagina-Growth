@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BLANK_EMAIL_MJML, fillWaText, insertAt, liveChecks, missingWaSlots, smsSegments } from './content';
-import { DYNAMIC_BLOCKS } from './editor/blocks';
+import { BLANK_EMAIL_MJML, fillWaText, insertAt, liveChecks, missingWaSlots, smsSegments, usesPlaceholderImage } from './content';
+import { EMAIL_BLOCKS, blocksFor, textOn } from './editor/blocks';
 
 describe('smsSegments', () => {
     it('cuenta partes en GSM-7 y en UCS-2 como el servidor', () => {
@@ -39,11 +39,38 @@ describe('helpers', () => {
         expect(fillWaText('Pedido {{numero}}', { numero: '#10' })).toBe('Pedido #10');
     });
 
-    it('los bloques dinámicos nunca ponen Liquid entre etiquetas de tabla', () => {
-        for (const block of DYNAMIC_BLOCKS) {
-            expect(block.content, block.id).not.toMatch(/<\/?(table|tr|tbody)\b[^>]*>\s*\{%/);
-            expect(block.content.startsWith('<mj-section'), block.id).toBe(true);
+    it('los bloques nunca ponen Liquid entre etiquetas de tabla y empiezan con una sección', () => {
+        const ctx = { brand: '#4f46e5', onBrand: '#ffffff', origin: 'https://growth.test', t: (k: string) => k };
+        for (const block of EMAIL_BLOCKS) {
+            const content = block.content(ctx);
+            expect(content, block.id).not.toMatch(/<\/?(table|tr|tbody)\b[^>]*>\s*\{%/);
+            expect(content.startsWith('<mj-section'), block.id).toBe(true);
+            // Sin etiquetas de MJML con cierre propio: el parser HTML del editor no las entiende.
+            expect(content, block.id).not.toMatch(/<mj-[a-z-]+[^>]*\/>/);
         }
-        expect(DYNAMIC_BLOCKS.map((b) => b.id)).toEqual(expect.arrayContaining(['igr-product', 'igr-recommendations', 'igr-cart', 'igr-coupon', 'igr-points', 'igr-reviews', 'igr-whatsapp']));
+        expect(EMAIL_BLOCKS.map((b) => b.id)).toEqual(expect.arrayContaining(['igr-product', 'igr-recommendations', 'igr-cart', 'igr-coupon', 'igr-points', 'igr-review', 'igr-whatsapp', 'igr-appointment']));
+    });
+
+    it('los usados en tienda no se ofrecen sin tienda, ni los de servicios sin servicios', () => {
+        const ids = (store: boolean, services: boolean) => blocksFor({ store, services }).map((b) => b.id);
+        expect(ids(false, true)).not.toContain('igr-cart');
+        expect(ids(false, true)).toContain('igr-appointment');
+        expect(ids(true, false)).toContain('igr-coupon');
+        expect(ids(true, false)).not.toContain('igr-quote');
+        expect(ids(true, true)).toEqual(EMAIL_BLOCKS.map((b) => b.id));
+        expect(ids(false, true)).toContain('igr-text');
+    });
+
+    it('elige texto blanco u oscuro sobre el color de la marca', () => {
+        expect(textOn('#4f46e5')).toBe('#ffffff');
+        expect(textOn('#111827')).toBe('#ffffff');
+        expect(textOn('#fde68a')).toBe('#111827');
+        expect(textOn('no es color')).toBe('#ffffff');
+    });
+
+    it('avisa si quedaron imágenes de muestra', () => {
+        expect(usesPlaceholderImage('<img src="https://growth.test/images/email/placeholder-hero.png">')).toBe(true);
+        expect(usesPlaceholderImage('<img src="https://tienda.co/foto.png">')).toBe(false);
+        expect(liveChecks({ channel: 'email', category: 'utility', subject: 'Hola', preheader: '', body: '<img src="/images/email/placeholder-image.png">' }).map((c) => c.code)).toContain('placeholder_image');
     });
 });

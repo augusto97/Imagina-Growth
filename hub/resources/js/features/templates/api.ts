@@ -234,6 +234,19 @@ export function usePreviewDraft(ws: string) {
     });
 }
 
+export interface TestSendResult {
+    sent: boolean;
+    to: string;
+    message: string;
+}
+
+/** Envía lo que hay en el editor (con datos de ejemplo) a una dirección, por el canal de correo del espacio de trabajo. */
+export function useTestSendDraft(ws: string) {
+    return useMutation({
+        mutationFn: (draft: { subject: string; preheader: string; category: TemplateCategory; body_html: string; to: string }) => api.post<TestSendResult>(`${base(ws)}/test-send`, draft),
+    });
+}
+
 export function useVariableCatalog(ws: string) {
     return useQuery({
         queryKey: ['ws', ws, 'templates', 'variables'],

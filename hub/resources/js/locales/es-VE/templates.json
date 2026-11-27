@@ -8,6 +8,9 @@
                 "whatsapp": "+58 412 123 4567",
                 "logo_url": "https://tienda.com.ve/logo.png"
             }
+        },
+        "editor": {
+            "phoneHelp": "Desde el celular puedes cambiar textos, ver la vista previa y enviarte una prueba. Para armar el correo con bloques, usa una computadora o una tableta."
         }
     }
 }

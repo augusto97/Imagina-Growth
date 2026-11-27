@@ -43,6 +43,7 @@ export function liveChecks(draft: DraftForChecks): TemplateCheck[] {
         if (draft.category === 'marketing' && body.trim() !== '' && !usesVariable(body, 'enlaces.baja')) {
             out.push({ level: 'error', code: 'unsubscribe_missing', message: 'unsubscribe_missing' });
         }
+        if (usesPlaceholderImage(body)) out.push({ level: 'warning', code: 'placeholder_image', message: 'placeholder_image' });
     }
     if (draft.channel === 'sms') {
         if (body.trim() === '') out.push({ level: 'error', code: 'body_missing', message: 'body_missing' });
@@ -54,6 +55,11 @@ export function liveChecks(draft: DraftForChecks): TemplateCheck[] {
         }
     }
     return out;
+}
+
+/** ¿Quedó alguna de las imágenes de muestra de los bloques del editor (`/images/email/placeholder-…`)? */
+export function usesPlaceholderImage(body: string): boolean {
+    return /\/images\/email\/placeholder-[a-z]+\.png/.test(body);
 }
 
 /** Inserta texto en la posición del cursor y devuelve el valor y el nuevo cursor. */

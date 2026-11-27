@@ -8,6 +8,9 @@
                 "whatsapp": "+52 55 1234 5678",
                 "logo_url": "https://tienda.mx/logo.png"
             }
+        },
+        "editor": {
+            "phoneHelp": "Desde el celular puedes cambiar textos, ver la vista previa y enviarte una prueba. Para armar el correo con bloques, usa una computadora o una tableta."
         }
     }
 }

@@ -1,0 +1,231 @@
+/*
+ * Tema del editor de correo (GrapesJS) con los tokens del panel: claro como el resto de la app (y oscuro con
+ * `.dark`), letra Inter y el panel de la derecha más ancho para que los bloques se lean completos. Solo dentro de
+ * `.igr-email-canvas`: el editor se carga perezoso en su pantalla.
+ */
+.igr-email-canvas {
+    --gjs-main-color: var(--card);
+    --gjs-primary-color: var(--card);
+    --gjs-secondary-color: var(--foreground);
+    --gjs-tertiary-color: var(--primary);
+    --gjs-quaternary-color: var(--primary);
+    --gjs-font-color: var(--foreground);
+    --gjs-font-color-active: var(--primary);
+    --gjs-main-dark-color: var(--border);
+    --gjs-secondary-dark-color: var(--muted);
+    --gjs-main-light-color: var(--muted);
+    --gjs-secondary-light-color: var(--muted-foreground);
+    --gjs-soft-light-color: var(--muted);
+    --gjs-light-border: var(--border);
+    --gjs-arrow-color: var(--muted-foreground);
+    --gjs-dark-text-shadow: transparent;
+    --gjs-color-blue: var(--primary);
+    --gjs-color-highlight: var(--ring);
+    --gjs-main-font: Inter, ui-sans-serif, system-ui, sans-serif;
+    --gjs-font-size: 0.8125rem;
+    --gjs-left-width: 316px;
+    --gjs-canvas-top: 44px;
+    --gjs-placeholder-background-color: var(--primary);
+    font-family: var(--gjs-main-font);
+}
+
+.igr-email-canvas .gjs-editor,
+.igr-email-canvas .gjs-one-bg {
+    background-color: var(--card);
+}
+.igr-email-canvas .gjs-two-color {
+    color: var(--foreground);
+}
+.igr-email-canvas .gjs-cv-canvas {
+    background-color: var(--muted);
+}
+
+/* Barras de arriba y panel de la derecha. */
+.igr-email-canvas .gjs-pn-panel {
+    padding: 6px 8px;
+}
+.igr-email-canvas .gjs-pn-commands,
+.igr-email-canvas .gjs-pn-options,
+.igr-email-canvas .gjs-pn-devices-c {
+    box-shadow: none;
+    border-bottom: 1px solid var(--border);
+    min-height: var(--gjs-canvas-top);
+}
+.igr-email-canvas .gjs-pn-views {
+    border-bottom: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+    min-height: var(--gjs-canvas-top);
+}
+.igr-email-canvas .gjs-pn-views-container {
+    box-shadow: none;
+    border-left: 1px solid var(--border);
+    padding-top: var(--gjs-canvas-top);
+}
+.igr-email-canvas .gjs-pn-btn {
+    color: var(--muted-foreground);
+    border-radius: 6px;
+    min-height: 30px;
+    min-width: 30px;
+    margin-right: 2px;
+    transition: background-color 150ms, color 150ms;
+}
+.igr-email-canvas .gjs-pn-btn:hover {
+    background-color: var(--accent);
+    color: var(--foreground);
+}
+.igr-email-canvas .gjs-pn-btn.gjs-pn-active {
+    background-color: var(--brand-soft);
+    color: var(--brand-soft-foreground);
+    box-shadow: none;
+}
+
+/* Bloques: tarjetas con ícono y nombre completo, tres por fila. */
+.igr-email-canvas .gjs-block-category .gjs-title {
+    background-color: var(--muted);
+    color: var(--foreground);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border);
+}
+.igr-email-canvas .gjs-blocks-c {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px;
+}
+.igr-email-canvas .gjs-block {
+    width: auto;
+    min-width: 0;
+    min-height: 78px;
+    margin: 0;
+    padding: 10px 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background-color: var(--card);
+    color: var(--foreground);
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: border-color 150ms, color 150ms, box-shadow 150ms;
+}
+.igr-email-canvas .gjs-block:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: var(--elevation-sm);
+}
+.igr-email-canvas .gjs-block__media {
+    margin: 0;
+    line-height: 0;
+}
+.igr-email-canvas .gjs-block__media svg {
+    width: 22px;
+    height: 22px;
+    /* Los íconos son de trazo (lucide): GrapesJS rellena los SVG de los bloques. */
+    fill: none;
+}
+.igr-email-canvas .gjs-block-label {
+    font-family: var(--gjs-main-font);
+    font-size: 11.5px;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
+/* Estilos, ajustes y capas: campos claros y legibles. */
+.igr-email-canvas .gjs-sm-sector-title,
+.igr-email-canvas .gjs-trait-category .gjs-title,
+.igr-email-canvas .gjs-layer-title {
+    background-color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    color: var(--foreground);
+    font-weight: 600;
+}
+.igr-email-canvas .gjs-sm-label,
+.igr-email-canvas .gjs-label,
+.igr-email-canvas .gjs-trt-trait__label {
+    color: var(--muted-foreground);
+}
+.igr-email-canvas .gjs-field,
+.igr-email-canvas .gjs-clm-tags,
+.igr-email-canvas .gjs-input-holder input {
+    background-color: var(--background);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+.igr-email-canvas .gjs-field input,
+.igr-email-canvas .gjs-field select,
+.igr-email-canvas .gjs-field textarea {
+    color: var(--foreground);
+}
+.igr-email-canvas .gjs-layer.gjs-selected .gjs-layer-item {
+    background-color: var(--brand-soft);
+}
+.igr-email-canvas .gjs-trt-header,
+.igr-email-canvas .gjs-sm-header,
+.igr-email-canvas .gjs-blocks-no-cat {
+    color: var(--muted-foreground);
+}
+
+/* Lo que se ve sobre el lienzo: el componente elegido y su barra. */
+.igr-email-canvas .gjs-toolbar,
+.igr-email-canvas .gjs-badge {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    border-radius: 6px;
+}
+.igr-email-canvas .gjs-selected,
+.igr-email-canvas .gjs-hovered {
+    outline-color: var(--primary) !important;
+}
+
+/* Celular: el panel se angosta a una columna de bloques para dejar lienzo (diseñar es mejor en pantalla grande). */
+@media (max-width: 767px) {
+    .igr-email-canvas {
+        --gjs-left-width: 128px;
+    }
+    .igr-email-canvas .gjs-blocks-c {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 6px;
+        gap: 6px;
+    }
+    .igr-email-canvas .gjs-block {
+        min-height: 64px;
+    }
+    .igr-email-canvas .gjs-block-category .gjs-title {
+        font-size: 11px;
+        padding: 8px 6px;
+    }
+    .igr-email-canvas .gjs-pn-commands .gjs-pn-buttons,
+    .igr-email-canvas .gjs-pn-options .gjs-pn-buttons {
+        flex-wrap: wrap;
+    }
+}
+
+/* Ventanas (código, imágenes) y el color: sobre el panel claro. */
+.gjs-mdl-dialog {
+    background-color: var(--card);
+    color: var(--foreground);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+.gjs-mdl-header {
+    border-bottom: 1px solid var(--border);
+}
+.gjs-rte-toolbar {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--elevation-md);
+}
+.gjs-rte-actionbar .gjs-rte-action {
+    color: var(--foreground);
+}

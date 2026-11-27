@@ -1,6 +1,11 @@
 <?php
 
+use App\Domain\Consent\Policy\PolicyDecision;
 use App\Domain\Contacts\Models\Contact;
+use App\Domain\Messaging\Data\DispatchResult;
+use App\Domain\Messaging\Enums\Channel;
+use App\Domain\Messaging\Enums\MessageKind;
+use App\Domain\Messaging\Testing\FakeMessageDispatcher;
 use App\Domain\Templates\Models\Template;
 use App\Domain\Workspaces\Enums\WorkspaceRole;
 use App\Support\Tenancy\CurrentWorkspace;
@@ -126,4 +131,40 @@ it('no se ve ni se toca una plantilla de otro espacio de trabajo', function () {
     $this->actingAs($intruder)->getJson($their)->assertOk()->assertJsonCount(0, 'data');
     $this->actingAs($intruder)->getJson("{$this->url}/{$id}")->assertNotFound();
     expect(app(CurrentWorkspace::class)->run($theirs, fn () => Template::query()->count()))->toBe(0);
+});
+
+it('envía una prueba del correo del editor con datos de ejemplo y dice qué falta si no puede', function () {
+    $fake = FakeMessageDispatcher::install();
+    $body = '<html><body><p>Hola {{ contacto.nombre }}, {% if tienda.nombre != "" %}de {{ tienda.nombre }}{% endif %}</p></body></html>';
+    $res = $this->actingAs($this->marketing)->postJson("{$this->url}/test-send", ['subject' => 'Tu cita, {{ contacto.nombre }}', 'category' => 'marketing', 'body_html' => $body, 'to' => 'prueba@eltornillo.co'])
+        ->assertOk()->assertJsonPath('sent', true)->assertJsonPath('to', 'prueba@eltornillo.co');
+    expect($res->json('message'))->toContain('spam');
+    $message = $fake->dispatched[0];
+    expect($message->isTest)->toBeTrue()
+        ->and($message->to)->toBe('prueba@eltornillo.co')
+        ->and($message->kind)->toBe(MessageKind::Transactional)
+        ->and($message->channel)->toBe(Channel::Email)
+        ->and($message->contactId)->toBeNull()
+        ->and($message->context['subject'])->toStartWith('[Prueba] Tu cita, ')
+        ->and($message->context['html'])->not->toContain('{{')->not->toContain('{%');
+
+    // Sin canal de correo: lo dice en palabras, sin error.
+    $fake->respondWith(fn () => DispatchResult::denied(PolicyDecision::CHANNEL_UNAVAILABLE));
+    $this->actingAs($this->marketing)->postJson("{$this->url}/test-send", ['subject' => 'x', 'body_html' => $body, 'to' => 'prueba@eltornillo.co'])
+        ->assertOk()->assertJsonPath('sent', false)->assertJsonPath('message', fn (string $m) => str_contains($m, 'Conexiones'));
+    // Una dirección que no es correo y un rol que no puede enviar.
+    $this->actingAs($this->marketing)->postJson("{$this->url}/test-send", ['body_html' => $body, 'to' => 'no-es-correo'])->assertUnprocessable()->assertJsonValidationErrors('to');
+    $this->actingAs($this->viewer)->postJson("{$this->url}/test-send", ['body_html' => $body, 'to' => 'prueba@eltornillo.co'])->assertForbidden();
+    expect($fake->dispatched)->toHaveCount(1);
+});
+
+it('avisa cuando quedan imágenes de muestra de los bloques del editor', function () {
+    $payload = templatesEmailPayload(['category' => 'utility', 'body_html' => '<html><body><img src="https://growth.test/images/email/placeholder-hero.png" alt=""><p>Hola</p></body></html>']);
+    $id = $this->actingAs($this->marketing)->postJson($this->url, $payload)->assertCreated()->json('id');
+    $checks = collect($this->actingAs($this->marketing)->getJson("{$this->url}/{$id}")->json('checks'))->pluck('code');
+    expect($checks)->toContain('placeholder_image');
+
+    $this->actingAs($this->marketing)->patchJson("{$this->url}/{$id}", ['body_html' => '<html><body><img src="https://tienda.co/foto.png" alt=""><p>Hola</p></body></html>'])->assertOk();
+    $checks = collect($this->actingAs($this->marketing)->getJson("{$this->url}/{$id}")->json('checks'))->pluck('code');
+    expect($checks)->not->toContain('placeholder_image');
 });

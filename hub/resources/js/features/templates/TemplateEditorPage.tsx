@@ -1,18 +1,21 @@
-import { Eye, Mail, MessageCircle, MessageSquareText, Save } from 'lucide-react';
+import { Eye, Mail, MessageCircle, MessageSquareText, Save, Send } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBlocker, useParams } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Callout } from '@/components/ui/callout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input, Select } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EmptyState, ErrorState, FieldError } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PHONE_QUERY, useMedia } from '@/hooks/useMedia';
 import { useCan, useWorkspace } from '@/hooks/useWorkspace';
 import { isApiError } from '@/lib/api';
 import { toast } from '@/stores/toast';
+import { useBusiness } from '@/features/contacts/business';
 import { errorMessage } from '@/features/contacts/errors';
 import { SuggestSubjectButton, SuggestVariantsButton, SuggestWhatsappButton } from '@/features/copilot/Suggest';
 import {
@@ -21,9 +24,11 @@ import {
     type TemplateCategory,
     type TemplateDetail,
     type TemplateInput,
+    type TestSendResult,
     type WaVariables,
     usePreviewDraft,
     useTemplate,
+    useTestSendDraft,
     useUpdateTemplate,
     useWaSources,
 } from './api';
@@ -124,6 +129,7 @@ function Editor({ template }: { template: TemplateDetail }) {
     const [saved, setSaved] = useState<Draft>(() => toDraft(template));
     const [serverChecks, setServerChecks] = useState(template.checks);
     const [previewOpen, setPreviewOpen] = useState(false);
+    const [testOpen, setTestOpen] = useState(false);
     const canvas = useRef<EmailCanvasHandle>(null);
     const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
     const set = useCallback((patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch })), []);
@@ -250,6 +256,12 @@ function Editor({ template }: { template: TemplateDetail }) {
                         <Eye className="igr:size-4" />
                         {t('templates.preview.open')}
                     </Button>
+                    {template.channel === 'email' && canEdit ? (
+                        <Button type="button" variant="outline" onClick={() => setTestOpen(true)}>
+                            <Send className="igr:size-4" />
+                            {t('templates.testSend.open')}
+                        </Button>
+                    ) : null}
                     {canEdit && (
                         <>
                             <Button
@@ -300,6 +312,7 @@ function Editor({ template }: { template: TemplateDetail }) {
             </Card>
 
             <PreviewDialog open={previewOpen} onOpenChange={setPreviewOpen} channel={template.channel} draft={draft} canvas={canvas} />
+            {template.channel === 'email' ? <TestSendDialog open={testOpen} onOpenChange={setTestOpen} draft={draft} canvas={canvas} /> : null}
 
             <Dialog open={blocker.state === 'blocked'} onOpenChange={(open) => !open && blocker.reset?.()}>
                 <DialogContent>
@@ -387,7 +400,12 @@ function LiquidField({
 
 function EmailEditor({ draft, set, canEdit, canvas, errors }: EditorProps & { canvas: React.RefObject<EmailCanvasHandle | null>; errors: Record<string, string> }) {
     const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const { store, services } = useBusiness();
+    // Sin datos del tipo de negocio todavía (null), se ofrecen todos los bloques.
+    const business = useMemo(() => ({ store: store || !services, services: services || !store }), [store, services]);
     const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
+    const phone = useMedia(PHONE_QUERY);
     const onChange = useCallback((out: EmailOutput) => set({ body_mjml: out.mjml, body_html: out.html, editor_state: out.state }), [set]);
 
     return (
@@ -421,6 +439,7 @@ function EmailEditor({ draft, set, canEdit, canvas, errors }: EditorProps & { ca
                     ) : null}
                 </CardContent>
             </Card>
+            {phone ? <Callout tone="info" title={t('templates.editor.phoneTitle')}>{t('templates.editor.phoneHelp')}</Callout> : null}
             <div className="igr:flex igr:flex-wrap igr:items-center igr:justify-between igr:gap-2">
                 <p className="igr:text-[13px] igr:text-muted-foreground">{t('templates.editor.canvasHelp')}</p>
                 <div className="igr:flex igr:gap-2">
@@ -454,7 +473,15 @@ function EmailEditor({ draft, set, canEdit, canvas, errors }: EditorProps & { ca
             </div>
             <div className="igr:h-[calc(100vh-300px)] igr:min-h-[560px]">
                 <Suspense fallback={<Skeleton className="igr:h-full" />}>
-                    <EmailCanvas ref={canvas} mjml={draft.body_mjml} state={draft.editor_state} readOnly={!canEdit} onChange={onChange} />
+                    <EmailCanvas
+                        ref={canvas}
+                        mjml={draft.body_mjml}
+                        state={draft.editor_state}
+                        readOnly={!canEdit}
+                        business={business}
+                        brand={workspace.branding?.primary_color ?? null}
+                        onChange={onChange}
+                    />
                 </Suspense>
             </div>
             <FieldError message={errors.body_html} />
@@ -664,6 +691,97 @@ function PreviewDialog({
                         <PreviewView result={result} channel={channel} waBody={waBodyOf(sources.data?.find((s) => s.id === draft.wa_template_id))} />
                     ) : null}
                 </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+/**
+ * «Enviar prueba» de un correo: lo que hay en el editor, con datos de ejemplo, a una dirección (por defecto la de
+ * quien edita), por el canal de correo del espacio de trabajo. No hace falta guardar antes.
+ */
+function TestSendDialog({
+    open,
+    onOpenChange,
+    draft,
+    canvas,
+}: {
+    open: boolean;
+    onOpenChange: (o: boolean) => void;
+    draft: Draft;
+    canvas: React.RefObject<EmailCanvasHandle | null>;
+}) {
+    const { t } = useTranslation();
+    const { workspace, me } = useWorkspace();
+    const send = useTestSendDraft(workspace.id);
+    const [to, setTo] = useState('');
+    const [result, setResult] = useState<TestSendResult | null>(null);
+    const fieldErrors = isApiError(send.error) ? send.error.fieldErrors : {};
+
+    const submit = () => {
+        const out = canvas.current?.output();
+        setResult(null);
+        send.mutate(
+            { subject: draft.subject, preheader: draft.preheader, category: draft.category, body_html: out?.html ?? draft.body_html ?? '', to: to.trim() || me.user.email },
+            { onSuccess: setResult },
+        );
+    };
+
+    return (
+        <Dialog
+            open={open}
+            onOpenChange={(o) => {
+                onOpenChange(o);
+                if (!o) {
+                    setResult(null);
+                    send.reset();
+                }
+            }}
+        >
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{t('templates.testSend.title')}</DialogTitle>
+                    <DialogDescription>{t('templates.testSend.help')}</DialogDescription>
+                </DialogHeader>
+                <div className="igr:space-y-3">
+                    <div className="igr:space-y-1.5">
+                        <Label htmlFor="tpl-test-to">{t('templates.testSend.to')}</Label>
+                        <Input
+                            id="tpl-test-to"
+                            type="email"
+                            value={to}
+                            placeholder={me.user.email}
+                            onChange={(e) => setTo(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    submit();
+                                }
+                            }}
+                            aria-invalid={fieldErrors.to ? true : undefined}
+                        />
+                        <FieldError message={fieldErrors.to} />
+                    </div>
+                    {result ? (
+                        <Callout tone={result.sent ? 'success' : 'warning'} title={result.sent ? t('templates.testSend.sentTitle', { to: result.to }) : t('templates.testSend.failedTitle')}>
+                            {result.message}
+                        </Callout>
+                    ) : null}
+                    {send.isError && !fieldErrors.to ? (
+                        <Callout tone="danger" title={t('templates.testSend.failedTitle')}>
+                            {errorMessage(send.error, t)}
+                        </Callout>
+                    ) : null}
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                        {t('templates.testSend.close')}
+                    </Button>
+                    <Button type="button" onClick={submit} loading={send.isPending}>
+                        <Send className="igr:size-4" />
+                        {t('templates.testSend.send')}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     );

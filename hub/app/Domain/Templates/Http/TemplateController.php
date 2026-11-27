@@ -4,8 +4,15 @@ declare(strict_types=1);
 
 namespace App\Domain\Templates\Http;
 
+use App\Domain\Billing\Support\PlatformSending;
+use App\Domain\Consent\Policy\PolicyDecision;
 use App\Domain\Contacts\Http\ContactAccess;
 use App\Domain\Contacts\Models\Contact;
+use App\Domain\Messaging\Contracts\MessageDispatcher;
+use App\Domain\Messaging\Data\DispatchResult;
+use App\Domain\Messaging\Data\OutboundMessage;
+use App\Domain\Messaging\Enums\Channel;
+use App\Domain\Messaging\Enums\MessageKind;
 use App\Domain\Services\Verticals\VerticalCatalog;
 use App\Domain\Templates\Data\RenderContext;
 use App\Domain\Templates\Exceptions\TemplateRenderException;
@@ -169,6 +176,66 @@ final class TemplateController
         $draft->wa_template_id = $this->waTemplateId($data['wa_template_id'] ?? null);
 
         return $this->renderPreview($draft, $request);
+    }
+
+    /**
+     * POST templates/test-send {subject, preheader, category, body_html, to}: el correo que hay en el editor (sin
+     * guardar), con los datos de ejemplo de la vista previa, a una dirección por el canal de correo del espacio de
+     * trabajo. Sale como prueba (`isTest`, transaccional: sin consentimiento ni ventana legal) y el asunto lleva
+     * «[Prueba]». Responde en palabras si salió o qué falta.
+     */
+    public function testSend(Request $request, MessageDispatcher $dispatcher): JsonResponse
+    {
+        Gate::authorize('ws.manageMarketing');
+        $data = $request->validate([
+            'subject' => ['nullable', 'string', 'max:250'],
+            'preheader' => ['nullable', 'string', 'max:250'],
+            'category' => ['nullable', Rule::in(Template::CATEGORIES)],
+            'body_html' => ['required', 'string', 'max:'.self::MAX_HTML],
+            'to' => ['required', 'string', 'max:190', 'email:rfc'],
+        ]);
+        $workspace = $this->current->get();
+        $to = (string) $data['to'];
+        $draft = new Template([
+            'workspace_id' => $workspace->id,
+            'channel' => 'email',
+            'category' => $data['category'] ?? 'marketing',
+            'subject' => $data['subject'] ?? '',
+            'preheader' => $data['preheader'] ?? '',
+            'body_html' => $data['body_html'],
+        ]);
+        $sample = SampleData::forWorkspace($workspace, (string) (TemplateVariables::store($workspace)['url'] ?? ''));
+        try {
+            $rendered = $this->renderer->renderTemplate($draft, new RenderContext($workspace, null, $sample));
+        } catch (TemplateRenderException $e) {
+            return response()->json(['sent' => false, 'to' => $to, 'message' => __('La plantilla tiene un error y no se puede enviar: :error', ['error' => $e->getMessage()])]);
+        }
+        $subject = trim((string) $rendered->subject);
+        $result = $dispatcher->dispatch(new OutboundMessage(
+            $workspace->id, null, Channel::Email, MessageKind::Transactional, 'system',
+            context: [
+                'subject' => __('[Prueba]').' '.($subject !== '' ? $subject : __('Correo de prueba de :name', ['name' => $workspace->name])),
+                'html' => $rendered->html,
+                'text' => $rendered->text,
+            ],
+            to: $to, isTest: true,
+        ));
+        $sent = $result->status === DispatchResult::QUEUED;
+
+        return response()->json(['sent' => $sent, 'to' => $to, 'message' => $sent
+            ? __('Llega en uno o dos minutos: revisa también la carpeta de spam. Los datos y los enlaces de baja son de ejemplo.')
+            : self::testSendProblem((string) $result->reason)]);
+    }
+
+    /** Por qué no salió la prueba, en palabras. */
+    private static function testSendProblem(string $reason): string
+    {
+        return match ($reason) {
+            PolicyDecision::CHANNEL_UNAVAILABLE => __('No hay un correo conectado para enviar. Conéctalo en Configuración → Conexiones → Correo.'),
+            PlatformSending::DENIED => __('Tu plan no incluye el envío de correos por la plataforma: conecta el correo de tu negocio en Configuración → Conexiones → Correo.'),
+            'billing_suspended' => __('La cuenta está suspendida por un pago pendiente: los envíos están en pausa.'),
+            default => __('No se pudo enviar la prueba (:reason). Intenta de nuevo en unos minutos.', ['reason' => $reason !== '' ? $reason : '—']),
+        };
     }
 
     /** GET templates/variables: catálogo para el selector de variables del editor. */
