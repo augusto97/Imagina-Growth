@@ -69,6 +69,9 @@ final class AnthropicAiGateway implements AiGateway
         $usage = new AiUsage;
         $calls = [];
         $response = null;
+        // El último texto no vacío de una vuelta anterior: si la respuesta final llega sin texto (el modelo escribió
+        // antes de llamar una herramienta y terminó después sin más), no se pierde.
+        $earlierText = '';
         for ($step = 0; $step < max(1, $maxSteps); $step++) {
             $this->guard($request->workspaceId);
             $response = $this->call($request, $model, $feature, $messages, $tools);
@@ -100,16 +103,18 @@ final class AnthropicAiGateway implements AiGateway
                     $results[] = ['type' => 'tool_result', 'toolUseID' => $block->id, 'content' => mb_substr($e->getMessage(), 0, 500), 'isError' => true];
                 }
             }
+            $turnText = self::textOf($response);
+            if (trim($turnText) !== '') {
+                $earlierText = $turnText;
+            }
             $messages[] = ['role' => 'assistant', 'content' => $response->content];
             $messages[] = ['role' => 'user', 'content' => $results];
         }
         assert($response !== null);
 
-        $text = '';
-        foreach ($response->content as $block) {
-            if ($block instanceof BetaTextBlock || $block instanceof TextBlock) {
-                $text .= $block->text;
-            }
+        $text = self::textOf($response);
+        if (trim($text) === '' && $request->outputSchema === null && $response->stopReason !== 'refusal') {
+            $text = $earlierText;
         }
         $json = null;
         if ($request->outputSchema !== null && $response->stopReason !== 'refusal') {
@@ -121,6 +126,19 @@ final class AnthropicAiGateway implements AiGateway
         $stop = $response->stopReason === 'tool_use' ? 'max_steps' : $response->stopReason;
 
         return new AiResult($text, $json, (string) $response->model, $stop, $usage, $calls);
+    }
+
+    /** El texto de una respuesta (los bloques de pensamiento no cuentan). */
+    private static function textOf(BetaMessage|Message $response): string
+    {
+        $text = '';
+        foreach ($response->content as $block) {
+            if ($block instanceof BetaTextBlock || $block instanceof TextBlock) {
+                $text .= $block->text;
+            }
+        }
+
+        return $text;
     }
 
     /**

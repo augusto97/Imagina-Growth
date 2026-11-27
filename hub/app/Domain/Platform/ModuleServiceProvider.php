@@ -12,6 +12,8 @@ use App\Domain\Platform\Http\PlatformWaRatesController;
 use App\Domain\Platform\Http\RequirePlatformTwoFactor;
 use App\Domain\Platform\Settings\PlatformSettings;
 use App\Domain\Platform\Settings\PlatformSettingsRuntime;
+use App\Support\Queue\QueueActivity;
+use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +38,8 @@ final class ModuleServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Event::listen(JobProcessing::class, fn () => $this->app->make(PlatformSettingsRuntime::class)->refreshIfStale());
+        // Señal de operación (SetupStatus, «no llegan avisos»): cuándo terminó el último trabajo de cola.
+        Event::listen(JobProcessed::class, fn () => QueueActivity::record());
 
         if (! $this->app->routesAreCached()) {
             Route::prefix('api/platform')->middleware(['api', 'auth:sanctum', EnsurePlatformAdmin::class, RequirePlatformTwoFactor::class])

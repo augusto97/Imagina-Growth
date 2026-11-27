@@ -11,7 +11,10 @@ import i18n from '@/lib/i18n';
 import texts from '@/locales/es-CO/assistant.json';
 import { useUi } from '@/stores/ui';
 import { AssistantPanel } from './AssistantPanel';
-import { ASSISTANT_PAGES, SUGGESTION_KEYS, historyFor, pageFromPath, useAssistant } from './model';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { SUGGESTION_KEYS, historyFor, pageFromPath, useAssistant } from './model';
+import { ASSISTANT_PAGES, pagePath } from './pages';
 import { suggestionKey } from './suggestions';
 
 const workspace = {
@@ -115,6 +118,35 @@ describe('Pregúntale a la IA: lógica', () => {
             { question: 'e', answer: 'cuatro', status: 'answered' },
         ];
         expect(historyFor(turns).map((h) => h.question)).toEqual(['c', 'd', 'e']);
+        // Los pasos propuestos viajan con su respuesta: el seguimiento («¿y el segundo?») se entiende.
+        expect(historyFor([{ question: 'como inicio?', answer: 'Conecta tu web.', status: 'answered', steps: [{ text: 'Conecta tu web.' }, { text: 'Conecta WhatsApp.' }] }])[0]?.answer).toBe(
+            'Conecta tu web.\n- Conecta tu web.\n- Conecta WhatsApp.',
+        );
+    });
+
+    it('cada pantalla a la que lleva un paso existe en el router (la lista la comparte el hub)', () => {
+        const features = resolve(__dirname, '..');
+        const declared = new Set<string>();
+        for (const dir of readdirSync(features)) {
+            let code: string;
+            try {
+                code = readFileSync(join(features, dir, 'routes.tsx'), 'utf8');
+            } catch {
+                continue;
+            }
+            for (const m of code.matchAll(/path:\s*'([^']+)'/g)) declared.add(m[1] ?? '');
+        }
+        // Las de pantalla completa (bienvenida, asistente de configuración) y algunas sueltas (equipo) están en el router de la app.
+        for (const m of readFileSync(resolve(features, '..', 'app', 'router.tsx'), 'utf8').matchAll(/path:\s*'(?:\/w\/:workspaceId\/)?([^'/][^']*)'/g)) declared.add(m[1] ?? '');
+        const patterns = [...declared].filter((p) => /^[a-z]/.test(p)).map((p) => new RegExp(`^${p.replace(/:[A-Za-z]+/g, '[^/]+')}$`));
+        for (const [key, path] of Object.entries(ASSISTANT_PAGES)) {
+            const pathname = (path.split('?')[0] ?? '').replace('{ref}', 'abandoned_cart');
+            const exists = pathname === '' || patterns.some((re) => re.test(pathname));
+            expect(exists, `la pantalla «${key}» (${path}) no existe en el router`).toBe(true);
+        }
+        expect(pagePath('connections_web')).toBe('conexiones?tarjeta=web');
+        expect(pagePath('strategy')).toBeNull();
+        expect(pagePath('no_existe')).toBeNull();
     });
 
     it('tiene texto para cada pantalla, cada pregunta sugerida y cada destino', () => {
@@ -161,6 +193,87 @@ describe('Pregúntale a la IA: pantalla', () => {
         await waitFor(() => expect(screen.getByText('Sí, está activo.')).toBeTruthy());
         const second = JSON.parse((fetchMock.mock.calls[1]?.[1] as RequestInit).body as string) as { history: { question: string }[] };
         expect(second.history.map((h) => h.question)).toEqual(['¿Qué le ofrezco a este cliente?']);
+    });
+
+    it('muestra los pasos con su enlace y los manda en la conversación', async () => {
+        const steps = [
+            { text: 'Conecta tu web con el plugin.', page: 'connections_web', ref: null, path: 'conexiones?tarjeta=web' },
+            { text: 'Prende la recuperación de carritos.', page: 'strategy', ref: 'abandoned_cart', path: 'estrategias/abandoned_cart' },
+            { text: 'Revisa tu plan.', page: null, ref: null, path: null },
+        ];
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce(json(answer({ answer: 'Empieza por conectar tu web.', actions: [], steps })))
+            .mockResolvedValueOnce(json(answer({ answer: 'Listo.', actions: [] })));
+        vi.stubGlobal('fetch', fetchMock);
+        useAssistant.setState({ open: true, pending: 'como inicio?' });
+        render(wrap(<AssistantPanel />, '/w/ws_1/resultados'));
+
+        await waitFor(() => expect(screen.getByText('Empieza por conectar tu web.')).toBeTruthy());
+        expect(screen.getByRole('link', { name: /Conecta tu web con el plugin/ }).getAttribute('href')).toBe('/w/ws_1/conexiones?tarjeta=web');
+        expect(screen.getByRole('link', { name: /Prende la recuperación de carritos/ }).getAttribute('href')).toBe('/w/ws_1/estrategias/abandoned_cart');
+        // Un paso sin pantalla se lee, pero no es un enlace.
+        expect(screen.getByText('Revisa tu plan.').closest('a')).toBeNull();
+
+        fireEvent.change(screen.getByLabelText('Tu pregunta'), { target: { value: 'ok pero quiero conectar un nuevo sitio' } });
+        fireEvent.keyDown(screen.getByLabelText('Tu pregunta'), { key: 'Enter' });
+        await waitFor(() => expect(screen.getByText('Listo.')).toBeTruthy());
+        const second = JSON.parse((fetchMock.mock.calls[1]?.[1] as RequestInit).body as string) as { history: { answer: string }[] };
+        expect(second.history[0]?.answer).toContain('- Conecta tu web con el plugin.');
+    });
+
+    it('si la IA no respondió lo dice y deja volver a preguntar; un error de red también', async () => {
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce(json(answer({ status: 'failed', answer: 'La IA no respondió esta vez.', fallback_reason: 'provider', retryable: true, actions: [] })))
+            .mockResolvedValueOnce(json(answer({ answer: 'Ahora sí: conecta tu web.', actions: [] })))
+            .mockResolvedValueOnce(json({ message: 'Error del servidor' }, 500))
+            .mockResolvedValueOnce(json(answer({ answer: 'Respuesta después del error.', actions: [] })));
+        vi.stubGlobal('fetch', fetchMock);
+        useAssistant.setState({ open: true, pending: 'como inicio?' });
+        render(wrap(<AssistantPanel />, '/w/ws_1'));
+
+        await waitFor(() => expect(screen.getByText('La IA no respondió esta vez.')).toBeTruthy());
+        expect(screen.getByText('No pude responder esta vez')).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', { name: /Volver a preguntar/ }));
+        await waitFor(() => expect(screen.getByText('Ahora sí: conecta tu web.')).toBeTruthy());
+        expect(screen.queryByText('La IA no respondió esta vez.')).toBeNull();
+        const again = JSON.parse((fetchMock.mock.calls[1]?.[1] as RequestInit).body as string) as { question: string };
+        expect(again.question).toBe('como inicio?');
+
+        fireEvent.change(screen.getByLabelText('Tu pregunta'), { target: { value: '¿y luego?' } });
+        fireEvent.keyDown(screen.getByLabelText('Tu pregunta'), { key: 'Enter' });
+        await waitFor(() => expect(screen.getByRole('button', { name: /Volver a preguntar/ })).toBeTruthy());
+        fireEvent.click(screen.getByRole('button', { name: /Volver a preguntar/ }));
+        await waitFor(() => expect(screen.getByText('Respuesta después del error.')).toBeTruthy());
+
+        // Un rechazo no ofrece reintentar: hay que preguntarlo de otra forma.
+        cleanup();
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(json(answer({ status: 'failed', answer: 'Pregúntalo de otra forma.', fallback_reason: 'refusal', retryable: false, actions: [] }))));
+        useAssistant.setState({ open: true, pending: 'algo raro' });
+        render(wrap(<AssistantPanel />, '/w/ws_1'));
+        await waitFor(() => expect(screen.getByText('Pregúntalo de otra forma.')).toBeTruthy());
+        expect(screen.queryByRole('button', { name: /Volver a preguntar/ })).toBeNull();
+    });
+
+    it('mientras piensa dice que sigue trabajando si tarda', async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        try {
+            vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})));
+            useAssistant.setState({ open: true, pending: '¿Cuánto vendí?' });
+            render(wrap(<AssistantPanel />, '/w/ws_1'));
+            await waitFor(() => expect(screen.getByText('Pensando…')).toBeTruthy());
+            act(() => {
+                vi.advanceTimersByTime(9000);
+            });
+            expect(screen.getByText(/Sigo pensando/)).toBeTruthy();
+            act(() => {
+                vi.advanceTimersByTime(35000);
+            });
+            expect(screen.getByText(/tardando más de lo normal/)).toBeTruthy();
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('con la IA apagada lleva al administrador de la plataforma a encenderla', async () => {

@@ -52,7 +52,9 @@ $config = [
     'features' => [
         'weekly_analyst' => ['tier' => 'main', 'model' => 'claude-sonnet-5-5', 'effort' => 'medium', 'max_tokens' => 4000],
         'ask_data' => ['tier' => 'main', 'model' => 'claude-sonnet-5-5', 'effort' => 'medium', 'max_tokens' => 4000],
-        'assistant' => ['tier' => 'main', 'model' => 'claude-sonnet-5-5', 'effort' => 'medium', 'max_tokens' => 4000], // «Pregúntale a la IA» en toda la app
+        // «Pregúntale a la IA» en toda la app: conversación con herramienta y salida JSON; esfuerzo bajo (es chat) y margen
+        // de tokens para el pensamiento adaptativo (con 4.000 se cortaba y la respuesta quedaba vacía).
+        'assistant' => ['tier' => 'main', 'model' => 'claude-sonnet-5-5', 'effort' => 'low', 'max_tokens' => 12000],
         'copilot' => ['tier' => 'main', 'model' => 'claude-sonnet-5-5', 'effort' => 'medium', 'max_tokens' => 8000],
         'content' => ['tier' => 'main', 'model' => 'claude-sonnet-5-5', 'effort' => 'low', 'max_tokens' => 4000],
         'sales_agent' => ['tier' => 'main', 'model' => 'claude-sonnet-5-5', 'effort' => 'low', 'max_tokens' => 2000],
