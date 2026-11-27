@@ -477,3 +477,14 @@ modulos.md M12 «Páginas de captura y QR») y `2026_11_28_500200_create_lead_ad
 - `templates`: las de WhatsApp de la biblioteca (`library_key` `wa_*`) quedan en `status = draft` con `body_text` (el
   texto propuesto) y `variables` (el mapeo) hasta enlazarse con la aprobada (`wa_template_id`); por clave, los flujos
   solo usan una lista o enlazada con una `wa_templates.status = APPROVED`.
+
+## Avisos (lote 0.4.0, docs/avisos.md)
+
+| Tabla | Para qué | Columnas clave |
+|---|---|---|
+| `notices` | Centro de avisos de la app, por persona | `workspace_id`, `user_id`, `kind`, `title` y `body` (cifrados), `url`, `subject_type`/`subject_id`, `read_at`; índice (`workspace_id`, `user_id`, `read_at`, `created_at`) |
+| `notice_log` | Qué se avisó por cada cita o lead y por qué no salió | `subject_type` (appointment, lead), `subject_id`, `audience` (customer, team), `event`, `channel`, `recipient` (cifrado, enmascarado), `status`, `reason`, `message_id`, `user_id` |
+| `notice_preferences` | «Mis avisos» | `user_id` (único por espacio de trabajo), `settings` (JSON por grupo y canal), `phone` (cifrado) |
+
+Retención: 180 días (`igr:retention:purge`). La supresión de un contacto borra los avisos y el registro de sus leads y citas.
+

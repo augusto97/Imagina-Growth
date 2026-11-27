@@ -12,6 +12,7 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import { toast } from '@/stores/toast';
 import { errorMessage } from '@/features/contacts/errors';
 import { useAgendaMutations } from './api';
+import { NoticeSetupCard } from './NoticeSetupCard';
 import type { BookingOverview, BookingSettings } from './types';
 
 const CHANNELS = ['whatsapp', 'email', 'sms'] as const;
@@ -43,8 +44,24 @@ export function PageTab({ data }: { data: BookingOverview }) {
             },
         );
 
+    // «Pedir el correo siempre» desde «Así avisamos» (lote 0.4.0): sin WhatsApp, el correo es la única forma de avisar.
+    const requireEmail = () => {
+        set('require_email', true);
+        set('ask_email', true);
+        saveSettings.mutate(
+            { require_email: true, ask_email: true },
+            { onSuccess: () => toast.success(t('notices.setup.requireEmailSaved')), onError: (e) => toast.error(errorMessage(e, t)) },
+        );
+    };
+    const chooseTemplate = () => {
+        const el = document.getElementById('igr-booking-templates');
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el?.querySelector('select')?.focus();
+    };
+
     return (
         <div className="igr:grid igr:gap-4 igr:lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+            <NoticeSetupCard onRequireEmail={requireEmail} onChooseTemplate={chooseTemplate} saving={saveSettings.isPending} />
             <Card>
                 <CardHeader>
                     <CardTitle>{t('agenda.page.settings')}</CardTitle>
@@ -161,7 +178,7 @@ export function PageTab({ data }: { data: BookingOverview }) {
                             {t('agenda.page.autoNoShow')}
                         </label>
                     </fieldset>
-                    <fieldset>
+                    <fieldset id="igr-booking-templates" className="igr:scroll-mt-6">
                         <legend className="igr:font-medium">{t('agenda.page.waTemplates')}</legend>
                         <p className="igr:text-xs igr:text-muted-foreground">{t('agenda.page.waTemplatesHelp')}</p>
                         <div className="igr:mt-1 igr:grid igr:gap-2 igr:sm:grid-cols-2">

@@ -7,7 +7,7 @@
  */
 export const ROUTE_TEXTS: Record<string, readonly string[]> = {
     agency: ['agency', 'platform'],
-    agenda: ['agenda', 'contacts'],
+    agenda: ['agenda', 'contacts', 'notices'],
     agent: ['agent', 'contacts'],
     analytics: ['agency', 'analytics', 'contacts', 'home', 'insights', 'regions'],
     assistant: ['analytics', 'assistant', 'contacts', 'copilot', 'intelligence'],
@@ -28,9 +28,10 @@ export const ROUTE_TEXTS: Record<string, readonly string[]> = {
     insights: ['analytics', 'insights'],
     integrations: ['contacts', 'integrations'],
     intelligence: ['analytics', 'insights', 'intelligence'],
-    leads: ['analytics', 'contacts', 'leads', 'qualification', 'today'],
+    leads: ['analytics', 'contacts', 'leads', 'notices', 'qualification', 'today'],
     loyalty: ['analytics', 'campaigns', 'contacts', 'loyalty'],
     measurement: ['audiences', 'connections', 'measurement'],
+    notices: ['notices'],
     onboarding: ['channels', 'connect', 'connections', 'onboarding', 'strategies'],
     onsite: ['analytics', 'contacts', 'onsite'],
     platform: ['analytics', 'backups', 'channels', 'guides', 'platform', 'platform-settings', 'updates'],
